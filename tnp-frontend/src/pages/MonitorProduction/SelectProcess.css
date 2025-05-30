@@ -1,0 +1,59 @@
+.select-process .btn-choose {
+  font-size: 1.125rem;
+  letter-spacing: 0.05rem;
+  border-radius: 0.5rem;
+  line-height: 1rem !important;
+  color: #8a8a8a !important;
+  background-color: #faf8f9 !important;
+  border: 0.1rem solid #e8e4e5 !important;
+}
+
+.select-process .btn-choose:hover {
+  background-color: #f2dddc58 !important;
+  border-color: #e5adae55 !important;
+}
+
+.select-process .btn-check:checked + .btn-choose {
+  background-color: #f2dddc !important;
+  border-color: #e5adae !important;
+}
+
+.select-process .btn-choose > h1 {
+  font-size: 4rem;
+  color: #585858 !important;
+  line-height: 3.5rem;
+}
+
+.select-process .btn-choose > label {
+  cursor: pointer;
+}
+
+.btn-toggle {
+  font-size: 1.125rem;
+  letter-spacing: 0.05rem;
+  line-height: normal;
+  color: #8a8a8a;
+  background-color: #f6f4f5;
+  border: 0.1rem solid #e8e4e5;
+  border-radius: 0.5rem !important;
+}
+
+.btn-toggle:hover {
+  background-color: #f2dddc58 !important;
+  border-color: #e5adae55 !important;
+}
+
+.btn-check:checked+.btn-toggle {
+  background-color: #f2dddc !important;
+  border-color: #e5adae !important;
+}
+
+.btn-start {
+  font-family: "PSL KittithadaBold" !important;
+  font-size: 1.125rem !important;
+  color: #c99798 !important;
+  letter-spacing: 0.1rem !important;
+  border: 0.1rem solid #ce5355 !important;
+  border-radius: 0.4rem !important;
+  height: 1.5rem;
+}

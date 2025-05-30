@@ -1,0 +1,36 @@
+.btn-filter {
+  font-family: "PSL KittithadaBold" !important;
+  font-size: 1.5rem !important;
+  height: 2.5rem;
+  border-radius: 1.3rem !important;
+  background-color: #820405 !important;
+}
+
+.btn-choose {
+  letter-spacing: 0.05rem;
+  border-radius: 0.5rem;
+  line-height: 1rem !important;
+  color: #8a8a8a !important;
+  background-color: #faf8f9 !important;
+  border: 0.1rem solid #e8e4e5 !important;
+}
+
+.btn-choose:hover {
+  background-color: #f2dddc58 !important;
+  border-color: #e5adae55 !important;
+}
+
+.btn-check:checked + .btn-choose {
+  background-color: #f2dddc !important;
+  border-color: #e5adae !important;
+}
+
+.btn-choose > h1 {
+  font-size: 3rem;
+  color: #585858 !important;
+  line-height: 3.5rem;
+}
+
+.btn-choose > label {
+  cursor: pointer;
+}

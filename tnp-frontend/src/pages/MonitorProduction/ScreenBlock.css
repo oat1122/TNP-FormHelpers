@@ -1,0 +1,110 @@
+/* Layout */
+.screen-block .content-date {
+  background-color: #F0F0F0;
+  height: 1.8rem;
+}
+
+.screen-block .content-date .title {
+  font-size: 1.25rem;
+  letter-spacing: 0.063rem;
+}
+
+.screen-block .content-date label {
+  font-size: 1.125rem;
+  letter-spacing: 0.02rem;
+  vertical-align: middle; 
+  line-height: 1.8rem;
+}
+
+.screen-block.text-secondary {
+  color: #b3b3b3 !important;
+}
+
+.modal-embroid .modal-title {
+  font-family: "PSL Kittithada";
+  letter-spacing: 0.15rem;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #c35151;
+}
+
+.modal-embroid .modal-footer {
+  display: block;
+}
+/* End layout */
+
+/* Button */
+.screen-block label.setting {
+  background-color: #808080 !important;
+  color: white !important;
+  font-size: 1.25rem !important;
+  height: 1.8rem;
+  width: 1.8rem;
+  line-height: normal;
+}
+
+.screen-block label.setting:hover {
+  background-color: #707070 !important;
+  color: white !important;
+}
+
+.screen-block button.btn-modal-factory:disabled {
+  background-color: #F0F0F0;
+  border: none;
+  border-radius: 0.3rem;
+  font-size: 1.125rem;
+  line-height: normal;
+  opacity: 1;
+}
+
+.screen-block button.btn-modal-factory-disabled:disabled {
+  background-color: #808080;
+  border: none;
+  color: transparent !important;
+  font-size: 1.125rem;
+  line-height: normal;
+  opacity: 1;
+}
+
+.modal-embroid .toggle-screen {
+  font-family: "PSL KittithadaBold" !important;
+  color: #c2c2c2 !important;
+  font-size: 1.625rem;
+  line-height: 1.625rem;
+}
+
+.modal-embroid .btn-check:checked + .btn-outline-secondary {
+  color: #979797 !important;
+}
+
+.modal-embroid .modal-footer button.btn-danger {
+  background-color: #c35151;
+  line-height: normal;
+}
+
+.modal-embroid .modal-footer button.btn-danger:hover {
+  background-color: rgb(195 81 81 / 0.9);
+  color: white;
+}
+
+.modal-embroid .modal-footer button.btn-danger:active {
+  color: white;
+}
+
+.modal-embroid .modal-footer button.btn-outline-danger {
+  border-color: #c35151;
+  color: #c35151;
+  line-height: normal;
+}
+
+.modal-embroid button.btn-outline-danger:hover {
+  background-color: rgb(195 81 81 / 0.1);
+}
+
+.modal-embroid .modal-footer button {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.15rem;
+}
+/* End button */

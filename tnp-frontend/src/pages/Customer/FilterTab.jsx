@@ -1,0 +1,43 @@
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import { setGroupSelected, setPaginationModel } from "../../features/Customer/customerSlice";
+
+function FilterTab() {
+  const dispatch = useDispatch();
+  const groupList = useSelector((state) => state.customer.groupList);
+  const totalCount = useSelector((state) => state.customer.totalCount);
+  const groupSelected = useSelector((state) => state.customer.groupSelected);
+
+  const handleSelectGroup = (event, newVal) => {
+    if (newVal !== null) {
+      dispatch(setGroupSelected(newVal));
+      dispatch(setPaginationModel({  page: 0, pageSize: 10 }));
+    }
+  };
+
+  return (
+    <>
+      <ToggleButtonGroup
+        value={groupSelected}
+        exclusive
+        onChange={handleSelectGroup}
+        color="error-light"
+      >
+        <ToggleButton value="all">
+          {`ทั้งหมด (${totalCount})`}
+        </ToggleButton>
+        {groupList.map((item, index) => (
+          <ToggleButton key={index} value={item.mcg_id}>
+            {`${item.mcg_name} (${item.customer_group_count || 0})`}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </>
+  );
+}
+
+export default FilterTab;

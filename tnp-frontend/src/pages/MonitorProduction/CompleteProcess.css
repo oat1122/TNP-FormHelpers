@@ -1,0 +1,25 @@
+.complete-process .btn-complete {
+    font-family: "PSL KittithadaBold" !important;
+    font-size: 1rem !important;
+    color: #8cc888 !important;
+    letter-spacing: 0.1rem !important;
+    border: 0.1rem solid #8cc888 !important;
+    height: 1.5rem;
+}
+
+.complete-process .btn-complete:hover {
+    background-color: rgb(140, 200, 136, 0.1);
+}
+
+.complete-process .btn-edit {
+    font-family: "PSL KittithadaBold" !important;
+    font-size: 1rem !important;
+    color: #EBDA4D !important;
+    letter-spacing: 0.1rem !important;
+    border: 0.1rem solid #EBDA4D !important;
+    height: 1.5rem;
+}
+
+.complete-process .btn-edit:hover {
+    background-color: rgb(235, 218, 77, 0.1);
+}

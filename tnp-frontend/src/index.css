@@ -1,0 +1,34 @@
+@font-face {
+  font-family: 'PSL Kittithada';
+  src: url('./assets/fonts/PSL Kittithada/PSLKittithada.woff2') format('woff2'),
+  url('./assets/fonts/PSL Kittithada/PSLKittithada.woff') format('woff');
+  /* font-weight: normal; */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PSL KittithadaBold';
+  src: url('./assets/fonts/PSL Kittithada/PSLKittithadaProBold.woff2') format('woff2'),
+  url('./assets/fonts/PSL Kittithada/PSLKittithadaProBold.woff') format('woff');
+  /* font-weight: normal; */
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-family: 'PSL Kittithada' !important;
+  margin: 0;
+  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif; */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #F2F2F2;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  monospace;
+}
+

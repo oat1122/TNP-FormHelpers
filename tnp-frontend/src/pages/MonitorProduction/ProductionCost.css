@@ -1,0 +1,142 @@
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.production-cost button {
+  font-family: "PSL Kittithada";
+  font-size: 1.25rem !important;
+  background-color: #F0F0F0;
+  color: black;
+  margin-bottom: 0.5rem;
+  line-height: 1rem;
+  width: 100%;
+}
+
+.production-cost button:hover {
+  background-color: #E0E0E0;
+}
+
+.production-cost form {
+  display: contents;
+}
+
+.production-cost .modal-dialog {
+  max-width: 100%;
+  height: 90%;
+}
+.production-cost .modal-content {
+  min-height: 100%;
+}
+
+.production-cost .modal-content h4 {
+  font-family: "PSL KittithadaBold";
+  letter-spacing: 0.1rem;
+  /* font-size: 1.75rem; */
+  font-size: 1.625rem;
+  margin-bottom: 0;
+}
+
+.production-cost .modal-content button {
+  background-color: #eeeced !important;
+  color: #c35151 !important;
+  border-radius: 0.5rem !important;
+  border-width: 0 !important;
+  height: 2.3rem;
+}
+
+.production-cost .modal-content .remove {
+  font-size: 1.25rem;
+}
+
+.production-cost .modal-content input[type="text"] {
+  font-family: "PSL Kittithada";
+  font-weight: 600;
+  font-size: 1.375rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  letter-spacing: 0.1rem;
+  text-align: center;
+}
+
+.production-cost .modal-content input[type="number"] {
+  font-family: "PSL Kittithada";
+  font-weight: 600;
+  font-size: 1.375rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  letter-spacing: 0.1rem;
+  text-align: center;
+}
+
+.production-cost .modal-content .MuiOutlinedInput-root {
+  border-radius: 0.5rem;
+  background-color: #eeeced;
+}
+
+.production-cost .modal-content .MuiOutlinedInput-root fieldset {
+  border-color: #eeeced;
+}
+
+.production-cost .modal-content .MuiOutlinedInput-root:hover fieldset {
+  border-color: rgb(128 126 127) !important;
+}
+
+.production-cost .modal-content .Mui-focused fieldset {
+  border-color: rgb(128 126 127) !important;
+}
+
+.production-cost .modal-content .Mui-hover fieldset {
+  border-color: rgb(204 202 203) !important;
+}
+
+.production-cost .modal-content .Mui-disabled fieldset {
+  border-width: 0 !important;
+}
+
+.production-cost .row-content h4 {
+  padding-top: 0.2rem;
+  margin-bottom: 0;
+}
+
+.production-cost .row-content {
+  counter-reset: no;
+}
+
+.production-cost .row-content .label-num::before {
+  counter-increment: no;
+  content: "  " counter(no);
+  align-self: center;
+}
+
+.production-cost .modal-footer button.MuiButton-contained {
+  font-family: "PSL KittithadaBold";
+  font-size: 1.3rem !important;
+  background-color: #c35151 !important;
+  color: white !important;
+}
+
+.production-cost .modal-footer button.MuiButton-contained:hover {
+  background-color: rgb(195 81 81 / 0.9) !important;
+  color: white;
+}
+
+.production-cost .modal-footer button.MuiButton-contained:active {
+  color: white !important;
+}
+
+.production-cost .modal-footer button.MuiButton-outlined {
+  font-family: "PSL KittithadaBold";
+  font-size: 1.3rem !important;
+  color: #c35151 !important;
+  border: 0.05rem solid #c35151 !important;
+}
+
+.production-cost .modal-footer button.MuiButton-outlined:hover {
+  background-color: rgb(195 81 81 / 0.1) !important;
+}

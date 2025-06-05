@@ -30,4 +30,23 @@ export default {
   },
   mode: "",
   totalCount: 0,
+  filters: {
+    dateRange: {
+      startDate: null,
+      endDate: null,
+    },
+    salesName: "",
+    channel: "",
+    recallRange: {
+      minDays: null,
+      maxDays: null,
+    },
+  },
+  salesList: [],
+  channelList: [
+    { value: "", label: "ทั้งหมด" },
+    { value: "1", label: "Sales" },
+    { value: "2", label: "Online" },
+    { value: "3", label: "Office" },
+  ],
 };

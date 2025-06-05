@@ -65,7 +65,7 @@ import {
 import { setLocationSearch } from "../../features/globalSlice";
 import { Link, useParams } from "react-router-dom";
 import TitleBar from "../../components/TitleBar";
-import FilterTab from "./FilterTab";
+import FilterPanel from "./FilterPanel";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -206,17 +206,26 @@ function CustomerList() {
   const dispatch = useDispatch();
 
   const [totalItems, setTotalItems] = useState(0);
+  const [showAll, setShowAll] = useState(false);
   const itemList = useSelector((state) => state.customer.itemList);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const groupList = useSelector((state) => state.customer.groupList);
   const keyword = useSelector((state) => state.global.keyword);
   const paginationModel = useSelector((state) => state.customer.paginationModel);
+  const filters = useSelector((state) => state.customer.filters);
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
-    page: paginationModel.page,
-    per_page: paginationModel.pageSize,
+    page: showAll ? 0 : paginationModel.page,
+    per_page: showAll ? 999999 : paginationModel.pageSize,
     user_id: user.user_id,
     search: keyword,
+    // เพิ่ม filters
+    dateStart: filters.dateRange.startDate,
+    dateEnd: filters.dateRange.endDate,
+    salesName: filters.salesName,
+    channel: filters.channel,
+    recallMin: filters.recallRange.minDays,
+    recallMax: filters.recallRange.maxDays,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -417,6 +426,11 @@ function CustomerList() {
     }
   }, [data, groupSelected]);
 
+  // Reset showAll when filters change
+  useEffect(() => {
+    setShowAll(false);
+  }, [filters, groupSelected, keyword]);
+
   const columns = useMemo(
     () => [
       {
@@ -518,54 +532,60 @@ function CustomerList() {
       <TitleBar title="customer" />
       <Box
         paddingX={3}
-        sx={{ margin: "auto", maxWidth: 1800, height: 700, paddingBlock: 3 }}
+        sx={{ margin: "auto", maxWidth: 1800, paddingBlock: 3 }}
       >
-        {/* Button on top table */}
-        <TableContainer>
-          <Table sx={{ marginBottom: 2 }}>
-            <TableBody>
-              <TableRow>
-
-                { user.role === 'sale' || user.role === 'admin' ? (
-                <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
-                  <Button
-                    variant="icon-contained"
-                    color="grey"
-                    onClick={() => handleOpenDialog("create")}
-                    sx={{
-                      marginRight: 3,
-                      height: 40,
-                      padding: 0,
-                    }}
-                  >
-                    <RiAddLargeFill style={{ width: 24, height: 24 }} />
-                  </Button>
-                </TableCell>
-                ) : null}
-
-                <TableCell sx={{ padding: 0, border: 0 }}>
-                  <FilterTab />
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {/* Button and Filters */}
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            { user.role === 'sale' || user.role === 'admin' ? (
+              <Button
+                variant="icon-contained"
+                color="grey"
+                onClick={() => handleOpenDialog("create")}
+                sx={{
+                  height: 40,
+                  padding: 0,
+                }}
+              >
+                <RiAddLargeFill style={{ width: 24, height: 24 }} />
+              </Button>
+            ) : null}
+            
+            <Button
+              variant={showAll ? "contained" : "outlined"}
+              color="error"
+              onClick={() => setShowAll(!showAll)}
+              sx={{ ml: 'auto' }}
+            >
+              {showAll ? "แสดงแบบแบ่งหน้า" : "แสดงข้อมูลทั้งหมด"}
+            </Button>
+          </Box>
+          
+          <FilterPanel />
+        </Box>
 
         <StyledDataGrid
           disableRowSelectionOnClick
-          paginationMode="server"
+          paginationMode={showAll ? "client" : "server"}
           rows={itemList}
           columns={columns}
           getRowId={(row) => row.cus_id}
           initialState={{ pagination: { paginationModel } }}
-          onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
+          onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
           rowCount={totalItems}
           loading={isFetching}
+          pageSizeOptions={showAll ? [itemList.length] : [10, 25, 50]}
           slots={{
             noRowsOverlay: NoDataComponent,
-            pagination: CustomPagination,
+            pagination: showAll ? undefined : CustomPagination,
           }}
-          sx={{ border: 0 }}
+          sx={{ 
+            border: 0,
+            height: showAll ? 'auto' : 700,
+            '& .MuiDataGrid-main': {
+              maxHeight: showAll ? 'none' : undefined,
+            }
+          }}
           rowHeight={50}
           columnHeaderHeight={50}
         />

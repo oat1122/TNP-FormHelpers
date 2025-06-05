@@ -27,6 +27,38 @@ export default {
   setPaginationModel: (state, action) => {
     state.paginationModel = action.payload;
   },
+  setFilters: (state, action) => {
+    state.filters = { ...state.filters, ...action.payload };
+  },
+  setDateRange: (state, action) => {
+    state.filters.dateRange = action.payload;
+  },
+  setSalesName: (state, action) => {
+    state.filters.salesName = action.payload;
+  },
+  setChannel: (state, action) => {
+    state.filters.channel = action.payload;
+  },
+  setRecallRange: (state, action) => {
+    state.filters.recallRange = action.payload;
+  },
+  resetFilters: (state) => {
+    state.filters = {
+      dateRange: {
+        startDate: null,
+        endDate: null,
+      },
+      salesName: "",
+      channel: "",
+      recallRange: {
+        minDays: null,
+        maxDays: null,
+      },
+    };
+  },
+  setSalesList: (state, action) => {
+    state.salesList = action.payload;
+  },
   resetInputList: (state) => {
     state.inputList = {
       cus_mcg_id: "",

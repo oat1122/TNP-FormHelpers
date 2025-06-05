@@ -15,6 +15,12 @@ export const customerApi = createApi({
           per_page: payload?.per_page,
           user: payload?.user_id,
           search: payload?.search,
+          date_start: payload?.dateStart,
+          date_end: payload?.dateEnd,
+          sales_name: payload?.salesName,
+          channel: payload?.channel,
+          recall_min: payload?.recallMin,
+          recall_max: payload?.recallMax,
         };
 
         const queryString = qs.stringify(queryParams, { skipNulls: true });

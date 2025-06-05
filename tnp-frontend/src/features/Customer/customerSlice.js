@@ -19,6 +19,13 @@ export const {
   setGroupSelected,
   setTotalCount,
   setPaginationModel,
+  setFilters,
+  setDateRange,
+  setSalesName,
+  setChannel,
+  setRecallRange,
+  resetFilters,
+  setSalesList,
 } = customerSlice.actions;
 
 export default customerSlice.reducer;

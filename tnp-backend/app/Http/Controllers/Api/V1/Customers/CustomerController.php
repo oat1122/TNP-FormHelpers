@@ -68,6 +68,37 @@ class CustomerController extends Controller
                                 });
                         });
                     }
+
+                    // Apply the same filters to group count
+                    if ($request->has('date_start') && $request->date_start) {
+                        $query->whereDate('cus_created_date', '>=', $request->date_start);
+                    }
+                    if ($request->has('date_end') && $request->date_end) {
+                        $query->whereDate('cus_created_date', '<=', $request->date_end);
+                    }
+                    if ($request->has('sales_name') && $request->sales_name) {
+                        $query->whereHas('cusManageBy', function ($q) use ($request) {
+                            $q->where('username', $request->sales_name);
+                        });
+                    }
+                    if ($request->has('channel') && $request->channel) {
+                        $query->where('cus_channel', $request->channel);
+                    }
+                    if ($request->has('recall_min') || $request->has('recall_max')) {
+                        $query->whereHas('customerDetail', function ($q) use ($request) {
+                            $now = now();
+
+                            if ($request->has('recall_min') && $request->recall_min) {
+                                $min_date = $now->copy()->subDays($request->recall_min);
+                                $q->where('cd_last_datetime', '<=', $min_date);
+                            }
+
+                            if ($request->has('recall_max') && $request->recall_max) {
+                                $max_date = $now->copy()->subDays($request->recall_max);
+                                $q->where('cd_last_datetime', '>=', $max_date);
+                            }
+                        });
+                    }
                 }])
                 ->get();
 
@@ -103,6 +134,63 @@ class CustomerController extends Controller
 
                 $customer_prepared->where($search_sql);
                 $total_customers_q->where($search_sql);
+            }
+
+            // Filter by date range
+            if ($request->has('date_start') && $request->date_start) {
+                $customer_prepared->whereDate('cus_created_date', '>=', $request->date_start);
+                $total_customers_q->whereDate('cus_created_date', '>=', $request->date_start);
+            }
+            if ($request->has('date_end') && $request->date_end) {
+                $customer_prepared->whereDate('cus_created_date', '<=', $request->date_end);
+                $total_customers_q->whereDate('cus_created_date', '<=', $request->date_end);
+            }
+
+            // Filter by sales name
+            if ($request->has('sales_name') && $request->sales_name) {
+                $customer_prepared->whereHas('cusManageBy', function ($query) use ($request) {
+                    $query->where('username', $request->sales_name);
+                });
+                $total_customers_q->whereHas('cusManageBy', function ($query) use ($request) {
+                    $query->where('username', $request->sales_name);
+                });
+            }
+
+            // Filter by channel
+            if ($request->has('channel') && $request->channel) {
+                $customer_prepared->where('cus_channel', $request->channel);
+                $total_customers_q->where('cus_channel', $request->channel);
+            }
+
+            // Filter by recall days range
+            if ($request->has('recall_min') || $request->has('recall_max')) {
+                $customer_prepared->whereHas('customerDetail', function ($query) use ($request) {
+                    $now = now();
+
+                    if ($request->has('recall_min') && $request->recall_min) {
+                        $min_date = $now->copy()->subDays($request->recall_min);
+                        $query->where('cd_last_datetime', '<=', $min_date);
+                    }
+
+                    if ($request->has('recall_max') && $request->recall_max) {
+                        $max_date = $now->copy()->subDays($request->recall_max);
+                        $query->where('cd_last_datetime', '>=', $max_date);
+                    }
+                });
+
+                $total_customers_q->whereHas('customerDetail', function ($query) use ($request) {
+                    $now = now();
+
+                    if ($request->has('recall_min') && $request->recall_min) {
+                        $min_date = $now->copy()->subDays($request->recall_min);
+                        $query->where('cd_last_datetime', '<=', $min_date);
+                    }
+
+                    if ($request->has('recall_max') && $request->recall_max) {
+                        $max_date = $now->copy()->subDays($request->recall_max);
+                        $query->where('cd_last_datetime', '>=', $max_date);
+                    }
+                });
             }
 
             $perPage = $request->input('per_page', 10);

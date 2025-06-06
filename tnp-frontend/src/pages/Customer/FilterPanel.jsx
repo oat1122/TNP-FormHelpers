@@ -184,14 +184,14 @@ function FilterPanel() {
                 <Stack spacing={2}>
                   <Typography variant="subtitle2">วันที่สร้างลูกค้า (Customer Created Date)</Typography>
                                       <Typography variant="caption" color="text.secondary" component="div">
-                    กรองลูกค้าตามวันที่สร้างในระบบ (cus_created_date)
+                    กรองลูกค้าตามวันที่สร้างในระบบ 
                     {(filters.dateRange.startDate || filters.dateRange.endDate) && (
                       <>
                         <Box component="span" sx={{ color: 'primary.main', fontWeight: 'bold', ml: 1 }}>
                           (ผลลัพธ์: {dateFilteredCount} คน)
                         </Box>
                         <Box sx={{ color: 'success.main', fontSize: '0.75rem', mt: 0.5 }}>
-                          ✓ กรองข้อมูลผ่าน Backend API เพื่อประสิทธิภาพที่ดีที่สุด
+                          ✓ กรองข้อมูลเรียบร้อยแล้ว
                         </Box>
                       </>
                     )}

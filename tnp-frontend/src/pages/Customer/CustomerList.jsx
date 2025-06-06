@@ -213,10 +213,13 @@ function CustomerList() {
   const keyword = useSelector((state) => state.global.keyword);
   const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
+  // ตรวจสอบว่ามีการใช้ recall filter หรือไม่
+  const hasRecallFilter = filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null;
+  
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
-    page: showAll ? 0 : paginationModel.page,
-    per_page: showAll ? 999999 : paginationModel.pageSize,
+    page: showAll || hasRecallFilter ? 0 : paginationModel.page,
+    per_page: showAll || hasRecallFilter ? 999999 : paginationModel.pageSize,
     user_id: user.user_id,
     search: keyword,
     // เพิ่ม filters
@@ -224,8 +227,10 @@ function CustomerList() {
     dateEnd: filters.dateRange.endDate,
     salesName: filters.salesName,
     channel: filters.channel,
-    recallMin: filters.recallRange.minDays,
-    recallMax: filters.recallRange.maxDays,
+    // ปิดการส่ง recall filter ไปที่ backend เนื่องจาก backend logic ไม่ถูกต้อง
+    // จะใช้ client-side filtering แทน
+    // recallMin: filters.recallRange.minDays,
+    // recallMax: filters.recallRange.maxDays,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -431,6 +436,39 @@ function CustomerList() {
     setShowAll(false);
   }, [filters, groupSelected, keyword]);
 
+  // Filter data based on recall range (client-side filtering)
+  const filteredItemList = useMemo(() => {
+    if (!itemList || itemList.length === 0) return itemList;
+
+    let filtered = [...itemList];
+
+    // Apply recall range filter - ใช้ client-side filtering เสมอเนื่องจาก backend logic ไม่ถูกต้อง
+    if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) {
+      filtered = filtered.filter((item) => {
+        const recallDays = formatCustomRelativeTime(item.cd_last_datetime);
+        const recallNumber = parseInt(recallDays, 10);
+        
+        const minDays = filters.recallRange.minDays;
+        const maxDays = filters.recallRange.maxDays;
+        
+        let matchesMin = true;
+        let matchesMax = true;
+        
+        if (minDays !== null && minDays !== "") {
+          matchesMin = recallNumber >= minDays;
+        }
+        
+        if (maxDays !== null && maxDays !== "") {
+          matchesMax = recallNumber <= maxDays;
+        }
+        
+        return matchesMin && matchesMax;
+      });
+    }
+
+    return filtered;
+  }, [itemList, filters.recallRange]);
+
   const columns = useMemo(
     () => [
       {
@@ -564,31 +602,33 @@ function CustomerList() {
           <FilterPanel />
         </Box>
 
-        <StyledDataGrid
-          disableRowSelectionOnClick
-          paginationMode={showAll ? "client" : "server"}
-          rows={itemList}
-          columns={columns}
-          getRowId={(row) => row.cus_id}
-          initialState={{ pagination: { paginationModel } }}
-          onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
-          rowCount={totalItems}
-          loading={isFetching}
-          pageSizeOptions={showAll ? [itemList.length] : [10, 25, 50]}
-          slots={{
-            noRowsOverlay: NoDataComponent,
-            pagination: showAll ? undefined : CustomPagination,
-          }}
-          sx={{ 
-            border: 0,
-            height: showAll ? 'auto' : 700,
-            '& .MuiDataGrid-main': {
-              maxHeight: showAll ? 'none' : undefined,
-            }
-          }}
-          rowHeight={50}
-          columnHeaderHeight={50}
-        />
+                  <StyledDataGrid
+            disableRowSelectionOnClick
+            paginationMode={showAll || filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null ? "client" : "server"}
+            rows={filteredItemList}
+            columns={columns}
+            getRowId={(row) => row.cus_id}
+            initialState={{ pagination: { paginationModel } }}
+            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
+            rowCount={filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null 
+              ? filteredItemList.length 
+              : (showAll ? filteredItemList.length : totalItems)}
+            loading={isFetching}
+            pageSizeOptions={showAll ? [filteredItemList.length] : [10, 25, 50]}
+            slots={{
+              noRowsOverlay: NoDataComponent,
+              pagination: showAll ? undefined : CustomPagination,
+            }}
+            sx={{ 
+              border: 0,
+              height: showAll ? 'auto' : 700,
+              '& .MuiDataGrid-main': {
+                maxHeight: showAll ? 'none' : undefined,
+              }
+            }}
+            rowHeight={50}
+            columnHeaderHeight={50}
+          />
       </Box>
     </div>
   );

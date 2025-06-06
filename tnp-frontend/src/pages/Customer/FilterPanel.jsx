@@ -12,6 +12,7 @@ import {
   AccordionDetails,
   Stack,
 } from "@mui/material";
+import { useMemo } from "react";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -25,6 +26,7 @@ import {
 } from "../../features/Customer/customerSlice";
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
 
 // ตั้งค่า dayjs ให้ใช้ภาษาไทย
 dayjs.locale('th');
@@ -35,6 +37,31 @@ function FilterPanel() {
   const salesList = useSelector((state) => state.customer.salesList);
   const channelList = useSelector((state) => state.customer.channelList);
   const itemList = useSelector((state) => state.customer.itemList);
+  
+  // นับจำนวนข้อมูลที่กรองแล้ว
+  const filteredCount = useMemo(() => {
+    if (!itemList || itemList.length === 0) return 0;
+    if (filters.recallRange.minDays === null && filters.recallRange.maxDays === null) return itemList.length;
+    
+    return itemList.filter((item) => {
+      const recallDays = parseInt(formatCustomRelativeTime(item.cd_last_datetime), 10);
+      const minDays = filters.recallRange.minDays;
+      const maxDays = filters.recallRange.maxDays;
+      
+      let matchesMin = true;
+      let matchesMax = true;
+      
+      if (minDays !== null && minDays !== "") {
+        matchesMin = recallDays >= minDays;
+      }
+      
+      if (maxDays !== null && maxDays !== "") {
+        matchesMax = recallDays <= maxDays;
+      }
+      
+      return matchesMin && matchesMax;
+    }).length;
+  }, [itemList, filters.recallRange]);
   
   const [localFilters, setLocalFilters] = useState({
     dateRange: {
@@ -215,6 +242,19 @@ function FilterPanel() {
               <Grid size={{ xs: 12, md: 6 }}>
                 <Stack spacing={2}>
                   <Typography variant="subtitle2">วันที่ขาดการติดต่อ (RECALL)</Typography>
+                  <Typography variant="caption" color="text.secondary" component="div">
+                    กรองลูกค้าตามจำนวนวันที่เหลือก่อนถึงกำหนดติดต่อ
+                    {(filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) && (
+                      <>
+                        <Box component="span" sx={{ color: 'primary.main', fontWeight: 'bold', ml: 1 }}>
+                          (ผลลัพธ์: {filteredCount} คน)
+                        </Box>
+                        <Box sx={{ color: 'warning.main', fontSize: '0.75rem', mt: 0.5 }}>
+                          * กำลังกรองข้อมูลทั้งหมดเพื่อความแม่นยำ อาจใช้เวลาโหลดนานกว่าปกติ
+                        </Box>
+                      </>
+                    )}
+                  </Typography>
                   <TextField
                     fullWidth
                     size="small"
@@ -230,6 +270,7 @@ function FilterPanel() {
                     InputProps={{
                       inputProps: { min: 0 }
                     }}
+                    helperText="เช่น ใส่ 0 = ลูกค้าที่ถึงกำหนดวันนี้ขึ้นไป"
                   />
                   <TextField
                     fullWidth
@@ -246,6 +287,7 @@ function FilterPanel() {
                     InputProps={{
                       inputProps: { min: 0 }
                     }}
+                    helperText="เช่น ใส่ 10 = ลูกค้าที่เหลือไม่เกิน 10 วันก่อนถึงกำหนด"
                   />
                 </Stack>
               </Grid>

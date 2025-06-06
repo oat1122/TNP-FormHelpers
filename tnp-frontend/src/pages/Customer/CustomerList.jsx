@@ -70,6 +70,7 @@ import {
   formatCustomRelativeTime,
   genCustomerNo,
 } from "../../features/Customer/customerUtils";
+import moment from "moment";
 import DialogForm from "./DialogForm";
 import { swal_delete_by_id } from "../../utils/dialog_swal2/dialog_delete_by_id";
 import {
@@ -496,6 +497,18 @@ function CustomerList() {
       { field: "cus_name", headerName: "CUSTOMER", width: 200 },
       { field: "cus_company", headerName: "COMPANY NAME", width: 280 },
       { field: "cus_tel_1", headerName: "TEL", width: 140 },
+      {
+        field: "cus_created_date",
+        headerName: "CREATED DATE",
+        width: 140,
+        renderCell: (params) => {
+          // แสดงวันที่แบบ DD/MM/YYYY (พ.ศ.)
+          const date = moment(params.value);
+          const buddhistYear = date.year() + 543;
+          return date.format("DD/MM/") + buddhistYear;
+        },
+        sortable: true,
+      },
       { field: "cd_note", headerName: "NOTE", width: 280 },
       {
         field: "cd_last_datetime",

@@ -62,6 +62,28 @@ function FilterPanel() {
       return matchesMin && matchesMax;
     }).length;
   }, [itemList, filters.recallRange]);
+
+  // นับจำนวนลูกค้าที่กรองตามวันที่สร้าง
+  const dateFilteredCount = useMemo(() => {
+    if (!itemList || itemList.length === 0) return 0;
+    if (!filters.dateRange.startDate && !filters.dateRange.endDate) return itemList.length;
+    
+    return itemList.filter((item) => {
+      const createdDate = dayjs(item.cus_created_date);
+      let matchesStart = true;
+      let matchesEnd = true;
+      
+      if (filters.dateRange.startDate) {
+        matchesStart = createdDate.isAfter(dayjs(filters.dateRange.startDate).subtract(1, 'day'));
+      }
+      
+      if (filters.dateRange.endDate) {
+        matchesEnd = createdDate.isBefore(dayjs(filters.dateRange.endDate).add(1, 'day'));
+      }
+      
+      return matchesStart && matchesEnd;
+    }).length;
+  }, [itemList, filters.dateRange]);
   
   const [localFilters, setLocalFilters] = useState({
     dateRange: {
@@ -157,10 +179,23 @@ function FilterPanel() {
         <AccordionDetails>
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
             <Grid container spacing={2}>
-              {/* ตัวกรองช่วงวันที่ */}
+              {/* ตัวกรองช่วงวันที่สร้างลูกค้า */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Stack spacing={2}>
-                  <Typography variant="subtitle2">ช่วงวันที่</Typography>
+                  <Typography variant="subtitle2">วันที่สร้างลูกค้า (Customer Created Date)</Typography>
+                                      <Typography variant="caption" color="text.secondary" component="div">
+                    กรองลูกค้าตามวันที่สร้างในระบบ (cus_created_date)
+                    {(filters.dateRange.startDate || filters.dateRange.endDate) && (
+                      <>
+                        <Box component="span" sx={{ color: 'primary.main', fontWeight: 'bold', ml: 1 }}>
+                          (ผลลัพธ์: {dateFilteredCount} คน)
+                        </Box>
+                        <Box sx={{ color: 'success.main', fontSize: '0.75rem', mt: 0.5 }}>
+                          ✓ กรองข้อมูลผ่าน Backend API เพื่อประสิทธิภาพที่ดีที่สุด
+                        </Box>
+                      </>
+                    )}
+                  </Typography>
                   <DatePicker
                     label="วันที่เริ่มต้น"
                     value={localFilters.dateRange.startDate}
@@ -175,8 +210,10 @@ function FilterPanel() {
                       textField: {
                         fullWidth: true,
                         size: "small",
+                        helperText: "เลือกวันที่เริ่มต้นที่ต้องการค้นหา",
                       },
                     }}
+                    maxDate={dayjs()} // ไม่เกินวันปัจจุบัน
                   />
                   <DatePicker
                     label="วันที่สิ้นสุด"
@@ -192,9 +229,83 @@ function FilterPanel() {
                       textField: {
                         fullWidth: true,
                         size: "small",
+                        helperText: "เลือกวันที่สิ้นสุดที่ต้องการค้นหา",
                       },
                     }}
+                    minDate={localFilters.dateRange.startDate} // ไม่น้อยกว่าวันเริ่มต้น
+                    maxDate={dayjs()} // ไม่เกินวันปัจจุบัน
                   />
+                  
+                  {/* ปุ่มลัดเลือกช่วงเวลา */}
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const today = dayjs();
+                        setLocalFilters(prev => ({
+                          ...prev,
+                          dateRange: { 
+                            startDate: today.startOf('day'),
+                            endDate: today.endOf('day')
+                          }
+                        }))
+                      }}
+                    >
+                      วันนี้
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const startOfWeek = dayjs().startOf('week');
+                        const endOfWeek = dayjs().endOf('week');
+                        setLocalFilters(prev => ({
+                          ...prev,
+                          dateRange: { 
+                            startDate: startOfWeek,
+                            endDate: endOfWeek
+                          }
+                        }))
+                      }}
+                    >
+                      สัปดาห์นี้
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const startOfMonth = dayjs().startOf('month');
+                        const endOfMonth = dayjs().endOf('month');
+                        setLocalFilters(prev => ({
+                          ...prev,
+                          dateRange: { 
+                            startDate: startOfMonth,
+                            endDate: endOfMonth
+                          }
+                        }))
+                      }}
+                    >
+                      เดือนนี้
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const last30Days = dayjs().subtract(30, 'days');
+                        const today = dayjs();
+                        setLocalFilters(prev => ({
+                          ...prev,
+                          dateRange: { 
+                            startDate: last30Days,
+                            endDate: today
+                          }
+                        }))
+                      }}
+                    >
+                      30 วันล่าสุด
+                    </Button>
+                  </Box>
                 </Stack>
               </Grid>
 

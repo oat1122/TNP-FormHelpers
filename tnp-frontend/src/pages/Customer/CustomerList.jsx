@@ -14,6 +14,7 @@ import {
   useGridSelector,
   gridPageCountSelector,
   gridPageSelector,
+  GridToolbar,
 } from "@mui/x-data-grid";
 import {
   AppBar,
@@ -38,6 +39,10 @@ import {
   TableContainer,
   useTheme,
   useMediaQuery,
+  Skeleton,
+  Fade,
+  Paper,
+  Chip,
 } from "@mui/material";
 import { MdOutlineManageSearch } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
@@ -70,6 +75,7 @@ import {
   formatCustomRelativeTime,
   genCustomerNo,
 } from "../../features/Customer/customerUtils";
+import moment from "moment";
 import DialogForm from "./DialogForm";
 import { swal_delete_by_id } from "../../utils/dialog_swal2/dialog_delete_by_id";
 import {
@@ -82,6 +88,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeader": {
     backgroundColor: theme.palette.error.dark,
     color: theme.palette.common.white,
+    fontWeight: 600,
+    fontSize: '0.875rem',
   },
 
   "& .MuiDataGrid-columnHeaderTitleContainer": {
@@ -108,16 +116,19 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: theme.vars.palette.grey.main,
     borderRadius: theme.shape.borderRadius,
     marginTop: 10,
+    transition: 'all 0.3s ease',
+    "&:hover": {
+      backgroundColor: theme.vars.palette.grey.light,
+      transform: 'translateY(-1px)',
+      boxShadow: theme.shadows[3],
+    },
   },
 
   "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
-
-    // "&[data-field='tools']": {
-    //   paddingInline: 50,
-    // },
+    fontSize: '0.813rem',
   },
 
   "& .MuiDataGrid-menuIcon > button > svg": {
@@ -138,17 +149,24 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 
   "& .uppercase-cell": {
-    // Target the cell by class
     textTransform: "uppercase",
   },
 
   "& .danger-days": {
     color: theme.vars.palette.error.main,
+    fontWeight: 600,
+  },
+
+  "& .MuiDataGrid-sortIcon": {
+    color: "#fff",
+  },
+
+  "& .MuiDataGrid-columnHeader--sorted .MuiDataGrid-columnHeaderTitle": {
+    fontWeight: 800,
   },
 }));
 
 const StyledPagination = styled(Pagination)(({ theme }) => ({
-
   "& .MuiPaginationItem-previousNext": {
     backgroundColor: theme.vars.palette.error.dark,
     color: "#fff",
@@ -192,10 +210,74 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
   },
 }));
 
+// Skeleton Component
+const SkeletonLoader = ({ rows = 10 }) => {
+  return (
+    <Box sx={{ p: 3 }}>
+      {[...Array(rows)].map((_, index) => (
+        <Fade in={true} timeout={500 + index * 100} key={index}>
+          <Paper 
+            elevation={1} 
+            sx={{ 
+              p: 2, 
+              mb: 2, 
+              borderRadius: 2,
+              background: 'linear-gradient(90deg, #f5f5f5 25%, #e0e0e0 50%, #f5f5f5 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'loading 1.5s infinite',
+              '@keyframes loading': {
+                '0%': {
+                  backgroundPosition: '200% 0',
+                },
+                '100%': {
+                  backgroundPosition: '-200% 0',
+                },
+              },
+            }}
+          >
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={1}>
+                <Skeleton variant="text" width={60} height={30} />
+              </Grid>
+              <Grid size={1}>
+                <Skeleton variant="text" width={80} height={30} />
+              </Grid>
+              <Grid size={2}>
+                <Skeleton variant="text" width="100%" height={30} />
+              </Grid>
+              <Grid size={2}>
+                <Skeleton variant="text" width="100%" height={30} />
+              </Grid>
+              <Grid size={2}>
+                <Skeleton variant="text" width="100%" height={30} />
+              </Grid>
+              <Grid size={1}>
+                <Skeleton variant="text" width="100%" height={30} />
+              </Grid>
+              <Grid size={1}>
+                <Skeleton variant="text" width="100%" height={30} />
+              </Grid>
+              <Grid size={2}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                  <Skeleton variant="circular" width={30} height={30} />
+                  <Skeleton variant="circular" width={30} height={30} />
+                  <Skeleton variant="circular" width={30} height={30} />
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Fade>
+      ))}
+    </Box>
+  );
+};
+
 const channelMap = {
   1: "sales",
   2: "online",
   3: "office",
+  4: "mobile",
+  5: "email",
 };
 
 function CustomerList() {
@@ -204,6 +286,8 @@ function CustomerList() {
   const [updateRecall] = useUpdateRecallMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
   const dispatch = useDispatch();
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [loadingTimer, setLoadingTimer] = useState(null);
 
   const [totalItems, setTotalItems] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -213,19 +297,20 @@ function CustomerList() {
   const keyword = useSelector((state) => state.global.keyword);
   const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
+  
+  // ตรวจสอบว่ามีการใช้ recall filter หรือไม่
+  const hasRecallFilter = filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null;
+  
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
-    page: showAll ? 0 : paginationModel.page,
-    per_page: showAll ? 999999 : paginationModel.pageSize,
+    page: showAll || hasRecallFilter ? 0 : paginationModel.page,
+    per_page: showAll || hasRecallFilter ? 999999 : paginationModel.pageSize,
     user_id: user.user_id,
     search: keyword,
-    // เพิ่ม filters
     dateStart: filters.dateRange.startDate,
     dateEnd: filters.dateRange.endDate,
     salesName: filters.salesName,
     channel: filters.channel,
-    recallMin: filters.recallRange.minDays,
-    recallMax: filters.recallRange.maxDays,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -341,15 +426,14 @@ function CustomerList() {
   };
 
   const handleChangeGroup = async (is_up, params) => {
-    // ฟังก์ชันหาค่าไอดีกลุ่มลูกค้าที่ต้องการจะเปลี่ยน
+    // ฟังก์ชันหาค่าไอดีกลุ่มลูกค้าที่ต้องการจะเปลี่ยน
     const groupResult = (() => {
-      // Wrap in an IIFE to limit sort scope
       const targetGroup = groupList.find(
         (group) => group.mcg_id === params.cus_mcg_id
       );
 
       if (!targetGroup) {
-        return []; // Return empty array if target group not found
+        return [];
       }
 
       const sortOffset = is_up ? -1 : 1;
@@ -389,7 +473,7 @@ function CustomerList() {
       const matchGroup = groupList.find(
         (group) => group.mcg_id === params.cus_mcg_id
       );
-      if (!matchGroup) return true; // Disable if matchGroup is not found
+      if (!matchGroup) return true;
 
       const targetSort = is_up ? 1 : groupList.length;
       return matchGroup.mcg_sort === targetSort;
@@ -399,19 +483,34 @@ function CustomerList() {
 
   // Render when not found data.
   const NoDataComponent = () => (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        height: "100%",
+        height: 400,
         color: "gray",
       }}
     >
-      <p style={{ fontSize: 18 }}>No data found.</p>
-    </div>
+      <Typography variant="h5" sx={{ mb: 2 }}>ไม่พบข้อมูล</Typography>
+      <Typography variant="body1">กรุณาลองค้นหาใหม่หรือเปลี่ยนตัวกรอง</Typography>
+    </Box>
   );
+
+  // Loading management
+  useEffect(() => {
+    if (isFetching) {
+      setIsLoadingData(true);
+      // Set minimum loading time 2 seconds
+      const timer = setTimeout(() => {
+        setLoadingTimer(null);
+      }, 2000);
+      setLoadingTimer(timer);
+    } else if (!isFetching && !loadingTimer) {
+      setIsLoadingData(false);
+    }
+  }, [isFetching, loadingTimer]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -431,19 +530,90 @@ function CustomerList() {
     setShowAll(false);
   }, [filters, groupSelected, keyword]);
 
+  // Filter data based on recall range (client-side filtering) and multi-select filters
+  const filteredItemList = useMemo(() => {
+    if (!itemList || itemList.length === 0) return itemList;
+
+    let filtered = [...itemList];
+
+    // Apply recall range filter
+    if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) {
+      filtered = filtered.filter((item) => {
+        const recallDays = formatCustomRelativeTime(item.cd_last_datetime);
+        const recallNumber = parseInt(recallDays, 10);
+        
+        const minDays = filters.recallRange.minDays;
+        const maxDays = filters.recallRange.maxDays;
+        
+        let matchesMin = true;
+        let matchesMax = true;
+        
+        if (minDays !== null && minDays !== "") {
+          matchesMin = recallNumber >= minDays;
+        }
+        
+        if (maxDays !== null && maxDays !== "") {
+          matchesMax = recallNumber <= maxDays;
+        }
+        
+        return matchesMin && matchesMax;
+      });
+    }
+
+    // Apply sales name filter (multi-select)
+    if (filters.salesName && filters.salesName.length > 0) {
+      filtered = filtered.filter((item) => 
+        filters.salesName.includes(item.cus_manage_by?.username)
+      );
+    }
+
+    // Apply channel filter (multi-select)
+    if (filters.channel && filters.channel.length > 0) {
+      filtered = filtered.filter((item) => 
+        filters.channel.includes(item.cus_channel?.toString())
+      );
+    }
+
+    return filtered;
+  }, [itemList, filters]);
+
+  // Extended columns with 30+ fields
   const columns = useMemo(
     () => [
       {
         field: "cus_no",
         headerName: "ID",
         width: 120,
+        sortable: true,
       },
       {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
         cellClassName: "uppercase-cell",
-        renderCell: (params) => channelMap[params.value],
+        renderCell: (params) => {
+          const channelName = channelMap[params.value] || 'unknown';
+          const channelColors = {
+            1: '#4caf50',
+            2: '#2196f3', 
+            3: '#ff9800',
+            4: '#9c27b0',
+            5: '#f44336'
+          };
+          return (
+            <Chip 
+              label={channelName} 
+              size="small" 
+              sx={{ 
+                bgcolor: channelColors[params.value] || '#757575',
+                color: 'white',
+                fontWeight: 600,
+                textTransform: 'uppercase'
+              }}
+            />
+          );
+        },
+        sortable: true,
       },
       {
         field: "cus_manage_by",
@@ -452,13 +622,63 @@ function CustomerList() {
         cellClassName: "uppercase-cell",
         hideable: false,
         renderCell: (params) => {
-          return params.value.username;
+          return params.value?.username || '-';
         },
+        sortable: true,
       },
-      { field: "cus_name", headerName: "CUSTOMER", width: 200 },
-      { field: "cus_company", headerName: "COMPANY NAME", width: 280 },
-      { field: "cus_tel_1", headerName: "TEL", width: 140 },
-      { field: "cd_note", headerName: "NOTE", width: 280 },
+      { field: "cus_name", headerName: "CUSTOMER", width: 200, sortable: true },
+      { field: "cus_company", headerName: "COMPANY NAME", width: 280, sortable: true },
+      { field: "cus_firstname", headerName: "FIRST NAME", width: 150, sortable: true },
+      { field: "cus_lastname", headerName: "LAST NAME", width: 150, sortable: true },
+      { field: "cus_depart", headerName: "DEPARTMENT", width: 150, sortable: true },
+      { field: "cus_tel_1", headerName: "TEL", width: 140, sortable: true },
+      { field: "cus_tel_2", headerName: "TEL 2", width: 140, sortable: true },
+      { field: "cus_email", headerName: "EMAIL", width: 200, sortable: true },
+      { field: "cus_tax_id", headerName: "TAX ID", width: 140, sortable: true },
+      { field: "cus_address", headerName: "ADDRESS", width: 300, sortable: true },
+      { field: "province_name", headerName: "PROVINCE", width: 150, sortable: true },
+      { field: "district_name", headerName: "DISTRICT", width: 150, sortable: true },
+      { field: "subdistrict_name", headerName: "SUB-DISTRICT", width: 150, sortable: true },
+      { field: "cus_zip_code", headerName: "ZIP CODE", width: 100, sortable: true },
+      {
+        field: "cus_created_date",
+        headerName: "CREATED DATE",
+        width: 140,
+        renderCell: (params) => {
+          const date = moment(params.value);
+          const buddhistYear = date.year() + 543;
+          return date.format("DD/MM/") + buddhistYear;
+        },
+        sortable: true,
+      },
+      {
+        field: "cus_updated_date",
+        headerName: "UPDATED DATE",
+        width: 140,
+        renderCell: (params) => {
+          if (!params.value) return '-';
+          const date = moment(params.value);
+          const buddhistYear = date.year() + 543;
+          return date.format("DD/MM/") + buddhistYear;
+        },
+        sortable: true,
+      },
+      { 
+        field: "cus_created_by", 
+        headerName: "CREATED BY", 
+        width: 120,
+        renderCell: (params) => params.value || '-',
+        sortable: true,
+      },
+      { 
+        field: "cus_updated_by", 
+        headerName: "UPDATED BY", 
+        width: 120,
+        renderCell: (params) => params.value || '-',
+        sortable: true,
+      },
+      { field: "cd_note", headerName: "NOTE", width: 280, sortable: true },
+      { field: "cd_remark", headerName: "REMARK", width: 300, sortable: true },
       {
         field: "cd_last_datetime",
         headerName: "RECALL",
@@ -473,13 +693,36 @@ function CustomerList() {
             return "danger-days";
           }
         },
+        sortable: true,
+      },
+      {
+        field: "mcg_name",
+        headerName: "GRADE",
+        width: 120,
+        renderCell: (params) => {
+          const group = groupList.find(g => g.mcg_id === params.row.cus_mcg_id);
+          return group?.mcg_name || '-';
+        },
+        sortable: true,
+      },
+      {
+        field: "cus_is_use",
+        headerName: "STATUS",
+        width: 100,
+        renderCell: (params) => (
+          <Chip 
+            label={params.value ? "Active" : "Inactive"} 
+            color={params.value ? "success" : "default"}
+            size="small"
+          />
+        ),
+        sortable: true,
       },
       {
         field: "tools",
         headerName: "TOOLS",
         flex: 1,
         minWidth: 280,
-        // minWidth: { xs: -50, sm: 200, lg: 200 },
         type: "actions",
         getActions: (params) => [
           <GridActionsCellItem
@@ -518,7 +761,7 @@ function CustomerList() {
         ],
       },
     ],
-    [handleOpenDialog, handleDelete]
+    [handleOpenDialog, handleDelete, groupList]
   );
 
   return (
@@ -564,31 +807,83 @@ function CustomerList() {
           <FilterPanel />
         </Box>
 
-        <StyledDataGrid
-          disableRowSelectionOnClick
-          paginationMode={showAll ? "client" : "server"}
-          rows={itemList}
-          columns={columns}
-          getRowId={(row) => row.cus_id}
-          initialState={{ pagination: { paginationModel } }}
-          onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
-          rowCount={totalItems}
-          loading={isFetching}
-          pageSizeOptions={showAll ? [itemList.length] : [10, 25, 50]}
-          slots={{
-            noRowsOverlay: NoDataComponent,
-            pagination: showAll ? undefined : CustomPagination,
-          }}
-          sx={{ 
-            border: 0,
-            height: showAll ? 'auto' : 700,
-            '& .MuiDataGrid-main': {
-              maxHeight: showAll ? 'none' : undefined,
-            }
-          }}
-          rowHeight={50}
-          columnHeaderHeight={50}
-        />
+        {/* Show skeleton loader when loading */}
+        {isLoadingData ? (
+          <SkeletonLoader rows={paginationModel.pageSize} />
+        ) : (
+          <StyledDataGrid
+            disableRowSelectionOnClick
+            paginationMode={showAll || hasRecallFilter ? "client" : "server"}
+            rows={filteredItemList}
+            columns={columns}
+            getRowId={(row) => row.cus_id}
+            initialState={{ 
+              pagination: { paginationModel },
+              columns: {
+                columnVisibilityModel: {
+                  // Hide some columns by default
+                  cus_firstname: false,
+                  cus_lastname: false,
+                  cus_depart: false,
+                  cus_tel_2: false,
+                  cus_email: false,
+                  cus_tax_id: false,
+                  cus_address: false,
+                  province_name: false,
+                  district_name: false,
+                  subdistrict_name: false,
+                  cus_zip_code: false,
+                  cus_updated_date: false,
+                  cus_created_by: false,
+                  cus_updated_by: false,
+                  cd_remark: false,
+                  mcg_name: false,
+                  cus_is_use: false,
+                },
+              },
+            }}
+            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
+            rowCount={filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null 
+              ? filteredItemList.length 
+              : (showAll ? filteredItemList.length : totalItems)}
+            loading={false} // Controlled by skeleton loader
+            pageSizeOptions={showAll ? [filteredItemList.length] : [30, 45, 55, 80]}
+            slots={{
+              noRowsOverlay: NoDataComponent,
+              pagination: showAll ? undefined : CustomPagination,
+              toolbar: GridToolbar,
+            }}
+            slotProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 500 },
+                csvOptions: { disableToolbarButton: true },
+                printOptions: { disableToolbarButton: true },
+              },
+            }}
+            sx={{ 
+              border: 0,
+              height: showAll ? 'auto' : 700,
+              '& .MuiDataGrid-main': {
+                maxHeight: showAll ? 'none' : undefined,
+              },
+              '& .MuiDataGrid-toolbarContainer': {
+                padding: 2,
+                borderBottom: '1px solid rgba(224, 224, 224, 1)',
+                backgroundColor: '#fafafa',
+              },
+              '& .MuiTextField-root': {
+                marginBottom: 0,
+              },
+            }}
+            rowHeight={50}
+            columnHeaderHeight={50}
+            disableColumnFilter
+            disableDensitySelector
+            disableColumnSelector={false}
+            sortingOrder={['desc', 'asc']}
+          />
+        )}
       </Box>
     </div>
   );

@@ -17,13 +17,24 @@ export const customerApi = createApi({
           search: payload?.search,
           date_start: payload?.dateStart,
           date_end: payload?.dateEnd,
-          sales_name: payload?.salesName,
-          channel: payload?.channel,
+          // Handle multi-select for sales names
+          sales_name: payload?.salesName && payload.salesName.length > 0 
+            ? payload.salesName 
+            : undefined,
+          // Handle multi-select for channels
+          channel: payload?.channel && payload.channel.length > 0 
+            ? payload.channel 
+            : undefined,
           recall_min: payload?.recallMin,
           recall_max: payload?.recallMax,
         };
 
-        const queryString = qs.stringify(queryParams, { skipNulls: true });
+        // Use qs to properly serialize arrays
+        const queryString = qs.stringify(queryParams, { 
+          skipNulls: true,
+          arrayFormat: 'brackets' // This will format arrays as sales_name[]=value1&sales_name[]=value2
+        });
+        
         const url = queryString ? `/customers?${queryString}` : '/customers';
 
         return {

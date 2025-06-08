@@ -311,8 +311,8 @@ function CustomerList() {
     channel: filters.channel,
     recallMin: filters.recallRange.minDays,
     recallMax: filters.recallRange.maxDays,
-  }, {
-    refetchOnMountOrArgChange: true,
+  }, {    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true
   });
 
   const [openDialog, setOpenDialog] = useState(false);

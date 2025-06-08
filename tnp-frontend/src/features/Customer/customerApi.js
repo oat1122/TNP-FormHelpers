@@ -24,10 +24,10 @@ export const customerApi = createApi({
         if (payload?.dateEnd) queryParams.date_end = payload.dateEnd;
         
         // Recall filters
-        if (payload?.recallMin !== null && payload?.recallMin !== undefined) {
+        if (payload?.recallMin !== null && payload?.recallMin !== undefined && payload.recallMin !== '') {
           queryParams.recall_min = payload.recallMin;
         }
-        if (payload?.recallMax !== null && payload?.recallMax !== undefined) {
+        if (payload?.recallMax !== null && payload?.recallMax !== undefined && payload.recallMax !== '') {
           queryParams.recall_max = payload.recallMax;
         }
 

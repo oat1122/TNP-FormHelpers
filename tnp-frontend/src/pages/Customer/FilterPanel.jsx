@@ -28,7 +28,7 @@ import { useMemo } from "react";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { MdExpandMore, MdClear, MdFilterList, MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone, MdLanguage, MdBusiness } from "react-icons/md";
+import { MdExpandMore, MdClear, MdFilterList, MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone, MdLanguage, MdBusiness, MdEmail } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { IoSearch } from "react-icons/io5";
 import FilterTab from "./FilterTab";
@@ -106,13 +106,13 @@ class AdapterBuddhistDayjs extends AdapterDayjs {
     
     return dayjs(value, format);
   };
-}
-
-// Channel options (only 3 channels)
+}  // Channel options (matching the channelMap in CustomerList.jsx)
 const channelOptions = [
   { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
   { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
   { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
+  { value: "4", label: "Mobile", icon: <MdPhone />, color: "#9c27b0" },
+  { value: "5", label: "Email", icon: <MdEmail />, color: "#f44336" },
 ];
 
 function FilterPanel() {
@@ -158,7 +158,6 @@ function FilterPanel() {
     if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) count++;
     return count;
   }, [filters]);
-
   // Update sales list from API
   useEffect(() => {
     if (salesData && salesData.sale_role && salesData.sale_role.length > 0) {
@@ -195,20 +194,19 @@ function FilterPanel() {
       console.warn('Error updating local filters:', error);
     }
   }, [filters]);
-
   // Apply filters
   const handleApplyFilters = () => {
     try {
-      // Validate recall range
-      const minDays = localFilters.recallRange.minDays ? parseInt(localFilters.recallRange.minDays) : null;
-      const maxDays = localFilters.recallRange.maxDays ? parseInt(localFilters.recallRange.maxDays) : null;
+      // Validate recall range - convert to integers and validate
+      const minDays = localFilters.recallRange.minDays && localFilters.recallRange.minDays.trim() !== '' ? 
+                      parseInt(localFilters.recallRange.minDays, 10) : null;
+      const maxDays = localFilters.recallRange.maxDays && localFilters.recallRange.maxDays.trim() !== '' ? 
+                      parseInt(localFilters.recallRange.maxDays, 10) : null;
       
       if (minDays !== null && maxDays !== null && minDays > maxDays) {
         alert('วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด');
         return;
-      }
-
-      // Convert dayjs objects to strings before sending to Redux
+      }      // Convert dayjs objects to strings before sending to Redux
       const filtersToApply = {
         dateRange: {
           startDate: localFilters.dateRange.startDate?.isValid() ? localFilters.dateRange.startDate.format('YYYY-MM-DD') : null,
@@ -217,8 +215,8 @@ function FilterPanel() {
         salesName: Array.isArray(selectedSales) ? selectedSales : [],
         channel: Array.isArray(selectedChannels) ? selectedChannels : [],
         recallRange: {
-          minDays: minDays,
-          maxDays: maxDays,
+          minDays: minDays !== null && !isNaN(minDays) ? minDays : null,
+          maxDays: maxDays !== null && !isNaN(maxDays) ? maxDays : null,
         },
       };
       
@@ -241,7 +239,6 @@ function FilterPanel() {
       alert('เกิดข้อผิดพลาดในการใช้งานตัวกรอง');
     }
   };
-
   // Reset filters
   const handleResetFilters = () => {
     setLocalFilters({
@@ -316,12 +313,11 @@ function FilterPanel() {
       ...prev,
       dateRange: { startDate, endDate }
     }));
-    
-    // Auto-apply filters for quick date range
+      // Auto-apply filters for quick date range
     const filtersToApply = {
       dateRange: {
-        startDate: startDate.format('YYYY-MM-DD'),
-        endDate: endDate.format('YYYY-MM-DD'),
+        startDate: startDate ? startDate.format('YYYY-MM-DD') : null,
+        endDate: endDate ? endDate.format('YYYY-MM-DD') : null,
       },
       salesName: selectedSales,
       channel: selectedChannels,
@@ -605,8 +601,7 @@ function FilterPanel() {
                               },
                             },
                           }}
-                        >
-                          {salesList && salesList.length > 0 ? (
+                        >                            {salesList && salesList.length > 0 ? (
                             salesList.map((name) => (
                               <MenuItem key={name} value={name}>
                                 <Checkbox checked={selectedSales.indexOf(name) > -1} />
@@ -658,8 +653,7 @@ function FilterPanel() {
                             console.log('Channel selection changed:', value);
                             setSelectedChannels(typeof value === 'string' ? value.split(',') : value);
                           }}
-                          input={<OutlinedInput label={`เลือกแล้ว ${selectedChannels.length} ช่องทาง`} />}
-                          renderValue={(selected) => (
+                          input={<OutlinedInput label={`เลือกแล้ว ${selectedChannels.length} ช่องทาง`} />}                          renderValue={(selected) => (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                               {selected.map((value) => {
                                 const channel = channelOptions.find(c => c.value === value);
@@ -682,8 +676,7 @@ function FilterPanel() {
                               },
                             },
                           }}
-                        >
-                          {channelOptions.map((channel) => (
+                        >                          {channelOptions.map((channel) => (
                             <MenuItem key={channel.value} value={channel.value}>
                               <Checkbox checked={selectedChannels.indexOf(channel.value) > -1} />
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -694,8 +687,7 @@ function FilterPanel() {
                           ))}
                         </Select>
                       </FormControl>
-                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Button
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>                        <Button
                           size="small"
                           variant="text"
                           onClick={() => setSelectedChannels(channelOptions.map(c => c.value))}
@@ -739,8 +731,7 @@ function FilterPanel() {
                     <Box sx={{ px: 1 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
                         กำลังแสดงลูกค้าที่ขาดการติดต่อ {localFilters.recallRange.minDays || 0} - {localFilters.recallRange.maxDays || 60} วัน
-                      </Typography>
-                      <Slider
+                      </Typography>                        <Slider
                         value={[
                           parseInt(localFilters.recallRange.minDays) || 0,
                           parseInt(localFilters.recallRange.maxDays) || 60
@@ -851,8 +842,7 @@ function FilterPanel() {
                     }}
                   >
                     รีเซ็ตตัวกรอง
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     variant="contained"
                     color="error"
                     startIcon={<MdFilterList />}

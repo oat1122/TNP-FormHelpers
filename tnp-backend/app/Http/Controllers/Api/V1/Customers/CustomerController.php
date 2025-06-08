@@ -99,17 +99,20 @@ class CustomerController extends Controller
                         }
                     }
 
+                    // Filter by recall days range - UPDATED LOGIC
                     if ($request->has('recall_min') || $request->has('recall_max')) {
                         $query->whereHas('customerDetail', function ($q) use ($request) {
                             $now = now();
 
-                            if ($request->has('recall_min') && $request->recall_min) {
-                                $min_date = $now->copy()->subDays($request->recall_min);
+                            if ($request->has('recall_min') && $request->recall_min !== null) {
+                                // Customer ที่ขาดการติดต่อมากกว่าหรือเท่ากับ min_days วัน
+                                $min_date = $now->copy()->subDays($request->recall_min)->endOfDay();
                                 $q->where('cd_last_datetime', '<=', $min_date);
                             }
 
-                            if ($request->has('recall_max') && $request->recall_max) {
-                                $max_date = $now->copy()->subDays($request->recall_max);
+                            if ($request->has('recall_max') && $request->recall_max !== null) {
+                                // Customer ที่ขาดการติดต่อน้อยกว่าหรือเท่ากับ max_days วัน
+                                $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
                                 $q->where('cd_last_datetime', '>=', $max_date);
                             }
                         });
@@ -126,6 +129,7 @@ class CustomerController extends Controller
             // query with customer group
             if ($request->has('group') && $request->group !== "all") {
                 $customer_prepared->where('cus_mcg_id', $request->group);
+                $total_customers_q->where('cus_mcg_id', $request->group);
             }
 
             // query with user_id, if role is not admin
@@ -195,18 +199,20 @@ class CustomerController extends Controller
                 }
             }
 
-            // Filter by recall days range
+            // Filter by recall days range - UPDATED LOGIC
             if ($request->has('recall_min') || $request->has('recall_max')) {
                 $customer_prepared->whereHas('customerDetail', function ($query) use ($request) {
                     $now = now();
 
-                    if ($request->has('recall_min') && $request->recall_min) {
-                        $min_date = $now->copy()->subDays($request->recall_min);
+                    if ($request->has('recall_min') && $request->recall_min !== null) {
+                        // Customer ที่ขาดการติดต่อมากกว่าหรือเท่ากับ min_days วัน
+                        $min_date = $now->copy()->subDays($request->recall_min)->endOfDay();
                         $query->where('cd_last_datetime', '<=', $min_date);
                     }
 
-                    if ($request->has('recall_max') && $request->recall_max) {
-                        $max_date = $now->copy()->subDays($request->recall_max);
+                    if ($request->has('recall_max') && $request->recall_max !== null) {
+                        // Customer ที่ขาดการติดต่อน้อยกว่าหรือเท่ากับ max_days วัน
+                        $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
                         $query->where('cd_last_datetime', '>=', $max_date);
                     }
                 });
@@ -214,59 +220,139 @@ class CustomerController extends Controller
                 $total_customers_q->whereHas('customerDetail', function ($query) use ($request) {
                     $now = now();
 
-                    if ($request->has('recall_min') && $request->recall_min) {
-                        $min_date = $now->copy()->subDays($request->recall_min);
+                    if ($request->has('recall_min') && $request->recall_min !== null) {
+                        $min_date = $now->copy()->subDays($request->recall_min)->endOfDay();
                         $query->where('cd_last_datetime', '<=', $min_date);
                     }
 
-                    if ($request->has('recall_max') && $request->recall_max) {
-                        $max_date = $now->copy()->subDays($request->recall_max);
+                    if ($request->has('recall_max') && $request->recall_max !== null) {
+                        $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
                         $query->where('cd_last_datetime', '>=', $max_date);
                     }
                 });
             }
 
-            $perPage    = $request->input('per_page', 10);
-            $customer_q = $customer_prepared->select([ // Use array syntax for select
-                'cus_id',
-                'cus_mcg_id',
-                'cus_no',
-                'cus_channel',
-                'cus_company',
-                'cus_firstname',
-                'cus_lastname',
-                'cus_name',
-                'cus_tel_1',
-                'cus_tel_2',
-                'cus_email',
-                'cus_tax_id',
-                'cus_pro_id',
-                'cus_dis_id',
-                'cus_sub_id',
-                'cus_zip_code',
-                'cus_address',
-                'cus_manage_by',
-                'cus_created_by',
-                'cus_created_date',
-                'cus_updated_by',
-                'cus_updated_date',
-                'cus_is_use',
-            ])->orderBy('cus_no', 'desc')->paginate($perPage);
-            $customer_r = CustomerResource::collection($customer_q);
+            $perPage = $request->input('per_page', 10);
+            
+            // Debug logging สำหรับการติดตามปัญหา
+            Log::info('Customer API Request Debug', [
+                'per_page' => $perPage,
+                'group' => $request->group,
+                'user_role' => $user_q->role,
+                'user_id' => $user_q->user_id,
+                'filters' => [
+                    'search' => $request->search,
+                    'date_start' => $request->date_start,
+                    'date_end' => $request->date_end,
+                    'sales_name' => $request->sales_name,
+                    'channel' => $request->channel,
+                    'recall_min' => $request->recall_min,
+                    'recall_max' => $request->recall_max,
+                ]
+            ]);
+            
+            // Handle large datasets - เพิ่มการรองรับข้อมูลจำนวนมาก
+            if ($perPage > 1000) {
+                // ถ้าต้องการข้อมูลมากกว่า 1000 records ให้ใช้ get() แทน paginate()
+                $customer_collection = $customer_prepared->select([
+                    'cus_id',
+                    'cus_mcg_id',
+                    'cus_no',
+                    'cus_channel',
+                    'cus_company',
+                    'cus_firstname',
+                    'cus_lastname',
+                    'cus_name',
+                    'cus_tel_1',
+                    'cus_tel_2',
+                    'cus_email',
+                    'cus_tax_id',
+                    'cus_pro_id',
+                    'cus_dis_id',
+                    'cus_sub_id',
+                    'cus_zip_code',
+                    'cus_address',
+                    'cus_manage_by',
+                    'cus_created_by',
+                    'cus_created_date',
+                    'cus_updated_by',
+                    'cus_updated_date',
+                    'cus_is_use',
+                ])->orderBy('cus_no', 'desc')->get();
+                
+                $customer_r = CustomerResource::collection($customer_collection);
+                $total_customers_r = $total_customers_q->count();
+                
+                // Debug logging สำหรับ large dataset
+                Log::info('Large Dataset Query Result', [
+                    'customer_collection_count' => $customer_collection->count(),
+                    'total_customers_r' => $total_customers_r,
+                    'per_page' => $perPage
+                ]);
 
-            $total_customers_r = $total_customers_q->count();
-
-            return [
-                'data'        => $customer_r,
-                'groups'      => $customer_group_q,
-                'total_count' => $total_customers_r,
-                'pagination'  => [
+                return [
+                    'data'        => $customer_r,
+                    'groups'      => $customer_group_q,
+                    'total_count' => $total_customers_r,
+                    'pagination'  => [
+                        'current_page' => 1,
+                        'per_page'     => $customer_collection->count(),
+                        'total_pages'  => 1,
+                        'total_items'  => $customer_collection->count(),
+                    ],
+                ];
+            } else {
+                // Normal pagination for smaller datasets
+                $customer_q = $customer_prepared->select([
+                    'cus_id',
+                    'cus_mcg_id',
+                    'cus_no',
+                    'cus_channel',
+                    'cus_company',
+                    'cus_firstname',
+                    'cus_lastname',
+                    'cus_name',
+                    'cus_tel_1',
+                    'cus_tel_2',
+                    'cus_email',
+                    'cus_tax_id',
+                    'cus_pro_id',
+                    'cus_dis_id',
+                    'cus_sub_id',
+                    'cus_zip_code',
+                    'cus_address',
+                    'cus_manage_by',
+                    'cus_created_by',
+                    'cus_created_date',
+                    'cus_updated_by',
+                    'cus_updated_date',
+                    'cus_is_use',
+                ])->orderBy('cus_no', 'desc')->paginate($perPage);
+                
+                $customer_r = CustomerResource::collection($customer_q);
+                $total_customers_r = $total_customers_q->count();
+                
+                // Debug logging สำหรับ normal pagination
+                Log::info('Normal Pagination Query Result', [
+                    'paginated_count' => $customer_q->count(),
+                    'total_customers_r' => $total_customers_r,
+                    'per_page' => $perPage,
                     'current_page' => $customer_q->currentPage(),
-                    'per_page'     => $customer_q->perPage(),
-                    'total_pages'  => $customer_q->lastPage(),
-                    'total_items'  => $customer_q->total(),
-                ],
-            ];
+                    'total_items' => $customer_q->total()
+                ]);
+
+                return [
+                    'data'        => $customer_r,
+                    'groups'      => $customer_group_q,
+                    'total_count' => $total_customers_r,
+                    'pagination'  => [
+                        'current_page' => $customer_q->currentPage(),
+                        'per_page'     => $customer_q->perPage(),
+                        'total_pages'  => $customer_q->lastPage(),
+                        'total_items'  => $customer_q->total(),
+                    ],
+                ];
+            }
         } catch (\Exception $e) {
             Log::error('Fetch customer error : ' . $e);
 
@@ -563,6 +649,74 @@ class CustomerController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'recall customer error : ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get all sales names for filter dropdown
+     */
+    public function getSales(Request $request)
+    {
+        try {
+            Log::info('getSales called with request:', $request->all());
+            
+            if (! $request->user) {
+                Log::error('User parameter missing');
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User parameter is required',
+                ]);
+            }
+
+            // query user
+            $user_q = User::where('enable', 'Y')->where('user_id', $request->user)->first();
+            
+            Log::info('User query result:', ['user' => $user_q]);
+
+            if (!$user_q) {
+                Log::error('User not found with ID: ' . $request->user);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not found',
+                ]);
+            }
+
+            // Get all unique sales names using MasterCustomer model
+            $sales_query = Customer::active()
+                ->join('users', 'master_customers.cus_manage_by', '=', 'users.user_id')
+                ->where('users.enable', 'Y')
+                ->select('users.username')
+                ->distinct();
+
+            // If not admin, only show sales for this user's customers
+            if ($user_q->role !== 'admin') {
+                $sales_query->where('master_customers.cus_manage_by', $user_q->user_id);
+            }
+
+            $sales_list = $sales_query->orderBy('users.username')->pluck('username')->toArray();
+
+            Log::info('Sales List Query Result', [
+                'total_sales_count' => count($sales_list),
+                'sales_list' => $sales_list,
+                'user_role' => $user_q->role,
+                'user_id' => $user_q->user_id
+            ]);
+
+            return response()->json([
+                'sales_list' => $sales_list,
+                'total_count' => count($sales_list)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Fetch sales list error : ' . $e->getMessage(), [
+                'exception' => $e,
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Fetch sales list error : ' . $e->getMessage(),
             ]);
         }
     }

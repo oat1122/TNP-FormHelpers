@@ -46,6 +46,9 @@ Route::prefix('v1')->group(function() {
 
     Route::post('/login', [AuthController::class, 'login']);
 
+    // Define specific routes before resource routes
+    Route::get('/customers/sales', [CustomerController::class, 'getSales']);
+
     Route::apiResources([
         //---------- Monitor Production ----------
         'production' => ProductionController::class,

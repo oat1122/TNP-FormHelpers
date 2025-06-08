@@ -48,8 +48,8 @@ export default {
         startDate: null,
         endDate: null,
       },
-      salesName: "",
-      channel: "",
+      salesName: [], // Changed to array for multi-select
+      channel: [], // Changed to array for multi-select
       recallRange: {
         minDays: null,
         maxDays: null,

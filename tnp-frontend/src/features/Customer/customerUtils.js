@@ -1,15 +1,23 @@
 import moment from "moment";
 
-// แปลงค่าวันที่ตามลูกค้า ให้อยู่ในรูปแบบนับเวลาถอยหลัง
+// แปลงค่าวันที่ตามลูกค้า ให้อยู่ในรูปแบบนับเวลาถอยหลัง (จำนวนวันที่ขาดการติดต่อ)
 export function formatCustomRelativeTime(dateString) {
-  const endOfDay = moment(dateString).endOf('day');
-  const now = moment();
-  const diffInDays = endOfDay.diff(now, 'days');
-
-  if (diffInDays >= 0) { // Check for future dates
-    return diffInDays; // Customize the format for future
-  } else {
-    return "0"; // Customize for past
+  if (!dateString) {
+    return 0;
+  }
+  
+  try {
+    const lastContactDate = moment(dateString);
+    const now = moment();
+    
+    // คำนวณจำนวนวันที่ผ่านไปตั้งแต่การติดต่อครั้งสุดท้าย
+    const diffInDays = now.diff(lastContactDate, 'days');
+    
+    // คืนค่าจำนวนวันที่ขาดการติดต่อ (ต้องเป็นค่าบวก)
+    return Math.max(0, diffInDays);
+  } catch (error) {
+    console.warn('Error calculating recall days for date:', dateString, error);
+    return 0;
   }
 }
 

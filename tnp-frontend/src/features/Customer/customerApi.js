@@ -37,6 +37,32 @@ export const customerApi = createApi({
         
         const url = queryString ? `/customers?${queryString}` : '/customers';
 
+        console.log('=== API REQUEST ===');
+        console.log('Payload received:', payload);
+        console.log('Query params:', queryParams);
+        console.log('Final URL:', url);
+        console.log('==================');
+
+        return {
+          url: url,
+          method: "GET"
+        }
+      },
+      providesTags: ["Customer"],
+    }),
+    getAllSales: builder.query({
+      query: (payload) => {
+        const queryParams = {
+          user: payload?.user_id,
+          sales_only: true // Flag to get only sales list
+        };
+
+        const queryString = qs.stringify(queryParams, { 
+          skipNulls: true
+        });
+        
+        const url = queryString ? `/customers/sales?${queryString}` : '/customers/sales';
+        
         return {
           url: url,
           method: "GET"
@@ -80,6 +106,7 @@ export const customerApi = createApi({
 
 export const {
   useGetAllCustomerQuery,
+  useGetAllSalesQuery,
   useAddCustomerMutation,
   useUpdateCustomerMutation,
   useDelCustomerMutation,

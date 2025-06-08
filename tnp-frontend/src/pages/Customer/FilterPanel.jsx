@@ -28,9 +28,13 @@ import { useMemo } from "react";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { MdExpandMore, MdClear, MdFilterList } from "react-icons/md";
+import { MdExpandMore, MdClear, MdFilterList, MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone, MdLanguage, MdBusiness } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
+import { IoSearch } from "react-icons/io5";
 import FilterTab from "./FilterTab";
+import {
+  useGetUserByRoleQuery,
+} from "../../features/globalApi";
 import {
   setFilters,
   setSalesList,
@@ -40,20 +44,76 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
 
-// ตั้งค่า dayjs ให้ใช้ภาษาไทยและ พ.ศ.
+// ตั้งค่า dayjs ให้ใช้ภาษาไทยและ พ.ศ. และ plugins ที่จำเป็น
 dayjs.extend(buddhistEra);
+dayjs.extend(customParseFormat);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 dayjs.locale('th');
 
-// เพิ่ม Channel options พร้อมไอคอน
+// Custom Buddhist Era Adapter
+class AdapterBuddhistDayjs extends AdapterDayjs {
+  constructor({ locale }) {
+    super({ locale });
+  }
+
+  format = (value, formatString) => {
+    // Handle Buddhist year display
+    const yearFormats = ['YYYY', 'YY'];
+    let formattedDate = value.format(formatString);
+    
+        yearFormats.forEach(yearFormat => {
+      if (formatString.includes(yearFormat)) {
+        const gregorianYear = value.year();
+        const buddhistYear = gregorianYear + 543;
+        if (yearFormat === 'YYYY') {
+          formattedDate = formattedDate.replace(gregorianYear, buddhistYear);
+        } else {
+          const shortYear = (gregorianYear % 100).toString().padStart(2, '0');
+          const shortBuddhistYear = (buddhistYear % 100).toString().padStart(2, '0');
+          formattedDate = formattedDate.replace(shortYear, shortBuddhistYear);
+        }
+      }
+    });
+    
+    return formattedDate;
+  };
+
+  parse = (value, format) => {
+    if (!value) return null;
+    
+    // Handle Buddhist year input (e.g., "25/12/2567")
+    const datePattern = /(\d{1,2})\/(\d{1,2})\/(\d{4})/;
+    const match = value.match(datePattern);
+    
+    if (match) {
+      const [_, day, month, year] = match;
+      const buddhistYear = parseInt(year, 10);
+      const gregorianYear = buddhistYear - 543;
+      
+      // Validate the year is reasonable
+      if (gregorianYear < 1900 || gregorianYear > 2100) {
+        return null;
+      }
+      
+      return dayjs(`${day}/${month}/${gregorianYear}`, 'DD/MM/YYYY');
+    }
+    
+    return dayjs(value, format);
+  };
+}
+
+// เพิ่ม Channel options พร้อมไอคอน (แก้ไขให้เหลือเฉพาะ 3 ช่องทาง)
 const channelOptions = [
   { value: "", label: "ทั้งหมด", icon: null },
-  { value: "1", label: "Sales", icon: "📞", color: "#4caf50" },
-  { value: "2", label: "Online", icon: "💻", color: "#2196f3" },
-  { value: "3", label: "Office", icon: "🏢", color: "#ff9800" },
-  { value: "4", label: "Mobile", icon: "📱", color: "#9c27b0" },
-  { value: "5", label: "Email", icon: "📧", color: "#f44336" },
+  { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
+  { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
+  { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
 ];
 
 function FilterPanel() {
@@ -61,75 +121,18 @@ function FilterPanel() {
   const filters = useSelector((state) => state.customer.filters);
   const salesList = useSelector((state) => state.customer.salesList);
   const itemList = useSelector((state) => state.customer.itemList);
-  const [expanded, setExpanded] = useState(true);
+  const userInfo = useSelector((state) => state.global.userInfo);
+  const [expanded, setExpanded] = useState(false); // เริ่มต้นด้วยการพับ
+    // เรียกใช้ API เพื่อดึงรายชื่อ Sales ทั้งหมด (ใช้ API เดียวกับหน้าเพิ่มลูกค้า)
+  const { data: salesData, isLoading: salesLoading } = useGetUserByRoleQuery("sale");
   
   // State สำหรับ multi-select
   const [selectedSales, setSelectedSales] = useState([]);
-  const [selectedChannels, setSelectedChannels] = useState([]);
-  
-  // นับจำนวนข้อมูลที่กรองแล้ว
+  const [selectedChannels, setSelectedChannels] = useState([]);// นับจำนวนข้อมูลที่แสดงใน table (ไม่ต้องกรองเองเพราะ server จัดการแล้ว)
   const filteredCount = useMemo(() => {
-    if (!itemList || itemList.length === 0) return 0;
-    
-    let filtered = [...itemList];
-    
-    // กรองตาม recall range
-    if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) {
-      filtered = filtered.filter((item) => {
-        const recallDays = parseInt(formatCustomRelativeTime(item.cd_last_datetime), 10);
-        const minDays = filters.recallRange.minDays;
-        const maxDays = filters.recallRange.maxDays;
-        
-        let matchesMin = true;
-        let matchesMax = true;
-        
-        if (minDays !== null && minDays !== "") {
-          matchesMin = recallDays >= minDays;
-        }
-        
-        if (maxDays !== null && maxDays !== "") {
-          matchesMax = recallDays <= maxDays;
-        }
-        
-        return matchesMin && matchesMax;
-      });
-    }
-    
-    // กรองตามวันที่สร้าง
-    if (filters.dateRange.startDate || filters.dateRange.endDate) {
-      filtered = filtered.filter((item) => {
-        const createdDate = dayjs(item.cus_created_date);
-        let matchesStart = true;
-        let matchesEnd = true;
-        
-        if (filters.dateRange.startDate) {
-          matchesStart = createdDate.isAfter(dayjs(filters.dateRange.startDate).subtract(1, 'day'));
-        }
-        
-        if (filters.dateRange.endDate) {
-          matchesEnd = createdDate.isBefore(dayjs(filters.dateRange.endDate).add(1, 'day'));
-        }
-        
-        return matchesStart && matchesEnd;
-      });
-    }
-    
-    // กรองตาม sales (รองรับ multi-select)
-    if (filters.salesName && filters.salesName.length > 0) {
-      filtered = filtered.filter(item => 
-        filters.salesName.includes(item.cus_manage_by?.username)
-      );
-    }
-    
-    // กรองตาม channel (รองรับ multi-select)
-    if (filters.channel && filters.channel.length > 0) {
-      filtered = filtered.filter(item => 
-        filters.channel.includes(item.cus_channel?.toString())
-      );
-    }
-    
-    return filtered.length;
-  }, [itemList, filters]);
+    // แสดงจำนวนข้อมูลที่มีจริงใน itemList เนื่องจาก server filter แล้ว
+    return itemList?.length || 0;
+  }, [itemList]);
   
   // จำนวน filter ที่ active
   const activeFilterCount = useMemo(() => {
@@ -151,56 +154,79 @@ function FilterPanel() {
     recallRange: {
       minDays: "",
       maxDays: "",
-    },
-  });
-
-  // สร้างรายชื่อพนักงานขายจาก itemList
+    },  });
+  // ดึงรายชื่อ Sales ทั้งหมดจาก API (ใช้ API เดียวกับหน้าเพิ่มลูกค้า - ครบ 18 คน)
   useEffect(() => {
-    if (itemList && itemList.length > 0) {
-      const uniqueSales = [...new Set(itemList.map(item => item.cus_manage_by?.username))]
-        .filter(Boolean)
-        .sort();
-      dispatch(setSalesList(uniqueSales));
+    if (salesData && salesData.length > 0) {
+      // แปลงข้อมูลจาก user object เป็น array ของ username
+      const salesNames = salesData.map(user => user.username).filter(Boolean);
+      console.log('Updated sales list from getUserByRole API:', salesNames);
+      console.log('Total sales count:', salesNames.length);
+      dispatch(setSalesList(salesNames));
     }
-  }, [itemList, dispatch]);
-
-  // อัพเดท localFilters เมื่อ filters ใน Redux เปลี่ยน
+  }, [salesData, dispatch]);
+  // อัพเดท localFilters เมื่อ filters ใน Redux เปลี่ยน (แก้ไขการ sync และลดการ re-render)
   useEffect(() => {
-    setLocalFilters({
-      dateRange: {
-        startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
-        endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
-      },
-      salesName: filters.salesName || [],
-      channel: filters.channel || [],
-      recallRange: {
-        minDays: filters.recallRange.minDays || "",
-        maxDays: filters.recallRange.maxDays || "",
-      },
-    });
-    setSelectedSales(filters.salesName || []);
-    setSelectedChannels(filters.channel || []);
-  }, [filters]);
-
-  const handleApplyFilters = () => {
-    // แปลง dayjs object เป็น string ก่อนส่งไป Redux
-    const filtersToApply = {
-      dateRange: {
-        startDate: localFilters.dateRange.startDate ? localFilters.dateRange.startDate.format('YYYY-MM-DD') : null,
-        endDate: localFilters.dateRange.endDate ? localFilters.dateRange.endDate.format('YYYY-MM-DD') : null,
-      },
-      salesName: selectedSales,
-      channel: selectedChannels,
-      recallRange: {
-        minDays: localFilters.recallRange.minDays ? parseInt(localFilters.recallRange.minDays) : null,
-        maxDays: localFilters.recallRange.maxDays ? parseInt(localFilters.recallRange.maxDays) : null,
-      },
-    };
-    
-    dispatch(setFilters(filtersToApply));
-    dispatch(setPaginationModel({ page: 0, pageSize: 30 })); // Default 30 rows
+    try {
+      console.log('Syncing Redux filters to local filters:', filters);
+      
+      // Update local filters state
+      setLocalFilters(prev => ({
+        dateRange: {
+          startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
+          endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
+        },
+        salesName: Array.isArray(filters.salesName) ? filters.salesName : [],
+        channel: Array.isArray(filters.channel) ? filters.channel : [],
+        recallRange: {
+          minDays: filters.recallRange.minDays !== null ? filters.recallRange.minDays.toString() : "",
+          maxDays: filters.recallRange.maxDays !== null ? filters.recallRange.maxDays.toString() : "",
+        },
+      }));
+      
+      // Update multi-select states
+      setSelectedSales(Array.isArray(filters.salesName) ? filters.salesName : []);
+      setSelectedChannels(Array.isArray(filters.channel) ? filters.channel : []);
+      
+      console.log('Local filters synced successfully');
+    } catch (error) {
+      console.warn('Error updating local filters:', error);
+    }
+  }, [filters]);const handleApplyFilters = () => {
+    try {
+      // แปลง dayjs object เป็น string ก่อนส่งไป Redux (เพิ่ม validation)
+      const filtersToApply = {
+        dateRange: {
+          startDate: localFilters.dateRange.startDate?.isValid() ? localFilters.dateRange.startDate.format('YYYY-MM-DD') : null,
+          endDate: localFilters.dateRange.endDate?.isValid() ? localFilters.dateRange.endDate.format('YYYY-MM-DD') : null,
+        },
+        salesName: Array.isArray(selectedSales) ? selectedSales : [],
+        channel: Array.isArray(selectedChannels) ? selectedChannels : [],
+        recallRange: {
+          minDays: localFilters.recallRange.minDays && !isNaN(parseInt(localFilters.recallRange.minDays)) ? 
+                   parseInt(localFilters.recallRange.minDays) : null,
+          maxDays: localFilters.recallRange.maxDays && !isNaN(parseInt(localFilters.recallRange.maxDays)) ? 
+                   parseInt(localFilters.recallRange.maxDays) : null,
+        },
+      };
+      
+      console.log('=== APPLYING FILTERS ===');
+      console.log('Local filters:', localFilters);
+      console.log('Selected sales:', selectedSales);
+      console.log('Selected channels:', selectedChannels);
+      console.log('Final filters to apply:', filtersToApply);
+      
+      dispatch(setFilters(filtersToApply));
+      dispatch(setPaginationModel({ page: 0, pageSize: 30 })); // Default 30 rows
+      
+      // พับตัวกรองอัตโนมัติหลังจากกดใช้งาน
+      setExpanded(false);
+      
+      console.log('Filters applied successfully!');
+    } catch (error) {
+      console.error('Error applying filters:', error);
+    }
   };
-
   const handleResetFilters = () => {
     setLocalFilters({
       dateRange: {
@@ -218,9 +244,11 @@ function FilterPanel() {
     setSelectedChannels([]);
     dispatch(resetFilters());
     dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
+    
+    // พับตัวกรองอัตโนมัติหลังจากรีเซ็ต
+    setExpanded(false);
   };
-
-  // Quick date range buttons
+  // Quick date range buttons - แก้ไขให้ทำงานได้สมบูรณ์
   const handleQuickDateRange = (type) => {
     const today = dayjs();
     let startDate, endDate;
@@ -251,26 +279,50 @@ function FilterPanel() {
         endDate = today.subtract(1, 'month').endOf('month');
         break;
       case 'last30Days':
-        startDate = today.subtract(30, 'days');
-        endDate = today;
+        startDate = today.subtract(30, 'days').startOf('day');
+        endDate = today.endOf('day');
+        break;
+      case 'last7Days':
+        startDate = today.subtract(7, 'days').startOf('day');
+        endDate = today.endOf('day');
         break;
       default:
         return;
     }
     
+    console.log(`Setting quick date range - ${type}:`, { startDate: startDate.format('YYYY-MM-DD'), endDate: endDate.format('YYYY-MM-DD') });
+    
     setLocalFilters(prev => ({
       ...prev,
       dateRange: { startDate, endDate }
     }));
+    
+    // อัปเดตไปยัง Redux state ทันทีหลังจากเลือก Quick date
+    const filtersToApply = {
+      dateRange: {
+        startDate: startDate.format('YYYY-MM-DD'),
+        endDate: endDate.format('YYYY-MM-DD'),
+      },
+      salesName: selectedSales,
+      channel: selectedChannels,
+      recallRange: {
+        minDays: localFilters.recallRange.minDays && !isNaN(parseInt(localFilters.recallRange.minDays)) ? 
+                 parseInt(localFilters.recallRange.minDays) : null,
+        maxDays: localFilters.recallRange.maxDays && !isNaN(parseInt(localFilters.recallRange.maxDays)) ? 
+                 parseInt(localFilters.recallRange.maxDays) : null,
+      },
+    };
+    
+    dispatch(setFilters(filtersToApply));
+    dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
   };
-
-  // Recall range presets
+  // Recall range presets (แก้ไขให้เหมาะกับช่วง 0-60 วัน)
   const recallPresets = [
     { label: '0-7 วัน', min: 0, max: 7 },
-    { label: '8-30 วัน', min: 8, max: 30 },
-    { label: '31-60 วัน', min: 31, max: 60 },
-    { label: '61-90 วัน', min: 61, max: 90 },
-    { label: 'มากกว่า 90 วัน', min: 91, max: null },
+    { label: '8-15 วัน', min: 8, max: 15 },
+    { label: '16-30 วัน', min: 16, max: 30 },
+    { label: '31-45 วัน', min: 31, max: 45 },
+    { label: '46-60 วัน', min: 46, max: 60 },
   ];
 
   return (
@@ -280,8 +332,7 @@ function FilterPanel() {
         <FilterTab />
       </Box>
 
-      {/* ตัวกรองเพิ่มเติม */}
-      <Accordion 
+      {/* ตัวกรองเพิ่มเติม */}      <Accordion 
         expanded={expanded} 
         onChange={(e, isExpanded) => setExpanded(isExpanded)}
         sx={{ 
@@ -302,15 +353,14 @@ function FilterPanel() {
               justifyContent: 'space-between',
             }
           }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <MdFilterList size={24} />
+        >          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ fontSize: 24, color: '#1976d2' }}><IoSearch /></Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              ระบบกรองข้อมูล
+              ระบบกรองข้อมูลขั้นสูง
             </Typography>
             {activeFilterCount > 0 && (
               <Chip 
-                label={`${activeFilterCount} ตัวกรองที่ใช้งาน`} 
+                label={`${activeFilterCount} ตัวกรอง`} 
                 color="error" 
                 size="small"
                 sx={{ fontWeight: 600 }}
@@ -324,15 +374,15 @@ function FilterPanel() {
           )}
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
+          <LocalizationProvider dateAdapter={AdapterBuddhistDayjs} adapterLocale="th">
             <Grid container spacing={3}>
               {/* ตัวกรองช่วงวันที่สร้างลูกค้า */}
               <Grid size={12}>
                 <Paper elevation={1} sx={{ p: 3, borderRadius: 2, background: '#fafafa' }}>
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Stack spacing={2}>                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <MdDateRange style={{ fontSize: 20, color: '#1976d2' }} />
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                        📅 ช่วงวันที่สร้างข้อมูลลูกค้า
+                        ช่วงวันที่สร้างข้อมูลลูกค้า
                       </Typography>
                       {(filters.dateRange.startDate || filters.dateRange.endDate) && (
                         <Chip 
@@ -345,9 +395,8 @@ function FilterPanel() {
                     </Box>
                     
                     <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <DatePicker
-                          label="เลือกช่วงวันที่"
+                      <Grid size={{ xs: 12, md: 6 }}>                        <DatePicker
+                          label="วันที่เริ่มต้น"
                           value={localFilters.dateRange.startDate}
                           onChange={(newValue) => 
                             setLocalFilters(prev => ({
@@ -355,7 +404,7 @@ function FilterPanel() {
                               dateRange: { ...prev.dateRange, startDate: newValue }
                             }))
                           }
-                          format="DD/MM/BBBB"
+                          format="DD/MM/YYYY"
                           slotProps={{
                             textField: {
                               fullWidth: true,
@@ -381,9 +430,8 @@ function FilterPanel() {
                           maxDate={dayjs()}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <DatePicker
-                          label="เมื่อวาน"
+                      <Grid size={{ xs: 12, md: 6 }}>                        <DatePicker
+                          label="วันที่สิ้นสุด"
                           value={localFilters.dateRange.endDate}
                           onChange={(newValue) => 
                             setLocalFilters(prev => ({
@@ -391,7 +439,7 @@ function FilterPanel() {
                               dateRange: { ...prev.dateRange, endDate: newValue }
                             }))
                           }
-                          format="DD/MM/BBBB"
+                          format="DD/MM/YYYY"
                           slotProps={{
                             textField: {
                               fullWidth: true,
@@ -419,14 +467,13 @@ function FilterPanel() {
                         />
                       </Grid>
                     </Grid>
-                    
-                    {/* ปุ่มลัดเลือกช่วงเวลา */}
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {/* ปุ่มลัดเลือกช่วงเวลา - เพิ่มปุ่มใหม่และปรับปรุง UI */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('today')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         วันนี้
                       </Button>
@@ -434,15 +481,23 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('yesterday')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         เมื่อวาน
                       </Button>
                       <Button
                         size="small"
                         variant="outlined"
+                        onClick={() => handleQuickDateRange('last7Days')}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
+                      >
+                        7 วันที่แล้ว
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
                         onClick={() => handleQuickDateRange('thisWeek')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         สัปดาห์นี้
                       </Button>
@@ -450,7 +505,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('lastWeek')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         สัปดาห์ที่แล้ว
                       </Button>
@@ -458,7 +513,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('thisMonth')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         เดือนนี้
                       </Button>
@@ -466,9 +521,17 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('lastMonth')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
                       >
                         เดือนที่แล้ว
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => handleQuickDateRange('last30Days')}
+                        sx={{ borderRadius: 2, minWidth: 80 }}
+                      >
+                        30 วันที่แล้ว
                       </Button>
                     </Box>
                   </Stack>
@@ -478,17 +541,22 @@ function FilterPanel() {
               {/* Sales Name และ Channel Filters */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                  <Stack spacing={3}>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2', mb: 2 }}>
-                        👤 ชื่อผู้รับผิดชอบ (SALES NAME)
-                      </Typography>
+                  <Stack spacing={3}>                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <MdPerson style={{ fontSize: 20, color: '#1976d2' }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                          ชื่อผู้รับผิดชอบ (SALES NAME)
+                        </Typography>
+                      </Box>
                       <FormControl fullWidth size="small">
-                        <InputLabel>เลือกแล้ว {selectedSales.length} คน</InputLabel>
-                        <Select
+                        <InputLabel>เลือกแล้ว {selectedSales.length} คน</InputLabel>                        <Select
                           multiple
                           value={selectedSales}
-                          onChange={(e) => setSelectedSales(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            console.log('Sales selection changed:', value);
+                            setSelectedSales(typeof value === 'string' ? value.split(',') : value);
+                          }}
                           input={<OutlinedInput label={`เลือกแล้ว ${selectedSales.length} คน`} />}
                           renderValue={(selected) => (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -508,16 +576,18 @@ function FilterPanel() {
                             },
                           }}
                         >
-                          <MenuItem value="" onClick={() => setSelectedSales([])}>
-                            <em>ล้างการเลือกทั้งหมด</em>
-                          </MenuItem>
-                          <Divider />
-                          {salesList.map((name) => (
-                            <MenuItem key={name} value={name}>
-                              <Checkbox checked={selectedSales.indexOf(name) > -1} />
-                              <ListItemText primary={name} />
+                          {salesList && salesList.length > 0 ? (
+                            salesList.map((name) => (
+                              <MenuItem key={name} value={name}>
+                                <Checkbox checked={selectedSales.indexOf(name) > -1} />
+                                <ListItemText primary={name} />
+                              </MenuItem>
+                            ))
+                          ) : (
+                            <MenuItem disabled>
+                              <ListItemText primary="ไม่พบข้อมูลพนักงานขาย" />
                             </MenuItem>
-                          ))}
+                          )}
                         </Select>
                       </FormControl>
                       <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -538,18 +608,23 @@ function FilterPanel() {
                           ล้างการเลือก
                         </Button>
                       </Box>
-                    </Box>
-
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2', mb: 2 }}>
-                        📡 ช่องทางการติดต่อ (CHANNEL)
-                      </Typography>
+                    </Box>                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <MdSignalCellularAlt style={{ fontSize: 20, color: '#1976d2' }} />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                          ช่องทางการติดต่อ (CHANNEL)
+                        </Typography>
+                      </Box>
                       <FormControl fullWidth size="small">
                         <InputLabel>เลือกแล้ว {selectedChannels.length} ช่องทาง</InputLabel>
                         <Select
                           multiple
                           value={selectedChannels}
-                          onChange={(e) => setSelectedChannels(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            console.log('Channel selection changed:', value);
+                            setSelectedChannels(typeof value === 'string' ? value.split(',') : value);
+                          }}
                           input={<OutlinedInput label={`เลือกแล้ว ${selectedChannels.length} ช่องทาง`} />}
                           renderValue={(selected) => (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -558,7 +633,8 @@ function FilterPanel() {
                                 return (
                                   <Chip 
                                     key={value} 
-                                    label={`${channel?.icon} ${channel?.label}`} 
+                                    icon={channel?.icon}
+                                    label={channel?.label} 
                                     size="small"
                                     sx={{ bgcolor: channel?.color, color: 'white' }}
                                   />
@@ -574,18 +650,35 @@ function FilterPanel() {
                             },
                           }}
                         >
-                          <MenuItem value="" onClick={() => setSelectedChannels([])}>
-                            <em>ล้างการเลือกทั้งหมด</em>
-                          </MenuItem>
-                          <Divider />
                           {channelOptions.slice(1).map((channel) => (
                             <MenuItem key={channel.value} value={channel.value}>
                               <Checkbox checked={selectedChannels.indexOf(channel.value) > -1} />
-                              <ListItemText primary={`${channel.icon} ${channel.label}`} />
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {channel.icon}
+                                <ListItemText primary={channel.label} />
+                              </Box>
                             </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setSelectedChannels(channelOptions.slice(1).map(c => c.value))}
+                          disabled={selectedChannels.length === channelOptions.slice(1).length}
+                        >
+                          เลือกทั้งหมด
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setSelectedChannels([])}
+                          disabled={selectedChannels.length === 0}
+                        >
+                          ล้างการเลือก
+                        </Button>
+                      </Box>
                     </Box>
                   </Stack>
                 </Paper>
@@ -594,10 +687,10 @@ function FilterPanel() {
               {/* ตัวกรองวันที่ขาดการติดต่อ */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Stack spacing={2}>                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <MdPhone style={{ fontSize: 20, color: '#1976d2' }} />
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                        📞 ช่วงเวลาที่ขาดการติดต่อ (RECALL)
+                        ช่วงเวลาที่ขาดการติดต่อ (RECALL)
                       </Typography>
                       {(filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) && (
                         <Chip 
@@ -611,40 +704,38 @@ function FilterPanel() {
                     
                     <Box sx={{ px: 1 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        กำลังแสดงลูกค้าที่ขาดการติดต่อ {localFilters.recallRange.minDays || 0} - {localFilters.recallRange.maxDays || 297} วัน
-                      </Typography>
-                      <Slider
+                        กำลังแสดงลูกค้าที่ขาดการติดต่อ {localFilters.recallRange.minDays || 0} - {localFilters.recallRange.maxDays || 60} วัน
+                      </Typography>                      <Slider
                         value={[
-                          localFilters.recallRange.minDays || 0,
-                          localFilters.recallRange.maxDays || 297
+                          parseInt(localFilters.recallRange.minDays) || 0,
+                          parseInt(localFilters.recallRange.maxDays) || 60
                         ]}
                         onChange={(e, newValue) => {
-                          setLocalFilters(prev => ({
-                            ...prev,
-                            recallRange: {
-                              minDays: newValue[0].toString(),
-                              maxDays: newValue[1].toString()
-                            }
-                          }));
+                          if (Array.isArray(newValue) && newValue.length === 2) {
+                            setLocalFilters(prev => ({
+                              ...prev,
+                              recallRange: {
+                                minDays: Math.max(0, newValue[0]).toString(),
+                                maxDays: Math.min(60, newValue[1]).toString()
+                              }
+                            }));
+                          }
                         }}
                         valueLabelDisplay="auto"
                         min={0}
-                        max={297}
-                        marks={[
+                        max={60}                        marks={[
                           { value: 0, label: '0' },
+                          { value: 15, label: '15' },
                           { value: 30, label: '30' },
+                          { value: 45, label: '45' },
                           { value: 60, label: '60' },
-                          { value: 90, label: '90' },
-                          { value: 180, label: '180' },
-                          { value: 297, label: '297' },
                         ]}
                         sx={{ mt: 3, mb: 1 }}
                       />
                     </Box>
                     
                     <Grid container spacing={2}>
-                      <Grid size={6}>
-                        <TextField
+                      <Grid size={6}>                        <TextField
                           fullWidth
                           size="small"
                           label="จำนวนวันต่ำสุด"
@@ -657,12 +748,11 @@ function FilterPanel() {
                             }))
                           }
                           InputProps={{
-                            inputProps: { min: 0, max: 297 }
+                            inputProps: { min: 0, max: 60 }
                           }}
                         />
                       </Grid>
-                      <Grid size={6}>
-                        <TextField
+                      <Grid size={6}>                        <TextField
                           fullWidth
                           size="small"
                           label="จำนวนวันสูงสุด"
@@ -675,13 +765,12 @@ function FilterPanel() {
                             }))
                           }
                           InputProps={{
-                            inputProps: { min: 0, max: 297 }
+                            inputProps: { min: 0, max: 60 }
                           }}
                         />
                       </Grid>
                     </Grid>
-                    
-                    {/* Recall presets */}
+                      {/* Recall presets */}
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {recallPresets.map((preset) => (
                         <Button
@@ -693,7 +782,7 @@ function FilterPanel() {
                               ...prev,
                               recallRange: {
                                 minDays: preset.min.toString(),
-                                maxDays: preset.max ? preset.max.toString() : '297'
+                                maxDays: preset.max ? preset.max.toString() : '60'
                               }
                             }))
                           }
@@ -723,8 +812,7 @@ function FilterPanel() {
                     }}
                   >
                     รีเซ็ตตัวกรอง
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     variant="contained"
                     color="error"
                     startIcon={<MdFilterList />}
@@ -740,7 +828,7 @@ function FilterPanel() {
                       }
                     }}
                   >
-                    แสดงตัวกรองทั้งหมด
+                    ใช้งานตัวกรอง
                   </Button>
                 </Stack>
               </Grid>

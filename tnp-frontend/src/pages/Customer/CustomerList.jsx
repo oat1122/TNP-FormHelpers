@@ -295,22 +295,21 @@ function CustomerList() {
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const groupList = useSelector((state) => state.customer.groupList);
   const keyword = useSelector((state) => state.global.keyword);
-  const paginationModel = useSelector((state) => state.customer.paginationModel);
-  const filters = useSelector((state) => state.customer.filters);
+  const paginationModel = useSelector((state) => state.customer.paginationModel);  const filters = useSelector((state) => state.customer.filters);
   
-  // ตรวจสอบว่ามีการใช้ recall filter หรือไม่
-  const hasRecallFilter = filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null;
-  
+  // สำหรับ recall filter ให้ใช้ server-side filtering เท่านั้น
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
-    page: showAll || hasRecallFilter ? 0 : paginationModel.page,
-    per_page: showAll || hasRecallFilter ? 999999 : paginationModel.pageSize,
+    page: showAll ? 0 : paginationModel.page,
+    per_page: showAll ? 10000 : paginationModel.pageSize,
     user_id: user.user_id,
     search: keyword,
     dateStart: filters.dateRange.startDate,
     dateEnd: filters.dateRange.endDate,
     salesName: filters.salesName,
     channel: filters.channel,
+    recallMin: filters.recallRange.minDays,
+    recallMax: filters.recallRange.maxDays,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -511,71 +510,48 @@ function CustomerList() {
       setIsLoadingData(false);
     }
   }, [isFetching, loadingTimer]);
-
   useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
         open_dialog_error("Fetch customer error", data.message);
       } else if (data.data) {
+        console.log('=== CUSTOMER DATA RECEIVED ===');
+        console.log('Total data count:', data.data.length);
+        console.log('Groups count:', data.groups.length);
+        console.log('Total count:', data.total_count);
+        console.log('Pagination info:', data.pagination);
+        console.log('Current filters:', filters);
+        console.log('Show all mode:', showAll);
+        console.log('===============================');
+        
         dispatch(setItemList(data.data));
         dispatch(setGroupList(data.groups));
         dispatch(setTotalCount(data.total_count));
         setTotalItems(data.pagination.total_items);
       }
     }
-  }, [data, groupSelected]);
+  }, [data, groupSelected, dispatch, filters, showAll]);
 
   // Reset showAll when filters change
   useEffect(() => {
     setShowAll(false);
   }, [filters, groupSelected, keyword]);
-
-  // Filter data based on recall range (client-side filtering) and multi-select filters
+  // Filter data based on multi-select filters only (ใช้ server-side สำหรับ recall filter)
   const filteredItemList = useMemo(() => {
     if (!itemList || itemList.length === 0) return itemList;
 
     let filtered = [...itemList];
 
-    // Apply recall range filter
-    if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) {
-      filtered = filtered.filter((item) => {
-        const recallDays = formatCustomRelativeTime(item.cd_last_datetime);
-        const recallNumber = parseInt(recallDays, 10);
-        
-        const minDays = filters.recallRange.minDays;
-        const maxDays = filters.recallRange.maxDays;
-        
-        let matchesMin = true;
-        let matchesMax = true;
-        
-        if (minDays !== null && minDays !== "") {
-          matchesMin = recallNumber >= minDays;
-        }
-        
-        if (maxDays !== null && maxDays !== "") {
-          matchesMax = recallNumber <= maxDays;
-        }
-        
-        return matchesMin && matchesMax;
-      });
-    }
+    // ไม่ต้องทำ recall filter ที่นี่เพราะ server จัดการแล้ว
+    // Apply sales name filter (multi-select) - เฉพาะตัวที่ server ยังไม่รองรับ
+    // Server รองรับแล้วจึงไม่ต้องกรองที่ client อีก
+    
+    // Apply channel filter (multi-select) - เฉพาะตัวที่ server ยังไม่รองรับ  
+    // Server รองรับแล้วจึงไม่ต้องกรองที่ client อีก
 
-    // Apply sales name filter (multi-select)
-    if (filters.salesName && filters.salesName.length > 0) {
-      filtered = filtered.filter((item) => 
-        filters.salesName.includes(item.cus_manage_by?.username)
-      );
-    }
-
-    // Apply channel filter (multi-select)
-    if (filters.channel && filters.channel.length > 0) {
-      filtered = filtered.filter((item) => 
-        filters.channel.includes(item.cus_channel?.toString())
-      );
-    }
-
+    // ส่งข้อมูลตรงจาก server กลับไปเลย
     return filtered;
-  }, [itemList, filters]);
+  }, [itemList]);
 
   // Extended columns with 30+ fields
   const columns = useMemo(
@@ -809,11 +785,10 @@ function CustomerList() {
 
         {/* Show skeleton loader when loading */}
         {isLoadingData ? (
-          <SkeletonLoader rows={paginationModel.pageSize} />
-        ) : (
+          <SkeletonLoader rows={paginationModel.pageSize} />        ) : (
           <StyledDataGrid
             disableRowSelectionOnClick
-            paginationMode={showAll || hasRecallFilter ? "client" : "server"}
+            paginationMode={showAll ? "client" : "server"}
             rows={filteredItemList}
             columns={columns}
             getRowId={(row) => row.cus_id}
@@ -841,11 +816,8 @@ function CustomerList() {
                   cus_is_use: false,
                 },
               },
-            }}
-            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
-            rowCount={filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null 
-              ? filteredItemList.length 
-              : (showAll ? filteredItemList.length : totalItems)}
+            }}            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
+            rowCount={showAll ? filteredItemList.length : totalItems}
             loading={false} // Controlled by skeleton loader
             pageSizeOptions={showAll ? [filteredItemList.length] : [30, 45, 55, 80]}
             slots={{

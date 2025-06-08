@@ -1,22 +1,20 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Api\V1\User\UserController;
-use App\Http\Controllers\Api\V1\MonitorProduction\ProductionController;
-use App\Http\Controllers\Api\V1\MonitorProduction\BlockController;
-use App\Http\Controllers\Api\V1\MonitorProduction\ProductionCostController;
-use App\Http\Controllers\Api\V1\MonitorProduction\NoteController;
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CostCalc\CostFabricController;
 use App\Http\Controllers\Api\V1\CostCalc\PatternController;
-use App\Http\Controllers\Api\V1\Worksheet\WorksheetController;
-use App\Http\Controllers\Api\V1\Worksheet\ShirtPatternController;
 use App\Http\Controllers\Api\V1\Customers\CustomerController;
-use App\Http\Controllers\Api\V1\LocationController;
-use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
+use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\MonitorProduction\BlockController;
+use App\Http\Controllers\Api\V1\MonitorProduction\NoteController;
+use App\Http\Controllers\Api\V1\MonitorProduction\ProductionController;
+use App\Http\Controllers\Api\V1\MonitorProduction\ProductionCostController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
+use App\Http\Controllers\Api\V1\User\UserController;
+use App\Http\Controllers\Api\V1\Worksheet\ShirtPatternController;
+use App\Http\Controllers\Api\V1\Worksheet\WorksheetController;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -42,7 +40,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::prefix('v1')->group(function() {
+Route::prefix('v1')->group(function () {
 
     Route::post('/login', [AuthController::class, 'login']);
 
@@ -51,45 +49,43 @@ Route::prefix('v1')->group(function() {
 
     Route::apiResources([
         //---------- Monitor Production ----------
-        'production' => ProductionController::class,
-        'note' => NoteController::class,
+        'production'     => ProductionController::class,
+        'note'           => NoteController::class,
 
         //---------- Cost Calculator ----------
-        'pattern' => PatternController::class,
-        'costFabric' => CostFabricController::class,
+        'pattern'        => PatternController::class,
+        'costFabric'     => CostFabricController::class,
 
         //---------- Worksheet ----------
-        'worksheets' => WorksheetController::class,
+        'worksheets'     => WorksheetController::class,
         'shirt-patterns' => ShirtPatternController::class,
-        
+
         //---------- Location ----------
-        'locations' => LocationController::class,
+        'locations'      => LocationController::class,
 
         //---------- Customers ----------
-        'customers' => CustomerController::class,
+        'customers'      => CustomerController::class,
 
         //---------- Pricing Request ----------
-        'pricing' => PricingController::class,
+        'pricing'        => PricingController::class,
     ]);
 
-    
-    //---------- User Management ---------- 
+    //---------- User Management ----------
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
         Route::get("/get-users-by-role", "get_users_by_role");
-    
+
         Route::post("/signup", "signup");
         // Route::post("/login", "login");
         Route::post("user/{username}", "userDetail");
-    
+
         Route::put("/user/{id}", "update");
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
         Route::delete("/user/{id}", "destroy");
     });
 
-
-    //---------- start Monitor Production ---------- 
+    //---------- start Monitor Production ----------
     Route::controller(ProductionController::class)->group(function () {
         Route::get('/getProduction', 'getProduction');
         Route::get('/getFactory', 'getFactory');
@@ -100,18 +96,17 @@ Route::prefix('v1')->group(function() {
         Route::get('/getEnumEmbroid', 'getEnumEmbroid');
         Route::get('/getEnumScreen', 'getEnumScreen');
         Route::get('/getEnumDft', 'getEnumDft');
-        
+
         Route::post('/updateBlock/{id}', 'updateBlock');
     });
 
     Route::controller(ProductionCostController::class)->group(function () {
         Route::get('/getCost/{id}', 'getCost');
-    
+
         Route::post('/updateCost/{id}', 'updateCost');
         Route::post('/updateCost', 'updateCost');
     });
-    //---------- end Monitor Production ---------- 
-
+    //---------- end Monitor Production ----------
 
     //---------- Cost Calculator ----------
     Route::controller(CostFabricController::class)->group(function () {
@@ -120,7 +115,6 @@ Route::prefix('v1')->group(function() {
         Route::put('/costFabric', 'update');
         Route::put('/costFabricOnce', 'updateOnce');
     });
-
 
     //---------- Worksheet ----------
     Route::controller(WorksheetController::class)->group(function () {
@@ -137,7 +131,7 @@ Route::prefix('v1')->group(function() {
 
     //---------- Customer ----------
     Route::put('/customerRecall/{id}', [CustomerController::class, 'recall']);
-    
+
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {
         Route::put('/pricing-update-status', 'update_status');

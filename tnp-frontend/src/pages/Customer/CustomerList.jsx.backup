@@ -292,14 +292,13 @@ function CustomerList() {
   const [totalItems, setTotalItems] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const itemList = useSelector((state) => state.customer.itemList);
-  const groupSelected = useSelector((state) => state.customer.groupSelected);
-  const groupList = useSelector((state) => state.customer.groupList);
+  const groupSelected = useSelector((state) => state.customer.groupSelected);  const groupList = useSelector((state) => state.customer.groupList);
   const keyword = useSelector((state) => state.global.keyword);
   const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
   
-  // Query with all filters
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery({
+  // สำหรับ recall filter ให้ใช้ server-side filtering เท่านั้น
+  const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
     page: showAll ? 0 : paginationModel.page,
     per_page: showAll ? 10000 : paginationModel.pageSize,
@@ -309,10 +308,10 @@ function CustomerList() {
     dateEnd: filters.dateRange.endDate,
     salesName: filters.salesName,
     channel: filters.channel,
-    recallMin: filters.recallRange.minDays,
-    recallMax: filters.recallRange.maxDays,
-  }, {
-    refetchOnMountOrArgChange: true,
+    // ปิดการส่ง recall filter ไปที่ backend เนื่องจาก backend logic ไม่ถูกต้อง
+    // จะใช้ client-side filtering แทน
+    // recallMin: filters.recallRange.minDays,
+    // recallMax: filters.recallRange.maxDays,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -428,7 +427,7 @@ function CustomerList() {
   };
 
   const handleChangeGroup = async (is_up, params) => {
-    // Find target group
+    // ฟังก์ชันหาค่าไอดีกลุ่มลูกค้าที่ต้องการจะเปลี่ยน
     const groupResult = (() => {
       const targetGroup = groupList.find(
         (group) => group.mcg_id === params.cus_mcg_id
@@ -513,10 +512,8 @@ function CustomerList() {
       setIsLoadingData(false);
     }
   }, [isFetching, loadingTimer]);
-
-  // Handle data updates
   useEffect(() => {
-    if (isSuccess && data) {
+    if (isSuccess) {
       if (data.status === "error") {
         open_dialog_error("Fetch customer error", data.message);
       } else if (data.data) {
@@ -535,18 +532,16 @@ function CustomerList() {
         setTotalItems(data.pagination.total_items);
       }
     }
-  }, [data, isSuccess, dispatch, filters, showAll]);
+  }, [data, groupSelected, dispatch, filters, showAll]);
 
-  // Reset showAll and pagination when filters or group change
+  // Reset showAll when filters change
   useEffect(() => {
     setShowAll(false);
-    dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
-  }, [filters, groupSelected, keyword, dispatch]);
-
-  // No client-side filtering - server handles everything
-  const filteredItemList = itemList || [];
-
-  // Extended columns with all fields
+  }, [filters, groupSelected, keyword]);  // Filter data - server handles all filtering, just return the data
+  const filteredItemList = useMemo(() => {
+    // Server handles all filtering now, just return the data directly
+    return itemList || [];
+  }, [itemList]);
   const columns = useMemo(
     () => [
       {
@@ -595,6 +590,7 @@ function CustomerList() {
         },
         sortable: true,
       },
+<<<<<<< HEAD
       { field: "cus_name", headerName: "CUSTOMER", width: 200, sortable: true },
       { field: "cus_company", headerName: "COMPANY NAME", width: 280, sortable: true },
       { field: "cus_firstname", headerName: "FIRST NAME", width: 150, sortable: true },
@@ -609,17 +605,27 @@ function CustomerList() {
       { field: "district_name", headerName: "DISTRICT", width: 150, sortable: true },
       { field: "subdistrict_name", headerName: "SUB-DISTRICT", width: 150, sortable: true },
       { field: "cus_zip_code", headerName: "ZIP CODE", width: 100, sortable: true },
+=======
+      { field: "cus_name", headerName: "CUSTOMER", width: 200 },
+      { field: "cus_company", headerName: "COMPANY NAME", width: 280 },
+      { field: "cus_tel_1", headerName: "TEL", width: 140 },
+>>>>>>> 5347dede584660379e92547b796ca649b745d8d4
       {
         field: "cus_created_date",
         headerName: "CREATED DATE",
         width: 140,
         renderCell: (params) => {
+<<<<<<< HEAD
+=======
+          // แสดงวันที่แบบ DD/MM/YYYY (พ.ศ.)
+>>>>>>> 5347dede584660379e92547b796ca649b745d8d4
           const date = moment(params.value);
           const buddhistYear = date.year() + 543;
           return date.format("DD/MM/") + buddhistYear;
         },
         sortable: true,
       },
+<<<<<<< HEAD
       {
         field: "cus_updated_date",
         headerName: "UPDATED DATE",
@@ -648,6 +654,9 @@ function CustomerList() {
       },
       { field: "cd_note", headerName: "NOTE", width: 280, sortable: true },
       { field: "cd_remark", headerName: "REMARK", width: 300, sortable: true },
+=======
+      { field: "cd_note", headerName: "NOTE", width: 280 },
+>>>>>>> 5347dede584660379e92547b796ca649b745d8d4
       {
         field: "cd_last_datetime",
         headerName: "RECALL",
@@ -776,10 +785,10 @@ function CustomerList() {
           <FilterPanel />
         </Box>
 
+<<<<<<< HEAD
         {/* Show skeleton loader when loading */}
         {isLoadingData ? (
-          <SkeletonLoader rows={paginationModel.pageSize} />
-        ) : (
+          <SkeletonLoader rows={paginationModel.pageSize} />        ) : (
           <StyledDataGrid
             disableRowSelectionOnClick
             paginationMode={showAll ? "client" : "server"}
@@ -810,8 +819,7 @@ function CustomerList() {
                   cus_is_use: false,
                 },
               },
-            }}
-            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
+            }}            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
             rowCount={showAll ? filteredItemList.length : totalItems}
             loading={false} // Controlled by skeleton loader
             pageSizeOptions={showAll ? [filteredItemList.length] : [30, 45, 55, 80]}
@@ -827,12 +835,31 @@ function CustomerList() {
                 csvOptions: { disableToolbarButton: true },
                 printOptions: { disableToolbarButton: true },
               },
+=======
+                  <StyledDataGrid
+            disableRowSelectionOnClick
+            paginationMode={showAll || filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null ? "client" : "server"}
+            rows={filteredItemList}
+            columns={columns}
+            getRowId={(row) => row.cus_id}
+            initialState={{ pagination: { paginationModel } }}
+            onPaginationModelChange={(model) => !showAll && dispatch(setPaginationModel(model))}
+            rowCount={filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null 
+              ? filteredItemList.length 
+              : (showAll ? filteredItemList.length : totalItems)}
+            loading={isFetching}
+            pageSizeOptions={showAll ? [filteredItemList.length] : [10, 25, 50]}
+            slots={{
+              noRowsOverlay: NoDataComponent,
+              pagination: showAll ? undefined : CustomPagination,
+>>>>>>> 5347dede584660379e92547b796ca649b745d8d4
             }}
             sx={{ 
               border: 0,
               height: showAll ? 'auto' : 700,
               '& .MuiDataGrid-main': {
                 maxHeight: showAll ? 'none' : undefined,
+<<<<<<< HEAD
               },
               '& .MuiDataGrid-toolbarContainer': {
                 padding: 2,
@@ -851,6 +878,13 @@ function CustomerList() {
             sortingOrder={['desc', 'asc']}
           />
         )}
+=======
+              }
+            }}
+            rowHeight={50}
+            columnHeaderHeight={50}
+          />
+>>>>>>> 5347dede584660379e92547b796ca649b745d8d4
       </Box>
     </div>
   );

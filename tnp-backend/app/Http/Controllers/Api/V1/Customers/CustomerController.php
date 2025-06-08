@@ -33,28 +33,38 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         try {
-
             if (! $request->user) {
                 return response()->json([
                     'message' => 'User is null',
                 ]);
             }
 
-            // query user
+            // Query user
             $user_q = User::where('enable', 'Y')->where('user_id', $request->user)->select('user_id', 'role')->first();
 
+            // Extract array parameters properly (handles both sales_name[] and sales_name formats)
+            $salesNames = $this->extractArrayParameter($request, 'sales_name');
+            $channels   = $this->extractArrayParameter($request, 'channel');
+
+            Log::info('Extracted parameters', [
+                'sales_names' => $salesNames,
+                'channels'    => $channels,
+                'raw_input'   => $request->all(),
+            ]);
+
+            // Get customer groups with counts
             $customer_group_q = CustomerGroup::active()
                 ->select('mcg_id', 'mcg_name', 'mcg_remark', 'mcg_recall_default', 'mcg_sort')
                 ->orderBy('mcg_sort', 'asc')
-                ->withCount(['customerGroup' => function ($query) use ($user_q, $request) { // Use withCount
+                ->withCount(['customerGroup' => function ($query) use ($user_q, $request, $salesNames, $channels) {
                     $query->where('cus_is_use', true);
 
                     if ($user_q->role !== 'admin') {
                         $query->where('cus_manage_by', $user_q->user_id);
                     }
 
-                    // for search
-                    if ($request->has('search')) {
+                    // Search filter
+                    if ($request->has('search') && $request->search) {
                         $search_term = '%' . trim($request->search) . '%';
                         $query->where(function ($q) use ($search_term) {
                             $q->orWhere('cus_name', 'like', $search_term)
@@ -67,7 +77,7 @@ class CustomerController extends Controller
                         });
                     }
 
-                    // Apply the same filters to group count
+                    // Date filters
                     if ($request->has('date_start') && $request->date_start) {
                         $query->whereDate('cus_created_date', '>=', $request->date_start);
                     }
@@ -75,43 +85,31 @@ class CustomerController extends Controller
                         $query->whereDate('cus_created_date', '<=', $request->date_end);
                     }
 
-                    // Multi-select support for sales_name in group count
-                    if ($request->has('sales_name')) {
-                        if (is_array($request->sales_name) && count($request->sales_name) > 0) {
-                            $query->whereHas('cusManageBy', function ($q) use ($request) {
-                                $q->whereIn('username', $request->sales_name);
-                            });
-                        } elseif (! is_array($request->sales_name) && $request->sales_name) {
-                            // Backward compatibility for single value
-                            $query->whereHas('cusManageBy', function ($q) use ($request) {
-                                $q->where('username', $request->sales_name);
-                            });
-                        }
+                    // Multi-select sales name filter
+                    if (! empty($salesNames)) {
+                        $query->whereHas('cusManageBy', function ($q) use ($salesNames) {
+                            $q->whereIn('username', $salesNames);
+                        });
                     }
 
-                    // Multi-select support for channel in group count
-                    if ($request->has('channel')) {
-                        if (is_array($request->channel) && count($request->channel) > 0) {
-                            $query->whereIn('cus_channel', $request->channel);
-                        } elseif (! is_array($request->channel) && $request->channel) {
-                            // Backward compatibility for single value
-                            $query->where('cus_channel', $request->channel);
-                        }
+                    // Multi-select channel filter
+                    if (! empty($channels)) {
+                        $query->whereIn('cus_channel', $channels);
                     }
 
-                    // Filter by recall days range - UPDATED LOGIC
+                    // Recall days filter
                     if ($request->has('recall_min') || $request->has('recall_max')) {
                         $query->whereHas('customerDetail', function ($q) use ($request) {
                             $now = now();
 
                             if ($request->has('recall_min') && $request->recall_min !== null) {
-                                // Customer ที่ขาดการติดต่อมากกว่าหรือเท่ากับ min_days วัน
+                                // Days since last contact >= min_days
                                 $min_date = $now->copy()->subDays($request->recall_min)->endOfDay();
                                 $q->where('cd_last_datetime', '<=', $min_date);
                             }
 
                             if ($request->has('recall_max') && $request->recall_max !== null) {
-                                // Customer ที่ขาดการติดต่อน้อยกว่าหรือเท่ากับ max_days วัน
+                                // Days since last contact <= max_days
                                 $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
                                 $q->where('cd_last_datetime', '>=', $max_date);
                             }
@@ -120,42 +118,42 @@ class CustomerController extends Controller
                 }])
                 ->get();
 
-            // customer prepared sql
+            // Main customer query
             $customer_prepared = Customer::active()->with('customerDetail');
-
-            // count all customer data
             $total_customers_q = Customer::active();
 
-            // query with customer group
+            // Group filter
             if ($request->has('group') && $request->group !== "all") {
                 $customer_prepared->where('cus_mcg_id', $request->group);
                 $total_customers_q->where('cus_mcg_id', $request->group);
             }
 
-            // query with user_id, if role is not admin
+            // User role filter
             if ($user_q->role !== 'admin') {
                 $customer_prepared->where('cus_manage_by', $user_q->user_id);
                 $total_customers_q->where('cus_manage_by', $user_q->user_id);
             }
 
-            // for search
-            if ($request->has('search')) {
+            // Search filter
+            if ($request->has('search') && $request->search) {
                 $search_term = '%' . trim($request->search) . '%';
                 $search_sql  = function ($query) use ($search_term) {
-                    $query->orWhere('cus_name', 'like', $search_term)
-                        ->orWhere('cus_company', 'like', $search_term)
-                        ->orWhere('cus_no', 'like', $search_term)
-                        ->orWhere('cus_tel_1', 'like', $search_term)
-                        ->orWhereHas('cusManageBy', function ($user_q) use ($search_term) {
-                            $user_q->where('username', 'like', $search_term);
-                        });
+                    $query->where(function ($q) use ($search_term) {
+                        $q->orWhere('cus_name', 'like', $search_term)
+                            ->orWhere('cus_company', 'like', $search_term)
+                            ->orWhere('cus_no', 'like', $search_term)
+                            ->orWhere('cus_tel_1', 'like', $search_term)
+                            ->orWhereHas('cusManageBy', function ($user_q) use ($search_term) {
+                                $user_q->where('username', 'like', $search_term);
+                            });
+                    });
                 };
 
                 $customer_prepared->where($search_sql);
                 $total_customers_q->where($search_sql);
             }
 
-            // Filter by date range
+            // Date range filter
             if ($request->has('date_start') && $request->date_start) {
                 $customer_prepared->whereDate('cus_created_date', '>=', $request->date_start);
                 $total_customers_q->whereDate('cus_created_date', '>=', $request->date_start);
@@ -165,59 +163,25 @@ class CustomerController extends Controller
                 $total_customers_q->whereDate('cus_created_date', '<=', $request->date_end);
             }
 
-            // Filter by sales name - UPDATED FOR MULTI-SELECT
-            if ($request->has('sales_name')) {
-                if (is_array($request->sales_name) && count($request->sales_name) > 0) {
-                    // Multi-select support
-                    $customer_prepared->whereHas('cusManageBy', function ($query) use ($request) {
-                        $query->whereIn('username', $request->sales_name);
-                    });
-                    $total_customers_q->whereHas('cusManageBy', function ($query) use ($request) {
-                        $query->whereIn('username', $request->sales_name);
-                    });
-                } elseif (! is_array($request->sales_name) && $request->sales_name) {
-                    // Backward compatibility for single value
-                    $customer_prepared->whereHas('cusManageBy', function ($query) use ($request) {
-                        $query->where('username', $request->sales_name);
-                    });
-                    $total_customers_q->whereHas('cusManageBy', function ($query) use ($request) {
-                        $query->where('username', $request->sales_name);
-                    });
-                }
+            // Multi-select sales name filter
+            if (! empty($salesNames)) {
+                $customer_prepared->whereHas('cusManageBy', function ($query) use ($salesNames) {
+                    $query->whereIn('username', $salesNames);
+                });
+                $total_customers_q->whereHas('cusManageBy', function ($query) use ($salesNames) {
+                    $query->whereIn('username', $salesNames);
+                });
             }
 
-            // Filter by channel - UPDATED FOR MULTI-SELECT
-            if ($request->has('channel')) {
-                if (is_array($request->channel) && count($request->channel) > 0) {
-                    // Multi-select support
-                    $customer_prepared->whereIn('cus_channel', $request->channel);
-                    $total_customers_q->whereIn('cus_channel', $request->channel);
-                } elseif (! is_array($request->channel) && $request->channel) {
-                    // Backward compatibility for single value
-                    $customer_prepared->where('cus_channel', $request->channel);
-                    $total_customers_q->where('cus_channel', $request->channel);
-                }
+            // Multi-select channel filter
+            if (! empty($channels)) {
+                $customer_prepared->whereIn('cus_channel', $channels);
+                $total_customers_q->whereIn('cus_channel', $channels);
             }
 
-            // Filter by recall days range - UPDATED LOGIC
+            // Recall days filter
             if ($request->has('recall_min') || $request->has('recall_max')) {
-                $customer_prepared->whereHas('customerDetail', function ($query) use ($request) {
-                    $now = now();
-
-                    if ($request->has('recall_min') && $request->recall_min !== null) {
-                        // Customer ที่ขาดการติดต่อมากกว่าหรือเท่ากับ min_days วัน
-                        $min_date = $now->copy()->subDays($request->recall_min)->endOfDay();
-                        $query->where('cd_last_datetime', '<=', $min_date);
-                    }
-
-                    if ($request->has('recall_max') && $request->recall_max !== null) {
-                        // Customer ที่ขาดการติดต่อน้อยกว่าหรือเท่ากับ max_days วัน
-                        $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
-                        $query->where('cd_last_datetime', '>=', $max_date);
-                    }
-                });
-
-                $total_customers_q->whereHas('customerDetail', function ($query) use ($request) {
+                $recallFilter = function ($query) use ($request) {
                     $now = now();
 
                     if ($request->has('recall_min') && $request->recall_min !== null) {
@@ -229,31 +193,32 @@ class CustomerController extends Controller
                         $max_date = $now->copy()->subDays($request->recall_max)->startOfDay();
                         $query->where('cd_last_datetime', '>=', $max_date);
                     }
-                });
+                };
+
+                $customer_prepared->whereHas('customerDetail', $recallFilter);
+                $total_customers_q->whereHas('customerDetail', $recallFilter);
             }
 
-            $perPage = $request->input('per_page', 10);
-            
-            // Debug logging สำหรับการติดตามปัญหา
-            Log::info('Customer API Request Debug', [
-                'per_page' => $perPage,
-                'group' => $request->group,
+            $perPage = $request->input('per_page', 30);
+
+            // Debug logging
+            Log::info('Customer Query Debug', [
+                'per_page'  => $perPage,
+                'group'     => $request->group,
                 'user_role' => $user_q->role,
-                'user_id' => $user_q->user_id,
-                'filters' => [
-                    'search' => $request->search,
-                    'date_start' => $request->date_start,
-                    'date_end' => $request->date_end,
-                    'sales_name' => $request->sales_name,
-                    'channel' => $request->channel,
-                    'recall_min' => $request->recall_min,
-                    'recall_max' => $request->recall_max,
-                ]
+                'filters'   => [
+                    'search'      => $request->search,
+                    'date_start'  => $request->date_start,
+                    'date_end'    => $request->date_end,
+                    'sales_names' => $salesNames,
+                    'channels'    => $channels,
+                    'recall_min'  => $request->recall_min,
+                    'recall_max'  => $request->recall_max,
+                ],
             ]);
-            
-            // Handle large datasets - เพิ่มการรองรับข้อมูลจำนวนมาก
+
+            // Handle large datasets
             if ($perPage > 1000) {
-                // ถ้าต้องการข้อมูลมากกว่า 1000 records ให้ใช้ get() แทน paginate()
                 $customer_collection = $customer_prepared->select([
                     'cus_id',
                     'cus_mcg_id',
@@ -263,6 +228,7 @@ class CustomerController extends Controller
                     'cus_firstname',
                     'cus_lastname',
                     'cus_name',
+                    'cus_depart',
                     'cus_tel_1',
                     'cus_tel_2',
                     'cus_email',
@@ -279,16 +245,9 @@ class CustomerController extends Controller
                     'cus_updated_date',
                     'cus_is_use',
                 ])->orderBy('cus_no', 'desc')->get();
-                
-                $customer_r = CustomerResource::collection($customer_collection);
+
+                $customer_r        = CustomerResource::collection($customer_collection);
                 $total_customers_r = $total_customers_q->count();
-                
-                // Debug logging สำหรับ large dataset
-                Log::info('Large Dataset Query Result', [
-                    'customer_collection_count' => $customer_collection->count(),
-                    'total_customers_r' => $total_customers_r,
-                    'per_page' => $perPage
-                ]);
 
                 return [
                     'data'        => $customer_r,
@@ -302,7 +261,7 @@ class CustomerController extends Controller
                     ],
                 ];
             } else {
-                // Normal pagination for smaller datasets
+                // Normal pagination
                 $customer_q = $customer_prepared->select([
                     'cus_id',
                     'cus_mcg_id',
@@ -312,6 +271,7 @@ class CustomerController extends Controller
                     'cus_firstname',
                     'cus_lastname',
                     'cus_name',
+                    'cus_depart',
                     'cus_tel_1',
                     'cus_tel_2',
                     'cus_email',
@@ -328,18 +288,9 @@ class CustomerController extends Controller
                     'cus_updated_date',
                     'cus_is_use',
                 ])->orderBy('cus_no', 'desc')->paginate($perPage);
-                
-                $customer_r = CustomerResource::collection($customer_q);
+
+                $customer_r        = CustomerResource::collection($customer_q);
                 $total_customers_r = $total_customers_q->count();
-                
-                // Debug logging สำหรับ normal pagination
-                Log::info('Normal Pagination Query Result', [
-                    'paginated_count' => $customer_q->count(),
-                    'total_customers_r' => $total_customers_r,
-                    'per_page' => $perPage,
-                    'current_page' => $customer_q->currentPage(),
-                    'total_items' => $customer_q->total()
-                ]);
 
                 return [
                     'data'        => $customer_r,
@@ -361,6 +312,26 @@ class CustomerController extends Controller
                 'message' => 'Fetch customer error : ' . $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Extract array parameter from request (handles both param[] and param formats)
+     */
+    private function extractArrayParameter(Request $request, $paramName)
+    {
+        // Check for param[] format first
+        if ($request->has($paramName . '[]')) {
+            $value = $request->input($paramName . '[]');
+            return is_array($value) ? $value : [$value];
+        }
+
+        // Check for param format
+        if ($request->has($paramName)) {
+            $value = $request->input($paramName);
+            return is_array($value) ? $value : (empty($value) ? [] : [$value]);
+        }
+
+        return [];
     }
 
     /**
@@ -405,7 +376,7 @@ class CustomerController extends Controller
                 ->orderByDesc('cus_no')
                 ->first();
 
-            // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
+            // Clean phone numbers & Tax ID
             $fieldsToClean = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id'];
             array_walk($fieldsToClean, function ($field) use (&$data_input) {
                 if (isset($data_input[$field])) {
@@ -459,7 +430,6 @@ class CustomerController extends Controller
     public function show(string $id)
     {
         if ($id === 'all') {
-
             $query = Customer::select(
                 'cus_id',
                 'cus_no',
@@ -467,6 +437,7 @@ class CustomerController extends Controller
                 'cus_company',
                 'cus_firstname',
                 'cus_lastname',
+                'cus_name',
                 'cus_tel_1',
                 'cus_tel_2',
                 'cus_email',
@@ -494,7 +465,6 @@ class CustomerController extends Controller
 
             return CustomerResource::collection($query);
         } else {
-
             $customer = Customer::active()->find($id);
             if (! $customer) {
                 return response()->json([
@@ -530,7 +500,7 @@ class CustomerController extends Controller
 
         $data_input = $request->all();
 
-        // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
+        // Clean phone numbers & Tax ID
         $fieldsToClean = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id'];
         array_walk($fieldsToClean, function ($field) use (&$data_input) {
             if (isset($data_input[$field])) {
@@ -617,6 +587,9 @@ class CustomerController extends Controller
         }
     }
 
+    /**
+     * Update recall datetime
+     */
     public function recall(Request $request, string $id)
     {
         $update_input = $request->all();
@@ -642,7 +615,6 @@ class CustomerController extends Controller
                 'status' => 'success',
             ]);
         } catch (\Exception $e) {
-
             DB::rollBack();
             Log::error('recall customer error : ' . $e);
 
@@ -660,29 +632,27 @@ class CustomerController extends Controller
     {
         try {
             Log::info('getSales called with request:', $request->all());
-            
+
             if (! $request->user) {
                 Log::error('User parameter missing');
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => 'User parameter is required',
                 ]);
             }
 
-            // query user
+            // Query user
             $user_q = User::where('enable', 'Y')->where('user_id', $request->user)->first();
-            
-            Log::info('User query result:', ['user' => $user_q]);
 
-            if (!$user_q) {
+            if (! $user_q) {
                 Log::error('User not found with ID: ' . $request->user);
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => 'User not found',
                 ]);
             }
 
-            // Get all unique sales names using MasterCustomer model
+            // Get all unique sales names
             $sales_query = Customer::active()
                 ->join('users', 'master_customers.cus_manage_by', '=', 'users.user_id')
                 ->where('users.enable', 'Y')
@@ -698,20 +668,20 @@ class CustomerController extends Controller
 
             Log::info('Sales List Query Result', [
                 'total_sales_count' => count($sales_list),
-                'sales_list' => $sales_list,
-                'user_role' => $user_q->role,
-                'user_id' => $user_q->user_id
+                'sales_list'        => $sales_list,
+                'user_role'         => $user_q->role,
+                'user_id'           => $user_q->user_id,
             ]);
 
             return response()->json([
-                'sales_list' => $sales_list,
-                'total_count' => count($sales_list)
+                'sales_list'  => $sales_list,
+                'total_count' => count($sales_list),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Fetch sales list error : ' . $e->getMessage(), [
                 'exception' => $e,
-                'request' => $request->all()
+                'request'   => $request->all(),
             ]);
 
             return response()->json([

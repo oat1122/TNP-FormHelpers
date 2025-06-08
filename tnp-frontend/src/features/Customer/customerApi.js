@@ -9,44 +9,64 @@ export const customerApi = createApi({
   endpoints: (builder) => ({
     getAllCustomer: builder.query({
       query: (payload) => {
-        const queryParams = {
-          group: payload?.group,
-          page: payload?.page + 1,
-          per_page: payload?.per_page,
-          user: payload?.user_id,
-          search: payload?.search,
-          date_start: payload?.dateStart,
-          date_end: payload?.dateEnd,
-          // Handle multi-select for sales names
-          sales_name: payload?.salesName && payload.salesName.length > 0 
-            ? payload.salesName 
-            : undefined,
-          // Handle multi-select for channels
-          channel: payload?.channel && payload.channel.length > 0 
-            ? payload.channel 
-            : undefined,
-          recall_min: payload?.recallMin,
-          recall_max: payload?.recallMax,
-        };
+        // Prepare query parameters
+        const queryParams = {};
+        
+        // Basic parameters
+        if (payload?.group) queryParams.group = payload.group;
+        if (payload?.page !== undefined) queryParams.page = payload.page + 1; // API expects 1-based
+        if (payload?.per_page) queryParams.per_page = payload.per_page;
+        if (payload?.user_id) queryParams.user = payload.user_id;
+        if (payload?.search) queryParams.search = payload.search;
+        
+        // Date filters
+        if (payload?.dateStart) queryParams.date_start = payload.dateStart;
+        if (payload?.dateEnd) queryParams.date_end = payload.dateEnd;
+        
+        // Recall filters
+        if (payload?.recallMin !== null && payload?.recallMin !== undefined) {
+          queryParams.recall_min = payload.recallMin;
+        }
+        if (payload?.recallMax !== null && payload?.recallMax !== undefined) {
+          queryParams.recall_max = payload.recallMax;
+        }
 
-        // Use qs to properly serialize arrays
-        const queryString = qs.stringify(queryParams, { 
-          skipNulls: true,
-          arrayFormat: 'brackets' // This will format arrays as sales_name[]=value1&sales_name[]=value2
+        // Build query string manually for arrays to ensure bracket format
+        let queryParts = [];
+        
+        // Add non-array parameters
+        Object.keys(queryParams).forEach(key => {
+          if (queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== '') {
+            queryParts.push(`${key}=${encodeURIComponent(queryParams[key])}`);
+          }
         });
         
+        // Add array parameters with bracket notation
+        if (payload?.salesName && Array.isArray(payload.salesName) && payload.salesName.length > 0) {
+          payload.salesName.forEach(name => {
+            queryParts.push(`sales_name[]=${encodeURIComponent(name)}`);
+          });
+        }
+        
+        if (payload?.channel && Array.isArray(payload.channel) && payload.channel.length > 0) {
+          payload.channel.forEach(ch => {
+            queryParts.push(`channel[]=${encodeURIComponent(ch)}`);
+          });
+        }
+        
+        const queryString = queryParts.join('&');
         const url = queryString ? `/customers?${queryString}` : '/customers';
 
-        console.log('=== API REQUEST ===');
-        console.log('Payload received:', payload);
-        console.log('Query params:', queryParams);
+        console.log('=== CUSTOMER API REQUEST ===');
+        console.log('Payload:', payload);
+        console.log('Query string:', queryString);
         console.log('Final URL:', url);
-        console.log('==================');
+        console.log('===========================');
 
         return {
           url: url,
           method: "GET"
-        }
+        };
       },
       providesTags: ["Customer"],
     }),
@@ -54,7 +74,7 @@ export const customerApi = createApi({
       query: (payload) => {
         const queryParams = {
           user: payload?.user_id,
-          sales_only: true // Flag to get only sales list
+          sales_only: true
         };
 
         const queryString = qs.stringify(queryParams, { 
@@ -66,7 +86,7 @@ export const customerApi = createApi({
         return {
           url: url,
           method: "GET"
-        }
+        };
       },
       providesTags: ["Customer"],
     }),

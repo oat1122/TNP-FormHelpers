@@ -43,6 +43,8 @@ import {
 } from "../../utils/import_lib";
 import { MdClose } from "react-icons/md";
 import Swal from "sweetalert2";
+import { useUserPermissions } from "../../hooks/useUserPermissions";
+import { useApiErrorHandler } from "../../hooks/useApiErrorHandler";
 
 const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,
@@ -83,8 +85,8 @@ const StyledSelect = styled(Select)(({ theme }) => ({
 
 function DialogForm(props) {
   const dispatch = useDispatch();
-  const user = JSON.parse(localStorage.getItem("userData"));
-  const isAdmin = user.role === "admin";
+  const userPermissions = useUserPermissions();
+  const user = JSON.parse(localStorage.getItem("userData")); // Keep for backward compatibility
   const inputList = useSelector((state) => state.customer.inputList);
   const itemList = useSelector((state) => state.customer.itemList);
   const mode = useSelector((state) => state.customer.mode);
@@ -115,10 +117,15 @@ function DialogForm(props) {
     view: "ดู",
   };
 
+  // Use custom hook for API error handling
+  const { handleError, handleSuccess } = useApiErrorHandler();
+
   const selectList = [
     { value: "1", title: "sales" },
     { value: "2", title: "online" },
     { value: "3", title: "office" },
+    { value: "4", title: "mobile" },
+    { value: "5", title: "email" },
   ];
 
   // const dateString = moment().add(30, "days");
@@ -127,14 +134,20 @@ function DialogForm(props) {
   );
 
   const handleInputChange = (e) => {
-    let { name, value } = e.target;
-
-    if (name === "cus_tax_id" || name === "cus_zip_code") {
+    let { name, value } = e.target;    if (name === "cus_tax_id" || name === "cus_zip_code") {
       value = value.replace(/[^0-9]/g, "");
-
     } else if (name === "cus_manage_by") {
-
-      value = salesList.find((user) => user.user_id === value) ||  { user_id: "", username: ""};
+      // แก้ไขให้สม่ำเสมอ
+      if (typeof value === 'string') {
+        // ถ้าเป็น string (user_id) ให้หา user object
+        value = salesList.find((user) => user.user_id === value) || { user_id: "", username: "" };
+      } else if (typeof value === 'object' && value !== null) {
+        // ถ้าเป็น object แล้วก็ใช้เลย
+        value = value;
+      } else {
+        // ถ้าเป็น null หรือ undefined
+        value = { user_id: "", username: "" };
+      }
     }
 
     dispatch(
@@ -238,7 +251,6 @@ function DialogForm(props) {
       return false;
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -254,24 +266,26 @@ function DialogForm(props) {
           res = await addCustomer(inputList);
         } else {
           res = await updateCustomer(inputList);
-        }
-
+        }        
         if (res.data.status === "success") {
           props.handleCloseDialog();
-
-          open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
+          
+          // Use the handleSuccess from our custom hook
+          handleSuccess("บันทึกข้อมูลสำเร็จ", () => {
             setSaveLoading(false);
             dispatch(resetInputList());
-          });
+            // Call refetch after successful submission
+            if (props.refetch) {
+              props.refetch();
+            }
+          });        
         } else {
           setSaveLoading(false);
-          open_dialog_error(res.data.message);
-          console.error(res.data.message);
+          handleError({ message: res.data.message }, "บันทึกข้อมูลไม่สำเร็จ");
         }
       } catch (error) {
         setSaveLoading(false);
-        open_dialog_error(error.message, error);
-        console.error(error);
+        handleError(error);
       }
     }
   };
@@ -280,13 +294,11 @@ function DialogForm(props) {
     props.handleCloseDialog();
     setErrors({});
   };
-
   useEffect(() => {
-    if (mode === "create") {
-      // Generate customer number
-      const maxCusNo = String(
+    if (mode === "create") {      // Generate customer number
+      const maxCusNo = itemList.length > 0 ? String(
         Math.max(...itemList.map((customer) => parseInt(customer.cus_no, 10)))
-      );
+      ) : null;
       const newCusNo = genCustomerNo(maxCusNo);
 
       // Get group ID (improved handling of empty groupList and simplified logic)
@@ -306,7 +318,7 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? "" : {user_id: user.user_id},
+          cus_manage_by: userPermissions.isAdmin ? "" : {user_id: userPermissions.userId},
         })
       );
     }
@@ -334,13 +346,14 @@ function DialogForm(props) {
     }
   }, [isFetching, roleIsFetching]);
 
-  return (
-    <Dialog
+  return (    <Dialog
       open={props.openDialog}
       fullWidth
       maxWidth="xl"
       disableEscapeKeyDown
-      aria-hidden={props.openDialog ? false : true}
+      disableRestoreFocus
+      hideBackdrop={false}
+      aria-hidden={false}
     >
       <form ref={formRef} noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ paddingBlock: 1 }}>
@@ -369,8 +382,7 @@ function DialogForm(props) {
               container
               sx={{ paddingBlock: 2, justifyContent: "center" }}
               spacing={2}
-            >
-              {isAdmin && (
+            >              {userPermissions.isAdmin && (
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <StyledSelect
                     fullWidth
@@ -398,9 +410,7 @@ function DialogForm(props) {
                       ))}
                   </StyledSelect>
                 </Grid>
-              )}
-
-              <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
+              )}              <Grid size={{ xs: 12, sm: userPermissions.isAdmin ? 6 : 12, md: 3 }}>
                 <StyledSelect
                   required
                   fullWidth

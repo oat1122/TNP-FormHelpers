@@ -15,7 +15,7 @@ function FilterTab() {
   const handleSelectGroup = (event, newVal) => {
     if (newVal !== null) {
       dispatch(setGroupSelected(newVal));
-      dispatch(setPaginationModel({  page: 0, pageSize: 10 }));
+      dispatch(setPaginationModel({  page: 0, pageSize: 30 }));
     }
   };
 

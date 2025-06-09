@@ -6,65 +6,69 @@ export const customerApi = createApi({
   reducerPath: "customerApi",
   baseQuery: fetchBaseQuery(apiConfig),
   tagTypes: ["Customer"],
+  // Add global RTK Query options for better caching
+  keepUnusedDataFor: 300, // Keep unused endpoints' data for 5 minutes
+  refetchOnMountOrArgChange: 30, // Refetch if 30 seconds have passed since last fetched
   endpoints: (builder) => ({
     getAllCustomer: builder.query({
       query: (payload) => {
         // Prepare query parameters
-        const queryParams = {};
-        
-        // Basic parameters
-        if (payload?.group) queryParams.group = payload.group;
-        if (payload?.page !== undefined) queryParams.page = payload.page + 1; // API expects 1-based
-        if (payload?.per_page) queryParams.per_page = payload.per_page;
-        if (payload?.user_id) queryParams.user = payload.user_id;
-        if (payload?.search) queryParams.search = payload.search;
-        
-        // Date filters
-        if (payload?.dateStart) queryParams.date_start = payload.dateStart;
-        if (payload?.dateEnd) queryParams.date_end = payload.dateEnd;
-        
-        // Recall filters
-        if (payload?.recallMin !== null && payload?.recallMin !== undefined && payload.recallMin !== '') {
-          queryParams.recall_min = payload.recallMin;
-        }
-        if (payload?.recallMax !== null && payload?.recallMax !== undefined && payload.recallMax !== '') {
-          queryParams.recall_max = payload.recallMax;
-        }
+        const queryParams = {
+          // Basic parameters with proper type checking
+          group: payload?.group,
+          page: payload?.page !== undefined ? payload.page + 1 : undefined, // API expects 1-based
+          per_page: payload?.per_page,
+          user: payload?.user_id,
+          search: payload?.search || undefined,
+          
+          // Date filters with nullish coalescing to avoid empty strings
+          date_start: payload?.dateStart || undefined,
+          date_end: payload?.dateEnd || undefined,
+          
+          // Recall filters with proper type checking
+          recall_min: payload?.recallMin ?? undefined,
+          recall_max: payload?.recallMax ?? undefined,
+        };
 
-        // Build query string manually for arrays to ensure bracket format
-        let queryParts = [];
-        
-        // Add non-array parameters
+        // Remove undefined values for cleaner URLs
         Object.keys(queryParams).forEach(key => {
-          if (queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== '') {
-            queryParts.push(`${key}=${encodeURIComponent(queryParams[key])}`);
+          if (queryParams[key] === undefined || queryParams[key] === '') {
+            delete queryParams[key];
           }
         });
-        
-        // Add array parameters with bracket notation
-        if (payload?.salesName && Array.isArray(payload.salesName) && payload.salesName.length > 0) {
-          payload.salesName.forEach(name => {
-            queryParts.push(`sales_name[]=${encodeURIComponent(name)}`);
-          });
-        }
-        
-        if (payload?.channel && Array.isArray(payload.channel) && payload.channel.length > 0) {
-          payload.channel.forEach(ch => {
-            queryParts.push(`channel[]=${encodeURIComponent(ch)}`);
-          });
-        }
-        
-        const queryString = queryParts.join('&');
-        const url = queryString ? `/customers?${queryString}` : '/customers';
 
-        console.log('=== CUSTOMER API REQUEST ===');
-        console.log('Payload:', payload);
-        console.log('Query string:', queryString);
-        console.log('Final URL:', url);
-        console.log('===========================');
+        // Build query string for most parameters
+        let query = qs.stringify(queryParams, { skipNulls: true });
+        
+        // Handle arrays with bracket notation if needed
+        const arrayParams = [];
+        
+        if (payload?.salesName?.length > 0) {
+          payload.salesName.forEach(name => {
+            arrayParams.push(`sales_name[]=${encodeURIComponent(name)}`);
+          });
+        }
+        
+        if (payload?.channel?.length > 0) {
+          payload.channel.forEach(ch => {
+            arrayParams.push(`channel[]=${encodeURIComponent(ch)}`);
+          });
+        }
+        
+        // Combine query parts
+        const queryString = [query, ...arrayParams].filter(Boolean).join('&');
+        const url = `/customers${queryString ? `?${queryString}` : ''}`;
+
+        // Only log in development environment
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Customer API Request:', { 
+            params: queryParams,
+            url
+          });
+        }
 
         return {
-          url: url,
+          url,
           method: "GET"
         };
       },

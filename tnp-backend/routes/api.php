@@ -46,6 +46,9 @@ Route::prefix('v1')->group(function () {
 
     // Define specific routes before resource routes
     Route::get('/customers/sales', [CustomerController::class, 'getSales']);
+    
+    // Development/Testing routes (only available in local environment)
+    Route::get('/customers/test-validation', [CustomerController::class, 'testValidationEnhancements']);
 
     Route::apiResources([
         //---------- Monitor Production ----------

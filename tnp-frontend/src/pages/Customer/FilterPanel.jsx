@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
@@ -24,7 +24,8 @@ import {
   Paper,
   Divider,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
+import { debounce } from 'lodash';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -143,6 +144,25 @@ function FilterPanel() {
       maxDays: "",
     },
   });
+  
+  // Debounced filter application
+  const debouncedApplyFilters = useCallback(
+    debounce((filtersToApply) => {
+      console.log('🔥 Applying debounced filters:', filtersToApply);
+      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
+      dispatch(setFilters(filtersToApply));
+    }, 500), // Wait 500ms after the user stops typing
+    [dispatch]
+  );
+  
+  // Cleanup debounced function on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (debouncedApplyFilters && typeof debouncedApplyFilters.cancel === 'function') {
+        debouncedApplyFilters.cancel();
+      }
+    };
+  }, [debouncedApplyFilters]);
 
   // Count filtered items
   const filteredCount = useMemo(() => {
@@ -194,10 +214,10 @@ function FilterPanel() {
       console.warn('Error updating local filters:', error);
     }
   }, [filters]);
-  // Apply filters
-  const handleApplyFilters = () => {
+    // Apply filters
+  const handleApplyFilters = useCallback(() => {
     try {
-      // Validate recall range - convert to integers and validate
+      // Validate recall range
       const minDays = localFilters.recallRange.minDays && localFilters.recallRange.minDays.trim() !== '' ? 
                       parseInt(localFilters.recallRange.minDays, 10) : null;
       const maxDays = localFilters.recallRange.maxDays && localFilters.recallRange.maxDays.trim() !== '' ? 
@@ -206,7 +226,8 @@ function FilterPanel() {
       if (minDays !== null && maxDays !== null && minDays > maxDays) {
         alert('วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด');
         return;
-      }      // Convert dayjs objects to strings before sending to Redux
+      }
+
       const filtersToApply = {
         dateRange: {
           startDate: localFilters.dateRange.startDate?.isValid() ? localFilters.dateRange.startDate.format('YYYY-MM-DD') : null,
@@ -220,25 +241,26 @@ function FilterPanel() {
         },
       };
       
-      console.log('=== APPLYING FILTERS ===');
-      console.log('Local filters:', localFilters);
-      console.log('Selected sales:', selectedSales);
-      console.log('Selected channels:', selectedChannels);
-      console.log('Final filters to apply:', filtersToApply);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=== APPLYING FILTERS ===');
+        console.log('Local filters:', localFilters);
+        console.log('Selected sales:', selectedSales);
+        console.log('Selected channels:', selectedChannels);
+        console.log('Final filters to apply:', filtersToApply);
+      }
       
-      // Reset pagination to first page when applying filters
-      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
-      dispatch(setFilters(filtersToApply));
+      // Use debounced function instead of direct dispatch
+      debouncedApplyFilters(filtersToApply);
       
       // Collapse filter panel after applying
       setExpanded(false);
       
-      console.log('Filters applied successfully!');
+      console.log('Filters prepared for debounced application!');
     } catch (error) {
       console.error('Error applying filters:', error);
       alert('เกิดข้อผิดพลาดในการใช้งานตัวกรอง');
     }
-  };
+  }, [localFilters, selectedSales, selectedChannels, debouncedApplyFilters]);
   // Reset filters
   const handleResetFilters = () => {
     setLocalFilters({

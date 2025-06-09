@@ -32,8 +32,9 @@ class CustomerService
     // ฟังก์ชันสำหรับการคำนวณเวลาติดตามลูกค้า
     public function setRecallDatetime($default_recall_datetime)
     {
+        // แก้ไข: ตั้งวันให้เป็น 60 วันข้างหน้าเสมอ โดยใช้จำนวนวันจาก default_recall_datetime
         $datetime = new DateTime();
-        $datetime->modify('+' . $default_recall_datetime);
+        $datetime->modify('+' . $default_recall_datetime . ' days');
         $datetime->setTime(23, 59, 59);
         return $datetime;
     }

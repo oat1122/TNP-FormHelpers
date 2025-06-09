@@ -519,26 +519,29 @@ function CustomerList() {
           cus_mcg_id: params.cus_mcg_id,
           cd_id: params.cd_id,
           cd_updated_by: user.user_id,
-        };
-
-        console.log("🔥 Calling updateRecall API with data:", inputUpdate);
+        };        console.log("🔥 Calling updateRecall API with data:", inputUpdate);
 
         try {
           const res = await updateRecall(inputUpdate);
           console.log("🔥 API Response received:", res);
           
-          if (res.data.status === "success") {
+          // ✅ Fixed: Properly handle different response structures
+          if (res?.data?.status === "success" || res?.status === "success") {
             console.log("🔥 Success! Showing success message and refetching...");
             open_dialog_ok_timer("รีเซตเวลาสำเร็จ");
             refetch();
             console.log("🔥 === RECALL FUNCTION COMPLETED ===");
-          } else {
+          } else if (res?.data) {
             console.error("🔥 API returned error status:", res.data);
-            open_dialog_error("เกิดข้อผิดพลาดในการรีเซตเวลา", res.data.message);
+            const errorMessage = res.data.message || "เกิดข้อผิดพลาดในการรีเซตเวลา";
+            open_dialog_error("เกิดข้อผิดพลาดในการรีเซตเวลา", errorMessage);
+          } else {
+            console.error("🔥 Unexpected response structure:", res);
+            open_dialog_error("เกิดข้อผิดพลาดในการรีเซตเวลา", "Response structure is invalid");
           }
         } catch (error) {
           console.error("🔥 API call failed:", error);
-          open_dialog_error(error.message, error);
+          open_dialog_error(error.message || "เกิดข้อผิดพลาดในการเรียก API", error);
         }
       } else {
         console.log("🔥 User cancelled the action");
@@ -884,19 +887,23 @@ function CustomerList() {
         sortable: false,
         align: 'center',
         headerAlign: 'center',        renderCell: (params) => {
-          // 🎯 Enhanced stable event handlers within renderCell
-          const handleRecallClick = useCallback((e) => {
-            console.log("🔥 Enhanced Recall triggered for:", params.row.cus_name);
+          // ✅ Fixed: Simple event handlers without useCallback hooks
+          const handleRecallClick = (e) => {
+            console.log("🔥 Recall triggered for:", params.row.cus_name);
             
-            // 1. Prevent all event propagation immediately
+            // 1. Prevent all event propagation
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
-            // 2. Prevent focus issues with onMouseDown
-            e.currentTarget.blur();
+            // 2. Prevent focus issues
+            if (e.currentTarget && e.currentTarget.blur) {
+              e.currentTarget.blur();
+            }
             
-            // 3. Clear browser text selection properly 
+            // 3. Clear browser text selection
             setTimeout(() => {
               try {
                 if (window.getSelection) {
@@ -912,19 +919,21 @@ function CustomerList() {
                 console.warn("Selection clear warning (safe to ignore):", err);
               }
               
-              // 4. Execute recall with enhanced error handling
+              // 4. Execute recall with error handling
               try {
                 handleRecall(params.row);
               } catch (error) {
                 console.error("Recall error:", error);
               }
             }, 0);
-          }, [params.row]);
+          };
 
-          const handleGradeUpClick = useCallback((e) => {
+          const handleGradeUpClick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
             setTimeout(() => {
               try {
@@ -933,12 +942,14 @@ function CustomerList() {
                 console.error("Grade up error:", error);
               }
             }, 0);
-          }, [params.row]);
+          };
 
-          const handleGradeDownClick = useCallback((e) => {
+          const handleGradeDownClick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
             setTimeout(() => {
               try {
@@ -947,12 +958,14 @@ function CustomerList() {
                 console.error("Grade down error:", error);
               }
             }, 0);
-          }, [params.row]);
+          };
 
-          const handleViewClick = useCallback((e) => {
+          const handleViewClick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
             setTimeout(() => {
               try {
@@ -961,12 +974,14 @@ function CustomerList() {
                 console.error("View error:", error);
               }
             }, 0);
-          }, [params.id]);
+          };
 
-          const handleEditClick = useCallback((e) => {
+          const handleEditClick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
             setTimeout(() => {
               try {
@@ -975,12 +990,14 @@ function CustomerList() {
                 console.error("Edit error:", error);
               }
             }, 0);
-          }, [params.id]);
+          };
 
-          const handleDeleteClick = useCallback((e) => {
+          const handleDeleteClick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            if (e.stopImmediatePropagation) {
+              e.stopImmediatePropagation();
+            }
             
             setTimeout(() => {
               try {
@@ -989,7 +1006,7 @@ function CustomerList() {
                 console.error("Delete error:", error);
               }
             }, 0);
-          }, [params.row]);
+          };
           
           return (
             <Box sx={{ 
@@ -1038,49 +1055,19 @@ function CustomerList() {
                 >
                   <PiClockClockwise style={{ fontSize: 20, pointerEvents: 'none' }} />
                 </IconButton>
-              </Tooltip>
-
-              {/* Enhanced Grade Up Button */}
+              </Tooltip>              {/* ✅ Fixed Grade Up Button with proper Tooltip wrapper */}
               <Tooltip title="เปลี่ยนเกรดขึ้น" arrow placement="top">
-                <IconButton
-                  size="small"
-                  onClick={handleGradeUpClick}
-                  onMouseDown={(e) => e.preventDefault()}
-                  disabled={handleDisableChangeGroupBtn(true, params.row)}
-                  sx={{ 
-                    color: 'success.main',
-                    cursor: 'pointer',
-                    '&:hover': { 
-                      backgroundColor: 'success.light',
-                      transform: 'scale(1.1)'
-                    },
-                    '&:active': {
-                      transform: 'scale(0.95)'
-                    },
-                    transition: 'all 0.2s ease',
-                    isolation: 'isolate',
-                    userSelect: 'none',
-                    pointerEvents: 'auto',
-                    zIndex: 12
-                  }}
-                >
-                  <PiArrowFatLinesUpFill style={{ fontSize: 20, pointerEvents: 'none' }} />
-                </IconButton>
-              </Tooltip>
-
-              {/* Enhanced Grade Down Button - Admin Only */}
-              {user.role === "admin" && (
-                <Tooltip title="เปลี่ยนเกรดลง" arrow placement="top">
+                <span>
                   <IconButton
                     size="small"
-                    onClick={handleGradeDownClick}
+                    onClick={handleGradeUpClick}
                     onMouseDown={(e) => e.preventDefault()}
-                    disabled={handleDisableChangeGroupBtn(false, params.row)}
+                    disabled={handleDisableChangeGroupBtn(true, params.row)}
                     sx={{ 
-                      color: 'warning.main',
+                      color: 'success.main',
                       cursor: 'pointer',
                       '&:hover': { 
-                        backgroundColor: 'warning.light',
+                        backgroundColor: 'success.light',
                         transform: 'scale(1.1)'
                       },
                       '&:active': {
@@ -1093,8 +1080,40 @@ function CustomerList() {
                       zIndex: 12
                     }}
                   >
-                    <PiArrowFatLinesDownFill style={{ fontSize: 20, pointerEvents: 'none' }} />
+                    <PiArrowFatLinesUpFill style={{ fontSize: 20, pointerEvents: 'none' }} />
                   </IconButton>
+                </span>
+              </Tooltip>
+
+              {/* ✅ Fixed Grade Down Button with proper Tooltip wrapper - Admin Only */}
+              {user.role === "admin" && (
+                <Tooltip title="เปลี่ยนเกรดลง" arrow placement="top">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={handleGradeDownClick}
+                      onMouseDown={(e) => e.preventDefault()}
+                      disabled={handleDisableChangeGroupBtn(false, params.row)}
+                      sx={{ 
+                        color: 'warning.main',
+                        cursor: 'pointer',
+                        '&:hover': { 
+                          backgroundColor: 'warning.light',
+                          transform: 'scale(1.1)'
+                        },
+                        '&:active': {
+                          transform: 'scale(0.95)'
+                        },
+                        transition: 'all 0.2s ease',
+                        isolation: 'isolate',
+                        userSelect: 'none',
+                        pointerEvents: 'auto',
+                        zIndex: 12
+                      }}
+                    >
+                      <PiArrowFatLinesDownFill style={{ fontSize: 20, pointerEvents: 'none' }} />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               )}
 

@@ -59,63 +59,114 @@ function FilterTags() {
   const handleClearAllFilters = () => {
     dispatch(resetFilters());
   };
-  
-  return (
+    return (
     <Box 
       sx={{ 
         display: 'flex', 
         alignItems: 'center', 
         flexWrap: 'wrap', 
-        gap: 1,
-        mb: 2,
-        mt: 1
+        gap: 1.2,
+        mb: 2.5,
+        mt: 1.5,
+        backgroundColor: 'rgba(245, 245, 245, 0.5)',
+        borderRadius: 2,
+        p: hasAnyFilters ? 1.5 : 0,
+        border: hasAnyFilters ? '1px dashed rgba(0, 0, 0, 0.12)' : 'none'
       }}
     >
-      <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-        กรองตาม:
-      </Typography>
+      {hasAnyFilters && (
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: '#1976d2', 
+            mr: 1,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            px: 1
+          }}
+        >
+          กรองตาม:
+        </Typography>
+      )}
       
       {/* Date Range Filter Tag */}
       {hasDateFilter && (
         <Chip
-          icon={<MdDateRange />}
+          icon={<MdDateRange style={{ color: '#1976d2' }} />}
           label={`วันที่: ${getDateRangeLabel()}`}
-          size="small"
+          size="medium"
           color="primary"
           variant="outlined"
+          sx={{ 
+            borderRadius: '16px', 
+            fontWeight: 500,
+            px: 0.5,
+            '& .MuiChip-icon': {
+              color: '#1976d2'
+            },
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
         />
       )}
       
       {/* Sales Name Filter Tag */}
       {hasSalesFilter && (
         <Chip
-          icon={<MdPerson />}
+          icon={<MdPerson style={{ color: '#1976d2' }} />}
           label={`Sales: ${filters.salesName.length} คน`}
-          size="small"
+          size="medium"
           color="primary"
           variant="outlined"
+          sx={{ 
+            borderRadius: '16px', 
+            fontWeight: 500,
+            px: 0.5,
+            '& .MuiChip-icon': {
+              color: '#1976d2'
+            },
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
         />
       )}
       
       {/* Channel Filter Tag */}
       {hasChannelFilter && (
         <Chip
-          icon={<MdSignalCellularAlt />}
+          icon={<MdSignalCellularAlt style={{ color: '#1976d2' }} />}
           label={`ช่องทาง: ${filters.channel.map(c => getChannelDisplayName(c)).join(', ')}`}
-          size="small"
+          size="medium"
           color="primary"
           variant="outlined"
+          sx={{ 
+            borderRadius: '16px', 
+            fontWeight: 500,
+            px: 0.5,
+            '& .MuiChip-icon': {
+              color: '#1976d2'
+            },
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
         />
       )}
       
       {/* Recall Filter Tag */}
       {hasRecallFilter && (
         <Chip
-          icon={<MdPhone />}
+          icon={<MdPhone style={{ color: '#1976d2' }} />}
           label={`ขาดติดต่อ: ${getRecallRangeLabel()}`}
-          size="small"
+          size="medium"
           color="primary"
           variant="outlined"
+          sx={{ 
+            borderRadius: '16px', 
+            fontWeight: 500,
+            px: 0.5,
+            '& .MuiChip-icon': {
+              color: '#1976d2'
+            },
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
         />
       )}
       
@@ -123,10 +174,18 @@ function FilterTags() {
       {hasAnyFilters && (
         <Chip
           label="ล้างตัวกรองทั้งหมด"
-          size="small"
+          size="medium"
           color="error"
           onClick={handleClearAllFilters}
-          sx={{ ml: 1 }}
+          sx={{ 
+            ml: 'auto', 
+            fontWeight: 600,
+            borderRadius: '16px',
+            boxShadow: '0 2px 5px rgba(211, 47, 47, 0.2)',
+            '&:hover': {
+              boxShadow: '0 2px 8px rgba(211, 47, 47, 0.3)',
+            }
+          }}
         />
       )}
     </Box>

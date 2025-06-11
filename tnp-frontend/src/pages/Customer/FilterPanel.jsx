@@ -118,8 +118,6 @@ const channelOptions = [
   { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
   { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
   { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
-  { value: "4", label: "Mobile", icon: <MdPhone />, color: "#9c27b0" },
-  { value: "5", label: "Email", icon: <MdEmail />, color: "#f44336" },
 ];
 
 function FilterPanel() {
@@ -342,16 +340,14 @@ function FilterPanel() {
       }
     }));
   }, []);
-  
-  // Recall range presets
+    // Recall range presets
   const recallPresets = useMemo(() => [
-    { label: '1 วัน', min: 1, max: 1 },
-    { label: '2-3 วัน', min: 2, max: 3 },
-    { label: '4-7 วัน', min: 4, max: 7 },
-    { label: '1-2 สัปดาห์', min: 7, max: 14 },
-    { label: '2-4 สัปดาห์', min: 14, max: 30 },
-    { label: '1-2 เดือน', min: 30, max: 60 },
-    { label: 'มากกว่า 2 เดือน', min: 60, max: null },
+    { label: '0-10 วัน', min: 0, max: 10 },
+    { label: '10-20 วัน', min: 10, max: 20 },
+    { label: '20-30 วัน', min: 20, max: 30 },
+    { label: '30-40 วัน', min: 30, max: 40 },
+    { label: '40-50 วัน', min: 40, max: 50 },
+    { label: '50-60 วัน', min: 50, max: 60 },
   ], []);
   
   // Calculate formatted dates for display
@@ -457,7 +453,7 @@ function FilterPanel() {
 
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Advanced filters */}              <Accordion 
+      {/* Advanced filters */}        <Accordion 
         expanded={expanded} 
         onChange={handleAccordionChange}
         sx={{
@@ -468,8 +464,9 @@ function FilterPanel() {
           '&:before': { display: 'none' }, // Remove default divider
           transition: 'all 0.2s ease-in-out',
           '&:hover': {
-            boxShadow: 4
-          }
+            boxShadow: 5
+          },
+          border: '1px solid rgba(0, 0, 0, 0.08)'
         }}
       >
         <AccordionSummary
@@ -479,9 +476,20 @@ function FilterPanel() {
             borderBottom: expanded ? '1px solid rgba(0, 0, 0, 0.12)' : 'none'
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <MdFilterList style={{ fontSize: 24, marginRight: 8, color: '#1976d2' }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box 
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                  borderRadius: '50%',
+                  p: 1,
+                  mr: 1.5
+                }}
+              >
+                <MdFilterList style={{ fontSize: 22, color: '#1976d2' }} />
+              </Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 ตัวกรองขั้นสูง
               </Typography>
@@ -491,50 +499,74 @@ function FilterPanel() {
                   label={`${activeFilterCount} กรอง`} 
                   size="small" 
                   color="error"
-                  sx={{ ml: 1 }}
+                  sx={{ 
+                    ml: 1.5,
+                    fontWeight: 600,
+                    borderRadius: '16px',
+                    boxShadow: '0 2px 4px rgba(211, 47, 47, 0.2)'
+                  }}
                 />
               )}
             </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {filteredCount > 0 ? `พบ ${filteredCount} รายการ` : 'ไม่พบข้อมูล'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Chip
+                label={filteredCount > 0 ? `พบ ${filteredCount} รายการ` : 'ไม่พบข้อมูล'}
+                size="small"
+                color={filteredCount > 0 ? "success" : "default"}
+                variant="outlined"
+                sx={{ 
+                  fontWeight: 500,
+                  borderRadius: '16px',
+                  px: 0.5
+                }}
+              />
             </Box>
           </Box>
-        </AccordionSummary>
-          <AccordionDetails sx={{ p: 3 }}>
+        </AccordionSummary>          <AccordionDetails sx={{ p: 3, backgroundColor: 'rgba(245, 245, 245, 0.1)' }}>
           {errorMessage && (
             <Alert
               severity="error"
               onClose={() => setErrorMessage(null)}
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, borderRadius: 1.5 }}
             >
               {errorMessage}
             </Alert>
           )}
           <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
             <Grid container spacing={3}>
-              {/* Date Filter */}              <Grid xs={12} md={6} lg={4}>
-                <Paper 
-                  elevation={0}
+              {/* Date Filter */}              <Grid xs={12} md={6} lg={4}>                <Paper 
+                  elevation={1}
                   sx={{ 
-                    p: 2, 
-                    borderRadius: 2,
-                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                    p: 2.5, 
+                    borderRadius: 2.5,
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
                     height: '100%',
+                    backgroundColor: 'white',
+                    transition: 'box-shadow 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)'
+                    }
                   }}
                 >
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <MdDateRange style={{ fontSize: 20, color: '#1976d2' }} />
+                  <Stack spacing={2}>                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                          borderRadius: '50%',
+                          p: 0.8
+                        }}
+                      >
+                        <MdDateRange style={{ fontSize: 18, color: '#1976d2' }} />
+                      </Box>
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
                         วันที่สร้างลูกค้า
                       </Typography>
                     </Box>
                     
-                    {/* Date picker fields */}
-                    <DatePicker
+                    {/* Date picker fields */}                    <DatePicker
                       label="วันที่เริ่มต้น"
                       value={draftFilters.dateRange.startDate}
                       onChange={(newValue) => 
@@ -548,6 +580,11 @@ function FilterPanel() {
                           size: "small",
                           fullWidth: true,
                           InputProps: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <MdDateRange style={{ color: '#1976d2', fontSize: '1.2rem' }} />
+                              </InputAdornment>
+                            ),
                             endAdornment: (
                               <InputAdornment position="end">
                                 {draftFilters.dateRange.startDate && (
@@ -563,12 +600,33 @@ function FilterPanel() {
                               </InputAdornment>
                             ),
                           }
+                        },
+                        day: {
+                          sx: { fontWeight: 'bold' }
+                        },
+                        calendarHeader: {
+                          sx: { bgcolor: 'rgba(25, 118, 210, 0.08)', py: 1 }
+                        },
+                        layout: {
+                          sx: { 
+                            '.MuiPickersCalendarHeader-root': { 
+                              fontWeight: 'bold',
+                              color: '#1976d2'
+                            } 
+                          }
+                        },
+                        popper: {
+                          sx: { 
+                            '& .MuiPaper-root': { 
+                              boxShadow: '0px 5px 15px rgba(0,0,0,0.15)',
+                              borderRadius: '12px',
+                            } 
+                          }
                         }
                       }}
                       format="DD/MM/YYYY"
                     />
-                    
-                    <DatePicker
+                      <DatePicker
                       label="วันที่สิ้นสุด"
                       value={draftFilters.dateRange.endDate}
                       onChange={(newValue) => 
@@ -582,6 +640,11 @@ function FilterPanel() {
                           size: "small",
                           fullWidth: true,
                           InputProps: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <MdDateRange style={{ color: '#1976d2', fontSize: '1.2rem' }} />
+                              </InputAdornment>
+                            ),
                             endAdornment: (
                               <InputAdornment position="end">
                                 {draftFilters.dateRange.endDate && (
@@ -602,13 +665,21 @@ function FilterPanel() {
                       format="DD/MM/YYYY"
                     />
                     
-                    {/* Quick date range buttons */}
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {/* Quick date range buttons */}                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('today')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         วันนี้
                       </Button>
@@ -616,7 +687,16 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('yesterday')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         เมื่อวาน
                       </Button>
@@ -624,7 +704,16 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('thisWeek')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         สัปดาห์นี้
                       </Button>
@@ -632,7 +721,16 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('lastWeek')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         สัปดาห์ที่แล้ว
                       </Button>
@@ -640,7 +738,16 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('thisMonth')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         เดือนนี้
                       </Button>
@@ -648,7 +755,16 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange('lastMonth')}
-                        sx={{ borderRadius: 2 }}
+                        sx={{ 
+                          borderRadius: 4,
+                          fontSize: '0.75rem',
+                          px: 1.5,
+                          borderColor: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                            borderColor: '#1976d2'
+                          }
+                        }}
                       >
                         เดือนที่แล้ว
                       </Button>
@@ -667,9 +783,19 @@ function FilterPanel() {
                     height: '100%'
                   }}
                 >
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <MdPerson style={{ fontSize: 20, color: '#1976d2' }} />
+                  <Stack spacing={2}>                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                          borderRadius: '50%',
+                          p: 0.8
+                        }}
+                      >
+                        <MdPerson style={{ fontSize: 18, color: '#1976d2' }} />
+                      </Box>
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
                         พนักงานขาย (SALES)
                       </Typography>
@@ -751,9 +877,19 @@ function FilterPanel() {
                 >
                   <Stack spacing={3} sx={{ height: '100%' }}>
                     {/* Channel Filter */}
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <MdSignalCellularAlt style={{ fontSize: 20, color: '#1976d2' }} />
+                    <Box>                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                            borderRadius: '50%',
+                            p: 0.8
+                          }}
+                        >
+                          <MdSignalCellularAlt style={{ fontSize: 18, color: '#1976d2' }} />
+                        </Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
                           ช่องทางการติดต่อ (CHANNEL)
                         </Typography>
@@ -818,25 +954,44 @@ function FilterPanel() {
                     <Divider />
                     
                     {/* Recall Filter */}
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <MdPhone style={{ fontSize: 20, color: '#1976d2' }} />
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                          ระยะเวลาขาดการติดต่อ (วัน)
+                    <Box sx={{ flexGrow: 1 }}>                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                            borderRadius: '50%',
+                            p: 0.8
+                          }}
+                        >
+                          <MdPhone style={{ fontSize: 18, color: '#1976d2' }} />
+                        </Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>                          ระยะเวลาขาดการติดต่อ (วัน)
                         </Typography>
                       </Box>
+                      
+                      <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                        กรองลูกค้าตามจำนวนวันที่ไม่ได้มีการติดต่อ (ถ้าต้องการดูลูกค้าที่ไม่ได้ติดต่อระหว่าง 10-30 วัน ให้ใส่ 10 ที่ค่าต่ำสุดและ 30 ที่ค่าสูงสุด)
+                      </Typography>
                       
                       {/* Recall range input */}                      <Grid container spacing={2} sx={{ mb: 2 }}>
                         <Grid xs={6}>
                           <TextField
                             fullWidth
                             size="small"
-                            label="จำนวนวันต่ำสุด"
+                            label="ไม่ได้ติดต่ออย่างน้อย"
                             type="number"
                             value={draftFilters.recallRange.minDays}
                             onChange={handleMinDaysChange}
                             InputProps={{
-                              inputProps: { min: 0, max: 60 }
+                              inputProps: { min: 0, max: 60 },
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <MdPhone style={{ color: '#1976d2', fontSize: '1.2rem' }} />
+                                </InputAdornment>
+                              ),
+                              endAdornment: <InputAdornment position="end">วัน</InputAdornment>
                             }}
                           />
                         </Grid>
@@ -844,26 +999,40 @@ function FilterPanel() {
                           <TextField
                             fullWidth
                             size="small"
-                            label="จำนวนวันสูงสุด"
+                            label="ไม่ได้ติดต่อไม่เกิน"
                             type="number"
                             value={draftFilters.recallRange.maxDays}
                             onChange={handleMaxDaysChange}
                             InputProps={{
-                              inputProps: { min: 0, max: 60 }
+                              inputProps: { min: 0, max: 60 },
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <MdPhone style={{ color: '#1976d2', fontSize: '1.2rem' }} />
+                                </InputAdornment>
+                              ),
+                              endAdornment: <InputAdornment position="end">วัน</InputAdornment>
                             }}
                           />
                         </Grid>
                       </Grid>
                       
-                      {/* Recall presets */}
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {/* Recall presets */}                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
                         {recallPresets.map((preset) => (
                           <Button
                             key={preset.label}
                             size="small"
                             variant="outlined"
                             onClick={() => handleRecallPreset(preset)}
-                            sx={{ borderRadius: 2 }}
+                            sx={{ 
+                              borderRadius: 4,
+                              fontSize: '0.75rem',
+                              px: 1.5,
+                              borderColor: '#1976d2',
+                              '&:hover': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                borderColor: '#1976d2'
+                              }
+                            }}
                           >
                             {preset.label}
                           </Button>
@@ -874,41 +1043,48 @@ function FilterPanel() {
                 </Paper>
               </Grid>
 
-              {/* Control buttons */}              <Grid xs={12}>
-                <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 2 }}>
+              {/* Control buttons */}              <Grid xs={12}>                <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
                   <Button
                     variant="outlined"
                     color="inherit"
-                    startIcon={<RiRefreshLine />}
+                    startIcon={<RiRefreshLine style={{ fontSize: '1.2rem' }} />}
                     onClick={handleResetFilters}
                     sx={{ 
                       minWidth: 150,
-                      borderRadius: 2,
+                      borderRadius: 3,
                       textTransform: 'none',
                       fontWeight: 600,
+                      borderWidth: '1.5px',
+                      py: 1,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        borderWidth: '1.5px'
+                      }
                     }}
                   >
                     รีเซ็ตตัวกรอง
                   </Button>              <Button
                     variant="contained"
                     color="error"
-                    startIcon={isFiltering ? <CircularProgress size={16} color="inherit" /> : <MdFilterList />}
+                    startIcon={isFiltering ? <CircularProgress size={18} color="inherit" /> : <MdFilterList style={{ fontSize: '1.2rem' }} />}
                     onClick={handleApplyFilters}
                     disabled={isFiltering}
                     sx={{ 
                       minWidth: 150,
-                      borderRadius: 2,
+                      borderRadius: 3,
                       fontWeight: 600,
-                      boxShadow: 2,
-                      '&:hover': {
-                        boxShadow: 4,
-                        backgroundColor: '#d32f2f'
-                      },
+                      boxShadow: '0 4px 8px rgba(211, 47, 47, 0.3)',
+                      py: 1,
+                      transition: 'all 0.3s ease',
                       textTransform: 'none',
-                      fontWeight: 600,
-                      boxShadow: 3,
                       '&:hover': {
-                        boxShadow: 5,
+                        boxShadow: '0 6px 12px rgba(211, 47, 47, 0.4)',
+                        backgroundColor: '#c62828'
+                      },
+                      '&:disabled': {
+                        backgroundColor: 'rgba(211, 47, 47, 0.7)',
+                        color: 'white'
                       }
                     }}
                   >

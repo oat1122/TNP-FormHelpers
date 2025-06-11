@@ -58,9 +58,7 @@ export const getChannelDisplayName = (channelValue) => {
   const channels = {
     "1": "Sales",
     "2": "Online",
-    "3": "Office",
-    "4": "Mobile",
-    "5": "Email"
+    "3": "Office"
   };
   
   return channels[channelValue] || 'Unknown';

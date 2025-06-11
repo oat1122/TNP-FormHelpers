@@ -61,11 +61,14 @@ import {
   setInputList,
   setTotalCount,
   setPaginationModel,
+  setFilters,
+  resetFilters,
 } from "../../features/Customer/customerSlice";
 import { setLocationSearch } from "../../features/globalSlice";
 import { Link, useParams } from "react-router-dom";
 import TitleBar from "../../components/TitleBar";
 import FilterTab from "./FilterTab";
+import FilterPanel from "./FilterPanel";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -209,14 +212,15 @@ function CustomerList() {
   const itemList = useSelector((state) => state.customer.itemList);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const groupList = useSelector((state) => state.customer.groupList);
-  const keyword = useSelector((state) => state.global.keyword);
-  const paginationModel = useSelector((state) => state.customer.paginationModel);
+  const keyword = useSelector((state) => state.global.keyword);  const paginationModel = useSelector((state) => state.customer.paginationModel);
+  const filters = useSelector((state) => state.customer.filters);
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
     page: paginationModel.page,
     per_page: paginationModel.pageSize,
     user_id: user.user_id,
     search: keyword,
+    filters: filters,
   });
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -541,15 +545,16 @@ function CustomerList() {
                     <RiAddLargeFill style={{ width: 24, height: 24 }} />
                   </Button>
                 </TableCell>
-                ) : null}
-
-                <TableCell sx={{ padding: 0, border: 0 }}>
+                ) : null}                <TableCell sx={{ padding: 0, border: 0 }}>
                   <FilterTab />
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {/* Advanced Filter Panel */}
+        <FilterPanel />
 
         <StyledDataGrid
           disableRowSelectionOnClick

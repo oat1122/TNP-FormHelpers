@@ -7,8 +7,7 @@ export const customerApi = createApi({
   baseQuery: fetchBaseQuery(apiConfig),
   tagTypes: ["Customer"],
   endpoints: (builder) => ({
-    getAllCustomer: builder.query({
-      query: (payload) => {
+    getAllCustomer: builder.query({      query: (payload) => {
         const queryParams = {
           group: payload?.group,
           page: payload?.page + 1,
@@ -16,6 +15,35 @@ export const customerApi = createApi({
           user: payload?.user_id,
           search: payload?.search,
         };
+        
+        // Add advanced filter parameters if they exist
+        if (payload?.filters) {
+          // Date Range
+          if (payload.filters.dateRange.startDate) {
+            queryParams.start_date = payload.filters.dateRange.startDate;
+          }
+          if (payload.filters.dateRange.endDate) {
+            queryParams.end_date = payload.filters.dateRange.endDate;
+          }
+          
+          // Sales Name filter
+          if (Array.isArray(payload.filters.salesName) && payload.filters.salesName.length > 0) {
+            queryParams.sales_names = payload.filters.salesName.join(',');
+          }
+          
+          // Channel filter
+          if (Array.isArray(payload.filters.channel) && payload.filters.channel.length > 0) {
+            queryParams.channels = payload.filters.channel.join(',');
+          }
+          
+          // Recall Range
+          if (payload.filters.recallRange.minDays !== null) {
+            queryParams.min_recall_days = payload.filters.recallRange.minDays;
+          }
+          if (payload.filters.recallRange.maxDays !== null) {
+            queryParams.max_recall_days = payload.filters.recallRange.maxDays;
+          }
+        }
 
         const queryString = qs.stringify(queryParams, { skipNulls: true });
         const url = queryString ? `/customers?${queryString}` : '/customers';

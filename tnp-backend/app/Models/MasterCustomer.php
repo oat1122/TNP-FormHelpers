@@ -98,11 +98,11 @@ class MasterCustomer extends Model
 	 */
 	public function scopeFilterByDateRange($query, $startDate, $endDate) {
 		if ($startDate) {
-			$query->whereDate('cus_created_date', '>=', $startDate);
+			$query->whereDate('master_customers.cus_created_date', '>=', $startDate);
 		}
 		
 		if ($endDate) {
-			$query->whereDate('cus_created_date', '<=', $endDate);
+			$query->whereDate('master_customers.cus_created_date', '<=', $endDate);
 		}
 		
 		return $query;
@@ -135,6 +135,39 @@ class MasterCustomer extends Model
 	public function scopeFilterByChannels($query, $channels) {
 		if (!empty($channels)) {
 			return $query->whereIn('cus_channel', $channels);
+		}
+		
+		return $query;
+	}
+
+	/**
+	 * Scope a query to filter by recall days range
+	 * 
+	 * @param \Illuminate\Database\Eloquent\Builder $query
+	 * @param int|null $minDays Minimum days for recall
+	 * @param int|null $maxDays Maximum days for recall
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public function scopeFilterByRecallRange($query, $minDays, $maxDays) {
+		// Check if we already have the join to avoid duplicates
+		$joins = collect($query->getQuery()->joins)->pluck('table')->toArray();
+		
+		if (!in_array('customer_details', $joins)) {
+			// We need to join with customer_details to access cd_last_datetime
+			$query->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
+		}
+		
+		// Calculate the date range based on days
+		$now = now();
+		
+		if ($minDays !== null) {
+			$maxDate = $now->copy()->subDays($minDays)->format('Y-m-d');
+			$query->where('customer_details.cd_last_datetime', '<=', $maxDate);
+		}
+		
+		if ($maxDays !== null) {
+			$minDate = $now->copy()->subDays($maxDays)->format('Y-m-d');
+			$query->where('customer_details.cd_last_datetime', '>=', $minDate);
 		}
 		
 		return $query;

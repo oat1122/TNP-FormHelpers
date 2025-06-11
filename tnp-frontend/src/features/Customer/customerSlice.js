@@ -37,10 +37,10 @@ export const fetchFilteredCustomers = createAsyncThunk(
       if (Array.isArray(filters.channel) && filters.channel.length > 0) {
         queryParams.channels = filters.channel.join(',');
       }
-      
-      // Pagination defaults
-      queryParams.page = 1;
-      queryParams.per_page = 30;
+        // Get pagination settings from current state
+      const paginationModel = state.customer.paginationModel;
+      queryParams.page = 1; // Reset to first page on filter change
+      queryParams.per_page = paginationModel.pageSize;
       
       const queryString = qs.stringify(queryParams, { skipNulls: true });
       const url = `${apiConfig.baseUrl}/customers?${queryString}`;

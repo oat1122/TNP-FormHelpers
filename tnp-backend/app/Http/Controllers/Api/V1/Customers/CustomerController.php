@@ -135,7 +135,9 @@ class CustomerController extends Controller
             }
 
             $perPage = $request->input('per_page', 10);
-            $customer_q = $customer_prepared->select([ // Use array syntax for select
+            
+            // Select fields for customer query
+            $customer_prepared->select([
                 'cus_id',
                 'cus_mcg_id',
                 'cus_no',
@@ -159,7 +161,49 @@ class CustomerController extends Controller
                 'cus_updated_by',
                 'cus_updated_date',
                 'cus_is_use'
-            ])->orderBy('cus_no', 'desc')->paginate($perPage);
+            ]);
+            
+            // Apply server-side sorting if provided
+            if ($request->has('sort_field') && $request->has('sort_direction')) {
+                $sortField = $request->sort_field;
+                $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
+                
+                // Check joins to avoid duplicates
+                $joins = collect($customer_prepared->getQuery()->joins)->pluck('table')->toArray();
+                
+                // Handle special case for fields in related models
+                if ($sortField === 'cus_manage_by') {
+                    // For sales name sorting, we need a join with users table
+                    if (!in_array('users', $joins)) {
+                        $customer_prepared->leftJoin('users', 'master_customers.cus_manage_by', '=', 'users.user_id');
+                    }
+                    $customer_prepared->orderBy('users.username', $sortDirection);
+                } 
+                elseif ($sortField === 'cd_last_datetime') {
+                    // For recall date sorting, we need a join with customer_details (correct table name)
+                    if (!in_array('customer_details', $joins)) {
+                        $customer_prepared->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
+                    }
+                    $customer_prepared->orderBy('customer_details.cd_last_datetime', $sortDirection);
+                }
+                elseif ($sortField === 'cd_note') {
+                    // For note field sorting
+                    if (!in_array('customer_details', $joins)) {
+                        $customer_prepared->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
+                    }
+                    $customer_prepared->orderBy('customer_details.cd_note', $sortDirection);
+                }
+                else {
+                    // Regular field sorting - make sure we use the correct table prefix
+                    $customer_prepared->orderBy("master_customers.$sortField", $sortDirection);
+                }
+            } else {
+                // Default ordering
+                $customer_prepared->orderBy('master_customers.cus_no', 'desc');
+            }
+            
+            // Execute the query with pagination
+            $customer_q = $customer_prepared->paginate($perPage);
             $customer_r = CustomerResource::collection($customer_q);
 
             $total_customers_r = $total_customers_q->count();

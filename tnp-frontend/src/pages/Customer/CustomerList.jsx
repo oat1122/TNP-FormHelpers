@@ -14,6 +14,7 @@ import {
   useGridSelector,
   gridPageCountSelector,
   gridPageSelector,
+  GridToolbarContainer,
 } from "@mui/x-data-grid";
 import {
   AppBar,
@@ -38,6 +39,13 @@ import {
   TableContainer,
   useTheme,
   useMediaQuery,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  FormHelperText,
+  Tooltip,
+  Chip,
 } from "@mui/material";
 import { MdOutlineManageSearch } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
@@ -112,16 +120,17 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: theme.vars.palette.grey.main,
     borderRadius: theme.shape.borderRadius,
     marginTop: 10,
+    '&:hover': {
+      backgroundColor: theme.vars.palette.grey.light,
+      transition: 'background-color 0.2s ease'
+    }
   },
 
   "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
-
-    // "&[data-field='tools']": {
-    //   paddingInline: 50,
-    // },
+    padding: '8px 16px',
   },
 
   "& .MuiDataGrid-menuIcon > button > svg": {
@@ -139,15 +148,37 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-footerContainer": {
     borderWidth: 0,
     justifyContent: "center",
+    padding: "16px 0",
   },
 
   "& .uppercase-cell": {
-    // Target the cell by class
     textTransform: "uppercase",
   },
 
   "& .danger-days": {
     color: theme.vars.palette.error.main,
+    fontWeight: 'bold',
+  },
+  
+  "& .MuiDataGrid-toolbarContainer": {
+    gap: 2,
+    padding: '4px 8px',
+    justifyContent: 'flex-end',
+  },
+
+  // Highlight rows based on priority
+  "& .high-priority-row": {
+    backgroundColor: `${theme.palette.error.light}33`, // 20% opacity
+    "&:hover": {
+      backgroundColor: `${theme.palette.error.light}66`, // 40% opacity
+    }
+  },
+  
+  "& .medium-priority-row": {
+    backgroundColor: `${theme.palette.warning.light}33`, // 20% opacity
+    "&:hover": {
+      backgroundColor: `${theme.palette.warning.light}66`, // 40% opacity
+    }
   },
 }));
 
@@ -196,17 +227,98 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
   },
 }));
 
+// Custom component for page size selection
+const PageSizeSelector = ({ value, onChange }) => {
+  const pageSizeOptions = [10, 30, 50, 80];
+  
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography variant="body2" sx={{ color: (theme) => theme.vars.palette.grey.dark }}>
+        Rows per page:
+      </Typography>
+      <FormControl size="small" sx={{ minWidth: 85 }}>
+        <Select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          displayEmpty
+          variant="outlined"
+          sx={{
+            borderRadius: 1,
+            backgroundColor: (theme) => theme.vars.palette.grey.outlinedInput,
+            '.MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
+            '.MuiSelect-select': { py: 0.5, px: 1 }
+          }}
+        >
+          {pageSizeOptions.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option} rows
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
+  );
+};
+
 const channelMap = {
   1: "sales",
   2: "online",
   3: "office",
 };
 
+// Custom component for information about column sorting
+const SortInfoDisplay = ({ sortModel }) => {
+  if (!sortModel || sortModel.length === 0) {
+    return null;
+  }
+  
+  const fieldMap = {
+    cus_no: "ID",
+    cus_channel: "Channel",
+    cus_manage_by: "Sales Name",
+    cus_name: "Customer",
+    cus_company: "Company",
+    cus_tel_1: "Telephone",
+    cd_last_datetime: "Recall Days",
+    cd_note: "Note",
+    cus_email: "Email",
+    cus_address: "Address"
+  };
+  
+  const { field, sort } = sortModel[0];
+  const displayField = fieldMap[field] || field;
+  const displayDirection = sort === 'asc' ? 'ascending' : 'descending';
+  
+  // Use icons to make it more visually clear
+  const SortIcon = sort === 'asc' ? 
+    () => <span style={{ fontSize: '0.8em', marginRight: '4px' }}>▲</span> : 
+    () => <span style={{ fontSize: '0.8em', marginRight: '4px' }}>▼</span>;
+  
+  return (
+    <Typography 
+      variant="caption" 
+      sx={{ 
+        ml: 1, 
+        color: 'text.secondary',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        padding: '4px 8px',
+        borderRadius: '4px',
+        backgroundColor: (theme) => `${theme.palette.primary.light}10`,
+      }}
+    >
+      <SortIcon /> Sorting by {displayField} ({displayDirection})
+    </Typography>
+  );
+};
+
 function CustomerList() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const [delCustomer] = useDelCustomerMutation();
-  const [updateRecall] = useUpdateRecallMutation();
-  const [updateCustomer] = useUpdateCustomerMutation();
+  const [updateRecall] = useUpdateRecallMutation();  const [updateCustomer] = useUpdateCustomerMutation();
   const dispatch = useDispatch();
   const [totalItems, setTotalItems] = useState(0);
   const itemList = useSelector((state) => state.customer.itemList);
@@ -216,6 +328,9 @@ function CustomerList() {
   const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
   const isLoading = useSelector((state) => state.customer.isLoading);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [serverSortModel, setServerSortModel] = useState([]);
+  
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
     page: paginationModel.page,
@@ -223,9 +338,18 @@ function CustomerList() {
     user_id: user.user_id,
     search: keyword,
     filters: filters,
+    sortModel: serverSortModel,
   });
-
-  const [openDialog, setOpenDialog] = useState(false);
+  // Handle changes in the sort model
+  const handleSortModelChange = (newModel) => {
+    // Only update if the sort model actually changed
+    if (JSON.stringify(newModel) !== JSON.stringify(serverSortModel)) {
+      setServerSortModel(newModel);
+      // Reset to first page when sorting changes
+      const newPaginationModel = { ...paginationModel, page: 0 };
+      dispatch(setPaginationModel(newPaginationModel));
+    }
+  };
 
   // Pagination customize
   function CustomPagination() {
@@ -242,25 +366,58 @@ function CustomerList() {
       }
     }, [paginationModel])
 
-    return (
-      <StyledPagination
-        color="error"
-        variant="outlined"
-        shape="rounded"
-        page={page + 1}
-        count={pageCount}
-        siblingCount={ isXs ? 0 : 1 } 
-        boundaryCount={1} 
-        // @ts-expect-error
-        renderItem={(props2) => 
-          <PaginationItem 
-            {...props2} 
-            disableRipple 
-            slots={{ previous: FaChevronLeft, next: FaChevronRight }}
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize) => {
+      const newModel = { ...paginationModel, pageSize: newPageSize, page: 0 };
+      dispatch(setPaginationModel(newModel));
+      apiRef.current.setPageSize(newPageSize);
+    };    return (
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        flexWrap: 'wrap',
+        gap: 2, 
+        width: '100%', 
+        p: 1 
+      }}>
+        <PageSizeSelector 
+          value={paginationModel.pageSize}
+          onChange={handlePageSizeChange}
+        />
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
+          <StyledPagination
+            color="error"
+            variant="outlined"
+            shape="rounded"
+            page={page + 1}
+            count={pageCount}
+            siblingCount={isXs ? 0 : 1} 
+            boundaryCount={1} 
+            // @ts-expect-error
+            renderItem={(props2) => 
+              <PaginationItem 
+                {...props2} 
+                disableRipple 
+                slots={{ previous: FaChevronLeft, next: FaChevronRight }}
+              />
+            }
+            onChange={(event, value) => apiRef.current.setPage(value - 1)}
           />
-        }
-        onChange={(event, value) => apiRef.current.setPage(value - 1)}
-      />
+        </Box>
+        
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: (theme) => theme.vars.palette.grey.dark,
+            minWidth: 120,
+            textAlign: 'right'
+          }}
+        >
+          {`${page * paginationModel.pageSize + 1}-${Math.min((page + 1) * paginationModel.pageSize, totalItems)} of ${totalItems}`}
+        </Typography>
+      </Box>
     );
   }
 
@@ -422,42 +579,156 @@ function CustomerList() {
       }
     }
   }, [data, groupSelected]);
-
   const columns = useMemo(
     () => [
       {
         field: "cus_no",
         headerName: "ID",
         width: 120,
-      },
-      {
+        sortable: true,
+        renderCell: (params) => (
+          <Tooltip title="Customer ID">
+            <span>{params.value}</span>
+          </Tooltip>
+        ),
+      },      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
+        sortable: true,
         cellClassName: "uppercase-cell",
-        renderCell: (params) => channelMap[params.value],
+        renderCell: (params) => (
+          <Chip
+            label={channelMap[params.value]}
+            size="small"
+            sx={{
+              textTransform: 'uppercase',
+              backgroundColor: (theme) => 
+                params.value === 1 ? theme.palette.info.light :
+                params.value === 2 ? theme.palette.success.light : 
+                theme.palette.warning.light,
+              color: (theme) => theme.palette.common.white,
+              fontWeight: 'bold',
+            }}
+          />
+        ),
       },
       {
         field: "cus_manage_by",
         headerName: "SALES NAME",
+        sortable: true,
         width: 160,
         cellClassName: "uppercase-cell",
         hideable: false,
         renderCell: (params) => {
-          return params.value.username;
+          return (
+            <Tooltip title={`Sales ID: ${params.value.user_id}`}>
+              <Typography variant="body2" sx={{ textTransform: 'uppercase' }}>
+                {params.value.username}
+              </Typography>
+            </Tooltip>
+          );
         },
       },
-      { field: "cus_name", headerName: "CUSTOMER", width: 200 },
-      { field: "cus_company", headerName: "COMPANY NAME", width: 280 },
-      { field: "cus_tel_1", headerName: "TEL", width: 140 },
-      { field: "cd_note", headerName: "NOTE", width: 280 },
+      { 
+        field: "cus_name", 
+        headerName: "CUSTOMER", 
+        width: 200,
+        sortable: true,
+        renderCell: (params) => {
+          const fullName = params.value;
+          return (
+            <Tooltip title="Click to view details">
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {fullName}
+                </Typography>
+                {params.row.cus_company && (
+                  <Typography variant="caption" color="text.secondary">
+                    {params.row.cus_company}
+                  </Typography>
+                )}
+              </Box>
+            </Tooltip>
+          );
+        }
+      },
+      { 
+        field: "cus_company", 
+        headerName: "COMPANY NAME", 
+        width: 280,
+        sortable: true,
+        renderCell: (params) => {
+          return (
+            <Tooltip title={params.value || "No company specified"}>
+              <span>{params.value || "—"}</span>
+            </Tooltip>
+          );
+        }
+      },
+      { 
+        field: "cus_tel_1", 
+        headerName: "TEL", 
+        width: 140,
+        sortable: true,
+        renderCell: (params) => {
+          const tel1 = params.value;
+          const tel2 = params.row.cus_tel_2;
+          
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="body2">{tel1 || "—"}</Typography>
+              {tel2 && (
+                <Typography variant="caption" color="text.secondary">
+                  {tel2}
+                </Typography>
+              )}
+            </Box>
+          );
+        }
+      },
+      { 
+        field: "cd_note", 
+        headerName: "NOTE", 
+        width: 280,
+        sortable: true,
+        renderCell: (params) => (
+          <Tooltip title={params.value || "No notes"} placement="top-start">
+            <Typography
+              variant="body2"
+              sx={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 260,
+                textAlign: 'left'
+              }}
+            >
+              {params.value || "—"}
+            </Typography>
+          </Tooltip>
+        )
+      },
       {
         field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
+        sortable: true,
         renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
-          return `${daysLeft} DAYS`;
+          return (
+            <Tooltip title={`Last contacted: ${params.value}`}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: daysLeft <= 7 ? 'bold' : 'normal',
+                  color: daysLeft <= 7 ? 'error.main' : 'inherit'
+                }}
+              >
+                {`${daysLeft} DAYS`}
+              </Typography>
+            </Tooltip>
+          );
         },
         cellClassName: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
@@ -465,53 +736,140 @@ function CustomerList() {
             return "danger-days";
           }
         },
-      },
-      {
+      },      {
+        field: "cus_email",
+        headerName: "EMAIL",
+        width: 200,
+        sortable: true,
+        renderCell: (params) => (
+          <Tooltip title={params.value || "No email specified"}>
+            <Typography
+              variant="body2"
+              sx={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 180
+              }}
+            >
+              {params.value || "—"}
+            </Typography>
+          </Tooltip>
+        )
+      },      {
+        field: "cus_address",
+        headerName: "ADDRESS",
+        width: 200,
+        sortable: true,
+        renderCell: (params) => {
+          const address = params.value;
+          const province = params.row.province_name;
+          const district = params.row.district_name;
+          
+          const fullAddress = [address, district, province].filter(Boolean).join(", ");
+          
+          return (
+            <Tooltip title={fullAddress || "No address specified"} placement="top-start">
+              <Typography
+                variant="body2"
+                sx={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: 180,
+                  textAlign: 'left'
+                }}
+              >
+                {fullAddress || "—"}
+              </Typography>
+            </Tooltip>
+          );
+        }
+      },      {
         field: "tools",
         headerName: "TOOLS",
         flex: 1,
         minWidth: 280,
-        // minWidth: { xs: -50, sm: 200, lg: 200 },
+        sortable: false,
         type: "actions",
         getActions: (params) => [
-          <GridActionsCellItem
-            icon={<PiClockClockwise style={{ fontSize: 22 }} />}
-            label="Recall"
-            onClick={() => handleRecall(params.row)}
-          />,
-          <GridActionsCellItem
-            icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
-            label="Change Grade Up"
-            onClick={() => handleChangeGroup(true, params.row)}
-            disabled={handleDisableChangeGroupBtn(true, params.row)}
-          />,
-          <GridActionsCellItem
-            icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
-            label="Change Grade Down"
-            onClick={() => handleChangeGroup(false, params.row)}
-            disabled={handleDisableChangeGroupBtn(false, params.row)}
-            hidden={user.role !== "admin"}
-          />,
-          <GridActionsCellItem
-            icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
-            label="View"
-            onClick={() => handleOpenDialog("view", params.id)}
-          />,
-          <GridActionsCellItem
-            icon={<CiEdit style={{ fontSize: 26 }} />}
-            label="Edit"
-            onClick={() => handleOpenDialog("edit", params.id)}
-          />,
-          <GridActionsCellItem
-            icon={<BsTrash3 style={{ fontSize: 22 }} />}
-            label="Delete"
-            onClick={() => handleDelete(params.row)}
-          />,
+          <Tooltip title="Reset recall timer">
+            <GridActionsCellItem
+              icon={<PiClockClockwise style={{ fontSize: 22 }} />}
+              label="Recall"
+              onClick={() => handleRecall(params.row)}
+            />
+          </Tooltip>,          handleDisableChangeGroupBtn(true, params.row) ?
+            // If button is disabled, don't use tooltip
+            <GridActionsCellItem
+              icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
+              label="Change Grade Up"
+              onClick={() => {}}
+              disabled={true}
+            />
+            :
+            <Tooltip title="Change grade up">
+              <GridActionsCellItem
+                icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
+                label="Change Grade Up"
+                onClick={() => handleChangeGroup(true, params.row)}
+                disabled={false}
+              />
+            </Tooltip>,
+          
+          handleDisableChangeGroupBtn(false, params.row) || user.role !== "admin" ?
+            // If button is disabled, don't use tooltip
+            <GridActionsCellItem
+              icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
+              label="Change Grade Down"
+              onClick={() => {}}
+              disabled={true}
+              sx={{ visibility: user.role !== "admin" ? 'hidden' : 'visible' }}
+            />
+            :
+            <Tooltip title="Change grade down">
+              <GridActionsCellItem
+                icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
+                label="Change Grade Down"
+                onClick={() => handleChangeGroup(false, params.row)}
+                disabled={false}
+            />
+          </Tooltip>,
+          <Tooltip title="View details">
+            <GridActionsCellItem
+              icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
+              label="View"
+              onClick={() => handleOpenDialog("view", params.id)}
+            />
+          </Tooltip>,
+          <Tooltip title="Edit customer">
+            <GridActionsCellItem
+              icon={<CiEdit style={{ fontSize: 26 }} />}
+              label="Edit"
+              onClick={() => handleOpenDialog("edit", params.id)}
+            />
+          </Tooltip>,
+          <Tooltip title="Delete customer">
+            <GridActionsCellItem
+              icon={<BsTrash3 style={{ fontSize: 22 }} />}
+              label="Delete"
+              onClick={() => handleDelete(params.row)}
+            />
+          </Tooltip>,
         ],
       },
     ],
-    [handleOpenDialog, handleDelete]
+    [handleOpenDialog, handleDelete, handleRecall, handleChangeGroup, handleDisableChangeGroupBtn, user.role]
   );
+
+  // Custom toolbar component
+  function CustomToolbar() {
+    return (
+      <GridToolbarContainer>
+        <SortInfoDisplay sortModel={serverSortModel} />
+      </GridToolbarContainer>
+    );
+  }
 
   return (
     <div className="customer-list">
@@ -524,30 +882,29 @@ function CustomerList() {
       <TitleBar title="customer" />
       <Box
         paddingX={3}
-        sx={{ margin: "auto", maxWidth: 1800, height: 700, paddingBlock: 3 }}
+        sx={{ margin: "auto", maxWidth: 1800, height: 'auto', paddingBlock: 3 }}
       >
         {/* Button on top table */}
         <TableContainer>
-          <Table sx={{ marginBottom: 2 }}>
-            <TableBody>
+          <Table sx={{ marginBottom: 2 }}>            <TableBody>
               <TableRow>
-
-                { user.role === 'sale' || user.role === 'admin' ? (
-                <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
-                  <Button
-                    variant="icon-contained"
-                    color="grey"
-                    onClick={() => handleOpenDialog("create")}
-                    sx={{
-                      marginRight: 3,
-                      height: 40,
-                      padding: 0,
-                    }}
-                  >
-                    <RiAddLargeFill style={{ width: 24, height: 24 }} />
-                  </Button>
-                </TableCell>
-                ) : null}                <TableCell sx={{ padding: 0, border: 0 }}>
+                {user.role === 'sale' || user.role === 'admin' ? (
+                  <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
+                    <Button
+                      variant="icon-contained"
+                      color="grey"
+                      onClick={() => handleOpenDialog("create")}
+                      sx={{
+                        marginRight: 3,
+                        height: 40,
+                        padding: 0,
+                      }}
+                    >
+                      <RiAddLargeFill style={{ width: 24, height: 24 }} />
+                    </Button>
+                  </TableCell>
+                ) : null}
+                <TableCell sx={{ padding: 0, border: 0 }}>
                   <FilterTab />
                 </TableCell>
               </TableRow>
@@ -558,25 +915,67 @@ function CustomerList() {
         <FilterPanel />
         
         {/* Filter Tags - Shows active filters */}
-        <FilterTags />
-
-        <StyledDataGrid
-          disableRowSelectionOnClick
-          paginationMode="server"
-          rows={itemList}
-          columns={columns}
-          getRowId={(row) => row.cus_id}          initialState={{ pagination: { paginationModel } }}
-          onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
-          rowCount={totalItems}
-          loading={isFetching || isLoading}
-          slots={{
-            noRowsOverlay: NoDataComponent,
-            pagination: CustomPagination,
-          }}
-          sx={{ border: 0 }}
-          rowHeight={50}
-          columnHeaderHeight={50}
-        />
+        <FilterTags />        <Box sx={{ 
+          height: 'auto', 
+          minHeight: Math.min(500, totalItems * 60 + 120), // Dynamically adjust height based on content
+          maxHeight: 800, // Cap the maximum height
+          width: '100%', 
+          '& .MuiDataGrid-main': { 
+            overflow: 'hidden' 
+          },
+          '& .MuiDataGrid-root': {
+            transition: 'height 0.3s ease'
+          } 
+        }}><StyledDataGrid
+            disableRowSelectionOnClick
+            paginationMode="server"
+            sortingMode="server"
+            rows={itemList}
+            columns={columns}
+            getRowId={(row) => row.cus_id}
+            initialState={{ 
+              pagination: { paginationModel },
+              sorting: { sortModel: serverSortModel },
+              columns: {
+                columnVisibilityModel: {
+                  // Hide some columns by default on smaller screens
+                  cus_email: false,
+                  cus_address: false
+                },
+              },
+            }}
+            onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
+            onSortModelChange={handleSortModelChange}
+            rowCount={totalItems}
+            loading={isFetching || isLoading}
+            slots={{
+              noRowsOverlay: NoDataComponent,
+              pagination: CustomPagination,
+              toolbar: CustomToolbar,
+            }}
+            sx={{ border: 0 }}
+            rowHeight={60}
+            columnHeaderHeight={50}
+            getRowClassName={(params) => {
+              // Add extra classes for styling rows based on data
+              const classes = [];
+              if (params.indexRelativeToCurrentPage % 2 === 0) {
+                classes.push('even-row');
+              } else {
+                classes.push('odd-row');
+              }
+              
+              // Add warning class if recall is approaching
+              const daysLeft = formatCustomRelativeTime(params.row.cd_last_datetime);
+              if (daysLeft <= 3) {
+                classes.push('high-priority-row');
+              } else if (daysLeft <= 7) {
+                classes.push('medium-priority-row');
+              }
+              
+              return classes.join(' ');
+            }}
+          />        </Box>
       </Box>
     </div>
   );

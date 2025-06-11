@@ -7,7 +7,8 @@ export const customerApi = createApi({
   baseQuery: fetchBaseQuery(apiConfig),
   tagTypes: ["Customer"],
   endpoints: (builder) => ({
-    getAllCustomer: builder.query({      query: (payload) => {
+    getAllCustomer: builder.query({
+      query: (payload) => {
         const queryParams = {
           group: payload?.group,
           page: payload?.page + 1,
@@ -15,6 +16,12 @@ export const customerApi = createApi({
           user: payload?.user_id,
           search: payload?.search,
         };
+        
+        // Add sort parameters if they exist
+        if (payload?.sortModel && payload.sortModel.length > 0) {
+          queryParams.sort_field = payload.sortModel[0].field;
+          queryParams.sort_direction = payload.sortModel[0].sort;
+        }
         
         // Add advanced filter parameters if they exist
         if (payload?.filters) {

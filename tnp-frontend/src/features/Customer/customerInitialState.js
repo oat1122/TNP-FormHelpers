@@ -32,17 +32,12 @@ export default {
   },
   mode: "",
   totalCount: 0,
-  salesList: [],
-  filters: {
+  salesList: [],  filters: {
     dateRange: {
       startDate: null,
       endDate: null,
     },
     salesName: [],
     channel: [],
-    recallRange: {
-      minDays: null,
-      maxDays: null,
-    },
   },
 };

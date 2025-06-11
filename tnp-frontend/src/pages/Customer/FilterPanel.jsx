@@ -32,7 +32,7 @@ import { debounce } from 'lodash';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { MdExpandMore, MdClear, MdFilterList, MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone, MdLanguage, MdBusiness, MdEmail } from "react-icons/md";
+import { MdExpandMore, MdClear, MdFilterList, MdDateRange, MdPerson, MdLanguage, MdBusiness, MdEmail, MdSignalCellularAlt } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { IoSearch } from "react-icons/io5";
 import FilterTab from "./FilterTab";
@@ -146,10 +146,6 @@ function FilterPanel() {
     },
     salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
     channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-    recallRange: {
-      minDays: filters.recallRange.minDays !== null ? filters.recallRange.minDays.toString() : "",
-      maxDays: filters.recallRange.maxDays !== null ? filters.recallRange.maxDays.toString() : "",
-    }
   });
 
   // Setup debounced filter function (created only once)
@@ -178,10 +174,6 @@ function FilterPanel() {
         },
         salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
         channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-        recallRange: {
-          minDays: filters.recallRange.minDays !== null ? filters.recallRange.minDays.toString() : "",
-          maxDays: filters.recallRange.maxDays !== null ? filters.recallRange.maxDays.toString() : "",
-        }
       });
     } catch (error) {
       console.warn('Error updating draft filters from Redux state:', error);
@@ -207,9 +199,9 @@ function FilterPanel() {
     if (filters.dateRange.startDate || filters.dateRange.endDate) count++;
     if (filters.salesName?.length > 0) count++;
     if (filters.channel?.length > 0) count++;
-    if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) count++;
     return count;
-  }, [filters]);
+  }, [filters]);  
+  
   // Helper function to prepare filters for API
   const prepareFiltersForAPI = (draft) => {
     return {
@@ -219,26 +211,12 @@ function FilterPanel() {
       },
       salesName: Array.isArray(draft.salesName) ? [...draft.salesName] : [],
       channel: Array.isArray(draft.channel) ? [...draft.channel] : [],
-      recallRange: {
-        minDays: draft.recallRange.minDays && draft.recallRange.minDays.trim() !== '' ? parseInt(draft.recallRange.minDays, 10) : null,
-        maxDays: draft.recallRange.maxDays && draft.recallRange.maxDays.trim() !== '' ? parseInt(draft.recallRange.maxDays, 10) : null,
-      },
     };
-  };
+  };  
+  
   // Apply filters handler
   const handleApplyFilters = useCallback(() => {
     try {
-      // Validate recall range
-      const minDays = draftFilters.recallRange.minDays && draftFilters.recallRange.minDays.trim() !== '' ? 
-                    parseInt(draftFilters.recallRange.minDays, 10) : null;
-      const maxDays = draftFilters.recallRange.maxDays && draftFilters.recallRange.maxDays.trim() !== '' ? 
-                    parseInt(draftFilters.recallRange.maxDays, 10) : null;
-      
-      if (minDays !== null && maxDays !== null && minDays > maxDays) {
-        setErrorMessage('วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด');
-        return;
-      }
-
       const filtersToApply = prepareFiltersForAPI(draftFilters);
       
       // Call the debounced function with check
@@ -277,10 +255,6 @@ function FilterPanel() {
       },
       salesName: [],
       channel: [],
-      recallRange: {
-        minDays: "",
-        maxDays: "",
-      },
     });
     dispatch(resetFilters());
     dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
@@ -338,17 +312,8 @@ function FilterPanel() {
         startDate,
         endDate,
       }
-    }));
+    }));  
   }, []);
-    // Recall range presets
-  const recallPresets = useMemo(() => [
-    { label: '0-10 วัน', min: 0, max: 10 },
-    { label: '10-20 วัน', min: 10, max: 20 },
-    { label: '20-30 วัน', min: 20, max: 30 },
-    { label: '30-40 วัน', min: 30, max: 40 },
-    { label: '40-50 วัน', min: 40, max: 50 },
-    { label: '50-60 วัน', min: 50, max: 60 },
-  ], []);
   
   // Calculate formatted dates for display
   const formattedStartDate = useMemo(() => {
@@ -403,27 +368,6 @@ function FilterPanel() {
     }));
   }, []);
 
-  // Recall range input handlers - memoized to prevent recreating on each render
-  const handleMinDaysChange = useCallback((e) => {
-    setDraftFilters(prev => ({
-      ...prev,
-      recallRange: { 
-        ...prev.recallRange, 
-        minDays: e.target.value 
-      }
-    }));
-  }, []);
-
-  const handleMaxDaysChange = useCallback((e) => {
-    setDraftFilters(prev => ({
-      ...prev,
-      recallRange: { 
-        ...prev.recallRange, 
-        maxDays: e.target.value 
-      }
-    }));
-  }, []);
-
   // Select all sales handler
   const selectAllSales = useCallback(() => {
     setDraftFilters(prev => ({
@@ -437,17 +381,6 @@ function FilterPanel() {
     setDraftFilters(prev => ({
       ...prev,
       salesName: []
-    }));
-  }, []);
-
-  // Preset recall range handler
-  const handleRecallPreset = useCallback((preset) => {
-    setDraftFilters(prev => ({
-      ...prev,
-      recallRange: {
-        minDays: preset.min.toString(),
-        maxDays: preset.max ? preset.max.toString() : '60'
-      }
     }));
   }, []);
 
@@ -863,7 +796,7 @@ function FilterPanel() {
                 </Paper>
               </Grid>
 
-              {/* Channel and Recall Filter */}              <Grid xs={12} md={6} lg={4}>
+              {/* Channel Filter */}              <Grid xs={12} md={6} lg={4}>
                 <Paper 
                   elevation={0}
                   sx={{ 
@@ -949,95 +882,6 @@ function FilterPanel() {
                           ))}
                         </Select>
                       </FormControl>
-                    </Box>
-                    
-                    <Divider />
-                    
-                    {/* Recall Filter */}
-                    <Box sx={{ flexGrow: 1 }}>                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <Box 
-                          sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                            borderRadius: '50%',
-                            p: 0.8
-                          }}
-                        >
-                          <MdPhone style={{ fontSize: 18, color: '#1976d2' }} />
-                        </Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1976d2' }}>                          ระยะเวลาขาดการติดต่อ (วัน)
-                        </Typography>
-                      </Box>
-                      
-                      <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
-                        กรองลูกค้าตามจำนวนวันที่ไม่ได้มีการติดต่อ (ถ้าต้องการดูลูกค้าที่ไม่ได้ติดต่อระหว่าง 10-30 วัน ให้ใส่ 10 ที่ค่าต่ำสุดและ 30 ที่ค่าสูงสุด)
-                      </Typography>
-                      
-                      {/* Recall range input */}                      <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid xs={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="ไม่ได้ติดต่ออย่างน้อย"
-                            type="number"
-                            value={draftFilters.recallRange.minDays}
-                            onChange={handleMinDaysChange}
-                            InputProps={{
-                              inputProps: { min: 0, max: 60 },
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <MdPhone style={{ color: '#1976d2', fontSize: '1.2rem' }} />
-                                </InputAdornment>
-                              ),
-                              endAdornment: <InputAdornment position="end">วัน</InputAdornment>
-                            }}
-                          />
-                        </Grid>
-                        <Grid xs={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="ไม่ได้ติดต่อไม่เกิน"
-                            type="number"
-                            value={draftFilters.recallRange.maxDays}
-                            onChange={handleMaxDaysChange}
-                            InputProps={{
-                              inputProps: { min: 0, max: 60 },
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <MdPhone style={{ color: '#1976d2', fontSize: '1.2rem' }} />
-                                </InputAdornment>
-                              ),
-                              endAdornment: <InputAdornment position="end">วัน</InputAdornment>
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
-                      
-                      {/* Recall presets */}                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
-                        {recallPresets.map((preset) => (
-                          <Button
-                            key={preset.label}
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleRecallPreset(preset)}
-                            sx={{ 
-                              borderRadius: 4,
-                              fontSize: '0.75rem',
-                              px: 1.5,
-                              borderColor: '#1976d2',
-                              '&:hover': {
-                                backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                                borderColor: '#1976d2'
-                              }
-                            }}
-                          >
-                            {preset.label}
-                          </Button>
-                        ))}
-                      </Box>
                     </Box>
                   </Stack>
                 </Paper>

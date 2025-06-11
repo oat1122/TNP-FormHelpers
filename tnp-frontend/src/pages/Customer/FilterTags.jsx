@@ -12,14 +12,12 @@ import { getChannelDisplayName, formatDaysToText } from '../../features/Customer
 function FilterTags() {
   const dispatch = useDispatch();
   const filters = useSelector((state) => state.customer.filters);
-  
-  // Check if any filters are active
+    // Check if any filters are active
   const hasDateFilter = filters.dateRange.startDate || filters.dateRange.endDate;
   const hasSalesFilter = filters.salesName && filters.salesName.length > 0;
   const hasChannelFilter = filters.channel && filters.channel.length > 0;
-  const hasRecallFilter = filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null;
   
-  const hasAnyFilters = hasDateFilter || hasSalesFilter || hasChannelFilter || hasRecallFilter;
+  const hasAnyFilters = hasDateFilter || hasSalesFilter || hasChannelFilter;
   
   if (!hasAnyFilters) {
     return null;
@@ -42,18 +40,7 @@ function FilterTags() {
     }
     return '';
   };
-  
-  // Format recall range for display
-  const getRecallRangeLabel = () => {
-    if (filters.recallRange.minDays !== null && filters.recallRange.maxDays !== null) {
-      return `${filters.recallRange.minDays} - ${filters.recallRange.maxDays} วัน`;
-    } else if (filters.recallRange.minDays !== null) {
-      return `> ${filters.recallRange.minDays} วัน`;
-    } else if (filters.recallRange.maxDays !== null) {
-      return `< ${filters.recallRange.maxDays} วัน`;
-    }
-    return '';
-  };
+    // Format recall range for display has been removed
   
   // Handle clearing all filters
   const handleClearAllFilters = () => {
@@ -149,26 +136,7 @@ function FilterTags() {
           }}
         />
       )}
-      
-      {/* Recall Filter Tag */}
-      {hasRecallFilter && (
-        <Chip
-          icon={<MdPhone style={{ color: '#1976d2' }} />}
-          label={`ขาดติดต่อ: ${getRecallRangeLabel()}`}
-          size="medium"
-          color="primary"
-          variant="outlined"
-          sx={{ 
-            borderRadius: '16px', 
-            fontWeight: 500,
-            px: 0.5,
-            '& .MuiChip-icon': {
-              color: '#1976d2'
-            },
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}
-        />
-      )}
+        {/* Recall Filter Tag has been removed */}
       
       {/* Clear All Filters */}
       {hasAnyFilters && (

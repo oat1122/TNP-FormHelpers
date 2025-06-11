@@ -30,18 +30,9 @@ export const customerApi = createApi({
           if (Array.isArray(payload.filters.salesName) && payload.filters.salesName.length > 0) {
             queryParams.sales_names = payload.filters.salesName.join(',');
           }
-          
-          // Channel filter
+            // Channel filter
           if (Array.isArray(payload.filters.channel) && payload.filters.channel.length > 0) {
             queryParams.channels = payload.filters.channel.join(',');
-          }
-          
-          // Recall Range
-          if (payload.filters.recallRange.minDays !== null) {
-            queryParams.min_recall_days = payload.filters.recallRange.minDays;
-          }
-          if (payload.filters.recallRange.maxDays !== null) {
-            queryParams.max_recall_days = payload.filters.recallRange.maxDays;
           }
         }
 

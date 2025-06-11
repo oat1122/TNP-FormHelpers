@@ -33,18 +33,9 @@ export const fetchFilteredCustomers = createAsyncThunk(
       if (Array.isArray(filters.salesName) && filters.salesName.length > 0) {
         queryParams.sales_names = filters.salesName.join(',');
       }
-      
-      // Channel filter
+        // Channel filter
       if (Array.isArray(filters.channel) && filters.channel.length > 0) {
         queryParams.channels = filters.channel.join(',');
-      }
-      
-      // Recall Range
-      if (filters.recallRange.minDays !== null) {
-        queryParams.min_recall_days = filters.recallRange.minDays;
-      }
-      if (filters.recallRange.maxDays !== null) {
-        queryParams.max_recall_days = filters.recallRange.maxDays;
       }
       
       // Pagination defaults

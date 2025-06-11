@@ -32,8 +32,7 @@ export default {
   },
   setFilters: (state, action) => {
     state.filters = action.payload;
-  },
-  resetFilters: (state) => {
+  },  resetFilters: (state) => {
     state.filters = {
       dateRange: {
         startDate: null,
@@ -41,10 +40,6 @@ export default {
       },
       salesName: [],
       channel: [],
-      recallRange: {
-        minDays: null,
-        maxDays: null,
-      },
     };
   },
   resetInputList: (state) => {

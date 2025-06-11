@@ -140,39 +140,6 @@ class MasterCustomer extends Model
 		return $query;
 	}
 
-	/**
-	 * Scope a query to filter by recall days range
-	 * 
-	 * @param \Illuminate\Database\Eloquent\Builder $query
-	 * @param int|null $minDays Minimum days since last contact
-	 * @param int|null $maxDays Maximum days since last contact
-	 * @return \Illuminate\Database\Eloquent\Builder
-	 */
-	public function scopeFilterByRecallRange($query, $minDays, $maxDays) {
-		if ($minDays !== null || $maxDays !== null) {
-			return $query->whereHas('customerDetail', function ($q) use ($minDays, $maxDays) {
-				// Ensure that cd_last_datetime is not null
-				$q->whereNotNull('cd_last_datetime');
-				
-				if ($minDays !== null) {
-					// For minimum days: last contact must be older than or equal to minDays
-					// Example: If minDays=30, show customers whose last contact was at least 30 days ago
-					$minDate = now()->subDays($minDays)->format('Y-m-d');
-					$q->whereDate('cd_last_datetime', '<=', $minDate);
-				}
-				
-				if ($maxDays !== null) {
-					// For maximum days: last contact must be newer than or equal to maxDays
-					// Example: If maxDays=60, show customers whose last contact was at most 60 days ago
-					$maxDate = now()->subDays($maxDays)->format('Y-m-d');
-					$q->whereDate('cd_last_datetime', '>=', $maxDate);
-				}
-			});
-		}
-		
-		return $query;
-	}
-
 	public function customerDetail()
     {
         return $this->hasOne(CustomerDetail::class, 'cd_cus_id', 'cus_id')

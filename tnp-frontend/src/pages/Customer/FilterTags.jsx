@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box, Chip, Typography } from '@mui/material';
 import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from 'react-icons/md';
 import dayjs from 'dayjs';
 import { resetFilters } from '../../features/Customer/customerSlice';
+import ScrollContext from './ScrollContext';
 import { getChannelDisplayName, formatDaysToText } from '../../features/Customer/customerUtils';
 
 /**
@@ -41,10 +42,13 @@ function FilterTags() {
     return '';
   };
     // Format recall range for display has been removed
+    const { scrollToTop } = useContext(ScrollContext);
   
   // Handle clearing all filters
   const handleClearAllFilters = () => {
     dispatch(resetFilters());
+    // Scroll to top when removing all filters
+    scrollToTop();
   };
     return (
     <Box 

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import ScrollContext from './ScrollContext';
 import {
   Box,
   Button,
@@ -238,7 +239,8 @@ function DialogForm(props) {
       return false;
     }
   };
-
+  const { scrollToTop } = useContext(ScrollContext);
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -262,6 +264,8 @@ function DialogForm(props) {
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
             setSaveLoading(false);
             dispatch(resetInputList());
+            // Scroll to top after customer is added or updated
+            scrollToTop();
           });
         } else {
           setSaveLoading(false);

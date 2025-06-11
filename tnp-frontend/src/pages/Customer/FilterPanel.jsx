@@ -1,6 +1,7 @@
 // filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\FilterPanel.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import ScrollContext from './ScrollContext';
 import {
   Box,
   Button,
@@ -213,6 +214,7 @@ function FilterPanel() {
       channel: Array.isArray(draft.channel) ? [...draft.channel] : [],
     };
   };  
+    const { scrollToTop } = useContext(ScrollContext);
   
   // Apply filters handler
   const handleApplyFilters = useCallback(() => {
@@ -227,11 +229,12 @@ function FilterPanel() {
       
       // Dispatch API action to fetch filtered customers
       dispatch(fetchFilteredCustomers(filtersToApply))
-        .unwrap()
-        .then(() => {
+        .unwrap()        .then(() => {
           // Success handling
           setExpanded(false); // Collapse filter panel after applying
           setIsFiltering(false);
+          // Scroll to top when filters have been applied
+          scrollToTop();
         })
         .catch((error) => {
           console.error('Error applying filters:', error);

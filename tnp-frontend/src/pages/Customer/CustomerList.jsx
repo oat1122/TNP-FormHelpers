@@ -78,6 +78,8 @@ import TitleBar from "../../components/TitleBar";
 import FilterTab from "./FilterTab";
 import FilterPanel from "./FilterPanel";
 import FilterTags from "./FilterTags";
+import ScrollContext from './ScrollContext';
+import ScrollTopButton from './ScrollTopButton';
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -318,7 +320,8 @@ const SortInfoDisplay = ({ sortModel }) => {
 function CustomerList() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const [delCustomer] = useDelCustomerMutation();
-  const [updateRecall] = useUpdateRecallMutation();  const [updateCustomer] = useUpdateCustomerMutation();
+  const [updateRecall] = useUpdateRecallMutation();  
+  const [updateCustomer] = useUpdateCustomerMutation();
   const dispatch = useDispatch();
   const [totalItems, setTotalItems] = useState(0);
   const itemList = useSelector((state) => state.customer.itemList);
@@ -330,6 +333,7 @@ function CustomerList() {
   const isLoading = useSelector((state) => state.customer.isLoading);
   const [openDialog, setOpenDialog] = useState(false);
   const [serverSortModel, setServerSortModel] = useState([]);
+  const tableContainerRef = useRef(null);
   
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
@@ -339,7 +343,54 @@ function CustomerList() {
     search: keyword,
     filters: filters,
     sortModel: serverSortModel,
-  });
+  });  // Scroll to top function
+  const scrollToTop = useCallback(() => {
+    // Return early if we're in testing mode or SSR environment
+    if (typeof window === 'undefined') return;
+    
+    const scrollOptions = { behavior: 'smooth' };
+    
+    // First try to scroll the container if it's available
+    if (tableContainerRef.current) {
+      try {
+        // Add a small delay to ensure UI has updated before scrolling
+        setTimeout(() => {
+          // Scroll the container element to top
+          tableContainerRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          });
+          
+          // Also ensure the window is scrolled to show the container at the top
+          const containerRect = tableContainerRef.current.getBoundingClientRect();
+          if (containerRect.top < 0) {
+            window.scrollBy({
+              top: containerRect.top - 20, // Add a small offset for visual padding
+              behavior: 'smooth'
+            });
+          }
+        }, 50);
+      } catch (error) {
+        // Fallback for browsers that don't support smooth scrolling
+        console.warn('Smooth scrolling not supported, using fallback', error);
+        tableContainerRef.current.scrollIntoView(true);
+      }
+    } else {
+      // Otherwise scroll the window
+      try {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      } catch (error) {
+        // Fallback for browsers that don't support smooth scrolling
+        console.warn('Smooth scrolling not supported, using fallback', error);
+        window.scrollTo(0, 0);
+      }
+    }
+  }, [tableContainerRef]);
+
   // Handle changes in the sort model
   const handleSortModelChange = (newModel) => {
     // Only update if the sort model actually changed
@@ -348,10 +399,10 @@ function CustomerList() {
       // Reset to first page when sorting changes
       const newPaginationModel = { ...paginationModel, page: 0 };
       dispatch(setPaginationModel(newPaginationModel));
+      // Scroll to top when sorting changes
+      scrollToTop();
     }
-  };
-
-  // Pagination customize
+  };  // Pagination customize
   function CustomPagination() {
     const apiRef = useGridApiContext();
     const page = useGridSelector(apiRef, gridPageSelector);
@@ -362,16 +413,18 @@ function CustomerList() {
     // Reset page to first page after change group.
     useEffect(() => {
       if (paginationModel.page !== page) {
-        apiRef.current.setPage(0); 
+        apiRef.current.setPage(0);
+        scrollToTop();
       }
-    }, [paginationModel])
+    }, [paginationModel, scrollToTop])
 
     // Handle page size change
     const handlePageSizeChange = (newPageSize) => {
       const newModel = { ...paginationModel, pageSize: newPageSize, page: 0 };
       dispatch(setPaginationModel(newModel));
       apiRef.current.setPageSize(newPageSize);
-    };    return (
+      scrollToTop();
+    };return (
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
@@ -403,7 +456,10 @@ function CustomerList() {
                 slots={{ previous: FaChevronLeft, next: FaChevronRight }}
               />
             }
-            onChange={(event, value) => apiRef.current.setPage(value - 1)}
+            onChange={(event, value) => {
+              apiRef.current.setPage(value - 1);
+              scrollToTop();
+            }}
           />
         </Box>
         
@@ -445,7 +501,6 @@ function CustomerList() {
       dispatch(setMode(""));
     }, 500);
   };
-
   const handleDelete = async (params) => {
     const confirmed = await swal_delete_by_id(
       `กรุณายืนยันการลบข้อมูล ${params.cus_name}`
@@ -459,6 +514,8 @@ function CustomerList() {
 
         if (res.data.status === "success") {
           open_dialog_ok_timer("ลบข้อมูลสำเร็จ");
+          // Scroll to top after deletion is successful
+          scrollToTop();
         }
       } catch (error) {
         open_dialog_error(error.message, error);
@@ -466,7 +523,6 @@ function CustomerList() {
       }
     }
   };
-
   const handleRecall = async (params) => {
     const confirmed = await swal_delete_by_id(
       `กรุณายืนยันการรีเซตเวลาของ ${params.cus_name}`
@@ -486,6 +542,8 @@ function CustomerList() {
 
         if (res.data.status === "success") {
           open_dialog_ok_timer("รีเซตเวลาสำเร็จ");
+          // Scroll to top after recall timer reset is successful
+          scrollToTop();
         }
       } catch (error) {
         open_dialog_error(error.message, error);
@@ -523,13 +581,13 @@ function CustomerList() {
         ...params,
         cus_mcg_id: groupResult.mcg_id,
         cus_updated_by: user.user_id,
-      };
-
-      try {
+      };      try {
         const res = await updateCustomer(inputUpdate);
 
         if (res.data.status === "success") {
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ");
+          // Scroll to top after group change is successful
+          scrollToTop();
         }
       } catch (error) {
         open_dialog_error(error.message, error);
@@ -566,7 +624,6 @@ function CustomerList() {
       <p style={{ fontSize: 18 }}>No data found.</p>
     </div>
   );
-
   useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
@@ -576,9 +633,16 @@ function CustomerList() {
         dispatch(setGroupList(data.groups));
         dispatch(setTotalCount(data.total_count));
         setTotalItems(data.pagination.total_items);
+        
+        // Check if this is a data refresh caused by operations other than pagination/sorting
+        // If the page is 0 and we have a previous different data set, scroll to top
+        if (paginationModel.page === 0 && data.data?.length > 0 && 
+            itemList?.length > 0 && data.data[0]?.cus_id !== itemList[0]?.cus_id) {
+          scrollToTop();
+        }
       }
     }
-  }, [data, groupSelected]);
+  }, [data, groupSelected, scrollToTop, paginationModel.page, itemList]);
   const columns = useMemo(
     () => [
       {
@@ -869,18 +933,19 @@ function CustomerList() {
         <SortInfoDisplay sortModel={serverSortModel} />
       </GridToolbarContainer>
     );
-  }
-
-  return (
-    <div className="customer-list">
-      <DialogForm
-        openDialog={openDialog}
-        handleCloseDialog={handleCloseDialog}
-        handleRecall={handleRecall}
-      />
+  }  return (
+    <ScrollContext.Provider value={{ scrollToTop }}>
+      <div className="customer-list">
+        <DialogForm
+          openDialog={openDialog}
+          handleCloseDialog={handleCloseDialog}
+          handleRecall={handleRecall}
+        />
 
       <TitleBar title="customer" />
       <Box
+        ref={tableContainerRef}
+        id="customerTableTop"
         paddingX={3}
         sx={{ margin: "auto", maxWidth: 1800, height: 'auto', paddingBlock: 3 }}
       >
@@ -973,11 +1038,15 @@ function CustomerList() {
                 classes.push('medium-priority-row');
               }
               
-              return classes.join(' ');
-            }}
+              return classes.join(' ');            }}
           />        </Box>
-      </Box>
-    </div>
+      </Box>    
+      
+      {/* Floating button to scroll to top */}
+      <ScrollTopButton />
+      
+      </div>
+    </ScrollContext.Provider>
   );
 }
 

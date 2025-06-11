@@ -24,6 +24,8 @@ import {
   Slider,
   Paper,
   Divider,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import { useMemo, useCallback } from "react";
 import { debounce } from 'lodash';
@@ -42,6 +44,7 @@ import {
   setSalesList,
   setPaginationModel,
   resetFilters,
+  fetchFilteredCustomers,
 } from "../../features/Customer/customerSlice";
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
@@ -125,7 +128,11 @@ function FilterPanel() {
   const salesList = useSelector((state) => state.customer.salesList);
   const itemList = useSelector((state) => state.customer.itemList);
   const userInfo = useSelector((state) => state.global.userInfo);
+  const isLoading = useSelector((state) => state.customer.isLoading);
+  const error = useSelector((state) => state.customer.error);
   const [expanded, setExpanded] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
   
   // Get sales list from API
   const { data: salesData, isLoading: salesLoading } = useGetUserByRoleQuery("sale");
@@ -205,7 +212,21 @@ function FilterPanel() {
     if (filters.recallRange.minDays !== null || filters.recallRange.maxDays !== null) count++;
     return count;
   }, [filters]);
-
+  // Helper function to prepare filters for API
+  const prepareFiltersForAPI = (draft) => {
+    return {
+      dateRange: {
+        startDate: draft.dateRange.startDate?.isValid() ? draft.dateRange.startDate.format('YYYY-MM-DD') : null,
+        endDate: draft.dateRange.endDate?.isValid() ? draft.dateRange.endDate.format('YYYY-MM-DD') : null,
+      },
+      salesName: Array.isArray(draft.salesName) ? [...draft.salesName] : [],
+      channel: Array.isArray(draft.channel) ? [...draft.channel] : [],
+      recallRange: {
+        minDays: draft.recallRange.minDays && draft.recallRange.minDays.trim() !== '' ? parseInt(draft.recallRange.minDays, 10) : null,
+        maxDays: draft.recallRange.maxDays && draft.recallRange.maxDays.trim() !== '' ? parseInt(draft.recallRange.maxDays, 10) : null,
+      },
+    };
+  };
   // Apply filters handler
   const handleApplyFilters = useCallback(() => {
     try {
@@ -216,33 +237,38 @@ function FilterPanel() {
                     parseInt(draftFilters.recallRange.maxDays, 10) : null;
       
       if (minDays !== null && maxDays !== null && minDays > maxDays) {
-        alert('วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด');
+        setErrorMessage('วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด');
         return;
       }
 
-      const filtersToApply = {
-        dateRange: {
-          startDate: draftFilters.dateRange.startDate?.isValid() ? draftFilters.dateRange.startDate.format('YYYY-MM-DD') : null,
-          endDate: draftFilters.dateRange.endDate?.isValid() ? draftFilters.dateRange.endDate.format('YYYY-MM-DD') : null,
-        },
-        salesName: draftFilters.salesName,
-        channel: draftFilters.channel,
-        recallRange: {
-          minDays: minDays !== null && !isNaN(minDays) ? minDays : null,
-          maxDays: maxDays !== null && !isNaN(maxDays) ? maxDays : null,
-        },
-      };
+      const filtersToApply = prepareFiltersForAPI(draftFilters);
       
-      // Call the debounced function
-      debouncedApplyFiltersRef.current(filtersToApply);
+      // Call the debounced function with check
+      if (debouncedApplyFiltersRef.current) {
+        setIsFiltering(true);
+        debouncedApplyFiltersRef.current(filtersToApply);
+      }
       
-      // Collapse filter panel after applying
-      setExpanded(false);
+      // Dispatch API action to fetch filtered customers
+      dispatch(fetchFilteredCustomers(filtersToApply))
+        .unwrap()
+        .then(() => {
+          // Success handling
+          setExpanded(false); // Collapse filter panel after applying
+          setIsFiltering(false);
+        })
+        .catch((error) => {
+          console.error('Error applying filters:', error);
+          setErrorMessage(`เกิดข้อผิดพลาดในการกรองข้อมูล: ${error.message || 'โปรดลองใหม่อีกครั้ง'}`);
+          setIsFiltering(false);
+        });
+      
     } catch (error) {
       console.error('Error applying filters:', error);
-      alert('เกิดข้อผิดพลาดในการใช้งานตัวกรอง');
+      setErrorMessage('เกิดข้อผิดพลาดในการใช้งานตัวกรอง');
+      setIsFiltering(false);
     }
-  }, [draftFilters]);
+  }, [draftFilters, dispatch, setExpanded]);
 
   // Reset filters
   const handleResetFilters = useCallback(() => {
@@ -431,16 +457,19 @@ function FilterPanel() {
 
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Advanced filters */}
-      <Accordion 
+      {/* Advanced filters */}              <Accordion 
         expanded={expanded} 
         onChange={handleAccordionChange}
         sx={{
           bgcolor: 'background.paper',
-          boxShadow: 2,
+          boxShadow: 3,
           borderRadius: 2,
           overflow: 'hidden',
           '&:before': { display: 'none' }, // Remove default divider
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            boxShadow: 4
+          }
         }}
       >
         <AccordionSummary
@@ -474,12 +503,19 @@ function FilterPanel() {
             </Box>
           </Box>
         </AccordionSummary>
-        
-        <AccordionDetails sx={{ p: 3 }}>
+          <AccordionDetails sx={{ p: 3 }}>
+          {errorMessage && (
+            <Alert
+              severity="error"
+              onClose={() => setErrorMessage(null)}
+              sx={{ mb: 2 }}
+            >
+              {errorMessage}
+            </Alert>
+          )}
           <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
             <Grid container spacing={3}>
-              {/* Date Filter */}
-              <Grid size={12} md={6} lg={4}>
+              {/* Date Filter */}              <Grid xs={12} md={6} lg={4}>
                 <Paper 
                   elevation={0}
                   sx={{ 
@@ -621,8 +657,7 @@ function FilterPanel() {
                 </Paper>
               </Grid>
               
-              {/* Sales Filter */}
-              <Grid size={12} md={6} lg={4}>
+              {/* Sales Filter */}              <Grid xs={12} md={6} lg={4}>
                 <Paper 
                   elevation={0}
                   sx={{ 
@@ -702,8 +737,7 @@ function FilterPanel() {
                 </Paper>
               </Grid>
 
-              {/* Channel and Recall Filter */}
-              <Grid size={12} md={6} lg={4}>
+              {/* Channel and Recall Filter */}              <Grid xs={12} md={6} lg={4}>
                 <Paper 
                   elevation={0}
                   sx={{ 
@@ -792,9 +826,8 @@ function FilterPanel() {
                         </Typography>
                       </Box>
                       
-                      {/* Recall range input */}
-                      <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid size={6}>
+                      {/* Recall range input */}                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid xs={6}>
                           <TextField
                             fullWidth
                             size="small"
@@ -807,7 +840,7 @@ function FilterPanel() {
                             }}
                           />
                         </Grid>
-                        <Grid size={6}>
+                        <Grid xs={6}>
                           <TextField
                             fullWidth
                             size="small"
@@ -841,8 +874,7 @@ function FilterPanel() {
                 </Paper>
               </Grid>
 
-              {/* Control buttons */}
-              <Grid size={12}>
+              {/* Control buttons */}              <Grid xs={12}>
                 <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 2 }}>
                   <Button
                     variant="outlined"
@@ -857,15 +889,21 @@ function FilterPanel() {
                     }}
                   >
                     รีเซ็ตตัวกรอง
-                  </Button>
-                  <Button
+                  </Button>              <Button
                     variant="contained"
                     color="error"
-                    startIcon={<MdFilterList />}
+                    startIcon={isFiltering ? <CircularProgress size={16} color="inherit" /> : <MdFilterList />}
                     onClick={handleApplyFilters}
+                    disabled={isFiltering}
                     sx={{ 
                       minWidth: 150,
                       borderRadius: 2,
+                      fontWeight: 600,
+                      boxShadow: 2,
+                      '&:hover': {
+                        boxShadow: 4,
+                        backgroundColor: '#d32f2f'
+                      },
                       textTransform: 'none',
                       fontWeight: 600,
                       boxShadow: 3,
@@ -874,7 +912,7 @@ function FilterPanel() {
                       }
                     }}
                   >
-                    ใช้งานตัวกรอง
+                    {isFiltering ? 'กำลังกรอง...' : 'ใช้งานตัวกรอง'}
                   </Button>
                 </Stack>
               </Grid>

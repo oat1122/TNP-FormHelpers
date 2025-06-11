@@ -104,6 +104,35 @@ class CustomerController extends Controller
                 $customer_prepared->where($search_sql);
                 $total_customers_q->where($search_sql);
             }
+            
+            // Date Range Filter
+            if ($request->has('start_date') || $request->has('end_date')) {
+                $customer_prepared->filterByDateRange($request->start_date, $request->end_date);
+                $total_customers_q->filterByDateRange($request->start_date, $request->end_date);
+            }
+            
+            // Sales Names Filter
+            if ($request->has('sales_names')) {
+                $salesNames = explode(',', $request->sales_names);
+                $customer_prepared->filterBySalesNames($salesNames);
+                $total_customers_q->filterBySalesNames($salesNames);
+            }
+            
+            // Channel Filter
+            if ($request->has('channels')) {
+                $channels = explode(',', $request->channels);
+                $customer_prepared->filterByChannels($channels);
+                $total_customers_q->filterByChannels($channels);
+            }
+            
+            // Recall Range Filter
+            if ($request->has('min_recall_days') || $request->has('max_recall_days')) {
+                $minDays = $request->has('min_recall_days') ? (int)$request->min_recall_days : null;
+                $maxDays = $request->has('max_recall_days') ? (int)$request->max_recall_days : null;
+                
+                $customer_prepared->filterByRecallRange($minDays, $maxDays);
+                $total_customers_q->filterByRecallRange($minDays, $maxDays);
+            }
 
             $perPage = $request->input('per_page', 10);
             $customer_q = $customer_prepared->select([ // Use array syntax for select

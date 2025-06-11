@@ -3,6 +3,8 @@ export default {
   itemList: [],
   groupList: [],
   groupSelected: "all",
+  isLoading: false,
+  error: null,
   paginationModel: { pageSize: 10, page: 0 },
   inputList: {
     cus_mcg_id: "",

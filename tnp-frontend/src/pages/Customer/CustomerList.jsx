@@ -69,6 +69,7 @@ import { Link, useParams } from "react-router-dom";
 import TitleBar from "../../components/TitleBar";
 import FilterTab from "./FilterTab";
 import FilterPanel from "./FilterPanel";
+import FilterTags from "./FilterTags";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -207,13 +208,14 @@ function CustomerList() {
   const [updateRecall] = useUpdateRecallMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
   const dispatch = useDispatch();
-
   const [totalItems, setTotalItems] = useState(0);
   const itemList = useSelector((state) => state.customer.itemList);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const groupList = useSelector((state) => state.customer.groupList);
-  const keyword = useSelector((state) => state.global.keyword);  const paginationModel = useSelector((state) => state.customer.paginationModel);
+  const keyword = useSelector((state) => state.global.keyword);
+  const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
+  const isLoading = useSelector((state) => state.customer.isLoading);
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
     page: paginationModel.page,
@@ -552,20 +554,21 @@ function CustomerList() {
             </TableBody>
           </Table>
         </TableContainer>
-        
-        {/* Advanced Filter Panel */}
+          {/* Advanced Filter Panel */}
         <FilterPanel />
+        
+        {/* Filter Tags - Shows active filters */}
+        <FilterTags />
 
         <StyledDataGrid
           disableRowSelectionOnClick
           paginationMode="server"
           rows={itemList}
           columns={columns}
-          getRowId={(row) => row.cus_id}
-          initialState={{ pagination: { paginationModel } }}
+          getRowId={(row) => row.cus_id}          initialState={{ pagination: { paginationModel } }}
           onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
           rowCount={totalItems}
-          loading={isFetching}
+          loading={isFetching || isLoading}
           slots={{
             noRowsOverlay: NoDataComponent,
             pagination: CustomPagination,

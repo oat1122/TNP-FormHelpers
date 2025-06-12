@@ -128,12 +128,13 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
       transition: "background-color 0.2s ease",
     },
   },
-
   "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
     padding: "8px 16px",
+    display: "flex",
+    alignItems: "center",
   },
 
   "& .MuiDataGrid-menuIcon > button > svg": {
@@ -347,37 +348,38 @@ function CustomerList() {
   const filters = useSelector((state) => state.customer.filters);
   const isLoading = useSelector((state) => state.customer.isLoading);
   const [openDialog, setOpenDialog] = useState(false);
-  const [serverSortModel, setServerSortModel] = useState([]);  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
+  const [serverSortModel, setServerSortModel] = useState([]);
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     // Default visibility settings - show only the requested columns
-    cus_no: false,              // Hide ID column
-    cus_channel: true,          // Show Channel column
-    cus_manage_by: true,        // Show Sales Name column
-    cus_name: true,             // Show Customer column
-    cus_company: false,         // Hide Company column
-    cus_tel_1: true,            // Show Tel column
-    cd_note: true,              // Show Note column
-    cd_last_datetime: true,     // Show Recall column
-    cus_created_date: true,     // Show Customer Create At column
-    cus_email: false,           // Hide Email column
-    cus_address: false,         // Hide Address column
-    tools: true,                // Show Tools column
+    cus_no: false, // Hide ID column
+    cus_channel: true, // Show Channel column
+    cus_manage_by: true, // Show Sales Name column
+    cus_name: true, // Show Customer column
+    cus_company: false, // Hide Company column
+    cus_tel_1: true, // Show Tel column
+    cd_note: true, // Show Note column
+    cd_last_datetime: true, // Show Recall column
+    cus_created_date: true, // Show Customer Create At column
+    cus_email: false, // Hide Email column
+    cus_address: false, // Hide Address column
+    tools: true, // Show Tools column
   });
   // State to track column order
   const [columnOrderModel, setColumnOrderModel] = useState([
     // Define explicit column order as requested
-    'cus_channel',         // Channel
-    'cus_manage_by',       // Sales Name
-    'cus_name',            // Customer
-    'cus_tel_1',           // Tel
-    'cd_note',             // Note
-    'cd_last_datetime',    // Recall
-    'cus_created_date',    // Customer Create At
-    'tools',               // Tools
+    "cus_channel", // Channel
+    "cus_manage_by", // Sales Name
+    "cus_name", // Customer
+    "cus_tel_1", // Tel
+    "cd_note", // Note
+    "cd_last_datetime", // Recall
+    "cus_created_date", // Customer Create At
+    "tools", // Tools
     // Include other columns at the end (they'll be hidden by default)
-    'cus_no',
-    'cus_company',
-    'cus_email',
-    'cus_address'
+    "cus_no",
+    "cus_company",
+    "cus_email",
+    "cus_address",
   ]);
 
   // Get current theme for responsive behavior
@@ -852,35 +854,37 @@ function CustomerList() {
     }
   }, [data, groupSelected, scrollToTop, paginationModel.page, itemList]);
   const columns = useMemo(
-    () => [      {
+    () => [
+      {
         field: "cus_no",
         headerName: "ID",
         width: 120,
         sortable: true,
         renderCell: (params) => <span>{params.value}</span>,
-      },
-      {
+      },      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
         sortable: true,
         cellClassName: "uppercase-cell",
         renderCell: (params) => (
-          <Chip
-            label={channelMap[params.value]}
-            size="small"
-            sx={{
-              textTransform: "uppercase",
-              backgroundColor: (theme) =>
-                params.value === 1
-                  ? theme.palette.info.light
-                  : params.value === 2
-                  ? theme.palette.success.light
-                  : theme.palette.warning.light,
-              color: (theme) => theme.palette.common.white,
-              fontWeight: "bold",
-            }}
-          />
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Chip
+              label={channelMap[params.value]}
+              size="small"
+              sx={{
+                textTransform: "uppercase",
+                backgroundColor: (theme) =>
+                  params.value === 1
+                    ? theme.palette.info.light
+                    : params.value === 2
+                    ? theme.palette.success.light
+                    : theme.palette.warning.light,
+                color: (theme) => theme.palette.common.white,
+                fontWeight: "bold",
+              }}
+            />
+          </Box>
         ),
       },      {
         field: "cus_manage_by",
@@ -891,38 +895,40 @@ function CustomerList() {
         hideable: false,
         renderCell: (params) => {
           return (
-            <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
-              {params.value.username}
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+              <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
+                {params.value.username}
+              </Typography>
+            </Box>
           );
         },
-      },{        field: "cus_name",
+      },
+      {
+        field: "cus_name",
         headerName: "CUSTOMER",
         width: 200,
         sortable: true,
         renderCell: (params) => {
           const fullName = params.value;
-          const company = params.row.cus_company || '';
-          
+          const company = params.row.cus_company || "";
+
           // Create a simple, readable tooltip text that includes both name and company
-          const tooltipText = company 
-            ? `${fullName}\n${company}` 
-            : fullName;
-            
+          const tooltipText = company ? `${fullName}\n${company}` : fullName;
+
           return (
-            <Tooltip 
+            <Tooltip
               title={tooltipText}
               componentsProps={{
                 tooltip: {
                   sx: {
-                    bgcolor: 'rgba(0, 0, 0, 0.8)',
-                    '& .MuiTooltip-arrow': {
-                      color: 'rgba(0, 0, 0, 0.8)',
+                    bgcolor: "rgba(0, 0, 0, 0.8)",
+                    "& .MuiTooltip-arrow": {
+                      color: "rgba(0, 0, 0, 0.8)",
                     },
-                    fontSize: '0.875rem',
-                    padding: '8px 12px',
-                    maxWidth: '400px',
-                    whiteSpace: 'pre-line'
+                    fontSize: "0.875rem",
+                    padding: "8px 12px",
+                    maxWidth: "400px",
+                    whiteSpace: "pre-line",
                   },
                 },
               }}
@@ -946,7 +952,8 @@ function CustomerList() {
             </Tooltip>
           );
         },
-      },      {
+      },
+      {
         field: "cus_company",
         headerName: "COMPANY NAME",
         width: 280,
@@ -954,8 +961,7 @@ function CustomerList() {
         renderCell: (params) => {
           return <span>{params.value || "—"}</span>;
         },
-      },
-      {
+      },      {
         field: "cus_tel_1",
         headerName: "TEL",
         width: 140,
@@ -965,7 +971,7 @@ function CustomerList() {
           const tel2 = params.row.cus_tel_2;
 
           return (
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
+            <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%" }}>
               <Typography variant="body2">{tel1 || "—"}</Typography>
               {tel2 && (
                 <Typography variant="caption" color="text.secondary">
@@ -975,25 +981,26 @@ function CustomerList() {
             </Box>
           );
         },
-      },      {
+      },
+      {
         field: "cd_note",
         headerName: "NOTE",
         width: 280,
         sortable: true,
         renderCell: (params) => (
-          <Tooltip 
-            title={params.value || "No notes"} 
+          <Tooltip
+            title={params.value || "No notes"}
             placement="top-start"
             componentsProps={{
               tooltip: {
                 sx: {
-                  bgcolor: 'rgba(0, 0, 0, 0.8)',
-                  '& .MuiTooltip-arrow': {
-                    color: 'rgba(0, 0, 0, 0.8)',
+                  bgcolor: "rgba(0, 0, 0, 0.8)",
+                  "& .MuiTooltip-arrow": {
+                    color: "rgba(0, 0, 0, 0.8)",
                   },
-                  fontSize: '0.875rem',
-                  padding: '8px 12px',
-                  maxWidth: '400px'
+                  fontSize: "0.875rem",
+                  padding: "8px 12px",
+                  maxWidth: "400px",
                 },
               },
             }}
@@ -1020,15 +1027,17 @@ function CustomerList() {
         renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: daysLeft <= 7 ? "bold" : "normal",
-                color: daysLeft <= 7 ? "error.main" : "inherit",
-              }}
-            >
-              {`${daysLeft} DAYS`}
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: daysLeft <= 7 ? "bold" : "normal",
+                  color: daysLeft <= 7 ? "error.main" : "inherit",
+                }}
+              >
+                {`${daysLeft} DAYS`}
+              </Typography>
+            </Box>
           );
         },
         cellClassName: (params) => {
@@ -1044,23 +1053,27 @@ function CustomerList() {
         sortable: true,
         renderCell: (params) => {
           // Check if the value exists and is a valid date
-          const isValidDate = params.value && !isNaN(new Date(params.value).getTime());
-          
+          const isValidDate =
+            params.value && !isNaN(new Date(params.value).getTime());
+
           // Format the date for display
           const date = isValidDate ? new Date(params.value) : null;
-          const formattedDate = date 
+          const formattedDate = date
             ? date.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              }) 
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
             : "—";
 
           return (
-            <Typography variant="body2">{formattedDate}</Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+              <Typography variant="body2">{formattedDate}</Typography>
+            </Box>
           );
         },
-      },      {
+      },
+      {
         field: "cus_email",
         headerName: "EMAIL",
         width: 200,
@@ -1078,7 +1091,8 @@ function CustomerList() {
             {params.value || "—"}
           </Typography>
         ),
-      },      {
+      },
+      {
         field: "cus_address",
         headerName: "ADDRESS",
         width: 200,
@@ -1296,23 +1310,24 @@ function CustomerList() {
               sortingMode="server"
               rows={itemList}
               columns={columns}
-              getRowId={(row) => row.cus_id}              initialState={{
+              getRowId={(row) => row.cus_id}
+              initialState={{
                 pagination: { paginationModel },
                 sorting: { sortModel: serverSortModel },
                 columns: {
                   columnVisibilityModel: {
-                    cus_no: false,              // Hide ID column
-                    cus_channel: true,          // Show Channel column
-                    cus_manage_by: true,        // Show Sales Name column
-                    cus_name: true,             // Show Customer column
-                    cus_company: false,         // Hide Company column
-                    cus_tel_1: true,            // Show Tel column
-                    cd_note: true,              // Show Note column
-                    cd_last_datetime: true,     // Show Recall column
-                    cus_created_date: true,     // Show Customer Create At column
-                    cus_email: false,           // Hide Email column
-                    cus_address: false,         // Hide Address column
-                    tools: true,                // Show Tools column
+                    cus_no: false, // Hide ID column
+                    cus_channel: true, // Show Channel column
+                    cus_manage_by: true, // Show Sales Name column
+                    cus_name: true, // Show Customer column
+                    cus_company: false, // Hide Company column
+                    cus_tel_1: true, // Show Tel column
+                    cd_note: true, // Show Note column
+                    cd_last_datetime: true, // Show Recall column
+                    cus_created_date: true, // Show Customer Create At column
+                    cus_email: false, // Hide Email column
+                    cus_address: false, // Hide Address column
+                    tools: true, // Show Tools column
                   },
                   columnOrder: columnOrderModel,
                 },

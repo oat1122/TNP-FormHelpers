@@ -21,6 +21,7 @@ import {
   MdRestartAlt,
 } from "react-icons/md";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { PiClockClockwise } from "react-icons/pi";
 import {
   BsCardHeading,
   BsArrowsCollapse,
@@ -71,7 +72,10 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
 
   // Handle menu close
   const handleClose = () => {
-    setAnchorEl(null);  }; // Column names in English for consistency with table headers
+    setAnchorEl(null);
+  };
+  
+  // Column names in English for consistency with table headers
   const columnLabels = useMemo(
     () => ({
       cus_no: "ID",
@@ -82,12 +86,15 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
       cus_tel_1: "TEL",
       cd_last_datetime: "RECALL",
       cd_note: "NOTE",
+      cus_created_date: "CUSTOMER CREATE AT",
       cus_email: "EMAIL",
       cus_address: "ADDRESS",
       tools: "TOOLS",
     }),
     []
-  );  // Column descriptions for tooltips
+  );
+  
+  // Column descriptions for tooltips
   const columnDescriptions = useMemo(
     () => ({
       cus_no: "Customer identification number",
@@ -95,14 +102,16 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
       cus_manage_by: "Sales representative assigned to customer",
       cus_name: "Customer's name",
       cus_company: "Customer's company name",
-      cus_tel_1: "Primary contact phone number",      cd_last_datetime: "Date for next customer follow-up",
+      cus_tel_1: "Primary contact phone number",
+      cd_last_datetime: "Date for next customer follow-up",
       cd_note: "Additional notes about the customer",
+      cus_created_date: "Date when the customer was created",
       cus_email: "Customer's contact email address",
       cus_address: "Customer's or company's address",
     }),
     []
   );
-
+  
   // Column icons for visual identification
   const columnIcons = useMemo(
     () => ({
@@ -114,6 +123,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
       cus_tel_1: <BsTelephone size={16} />,
       cd_last_datetime: <BsCalendarDate size={16} />,
       cd_note: <BsJournalText size={16} />,
+      cus_created_date: <PiClockClockwise size={16} />,
       cus_email: <BsEnvelope size={16} />,
       cus_address: <BsPinMap size={16} />,
       tools: <MdSettings size={16} />,
@@ -127,9 +137,10 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
       ...columnVisibilityModel,
       [field]: !columnVisibilityModel[field],
     };
-
+    
     apiRef.current.setColumnVisibilityModel(newModel);
   };
+  
   // Default column visibility model
   const defaultColumnVisibilityModel = useMemo(
     () => ({
@@ -141,6 +152,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
       cus_tel_1: true,
       cd_last_datetime: true,
       cd_note: true,
+      cus_created_date: true,
       cus_email: false,
       cus_address: false,
       tools: true,
@@ -177,10 +189,9 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
   // Handle "Reset to Default" action
   const handleResetToDefault = () => {
     apiRef.current.setColumnVisibilityModel(defaultColumnVisibilityModel);
-  };
-  return (
+  };  return (
     <>
-      {" "}      <Tooltip title="Show/Hide Columns">
+      <Tooltip title="Show/Hide Columns">
         <Badge
           badgeContent={visibleColumnsCount}
           color="primary"
@@ -242,7 +253,6 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
           },
         }}
       >
-        {" "}
         <Box
           sx={{
             bgcolor: (theme) => theme.palette.primary.main,
@@ -253,7 +263,8 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             alignItems: "center",
             justifyContent: "space-between",
           }}
-        >          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <MdSettings size={20} />
             <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
               Column Settings
@@ -273,7 +284,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
           </Box>
         </Box>
         <Divider />
-        {/* Show/Hide All Controls */}{" "}
+        {/* Show/Hide All Controls */}
         <Box
           sx={{
             display: "flex",
@@ -283,7 +294,8 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             bgcolor: "background.default",
             justifyContent: "space-between",
           }}
-        >          <Button
+        >
+          <Button
             size="small"
             onClick={handleShowAll}
             variant="outlined"
@@ -300,7 +312,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             startIcon={<FiEyeOff />}
           >
             Hide All
-          </Button>{" "}
+          </Button>
           <Button
             size="small"
             onClick={handleResetToDefault}
@@ -326,7 +338,8 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             gap: 1,
           }}
         >
-          <MdOutlineInfo size={16} color="#666" />          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          <MdOutlineInfo size={16} color="#666" />
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
             Click on an item or checkbox to toggle column visibility
           </Typography>
         </Box>
@@ -337,7 +350,9 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
         >
           {columns.map((column) => {
             // Skip columns that shouldn't be toggleable
-            if (column.field === "tools") return null;            const isVisible = columnVisibilityModel[column.field] !== false;
+            if (column.field === "tools") return null;
+            
+            const isVisible = columnVisibilityModel[column.field] !== false;
             // Use English column labels if available, otherwise use header name or field
             const displayName =
               columnLabels[column.field] ||
@@ -346,13 +361,12 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
 
             return (
               <Tooltip
+                key={column.field}
                 title={columnDescriptions[column.field] || ""}
                 placement="left"
                 arrow
               >
-                {" "}
                 <MenuItem
-                  key={column.field}
                   onClick={() => handleToggleColumn(column.field)}
                   dense
                   sx={{

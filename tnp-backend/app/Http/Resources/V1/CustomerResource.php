@@ -54,6 +54,7 @@ class CustomerResource extends JsonResource
             'cd_last_datetime' => $this->customerDetail?->cd_last_datetime ?? '',
             'cd_note' => $this->customerDetail?->cd_note ?? '',
             'cd_remark' => $this->customerDetail?->cd_remark ?? '',
+            'cus_created_date' => $this->cus_created_date,
             'sales_name' => $this->cus_manage_by ? $this->cusManageBy->username : '',
             'province_sort_id' => $this->customerDistrict?->dis_pro_sort_id ?? '',
             'district_sort_id' => $this->customerSubdistrict?->sub_dis_sort_id ?? '',

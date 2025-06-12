@@ -350,6 +350,7 @@ function CustomerList() {
   const [serverSortModel, setServerSortModel] = useState([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     // Default visibility settings
+    cus_created_date: true,
     cus_email: false,
     cus_address: false,
   });
@@ -799,12 +800,17 @@ function CustomerList() {
       }));
     }
   }, [isSmall, isExtraSmall]);
-
   useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
         open_dialog_error("Fetch customer error", data.message);
       } else if (data.data) {
+        // Debug log to see the structure of the data
+        console.log(
+          "Customer Data Sample:",
+          data.data.length > 0 ? data.data[0] : "No data"
+        );
+
         dispatch(setItemList(data.data));
         dispatch(setGroupList(data.groups));
         dispatch(setTotalCount(data.total_count));
@@ -988,6 +994,42 @@ function CustomerList() {
           if (daysLeft <= 7) {
             return "danger-days";
           }
+        },
+      },      {
+        field: "cus_created_date",
+        headerName: "CUSTOMER CREATE AT",
+        width: 180,
+        sortable: true,
+        renderCell: (params) => {
+          // Check if the value exists and is a valid date
+          const isValidDate = params.value && !isNaN(new Date(params.value).getTime());
+          
+          // Format the date for display
+          const date = isValidDate ? new Date(params.value) : null;
+          const formattedDate = date 
+            ? date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              }) 
+            : "—";
+
+          // Create tooltip text with a fallback for undefined or invalid values
+          const tooltipText = isValidDate
+            ? `Customer created on: ${date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}`
+            : "Creation date not available";
+
+          return (
+            <Tooltip title={tooltipText}>
+              <Typography variant="body2">{formattedDate}</Typography>
+            </Tooltip>
+          );
         },
       },
       {

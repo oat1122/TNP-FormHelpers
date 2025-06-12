@@ -158,9 +158,13 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .uppercase-cell": {
     textTransform: "uppercase",
   },
-
   "& .danger-days": {
     color: theme.vars.palette.error.main,
+    fontWeight: "bold",
+  },
+
+  "& .warning-days": {
+    color: theme.vars.palette.warning.main,
     fontWeight: "bold",
   },
 
@@ -173,17 +177,16 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderTopRightRadius: theme.shape.borderRadius,
     marginBottom: 10,
   },
-
-  // Highlight rows based on priority
+  // Highlight rows based on recall days
   "& .high-priority-row": {
-    backgroundColor: `${theme.palette.error.light}33`, // 20% opacity
+    backgroundColor: `${theme.palette.error.light}33`, // 20% opacity red for <= 7 days
     "&:hover": {
       backgroundColor: `${theme.palette.error.light}66`, // 40% opacity
     },
   },
 
   "& .medium-priority-row": {
-    backgroundColor: `${theme.palette.warning.light}33`, // 20% opacity
+    backgroundColor: `${theme.palette.warning.light}33`, // 20% opacity yellow for <= 15 days
     "&:hover": {
       backgroundColor: `${theme.palette.warning.light}66`, // 40% opacity
     },
@@ -1019,8 +1022,7 @@ function CustomerList() {
             </Typography>
           </Tooltip>
         ),
-      },      {
-        field: "cd_last_datetime",
+      },      {        field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
         sortable: true,
@@ -1031,8 +1033,8 @@ function CustomerList() {
               <Typography
                 variant="body2"
                 sx={{
-                  fontWeight: daysLeft <= 7 ? "bold" : "normal",
-                  color: daysLeft <= 7 ? "error.main" : "inherit",
+                  fontWeight: daysLeft <= 15 ? "bold" : "normal",
+                  color: daysLeft <= 7 ? "error.main" : daysLeft <= 15 ? "warning.main" : "inherit",
                 }}
               >
                 {`${daysLeft} DAYS`}
@@ -1044,6 +1046,8 @@ function CustomerList() {
           const daysLeft = formatCustomRelativeTime(params.value);
           if (daysLeft <= 7) {
             return "danger-days";
+          } else if (daysLeft <= 15) {
+            return "warning-days";
           }
         },
       },      {
@@ -1355,16 +1359,14 @@ function CustomerList() {
                   classes.push("even-row");
                 } else {
                   classes.push("odd-row");
-                }
-
-                // Add warning class if recall is approaching
+                }                // Add warning class if recall is approaching based on requirements
                 const daysLeft = formatCustomRelativeTime(
                   params.row.cd_last_datetime
                 );
-                if (daysLeft <= 3) {
-                  classes.push("high-priority-row");
-                } else if (daysLeft <= 7) {
-                  classes.push("medium-priority-row");
+                if (daysLeft <= 7) {
+                  classes.push("high-priority-row"); // Red background for <= 7 days
+                } else if (daysLeft <= 15) {
+                  classes.push("medium-priority-row"); // Yellow background for <= 15 days
                 }
 
                 return classes.join(" ");

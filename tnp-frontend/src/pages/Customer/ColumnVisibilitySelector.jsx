@@ -71,37 +71,34 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
 
   // Handle menu close
   const handleClose = () => {
-    setAnchorEl(null);
-  }; // Thai translations for column names with descriptions
-  const thaiColumnLabels = useMemo(
+    setAnchorEl(null);  }; // Column names in English for consistency with table headers
+  const columnLabels = useMemo(
     () => ({
-      cus_no: "รหัสลูกค้า",
-      cus_channel: "ช่องทาง",
-      cus_manage_by: "ชื่อเซลล์",
-      cus_name: "ชื่อลูกค้า",
-      cus_company: "ชื่อบริษัท",
-      cus_tel_1: "เบอร์โทร",
-      cd_last_datetime: "วันที่ติดต่อกลับ",
-      cd_note: "หมายเหตุ",
-      cus_email: "อีเมล",
-      cus_address: "ที่อยู่",
-      tools: "เครื่องมือ",
+      cus_no: "ID",
+      cus_channel: "CHANNEL",
+      cus_manage_by: "SALES NAME",
+      cus_name: "CUSTOMER",
+      cus_company: "COMPANY NAME",
+      cus_tel_1: "TEL",
+      cd_last_datetime: "RECALL",
+      cd_note: "NOTE",
+      cus_email: "EMAIL",
+      cus_address: "ADDRESS",
+      tools: "TOOLS",
     }),
     []
-  );
-  // Column descriptions for tooltips
+  );  // Column descriptions for tooltips
   const columnDescriptions = useMemo(
     () => ({
-      cus_no: "รหัสที่ใช้ระบุตัวลูกค้าในระบบ",
-      cus_channel: "ช่องทางการขายหรือติดต่อกับลูกค้า",
-      cus_manage_by: "พนักงานขายที่ดูแลลูกค้า",
-      cus_name: "ชื่อลูกค้าที่ติดต่อ",
-      cus_company: "ชื่อบริษัทของลูกค้า",
-      cus_tel_1: "เบอร์โทรศัพท์หลักที่ใช้ติดต่อ",
-      cd_last_datetime: "วันที่นัดติดต่อลูกค้าครั้งถัดไป",
-      cd_note: "บันทึกเพิ่มเติมเกี่ยวกับลูกค้า",
-      cus_email: "อีเมลที่ใช้ติดต่อลูกค้า",
-      cus_address: "ที่อยู่ของลูกค้าหรือบริษัท",
+      cus_no: "Customer identification number",
+      cus_channel: "Sales channel or contact method",
+      cus_manage_by: "Sales representative assigned to customer",
+      cus_name: "Customer's name",
+      cus_company: "Customer's company name",
+      cus_tel_1: "Primary contact phone number",      cd_last_datetime: "Date for next customer follow-up",
+      cd_note: "Additional notes about the customer",
+      cus_email: "Customer's contact email address",
+      cus_address: "Customer's or company's address",
     }),
     []
   );
@@ -183,8 +180,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
   };
   return (
     <>
-      {" "}
-      <Tooltip title="เปิด/ปิด การแสดงคอลัมน์">
+      {" "}      <Tooltip title="Show/Hide Columns">
         <Badge
           badgeContent={visibleColumnsCount}
           color="primary"
@@ -202,7 +198,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             variant="contained"
             color="inherit"
             startIcon={<MdViewColumn size={20} />}
-            aria-label="ตัวเลือกคอลัมน์"
+            aria-label="Column options"
             aria-controls={open ? "column-menu" : undefined}
             aria-haspopup="true"
             aria-expanded={open ? "true" : undefined}
@@ -221,7 +217,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
               py: 0.5,
             }}
           >
-            แสดงคอลัมน์
+            Columns
           </Button>
         </Badge>
       </Tooltip>
@@ -257,11 +253,10 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             alignItems: "center",
             justifyContent: "space-between",
           }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        >          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <MdSettings size={20} />
             <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-              ตั้งค่าการแสดงคอลัมน์
+              Column Settings
             </Typography>
           </Box>
           <Box
@@ -288,15 +283,14 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             bgcolor: "background.default",
             justifyContent: "space-between",
           }}
-        >
-          <Button
+        >          <Button
             size="small"
             onClick={handleShowAll}
             variant="outlined"
             color="primary"
             startIcon={<FiEye />}
           >
-            แสดงทั้งหมด
+            Show All
           </Button>
           <Button
             size="small"
@@ -305,7 +299,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             color="secondary"
             startIcon={<FiEyeOff />}
           >
-            ซ่อนทั้งหมด
+            Hide All
           </Button>{" "}
           <Button
             size="small"
@@ -316,7 +310,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             startIcon={<MdRestartAlt />}
             sx={{ mt: 1 }}
           >
-            คืนค่าเริ่มต้น
+            Reset to Default
           </Button>
         </Box>
         <Divider />
@@ -332,9 +326,8 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             gap: 1,
           }}
         >
-          <MdOutlineInfo size={16} color="#666" />
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            คลิกที่รายการหรือช่องเพื่อเปิด/ปิดการแสดงคอลัมน์
+          <MdOutlineInfo size={16} color="#666" />          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Click on an item or checkbox to toggle column visibility
           </Typography>
         </Box>
         {/* Column List */}
@@ -344,12 +337,10 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
         >
           {columns.map((column) => {
             // Skip columns that shouldn't be toggleable
-            if (column.field === "tools") return null;
-
-            const isVisible = columnVisibilityModel[column.field] !== false;
-            // Use Thai translation if available, otherwise use header name or field
+            if (column.field === "tools") return null;            const isVisible = columnVisibilityModel[column.field] !== false;
+            // Use English column labels if available, otherwise use header name or field
             const displayName =
-              thaiColumnLabels[column.field] ||
+              columnLabels[column.field] ||
               column.headerName ||
               column.field;
 

@@ -1152,7 +1152,8 @@ function CustomerList() {
             รายการลูกค้า
           </Typography>
           <SortInfoDisplay sortModel={serverSortModel} />
-        </Box>        <Box sx={{ display: "flex", gap: 1 }}>
+        </Box>{" "}
+        <Box sx={{ display: "flex", gap: 1 }}>
           <ColumnVisibilitySelector columns={columns} />
         </Box>
       </GridToolbarContainer>

@@ -1,11 +1,11 @@
 import React, { useState, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import {
-  ToggleButton,
-  ToggleButtonGroup,
-} from "@mui/material";
-import { setGroupSelected, setPaginationModel } from "../../features/Customer/customerSlice";
-import ScrollContext from './ScrollContext';
+  setGroupSelected,
+  setPaginationModel,
+} from "../../features/Customer/customerSlice";
+import ScrollContext from "./ScrollContext";
 
 function FilterTab() {
   const dispatch = useDispatch();
@@ -17,7 +17,7 @@ function FilterTab() {
   const handleSelectGroup = (event, newVal) => {
     if (newVal !== null) {
       dispatch(setGroupSelected(newVal));
-      dispatch(setPaginationModel({  page: 0, pageSize: 10 }));
+      dispatch(setPaginationModel({ page: 0, pageSize: 10 }));
       // Scroll to top when changing groups
       scrollToTop();
     }
@@ -31,9 +31,7 @@ function FilterTab() {
         onChange={handleSelectGroup}
         color="error-light"
       >
-        <ToggleButton value="all">
-          {`ทั้งหมด (${totalCount})`}
-        </ToggleButton>
+        <ToggleButton value="all">{`ทั้งหมด (${totalCount})`}</ToggleButton>
         {groupList.map((item, index) => (
           <ToggleButton key={index} value={item.mcg_id}>
             {`${item.mcg_name} (${item.customer_group_count || 0})`}

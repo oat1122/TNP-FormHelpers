@@ -6,21 +6,21 @@ import qs from "qs";
 
 // Define the async thunk for fetching filtered customers
 export const fetchFilteredCustomers = createAsyncThunk(
-  'customer/fetchFiltered',
+  "customer/fetchFiltered",
   async (filters, { dispatch, getState, rejectWithValue }) => {
     try {
       dispatch(setIsLoading(true));
-      
+
       const state = getState();
       const groupSelected = state.customer.groupSelected;
       const userData = JSON.parse(localStorage.getItem("userData"));
-      
+
       // Prepare query parameters
       const queryParams = {
         group: groupSelected !== "all" ? groupSelected : undefined,
-        user: userData?.user_id
+        user: userData?.user_id,
       };
-      
+
       // Date Range
       if (filters.dateRange.startDate) {
         queryParams.start_date = filters.dateRange.startDate;
@@ -28,50 +28,50 @@ export const fetchFilteredCustomers = createAsyncThunk(
       if (filters.dateRange.endDate) {
         queryParams.end_date = filters.dateRange.endDate;
       }
-      
+
       // Sales Name filter
       if (Array.isArray(filters.salesName) && filters.salesName.length > 0) {
-        queryParams.sales_names = filters.salesName.join(',');
+        queryParams.sales_names = filters.salesName.join(",");
       }
-        // Channel filter
+      // Channel filter
       if (Array.isArray(filters.channel) && filters.channel.length > 0) {
-        queryParams.channels = filters.channel.join(',');
+        queryParams.channels = filters.channel.join(",");
       }
-        // Get pagination settings from current state
+      // Get pagination settings from current state
       const paginationModel = state.customer.paginationModel;
       queryParams.page = 1; // Reset to first page on filter change
       queryParams.per_page = paginationModel.pageSize;
-      
+
       const queryString = qs.stringify(queryParams, { skipNulls: true });
       const url = `${apiConfig.baseUrl}/customers?${queryString}`;
-      
+
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch filtered customers');
+        throw new Error("Failed to fetch filtered customers");
       }
-      
+
       const data = await response.json();
-      
+
       // Update the item list with the filtered results
       dispatch(setItemList(data.data));
-      
+
       // Check if we have total_count in the response or use pagination total
       if (data.total_count) {
         dispatch(setTotalCount(data.total_count));
       } else if (data.pagination?.total_items) {
         dispatch(setTotalCount(data.pagination.total_items));
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error fetching filtered customers:', error);
+      console.error("Error fetching filtered customers:", error);
       return rejectWithValue(error.message);
     } finally {
       dispatch(setIsLoading(false));
@@ -84,7 +84,7 @@ export const customerSlice = createSlice({
   initialState: {
     ...initialState,
     isLoading: false,
-    error: null
+    error: null,
   },
   reducers: {
     ...reducers,
@@ -93,7 +93,7 @@ export const customerSlice = createSlice({
     },
     setError: (state, action) => {
       state.error = action.payload;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -107,9 +107,9 @@ export const customerSlice = createSlice({
       })
       .addCase(fetchFilteredCustomers.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload || 'Failed to fetch filtered customers';
+        state.error = action.payload || "Failed to fetch filtered customers";
       });
-  }
+  },
 });
 
 // Action creators are generated for each case reducer function

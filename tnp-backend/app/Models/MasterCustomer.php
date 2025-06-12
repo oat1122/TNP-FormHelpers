@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Class MasterCustomer
- * 
+ *
  * @property string $cus_id
  * @property string|null $cus_mcg_id
  * @property string|null $cus_no
@@ -90,7 +90,7 @@ class MasterCustomer extends Model
 
 	/**
 	 * Scope a query to filter by date range
-	 * 
+	 *
 	 * @param \Illuminate\Database\Eloquent\Builder $query
 	 * @param string|null $startDate Date in YYYY-MM-DD format
 	 * @param string|null $endDate Date in YYYY-MM-DD format
@@ -100,17 +100,17 @@ class MasterCustomer extends Model
 		if ($startDate) {
 			$query->whereDate('master_customers.cus_created_date', '>=', $startDate);
 		}
-		
+
 		if ($endDate) {
 			$query->whereDate('master_customers.cus_created_date', '<=', $endDate);
 		}
-		
+
 		return $query;
 	}
 
 	/**
 	 * Scope a query to filter by sales name
-	 * 
+	 *
 	 * @param \Illuminate\Database\Eloquent\Builder $query
 	 * @param array $salesNames Array of sales usernames
 	 * @return \Illuminate\Database\Eloquent\Builder
@@ -121,13 +121,13 @@ class MasterCustomer extends Model
 				$q->whereIn('username', $salesNames);
 			});
 		}
-		
+
 		return $query;
 	}
 
 	/**
 	 * Scope a query to filter by channel
-	 * 
+	 *
 	 * @param \Illuminate\Database\Eloquent\Builder $query
 	 * @param array $channels Array of channel values
 	 * @return \Illuminate\Database\Eloquent\Builder
@@ -136,13 +136,13 @@ class MasterCustomer extends Model
 		if (!empty($channels)) {
 			return $query->whereIn('cus_channel', $channels);
 		}
-		
+
 		return $query;
 	}
 
 	/**
 	 * Scope a query to filter by recall days range
-	 * 
+	 *
 	 * @param \Illuminate\Database\Eloquent\Builder $query
 	 * @param int|null $minDays Minimum days for recall
 	 * @param int|null $maxDays Maximum days for recall
@@ -151,25 +151,25 @@ class MasterCustomer extends Model
 	public function scopeFilterByRecallRange($query, $minDays, $maxDays) {
 		// Check if we already have the join to avoid duplicates
 		$joins = collect($query->getQuery()->joins)->pluck('table')->toArray();
-		
+
 		if (!in_array('customer_details', $joins)) {
 			// We need to join with customer_details to access cd_last_datetime
 			$query->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
 		}
-		
+
 		// Calculate the date range based on days
 		$now = now();
-		
+
 		if ($minDays !== null) {
 			$maxDate = $now->copy()->subDays($minDays)->format('Y-m-d');
 			$query->where('customer_details.cd_last_datetime', '<=', $maxDate);
 		}
-		
+
 		if ($maxDays !== null) {
 			$minDate = $now->copy()->subDays($maxDays)->format('Y-m-d');
 			$query->where('customer_details.cd_last_datetime', '>=', $minDate);
 		}
-		
+
 		return $query;
 	}
 
@@ -190,7 +190,7 @@ class MasterCustomer extends Model
         return $this->belongsTo(MasterDistrict::class, 'cus_dis_id', 'dis_id')
 			->select('dis_id', 'dis_pro_sort_id', 'dis_sort_id', 'dis_name_th');
 	}
-		
+
 	public function customerSubdistrict()
 	{
 		return $this->belongsTo(MasterSubdistrict::class, 'cus_sub_id', 'sub_id')

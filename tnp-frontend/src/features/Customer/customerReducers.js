@@ -32,7 +32,8 @@ export default {
   },
   setFilters: (state, action) => {
     state.filters = action.payload;
-  },  resetFilters: (state) => {
+  },
+  resetFilters: (state) => {
     state.filters = {
       dateRange: {
         startDate: null,

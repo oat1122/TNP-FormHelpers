@@ -1,7 +1,6 @@
 // filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\FilterPanel.jsx
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import ScrollContext from "./ScrollContext";
 import {
   Box,
   Button,
@@ -25,8 +24,8 @@ import {
   Slider,
   Paper,
   Divider,
-  Alert,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import { useMemo, useCallback } from "react";
 import { debounce } from "lodash";
@@ -39,10 +38,11 @@ import {
   MdFilterList,
   MdDateRange,
   MdPerson,
+  MdSignalCellularAlt,
+  MdPhone,
   MdLanguage,
   MdBusiness,
   MdEmail,
-  MdSignalCellularAlt,
 } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { IoSearch } from "react-icons/io5";
@@ -53,7 +53,6 @@ import {
   setSalesList,
   setPaginationModel,
   resetFilters,
-  fetchFilteredCustomers,
 } from "../../features/Customer/customerSlice";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
@@ -129,7 +128,42 @@ const channelOptions = [
   { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
   { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
   { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
+  { value: "4", label: "Mobile", icon: <MdPhone />, color: "#9c27b0" },
+  { value: "5", label: "Email", icon: <MdEmail />, color: "#f44336" },
 ];
+
+/**
+ * Helper function to prepare filter values for API
+ * @param {Object} draftFilters - The filter values from the form
+ * @returns {Object} - Sanitized filter values ready for the API
+ */
+const prepareFiltersForAPI = (draftFilters) => {
+  // Validate and transform date values
+  const startDate = draftFilters.dateRange.startDate?.isValid()
+    ? draftFilters.dateRange.startDate.format("YYYY-MM-DD")
+    : null;
+  const endDate = draftFilters.dateRange.endDate?.isValid()
+    ? draftFilters.dateRange.endDate.format("YYYY-MM-DD")
+    : null;
+
+  // Safely process numeric values
+  const minDaysStr = draftFilters.recallRange.minDays?.toString().trim();
+  const maxDaysStr = draftFilters.recallRange.maxDays?.toString().trim();
+  
+  const minDays = minDaysStr ? parseInt(minDaysStr, 10) : null;
+  const maxDays = maxDaysStr ? parseInt(maxDaysStr, 10) : null;
+
+  // Create clean filters object
+  return {
+    dateRange: { startDate, endDate },
+    salesName: Array.isArray(draftFilters.salesName) ? [...draftFilters.salesName] : [],
+    channel: Array.isArray(draftFilters.channel) ? [...draftFilters.channel] : [],
+    recallRange: {
+      minDays: !isNaN(minDays) ? minDays : null,
+      maxDays: !isNaN(maxDays) ? maxDays : null,
+    }
+  };
+};
 
 function FilterPanel() {
   const dispatch = useDispatch();
@@ -137,71 +171,81 @@ function FilterPanel() {
   const salesList = useSelector((state) => state.customer.salesList);
   const itemList = useSelector((state) => state.customer.itemList);
   const userInfo = useSelector((state) => state.global.userInfo);
-  const isLoading = useSelector((state) => state.customer.isLoading);
-  const error = useSelector((state) => state.customer.error);
   const [expanded, setExpanded] = useState(false);
+  
+  // UI state
   const [isFiltering, setIsFiltering] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
-
+  const [filterError, setFilterError] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
+  
   // Get sales list from API
-  const { data: salesData, isLoading: salesLoading } =
-    useGetUserByRoleQuery("sale");
-
-  // Create a ref for the debounce function to properly handle cleanup
-  const debouncedApplyFiltersRef = useRef();
-
-  // Create working draft of filter values (only when filters change or when user makes edits)
-  const [draftFilters, setDraftFilters] = useState({
+  const { data: salesData, isLoading: salesLoading } = useGetUserByRoleQuery("sale");
+  
+  // Format incoming filter data from Redux (computed value, not state)
+  const formattedFilters = useMemo(() => ({
     dateRange: {
-      startDate: filters.dateRange.startDate
-        ? dayjs(filters.dateRange.startDate)
-        : null,
-      endDate: filters.dateRange.endDate
-        ? dayjs(filters.dateRange.endDate)
-        : null,
+      startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
+      endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
     },
     salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
     channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-  });
-
-  // Setup debounced filter function (created only once)
+    recallRange: {
+      minDays: filters.recallRange.minDays !== null ? filters.recallRange.minDays.toString() : "",
+      maxDays: filters.recallRange.maxDays !== null ? filters.recallRange.maxDays.toString() : "",
+    }
+  }), [
+    filters.dateRange.startDate,
+    filters.dateRange.endDate, 
+    filters.salesName, 
+    filters.channel,
+    filters.recallRange.minDays,
+    filters.recallRange.maxDays
+  ]);
+  
+  // Create draftFilters state that user can modify
+  const [draftFilters, setDraftFilters] = useState(formattedFilters);
+  
+  // Update draft when Redux filters change, but only if form is not dirty
   useEffect(() => {
-    debouncedApplyFiltersRef.current = debounce((filtersToApply) => {
-      console.log("🔥 Applying debounced filters:", filtersToApply);
-      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
-      dispatch(setFilters(filtersToApply));
-    }, 500);
-
-    // Cleanup debounced function on unmount to prevent memory leaks
+    if (!isDirty) {
+      setDraftFilters(formattedFilters);
+    }
+  }, [formattedFilters, isDirty]);
+  
+  // Create stable debounce function with useCallback (created once)
+  const debouncedApplyFilters = useCallback(
+    debounce((filtersToApply) => {
+      try {
+        dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
+        dispatch(setFilters(filtersToApply));
+        setIsFiltering(false);
+        setFilterError(null);
+      } catch (error) {
+        console.error("Error applying filters:", error);
+        setFilterError("พบข้อผิดพลาดในการใช้ตัวกรอง โปรดลองอีกครั้ง");
+        setIsFiltering(false);
+      }
+    }, 500),
+    [] // Empty dependency array = create once
+  );
+  
+  // Store stable reference
+  const debouncedApplyFiltersRef = useRef(debouncedApplyFilters);
+  
+  // Update ref if function changes (almost never)
+  useEffect(() => {
+    debouncedApplyFiltersRef.current = debouncedApplyFilters;
+  }, [debouncedApplyFilters]);
+  
+  // Cleanup on component unmount
+  useEffect(() => {
     return () => {
       if (debouncedApplyFiltersRef.current?.cancel) {
         debouncedApplyFiltersRef.current.cancel();
       }
     };
-  }, [dispatch]);
-
-  // Sync Redux filters to draft state when Redux filters change
-  useEffect(() => {
-    try {
-      setDraftFilters({
-        dateRange: {
-          startDate: filters.dateRange.startDate
-            ? dayjs(filters.dateRange.startDate)
-            : null,
-          endDate: filters.dateRange.endDate
-            ? dayjs(filters.dateRange.endDate)
-            : null,
-        },
-        salesName: Array.isArray(filters.salesName)
-          ? [...filters.salesName]
-          : [],
-        channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-      });
-    } catch (error) {
-      console.warn("Error updating draft filters from Redux state:", error);
-    }
-  }, [filters]);
-
+  }, []);
+  
   // Update sales list from API (only once when data is loaded)
   useEffect(() => {
     if (salesData?.sale_role?.length > 0) {
@@ -216,92 +260,106 @@ function FilterPanel() {
   const filteredCount = useMemo(() => {
     return itemList?.length || 0;
   }, [itemList]);
-
+  
   // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.dateRange.startDate || filters.dateRange.endDate) count++;
     if (filters.salesName?.length > 0) count++;
     if (filters.channel?.length > 0) count++;
+    if (
+      filters.recallRange.minDays !== null ||
+      filters.recallRange.maxDays !== null
+    )
+      count++;
     return count;
   }, [filters]);
 
-  // Helper function to prepare filters for API
-  const prepareFiltersForAPI = (draft) => {
-    return {
-      dateRange: {
-        startDate: draft.dateRange.startDate?.isValid()
-          ? draft.dateRange.startDate.format("YYYY-MM-DD")
-          : null,
-        endDate: draft.dateRange.endDate?.isValid()
-          ? draft.dateRange.endDate.format("YYYY-MM-DD")
-          : null,
-      },
-      salesName: Array.isArray(draft.salesName) ? [...draft.salesName] : [],
-      channel: Array.isArray(draft.channel) ? [...draft.channel] : [],
-    };
-  };
-  const { scrollToTop } = useContext(ScrollContext);
+  // Helper to mark form as dirty when changes are made
+  const handleFormChange = useCallback((updateFn) => {
+    updateFn();
+    setIsDirty(true);
+  }, []);
 
-  // Apply filters handler
+  // Apply filters handler - with improved validation and error handling
   const handleApplyFilters = useCallback(() => {
     try {
-      const filtersToApply = prepareFiltersForAPI(draftFilters);
-
-      // Call the debounced function with check
-      if (debouncedApplyFiltersRef.current) {
-        setIsFiltering(true);
-        debouncedApplyFiltersRef.current(filtersToApply);
+      setIsFiltering(true);
+      setFilterError(null);
+      
+      // Validate recall range
+      const minDays = draftFilters.recallRange.minDays && 
+                      draftFilters.recallRange.minDays.trim() !== "" ?
+                      parseInt(draftFilters.recallRange.minDays, 10) : null;
+                      
+      const maxDays = draftFilters.recallRange.maxDays && 
+                      draftFilters.recallRange.maxDays.trim() !== "" ?
+                      parseInt(draftFilters.recallRange.maxDays, 10) : null;
+      
+      // Ensure min <= max
+      if (minDays !== null && maxDays !== null && minDays > maxDays) {
+        setFilterError("วันที่ขาดการติดต่อต่ำสุดต้องน้อยกว่าหรือเท่ากับวันสูงสุด");
+        setIsFiltering(false);
+        return;
       }
-
-      // Dispatch API action to fetch filtered customers
-      dispatch(fetchFilteredCustomers(filtersToApply))
-        .unwrap()
-        .then(() => {
-          // Success handling
-          setExpanded(false); // Collapse filter panel after applying
-          setIsFiltering(false);
-          // Scroll to top when filters have been applied
-          scrollToTop();
-        })
-        .catch((error) => {
-          console.error("Error applying filters:", error);
-          setErrorMessage(
-            `เกิดข้อผิดพลาดในการกรองข้อมูล: ${
-              error.message || "โปรดลองใหม่อีกครั้ง"
-            }`
-          );
-          setIsFiltering(false);
-        });
+      
+      // Prepare sanitized filter values
+      const filtersToApply = prepareFiltersForAPI(draftFilters);
+      
+      // Call the debounced function
+      debouncedApplyFiltersRef.current(filtersToApply);
+      
+      // Close filter panel after applying
+      setExpanded(false);
+      setIsDirty(false);
+      
     } catch (error) {
       console.error("Error applying filters:", error);
-      setErrorMessage("เกิดข้อผิดพลาดในการใช้งานตัวกรอง");
+      setFilterError("เกิดข้อผิดพลาดในการใช้งานตัวกรอง");
       setIsFiltering(false);
     }
-  }, [draftFilters, dispatch, setExpanded]);
+  }, [draftFilters]);
 
-  // Reset filters
+  // Reset filters with proper cleanup
   const handleResetFilters = useCallback(() => {
-    setDraftFilters({
-      dateRange: {
-        startDate: null,
-        endDate: null,
-      },
-      salesName: [],
-      channel: [],
-    });
-    dispatch(resetFilters());
-    dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
-
-    // Collapse filter panel after reset
-    setExpanded(false);
+    try {
+      setIsFiltering(true);
+      
+      // Reset local state
+      setDraftFilters({
+        dateRange: {
+          startDate: null,
+          endDate: null,
+        },
+        salesName: [],
+        channel: [],
+        recallRange: {
+          minDays: "",
+          maxDays: "",
+        },
+      });
+      
+      // Reset Redux state
+      dispatch(resetFilters());
+      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
+      
+      // Reset UI state
+      setIsDirty(false);
+      setFilterError(null);
+      setIsFiltering(false);
+      setExpanded(false);
+    } catch (error) {
+      console.error("Error resetting filters:", error);
+      setFilterError("เกิดข้อผิดพลาดในการรีเซ็ตตัวกรอง");
+      setIsFiltering(false);
+    }
   }, [dispatch]);
 
   // Quick date range buttons
   const handleQuickDateRange = useCallback((type) => {
     const today = dayjs();
     let startDate, endDate;
-
+    
     switch (type) {
       case "today":
         startDate = today.startOf("day");
@@ -339,16 +397,32 @@ function FilterPanel() {
         startDate = null;
         endDate = null;
     }
-
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        startDate,
-        endDate,
-      },
-    }));
-  }, []);
-
+    
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          startDate,
+          endDate,
+        },
+      }));
+    });
+  }, [handleFormChange]);
+  
+  // Recall range presets
+  const recallPresets = useMemo(
+    () => [
+      { label: "1 วัน", min: 1, max: 1 },
+      { label: "2-3 วัน", min: 2, max: 3 },
+      { label: "4-7 วัน", min: 4, max: 7 },
+      { label: "1-2 สัปดาห์", min: 7, max: 14 },
+      { label: "2-4 สัปดาห์", min: 14, max: 30 },
+      { label: "1-2 เดือน", min: 30, max: 60 },
+      { label: "มากกว่า 2 เดือน", min: 60, max: null },
+    ],
+    []
+  );
+  
   // Calculate formatted dates for display
   const formattedStartDate = useMemo(() => {
     return draftFilters.dateRange.startDate?.format("DD/MM/YYYY") || "";
@@ -357,84 +431,158 @@ function FilterPanel() {
   const formattedEndDate = useMemo(() => {
     return draftFilters.dateRange.endDate?.format("DD/MM/YYYY") || "";
   }, [draftFilters.dateRange.endDate]);
-
+  
   // Handle accordion expand/collapse
-  const handleAccordionChange = (_, isExpanded) => {
+  const handleAccordionChange = useCallback((_, isExpanded) => {
     setExpanded(isExpanded);
-  };
+  }, []);
 
   // Handle date field clearing
-  const clearStartDate = () => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        ...prev.dateRange,
-        startDate: null,
-      },
-    }));
-  };
+  const clearStartDate = useCallback(() => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          ...prev.dateRange,
+          startDate: null,
+        },
+      }));
+    });
+  }, [handleFormChange]);
 
-  const clearEndDate = () => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        ...prev.dateRange,
-        endDate: null,
-      },
-    }));
-  };
+  const clearEndDate = useCallback(() => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          ...prev.dateRange,
+          endDate: null,
+        },
+      }));
+    });
+  }, [handleFormChange]);
+
+  // Handle date picker changes
+  const handleStartDateChange = useCallback((newValue) => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev, 
+        dateRange: { ...prev.dateRange, startDate: newValue }
+      }));
+    });
+  }, [handleFormChange]);
+
+  const handleEndDateChange = useCallback((newValue) => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev, 
+        dateRange: { ...prev.dateRange, endDate: newValue }
+      }));
+    });
+  }, [handleFormChange]);
 
   // Handle sales selection - we now work directly with draftFilters
   const handleSalesChange = useCallback((e) => {
     const value = e.target.value;
-    setDraftFilters((prev) => ({
-      ...prev,
-      salesName: typeof value === "string" ? value.split(",") : value,
-    }));
-  }, []);
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        salesName: typeof value === "string" ? value.split(",") : value,
+      }));
+    });
+  }, [handleFormChange]);
 
   // Handle channel selection - we now work directly with draftFilters
   const handleChannelChange = useCallback((e) => {
     const value = e.target.value;
-    setDraftFilters((prev) => ({
-      ...prev,
-      channel: typeof value === "string" ? value.split(",") : value,
-    }));
-  }, []);
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        channel: typeof value === "string" ? value.split(",") : value,
+      }));
+    });
+  }, [handleFormChange]);
+
+  // Recall range input handlers - memoized to prevent recreating on each render
+  const handleMinDaysChange = useCallback((e) => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        recallRange: {
+          ...prev.recallRange,
+          minDays: e.target.value,
+        },
+      }));
+    });
+  }, [handleFormChange]);
+
+  const handleMaxDaysChange = useCallback((e) => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        recallRange: {
+          ...prev.recallRange,
+          maxDays: e.target.value,
+        },
+      }));
+    });
+  }, [handleFormChange]);
 
   // Select all sales handler
   const selectAllSales = useCallback(() => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      salesName: [...salesList],
-    }));
-  }, [salesList]);
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        salesName: [...salesList],
+      }));
+    });
+  }, [salesList, handleFormChange]);
 
   // Clear sales selection handler
   const clearSalesSelection = useCallback(() => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      salesName: [],
-    }));
-  }, []);
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        salesName: [],
+      }));
+    });
+  }, [handleFormChange]);
+
+  // Preset recall range handler
+  const handleRecallPreset = useCallback((preset) => {
+    handleFormChange(() => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        recallRange: {
+          minDays: preset.min.toString(),
+          maxDays: preset.max ? preset.max.toString() : "60",
+        },
+      }));
+    });
+  }, [handleFormChange]);
 
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Advanced filters */}{" "}
+      {filterError && (
+        <Alert 
+          severity="error" 
+          onClose={() => setFilterError(null)}
+          sx={{ mb: 2 }}
+        >
+          {filterError}
+        </Alert>
+      )}
+      
+      {/* Advanced filters */}
       <Accordion
         expanded={expanded}
         onChange={handleAccordionChange}
         sx={{
           bgcolor: "background.paper",
-          boxShadow: 3,
+          boxShadow: 2,
           borderRadius: 2,
           overflow: "hidden",
           "&:before": { display: "none" }, // Remove default divider
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            boxShadow: 5,
-          },
-          border: "1px solid rgba(0, 0, 0, 0.08)",
         }}
       >
         <AccordionSummary
@@ -453,21 +601,10 @@ function FilterPanel() {
               pr: 2,
             }}
           >
-            {" "}
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(25, 118, 210, 0.1)",
-                  borderRadius: "50%",
-                  p: 1,
-                  mr: 1.5,
-                }}
-              >
-                <MdFilterList style={{ fontSize: 22, color: "#1976d2" }} />
-              </Box>
+              <MdFilterList
+                style={{ fontSize: 24, marginRight: 8, color: "#1976d2" }}
+              />
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 ตัวกรองขั้นสูง
               </Typography>
@@ -477,89 +614,45 @@ function FilterPanel() {
                   label={`${activeFilterCount} กรอง`}
                   size="small"
                   color="error"
-                  sx={{
-                    ml: 1.5,
-                    fontWeight: 600,
-                    borderRadius: "16px",
-                    boxShadow: "0 2px 4px rgba(211, 47, 47, 0.2)",
-                  }}
+                  sx={{ ml: 1 }}
                 />
               )}
             </Box>
+
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Chip
-                label={
-                  filteredCount > 0
-                    ? `พบ ${filteredCount} รายการ`
-                    : "ไม่พบข้อมูล"
-                }
-                size="small"
-                color={filteredCount > 0 ? "success" : "default"}
-                variant="outlined"
-                sx={{
-                  fontWeight: 500,
-                  borderRadius: "16px",
-                  px: 0.5,
-                }}
-              />
+              <Typography variant="body2" color="text.secondary">
+                {filteredCount > 0
+                  ? `พบ ${filteredCount} รายการ`
+                  : "ไม่พบข้อมูล"}
+              </Typography>
             </Box>
           </Box>
-        </AccordionSummary>{" "}
-        <AccordionDetails
-          sx={{ p: 3, backgroundColor: "rgba(245, 245, 245, 0.1)" }}
-        >
-          {errorMessage && (
-            <Alert
-              severity="error"
-              onClose={() => setErrorMessage(null)}
-              sx={{ mb: 2, borderRadius: 1.5 }}
-            >
-              {errorMessage}
-            </Alert>
-          )}
+        </AccordionSummary>
+
+        <AccordionDetails sx={{ p: 3 }}>
           <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
             <Grid container spacing={3}>
-              {/* Date Filter */}{" "}
-              <Grid xs={12} md={6} lg={4}>
-                {" "}
+              {/* Date Filter */}
+              <Grid size={12} md={6} lg={4}>
                 <Paper
-                  elevation={1}
+                  elevation={0}
                   sx={{
-                    p: 2.5,
-                    borderRadius: 2.5,
-                    border: "1px solid rgba(0, 0, 0, 0.08)",
+                    p: 2,
+                    borderRadius: 2,
+                    border: "1px solid rgba(0, 0, 0, 0.12)",
                     height: "100%",
-                    backgroundColor: "white",
-                    transition: "box-shadow 0.3s ease",
-                    "&:hover": {
-                      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.08)",
-                    },
                   }}
                 >
                   <Stack spacing={2}>
-                    {" "}
                     <Box
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
-                        mb: 2,
+                        mb: 1,
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: "rgba(25, 118, 210, 0.1)",
-                          borderRadius: "50%",
-                          p: 0.8,
-                        }}
-                      >
-                        <MdDateRange
-                          style={{ fontSize: 18, color: "#1976d2" }}
-                        />
-                      </Box>
+                      <MdDateRange style={{ fontSize: 20, color: "#1976d2" }} />
                       <Typography
                         variant="subtitle1"
                         sx={{ fontWeight: 600, color: "#1976d2" }}
@@ -567,31 +660,17 @@ function FilterPanel() {
                         วันที่สร้างลูกค้า
                       </Typography>
                     </Box>
-                    {/* Date picker fields */}{" "}
+
+                    {/* Date picker fields */}
                     <DatePicker
                       label="วันที่เริ่มต้น"
                       value={draftFilters.dateRange.startDate}
-                      onChange={(newValue) =>
-                        setDraftFilters((prev) => ({
-                          ...prev,
-                          dateRange: { ...prev.dateRange, startDate: newValue },
-                        }))
-                      }
+                      onChange={handleStartDateChange}
                       slotProps={{
                         textField: {
                           size: "small",
                           fullWidth: true,
                           InputProps: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <MdDateRange
-                                  style={{
-                                    color: "#1976d2",
-                                    fontSize: "1.2rem",
-                                  }}
-                                />
-                              </InputAdornment>
-                            ),
                             endAdornment: (
                               <InputAdornment position="end">
                                 {draftFilters.dateRange.startDate && (
@@ -608,55 +687,19 @@ function FilterPanel() {
                             ),
                           },
                         },
-                        day: {
-                          sx: { fontWeight: "bold" },
-                        },
-                        calendarHeader: {
-                          sx: { bgcolor: "rgba(25, 118, 210, 0.08)", py: 1 },
-                        },
-                        layout: {
-                          sx: {
-                            ".MuiPickersCalendarHeader-root": {
-                              fontWeight: "bold",
-                              color: "#1976d2",
-                            },
-                          },
-                        },
-                        popper: {
-                          sx: {
-                            "& .MuiPaper-root": {
-                              boxShadow: "0px 5px 15px rgba(0,0,0,0.15)",
-                              borderRadius: "12px",
-                            },
-                          },
-                        },
                       }}
                       format="DD/MM/YYYY"
                     />
+
                     <DatePicker
                       label="วันที่สิ้นสุด"
                       value={draftFilters.dateRange.endDate}
-                      onChange={(newValue) =>
-                        setDraftFilters((prev) => ({
-                          ...prev,
-                          dateRange: { ...prev.dateRange, endDate: newValue },
-                        }))
-                      }
+                      onChange={handleEndDateChange}
                       slotProps={{
                         textField: {
                           size: "small",
                           fullWidth: true,
                           InputProps: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <MdDateRange
-                                  style={{
-                                    color: "#1976d2",
-                                    fontSize: "1.2rem",
-                                  }}
-                                />
-                              </InputAdornment>
-                            ),
                             endAdornment: (
                               <InputAdornment position="end">
                                 {draftFilters.dateRange.endDate && (
@@ -676,24 +719,14 @@ function FilterPanel() {
                       }}
                       format="DD/MM/YYYY"
                     />
-                    {/* Quick date range buttons */}{" "}
-                    <Box
-                      sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2 }}
-                    >
+
+                    {/* Quick date range buttons */}
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("today")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         วันนี้
                       </Button>
@@ -701,16 +734,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("yesterday")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         เมื่อวาน
                       </Button>
@@ -718,16 +742,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("thisWeek")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         สัปดาห์นี้
                       </Button>
@@ -735,16 +750,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("lastWeek")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         สัปดาห์ที่แล้ว
                       </Button>
@@ -752,16 +758,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("thisMonth")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         เดือนนี้
                       </Button>
@@ -769,16 +766,7 @@ function FilterPanel() {
                         size="small"
                         variant="outlined"
                         onClick={() => handleQuickDateRange("lastMonth")}
-                        sx={{
-                          borderRadius: 4,
-                          fontSize: "0.75rem",
-                          px: 1.5,
-                          borderColor: "#1976d2",
-                          "&:hover": {
-                            backgroundColor: "rgba(25, 118, 210, 0.08)",
-                            borderColor: "#1976d2",
-                          },
-                        }}
+                        sx={{ borderRadius: 2 }}
                       >
                         เดือนที่แล้ว
                       </Button>
@@ -786,8 +774,9 @@ function FilterPanel() {
                   </Stack>
                 </Paper>
               </Grid>
-              {/* Sales Filter */}{" "}
-              <Grid xs={12} md={6} lg={4}>
+
+              {/* Sales Filter */}
+              <Grid size={12} md={6} lg={4}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -798,27 +787,15 @@ function FilterPanel() {
                   }}
                 >
                   <Stack spacing={2}>
-                    {" "}
                     <Box
                       sx={{
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
-                        mb: 2,
+                        mb: 1,
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: "rgba(25, 118, 210, 0.1)",
-                          borderRadius: "50%",
-                          p: 0.8,
-                        }}
-                      >
-                        <MdPerson style={{ fontSize: 18, color: "#1976d2" }} />
-                      </Box>
+                      <MdPerson style={{ fontSize: 20, color: "#1976d2" }} />
                       <Typography
                         variant="subtitle1"
                         sx={{ fontWeight: 600, color: "#1976d2" }}
@@ -826,6 +803,7 @@ function FilterPanel() {
                         พนักงานขาย (SALES)
                       </Typography>
                     </Box>
+
                     {/* Sales selection */}
                     <FormControl fullWidth size="small">
                       <InputLabel>
@@ -874,6 +852,10 @@ function FilterPanel() {
                               <ListItemText primary={name} />
                             </MenuItem>
                           ))
+                        ) : salesLoading ? (
+                          <MenuItem disabled>
+                            <ListItemText primary="กำลังโหลดข้อมูล..." />
+                          </MenuItem>
                         ) : (
                           <MenuItem disabled>
                             <ListItemText primary="ไม่พบข้อมูลพนักงานขาย" />
@@ -889,7 +871,9 @@ function FilterPanel() {
                         variant="text"
                         onClick={selectAllSales}
                         disabled={
-                          draftFilters.salesName.length === salesList.length
+                          draftFilters.salesName.length === salesList.length || 
+                          salesLoading ||
+                          salesList.length === 0
                         }
                       >
                         เลือกทั้งหมด
@@ -906,8 +890,9 @@ function FilterPanel() {
                   </Stack>
                 </Paper>
               </Grid>
-              {/* Channel Filter */}{" "}
-              <Grid xs={12} md={6} lg={4}>
+
+              {/* Channel and Recall Filter */}
+              <Grid size={12} md={6} lg={4}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -922,7 +907,6 @@ function FilterPanel() {
                   <Stack spacing={3} sx={{ height: "100%" }}>
                     {/* Channel Filter */}
                     <Box>
-                      {" "}
                       <Box
                         sx={{
                           display: "flex",
@@ -931,20 +915,9 @@ function FilterPanel() {
                           mb: 2,
                         }}
                       >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "rgba(25, 118, 210, 0.1)",
-                            borderRadius: "50%",
-                            p: 0.8,
-                          }}
-                        >
-                          <MdSignalCellularAlt
-                            style={{ fontSize: 18, color: "#1976d2" }}
-                          />
-                        </Box>
+                        <MdSignalCellularAlt
+                          style={{ fontSize: 20, color: "#1976d2" }}
+                        />
                         <Typography
                           variant="subtitle1"
                           sx={{ fontWeight: 600, color: "#1976d2" }}
@@ -1032,66 +1005,114 @@ function FilterPanel() {
                         </Select>
                       </FormControl>
                     </Box>
+
+                    <Divider />
+
+                    {/* Recall Filter */}
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          mb: 2,
+                        }}
+                      >
+                        <MdPhone style={{ fontSize: 20, color: "#1976d2" }} />
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: 600, color: "#1976d2" }}
+                        >
+                          ระยะเวลาขาดการติดต่อ (วัน)
+                        </Typography>
+                      </Box>
+
+                      {/* Recall range input */}
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid size={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="จำนวนวันต่ำสุด"
+                            type="number"
+                            value={draftFilters.recallRange.minDays}
+                            onChange={handleMinDaysChange}
+                            InputProps={{
+                              inputProps: { min: 0, max: 60 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid size={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="จำนวนวันสูงสุด"
+                            type="number"
+                            value={draftFilters.recallRange.maxDays}
+                            onChange={handleMaxDaysChange}
+                            InputProps={{
+                              inputProps: { min: 0, max: 60 },
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+
+                      {/* Recall presets */}
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {recallPresets.map((preset) => (
+                          <Button
+                            key={preset.label}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleRecallPreset(preset)}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
                   </Stack>
                 </Paper>
               </Grid>
-              {/* Control buttons */}{" "}
-              <Grid xs={12}>
-                {" "}
+
+              {/* Control buttons */}
+              <Grid size={12}>
                 <Stack
                   direction="row"
                   spacing={2}
                   justifyContent="flex-end"
-                  sx={{ mt: 3 }}
+                  sx={{ mt: 2 }}
                 >
                   <Button
                     variant="outlined"
                     color="inherit"
-                    startIcon={<RiRefreshLine style={{ fontSize: "1.2rem" }} />}
+                    startIcon={isFiltering ? <CircularProgress size={16} /> : <RiRefreshLine />}
                     onClick={handleResetFilters}
+                    disabled={isFiltering}
                     sx={{
                       minWidth: 150,
-                      borderRadius: 3,
+                      borderRadius: 2,
                       textTransform: "none",
                       fontWeight: 600,
-                      borderWidth: "1.5px",
-                      py: 1,
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.04)",
-                        borderWidth: "1.5px",
-                      },
                     }}
                   >
-                    รีเซ็ตตัวกรอง
-                  </Button>{" "}
+                    {isFiltering ? "กำลังรีเซ็ต..." : "รีเซ็ตตัวกรอง"}
+                  </Button>
                   <Button
                     variant="contained"
                     color="error"
-                    startIcon={
-                      isFiltering ? (
-                        <CircularProgress size={18} color="inherit" />
-                      ) : (
-                        <MdFilterList style={{ fontSize: "1.2rem" }} />
-                      )
-                    }
+                    startIcon={isFiltering ? <CircularProgress size={16} color="inherit" /> : <MdFilterList />}
                     onClick={handleApplyFilters}
                     disabled={isFiltering}
                     sx={{
                       minWidth: 150,
-                      borderRadius: 3,
-                      fontWeight: 600,
-                      boxShadow: "0 4px 8px rgba(211, 47, 47, 0.3)",
-                      py: 1,
-                      transition: "all 0.3s ease",
+                      borderRadius: 2,
                       textTransform: "none",
+                      fontWeight: 600,
+                      boxShadow: 3,
                       "&:hover": {
-                        boxShadow: "0 6px 12px rgba(211, 47, 47, 0.4)",
-                        backgroundColor: "#c62828",
-                      },
-                      "&:disabled": {
-                        backgroundColor: "rgba(211, 47, 47, 0.7)",
-                        color: "white",
+                        boxShadow: 5,
                       },
                     }}
                   >

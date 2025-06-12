@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import ScrollContext from './ScrollContext';
+import ScrollContext from "./ScrollContext";
 import {
   Box,
   Button,
@@ -132,10 +132,11 @@ function DialogForm(props) {
 
     if (name === "cus_tax_id" || name === "cus_zip_code") {
       value = value.replace(/[^0-9]/g, "");
-
     } else if (name === "cus_manage_by") {
-
-      value = salesList.find((user) => user.user_id === value) ||  { user_id: "", username: ""};
+      value = salesList.find((user) => user.user_id === value) || {
+        user_id: "",
+        username: "",
+      };
     }
 
     dispatch(
@@ -240,7 +241,7 @@ function DialogForm(props) {
     }
   };
   const { scrollToTop } = useContext(ScrollContext);
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -310,7 +311,7 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? "" : {user_id: user.user_id},
+          cus_manage_by: isAdmin ? "" : { user_id: user.user_id },
         })
       );
     }

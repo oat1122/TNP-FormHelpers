@@ -78,8 +78,10 @@ import TitleBar from "../../components/TitleBar";
 import FilterTab from "./FilterTab";
 import FilterPanel from "./FilterPanel";
 import FilterTags from "./FilterTags";
-import ScrollContext from './ScrollContext';
-import ScrollTopButton from './ScrollTopButton';
+import ScrollContext from "./ScrollContext";
+import ScrollTopButton from "./ScrollTopButton";
+import ColumnVisibilitySelector from "./ColumnVisibilitySelector";
+import ColumnProfileManager from "./ColumnProfileManager";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -122,17 +124,17 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: theme.vars.palette.grey.main,
     borderRadius: theme.shape.borderRadius,
     marginTop: 10,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: theme.vars.palette.grey.light,
-      transition: 'background-color 0.2s ease'
-    }
+      transition: "background-color 0.2s ease",
+    },
   },
 
   "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
-    padding: '8px 16px',
+    padding: "8px 16px",
   },
 
   "& .MuiDataGrid-menuIcon > button > svg": {
@@ -159,13 +161,17 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
 
   "& .danger-days": {
     color: theme.vars.palette.error.main,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-  
+
   "& .MuiDataGrid-toolbarContainer": {
     gap: 2,
-    padding: '4px 8px',
-    justifyContent: 'flex-end',
+    padding: "8px 16px",
+    justifyContent: "space-between",
+    backgroundColor: theme.palette.error.dark,
+    borderTopLeftRadius: theme.shape.borderRadius,
+    borderTopRightRadius: theme.shape.borderRadius,
+    marginBottom: 10,
   },
 
   // Highlight rows based on priority
@@ -173,25 +179,24 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: `${theme.palette.error.light}33`, // 20% opacity
     "&:hover": {
       backgroundColor: `${theme.palette.error.light}66`, // 40% opacity
-    }
+    },
   },
-  
+
   "& .medium-priority-row": {
     backgroundColor: `${theme.palette.warning.light}33`, // 20% opacity
     "&:hover": {
       backgroundColor: `${theme.palette.warning.light}66`, // 40% opacity
-    }
+    },
   },
 }));
 
 const StyledPagination = styled(Pagination)(({ theme }) => ({
-
   "& .MuiPaginationItem-previousNext": {
     backgroundColor: theme.vars.palette.error.dark,
     color: "#fff",
     height: 30,
     width: 38,
-    
+
     "&:hover": {
       backgroundColor: theme.vars.palette.error.main,
     },
@@ -202,11 +207,11 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
     borderColor: theme.vars.palette.grey.outlinedInput,
     height: 30,
     width: 38,
-    
+
     "&:hover": {
       backgroundColor: theme.vars.palette.grey.light,
       borderColor: theme.vars.palette.grey.light,
-    }
+    },
   },
 
   "& .MuiPaginationItem-ellipsis": {
@@ -232,10 +237,13 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
 // Custom component for page size selection
 const PageSizeSelector = ({ value, onChange }) => {
   const pageSizeOptions = [10, 30, 50, 80];
-  
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Typography variant="body2" sx={{ color: (theme) => theme.vars.palette.grey.dark }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{ color: (theme) => theme.vars.palette.grey.dark }}
+      >
         Rows per page:
       </Typography>
       <FormControl size="small" sx={{ minWidth: 85 }}>
@@ -247,10 +255,14 @@ const PageSizeSelector = ({ value, onChange }) => {
           sx={{
             borderRadius: 1,
             backgroundColor: (theme) => theme.vars.palette.grey.outlinedInput,
-            '.MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
-            '.MuiSelect-select': { py: 0.5, px: 1 }
+            ".MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: "transparent",
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: "transparent",
+            },
+            ".MuiSelect-select": { py: 0.5, px: 1 },
           }}
         >
           {pageSizeOptions.map((option) => (
@@ -275,52 +287,54 @@ const SortInfoDisplay = ({ sortModel }) => {
   if (!sortModel || sortModel.length === 0) {
     return null;
   }
-  
+
   const fieldMap = {
-    cus_no: "ID",
-    cus_channel: "Channel",
-    cus_manage_by: "Sales Name",
-    cus_name: "Customer",
-    cus_company: "Company",
-    cus_tel_1: "Telephone",
-    cd_last_datetime: "Recall Days",
-    cd_note: "Note",
-    cus_email: "Email",
-    cus_address: "Address"
+    cus_no: "รหัสลูกค้า",
+    cus_channel: "ช่องทาง",
+    cus_manage_by: "ชื่อเซลล์",
+    cus_name: "ชื่อลูกค้า",
+    cus_company: "ชื่อบริษัท",
+    cus_tel_1: "เบอร์โทร",
+    cd_last_datetime: "วันติดต่อกลับ",
+    cd_note: "หมายเหตุ",
+    cus_email: "อีเมล",
+    cus_address: "ที่อยู่",
   };
-  
+
   const { field, sort } = sortModel[0];
   const displayField = fieldMap[field] || field;
-  const displayDirection = sort === 'asc' ? 'ascending' : 'descending';
-  
+  const displayDirection = sort === "asc" ? "ascending" : "descending";
+
   // Use icons to make it more visually clear
-  const SortIcon = sort === 'asc' ? 
-    () => <span style={{ fontSize: '0.8em', marginRight: '4px' }}>▲</span> : 
-    () => <span style={{ fontSize: '0.8em', marginRight: '4px' }}>▼</span>;
-  
+  const SortIcon =
+    sort === "asc"
+      ? () => <span style={{ fontSize: "0.8em", marginRight: "4px" }}>▲</span>
+      : () => <span style={{ fontSize: "0.8em", marginRight: "4px" }}>▼</span>;
   return (
-    <Typography 
-      variant="caption" 
-      sx={{ 
-        ml: 1, 
-        color: 'text.secondary',
-        display: 'flex',
-        alignItems: 'center',
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
         gap: 1,
-        padding: '4px 8px',
-        borderRadius: '4px',
-        backgroundColor: (theme) => `${theme.palette.primary.light}10`,
+        padding: "4px 8px",
+        borderRadius: "4px",
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        color: "white",
       }}
     >
-      <SortIcon /> Sorting by {displayField} ({displayDirection})
-    </Typography>
+      <SortIcon />
+      <Typography variant="caption" sx={{ fontWeight: "medium" }}>
+        เรียงตาม: {displayField} (
+        {displayDirection === "ascending" ? "น้อยไปมาก" : "มากไปน้อย"})
+      </Typography>
+    </Box>
   );
 };
 
 function CustomerList() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const [delCustomer] = useDelCustomerMutation();
-  const [updateRecall] = useUpdateRecallMutation();  
+  const [updateRecall] = useUpdateRecallMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
   const dispatch = useDispatch();
   const [totalItems, setTotalItems] = useState(0);
@@ -328,13 +342,26 @@ function CustomerList() {
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const groupList = useSelector((state) => state.customer.groupList);
   const keyword = useSelector((state) => state.global.keyword);
-  const paginationModel = useSelector((state) => state.customer.paginationModel);
+  const paginationModel = useSelector(
+    (state) => state.customer.paginationModel
+  );
   const filters = useSelector((state) => state.customer.filters);
   const isLoading = useSelector((state) => state.customer.isLoading);
   const [openDialog, setOpenDialog] = useState(false);
   const [serverSortModel, setServerSortModel] = useState([]);
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
+    // Default visibility settings
+    cus_email: false,
+    cus_address: false,
+  });
+
+  // State to track column order
+  const [columnOrderModel, setColumnOrderModel] = useState(null);
+
+  // Get current theme for responsive behavior
+  const theme = useTheme();
   const tableContainerRef = useRef(null);
-  
+
   const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
     group: groupSelected,
     page: paginationModel.page,
@@ -343,13 +370,13 @@ function CustomerList() {
     search: keyword,
     filters: filters,
     sortModel: serverSortModel,
-  });  // Scroll to top function
+  }); // Scroll to top function
   const scrollToTop = useCallback(() => {
     // Return early if we're in testing mode or SSR environment
-    if (typeof window === 'undefined') return;
-    
-    const scrollOptions = { behavior: 'smooth' };
-    
+    if (typeof window === "undefined") return;
+
+    const scrollOptions = { behavior: "smooth" };
+
     // First try to scroll the container if it's available
     if (tableContainerRef.current) {
       try {
@@ -357,23 +384,24 @@ function CustomerList() {
         setTimeout(() => {
           // Scroll the container element to top
           tableContainerRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-            inline: 'nearest'
+            behavior: "smooth",
+            block: "start",
+            inline: "nearest",
           });
-          
+
           // Also ensure the window is scrolled to show the container at the top
-          const containerRect = tableContainerRef.current.getBoundingClientRect();
+          const containerRect =
+            tableContainerRef.current.getBoundingClientRect();
           if (containerRect.top < 0) {
             window.scrollBy({
               top: containerRect.top - 20, // Add a small offset for visual padding
-              behavior: 'smooth'
+              behavior: "smooth",
             });
           }
         }, 50);
       } catch (error) {
         // Fallback for browsers that don't support smooth scrolling
-        console.warn('Smooth scrolling not supported, using fallback', error);
+        console.warn("Smooth scrolling not supported, using fallback", error);
         tableContainerRef.current.scrollIntoView(true);
       }
     } else {
@@ -381,11 +409,11 @@ function CustomerList() {
       try {
         window.scrollTo({
           top: 0,
-          behavior: 'smooth'
+          behavior: "smooth",
         });
       } catch (error) {
         // Fallback for browsers that don't support smooth scrolling
-        console.warn('Smooth scrolling not supported, using fallback', error);
+        console.warn("Smooth scrolling not supported, using fallback", error);
         window.scrollTo(0, 0);
       }
     }
@@ -402,13 +430,56 @@ function CustomerList() {
       // Scroll to top when sorting changes
       scrollToTop();
     }
-  };  // Pagination customize
+  };
+  // Handle changes to column visibility
+  const handleColumnVisibilityChange = (newModel) => {
+    setColumnVisibilityModel(newModel);
+
+    // Store column visibility in localStorage for persistence between sessions
+    try {
+      // Add timestamp to track when preferences were last updated
+      const columnPreferences = {
+        model: newModel,
+        timestamp: new Date().toISOString(),
+        username: user?.username || "unknown",
+      };
+
+      localStorage.setItem(
+        "customerTableColumnVisibility",
+        JSON.stringify(columnPreferences)
+      );
+    } catch (error) {
+      console.warn("Failed to save column visibility to localStorage", error);
+    }
+  };
+
+  // Handle column order changes
+  const handleColumnOrderChange = (newOrder) => {
+    setColumnOrderModel(newOrder);
+
+    // Store column order in localStorage for persistence between sessions
+    try {
+      // Save the column order with metadata
+      const columnOrderPreferences = {
+        order: newOrder,
+        timestamp: new Date().toISOString(),
+        username: user?.username || "unknown",
+      };
+
+      localStorage.setItem(
+        "customerTableColumnOrder",
+        JSON.stringify(columnOrderPreferences)
+      );
+    } catch (error) {
+      console.warn("Failed to save column order to localStorage", error);
+    }
+  }; // Pagination customize
   function CustomPagination() {
     const apiRef = useGridApiContext();
     const page = useGridSelector(apiRef, gridPageSelector);
     const pageCount = useGridSelector(apiRef, gridPageCountSelector);
     const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
     // Reset page to first page after change group.
     useEffect(() => {
@@ -416,7 +487,7 @@ function CustomerList() {
         apiRef.current.setPage(0);
         scrollToTop();
       }
-    }, [paginationModel, scrollToTop])
+    }, [paginationModel, scrollToTop]);
 
     // Handle page size change
     const handlePageSizeChange = (newPageSize) => {
@@ -424,54 +495,69 @@ function CustomerList() {
       dispatch(setPaginationModel(newModel));
       apiRef.current.setPageSize(newPageSize);
       scrollToTop();
-    };return (
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        flexWrap: 'wrap',
-        gap: 2, 
-        width: '100%', 
-        p: 1 
-      }}>
-        <PageSizeSelector 
+    };
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+          width: "100%",
+          p: 1,
+        }}
+      >
+        <PageSizeSelector
           value={paginationModel.pageSize}
           onChange={handlePageSizeChange}
         />
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            flex: 1,
+          }}
+        >
           <StyledPagination
             color="error"
             variant="outlined"
             shape="rounded"
             page={page + 1}
             count={pageCount}
-            siblingCount={isXs ? 0 : 1} 
-            boundaryCount={1} 
+            siblingCount={isXs ? 0 : 1}
+            boundaryCount={1}
             // @ts-expect-error
-            renderItem={(props2) => 
-              <PaginationItem 
-                {...props2} 
-                disableRipple 
+            renderItem={(props2) => (
+              <PaginationItem
+                {...props2}
+                disableRipple
                 slots={{ previous: FaChevronLeft, next: FaChevronRight }}
               />
-            }
+            )}
             onChange={(event, value) => {
               apiRef.current.setPage(value - 1);
               scrollToTop();
             }}
           />
         </Box>
-        
-        <Typography 
-          variant="body2" 
-          sx={{ 
+
+        <Typography
+          variant="body2"
+          sx={{
             color: (theme) => theme.vars.palette.grey.dark,
             minWidth: 120,
-            textAlign: 'right'
+            textAlign: "right",
           }}
         >
-          {`${page * paginationModel.pageSize + 1}-${Math.min((page + 1) * paginationModel.pageSize, totalItems)} of ${totalItems}`}
+          {`${page * paginationModel.pageSize + 1}-${Math.min(
+            (page + 1) * paginationModel.pageSize,
+            totalItems
+          )} of ${totalItems}`}
         </Typography>
       </Box>
     );
@@ -581,7 +667,8 @@ function CustomerList() {
         ...params,
         cus_mcg_id: groupResult.mcg_id,
         cus_updated_by: user.user_id,
-      };      try {
+      };
+      try {
         const res = await updateCustomer(inputUpdate);
 
         if (res.data.status === "success") {
@@ -623,7 +710,97 @@ function CustomerList() {
     >
       <p style={{ fontSize: 18 }}>No data found.</p>
     </div>
-  );
+  ); // Load saved column visibility and order settings from localStorage
+  useEffect(() => {
+    try {
+      // Load column visibility settings
+      const savedVisibilityPrefs = localStorage.getItem(
+        "customerTableColumnVisibility"
+      );
+      if (savedVisibilityPrefs) {
+        const savedPrefs = JSON.parse(savedVisibilityPrefs);
+
+        // Check if we have the new format with metadata
+        const savedModel = savedPrefs.model || savedPrefs;
+
+        // Apply the saved visibility settings
+        setColumnVisibilityModel(savedModel);
+
+        console.log(
+          `Loaded column visibility preferences${
+            savedPrefs.username ? " for " + savedPrefs.username : ""
+          }, ` +
+            `last saved: ${
+              savedPrefs.timestamp
+                ? new Date(savedPrefs.timestamp).toLocaleString()
+                : "unknown"
+            }`
+        );
+      }
+
+      // Load column order settings
+      const savedOrderPrefs = localStorage.getItem("customerTableColumnOrder");
+      if (savedOrderPrefs) {
+        const savedOrderData = JSON.parse(savedOrderPrefs);
+
+        // Check if we have the new format with metadata
+        const savedOrder = savedOrderData.order || savedOrderData;
+
+        // Apply the saved order settings
+        setColumnOrderModel(savedOrder);
+
+        console.log(
+          `Loaded column order preferences${
+            savedOrderData.username ? " for " + savedOrderData.username : ""
+          }, ` +
+            `last saved: ${
+              savedOrderData.timestamp
+                ? new Date(savedOrderData.timestamp).toLocaleString()
+                : "unknown"
+            }`
+        );
+      }
+    } catch (error) {
+      console.warn("Failed to load saved column settings", error);
+    }
+  }, []);
+
+  // Apply responsive behavior to automatically hide columns on smaller screens
+  // We only apply this if there are no saved user preferences
+  const isSmall = useMediaQuery(theme.breakpoints.down("md")); // md = 900px
+  const isExtraSmall = useMediaQuery(theme.breakpoints.down("sm")); // sm = 600px
+
+  useEffect(() => {
+    // Only apply responsive behavior if no user preferences exist
+    const hasSavedPreferences = localStorage.getItem(
+      "customerTableColumnVisibility"
+    );
+
+    if (!hasSavedPreferences) {
+      // Start with default visibility
+      const responsiveVisibility = {
+        cus_email: false,
+        cus_address: false,
+      };
+
+      // On small screens, hide less important columns
+      if (isSmall) {
+        responsiveVisibility.cus_company = false;
+        responsiveVisibility.cd_note = false;
+      }
+
+      // On extra small screens, hide even more columns
+      if (isExtraSmall) {
+        responsiveVisibility.cus_channel = false;
+      }
+
+      setColumnVisibilityModel((prev) => ({
+        ...prev,
+        ...responsiveVisibility,
+      }));
+    }
+  }, [isSmall, isExtraSmall]);
+
   useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
@@ -633,11 +810,15 @@ function CustomerList() {
         dispatch(setGroupList(data.groups));
         dispatch(setTotalCount(data.total_count));
         setTotalItems(data.pagination.total_items);
-        
+
         // Check if this is a data refresh caused by operations other than pagination/sorting
         // If the page is 0 and we have a previous different data set, scroll to top
-        if (paginationModel.page === 0 && data.data?.length > 0 && 
-            itemList?.length > 0 && data.data[0]?.cus_id !== itemList[0]?.cus_id) {
+        if (
+          paginationModel.page === 0 &&
+          data.data?.length > 0 &&
+          itemList?.length > 0 &&
+          data.data[0]?.cus_id !== itemList[0]?.cus_id
+        ) {
           scrollToTop();
         }
       }
@@ -655,7 +836,8 @@ function CustomerList() {
             <span>{params.value}</span>
           </Tooltip>
         ),
-      },      {
+      },
+      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
@@ -666,13 +848,15 @@ function CustomerList() {
             label={channelMap[params.value]}
             size="small"
             sx={{
-              textTransform: 'uppercase',
-              backgroundColor: (theme) => 
-                params.value === 1 ? theme.palette.info.light :
-                params.value === 2 ? theme.palette.success.light : 
-                theme.palette.warning.light,
+              textTransform: "uppercase",
+              backgroundColor: (theme) =>
+                params.value === 1
+                  ? theme.palette.info.light
+                  : params.value === 2
+                  ? theme.palette.success.light
+                  : theme.palette.warning.light,
               color: (theme) => theme.palette.common.white,
-              fontWeight: 'bold',
+              fontWeight: "bold",
             }}
           />
         ),
@@ -687,23 +871,29 @@ function CustomerList() {
         renderCell: (params) => {
           return (
             <Tooltip title={`Sales ID: ${params.value.user_id}`}>
-              <Typography variant="body2" sx={{ textTransform: 'uppercase' }}>
+              <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
                 {params.value.username}
               </Typography>
             </Tooltip>
           );
         },
       },
-      { 
-        field: "cus_name", 
-        headerName: "CUSTOMER", 
+      {
+        field: "cus_name",
+        headerName: "CUSTOMER",
         width: 200,
         sortable: true,
         renderCell: (params) => {
           const fullName = params.value;
           return (
             <Tooltip title="Click to view details">
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                }}
+              >
                 <Typography variant="body2" fontWeight="bold">
                   {fullName}
                 </Typography>
@@ -715,11 +905,11 @@ function CustomerList() {
               </Box>
             </Tooltip>
           );
-        }
+        },
       },
-      { 
-        field: "cus_company", 
-        headerName: "COMPANY NAME", 
+      {
+        field: "cus_company",
+        headerName: "COMPANY NAME",
         width: 280,
         sortable: true,
         renderCell: (params) => {
@@ -728,19 +918,19 @@ function CustomerList() {
               <span>{params.value || "—"}</span>
             </Tooltip>
           );
-        }
+        },
       },
-      { 
-        field: "cus_tel_1", 
-        headerName: "TEL", 
+      {
+        field: "cus_tel_1",
+        headerName: "TEL",
         width: 140,
         sortable: true,
         renderCell: (params) => {
           const tel1 = params.value;
           const tel2 = params.row.cus_tel_2;
-          
+
           return (
-            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
               <Typography variant="body2">{tel1 || "—"}</Typography>
               {tel2 && (
                 <Typography variant="caption" color="text.secondary">
@@ -749,11 +939,11 @@ function CustomerList() {
               )}
             </Box>
           );
-        }
+        },
       },
-      { 
-        field: "cd_note", 
-        headerName: "NOTE", 
+      {
+        field: "cd_note",
+        headerName: "NOTE",
         width: 280,
         sortable: true,
         renderCell: (params) => (
@@ -761,17 +951,17 @@ function CustomerList() {
             <Typography
               variant="body2"
               sx={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
                 maxWidth: 260,
-                textAlign: 'left'
+                textAlign: "left",
               }}
             >
               {params.value || "—"}
             </Typography>
           </Tooltip>
-        )
+        ),
       },
       {
         field: "cd_last_datetime",
@@ -782,11 +972,11 @@ function CustomerList() {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
             <Tooltip title={`Last contacted: ${params.value}`}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: daysLeft <= 7 ? 'bold' : 'normal',
-                  color: daysLeft <= 7 ? 'error.main' : 'inherit'
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: daysLeft <= 7 ? "bold" : "normal",
+                  color: daysLeft <= 7 ? "error.main" : "inherit",
                 }}
               >
                 {`${daysLeft} DAYS`}
@@ -800,7 +990,8 @@ function CustomerList() {
             return "danger-days";
           }
         },
-      },      {
+      },
+      {
         field: "cus_email",
         headerName: "EMAIL",
         width: 200,
@@ -810,17 +1001,18 @@ function CustomerList() {
             <Typography
               variant="body2"
               sx={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: 180
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: 180,
               }}
             >
               {params.value || "—"}
             </Typography>
           </Tooltip>
-        )
-      },      {
+        ),
+      },
+      {
         field: "cus_address",
         headerName: "ADDRESS",
         width: 200,
@@ -829,27 +1021,33 @@ function CustomerList() {
           const address = params.value;
           const province = params.row.province_name;
           const district = params.row.district_name;
-          
-          const fullAddress = [address, district, province].filter(Boolean).join(", ");
-          
+
+          const fullAddress = [address, district, province]
+            .filter(Boolean)
+            .join(", ");
+
           return (
-            <Tooltip title={fullAddress || "No address specified"} placement="top-start">
+            <Tooltip
+              title={fullAddress || "No address specified"}
+              placement="top-start"
+            >
               <Typography
                 variant="body2"
                 sx={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                   maxWidth: 180,
-                  textAlign: 'left'
+                  textAlign: "left",
                 }}
               >
                 {fullAddress || "—"}
               </Typography>
             </Tooltip>
           );
-        }
-      },      {
+        },
+      },
+      {
         field: "tools",
         headerName: "TOOLS",
         flex: 1,
@@ -863,7 +1061,8 @@ function CustomerList() {
               label="Recall"
               onClick={() => handleRecall(params.row)}
             />
-          </Tooltip>,          handleDisableChangeGroupBtn(true, params.row) ?
+          </Tooltip>,
+          handleDisableChangeGroupBtn(true, params.row) ? (
             // If button is disabled, don't use tooltip
             <GridActionsCellItem
               icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
@@ -871,7 +1070,7 @@ function CustomerList() {
               onClick={() => {}}
               disabled={true}
             />
-            :
+          ) : (
             <Tooltip title="Change grade up">
               <GridActionsCellItem
                 icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
@@ -879,26 +1078,29 @@ function CustomerList() {
                 onClick={() => handleChangeGroup(true, params.row)}
                 disabled={false}
               />
-            </Tooltip>,
-          
-          handleDisableChangeGroupBtn(false, params.row) || user.role !== "admin" ?
+            </Tooltip>
+          ),
+
+          handleDisableChangeGroupBtn(false, params.row) ||
+          user.role !== "admin" ? (
             // If button is disabled, don't use tooltip
             <GridActionsCellItem
               icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
               label="Change Grade Down"
               onClick={() => {}}
               disabled={true}
-              sx={{ visibility: user.role !== "admin" ? 'hidden' : 'visible' }}
+              sx={{ visibility: user.role !== "admin" ? "hidden" : "visible" }}
             />
-            :
+          ) : (
             <Tooltip title="Change grade down">
               <GridActionsCellItem
                 icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
                 label="Change Grade Down"
                 onClick={() => handleChangeGroup(false, params.row)}
                 disabled={false}
-            />
-          </Tooltip>,
+              />
+            </Tooltip>
+          ),
           <Tooltip title="View details">
             <GridActionsCellItem
               icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
@@ -923,17 +1125,58 @@ function CustomerList() {
         ],
       },
     ],
-    [handleOpenDialog, handleDelete, handleRecall, handleChangeGroup, handleDisableChangeGroupBtn, user.role]
-  );
+    [
+      handleOpenDialog,
+      handleDelete,
+      handleRecall,
+      handleChangeGroup,
+      handleDisableChangeGroupBtn,
+      user.role,
+    ]
+  ); // Handle applying column profile
+  const handleApplyColumnProfile = (profile) => {
+    if (profile.visibilityModel) {
+      setColumnVisibilityModel(profile.visibilityModel);
+    }
+
+    if (profile.orderModel) {
+      setColumnOrderModel(profile.orderModel);
+    }
+  };
 
   // Custom toolbar component
   function CustomToolbar() {
     return (
       <GridToolbarContainer>
-        <SortInfoDisplay sortModel={serverSortModel} />
+        <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: "common.white",
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              mr: 2,
+            }}
+          >
+            รายการลูกค้า
+          </Typography>
+          <SortInfoDisplay sortModel={serverSortModel} />
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <ColumnVisibilitySelector columns={columns} />
+          <ColumnProfileManager
+            columnVisibilityModel={columnVisibilityModel}
+            columnOrderModel={columnOrderModel}
+            onApplyProfile={handleApplyColumnProfile}
+          />
+        </Box>
       </GridToolbarContainer>
     );
-  }  return (
+  }
+
+  return (
     <ScrollContext.Provider value={{ scrollToTop }}>
       <div className="customer-list">
         <DialogForm
@@ -942,109 +1185,123 @@ function CustomerList() {
           handleRecall={handleRecall}
         />
 
-      <TitleBar title="customer" />
-      <Box
-        ref={tableContainerRef}
-        id="customerTableTop"
-        paddingX={3}
-        sx={{ margin: "auto", maxWidth: 1800, height: 'auto', paddingBlock: 3 }}
-      >
-        {/* Button on top table */}
-        <TableContainer>
-          <Table sx={{ marginBottom: 2 }}>            <TableBody>
-              <TableRow>
-                {user.role === 'sale' || user.role === 'admin' ? (
-                  <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
-                    <Button
-                      variant="icon-contained"
-                      color="grey"
-                      onClick={() => handleOpenDialog("create")}
-                      sx={{
-                        marginRight: 3,
-                        height: 40,
-                        padding: 0,
-                      }}
-                    >
-                      <RiAddLargeFill style={{ width: 24, height: 24 }} />
-                    </Button>
+        <TitleBar title="customer" />
+        <Box
+          ref={tableContainerRef}
+          id="customerTableTop"
+          paddingX={3}
+          sx={{
+            margin: "auto",
+            maxWidth: 1800,
+            height: "auto",
+            paddingBlock: 3,
+          }}
+        >
+          {/* Button on top table */}
+          <TableContainer>
+            <Table sx={{ marginBottom: 2 }}>
+              {" "}
+              <TableBody>
+                <TableRow>
+                  {user.role === "sale" || user.role === "admin" ? (
+                    <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
+                      <Button
+                        variant="icon-contained"
+                        color="grey"
+                        onClick={() => handleOpenDialog("create")}
+                        sx={{
+                          marginRight: 3,
+                          height: 40,
+                          padding: 0,
+                        }}
+                      >
+                        <RiAddLargeFill style={{ width: 24, height: 24 }} />
+                      </Button>
+                    </TableCell>
+                  ) : null}
+                  <TableCell sx={{ padding: 0, border: 0 }}>
+                    <FilterTab />
                   </TableCell>
-                ) : null}
-                <TableCell sx={{ padding: 0, border: 0 }}>
-                  <FilterTab />
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
           {/* Advanced Filter Panel */}
-        <FilterPanel />
-        
-        {/* Filter Tags - Shows active filters */}
-        <FilterTags />        <Box sx={{ 
-          height: 'auto', 
-          minHeight: Math.min(500, totalItems * 60 + 120), // Dynamically adjust height based on content
-          maxHeight: 800, // Cap the maximum height
-          width: '100%', 
-          '& .MuiDataGrid-main': { 
-            overflow: 'hidden' 
-          },
-          '& .MuiDataGrid-root': {
-            transition: 'height 0.3s ease'
-          } 
-        }}><StyledDataGrid
-            disableRowSelectionOnClick
-            paginationMode="server"
-            sortingMode="server"
-            rows={itemList}
-            columns={columns}
-            getRowId={(row) => row.cus_id}
-            initialState={{ 
-              pagination: { paginationModel },
-              sorting: { sortModel: serverSortModel },
-              columns: {
-                columnVisibilityModel: {
-                  // Hide some columns by default on smaller screens
-                  cus_email: false,
-                  cus_address: false
-                },
+          <FilterPanel />
+          {/* Filter Tags - Shows active filters */}
+          <FilterTags />{" "}
+          <Box
+            sx={{
+              height: "auto",
+              minHeight: Math.min(500, totalItems * 60 + 120), // Dynamically adjust height based on content
+              maxHeight: 800, // Cap the maximum height
+              width: "100%",
+              "& .MuiDataGrid-main": {
+                overflow: "hidden",
+              },
+              "& .MuiDataGrid-root": {
+                transition: "height 0.3s ease",
               },
             }}
-            onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
-            onSortModelChange={handleSortModelChange}
-            rowCount={totalItems}
-            loading={isFetching || isLoading}
-            slots={{
-              noRowsOverlay: NoDataComponent,
-              pagination: CustomPagination,
-              toolbar: CustomToolbar,
-            }}
-            sx={{ border: 0 }}
-            rowHeight={60}
-            columnHeaderHeight={50}
-            getRowClassName={(params) => {
-              // Add extra classes for styling rows based on data
-              const classes = [];
-              if (params.indexRelativeToCurrentPage % 2 === 0) {
-                classes.push('even-row');
-              } else {
-                classes.push('odd-row');
+          >
+            <StyledDataGrid
+              disableRowSelectionOnClick
+              paginationMode="server"
+              sortingMode="server"
+              rows={itemList}
+              columns={columns}
+              getRowId={(row) => row.cus_id}
+              initialState={{
+                pagination: { paginationModel },
+                sorting: { sortModel: serverSortModel },
+                columns: {
+                  columnVisibilityModel,
+                  columnOrder: columnOrderModel,
+                },
+              }}
+              onPaginationModelChange={(model) =>
+                dispatch(setPaginationModel(model))
               }
-              
-              // Add warning class if recall is approaching
-              const daysLeft = formatCustomRelativeTime(params.row.cd_last_datetime);
-              if (daysLeft <= 3) {
-                classes.push('high-priority-row');
-              } else if (daysLeft <= 7) {
-                classes.push('medium-priority-row');
-              }
-              
-              return classes.join(' ');            }}
-          />        </Box>
-      </Box>    
-      
-      {/* Floating button to scroll to top */}
-      <ScrollTopButton />
-      
+              onSortModelChange={handleSortModelChange}
+              onColumnVisibilityModelChange={handleColumnVisibilityChange}
+              onColumnOrderChange={handleColumnOrderChange}
+              rowCount={totalItems}
+              loading={isFetching || isLoading}
+              slots={{
+                noRowsOverlay: NoDataComponent,
+                pagination: CustomPagination,
+                toolbar: CustomToolbar,
+              }}
+              sx={{ border: 0 }}
+              rowHeight={60}
+              columnHeaderHeight={50}
+              getRowClassName={(params) => {
+                // Add extra classes for styling rows based on data
+                const classes = [];
+                if (params.indexRelativeToCurrentPage % 2 === 0) {
+                  classes.push("even-row");
+                } else {
+                  classes.push("odd-row");
+                }
+
+                // Add warning class if recall is approaching
+                const daysLeft = formatCustomRelativeTime(
+                  params.row.cd_last_datetime
+                );
+                if (daysLeft <= 3) {
+                  classes.push("high-priority-row");
+                } else if (daysLeft <= 7) {
+                  classes.push("medium-priority-row");
+                }
+
+                return classes.join(" ");
+              }}
+            />{" "}
+          </Box>
+        </Box>
+
+        {/* Floating button to scroll to top */}
+        <ScrollTopButton />
       </div>
     </ScrollContext.Provider>
   );

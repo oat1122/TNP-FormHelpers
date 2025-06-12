@@ -852,17 +852,12 @@ function CustomerList() {
     }
   }, [data, groupSelected, scrollToTop, paginationModel.page, itemList]);
   const columns = useMemo(
-    () => [
-      {
+    () => [      {
         field: "cus_no",
         headerName: "ID",
         width: 120,
         sortable: true,
-        renderCell: (params) => (
-          <Tooltip title="Customer ID">
-            <span>{params.value}</span>
-          </Tooltip>
-        ),
+        renderCell: (params) => <span>{params.value}</span>,
       },
       {
         field: "cus_channel",
@@ -887,8 +882,7 @@ function CustomerList() {
             }}
           />
         ),
-      },
-      {
+      },      {
         field: "cus_manage_by",
         headerName: "SALES NAME",
         sortable: true,
@@ -897,23 +891,42 @@ function CustomerList() {
         hideable: false,
         renderCell: (params) => {
           return (
-            <Tooltip title={`Sales ID: ${params.value.user_id}`}>
-              <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
-                {params.value.username}
-              </Typography>
-            </Tooltip>
+            <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
+              {params.value.username}
+            </Typography>
           );
         },
-      },
-      {
-        field: "cus_name",
+      },{        field: "cus_name",
         headerName: "CUSTOMER",
         width: 200,
         sortable: true,
         renderCell: (params) => {
           const fullName = params.value;
+          const company = params.row.cus_company || '';
+          
+          // Create a simple, readable tooltip text that includes both name and company
+          const tooltipText = company 
+            ? `${fullName}\n${company}` 
+            : fullName;
+            
           return (
-            <Tooltip title="Click to view details">
+            <Tooltip 
+              title={tooltipText}
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: 'rgba(0, 0, 0, 0.8)',
+                    '& .MuiTooltip-arrow': {
+                      color: 'rgba(0, 0, 0, 0.8)',
+                    },
+                    fontSize: '0.875rem',
+                    padding: '8px 12px',
+                    maxWidth: '400px',
+                    whiteSpace: 'pre-line'
+                  },
+                },
+              }}
+            >
               <Box
                 sx={{
                   display: "flex",
@@ -933,18 +946,13 @@ function CustomerList() {
             </Tooltip>
           );
         },
-      },
-      {
+      },      {
         field: "cus_company",
         headerName: "COMPANY NAME",
         width: 280,
         sortable: true,
         renderCell: (params) => {
-          return (
-            <Tooltip title={params.value || "No company specified"}>
-              <span>{params.value || "—"}</span>
-            </Tooltip>
-          );
+          return <span>{params.value || "—"}</span>;
         },
       },
       {
@@ -967,14 +975,29 @@ function CustomerList() {
             </Box>
           );
         },
-      },
-      {
+      },      {
         field: "cd_note",
         headerName: "NOTE",
         width: 280,
         sortable: true,
         renderCell: (params) => (
-          <Tooltip title={params.value || "No notes"} placement="top-start">
+          <Tooltip 
+            title={params.value || "No notes"} 
+            placement="top-start"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: 'rgba(0, 0, 0, 0.8)',
+                  '& .MuiTooltip-arrow': {
+                    color: 'rgba(0, 0, 0, 0.8)',
+                  },
+                  fontSize: '0.875rem',
+                  padding: '8px 12px',
+                  maxWidth: '400px'
+                },
+              },
+            }}
+          >
             <Typography
               variant="body2"
               sx={{
@@ -989,8 +1012,7 @@ function CustomerList() {
             </Typography>
           </Tooltip>
         ),
-      },
-      {
+      },      {
         field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
@@ -998,17 +1020,15 @@ function CustomerList() {
         renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
-            <Tooltip title={`Last contacted: ${params.value}`}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: daysLeft <= 7 ? "bold" : "normal",
-                  color: daysLeft <= 7 ? "error.main" : "inherit",
-                }}
-              >
-                {`${daysLeft} DAYS`}
-              </Typography>
-            </Tooltip>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: daysLeft <= 7 ? "bold" : "normal",
+                color: daysLeft <= 7 ? "error.main" : "inherit",
+              }}
+            >
+              {`${daysLeft} DAYS`}
+            </Typography>
           );
         },
         cellClassName: (params) => {
@@ -1036,46 +1056,29 @@ function CustomerList() {
               }) 
             : "—";
 
-          // Create tooltip text with a fallback for undefined or invalid values
-          const tooltipText = isValidDate
-            ? `Customer created on: ${date.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}`
-            : "Creation date not available";
-
           return (
-            <Tooltip title={tooltipText}>
-              <Typography variant="body2">{formattedDate}</Typography>
-            </Tooltip>
+            <Typography variant="body2">{formattedDate}</Typography>
           );
         },
-      },
-      {
+      },      {
         field: "cus_email",
         headerName: "EMAIL",
         width: 200,
         sortable: true,
         renderCell: (params) => (
-          <Tooltip title={params.value || "No email specified"}>
-            <Typography
-              variant="body2"
-              sx={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: 180,
-              }}
-            >
-              {params.value || "—"}
-            </Typography>
-          </Tooltip>
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: 180,
+            }}
+          >
+            {params.value || "—"}
+          </Typography>
         ),
-      },
-      {
+      },      {
         field: "cus_address",
         headerName: "ADDRESS",
         width: 200,
@@ -1090,23 +1093,18 @@ function CustomerList() {
             .join(", ");
 
           return (
-            <Tooltip
-              title={fullAddress || "No address specified"}
-              placement="top-start"
+            <Typography
+              variant="body2"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: 180,
+                textAlign: "left",
+              }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: 180,
-                  textAlign: "left",
-                }}
-              >
-                {fullAddress || "—"}
-              </Typography>
-            </Tooltip>
+              {fullAddress || "—"}
+            </Typography>
           );
         },
       },

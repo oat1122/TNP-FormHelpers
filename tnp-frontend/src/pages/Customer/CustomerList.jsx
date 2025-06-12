@@ -81,7 +81,6 @@ import FilterTags from "./FilterTags";
 import ScrollContext from "./ScrollContext";
 import ScrollTopButton from "./ScrollTopButton";
 import ColumnVisibilitySelector from "./ColumnVisibilitySelector";
-import ColumnProfileManager from "./ColumnProfileManager";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -1133,16 +1132,7 @@ function CustomerList() {
       handleDisableChangeGroupBtn,
       user.role,
     ]
-  ); // Handle applying column profile
-  const handleApplyColumnProfile = (profile) => {
-    if (profile.visibilityModel) {
-      setColumnVisibilityModel(profile.visibilityModel);
-    }
-
-    if (profile.orderModel) {
-      setColumnOrderModel(profile.orderModel);
-    }
-  };
+  );
 
   // Custom toolbar component
   function CustomToolbar() {
@@ -1162,15 +1152,8 @@ function CustomerList() {
             รายการลูกค้า
           </Typography>
           <SortInfoDisplay sortModel={serverSortModel} />
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 1 }}>
+        </Box>        <Box sx={{ display: "flex", gap: 1 }}>
           <ColumnVisibilitySelector columns={columns} />
-          <ColumnProfileManager
-            columnVisibilityModel={columnVisibilityModel}
-            columnOrderModel={columnOrderModel}
-            onApplyProfile={handleApplyColumnProfile}
-          />
         </Box>
       </GridToolbarContainer>
     );

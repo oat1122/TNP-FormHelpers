@@ -347,16 +347,38 @@ function CustomerList() {
   const filters = useSelector((state) => state.customer.filters);
   const isLoading = useSelector((state) => state.customer.isLoading);
   const [openDialog, setOpenDialog] = useState(false);
-  const [serverSortModel, setServerSortModel] = useState([]);
-  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
-    // Default visibility settings
-    cus_created_date: true,
-    cus_email: false,
-    cus_address: false,
+  const [serverSortModel, setServerSortModel] = useState([]);  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
+    // Default visibility settings - show only the requested columns
+    cus_no: false,              // Hide ID column
+    cus_channel: true,          // Show Channel column
+    cus_manage_by: true,        // Show Sales Name column
+    cus_name: true,             // Show Customer column
+    cus_company: false,         // Hide Company column
+    cus_tel_1: true,            // Show Tel column
+    cd_note: true,              // Show Note column
+    cd_last_datetime: true,     // Show Recall column
+    cus_created_date: true,     // Show Customer Create At column
+    cus_email: false,           // Hide Email column
+    cus_address: false,         // Hide Address column
+    tools: true,                // Show Tools column
   });
-
   // State to track column order
-  const [columnOrderModel, setColumnOrderModel] = useState(null);
+  const [columnOrderModel, setColumnOrderModel] = useState([
+    // Define explicit column order as requested
+    'cus_channel',         // Channel
+    'cus_manage_by',       // Sales Name
+    'cus_name',            // Customer
+    'cus_tel_1',           // Tel
+    'cd_note',             // Note
+    'cd_last_datetime',    // Recall
+    'cus_created_date',    // Customer Create At
+    'tools',               // Tools
+    // Include other columns at the end (they'll be hidden by default)
+    'cus_no',
+    'cus_company',
+    'cus_email',
+    'cus_address'
+  ]);
 
   // Get current theme for responsive behavior
   const theme = useTheme();
@@ -1276,12 +1298,24 @@ function CustomerList() {
               sortingMode="server"
               rows={itemList}
               columns={columns}
-              getRowId={(row) => row.cus_id}
-              initialState={{
+              getRowId={(row) => row.cus_id}              initialState={{
                 pagination: { paginationModel },
                 sorting: { sortModel: serverSortModel },
                 columns: {
-                  columnVisibilityModel,
+                  columnVisibilityModel: {
+                    cus_no: false,              // Hide ID column
+                    cus_channel: true,          // Show Channel column
+                    cus_manage_by: true,        // Show Sales Name column
+                    cus_name: true,             // Show Customer column
+                    cus_company: false,         // Hide Company column
+                    cus_tel_1: true,            // Show Tel column
+                    cd_note: true,              // Show Note column
+                    cd_last_datetime: true,     // Show Recall column
+                    cus_created_date: true,     // Show Customer Create At column
+                    cus_email: false,           // Hide Email column
+                    cus_address: false,         // Hide Address column
+                    tools: true,                // Show Tools column
+                  },
                   columnOrder: columnOrderModel,
                 },
               }}

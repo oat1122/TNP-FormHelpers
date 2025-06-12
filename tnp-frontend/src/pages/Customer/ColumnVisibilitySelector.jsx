@@ -140,19 +140,18 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     
     apiRef.current.setColumnVisibilityModel(newModel);
   };
-  
-  // Default column visibility model
+    // Default column visibility model
   const defaultColumnVisibilityModel = useMemo(
     () => ({
-      cus_no: true,
+      cus_no: false,  // Hide ID column
       cus_channel: true,
-      cus_manage_by: true,
-      cus_name: true,
-      cus_company: true,
+      cus_manage_by: true, // sales name
+      cus_name: true,  // customer
+      cus_company: false,
       cus_tel_1: true,
-      cd_last_datetime: true,
+      cd_last_datetime: true, // recall
       cd_note: true,
-      cus_created_date: true,
+      cus_created_date: true, // customer create at
       cus_email: false,
       cus_address: false,
       tools: true,

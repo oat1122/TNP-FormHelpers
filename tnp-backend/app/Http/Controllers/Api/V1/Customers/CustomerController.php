@@ -104,38 +104,38 @@ class CustomerController extends Controller
                 $customer_prepared->where($search_sql);
                 $total_customers_q->where($search_sql);
             }
-            
+
             // Date Range Filter
             if ($request->has('start_date') || $request->has('end_date')) {
                 $customer_prepared->filterByDateRange($request->start_date, $request->end_date);
                 $total_customers_q->filterByDateRange($request->start_date, $request->end_date);
             }
-            
+
             // Sales Names Filter
             if ($request->has('sales_names')) {
                 $salesNames = explode(',', $request->sales_names);
                 $customer_prepared->filterBySalesNames($salesNames);
                 $total_customers_q->filterBySalesNames($salesNames);
             }
-            
+
             // Channel Filter
             if ($request->has('channels')) {
                 $channels = explode(',', $request->channels);
                 $customer_prepared->filterByChannels($channels);
                 $total_customers_q->filterByChannels($channels);
             }
-            
+
             // Recall Range Filter
             if ($request->has('min_recall_days') || $request->has('max_recall_days')) {
                 $minDays = $request->has('min_recall_days') ? (int)$request->min_recall_days : null;
                 $maxDays = $request->has('max_recall_days') ? (int)$request->max_recall_days : null;
-                
+
                 $customer_prepared->filterByRecallRange($minDays, $maxDays);
                 $total_customers_q->filterByRecallRange($minDays, $maxDays);
             }
 
             $perPage = $request->input('per_page', 10);
-            
+
             // Select fields for customer query
             $customer_prepared->select([
                 'cus_id',
@@ -163,15 +163,15 @@ class CustomerController extends Controller
                 'cus_updated_date',
                 'cus_is_use'
             ]);
-            
+
             // Apply server-side sorting if provided
             if ($request->has('sort_field') && $request->has('sort_direction')) {
                 $sortField = $request->sort_field;
                 $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
-                
+
                 // Check joins to avoid duplicates
                 $joins = collect($customer_prepared->getQuery()->joins)->pluck('table')->toArray();
-                
+
                 // Handle special case for fields in related models
                 if ($sortField === 'cus_manage_by') {
                     // For sales name sorting, we need a join with users table
@@ -179,7 +179,7 @@ class CustomerController extends Controller
                         $customer_prepared->leftJoin('users', 'master_customers.cus_manage_by', '=', 'users.user_id');
                     }
                     $customer_prepared->orderBy('users.username', $sortDirection);
-                } 
+                }
                 elseif ($sortField === 'cd_last_datetime') {
                     // For recall date sorting, we need a join with customer_details (correct table name)
                     if (!in_array('customer_details', $joins)) {
@@ -202,7 +202,7 @@ class CustomerController extends Controller
                 // Default ordering
                 $customer_prepared->orderBy('master_customers.cus_no', 'desc');
             }
-            
+
             // Execute the query with pagination
             $customer_q = $customer_prepared->paginate($perPage);
             $customer_r = CustomerResource::collection($customer_q);

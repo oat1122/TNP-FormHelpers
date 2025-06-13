@@ -15,8 +15,8 @@ export const globalApi = createApi({
         };
 
         const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString ? `/locations?${queryString}` : '/locations';
-    
+        const url = queryString ? `/locations?${queryString}` : "/locations";
+
         return {
           url: url,
           method: "GET",
@@ -25,15 +25,17 @@ export const globalApi = createApi({
     }),
     getUserByRole: builder.query({
       query: (payload) => ({
-          url: payload ? `/get-users-by-role?role=${payload}` : '/get-users-by-role',
-          method: "GET",
+        url: payload
+          ? `/get-users-by-role?role=${payload}`
+          : "/get-users-by-role",
+        method: "GET",
       }),
     }),
     getAllCustomer: builder.query({
-      query: () => `get-all-customers`
+      query: () => `get-all-customers`,
     }),
     getAllProductCate: builder.query({
-      query: () => `get-all-product-categories`
+      query: () => `get-all-product-categories`,
     }),
     getStatusByType: builder.query({
       query: (status_type) => `/get-status-by-type/${status_type}`,

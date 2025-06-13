@@ -223,13 +223,13 @@ function DialogForm(props) {
   );
   const validateForm = () => {
     const form = formRef.current;
-    
+
     // Validate business type manually (required field check)
     const newErrors = {};
     if (!inputList.cus_bt_id) {
       newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจ";
     }
-    
+
     if (form.checkValidity() && !newErrors.cus_bt_id) {
       return true;
     } else {
@@ -421,7 +421,8 @@ function DialogForm(props) {
                       ))}
                   </StyledSelect>
                 </Grid>
-              )}              <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
+              )}{" "}
+              <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
                 <StyledSelect
                   required
                   fullWidth
@@ -450,7 +451,8 @@ function DialogForm(props) {
                 <FormHelperText error>
                   {errors.cus_channel && "กรุณาเลือกช่องทางการติดต่อ"}
                 </FormHelperText>
-              </Grid>              <Grid size={{ xs: 12, md: 5 }}>
+              </Grid>{" "}
+              <Grid size={{ xs: 12, md: 5 }}>
                 <StyledSelect
                   required
                   fullWidth
@@ -478,28 +480,26 @@ function DialogForm(props) {
                       autoFocus
                       placeholder="ค้นหาประเภทธุรกิจ..."
                       style={{
-                        width: '100%',
-                        padding: '8px',
-                        boxSizing: 'border-box',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
+                        width: "100%",
+                        padding: "8px",
+                        boxSizing: "border-box",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
                       }}
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                       onChange={(e) => {
                         const searchValue = e.target.value.toLowerCase();
-                        const filteredList = businessTypesData?.filter(item => 
-                          item.bt_name.toLowerCase().includes(searchValue)
-                        ) || [];
+                        const filteredList =
+                          businessTypesData?.filter((item) =>
+                            item.bt_name.toLowerCase().includes(searchValue)
+                          ) || [];
                         setBusinessTypesList(filteredList);
                       }}
                     />
                   </MenuItem>
                   {businessTypesList.map((item) => (
-                    <MenuItem
-                      key={item.bt_id}
-                      value={item.bt_id}
-                    >
+                    <MenuItem key={item.bt_id} value={item.bt_id}>
                       {item.bt_name}
                     </MenuItem>
                   ))}
@@ -521,7 +521,6 @@ function DialogForm(props) {
                   inputProps={{ style: { textAlign: "-webkit-center" } }}
                 />
               </Grid>
-
               {mode !== "create" && (
                 <Grid size={{ xs: 6, md: 2 }}>
                   <StyledOutlinedInput
@@ -538,7 +537,6 @@ function DialogForm(props) {
                   />
                 </Grid>
               )}
-
               <Grid size={12}>
                 <StyledOutlinedInput
                   fullWidth
@@ -556,7 +554,6 @@ function DialogForm(props) {
                   {errors.cus_company && "กรุณากรอกชื่อบริษัท"}
                 </FormHelperText>
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>
                   <label style={{ color: "red", marginRight: 1 }}>*</label>
@@ -601,7 +598,6 @@ function DialogForm(props) {
                   {errors.cus_lastname && "กรุณากรอกนามสกุล "}
                 </FormHelperText>
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>
                   <label style={{ color: "red", marginRight: 1 }}>*</label>
@@ -638,7 +634,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>
                   <label style={{ color: "red", marginRight: 1 }}>*</label>เบอร์
@@ -674,7 +669,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>อีเมล</StyledLabel>
               </Grid>
@@ -689,7 +683,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>เลขผู้เสียภาษี</StyledLabel>
               </Grid>
@@ -704,7 +697,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>ที่อยู่</StyledLabel>
               </Grid>
@@ -719,7 +711,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Select
                   // required
@@ -800,7 +791,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid size={12}>
                 <StyledOutlinedInput
                   fullWidth
@@ -813,7 +803,6 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                 />
               </Grid>
-
               <Grid size={12}>
                 <StyledOutlinedInput
                   fullWidth

@@ -58,7 +58,7 @@ Route::prefix('v1')->group(function() {
         //---------- Worksheet ----------
         'worksheets' => WorksheetController::class,
         'shirt-patterns' => ShirtPatternController::class,
-        
+
         //---------- Location ----------
         'locations' => LocationController::class,
 
@@ -69,16 +69,16 @@ Route::prefix('v1')->group(function() {
         'pricing' => PricingController::class,
     ]);
 
-    
-    //---------- User Management ---------- 
+
+    //---------- User Management ----------
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
         Route::get("/get-users-by-role", "get_users_by_role");
-    
+
         Route::post("/signup", "signup");
         // Route::post("/login", "login");
         Route::post("user/{username}", "userDetail");
-    
+
         Route::put("/user/{id}", "update");
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
@@ -86,7 +86,7 @@ Route::prefix('v1')->group(function() {
     });
 
 
-    //---------- start Monitor Production ---------- 
+    //---------- start Monitor Production ----------
     Route::controller(ProductionController::class)->group(function () {
         Route::get('/getProduction', 'getProduction');
         Route::get('/getFactory', 'getFactory');
@@ -97,17 +97,17 @@ Route::prefix('v1')->group(function() {
         Route::get('/getEnumEmbroid', 'getEnumEmbroid');
         Route::get('/getEnumScreen', 'getEnumScreen');
         Route::get('/getEnumDft', 'getEnumDft');
-        
+
         Route::post('/updateBlock/{id}', 'updateBlock');
     });
 
     Route::controller(ProductionCostController::class)->group(function () {
         Route::get('/getCost/{id}', 'getCost');
-    
+
         Route::post('/updateCost/{id}', 'updateCost');
         Route::post('/updateCost', 'updateCost');
     });
-    //---------- end Monitor Production ---------- 
+    //---------- end Monitor Production ----------
 
 
     //---------- Cost Calculator ----------
@@ -134,7 +134,7 @@ Route::prefix('v1')->group(function() {
 
     //---------- Customer ----------
     Route::put('/customerRecall/{id}', [CustomerController::class, 'recall']);
-    
+
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {
         Route::put('/pricing-update-status', 'update_status');

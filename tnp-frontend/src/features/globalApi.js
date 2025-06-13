@@ -38,6 +38,9 @@ export const globalApi = createApi({
     getStatusByType: builder.query({
       query: (status_type) => `/get-status-by-type/${status_type}`,
     }),
+    getAllBusinessTypes: builder.query({
+      query: () => `/get-all-business-types`,
+    }),
   }),
 });
 
@@ -48,4 +51,5 @@ export const {
   useGetAllCustomerQuery,
   useGetAllProductCateQuery,
   useGetStatusByTypeQuery,
+  useGetAllBusinessTypesQuery,
 } = globalApi;

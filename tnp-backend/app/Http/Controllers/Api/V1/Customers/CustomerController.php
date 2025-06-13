@@ -142,6 +142,7 @@ class CustomerController extends Controller
                 'cus_mcg_id',
                 'cus_no',
                 'cus_channel',
+                'cus_bt_id',
                 'cus_company',
                 'cus_firstname',
                 'cus_lastname',

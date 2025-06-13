@@ -36,6 +36,7 @@ import {
   useGetAllLocationQuery,
   useLazyGetAllLocationQuery,
   useGetUserByRoleQuery,
+  useGetAllBusinessTypesQuery,
 } from "../../features/globalApi";
 import {
   open_dialog_ok_timer,
@@ -95,6 +96,7 @@ function DialogForm(props) {
   const [districtList, setDistrictList] = useState([]);
   const [subDistrictList, setSubDistrictList] = useState([]);
   const [salesList, setSalesList] = useState([]);
+  const [businessTypesList, setBusinessTypesList] = useState([]);
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
   const {
@@ -107,6 +109,11 @@ function DialogForm(props) {
     error: roleError,
     isFetching: roleIsFetching,
   } = useGetUserByRoleQuery("sale", { skip: !props.openDialog });
+  const {
+    data: businessTypesData,
+    error: businessTypesError,
+    isFetching: businessTypesIsFetching,
+  } = useGetAllBusinessTypesQuery(undefined, { skip: !props.openDialog });
   const [saveLoading, setSaveLoading] = useState(false);
   const formRef = useRef(null);
   const [errors, setErrors] = useState({});
@@ -214,14 +221,19 @@ function DialogForm(props) {
     },
     [inputList, provincesList, districtList, subDistrictList, setLocationSearch]
   );
-
   const validateForm = () => {
     const form = formRef.current;
-    if (form.checkValidity()) {
+    
+    // Validate business type manually (required field check)
+    const newErrors = {};
+    if (!inputList.cus_bt_id) {
+      newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจ";
+    }
+    
+    if (form.checkValidity() && !newErrors.cus_bt_id) {
       return true;
     } else {
       // อัปเดต error state ตาม input ที่ยังไม่ได้กรอก
-      const newErrors = {};
       form.querySelectorAll(":invalid").forEach((input) => {
         newErrors[input.name] = input.validationMessage;
       });
@@ -332,12 +344,18 @@ function DialogForm(props) {
   }, [userRoleData]);
 
   useEffect(() => {
-    if (isFetching || roleIsFetching) {
+    if (businessTypesData) {
+      setBusinessTypesList(businessTypesData);
+    }
+  }, [businessTypesData]);
+
+  useEffect(() => {
+    if (isFetching || roleIsFetching || businessTypesIsFetching) {
       open_dialog_loading();
     } else {
       Swal.close(); // Close loading when fetching stops
     }
-  }, [isFetching, roleIsFetching]);
+  }, [isFetching, roleIsFetching, businessTypesIsFetching]);
 
   return (
     <Dialog
@@ -403,9 +421,7 @@ function DialogForm(props) {
                       ))}
                   </StyledSelect>
                 </Grid>
-              )}
-
-              <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
+              )}              <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
                 <StyledSelect
                   required
                   fullWidth
@@ -433,6 +449,63 @@ function DialogForm(props) {
                 </StyledSelect>
                 <FormHelperText error>
                   {errors.cus_channel && "กรุณาเลือกช่องทางการติดต่อ"}
+                </FormHelperText>
+              </Grid>              <Grid size={{ xs: 12, md: 5 }}>
+                <StyledSelect
+                  required
+                  fullWidth
+                  displayEmpty
+                  size="small"
+                  sx={{ textTransform: "uppercase", textAlign: "start" }}
+                  readOnly={mode === "view" || businessTypesIsFetching}
+                  name="cus_bt_id"
+                  value={inputList.cus_bt_id || ""}
+                  onChange={handleInputChange}
+                  error={!!errors.cus_bt_id}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem disabled value="">
+                    ประเภทธุรกิจ
+                  </MenuItem>
+                  <MenuItem>
+                    <input
+                      autoFocus
+                      placeholder="ค้นหาประเภทธุรกิจ..."
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        boxSizing: 'border-box',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const searchValue = e.target.value.toLowerCase();
+                        const filteredList = businessTypesData?.filter(item => 
+                          item.bt_name.toLowerCase().includes(searchValue)
+                        ) || [];
+                        setBusinessTypesList(filteredList);
+                      }}
+                    />
+                  </MenuItem>
+                  {businessTypesList.map((item) => (
+                    <MenuItem
+                      key={item.bt_id}
+                      value={item.bt_id}
+                    >
+                      {item.bt_name}
+                    </MenuItem>
+                  ))}
+                </StyledSelect>
+                <FormHelperText error>
+                  {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}
                 </FormHelperText>
               </Grid>
               <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>

@@ -143,6 +143,7 @@ Route::prefix('v1')->group(function() {
     //---------- Global ----------
     Route::controller(GlobalController::class)->group(function () {
         Route::get('/get-all-product-categories', 'get_all_product_categories');
+        Route::get('/get-all-business-types', 'get_all_business_types');
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
     });
 });

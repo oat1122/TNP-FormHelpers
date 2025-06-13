@@ -62,6 +62,7 @@ class MasterCustomer extends Model
 		'cus_mcg_id',
 		'cus_no',
 		'cus_channel',		// [1=sales, 2=online, 3=office]
+		'cus_bt_id',       // Business Type ID
 		'cus_firstname',
 		'cus_lastname',
 		'cus_name',
@@ -196,4 +197,10 @@ class MasterCustomer extends Model
 		return $this->belongsTo(MasterSubdistrict::class, 'cus_sub_id', 'sub_id')
 			->select('sub_id', 'sub_dis_sort_id', 'sub_sort_id', 'sub_name_th', 'sub_zip_code');
     }
+
+	public function businessType()
+	{
+		return $this->belongsTo(MasterBusinessType::class, 'cus_bt_id', 'bt_id')
+			->select('bt_id', 'bt_name');
+	}
 }

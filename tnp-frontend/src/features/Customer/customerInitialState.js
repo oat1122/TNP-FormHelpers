@@ -5,11 +5,11 @@ export default {
   groupSelected: "all",
   isLoading: false,
   error: null,
-  paginationModel: { pageSize: 30, page: 0 },
-  inputList: {
+  paginationModel: { pageSize: 30, page: 0 },  inputList: {
     cus_mcg_id: "",
     cus_no: "",
     cus_channel: "",
+    cus_bt_id: "",
     cus_firstname: "",
     cus_lastname: "",
     cus_name: "",

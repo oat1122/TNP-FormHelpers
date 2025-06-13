@@ -34,6 +34,8 @@ class CustomerResource extends JsonResource
             'cus_mcg_id' => $this->cus_mcg_id,
             'cus_no' => $cus_no_r,
             'cus_channel' => $this->cus_channel ?? '',
+            'cus_bt_id' => $this->cus_bt_id ?? '',
+            'business_type' => $this->businessType ? $this->businessType->bt_name : '',
             'cus_firstname' => $this->cus_firstname ?? '',
             'cus_lastname' => $this->cus_lastname ?? '',
             'cus_name' => $this->cus_name ?? '',

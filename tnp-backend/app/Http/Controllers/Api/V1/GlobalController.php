@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\MasterBusinessType;
 use App\Models\MasterDistrict;
 use App\Models\MasterProductCategory;
 use App\Models\MasterProvice;
@@ -12,6 +13,14 @@ use Illuminate\Http\Request;
 
 class GlobalController extends Controller
 {
+    public function get_all_business_types()
+    {
+        return MasterBusinessType::active()
+            ->orderBy('bt_sort', 'asc')
+            ->select('bt_id', 'bt_name')
+            ->get();
+    }
+
     public function get_all_product_categories()
     {
         return MasterProductCategory::where('mpc_is_deleted', false)

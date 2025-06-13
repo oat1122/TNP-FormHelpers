@@ -393,11 +393,11 @@ const channelMap = {
 const SortInfoDisplay = ({ sortModel }) => {
   if (!sortModel || sortModel.length === 0) {
     return null;
-  }
-  const fieldMap = {
+  }  const fieldMap = {
     cus_no: "รหัสลูกค้า",
     cus_channel: "ช่องทาง",
-    business_type: "ประเภทธุรกิจ",
+    cus_bt_id: "ประเภทธุรกิจ",
+    business_type: "ประเภทธุรกิจ", // Keep for backward compatibility
     cus_manage_by: "ชื่อเซลล์",
     cus_name: "ชื่อลูกค้า",
     cus_company: "ชื่อบริษัท",
@@ -549,12 +549,19 @@ function CustomerList() {
       }
     }
   }, [tableContainerRef]);
-
   // Handle changes in the sort model
   const handleSortModelChange = (newModel) => {
     // Only update if the sort model actually changed
     if (JSON.stringify(newModel) !== JSON.stringify(serverSortModel)) {
-      setServerSortModel(newModel);
+      // Map business_type to cus_bt_id for sorting
+      const processedModel = newModel.map(item => {
+        if (item.field === 'business_type') {
+          return { ...item, field: 'cus_bt_id' };
+        }
+        return item;
+      });
+      
+      setServerSortModel(processedModel);
       // Reset to first page when sorting changes
       const newPaginationModel = { ...paginationModel, page: 0 };
       dispatch(setPaginationModel(newPaginationModel));
@@ -1208,12 +1215,18 @@ function CustomerList() {
             </Tooltip>
           );
         },
-      },
-      {
+      },      {
         field: "business_type",
         headerName: "BUSINESS TYPE",
         width: 180,
         sortable: true,
+        // Change the sort field to cus_bt_id instead of business_type
+        sortComparator: (v1, v2, param1, param2) => {
+          // Use cus_bt_id for backend sorting
+          const cellParams = { id: param1.api.getCellParams(param1.id, 'cus_bt_id') };
+          const cellParams2 = { id: param2.api.getCellParams(param2.id, 'cus_bt_id') };
+          return param1.api.sortRowsLookup[cellParams.id] - param1.api.sortRowsLookup[cellParams2.id];
+        },
         renderCell: (params) => (
           <Typography
             variant="body2"
@@ -1367,13 +1380,12 @@ function CustomerList() {
         minWidth: 280,
         sortable: false,
         type: "actions",
-        getActions: (params) => [
-          <GridActionsCellItem
+        getActions: (params) => [          <GridActionsCellItem
             icon={<PiClockClockwise style={{ fontSize: 22, color: theme.palette.info.main }} />}
             label="Recall"
             onClick={() => handleRecall(params.row)}
             showInMenu={false}
-            tooltipText="Reset recall timer"
+            tooltipTitle="Reset recall timer"
             sx={{
               border: `1px solid ${theme.palette.info.main}22`,
               borderRadius: '50%',
@@ -1399,8 +1411,7 @@ function CustomerList() {
               label="Change Grade Up"
               onClick={() => handleChangeGroup(true, params.row)}
               disabled={false}
-              showInMenu={false}
-              tooltipText="Change grade up"
+              showInMenu={false}              tooltipTitle="Change grade up"
               sx={{
                 border: `1px solid ${theme.palette.success.main}22`,
                 borderRadius: '50%',
@@ -1429,8 +1440,7 @@ function CustomerList() {
               label="Change Grade Down"
               onClick={() => handleChangeGroup(false, params.row)}
               disabled={false}
-              showInMenu={false}
-              tooltipText="Change grade down"
+              showInMenu={false}              tooltipTitle="Change grade down"
               sx={{
                 border: `1px solid ${theme.palette.warning.main}22`,
                 borderRadius: '50%',
@@ -1447,8 +1457,7 @@ function CustomerList() {
             icon={<MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />}
             label="View"
             onClick={() => handleOpenDialog("view", params.id)}
-            showInMenu={false}
-            tooltipText="View details"
+            showInMenu={false}            tooltipTitle="View details"
             sx={{
               border: `1px solid ${theme.palette.primary.main}22`,
               borderRadius: '50%',
@@ -1464,8 +1473,7 @@ function CustomerList() {
             icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
             label="Edit"
             onClick={() => handleOpenDialog("edit", params.id)}
-            showInMenu={false}
-            tooltipText="Edit customer"
+            showInMenu={false}            tooltipTitle="Edit customer"
             sx={{
               border: `1px solid ${theme.palette.secondary.main}22`,
               borderRadius: '50%',
@@ -1481,8 +1489,7 @@ function CustomerList() {
             icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
-            showInMenu={false}
-            tooltipText="Delete customer"
+            showInMenu={false}            tooltipTitle="Delete customer"
             sx={{
               border: `1px solid ${theme.palette.error.main}22`,
               borderRadius: '50%',

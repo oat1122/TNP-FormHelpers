@@ -17,6 +17,7 @@ const WorksheetList = lazy(() => import("./pages/Worksheet/WorksheetList"));
 const WorksheetCreate = lazy(() => import("./pages/Worksheet/WorksheetCreate"));
 const CustomerList = lazy(() => import("./pages/Customer/CustomerList"));
 const Testing = lazy(() => import("./components/Testing"));
+const TestToast = lazy(() => import("./pages/TestToast"));
 const UserList = lazy(() => import("./pages/UserManagement/UserList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
@@ -31,11 +32,11 @@ function App() {
         </div>
       }>
         <Routes>
-          <Route element={<AuthLayout />}>
-            <Route path="/" element={<ControlPanel />} />
+          <Route element={<AuthLayout />}>          <Route path="/" element={<ControlPanel />} />
             <Route path="/monitor" element={<GridCard />} />
             <Route path="/log" element={<ShowLog />} />
             <Route path="/signup" element={<AppRegister />} />
+            <Route path="/toast-test" element={<TestToast />} />
 
             <Route path="/shirt-price" element={<FabricMain />} />
             <Route path="/user-management" element={<UserList />} />

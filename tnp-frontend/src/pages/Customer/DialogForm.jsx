@@ -361,12 +361,30 @@ function DialogForm(props) {
       setSubDistrictList(locations.master_subdistrict);
     }
   }, [locations]);
-
   useEffect(() => {
     if (userRoleData) {
       setSalesList(userRoleData.sale_role);
+      
+      // Check if the current user_id from inputList.cus_manage_by exists in salesList
+      // If it doesn't exist and mode is edit/view, update the value to avoid out-of-range errors
+      if (mode === 'edit' || mode === 'view') {
+        const currentManagerId = inputList.cus_manage_by?.user_id;
+        
+        if (currentManagerId && 
+            currentManagerId !== "" &&
+            !userRoleData.sale_role.some(user => user.user_id === currentManagerId)) {
+          // The selected manager ID doesn't exist in the available options, reset it
+          console.warn(`Selected user_id=${currentManagerId} not found in available sales list. Resetting value.`);
+          dispatch(
+            setInputList({
+              ...inputList,
+              cus_manage_by: { user_id: "" }
+            })
+          );
+        }
+      }
     }
-  }, [userRoleData]);
+  }, [userRoleData, inputList.cus_manage_by?.user_id, mode]);
 
   useEffect(() => {
     if (businessTypesData) {

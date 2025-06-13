@@ -239,7 +239,7 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
 
 // Custom component for page size selection
 const PageSizeSelector = ({ value, onChange }) => {
-  const pageSizeOptions = [10, 30, 50, 80];
+  const pageSizeOptions = [30, 50, 80, 100];
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

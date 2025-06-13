@@ -13,11 +13,10 @@ function FilterTab() {
   const totalCount = useSelector((state) => state.customer.totalCount);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const { scrollToTop } = useContext(ScrollContext);
-
   const handleSelectGroup = (event, newVal) => {
     if (newVal !== null) {
       dispatch(setGroupSelected(newVal));
-      dispatch(setPaginationModel({ page: 0, pageSize: 10 }));
+      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
       // Scroll to top when changing groups
       scrollToTop();
     }

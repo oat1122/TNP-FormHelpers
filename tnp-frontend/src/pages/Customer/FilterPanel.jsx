@@ -126,9 +126,9 @@ class AdapterBuddhistDayjs extends AdapterDayjs {
 
 // Channel options
 const channelOptions = [
-  { value: "1", label: "Sales", icon: <MdPerson />, color: "#940c0c" },
-  { value: "2", label: "Online", icon: <MdLanguage />, color: "#b71c1c" },
-  { value: "3", label: "Office", icon: <MdBusiness />, color: "#c62828" },
+  { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
+  { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
+  { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
 ];
 
 function FilterPanel() {
@@ -588,7 +588,8 @@ function FilterPanel() {
                 sx={{
                   fontWeight: 600,
                   borderRadius: "16px",
-                  px: 0.5,                  background:
+                  px: 0.5,
+                  background:
                     filteredCount > 0
                       ? "linear-gradient(135deg, #b71c1c 0%, #940c0c 100%)"
                       : "rgba(0, 0, 0, 0.08)",
@@ -629,7 +630,9 @@ function FilterPanel() {
             <Grid container spacing={3}>
               {" "}
               {/* Date Filter */}
-              <Grid xs={12} md={6} lg={4}>                <Paper
+              <Grid xs={12} md={6} lg={4}>
+                {" "}
+                <Paper
                   elevation={3}
                   sx={{
                     p: 2.8,
@@ -891,7 +894,8 @@ function FilterPanel() {
                                   borderWidth: "1.5px",
                                 },
                             },
-                          },                          day: {
+                          },
+                          day: {
                             sx: {
                               fontWeight: "bold",
                               "&.Mui-selected": {
@@ -1206,10 +1210,11 @@ function FilterPanel() {
                                 },
                                 borderRadius: 1.5,
                                 height: 48,
-                                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                                  borderColor: "#940c0c",
-                                  borderWidth: "1.5px",
-                                },
+                                "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                  {
+                                    borderColor: "#940c0c",
+                                    borderWidth: "1.5px",
+                                  },
                               }}
                             />
                           }

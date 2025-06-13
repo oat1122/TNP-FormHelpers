@@ -83,4 +83,96 @@ class GlobalController extends Controller
     {
         //
     }
+
+    /**
+     * เพิ่มประเภทธุรกิจใหม่
+     */
+    public function store_business_type(Request $request)
+    {
+        $request->validate([
+            'bt_name' => 'required|string|max:255',
+        ]);
+
+        try {
+            // หาค่า sort สูงสุด และบวก 1 เพื่อใส่เป็นค่าลำดับล่าสุด
+            $maxSort = MasterBusinessType::max('bt_sort') ?? 0;
+            
+            $businessType = new MasterBusinessType();
+            $businessType->bt_name = $request->bt_name;
+            $businessType->bt_sort = $maxSort + 1;
+            $businessType->bt_is_use = true;
+            $businessType->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'ประเภทธุรกิจถูกเพิ่มเรียบร้อยแล้ว',
+                'data' => $businessType
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * อัพเดทประเภทธุรกิจ
+     */
+    public function update_business_type(Request $request, $id)
+    {
+        $request->validate([
+            'bt_name' => 'required|string|max:255',
+        ]);
+
+        try {
+            $businessType = MasterBusinessType::findOrFail($id);
+            $businessType->bt_name = $request->bt_name;
+            $businessType->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'อัพเดทประเภทธุรกิจเรียบร้อยแล้ว',
+                'data' => $businessType
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ลบประเภทธุรกิจ (soft delete)
+     */
+    public function delete_business_type($id)
+    {
+        try {
+            $businessType = MasterBusinessType::findOrFail($id);
+            
+            // ตรวจสอบการใช้งานจากลูกค้า
+            $usageCount = $businessType->customers()->count();
+            if ($usageCount > 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ไม่สามารถลบได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่ ' . $usageCount . ' ราย'
+                ], 400);
+            }
+            
+            // Soft delete
+            $businessType->bt_is_use = false;
+            $businessType->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'ลบประเภทธุรกิจเรียบร้อยแล้ว'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

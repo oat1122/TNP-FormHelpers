@@ -101,8 +101,7 @@ function DialogForm(props) {
   const [subDistrictList, setSubDistrictList] = useState([]);
   const [salesList, setSalesList] = useState([]);
   const [businessTypesList, setBusinessTypesList] = useState([]);
-  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] =
-    useState(false);
+  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
   const {
@@ -484,9 +483,7 @@ function DialogForm(props) {
                   </FormHelperText>
                 </Grid>{" "}
                 <Grid size={{ xs: 12, md: 5 }}>
-                  <Box
-                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                  >
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                     <Box sx={{ flexGrow: 1 }}>
                       <StyledSelect
                         required
@@ -527,9 +524,7 @@ function DialogForm(props) {
                               const searchValue = e.target.value.toLowerCase();
                               const filteredList =
                                 businessTypesData?.filter((item) =>
-                                  item.bt_name
-                                    .toLowerCase()
-                                    .includes(searchValue)
+                                  item.bt_name.toLowerCase().includes(searchValue)
                                 ) || [];
                               setBusinessTypesList(filteredList);
                             }}
@@ -549,13 +544,11 @@ function DialogForm(props) {
                       <IconButton
                         color="primary"
                         size="small"
-                        sx={{
+                        sx={{ 
                           mt: 0.5,
-                          bgcolor: (theme) =>
-                            theme.vars.palette.grey.outlinedInput,
-                          border: "1px solid",
-                          borderColor: (theme) =>
-                            theme.vars.palette.grey.outlinedInput,
+                          bgcolor: (theme) => theme.vars.palette.grey.outlinedInput,
+                          border: '1px solid',
+                          borderColor: (theme) => theme.vars.palette.grey.outlinedInput,
                         }}
                         disabled={mode === "view"}
                         onClick={handleOpenBusinessTypeManager}
@@ -572,9 +565,7 @@ function DialogForm(props) {
                     size="small"
                     value={
                       inputList.cus_created_date
-                        ? moment(inputList.cus_created_date).format(
-                            "DD/MM/YYYY"
-                          )
+                        ? moment(inputList.cus_created_date).format("DD/MM/YYYY")
                         : moment().format("DD/MM/YYYY")
                     }
                     inputProps={{ style: { textAlign: "-webkit-center" } }}
@@ -695,8 +686,7 @@ function DialogForm(props) {
                 </Grid>
                 <Grid display={{ xs: "none", md: "block" }} size={2}>
                   <StyledLabel>
-                    <label style={{ color: "red", marginRight: 1 }}>*</label>
-                    เบอร์
+                    <label style={{ color: "red", marginRight: 1 }}>*</label>เบอร์
                   </StyledLabel>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>

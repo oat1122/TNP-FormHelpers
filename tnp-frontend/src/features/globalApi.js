@@ -43,6 +43,29 @@ export const globalApi = createApi({
     getAllBusinessTypes: builder.query({
       query: () => `/get-all-business-types`,
     }),
+    addBusinessType: builder.mutation({
+      query: (payload) => ({
+        url: `/business-types`,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Global"],
+    }),
+    updateBusinessType: builder.mutation({
+      query: (payload) => ({
+        url: `/business-types/${payload.bt_id}`,
+        method: "PUT",
+        body: payload,
+      }),
+      invalidatesTags: ["Global"],
+    }),
+    deleteBusinessType: builder.mutation({
+      query: (bt_id) => ({
+        url: `/business-types/${bt_id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Global"],
+    }),
   }),
 });
 
@@ -54,4 +77,7 @@ export const {
   useGetAllProductCateQuery,
   useGetStatusByTypeQuery,
   useGetAllBusinessTypesQuery,
+  useAddBusinessTypeMutation,
+  useUpdateBusinessTypeMutation,
+  useDeleteBusinessTypeMutation,
 } = globalApi;

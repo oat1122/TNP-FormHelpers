@@ -144,6 +144,9 @@ Route::prefix('v1')->group(function() {
     Route::controller(GlobalController::class)->group(function () {
         Route::get('/get-all-product-categories', 'get_all_product_categories');
         Route::get('/get-all-business-types', 'get_all_business_types');
+        Route::post('/business-types', 'store_business_type');
+        Route::put('/business-types/{id}', 'update_business_type');
+        Route::delete('/business-types/{id}', 'delete_business_type');
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
     });
 });

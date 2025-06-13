@@ -93,14 +93,20 @@ import {
   open_dialog_error,
 } from "../../utils/import_lib";
 
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-  "& .MuiDataGrid-columnHeader": {
+const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-columnHeader": {
     backgroundColor: theme.palette.error.dark,
     color: theme.palette.common.white,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      backgroundColor: theme.palette.error.main,
+    }
   },
 
   "& .MuiDataGrid-columnHeaderTitleContainer": {
     justifyContent: "center",
+    fontSize: "0.95rem",
+    fontWeight: "bold",
+    letterSpacing: "0.5px",
   },
 
   "& .MuiDataGrid-row--borderBottom .MuiDataGrid-columnHeader": {
@@ -118,23 +124,43 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-iconSeparator": {
     display: "none",
   },
-
   "& .MuiDataGrid-row": {
     backgroundColor: theme.vars.palette.grey.main,
     borderRadius: theme.shape.borderRadius,
     marginTop: 10,
+    transition: "all 0.2s ease",
     "&:hover": {
       backgroundColor: theme.vars.palette.grey.light,
-      transition: "background-color 0.2s ease",
+      transform: "translateY(-2px)",
+      boxShadow: "0 4px 8px rgba(0,0,0,0.08)",
     },
-  },
-  "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
+  },  "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
     padding: "8px 16px",
     display: "flex",
     alignItems: "center",
+    fontSize: "0.95rem",
+    transition: "all 0.15s ease-in-out",
+    position: "relative",
+    "&:hover": {
+      transform: "scale(1.02)",
+    },
+    "&:focus": {
+      outline: "none",
+      backgroundColor: `${theme.palette.primary.light}11`,
+    },
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      bottom: 0,
+      left: "10%", 
+      width: "80%",
+      height: "1px",
+      backgroundColor: `${theme.palette.divider}`,
+      opacity: 0.5,
+    },
   },
 
   "& .MuiDataGrid-menuIcon > button > svg": {
@@ -157,27 +183,33 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
 
   "& .uppercase-cell": {
     textTransform: "uppercase",
-  },
-  "& .danger-days": {
+  },  "& .danger-days": {
     color: theme.vars.palette.error.main,
     fontWeight: "bold",
+    padding: "4px 8px",
+    borderRadius: "12px",
+    backgroundColor: `${theme.palette.error.light}22`,
   },
 
   "& .warning-days": {
     color: theme.vars.palette.warning.main,
     fontWeight: "bold",
+    padding: "4px 8px",
+    borderRadius: "12px",
+    backgroundColor: `${theme.palette.warning.light}22`,
   },
-
   "& .MuiDataGrid-toolbarContainer": {
     gap: 2,
-    padding: "8px 16px",
+    padding: "12px 20px",
     justifyContent: "space-between",
     backgroundColor: theme.palette.error.dark,
     borderTopLeftRadius: theme.shape.borderRadius,
     borderTopRightRadius: theme.shape.borderRadius,
-    marginBottom: 10,  },
-  
-  // Glow effect animation
+    marginBottom: 10,
+    borderBottom: "2px solid rgba(255,255,255,0.1)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  },
+    // Animations for visual appeal
   "@keyframes glow-border": {
     "0%": {
       boxShadow: `0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)`,
@@ -190,21 +222,74 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
   },
   
-  // Highlight rows based on recall days
+  // Subtle pulse animation for attention
+  "@keyframes subtle-pulse": {
+    "0%, 100%": {
+      opacity: 1,
+      transform: "scale(1)",
+    },
+    "50%": {
+      opacity: 0.95,
+      transform: "scale(1.02)",
+    },
+  },
+  
+  // Left indicator animation
+  "@keyframes slide-in-left": {
+    "from": {
+      transform: "translateX(-100%)",
+      opacity: 0,
+    },
+    "to": {
+      transform: "translateX(0)",
+      opacity: 1,
+    },
+  },
+    // Highlight rows based on recall days
   "& .high-priority-row": {
     backgroundColor: `${theme.palette.error.light}33`, // 20% opacity red for <= 7 days
     animation: "glow-border 2s ease-in-out infinite",
     border: `2px solid ${theme.palette.error.main}`,
     borderRadius: theme.shape.borderRadius,
+    position: "relative",
+    zIndex: 1,
     "&:hover": {
       backgroundColor: `${theme.palette.error.light}66`, // 40% opacity
+      transform: "translateY(-3px)",
+      boxShadow: `0 6px 12px ${theme.palette.error.light}66`,
+    },
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: -8,
+      height: "100%",
+      width: "4px",
+      backgroundColor: theme.palette.error.main,
+      borderRadius: "2px",
     },
   },
 
   "& .medium-priority-row": {
     backgroundColor: `${theme.palette.warning.light}33`, // 20% opacity yellow for <= 15 days
+    border: `1px solid ${theme.palette.warning.main}66`,
+    borderRadius: theme.shape.borderRadius,
+    position: "relative",
+    zIndex: 0,
     "&:hover": {
       backgroundColor: `${theme.palette.warning.light}66`, // 40% opacity
+      transform: "translateY(-2px)",
+      boxShadow: `0 4px 10px ${theme.palette.warning.light}66`,
+    },
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: -8,
+      height: "100%",
+      width: "4px",
+      backgroundColor: theme.palette.warning.main,
+      borderRadius: "2px",
     },
   },
 }));
@@ -241,14 +326,17 @@ const StyledPagination = styled(Pagination)(({ theme }) => ({
     width: 38,
     alignContent: "center",
   },
-
   "& .MuiPaginationItem-page.Mui-selected": {
-    backgroundColor: theme.vars.palette.grey.light,
-    borderColor: theme.vars.palette.grey.light,
-    color: theme.vars.palette.grey.dark,
+    backgroundColor: theme.vars.palette.error.light,
+    borderColor: theme.vars.palette.error.light,
+    color: theme.palette.common.white,
+    fontWeight: "bold",
+    transform: "scale(1.05)",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+    transition: "all 0.2s ease",
 
     "&:hover": {
-      backgroundColor: theme.vars.palette.grey.light,
+      backgroundColor: theme.vars.palette.error.main,
     },
   },
 }));
@@ -748,9 +836,25 @@ function CustomerList() {
         justifyContent: "center",
         height: "100%",
         color: "gray",
+        padding: 5,
+        gap: 2,
+        backgroundColor: (theme) => `${theme.palette.grey.light}33`,
+        borderRadius: 2,
       }}
     >
-      <Typography sx={{ fontSize: 18 }}>No data found.</Typography>
+      <Box sx={{ 
+        fontSize: 60, 
+        opacity: 0.5,
+        animation: "subtle-pulse 2s infinite ease-in-out",
+      }}>
+        📋
+      </Box>
+      <Typography sx={{ fontSize: 18, fontWeight: "medium" }}>
+        ไม่พบข้อมูลลูกค้า
+      </Typography>
+      <Typography variant="body2" sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}>
+        ลองใช้ตัวกรองอื่น หรือลองค้นหาด้วยคำสำคัญอื่น
+      </Typography>
     </Box>
   ); // Load saved column visibility and order settings from localStorage
   useEffect(() => {
@@ -999,10 +1103,10 @@ function CustomerList() {
         field: "cus_tel_1",
         headerName: "TEL",
         width: 140,
-        sortable: true,
-        renderCell: (params) => {
+        sortable: true,        renderCell: (params) => {
           const tel1 = params.value;
           const tel2 = params.row.cus_tel_2;
+          const hasTel = tel1 || tel2;
 
           return (
             <Box
@@ -1010,14 +1114,33 @@ function CustomerList() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
-                alignItems: "center",
+                alignItems: "center", 
                 width: "100%",
               }}
             >
-              <Typography variant="body2">{tel1 || "—"}</Typography>
-              {tel2 && (
-                <Typography variant="caption" color="text.secondary">
-                  {tel2}
+              {hasTel ? (
+                <>                  <Box sx={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: 0.5,
+                    transition: "all 0.2s ease",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    "&:hover": {
+                      backgroundColor: `${theme.palette.primary.light}22`,
+                    }
+                  }}>
+                    <Typography variant="body2">{tel1 || "—"}</Typography>
+                  </Box>
+                  {tel2 && (
+                    <Typography variant="caption" color="text.secondary">
+                      {tel2}
+                    </Typography>
+                  )}
+                </>
+              ) : (
+                <Typography variant="body2" sx={{ color: "text.disabled" }}>
+                  — ไม่มีเบอร์โทร —
                 </Typography>
               )}
             </Box>
@@ -1029,38 +1152,62 @@ function CustomerList() {
         headerName: "NOTE",
         width: 280,
         sortable: true,
-        renderCell: (params) => (
-          <Tooltip
-            title={params.value || "No notes"}
-            placement="top-start"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  bgcolor: "rgba(0, 0, 0, 0.8)",
-                  "& .MuiTooltip-arrow": {
-                    color: "rgba(0, 0, 0, 0.8)",
+      renderCell: (params) => {
+          const hasNote = params.value && params.value.trim().length > 0;
+          return (
+            <Tooltip
+              title={params.value || "ไม่มีหมายเหตุ"}
+              placement="top-start"
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: "rgba(0, 0, 0, 0.8)",
+                    "& .MuiTooltip-arrow": {
+                      color: "rgba(0, 0, 0, 0.8)",
+                    },
+                    fontSize: "0.875rem",
+                    padding: "8px 12px",
+                    maxWidth: "400px",
                   },
-                  fontSize: "0.875rem",
-                  padding: "8px 12px",
-                  maxWidth: "400px",
                 },
-              },
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: 260,
-                textAlign: "left",
               }}
             >
-              {params.value || "—"}
-            </Typography>
-          </Tooltip>
-        ),
+              <Box 
+                sx={{
+                  display: "flex", 
+                  alignItems: "center",
+                  gap: 1,
+                  width: "100%"
+                }}
+              >                {hasNote && (
+                  <Box 
+                    component="span" 
+                    sx={{
+                      width: 4,
+                      height: "100%",
+                      borderRadius: "2px",
+                      backgroundColor: theme.palette.info.main,
+                      flexShrink: 0,
+                      marginRight: 1
+                    }}
+                  />
+                )}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: 230,
+                    textAlign: "left",
+                  }}
+                >
+                  {params.value || "—"}
+                </Typography>
+              </Box>
+            </Tooltip>
+          );
+        },
       },
       {
         field: "business_type",
@@ -1086,8 +1233,7 @@ function CustomerList() {
         field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
-        sortable: true,
-        renderCell: (params) => {
+        sortable: true,          renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
             <Box
@@ -1108,8 +1254,15 @@ function CustomerList() {
                       : daysLeft <= 15
                       ? "warning.main"
                       : "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  animation: daysLeft <= 7 ? "subtle-pulse 1.5s infinite ease-in-out" : "none",
                 }}
               >
+                {daysLeft <= 7 && (
+                  <Box component="span" sx={{ fontSize: "1.2rem" }}>⚠️</Box>
+                )}
                 {`${daysLeft} DAYS`}
               </Typography>
             </Box>
@@ -1216,11 +1369,21 @@ function CustomerList() {
         type: "actions",
         getActions: (params) => [
           <GridActionsCellItem
-            icon={<PiClockClockwise style={{ fontSize: 22 }} />}
+            icon={<PiClockClockwise style={{ fontSize: 22, color: theme.palette.info.main }} />}
             label="Recall"
             onClick={() => handleRecall(params.row)}
             showInMenu={false}
             tooltipText="Reset recall timer"
+            sx={{
+              border: `1px solid ${theme.palette.info.main}22`,
+              borderRadius: '50%',
+              padding: '4px',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: `${theme.palette.info.main}22`,
+                transform: 'scale(1.1)'
+              }
+            }}
           />,
           handleDisableChangeGroupBtn(true, params.row) ? (
             // If button is disabled, don't use tooltip
@@ -1232,12 +1395,22 @@ function CustomerList() {
             />
           ) : (
             <GridActionsCellItem
-              icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
+              icon={<PiArrowFatLinesUpFill style={{ fontSize: 22, color: theme.palette.success.main }} />}
               label="Change Grade Up"
               onClick={() => handleChangeGroup(true, params.row)}
               disabled={false}
               showInMenu={false}
               tooltipText="Change grade up"
+              sx={{
+                border: `1px solid ${theme.palette.success.main}22`,
+                borderRadius: '50%',
+                padding: '4px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: `${theme.palette.success.main}22`,
+                  transform: 'scale(1.1)'
+                }
+              }}
             />
           ),
           handleDisableChangeGroupBtn(false, params.row) ||
@@ -1252,34 +1425,74 @@ function CustomerList() {
             />
           ) : (
             <GridActionsCellItem
-              icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
+              icon={<PiArrowFatLinesDownFill style={{ fontSize: 22, color: theme.palette.warning.main }} />}
               label="Change Grade Down"
               onClick={() => handleChangeGroup(false, params.row)}
               disabled={false}
               showInMenu={false}
               tooltipText="Change grade down"
+              sx={{
+                border: `1px solid ${theme.palette.warning.main}22`,
+                borderRadius: '50%',
+                padding: '4px',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: `${theme.palette.warning.main}22`,
+                  transform: 'scale(1.1)'
+                }
+              }}
             />
           ),
           <GridActionsCellItem
-            icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
+            icon={<MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />}
             label="View"
             onClick={() => handleOpenDialog("view", params.id)}
             showInMenu={false}
             tooltipText="View details"
+            sx={{
+              border: `1px solid ${theme.palette.primary.main}22`,
+              borderRadius: '50%',
+              padding: '4px',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: `${theme.palette.primary.main}22`,
+                transform: 'scale(1.1)'
+              }
+            }}
           />,
           <GridActionsCellItem
-            icon={<CiEdit style={{ fontSize: 26 }} />}
+            icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
             label="Edit"
             onClick={() => handleOpenDialog("edit", params.id)}
             showInMenu={false}
             tooltipText="Edit customer"
+            sx={{
+              border: `1px solid ${theme.palette.secondary.main}22`,
+              borderRadius: '50%',
+              padding: '4px',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: `${theme.palette.secondary.main}22`,
+                transform: 'scale(1.1)'
+              }
+            }}
           />,
           <GridActionsCellItem
-            icon={<BsTrash3 style={{ fontSize: 22 }} />}
+            icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
             showInMenu={false}
             tooltipText="Delete customer"
+            sx={{
+              border: `1px solid ${theme.palette.error.main}22`,
+              borderRadius: '50%',
+              padding: '4px',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: `${theme.palette.error.main}22`,
+                transform: 'scale(1.1)'
+              }
+            }}
           />,
         ],
       },
@@ -1310,10 +1523,27 @@ function CustomerList() {
             }}
           >
             รายการลูกค้า
-          </Typography>
-          <SortInfoDisplay sortModel={serverSortModel} />
+          </Typography>          <SortInfoDisplay sortModel={serverSortModel} />
         </Box>{" "}
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {isFetching && (
+            <Box 
+              sx={{ 
+                display: "flex", 
+                alignItems: "center", 
+                marginRight: 1,
+                color: "white",
+                fontSize: "0.75rem",
+                backgroundColor: "rgba(255,255,255,0.2)",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                gap: 1
+              }}
+            >
+              <CircularProgress size={16} thickness={5} color="inherit" />
+              <Typography variant="caption">กำลังโหลด...</Typography>
+            </Box>
+          )}
           <ColumnVisibilitySelector columns={columns} />
         </Box>
       </GridToolbarContainer>
@@ -1379,13 +1609,17 @@ function CustomerList() {
               },
             }}
           >
-            <StyledDataGrid
-              disableRowSelectionOnClick
+            <StyledDataGrid              disableRowSelectionOnClick
               paginationMode="server"
               sortingMode="server"
               rows={itemList}
               columns={columns}
-              getRowId={(row) => row.cus_id}              initialState={{
+              getRowId={(row) => row.cus_id}
+              componentsProps={{
+                row: {
+                  style: { cursor: 'pointer' }
+                }
+              }}initialState={{
                   pagination: { paginationModel },
                   sorting: { sortModel: serverSortModel },
                   columns: {
@@ -1442,6 +1676,7 @@ function CustomerList() {
 
                 return classes.join(" ");
               }}
+              onRowClick={(params) => handleOpenDialog("view", params.id)}
             />{" "}
           </Box>
         </Box>

@@ -19,6 +19,7 @@ import {
   MdDragIndicator,
   MdOutlineInfo,
   MdRestartAlt,
+  MdBusiness,
 } from "react-icons/md";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { PiClockClockwise } from "react-icons/pi";
@@ -74,12 +75,12 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  
-  // Column names in English for consistency with table headers
+    // Column names in English for consistency with table headers
   const columnLabels = useMemo(
     () => ({
       cus_no: "ID",
       cus_channel: "CHANNEL",
+      business_type: "BUSINESS TYPE",
       cus_manage_by: "SALES NAME",
       cus_name: "CUSTOMER",
       cus_company: "COMPANY NAME",
@@ -93,12 +94,12 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     }),
     []
   );
-  
-  // Column descriptions for tooltips
+    // Column descriptions for tooltips
   const columnDescriptions = useMemo(
     () => ({
       cus_no: "Customer identification number",
       cus_channel: "Sales channel or contact method",
+      business_type: "Type of customer's business",
       cus_manage_by: "Sales representative assigned to customer",
       cus_name: "Customer's name",
       cus_company: "Customer's company name",
@@ -111,12 +112,12 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     }),
     []
   );
-  
-  // Column icons for visual identification
+    // Column icons for visual identification
   const columnIcons = useMemo(
     () => ({
       cus_no: <BsCardHeading size={16} />,
       cus_channel: <BsArrowsCollapse size={16} />,
+      business_type: <MdBusiness size={16} />,
       cus_manage_by: <BsPerson size={16} />,
       cus_name: <BsPeople size={16} />,
       cus_company: <BsBuilding size={16} />,
@@ -140,11 +141,12 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     
     apiRef.current.setColumnVisibilityModel(newModel);
   };
-    // Default column visibility model
+  // Default column visibility model
   const defaultColumnVisibilityModel = useMemo(
     () => ({
       cus_no: false,  // Hide ID column
       cus_channel: true,
+      business_type: true, // business type
       cus_manage_by: true, // sales name
       cus_name: true,  // customer
       cus_company: false,
@@ -190,10 +192,8 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     apiRef.current.setColumnVisibilityModel(defaultColumnVisibilityModel);
   };  return (
     <>
-      <Tooltip title="Show/Hide Columns">
-        <Badge
+      <Tooltip title="Show/Hide Columns">        <Badge
           badgeContent={visibleColumnsCount}
-          color="primary"
           sx={{
             "& .MuiBadge-badge": {
               top: 5,
@@ -201,10 +201,11 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
               minWidth: "18px",
               height: "18px",
               fontSize: "0.7rem",
+              backgroundColor: "#900f0f",
+              color: "#ffffff",
             },
           }}
-        >
-          <Button
+        >          <Button
             variant="contained"
             color="inherit"
             startIcon={<MdViewColumn size={20} />}
@@ -216,26 +217,27 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             sx={{
               color: (theme) => theme.palette.common.white,
               ml: 1,
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              backgroundColor: "#900f0f",
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.3)",
+                backgroundColor: "#a61212",
               },
               borderRadius: "4px",
               textTransform: "none",
               fontWeight: "medium",
               fontSize: "0.9rem",
               py: 0.5,
+              boxShadow: '0 2px 5px rgba(144, 15, 15, 0.3)',
             }}
           >
             Columns
           </Button>
         </Badge>
-      </Tooltip>
-      <Menu
+      </Tooltip>      <Menu
         id="column-menu"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
+        transitionDuration={200}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -244,23 +246,48 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
           vertical: "top",
           horizontal: "right",
         }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 0.5,
+              overflow: 'visible',
+              filter: 'drop-shadow(0px 2px 8px rgba(144, 15, 15, 0.15))',
+              '&:before': {
+                content: '""',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                right: 14,
+                width: 10,
+                height: 10,
+                bgcolor: '#900f0f',
+                transform: 'translateY(-50%) rotate(45deg)',
+                zIndex: 0,
+              },
+            }
+          }
+        }}
         PaperProps={{
-          elevation: 3,
+          elevation: 5,
           style: {
             maxHeight: "70vh",
             width: "280px",
+            border: "1px solid rgba(144, 15, 15, 0.12)",
+            borderRadius: "8px",
+            overflow: "hidden",
           },
         }}
-      >
-        <Box
+      >        <Box
           sx={{
-            bgcolor: (theme) => theme.palette.primary.main,
+            bgcolor: "#900f0f",
             color: "white",
             px: 2,
             py: 1.5,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            borderTopLeftRadius: "4px",
+            borderTopRightRadius: "4px",
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -268,38 +295,62 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
               Column Settings
             </Typography>
-          </Box>
-          <Box
+          </Box>          <Box
             sx={{
-              backgroundColor: "rgba(255,255,255,0.2)",
+              backgroundColor: "rgba(255,255,255,0.25)",
               borderRadius: "16px",
               px: 1.5,
               py: 0.5,
               fontSize: "0.75rem",
               fontWeight: "bold",
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
             }}
           >
-            {visibleColumnsCount}/{columns.length - 1}
+            <Box 
+              component="span" 
+              sx={{ 
+                backgroundColor: 'white', 
+                color: '#900f0f',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '0.7rem'
+              }}
+            >
+              {visibleColumnsCount}
+            </Box>
+            <Box component="span">of {columns.length - 1}</Box>
           </Box>
-        </Box>
-        <Divider />
-        {/* Show/Hide All Controls */}
-        <Box
+        </Box>        <Divider sx={{ borderColor: 'rgba(144, 15, 15, 0.15)' }} />
+        {/* Show/Hide All Controls */}        <Box
           sx={{
             display: "flex",
             flexWrap: "wrap",
             gap: 1,
             p: 2,
-            bgcolor: "background.default",
+            bgcolor: "#fff4f4",
             justifyContent: "space-between",
           }}
-        >
-          <Button
+        ><Button
             size="small"
             onClick={handleShowAll}
-            variant="outlined"
-            color="primary"
+            variant="contained"
             startIcon={<FiEye />}
+            sx={{
+              backgroundColor: "#900f0f",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "#a61212",
+              }
+            }}
           >
             Show All
           </Button>
@@ -307,45 +358,65 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             size="small"
             onClick={handleHideAll}
             variant="outlined"
-            color="secondary"
             startIcon={<FiEyeOff />}
+            sx={{
+              borderColor: "#900f0f",
+              color: "#900f0f",
+              "&:hover": {
+                borderColor: "#a61212",
+                backgroundColor: "rgba(144, 15, 15, 0.04)",
+              }
+            }}
           >
             Hide All
           </Button>
           <Button
             size="small"
             onClick={handleResetToDefault}
-            variant="outlined"
-            color="info"
+            variant="contained"
             fullWidth
             startIcon={<MdRestartAlt />}
-            sx={{ mt: 1 }}
+            sx={{ 
+              mt: 1,
+              backgroundColor: "#737373",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "#5c5c5c",
+              }
+            }}
           >
             Reset to Default
           </Button>
         </Box>
-        <Divider />
-        <Box
+        <Divider sx={{ borderColor: 'rgba(144, 15, 15, 0.15)' }} />        <Box
           sx={{
             py: 1.5,
             px: 2,
-            backgroundColor: (theme) => theme.palette.grey[50],
+            backgroundColor: "#fef2f2", // Light red background
             borderBottom: "1px solid",
-            borderColor: "divider",
+            borderColor: "rgba(144, 15, 15, 0.2)",
             display: "flex",
             alignItems: "center",
             gap: 1,
           }}
         >
-          <MdOutlineInfo size={16} color="#666" />
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          <MdOutlineInfo size={16} color="#900f0f" />
+          <Typography variant="caption" sx={{ color: "#900f0f", fontWeight: 500 }}>
             Click on an item or checkbox to toggle column visibility
           </Typography>
         </Box>
-        {/* Column List */}
-        <Paper
+        {/* Column List */}        <Paper
           variant="outlined"
-          sx={{ mx: 1, mb: 1, overflow: "auto", maxHeight: "60vh" }}
+          sx={{ 
+            mx: 1, 
+            mb: 1, 
+            overflow: "auto", 
+            maxHeight: "60vh",
+            borderColor: "rgba(144, 15, 15, 0.12)",
+            borderRadius: "4px",
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+            backgroundColor: "#fffafa"
+          }}
         >
           {columns.map((column) => {
             // Skip columns that shouldn't be toggleable
@@ -364,8 +435,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
                 title={columnDescriptions[column.field] || ""}
                 placement="left"
                 arrow
-              >
-                <MenuItem
+              >                <MenuItem
                   onClick={() => handleToggleColumn(column.field)}
                   dense
                   sx={{
@@ -375,32 +445,38 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
                       borderBottom: "none",
                     },
                     bgcolor: isVisible
-                      ? "rgba(25, 118, 210, 0.04)"
+                      ? "rgba(144, 15, 15, 0.04)"
                       : "transparent",
                     transition: "all 0.2s ease",
                     py: 1,
+                    "&:hover": {
+                      bgcolor: "rgba(144, 15, 15, 0.08)",
+                    },
                   }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
+                >                  <ListItemIcon sx={{ minWidth: 36, color: isVisible ? "#900f0f" : "text.secondary" }}>
                     {columnIcons[column.field] || (
-                      <MdDragIndicator color="action" size={16} />
+                      <MdDragIndicator size={16} />
                     )}
-                  </ListItemIcon>
-                  <ListItemText
+                  </ListItemIcon>                  <ListItemText
                     primary={displayName}
                     sx={{
                       "& .MuiTypography-root": {
-                        fontWeight: isVisible ? 500 : 400,
+                        fontWeight: isVisible ? 600 : 400,
                         opacity: isVisible ? 1 : 0.7,
+                        color: isVisible ? "#900f0f" : "text.primary",
                       },
                     }}
-                  />
-                  <Checkbox
+                  />                  <Checkbox
                     edge="end"
                     checked={isVisible}
                     tabIndex={-1}
-                    color="primary"
                     size="small"
+                    sx={{
+                      color: "rgba(144, 15, 15, 0.5)",
+                      '&.Mui-checked': {
+                        color: "#900f0f",
+                      },
+                    }}
                   />
                 </MenuItem>
               </Tooltip>

@@ -290,10 +290,10 @@ const SortInfoDisplay = ({ sortModel }) => {
   if (!sortModel || sortModel.length === 0) {
     return null;
   }
-
   const fieldMap = {
     cus_no: "รหัสลูกค้า",
     cus_channel: "ช่องทาง",
+    business_type: "ประเภทธุรกิจ",
     cus_manage_by: "ชื่อเซลล์",
     cus_name: "ชื่อลูกค้า",
     cus_company: "ชื่อบริษัท",
@@ -366,8 +366,7 @@ function CustomerList() {
     cus_email: false, // Hide Email column
     cus_address: false, // Hide Address column
     tools: true, // Show Tools column
-  });
-  // State to track column order
+  });  // State to track column order
   const [columnOrderModel, setColumnOrderModel] = useState([
     // Define explicit column order as requested
     "cus_channel", // Channel
@@ -375,6 +374,7 @@ function CustomerList() {
     "cus_name", // Customer
     "cus_tel_1", // Tel
     "cd_note", // Note
+    "business_type", // Business Type
     "cd_last_datetime", // Recall
     "cus_created_date", // Customer Create At
     "tools", // Tools
@@ -863,8 +863,7 @@ function CustomerList() {
         width: 120,
         sortable: true,
         renderCell: (params) => <span>{params.value}</span>,
-      },
-      {
+      },      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
@@ -1045,6 +1044,26 @@ function CustomerList() {
               {params.value || "—"}
             </Typography>
           </Tooltip>
+        ),
+      },
+      {
+        field: "business_type",
+        headerName: "BUSINESS TYPE",
+        width: 180,
+        sortable: true,
+        renderCell: (params) => (
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: 160,
+              textAlign: "left",
+            }}
+          >
+            {params.value || "—"}
+          </Typography>
         ),
       },
       {
@@ -1350,19 +1369,19 @@ function CustomerList() {
               sortingMode="server"
               rows={itemList}
               columns={columns}
-              getRowId={(row) => row.cus_id}
-              initialState={{
-                pagination: { paginationModel },
-                sorting: { sortModel: serverSortModel },
-                columns: {
-                  columnVisibilityModel: {
-                    cus_no: false, // Hide ID column
-                    cus_channel: true, // Show Channel column
-                    cus_manage_by: true, // Show Sales Name column
-                    cus_name: true, // Show Customer column
-                    cus_company: false, // Hide Company column
-                    cus_tel_1: true, // Show Tel column
-                    cd_note: true, // Show Note column
+              getRowId={(row) => row.cus_id}              initialState={{
+                  pagination: { paginationModel },
+                  sorting: { sortModel: serverSortModel },
+                  columns: {
+                    columnVisibilityModel: {
+                      cus_no: false, // Hide ID column
+                      cus_channel: true, // Show Channel column
+                      business_type: true, // Show Business Type column
+                      cus_manage_by: true, // Show Sales Name column
+                      cus_name: true, // Show Customer column
+                      cus_company: false, // Hide Company column
+                      cus_tel_1: true, // Show Tel column
+                      cd_note: true, // Show Note column
                     cd_last_datetime: true, // Show Recall column
                     cus_created_date: true, // Show Customer Create At column
                     cus_email: false, // Hide Email column

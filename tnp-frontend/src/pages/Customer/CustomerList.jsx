@@ -175,11 +175,27 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: theme.palette.error.dark,
     borderTopLeftRadius: theme.shape.borderRadius,
     borderTopRightRadius: theme.shape.borderRadius,
-    marginBottom: 10,
+    marginBottom: 10,  },
+  
+  // Glow effect animation
+  "@keyframes glow-border": {
+    "0%": {
+      boxShadow: `0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)`,
+    },
+    "50%": {
+      boxShadow: `0 0 20px rgba(244, 67, 54, 0.8), inset 0 0 10px rgba(244, 67, 54, 0.3)`,
+    },
+    "100%": {
+      boxShadow: `0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)`,
+    },
   },
+  
   // Highlight rows based on recall days
   "& .high-priority-row": {
     backgroundColor: `${theme.palette.error.light}33`, // 20% opacity red for <= 7 days
+    animation: "glow-border 2s ease-in-out infinite",
+    border: `2px solid ${theme.palette.error.main}`,
+    borderRadius: theme.shape.borderRadius,
     "&:hover": {
       backgroundColor: `${theme.palette.error.light}66`, // 40% opacity
     },

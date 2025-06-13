@@ -19,7 +19,7 @@ import {
   FormHelperText,
   Tooltip,
 } from "@mui/material";
-import { MdAdd, MdSettings } from "react-icons/md";
+import { MdAdd, MdSettings, MdSearch } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
 import {
@@ -505,38 +505,90 @@ function DialogForm(props) {
                               maxHeight: 300,
                             },
                           },
+                          anchorOrigin: {
+                            vertical: "bottom",
+                            horizontal: "left",
+                          },
+                          transformOrigin: {
+                            vertical: "top",
+                            horizontal: "left",
+                          },
                         }}
                       >
                         <MenuItem disabled value="">
                           ประเภทธุรกิจ
-                        </MenuItem>
-                        <MenuItem>
-                          <input
-                            autoFocus
-                            placeholder="ค้นหาประเภทธุรกิจ..."
-                            style={{
+                        </MenuItem>{" "}
+                        <MenuItem
+                          component="div"
+                          sx={{
+                            position: "sticky",
+                            top: 0,
+                            bgcolor: "background.paper",
+                            zIndex: 1,
+                            borderBottom: "1px solid",
+                            borderBottomColor: "divider",
+                            "&:hover": {
+                              bgcolor: "background.paper",
+                            },
+                          }}
+                          disableRipple
+                          tabIndex={-1}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
                               width: "100%",
-                              padding: "8px",
-                              boxSizing: "border-box",
-                              border: "1px solid #ccc",
-                              borderRadius: "4px",
                             }}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const searchValue = e.target.value.toLowerCase();
-                              const filteredList =
-                                businessTypesData?.filter((item) =>
-                                  item.bt_name
-                                    .toLowerCase()
-                                    .includes(searchValue)
-                                ) || [];
-                              setBusinessTypesList(filteredList);
-                            }}
-                          />
+                          >
+                            <MdSearch
+                              style={{ marginLeft: 8, color: "#757575" }}
+                            />
+                            <input
+                              autoFocus
+                              placeholder="ค้นหาประเภทธุรกิจ..."
+                              style={{
+                                width: "100%",
+                                padding: "8px",
+                                boxSizing: "border-box",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                marginLeft: "4px",
+                                fontFamily: "Kanit, sans-serif",
+                                fontSize: "0.9rem",
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const searchValue =
+                                  e.target.value.toLowerCase();
+                                const filteredList =
+                                  businessTypesData?.filter((item) =>
+                                    item.bt_name
+                                      .toLowerCase()
+                                      .includes(searchValue)
+                                  ) || [];
+                                setBusinessTypesList(filteredList);
+                              }}
+                            />
+                          </Box>
                         </MenuItem>
                         {businessTypesList.map((item) => (
-                          <MenuItem key={item.bt_id} value={item.bt_id}>
+                          <MenuItem
+                            key={item.bt_id}
+                            value={item.bt_id}
+                            sx={{
+                              fontFamily: "Kanit",
+                              "&.Mui-selected": {
+                                bgcolor: (theme) =>
+                                  `${theme.vars.palette.error.main}1A`,
+                                "&:hover": {
+                                  bgcolor: (theme) =>
+                                    `${theme.vars.palette.error.main}26`,
+                                },
+                              },
+                            }}
+                          >
                             {item.bt_name}
                           </MenuItem>
                         ))}
@@ -544,7 +596,7 @@ function DialogForm(props) {
                       <FormHelperText error>
                         {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}
                       </FormHelperText>
-                    </Box>
+                    </Box>{" "}
                     <Tooltip title="จัดการประเภทธุรกิจ">
                       <IconButton
                         color="primary"
@@ -556,11 +608,17 @@ function DialogForm(props) {
                           border: "1px solid",
                           borderColor: (theme) =>
                             theme.vars.palette.grey.outlinedInput,
+                          "&:hover": {
+                            bgcolor: (theme) =>
+                              `${theme.vars.palette.error.main}1A`,
+                            borderColor: (theme) =>
+                              theme.vars.palette.error.main,
+                          },
                         }}
                         disabled={mode === "view"}
                         onClick={handleOpenBusinessTypeManager}
                       >
-                        <MdSettings />
+                        <MdSettings style={{ color: "#757575" }} />
                       </IconButton>
                     </Tooltip>
                   </Box>

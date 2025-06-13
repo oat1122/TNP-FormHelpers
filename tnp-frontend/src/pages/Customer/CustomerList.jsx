@@ -722,11 +722,10 @@ function CustomerList() {
     },
     [groupList]
   );
-
   // Render when not found data.
   const NoDataComponent = () => (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -735,8 +734,8 @@ function CustomerList() {
         color: "gray",
       }}
     >
-      <p style={{ fontSize: 18 }}>No data found.</p>
-    </div>
+      <Typography sx={{ fontSize: 18 }}>No data found.</Typography>
+    </Box>
   ); // Load saved column visibility and order settings from localStorage
   useEffect(() => {
     try {
@@ -864,14 +863,22 @@ function CustomerList() {
         width: 120,
         sortable: true,
         renderCell: (params) => <span>{params.value}</span>,
-      },      {
+      },
+      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
         sortable: true,
         cellClassName: "uppercase-cell",
         renderCell: (params) => (
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
             <Chip
               label={channelMap[params.value]}
               size="small"
@@ -889,7 +896,8 @@ function CustomerList() {
             />
           </Box>
         ),
-      },      {
+      },
+      {
         field: "cus_manage_by",
         headerName: "SALES NAME",
         sortable: true,
@@ -898,7 +906,14 @@ function CustomerList() {
         hideable: false,
         renderCell: (params) => {
           return (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
               <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
                 {params.value.username}
               </Typography>
@@ -964,7 +979,8 @@ function CustomerList() {
         renderCell: (params) => {
           return <span>{params.value || "—"}</span>;
         },
-      },      {
+      },
+      {
         field: "cus_tel_1",
         headerName: "TEL",
         width: 140,
@@ -974,7 +990,15 @@ function CustomerList() {
           const tel2 = params.row.cus_tel_2;
 
           return (
-            <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
               <Typography variant="body2">{tel1 || "—"}</Typography>
               {tel2 && (
                 <Typography variant="caption" color="text.secondary">
@@ -1022,19 +1046,33 @@ function CustomerList() {
             </Typography>
           </Tooltip>
         ),
-      },      {        field: "cd_last_datetime",
+      },
+      {
+        field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
         sortable: true,
         renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
               <Typography
                 variant="body2"
                 sx={{
                   fontWeight: daysLeft <= 15 ? "bold" : "normal",
-                  color: daysLeft <= 7 ? "error.main" : daysLeft <= 15 ? "warning.main" : "inherit",
+                  color:
+                    daysLeft <= 7
+                      ? "error.main"
+                      : daysLeft <= 15
+                      ? "warning.main"
+                      : "inherit",
                 }}
               >
                 {`${daysLeft} DAYS`}
@@ -1050,7 +1088,8 @@ function CustomerList() {
             return "warning-days";
           }
         },
-      },      {
+      },
+      {
         field: "cus_created_date",
         headerName: "CUSTOMER CREATE AT",
         width: 180,
@@ -1071,7 +1110,14 @@ function CustomerList() {
             : "—";
 
           return (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
               <Typography variant="body2">{formattedDate}</Typography>
             </Box>
           );
@@ -1134,13 +1180,13 @@ function CustomerList() {
         sortable: false,
         type: "actions",
         getActions: (params) => [
-          <Tooltip title="Reset recall timer">
-            <GridActionsCellItem
-              icon={<PiClockClockwise style={{ fontSize: 22 }} />}
-              label="Recall"
-              onClick={() => handleRecall(params.row)}
-            />
-          </Tooltip>,
+          <GridActionsCellItem
+            icon={<PiClockClockwise style={{ fontSize: 22 }} />}
+            label="Recall"
+            onClick={() => handleRecall(params.row)}
+            showInMenu={false}
+            tooltipText="Reset recall timer"
+          />,
           handleDisableChangeGroupBtn(true, params.row) ? (
             // If button is disabled, don't use tooltip
             <GridActionsCellItem
@@ -1150,16 +1196,15 @@ function CustomerList() {
               disabled={true}
             />
           ) : (
-            <Tooltip title="Change grade up">
-              <GridActionsCellItem
-                icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
-                label="Change Grade Up"
-                onClick={() => handleChangeGroup(true, params.row)}
-                disabled={false}
-              />
-            </Tooltip>
+            <GridActionsCellItem
+              icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
+              label="Change Grade Up"
+              onClick={() => handleChangeGroup(true, params.row)}
+              disabled={false}
+              showInMenu={false}
+              tooltipText="Change grade up"
+            />
           ),
-
           handleDisableChangeGroupBtn(false, params.row) ||
           user.role !== "admin" ? (
             // If button is disabled, don't use tooltip
@@ -1171,36 +1216,36 @@ function CustomerList() {
               sx={{ visibility: user.role !== "admin" ? "hidden" : "visible" }}
             />
           ) : (
-            <Tooltip title="Change grade down">
-              <GridActionsCellItem
-                icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
-                label="Change Grade Down"
-                onClick={() => handleChangeGroup(false, params.row)}
-                disabled={false}
-              />
-            </Tooltip>
+            <GridActionsCellItem
+              icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
+              label="Change Grade Down"
+              onClick={() => handleChangeGroup(false, params.row)}
+              disabled={false}
+              showInMenu={false}
+              tooltipText="Change grade down"
+            />
           ),
-          <Tooltip title="View details">
-            <GridActionsCellItem
-              icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
-              label="View"
-              onClick={() => handleOpenDialog("view", params.id)}
-            />
-          </Tooltip>,
-          <Tooltip title="Edit customer">
-            <GridActionsCellItem
-              icon={<CiEdit style={{ fontSize: 26 }} />}
-              label="Edit"
-              onClick={() => handleOpenDialog("edit", params.id)}
-            />
-          </Tooltip>,
-          <Tooltip title="Delete customer">
-            <GridActionsCellItem
-              icon={<BsTrash3 style={{ fontSize: 22 }} />}
-              label="Delete"
-              onClick={() => handleDelete(params.row)}
-            />
-          </Tooltip>,
+          <GridActionsCellItem
+            icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
+            label="View"
+            onClick={() => handleOpenDialog("view", params.id)}
+            showInMenu={false}
+            tooltipText="View details"
+          />,
+          <GridActionsCellItem
+            icon={<CiEdit style={{ fontSize: 26 }} />}
+            label="Edit"
+            onClick={() => handleOpenDialog("edit", params.id)}
+            showInMenu={false}
+            tooltipText="Edit customer"
+          />,
+          <GridActionsCellItem
+            icon={<BsTrash3 style={{ fontSize: 22 }} />}
+            label="Delete"
+            onClick={() => handleDelete(params.row)}
+            showInMenu={false}
+            tooltipText="Delete customer"
+          />,
         ],
       },
     ],
@@ -1261,35 +1306,26 @@ function CustomerList() {
             paddingBlock: 3,
           }}
         >
-          {/* Button on top table */}
-          <TableContainer>
-            <Table sx={{ marginBottom: 2 }}>
-              {" "}
-              <TableBody>
-                <TableRow>
-                  {user.role === "sale" || user.role === "admin" ? (
-                    <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
-                      <Button
-                        variant="icon-contained"
-                        color="grey"
-                        onClick={() => handleOpenDialog("create")}
-                        sx={{
-                          marginRight: 3,
-                          height: 40,
-                          padding: 0,
-                        }}
-                      >
-                        <RiAddLargeFill style={{ width: 24, height: 24 }} />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                  <TableCell sx={{ padding: 0, border: 0 }}>
-                    <FilterTab />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {/* Button on top table */}{" "}
+          <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+            {(user.role === "sale" || user.role === "admin") && (
+              <Button
+                variant="icon-contained"
+                color="grey"
+                onClick={() => handleOpenDialog("create")}
+                sx={{
+                  marginRight: 3,
+                  height: 40,
+                  padding: 0,
+                }}
+              >
+                <RiAddLargeFill style={{ width: 24, height: 24 }} />
+              </Button>
+            )}
+            <Box sx={{ flexGrow: 1 }}>
+              <FilterTab />
+            </Box>
+          </Box>
           {/* Advanced Filter Panel */}
           <FilterPanel />
           {/* Filter Tags - Shows active filters */}
@@ -1359,7 +1395,7 @@ function CustomerList() {
                   classes.push("even-row");
                 } else {
                   classes.push("odd-row");
-                }                // Add warning class if recall is approaching based on requirements
+                } // Add warning class if recall is approaching based on requirements
                 const daysLeft = formatCustomRelativeTime(
                   params.row.cd_last_datetime
                 );

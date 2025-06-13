@@ -433,7 +433,9 @@ function FilterPanel() {
           "&:hover": {
             boxShadow: "0 10px 28px rgba(0, 0, 0, 0.15)",
           },
-          border: expanded ? "2px solid #ff5252" : "1px solid rgba(0, 0, 0, 0.08)",
+          border: expanded
+            ? "2px solid #ff5252"
+            : "1px solid rgba(0, 0, 0, 0.08)",
           position: "relative",
           ...(expanded && {
             "&::after": {
@@ -444,32 +446,38 @@ function FilterPanel() {
               height: "4px",
               width: "100%",
               background: "linear-gradient(90deg, #ff5252 0%, #ff1744 100%)",
-            }
-          })
+            },
+          }),
         }}
       >
         <AccordionSummary
           expandIcon={
-            <Box sx={{ 
-              bgcolor: expanded ? 'error.main' : 'action.hover',
-              borderRadius: '50%',
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease',
-              color: expanded ? 'white' : 'text.primary'
-            }}>
+            <Box
+              sx={{
+                bgcolor: expanded ? "error.main" : "action.hover",
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+                color: expanded ? "white" : "text.primary",
+              }}
+            >
               <MdExpandMore style={{ fontSize: 20 }} />
             </Box>
           }
           sx={{
             bgcolor: expanded ? "rgba(255, 82, 82, 0.05)" : "background.paper",
-            borderBottom: expanded ? "1px solid rgba(255, 82, 82, 0.2)" : "none",
+            borderBottom: expanded
+              ? "1px solid rgba(255, 82, 82, 0.2)"
+              : "none",
             p: 1.5,
             "&:hover": {
-              bgcolor: expanded ? "rgba(255, 82, 82, 0.08)" : "rgba(0, 0, 0, 0.03)",
+              bgcolor: expanded
+                ? "rgba(255, 82, 82, 0.08)"
+                : "rgba(0, 0, 0, 0.03)",
             },
           }}
         >
@@ -488,26 +496,30 @@ function FilterPanel() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: expanded 
-                    ? "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)" 
+                  background: expanded
+                    ? "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)"
                     : "rgba(255, 82, 82, 0.1)",
                   borderRadius: "50%",
                   p: 1,
                   mr: 1.5,
-                  boxShadow: expanded ? "0 4px 8px rgba(255, 23, 68, 0.3)" : "none",
+                  boxShadow: expanded
+                    ? "0 4px 8px rgba(255, 23, 68, 0.3)"
+                    : "none",
                   transition: "all 0.3s ease",
                 }}
               >
-                <MdFilterList style={{ 
-                  fontSize: 22, 
-                  color: expanded ? "#fff" : "#ff1744" 
-                }} />
+                <MdFilterList
+                  style={{
+                    fontSize: 22,
+                    color: expanded ? "#fff" : "#ff1744",
+                  }}
+                />
               </Box>
               <Box>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 700, 
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
                     fontSize: "1.1rem",
                     color: expanded ? "error.main" : "text.primary",
                     letterSpacing: "0.5px",
@@ -516,12 +528,12 @@ function FilterPanel() {
                 >
                   ตัวกรองขั้นสูง
                 </Typography>
-                <Typography 
+                <Typography
                   variant="caption"
                   sx={{
                     display: "block",
                     color: "text.secondary",
-                    mt: 0.3
+                    mt: 0.3,
                   }}
                 >
                   ค้นหาลูกค้าด้วยเงื่อนไขที่หลากหลาย
@@ -540,8 +552,8 @@ function FilterPanel() {
                     boxShadow: "0 3px 5px rgba(255, 23, 68, 0.2)",
                     height: "24px",
                     "& .MuiChip-label": {
-                      px: 1.5
-                    }
+                      px: 1.5,
+                    },
                   }}
                 />
               )}
@@ -550,7 +562,7 @@ function FilterPanel() {
               <Chip
                 label={
                   filteredCount > 0
-                    ? `พบ ${filteredCount.toLocaleString('th-TH')} รายการ`
+                    ? `พบ ${filteredCount.toLocaleString("th-TH")} รายการ`
                     : "ไม่พบข้อมูล"
                 }
                 size="small"
@@ -559,20 +571,26 @@ function FilterPanel() {
                   fontWeight: 600,
                   borderRadius: "16px",
                   px: 0.5,
-                  background: filteredCount > 0 ? "linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)" : "rgba(0, 0, 0, 0.08)",
+                  background:
+                    filteredCount > 0
+                      ? "linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)"
+                      : "rgba(0, 0, 0, 0.08)",
                   color: filteredCount > 0 ? "white" : "text.secondary",
-                  boxShadow: filteredCount > 0 ? "0 2px 5px rgba(76, 175, 80, 0.3)" : "none",
+                  boxShadow:
+                    filteredCount > 0
+                      ? "0 2px 5px rgba(76, 175, 80, 0.3)"
+                      : "none",
                   height: "24px",
                   "& .MuiChip-label": {
-                    px: 1.5
-                  }
+                    px: 1.5,
+                  },
                 }}
               />
             </Box>
           </Box>
         </AccordionSummary>
         <AccordionDetails
-          sx={{ 
+          sx={{
             p: 3,
             background: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
             borderBottomLeftRadius: 4,
@@ -589,7 +607,9 @@ function FilterPanel() {
             </Alert>
           )}
           <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
-            <Grid container spacing={3}>              {/* Date Filter */}
+            <Grid container spacing={3}>
+              {" "}
+              {/* Date Filter */}
               <Grid xs={12} md={6} lg={4}>
                 <Paper
                   elevation={3}
@@ -612,8 +632,9 @@ function FilterPanel() {
                       left: 0,
                       height: "4px",
                       width: "100%",
-                      background: "linear-gradient(90deg, #ff5252 0%, #ff1744 100%)",
-                    }
+                      background:
+                        "linear-gradient(90deg, #ff5252 0%, #ff1744 100%)",
+                    },
                   }}
                 >
                   <Stack spacing={2.5}>
@@ -630,21 +651,20 @@ function FilterPanel() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)",
+                          background:
+                            "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)",
                           borderRadius: "50%",
                           p: 1,
                           boxShadow: "0 3px 6px rgba(255, 23, 68, 0.2)",
                         }}
                       >
-                        <MdDateRange
-                          style={{ fontSize: 18, color: "white" }}
-                        />
+                        <MdDateRange style={{ fontSize: 18, color: "white" }} />
                       </Box>
                       <Box>
                         <Typography
                           variant="subtitle1"
-                          sx={{ 
-                            fontWeight: 600, 
+                          sx={{
+                            fontWeight: 600,
                             color: "error.main",
                             fontFamily: "'Kanit', sans-serif",
                           }}
@@ -656,23 +676,28 @@ function FilterPanel() {
                         </Typography>
                       </Box>
                     </Box>
-                    
+
                     {/* Date picker fields */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: 2, 
-                      p: 1.5, 
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255, 82, 82, 0.04)',
-                      border: '1px solid rgba(255, 82, 82, 0.15)'
-                    }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 2,
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: "rgba(255, 82, 82, 0.04)",
+                        border: "1px solid rgba(255, 82, 82, 0.15)",
+                      }}
+                    >
                       <DatePicker
                         label="วันที่เริ่มต้น"
                         value={draftFilters.dateRange.startDate}
                         onChange={(newValue) =>
                           setDraftFilters((prev) => ({
                             ...prev,
-                            dateRange: { ...prev.dateRange, startDate: newValue },
+                            dateRange: {
+                              ...prev.dateRange,
+                              startDate: newValue,
+                            },
                           }))
                         }
                         slotProps={{
@@ -699,10 +724,10 @@ function FilterPanel() {
                                       onClick={clearStartDate}
                                       edge="end"
                                       sx={{
-                                        color: 'error.main',
-                                        '&:hover': {
-                                          bgcolor: 'rgba(255, 82, 82, 0.1)',
-                                        }
+                                        color: "error.main",
+                                        "&:hover": {
+                                          bgcolor: "rgba(255, 82, 82, 0.1)",
+                                        },
                                       }}
                                     >
                                       <MdClear />
@@ -711,29 +736,30 @@ function FilterPanel() {
                                 </InputAdornment>
                               ),
                               sx: {
-                                '&.Mui-focused': {
-                                  boxShadow: '0 0 0 2px rgba(255, 82, 82, 0.2)',
-                                }
-                              }
+                                "&.Mui-focused": {
+                                  boxShadow: "0 0 0 2px rgba(255, 82, 82, 0.2)",
+                                },
+                              },
                             },
                             sx: {
-                              '& .MuiInputLabel-root.Mui-focused': {
-                                color: 'error.main',
+                              "& .MuiInputLabel-root.Mui-focused": {
+                                color: "error.main",
                               },
-                              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'error.main',
-                              },
-                            }
+                              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                {
+                                  borderColor: "error.main",
+                                },
+                            },
                           },
                           day: {
-                            sx: { 
+                            sx: {
                               fontWeight: "bold",
-                              '&.Mui-selected': {
-                                bgcolor: 'error.main',
-                                '&:hover': {
-                                  bgcolor: 'error.dark',
-                                }
-                              }
+                              "&.Mui-selected": {
+                                bgcolor: "error.main",
+                                "&:hover": {
+                                  bgcolor: "error.dark",
+                                },
+                              },
                             },
                           },
                           calendarHeader: {
@@ -752,7 +778,7 @@ function FilterPanel() {
                               "& .MuiPaper-root": {
                                 boxShadow: "0px 5px 20px rgba(0,0,0,0.15)",
                                 borderRadius: "16px",
-                                border: '1px solid rgba(255, 82, 82, 0.2)',
+                                border: "1px solid rgba(255, 82, 82, 0.2)",
                               },
                             },
                           },
@@ -792,10 +818,10 @@ function FilterPanel() {
                                       onClick={clearEndDate}
                                       edge="end"
                                       sx={{
-                                        color: 'error.main',
-                                        '&:hover': {
-                                          bgcolor: 'rgba(255, 82, 82, 0.1)',
-                                        }
+                                        color: "error.main",
+                                        "&:hover": {
+                                          bgcolor: "rgba(255, 82, 82, 0.1)",
+                                        },
                                       }}
                                     >
                                       <MdClear />
@@ -804,50 +830,59 @@ function FilterPanel() {
                                 </InputAdornment>
                               ),
                               sx: {
-                                '&.Mui-focused': {
-                                  boxShadow: '0 0 0 2px rgba(255, 82, 82, 0.2)',
-                                }
-                              }
+                                "&.Mui-focused": {
+                                  boxShadow: "0 0 0 2px rgba(255, 82, 82, 0.2)",
+                                },
+                              },
                             },
                             sx: {
-                              '& .MuiInputLabel-root.Mui-focused': {
-                                color: 'error.main',
+                              "& .MuiInputLabel-root.Mui-focused": {
+                                color: "error.main",
                               },
-                              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'error.main',
-                              },
-                            }
+                              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                {
+                                  borderColor: "error.main",
+                                },
+                            },
                           },
                           day: {
-                            sx: { 
+                            sx: {
                               fontWeight: "bold",
-                              '&.Mui-selected': {
-                                bgcolor: 'error.main',
-                                '&:hover': {
-                                  bgcolor: 'error.dark',
-                                }
-                              }
+                              "&.Mui-selected": {
+                                bgcolor: "error.main",
+                                "&:hover": {
+                                  bgcolor: "error.dark",
+                                },
+                              },
                             },
                           },
                         }}
                         format="DD/MM/YYYY"
                       />
                     </Box>
-                    
+
                     {/* Quick date range buttons */}
-                    <Typography variant="subtitle2" sx={{ mt: 1, mb: 0.5, fontWeight: 500, color: 'text.secondary' }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        mt: 1,
+                        mb: 0.5,
+                        fontWeight: 500,
+                        color: "text.secondary",
+                      }}
+                    >
                       ช่วงเวลาที่ใช้บ่อย:
                     </Typography>
-                    
+
                     <Box
-                      sx={{ 
-                        display: "grid", 
-                        gridTemplateColumns: "repeat(3, 1fr)", 
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
                         gap: 1,
                         "& button": {
                           flexGrow: 1,
-                          whiteSpace: "nowrap"
-                        }
+                          whiteSpace: "nowrap",
+                        },
                       }}
                     >
                       <Button
@@ -973,7 +1008,8 @@ function FilterPanel() {
                     </Box>
                   </Stack>
                 </Paper>
-              </Grid>              {/* Sales Filter */}
+              </Grid>{" "}
+              {/* Sales Filter */}
               <Grid xs={12} md={6} lg={4}>
                 <Paper
                   elevation={3}
@@ -996,8 +1032,9 @@ function FilterPanel() {
                       left: 0,
                       height: "4px",
                       width: "100%",
-                      background: "linear-gradient(90deg, #ff5252 0%, #ff1744 100%)",
-                    }
+                      background:
+                        "linear-gradient(90deg, #ff5252 0%, #ff1744 100%)",
+                    },
                   }}
                 >
                   <Stack spacing={2.5}>
@@ -1014,7 +1051,8 @@ function FilterPanel() {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)",
+                          background:
+                            "linear-gradient(135deg, #ff5252 0%, #ff1744 100%)",
                           borderRadius: "50%",
                           p: 1,
                           boxShadow: "0 3px 6px rgba(255, 23, 68, 0.2)",
@@ -1025,8 +1063,8 @@ function FilterPanel() {
                       <Box>
                         <Typography
                           variant="subtitle1"
-                          sx={{ 
-                            fontWeight: 600, 
+                          sx={{
+                            fontWeight: 600,
                             color: "error.main",
                             fontFamily: "'Kanit', sans-serif",
                           }}
@@ -1038,19 +1076,23 @@ function FilterPanel() {
                         </Typography>
                       </Box>
                     </Box>
-                    
+
                     {/* Sales selection */}
-                    <Box sx={{ 
-                      p: 1.5, 
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255, 82, 82, 0.04)',
-                      border: '1px solid rgba(255, 82, 82, 0.15)'
-                    }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: "rgba(255, 82, 82, 0.04)",
+                        border: "1px solid rgba(255, 82, 82, 0.15)",
+                      }}
+                    >
                       <FormControl fullWidth size="small">
-                        <InputLabel sx={{
-                          color: "text.secondary",
-                          '&.Mui-focused': { color: 'error.main' }
-                        }}>
+                        <InputLabel
+                          sx={{
+                            color: "text.secondary",
+                            "&.Mui-focused": { color: "error.main" },
+                          }}
+                        >
                           {draftFilters.salesName.length > 0
                             ? `เลือกแล้ว ${draftFilters.salesName.length} คน`
                             : "เลือกพนักงานขาย"}
@@ -1061,16 +1103,19 @@ function FilterPanel() {
                           onChange={handleSalesChange}
                           input={
                             <OutlinedInput
-                              label={draftFilters.salesName.length > 0
-                                ? `เลือกแล้ว ${draftFilters.salesName.length} คน`
-                                : "เลือกพนักงานขาย"}
+                              label={
+                                draftFilters.salesName.length > 0
+                                  ? `เลือกแล้ว ${draftFilters.salesName.length} คน`
+                                  : "เลือกพนักงานขาย"
+                              }
                               sx={{
-                                '&.Mui-focused': {
-                                  boxShadow: '0 0 0 2px rgba(255, 82, 82, 0.2)',
+                                "&.Mui-focused": {
+                                  boxShadow: "0 0 0 2px rgba(255, 82, 82, 0.2)",
                                 },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: 'error.main',
-                                }
+                                "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                  {
+                                    borderColor: "error.main",
+                                  },
                               }}
                             />
                           }
@@ -1081,23 +1126,27 @@ function FilterPanel() {
                           }
                           renderValue={(selected) => (
                             <Box
-                              sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.5,
+                              }}
                             >
                               {selected.slice(0, 3).map((value) => (
-                                <Chip 
-                                  key={value} 
-                                  label={value} 
+                                <Chip
+                                  key={value}
+                                  label={value}
                                   size="small"
-                                  sx={{ 
-                                    bgcolor: 'rgba(255, 82, 82, 0.1)',
-                                    color: 'error.main',
+                                  sx={{
+                                    bgcolor: "rgba(255, 82, 82, 0.1)",
+                                    color: "error.main",
                                     fontWeight: 500,
-                                    '& .MuiChip-deleteIcon': {
-                                      color: 'error.main',
-                                      '&:hover': {
-                                        color: 'error.dark',
-                                      }
-                                    }
+                                    "& .MuiChip-deleteIcon": {
+                                      color: "error.main",
+                                      "&:hover": {
+                                        color: "error.dark",
+                                      },
+                                    },
                                   }}
                                 />
                               ))}
@@ -1105,10 +1154,10 @@ function FilterPanel() {
                                 <Chip
                                   label={`+${selected.length - 3} คน`}
                                   size="small"
-                                  sx={{ 
-                                    bgcolor: 'rgba(255, 82, 82, 0.1)',
-                                    color: 'error.main',
-                                    fontWeight: 500
+                                  sx={{
+                                    bgcolor: "rgba(255, 82, 82, 0.1)",
+                                    color: "error.main",
+                                    fontWeight: 500,
                                   }}
                                 />
                               )}
@@ -1122,29 +1171,29 @@ function FilterPanel() {
                               sx: {
                                 borderRadius: 2,
                                 mt: 0.5,
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                                border: '1px solid rgba(255, 82, 82, 0.2)',
-                                '& .MuiMenuItem-root': {
+                                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                                border: "1px solid rgba(255, 82, 82, 0.2)",
+                                "& .MuiMenuItem-root": {
                                   borderRadius: 1,
                                   my: 0.3,
                                   mx: 0.5,
-                                  '&:hover': {
-                                    bgcolor: 'rgba(255, 82, 82, 0.08)',
+                                  "&:hover": {
+                                    bgcolor: "rgba(255, 82, 82, 0.08)",
                                   },
-                                  '&.Mui-selected': {
-                                    bgcolor: 'rgba(255, 82, 82, 0.12)',
-                                    '&:hover': {
-                                      bgcolor: 'rgba(255, 82, 82, 0.16)',
-                                    }
-                                  }
+                                  "&.Mui-selected": {
+                                    bgcolor: "rgba(255, 82, 82, 0.12)",
+                                    "&:hover": {
+                                      bgcolor: "rgba(255, 82, 82, 0.16)",
+                                    },
+                                  },
                                 },
-                                '& .MuiCheckbox-root': {
-                                  color: 'rgba(0, 0, 0, 0.54)',
-                                  '&.Mui-checked': {
-                                    color: 'error.main',
-                                  }
-                                }
-                              }
+                                "& .MuiCheckbox-root": {
+                                  color: "rgba(0, 0, 0, 0.54)",
+                                  "&.Mui-checked": {
+                                    color: "error.main",
+                                  },
+                                },
+                              },
                             },
                           }}
                         >
@@ -1156,15 +1205,18 @@ function FilterPanel() {
                                     draftFilters.salesName.indexOf(name) > -1
                                   }
                                   sx={{
-                                    '&.Mui-checked': {
-                                      color: 'error.main',
-                                    }
+                                    "&.Mui-checked": {
+                                      color: "error.main",
+                                    },
                                   }}
                                 />
-                                <ListItemText 
+                                <ListItemText
                                   primary={name}
                                   primaryTypographyProps={{
-                                    fontWeight: draftFilters.salesName.indexOf(name) > -1 ? 500 : 400
+                                    fontWeight:
+                                      draftFilters.salesName.indexOf(name) > -1
+                                        ? 500
+                                        : 400,
                                   }}
                                 />
                               </MenuItem>
@@ -1177,12 +1229,12 @@ function FilterPanel() {
                         </Select>
                       </FormControl>
                     </Box>
-                    
+
                     <Box
-                      sx={{ 
-                        mt: 1, 
-                        display: "flex", 
-                        gap: 1.5,  
+                      sx={{
+                        mt: 1,
+                        display: "flex",
+                        gap: 1.5,
                         justifyContent: "center",
                       }}
                     >
@@ -1194,17 +1246,17 @@ function FilterPanel() {
                           draftFilters.salesName.length === salesList.length
                         }
                         sx={{
-                          color: 'error.main',
-                          textTransform: 'none',
+                          color: "error.main",
+                          textTransform: "none",
                           fontWeight: 500,
                           borderRadius: 2,
                           px: 2,
-                          '&:hover': {
-                            bgcolor: 'rgba(255, 82, 82, 0.08)',
+                          "&:hover": {
+                            bgcolor: "rgba(255, 82, 82, 0.08)",
                           },
-                          '&.Mui-disabled': {
-                            color: 'rgba(0, 0, 0, 0.26)',
-                          }
+                          "&.Mui-disabled": {
+                            color: "rgba(0, 0, 0, 0.26)",
+                          },
                         }}
                       >
                         เลือกทั้งหมด
@@ -1216,33 +1268,39 @@ function FilterPanel() {
                         onClick={clearSalesSelection}
                         disabled={draftFilters.salesName.length === 0}
                         sx={{
-                          color: 'error.main',
-                          textTransform: 'none',
+                          color: "error.main",
+                          textTransform: "none",
                           fontWeight: 500,
                           borderRadius: 2,
                           px: 2,
-                          '&:hover': {
-                            bgcolor: 'rgba(255, 82, 82, 0.08)',
+                          "&:hover": {
+                            bgcolor: "rgba(255, 82, 82, 0.08)",
                           },
-                          '&.Mui-disabled': {
-                            color: 'rgba(0, 0, 0, 0.26)',
-                          }
+                          "&.Mui-disabled": {
+                            color: "rgba(0, 0, 0, 0.26)",
+                          },
                         }}
                       >
                         ล้างการเลือก
                       </Button>
                     </Box>
-                    
+
                     {draftFilters.salesName.length > 0 && (
-                      <Box sx={{ 
-                        mt: 1, 
-                        p: 1.5, 
-                        borderRadius: 2, 
-                        bgcolor: 'rgba(255, 82, 82, 0.06)',
-                        border: '1px dashed rgba(255, 82, 82, 0.3)'
-                      }}>
-                        <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 500 }}>
-                          เลือกพนักงานขายแล้ว: {draftFilters.salesName.length} คน
+                      <Box
+                        sx={{
+                          mt: 1,
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: "rgba(255, 82, 82, 0.06)",
+                          border: "1px dashed rgba(255, 82, 82, 0.3)",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "error.main", fontWeight: 500 }}
+                        >
+                          เลือกพนักงานขายแล้ว: {draftFilters.salesName.length}{" "}
+                          คน
                         </Typography>
                       </Box>
                     )}

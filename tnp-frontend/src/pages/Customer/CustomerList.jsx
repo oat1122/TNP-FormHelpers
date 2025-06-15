@@ -92,6 +92,7 @@ import {
   open_dialog_loading,
   open_dialog_error,
 } from "../../utils/import_lib";
+import ErrorBoundary from "../../components/ErrorBoundary";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-columnHeader": {
     backgroundColor: theme.palette.error.dark,
@@ -1385,7 +1386,7 @@ function CustomerList() {
             label="Recall"
             onClick={() => handleRecall(params.row)}
             showInMenu={false}
-            tooltipTitle="Reset recall timer"
+            title="Reset recall timer"
             sx={{
               border: `1px solid ${theme.palette.info.main}22`,
               borderRadius: '50%',
@@ -1411,7 +1412,7 @@ function CustomerList() {
               label="Change Grade Up"
               onClick={() => handleChangeGroup(true, params.row)}
               disabled={false}
-              showInMenu={false}              tooltipTitle="Change grade up"
+              showInMenu={false}              title="Change grade up"
               sx={{
                 border: `1px solid ${theme.palette.success.main}22`,
                 borderRadius: '50%',
@@ -1440,7 +1441,7 @@ function CustomerList() {
               label="Change Grade Down"
               onClick={() => handleChangeGroup(false, params.row)}
               disabled={false}
-              showInMenu={false}              tooltipTitle="Change grade down"
+              showInMenu={false}              title="Change grade down"
               sx={{
                 border: `1px solid ${theme.palette.warning.main}22`,
                 borderRadius: '50%',
@@ -1457,7 +1458,7 @@ function CustomerList() {
             icon={<MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />}
             label="View"
             onClick={() => handleOpenDialog("view", params.id)}
-            showInMenu={false}            tooltipTitle="View details"
+            showInMenu={false}            title="View details"
             sx={{
               border: `1px solid ${theme.palette.primary.main}22`,
               borderRadius: '50%',
@@ -1473,7 +1474,7 @@ function CustomerList() {
             icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
             label="Edit"
             onClick={() => handleOpenDialog("edit", params.id)}
-            showInMenu={false}            tooltipTitle="Edit customer"
+            showInMenu={false}            title="Edit customer"
             sx={{
               border: `1px solid ${theme.palette.secondary.main}22`,
               borderRadius: '50%',
@@ -1489,7 +1490,7 @@ function CustomerList() {
             icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
-            showInMenu={false}            tooltipTitle="Delete customer"
+            showInMenu={false}            title="Delete customer"
             sx={{
               border: `1px solid ${theme.palette.error.main}22`,
               borderRadius: '50%',

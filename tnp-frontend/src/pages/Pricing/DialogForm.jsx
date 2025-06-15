@@ -133,8 +133,17 @@ function DialogForm(props) {
       value = value.replace(/[^0-9]/g, "");
 
     } else if (name === "cus_manage_by") {
-
-      value = salesList.find((user) => user.user_id === value) ||  { user_id: "", username: ""};
+      // Properly handle the cus_manage_by changes
+      // If value is empty string, set empty object with empty values
+      if (value === "") {
+        value = { user_id: "", username: "" };
+      } else {
+        // Find the corresponding sales person
+        const salesPerson = salesList.find((user) => user.user_id === value);
+        value = salesPerson
+          ? { user_id: salesPerson.user_id, username: salesPerson.username }
+          : { user_id: "", username: "" };
+      }
     }
 
     dispatch(
@@ -313,13 +322,33 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? "" : {user_id: user.user_id},
+          cus_manage_by: isAdmin ? { user_id: "", username: "" } : { user_id: user.user_id, username: user.username || "" },
           // cus_created_by: user.user_id,
           // cus_updated_by: user.user_id,
         })
       );
     }
   }, [mode]);
+
+  // Additional useEffect to ensure cus_manage_by is always properly initialized as an object
+  // This runs only once when the component mounts
+  useEffect(() => {
+    // If cus_manage_by is undefined, null, or not an object, initialize it
+    if (!inputList || !inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
+      console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
+      
+      // Create a safe version of the inputList
+      const safeInputList = inputList || {};
+      
+      dispatch(
+        setInputList({
+          ...safeInputList,
+          cus_manage_by: { user_id: "", username: "" }
+        })
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array = run once on mount
 
   useEffect(() => {
     if (locations) {
@@ -388,7 +417,8 @@ function DialogForm(props) {
                     sx={{ textTransform: "capitalize", cursor: "auto" }}
                     readOnly={mode === "view"}
                     name="cus_manage_by"
-                    value={inputList.cus_manage_by?.user_id || ""}
+                    value={(inputList.cus_manage_by && typeof inputList.cus_manage_by === 'object') ? 
+                      (inputList.cus_manage_by.user_id || "") : ""}
                     onChange={handleInputChange}
                   >
                     <MenuItem disabled value="">

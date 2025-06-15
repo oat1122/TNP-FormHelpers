@@ -49,6 +49,7 @@ import {
 } from "../../utils/import_lib";
 import { MdClose } from "react-icons/md";
 import Swal from "sweetalert2";
+import ErrorBoundary from "../../components/ErrorBoundary";
 
 const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,
@@ -157,23 +158,36 @@ function DialogForm(props) {
     );
     setErrors((prev) => ({ ...prev, cus_bt_id: "" }));
     setIsBusinessTypeManagerOpen(false);
-  };
+  };  const handleInputChange = (e) => {
+    // Safely extract name and value
+    const name = e?.target?.name;
+    let value = e?.target?.value;
 
-  const handleInputChange = (e) => {
-    let { name, value } = e.target;
+    // Safety check - if we don't have a valid name, we can't update anything
+    if (!name) return;
 
     if (name === "cus_tax_id" || name === "cus_zip_code") {
-      value = value.replace(/[^0-9]/g, "");
+      value = (value || "").replace(/[^0-9]/g, "");
     } else if (name === "cus_manage_by") {
-      value = salesList.find((user) => user.user_id === value) || {
-        user_id: "",
-        username: "",
-      };
+      // Properly handle the cus_manage_by changes
+      // If value is empty string, set empty object with empty values
+      if (value === "" || value === null || value === undefined) {
+        value = { user_id: "", username: "" };
+      } else {
+        // Find the corresponding sales person
+        const salesPerson = salesList?.find((user) => user?.user_id === value) || null;
+        value = salesPerson
+          ? { user_id: salesPerson.user_id || "", username: salesPerson.username || "" }
+          : { user_id: "", username: "" };
+      }
     }
+
+    // Get current inputList safely (default to empty object if undefined)
+    const currentInputList = inputList || {};
 
     dispatch(
       setInputList({
-        ...inputList, // Include existing values
+        ...currentInputList, // Include existing values
         [name]: value,
       })
     );
@@ -322,7 +336,6 @@ function DialogForm(props) {
     props.handleCloseDialog();
     setErrors({});
   };
-
   useEffect(() => {
     if (mode === "create") {
       // Generate customer number
@@ -348,7 +361,7 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? "" : { user_id: user.user_id },
+          cus_manage_by: isAdmin ? { user_id: "", username: "" } : { user_id: user.user_id, username: user.username || "" },
         })
       );
     }
@@ -378,13 +391,13 @@ function DialogForm(props) {
           dispatch(
             setInputList({
               ...inputList,
-              cus_manage_by: { user_id: "" }
+              cus_manage_by: { user_id: "", username: "" }
             })
           );
         }
       }
     }
-  }, [userRoleData, inputList.cus_manage_by?.user_id, mode]);
+  }, [userRoleData, mode, dispatch]);
 
   useEffect(() => {
     if (businessTypesData) {
@@ -398,8 +411,25 @@ function DialogForm(props) {
     } else {
       Swal.close(); // Close loading when fetching stops
     }
-  }, [isFetching, roleIsFetching, businessTypesIsFetching]);
-
+  }, [isFetching, roleIsFetching, businessTypesIsFetching]);  // Additional useEffect to ensure cus_manage_by is always properly initialized as an object
+  // This runs only once when the component mounts
+  useEffect(() => {
+    // If cus_manage_by is undefined, null, or not an object, initialize it
+    if (!inputList || !inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
+      console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
+      
+      // Create a safe version of the inputList
+      const safeInputList = inputList || {};
+      
+      dispatch(
+        setInputList({
+          ...safeInputList,
+          cus_manage_by: { user_id: "", username: "" }
+        })
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array = run once on mount
   return (
     <>
       <BusinessTypeManager
@@ -414,6 +444,11 @@ function DialogForm(props) {
         disableEscapeKeyDown
         aria-hidden={props.openDialog ? false : true}
       >
+        <ErrorBoundary onReset={() => {
+          // Reset state when error boundary is reset
+          dispatch(resetInputList());
+          props.handleCloseDialog();
+        }}>
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
           <DialogTitle sx={{ paddingBlock: 1 }}>
             <Box sx={{ maxWidth: 800, justifySelf: "center" }}>
@@ -443,31 +478,51 @@ function DialogForm(props) {
                 spacing={2}
               >
                 {isAdmin && (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <StyledSelect
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>                    <StyledSelect
                       fullWidth
                       displayEmpty
                       size="small"
                       sx={{ textTransform: "capitalize", cursor: "auto" }}
                       readOnly={mode === "view"}
                       name="cus_manage_by"
-                      value={inputList.cus_manage_by?.user_id || ""}
+                      value={
+                        // Add multiple safeguards to ensure value is never undefined
+                        (() => {
+                          // First check if inputList exists
+                          if (!inputList) return "";
+                          
+                          // Then check if cus_manage_by exists and is an object
+                          const managedBy = inputList.cus_manage_by;
+                          if (!managedBy) return "";
+                          
+                          // If it's a string (from older data format), return as is if not empty
+                          if (typeof managedBy === 'string') return managedBy || "";
+                          
+                          // If it's an object, return user_id if it exists
+                          if (typeof managedBy === 'object') return managedBy.user_id || "";
+                          
+                          // Fallback to empty string
+                          return "";
+                        })()
+                      }
                       onChange={handleInputChange}
                     >
                       <MenuItem disabled value="">
                         ชื่อผู้ดูแล
                       </MenuItem>
-                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
-                      {salesList &&
+                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>                      {Array.isArray(salesList) && salesList.length > 0 ? 
                         salesList.map((item, index) => (
                           <MenuItem
-                            key={item.user_id + index}
-                            value={item.user_id}
+                            key={(item?.user_id || '') + index}
+                            value={item?.user_id || ''}
                             sx={{ textTransform: "capitalize" }}
                           >
-                            {item.username}
+                            {item?.username || 'Unknown User'}
                           </MenuItem>
-                        ))}
+                        ))
+                        : 
+                        <MenuItem value="" disabled>No sales users available</MenuItem>
+                      }
                     </StyledSelect>
                   </Grid>
                 )}{" "}
@@ -996,9 +1051,9 @@ function DialogForm(props) {
                   </Button>
                 </Grid>
               </Grid>
-            </Box>
-          </DialogActions>
+            </Box>          </DialogActions>
         </form>
+        </ErrorBoundary>
       </Dialog>
     </>
   );

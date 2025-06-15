@@ -192,12 +192,14 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
     apiRef.current.setColumnVisibilityModel(defaultColumnVisibilityModel);
   };  return (
     <>
-      <Tooltip title="Show/Hide Columns">        <Badge
-          badgeContent={visibleColumnsCount}
-          sx={{
-            "& .MuiBadge-badge": {
-              top: 5,
-              right: 5,
+      <Tooltip title="Show/Hide Columns">
+        <span> {/* Wrap Badge in a span to provide a single child to Tooltip */}
+          <Badge
+            badgeContent={visibleColumnsCount}
+            sx={{
+              "& .MuiBadge-badge": {
+                top: 5,
+                right: 5,
               minWidth: "18px",
               height: "18px",
               fontSize: "0.7rem",
@@ -232,6 +234,7 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
             Columns
           </Button>
         </Badge>
+        </span>
       </Tooltip>      <Menu
         id="column-menu"
         anchorEl={anchorEl}
@@ -435,50 +438,56 @@ const ColumnVisibilitySelector = ({ columns = [] }) => {
                 title={columnDescriptions[column.field] || ""}
                 placement="left"
                 arrow
-              >                <MenuItem
-                  onClick={() => handleToggleColumn(column.field)}
-                  dense
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    "&:last-child": {
-                      borderBottom: "none",
-                    },
-                    bgcolor: isVisible
-                      ? "rgba(144, 15, 15, 0.04)"
-                      : "transparent",
-                    transition: "all 0.2s ease",
-                    py: 1,
-                    "&:hover": {
-                      bgcolor: "rgba(144, 15, 15, 0.08)",
-                    },
-                  }}
-                >                  <ListItemIcon sx={{ minWidth: 36, color: isVisible ? "#900f0f" : "text.secondary" }}>
-                    {columnIcons[column.field] || (
-                      <MdDragIndicator size={16} />
-                    )}
-                  </ListItemIcon>                  <ListItemText
-                    primary={displayName}
+              >
+                <span> {/* Wrap MenuItem in a span to provide a single element to Tooltip */}
+                  <MenuItem
+                    onClick={() => handleToggleColumn(column.field)}
+                    dense
                     sx={{
-                      "& .MuiTypography-root": {
-                        fontWeight: isVisible ? 600 : 400,
-                        opacity: isVisible ? 1 : 0.7,
-                        color: isVisible ? "#900f0f" : "text.primary",
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                      "&:last-child": {
+                        borderBottom: "none",
+                      },
+                      bgcolor: isVisible
+                        ? "rgba(144, 15, 15, 0.04)"
+                        : "transparent",
+                      transition: "all 0.2s ease",
+                      py: 1,
+                      "&:hover": {
+                        bgcolor: "rgba(144, 15, 15, 0.08)",
                       },
                     }}
-                  />                  <Checkbox
-                    edge="end"
-                    checked={isVisible}
-                    tabIndex={-1}
-                    size="small"
-                    sx={{
-                      color: "rgba(144, 15, 15, 0.5)",
-                      '&.Mui-checked': {
-                        color: "#900f0f",
-                      },
-                    }}
-                  />
-                </MenuItem>
+                  >
+                    <ListItemIcon sx={{ minWidth: 36, color: isVisible ? "#900f0f" : "text.secondary" }}>
+                      {columnIcons[column.field] || (
+                        <MdDragIndicator size={16} />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={displayName}
+                      sx={{
+                        "& .MuiTypography-root": {
+                          fontWeight: isVisible ? 600 : 400,
+                          opacity: isVisible ? 1 : 0.7,
+                          color: isVisible ? "#900f0f" : "text.primary",
+                        },
+                      }}
+                    />
+                    <Checkbox
+                      edge="end"
+                      checked={isVisible}
+                      tabIndex={-1}
+                      size="small"
+                      sx={{
+                        color: "rgba(144, 15, 15, 0.5)",
+                        '&.Mui-checked': {
+                          color: "#900f0f",
+                        },
+                      }}
+                    />
+                  </MenuItem>
+                </span>
               </Tooltip>
             );
           })}

@@ -867,7 +867,9 @@ function CustomerList() {
         const res = await changeGrade({
           customerId: params.cus_id,
           direction: direction,
-        }).unwrap();        if (res.status === "success") {
+        }).unwrap();
+        
+        if (res.status === "success") {
           open_dialog_ok_timer(
             `เปลี่ยนเกรดสำเร็จ จาก ${res.data.old_grade} เป็น ${res.data.new_grade}`
           );
@@ -1033,14 +1035,7 @@ function CustomerList() {
   useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
-        open_dialog_error("Fetch customer error", data.message);
-      } else if (data.data) {
-        // Debug log to see the structure of the data
-        console.log(
-          "Customer Data Sample:",
-          data.data.length > 0 ? data.data[0] : "No data"
-        );
-
+        open_dialog_error("Fetch customer error", data.message);      } else if (data.data) {
         dispatch(setItemList(data.data));
         dispatch(setGroupList(data.groups));
         dispatch(setTotalCount(data.total_count));

@@ -10,6 +10,7 @@ use App\Models\MasterProvice;
 use App\Models\MasterStatus;
 use App\Models\MasterSubdistrict;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GlobalController extends Controller
 {
@@ -149,14 +150,53 @@ class GlobalController extends Controller
     public function delete_business_type($id)
     {
         try {
+            // ล้าง cache และข้อมูลเก่า
+            DB::statement('ANALYZE TABLE master_customers;'); // เพื่อให้ MySQL อัพเดทสถิติข้อมูลในตาราง
+            
             $businessType = MasterBusinessType::findOrFail($id);
             
-            // ตรวจสอบการใช้งานจากลูกค้า
-            $usageCount = $businessType->customers()->count();
+            // ตรวจสอบการใช้งานจากลูกค้าที่ยังใช้งานอยู่ (cus_is_use = true) ด้วยการ query โดยตรง
+            $customers = DB::table('master_customers')
+                ->where('cus_bt_id', $id)
+                ->where('cus_is_use', true)
+                ->select(['cus_id', 'cus_name', 'cus_company'])
+                ->get();
+                
+            $usageCount = $customers->count();
+            
             if ($usageCount > 0) {
+                // เตรียมข้อมูลลูกค้าที่ใช้ประเภทธุรกิจนี้ (แค่ 5 รายแรก)
+                $customersList = $customers->take(5)->map(function($customer) {
+                    return $customer->cus_name ?: $customer->cus_company;
+                })->implode(', ');
+                
+                if ($usageCount > 5) {
+                    $customersList .= ' และอีก ' . ($usageCount - 5) . ' ราย';
+                }
+                
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'ไม่สามารถลบได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่ ' . $usageCount . ' ราย'
+                    'message' => 'ไม่สามารถลบได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่ ' . $usageCount . ' ราย (เช่น ' . $customersList . ')',
+                    'customerCount' => $usageCount,
+                ], 400);
+            }
+            
+            // ล้างการอ้างอิงประเภทธุรกิจในลูกค้าที่ถูกลบไปแล้ว (inactive)
+            DB::table('master_customers')
+                ->where('cus_bt_id', $id)
+                ->where('cus_is_use', false)
+                ->update(['cus_bt_id' => null]);
+            
+            // ตรวจสอบอีกครั้งว่าไม่มีลูกค้าที่กำลังใช้งานประเภทธุรกิจนี้
+            $checkAgain = DB::table('master_customers')
+                ->where('cus_bt_id', $id)
+                ->where('cus_is_use', true)
+                ->count();
+                
+            if ($checkAgain > 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'ยังมีลูกค้าที่ใช้งานประเภทธุรกิจนี้อยู่ กรุณาลองใหม่อีกครั้ง',
                 ], 400);
             }
             

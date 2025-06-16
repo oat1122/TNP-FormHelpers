@@ -27,8 +27,117 @@ body {
   background-color: #F2F2F2;
 }
 
+/* SweetAlert2 custom styles for top layer positioning */
+.swal-container-top-layer {
+  z-index: 9999999 !important; /* ค่า z-index สูงมากเพื่อให้แน่ใจว่าจะแสดงอยู่บนสุด */
+  position: relative;
+}
+
+.swal-popup-top {
+  position: relative;
+  z-index: 10000000 !important; /* สูงกว่า container เพื่อให้แน่ใจว่าปุ่มกดทำงานได้ */
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Make sure SweetAlert container is above all other elements */
+.swal2-container {
+  z-index: 9999999 !important;
+}
+
+.swal2-popup {
+  z-index: 10000000 !important;
+}
+
+/* กำหนดให้ backdrop มี z-index สูงกว่าทุกอย่าง */
+.swal2-backdrop-show {
+  z-index: 9999998 !important;
+}
+
+/* สไตล์สำหรับกล่องยืนยันการลบ */
+.swal2-modal.swal2-show {
+  z-index: 10000000 !important;
+  position: relative;
+}
+
+/* สไตล์เพิ่มเติมเพื่อให้แน่ใจว่า SweetAlert อยู่เลเยอร์บนสุดเสมอ */
+body.swal2-shown > :not(.swal2-container) {
+  filter: blur(2px);
+}
+
+body.swal2-shown .swal2-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999999 !important;
+}
+
+/* ทำให้แน่ใจว่าปุ่มใน SweetAlert สามารถคลิกได้ */
+.swal2-actions button {
+  position: relative !important;
+  z-index: 10000001 !important;
+}
+
+/* Fix for iOS devices */
+@media screen and (max-width: 768px) {
+  .swal2-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999999 !important;
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
   monospace;
+}
+
+/* เพิ่ม CSS เพื่อให้แน่ใจว่า SweetAlert2 จะแสดงอยู่บนสุดเสมอ */
+.swal2-shown {
+  overflow: hidden !important;
+}
+
+.swal2-shown.swal2-height-auto {
+  height: 100% !important;
+}
+
+.swal2-container {
+  position: fixed !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999999 !important;
+  padding: 10px !important;
+}
+
+/* ทำให้แน่ใจว่า SweetAlert2 จะแสดงอยู่บนสุด - เพิ่ม z-index สูง */
+.swal2-popup {
+  z-index: 10000000 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  font-family: 'Kanit', sans-serif !important;
+}
+
+/* ปรับปุ่มให้ทำงานได้ */
+.swal2-actions {
+  z-index: 10000001 !important;
+}
+
+/* ปรับสีพื้นหลัง backdrop */
+.swal2-backdrop-show {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  z-index: 9999998 !important;
 }
 

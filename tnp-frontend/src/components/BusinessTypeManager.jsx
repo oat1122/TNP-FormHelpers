@@ -29,6 +29,7 @@ import {
   MdSearch,
   MdBusinessCenter,
 } from "react-icons/md";
+import Swal from 'sweetalert2';
 import {
   useGetAllBusinessTypesQuery,
   useAddBusinessTypeMutation,
@@ -92,16 +93,94 @@ function BusinessTypeManager({ open, onClose }) {
   };
 
   // ฟังก์ชันลบประเภทธุรกิจ
-  const handleDeleteType = async (typeId) => {
+  const handleDeleteType = async (typeId, typeName) => {
     try {
-      await deleteBusinessType(typeId).unwrap();
-      open_dialog_ok_timer("ลบประเภทธุรกิจเรียบร้อย");
-      refetch();
+      // แสดงกล่องยืนยันการลบ
+      const result = await Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: `คุณต้องการลบประเภทธุรกิจ "${typeName}" ใช่หรือไม่?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        focusConfirm: false,
+        customClass: {
+          container: 'swal-container-top-layer',
+          popup: 'swal-popup-top',
+          backdrop: 'swal2-backdrop-show',
+          confirmButton: 'swal2-confirm',
+          cancelButton: 'swal2-cancel',
+        },
+        backdrop: `rgba(0,0,0,0.7)`,
+        zIndex: 9999999,
+        position: 'center',
+      });
+      
+      // ถ้าผู้ใช้กด "ใช่, ลบเลย"
+      if (result.isConfirmed) {
+        try {
+          // แสดง loading ระหว่างลบ
+          Swal.fire({
+            title: 'กำลังลบ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            customClass: {
+              container: 'swal-container-top-layer',
+              popup: 'swal-popup-top',
+              backdrop: 'swal2-backdrop-show',
+            },
+            zIndex: 9999999,
+            position: 'center',
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+          
+          const response = await deleteBusinessType(typeId).unwrap();
+          
+          if (response.status === 'success') {
+            Swal.fire({
+              title: 'ลบเรียบร้อย!',
+              text: 'ประเภทธุรกิจถูกลบเรียบร้อยแล้ว',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false,
+              customClass: {
+                container: 'swal-container-top-layer',
+                popup: 'swal-popup-top',
+                backdrop: 'swal2-backdrop-show',
+              },
+              zIndex: 9999999,
+              position: 'center'
+            });
+            refetch();
+          }
+        } catch (error) {
+          const errorMsg = error.data?.message || 
+                          "ไม่สามารถลบประเภทธุรกิจได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่";
+          
+          Swal.fire({
+            title: 'ไม่สามารถลบได้',
+            html: `${errorMsg}<br><br><small>คำแนะนำ: กรุณาเปลี่ยนประเภทธุรกิจของลูกค้าที่ใช้ประเภทนี้ก่อนทำการลบ</small>`,
+            icon: 'error',
+            customClass: {
+              container: 'swal-container-top-layer',
+              popup: 'swal-popup-top',
+              backdrop: 'swal2-backdrop-show',
+            },
+            zIndex: 9999999,
+            position: 'center'
+          });
+          
+          console.error("Delete business type error:", error);
+        }
+      }
     } catch (error) {
-      open_dialog_error(
-        "เกิดข้อผิดพลาดในการลบประเภทธุรกิจ",
-        error.data?.message || error.message
-      );
+      console.error("SweetAlert error:", error);
     }
   };
 
@@ -749,21 +828,17 @@ function BusinessTypeManager({ open, onClose }) {
                         <IconButton
                           edge="end"
                           aria-label="delete"
-                          onClick={() => handleDeleteType(type.bt_id)}
-                          disabled={isDeleting}
+                          onClick={() => handleDeleteType(type.bt_id, type.bt_name)}
                           sx={{
                             color: "error.main",
-                            bgcolor: "rgba(255, 82, 82, 0.08)",
+                            bgcolor: "rgba(211, 47, 47, 0.08)",
                             p: 1.2,
                             "&:hover": {
-                              bgcolor: "rgba(255, 82, 82, 0.15)",
+                              bgcolor: "rgba(211, 47, 47, 0.15)",
                               transform: "translateY(-2px)",
                               boxShadow: "0 3px 8px rgba(0, 0, 0, 0.1)",
                             },
                             transition: "all 0.2s ease",
-                            "&.Mui-disabled": {
-                              opacity: 0.5,
-                            },
                           }}
                           size="small"
                         >

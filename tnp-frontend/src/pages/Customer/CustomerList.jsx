@@ -60,6 +60,7 @@ import {
   useDelCustomerMutation,
   useUpdateRecallMutation,
   useUpdateCustomerMutation,
+  useChangeGradeMutation,
 } from "../../features/Customer/customerApi";
 import {
   setItemList,
@@ -95,13 +96,14 @@ import {
 } from "../../utils/import_lib";
 import ErrorBoundary from "../../components/ErrorBoundary";
 
-const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-columnHeader": {
+const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
+  "& .MuiDataGrid-columnHeader": {
     backgroundColor: theme.palette.error.dark,
     color: theme.palette.common.white,
     transition: "all 0.2s ease",
     "&:hover": {
       backgroundColor: theme.palette.error.main,
-    }
+    },
   },
 
   "& .MuiDataGrid-columnHeaderTitleContainer": {
@@ -136,7 +138,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
       transform: "translateY(-2px)",
       boxShadow: "0 4px 8px rgba(0,0,0,0.08)",
     },
-  },  "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
+  },
+  "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
     color: theme.vars.palette.grey.dark,
@@ -157,7 +160,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
       content: '""',
       position: "absolute",
       bottom: 0,
-      left: "10%", 
+      left: "10%",
       width: "80%",
       height: "1px",
       backgroundColor: `${theme.palette.divider}`,
@@ -185,7 +188,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
 
   "& .uppercase-cell": {
     textTransform: "uppercase",
-  },  "& .danger-days": {
+  },
+  "& .danger-days": {
     color: theme.vars.palette.error.main,
     fontWeight: "bold",
     padding: "4px 8px",
@@ -211,7 +215,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
     borderBottom: "2px solid rgba(255,255,255,0.1)",
     boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
   },
-    // Animations for visual appeal
+  // Animations for visual appeal
   "@keyframes glow-border": {
     "0%": {
       boxShadow: `0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)`,
@@ -223,7 +227,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
       boxShadow: `0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)`,
     },
   },
-  
+
   // Subtle pulse animation for attention
   "@keyframes subtle-pulse": {
     "0%, 100%": {
@@ -235,19 +239,19 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({  "& .MuiDataGrid-colum
       transform: "scale(1.02)",
     },
   },
-  
+
   // Left indicator animation
   "@keyframes slide-in-left": {
-    "from": {
+    from: {
       transform: "translateX(-100%)",
       opacity: 0,
     },
-    "to": {
+    to: {
       transform: "translateX(0)",
       opacity: 1,
     },
   },
-    // Highlight rows based on recall days
+  // Highlight rows based on recall days
   "& .high-priority-row": {
     backgroundColor: `${theme.palette.error.light}33`, // 20% opacity red for <= 7 days
     animation: "glow-border 2s ease-in-out infinite",
@@ -395,7 +399,8 @@ const channelMap = {
 const SortInfoDisplay = ({ sortModel }) => {
   if (!sortModel || sortModel.length === 0) {
     return null;
-  }  const fieldMap = {
+  }
+  const fieldMap = {
     cus_no: "รหัสลูกค้า",
     cus_channel: "ช่องทาง",
     cus_bt_id: "ประเภทธุรกิจ",
@@ -445,6 +450,7 @@ function CustomerList() {
   const [delCustomer] = useDelCustomerMutation();
   const [updateRecall] = useUpdateRecallMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
+  const [changeGrade] = useChangeGradeMutation();
   const dispatch = useDispatch();
   const [totalItems, setTotalItems] = useState(0);
   const itemList = useSelector((state) => state.customer.itemList);
@@ -472,7 +478,7 @@ function CustomerList() {
     cus_email: false, // Hide Email column
     cus_address: false, // Hide Address column
     tools: true, // Show Tools column
-  });  // State to track column order
+  }); // State to track column order
   const [columnOrderModel, setColumnOrderModel] = useState([
     // Define explicit column order as requested
     "cus_channel", // Channel
@@ -495,7 +501,7 @@ function CustomerList() {
   const theme = useTheme();
   const tableContainerRef = useRef(null);
 
-  const { data, error, isFetching, isSuccess } = useGetAllCustomerQuery({
+  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery({
     group: groupSelected,
     page: paginationModel.page,
     per_page: paginationModel.pageSize,
@@ -556,13 +562,13 @@ function CustomerList() {
     // Only update if the sort model actually changed
     if (JSON.stringify(newModel) !== JSON.stringify(serverSortModel)) {
       // Map business_type to cus_bt_id for sorting
-      const processedModel = newModel.map(item => {
-        if (item.field === 'business_type') {
-          return { ...item, field: 'cus_bt_id' };
+      const processedModel = newModel.map((item) => {
+        if (item.field === "business_type") {
+          return { ...item, field: "cus_bt_id" };
         }
         return item;
       });
-      
+
       setServerSortModel(processedModel);
       // Reset to first page when sorting changes
       const newPaginationModel = { ...paginationModel, page: 0 };
@@ -705,36 +711,43 @@ function CustomerList() {
   const handleOpenDialog = (mode, cus_id = null) => {
     // First, reset the input list to avoid any stale data
     dispatch(resetInputList());
-    
+
     // Then load the data if it's not create mode
-    if (mode !== "create" && cus_id) {      const itemFill = itemList.find((item) => item.cus_id === cus_id);
-      
+    if (mode !== "create" && cus_id) {
+      const itemFill = itemList.find((item) => item.cus_id === cus_id);
+
       if (itemFill) {
         // Ensure cus_manage_by is properly formatted as an object
         let managedBy = { user_id: "", username: "" };
-        
+
         if (itemFill.cus_manage_by) {
-          if (typeof itemFill.cus_manage_by === 'object' && itemFill.cus_manage_by.user_id) {
+          if (
+            typeof itemFill.cus_manage_by === "object" &&
+            itemFill.cus_manage_by.user_id
+          ) {
             managedBy = {
               user_id: String(itemFill.cus_manage_by.user_id),
-              username: itemFill.cus_manage_by.username || ""
+              username: itemFill.cus_manage_by.username || "",
             };
-          } else if (typeof itemFill.cus_manage_by === 'string' || typeof itemFill.cus_manage_by === 'number') {
+          } else if (
+            typeof itemFill.cus_manage_by === "string" ||
+            typeof itemFill.cus_manage_by === "number"
+          ) {
             managedBy = {
               user_id: String(itemFill.cus_manage_by),
-              username: ""
+              username: "",
             };
           }
         }
-        
+
         const formattedItem = {
           ...itemFill,
-          cus_manage_by: managedBy
+          cus_manage_by: managedBy,
         };
-        
+
         // Set the input data
         dispatch(setInputList(formattedItem));
-        
+
         // Set location search if province/district data is available
         if (itemFill.province_sort_id || itemFill.district_sort_id) {
           dispatch(
@@ -744,7 +757,7 @@ function CustomerList() {
             })
           );
         }
-        
+
         // Log for debugging
         console.log(`Loading customer data for ${mode}: `, formattedItem);
       } else {
@@ -817,45 +830,54 @@ function CustomerList() {
   };
 
   const handleChangeGroup = async (is_up, params) => {
-    // ฟังก์ชันหาค่าไอดีกลุ่มลูกค้าที่ต้องการจะเปลี่ยน
-    const groupResult = (() => {
-      // Wrap in an IIFE to limit sort scope
+    // Determine the direction of grade change
+    const direction = is_up ? "up" : "down";
+
+    // Get current grade information for display
+    const currentGroup = groupList.find(
+      (group) => group.mcg_id === params.cus_mcg_id
+    );
+    const currentGrade = currentGroup ? currentGroup.mcg_name : "?";
+
+    // Get target grade for display
+    let targetGrade = "?";
+    if (currentGroup) {
+      const targetSort = currentGroup.mcg_sort + (is_up ? -1 : 1);
       const targetGroup = groupList.find(
-        (group) => group.mcg_id === params.cus_mcg_id
+        (group) => group.mcg_sort === targetSort
       );
-
-      if (!targetGroup) {
-        return []; // Return empty array if target group not found
+      if (targetGroup) {
+        targetGrade = targetGroup.mcg_name;
       }
+    }
 
-      const sortOffset = is_up ? -1 : 1;
-      const targetSort = targetGroup.mcg_sort + sortOffset;
-
-      return groupList.find((group) => group.mcg_sort === targetSort) || null;
-    })();
+    const gradeChangeText = is_up
+      ? `เปลี่ยนเกรดขึ้นจาก ${currentGrade} เป็น ${targetGrade}`
+      : `เปลี่ยนเกรดลงจาก ${currentGrade} เป็น ${targetGrade}`;
 
     const confirmed = await swal_delete_by_id(
-      `กรุณายืนยันการเปลี่ยนเกรดของ ${params.cus_name}`
+      `กรุณายืนยันการเปลี่ยนเกรดของ ${params.cus_name}: ${gradeChangeText}`
     );
 
     if (confirmed) {
       open_dialog_loading();
 
-      const inputUpdate = {
-        ...params,
-        cus_mcg_id: groupResult.mcg_id,
-        cus_updated_by: user.user_id,
-      };
       try {
-        const res = await updateCustomer(inputUpdate);
-
-        if (res.data.status === "success") {
-          open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ");
+        // Use the RTK Query mutation instead of axios
+        const res = await changeGrade({
+          customerId: params.cus_id,
+          direction: direction,
+        }).unwrap();        if (res.status === "success") {
+          open_dialog_ok_timer(
+            `เปลี่ยนเกรดสำเร็จ จาก ${res.data.old_grade} เป็น ${res.data.new_grade}`
+          );
+          // Reload data after grade change by refetching the current query
+          refetch();
           // Scroll to top after group change is successful
           scrollToTop();
         }
       } catch (error) {
-        open_dialog_error(error.message, error);
+        open_dialog_error(error.data?.message || error.message, error);
         console.error(error);
       }
     }
@@ -868,8 +890,18 @@ function CustomerList() {
       );
       if (!matchGroup) return true; // Disable if matchGroup is not found
 
-      const targetSort = is_up ? 1 : groupList.length;
-      return matchGroup.mcg_sort === targetSort;
+      // For upgrade button (D → C → B → A): disable when at grade A (sort = 1)
+      // For downgrade button (A → B → C → D): disable when at grade D (sort = 4)
+      const minSort = 1; // Grade A has sort = 1
+      const maxSort = 4; // Grade D has sort = 4
+
+      if (is_up) {
+        // Disable upgrading when already at highest grade (A)
+        return matchGroup.mcg_sort <= minSort;
+      } else {
+        // Disable downgrading when already at lowest grade (D)
+        return matchGroup.mcg_sort >= maxSort;
+      }
     },
     [groupList]
   );
@@ -889,17 +921,22 @@ function CustomerList() {
         borderRadius: 2,
       }}
     >
-      <Box sx={{ 
-        fontSize: 60, 
-        opacity: 0.5,
-        animation: "subtle-pulse 2s infinite ease-in-out",
-      }}>
+      <Box
+        sx={{
+          fontSize: 60,
+          opacity: 0.5,
+          animation: "subtle-pulse 2s infinite ease-in-out",
+        }}
+      >
         📋
       </Box>
       <Typography sx={{ fontSize: 18, fontWeight: "medium" }}>
         ไม่พบข้อมูลลูกค้า
       </Typography>
-      <Typography variant="body2" sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}>
+      <Typography
+        variant="body2"
+        sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}
+      >
         ลองใช้ตัวกรองอื่น หรือลองค้นหาด้วยคำสำคัญอื่น
       </Typography>
     </Box>
@@ -1030,7 +1067,8 @@ function CustomerList() {
         width: 120,
         sortable: true,
         renderCell: (params) => <span>{params.value}</span>,
-      },      {
+      },
+      {
         field: "cus_channel",
         headerName: "CHANNEL",
         width: 120,
@@ -1150,7 +1188,8 @@ function CustomerList() {
         field: "cus_tel_1",
         headerName: "TEL",
         width: 140,
-        sortable: true,        renderCell: (params) => {
+        sortable: true,
+        renderCell: (params) => {
           const tel1 = params.value;
           const tel2 = params.row.cus_tel_2;
           const hasTel = tel1 || tel2;
@@ -1161,22 +1200,26 @@ function CustomerList() {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
-                alignItems: "center", 
+                alignItems: "center",
                 width: "100%",
               }}
             >
               {hasTel ? (
-                <>                  <Box sx={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 0.5,
-                    transition: "all 0.2s ease",
-                    borderRadius: "4px",
-                    padding: "2px 6px",
-                    "&:hover": {
-                      backgroundColor: `${theme.palette.primary.light}22`,
-                    }
-                  }}>
+                <>
+                  {" "}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      transition: "all 0.2s ease",
+                      borderRadius: "4px",
+                      padding: "2px 6px",
+                      "&:hover": {
+                        backgroundColor: `${theme.palette.primary.light}22`,
+                      },
+                    }}
+                  >
                     <Typography variant="body2">{tel1 || "—"}</Typography>
                   </Box>
                   {tel2 && (
@@ -1199,7 +1242,7 @@ function CustomerList() {
         headerName: "NOTE",
         width: 280,
         sortable: true,
-      renderCell: (params) => {
+        renderCell: (params) => {
           const hasNote = params.value && params.value.trim().length > 0;
           return (
             <Tooltip
@@ -1219,23 +1262,25 @@ function CustomerList() {
                 },
               }}
             >
-              <Box 
+              <Box
                 sx={{
-                  display: "flex", 
+                  display: "flex",
                   alignItems: "center",
                   gap: 1,
-                  width: "100%"
+                  width: "100%",
                 }}
-              >                {hasNote && (
-                  <Box 
-                    component="span" 
+              >
+                {" "}
+                {hasNote && (
+                  <Box
+                    component="span"
                     sx={{
                       width: 4,
                       height: "100%",
                       borderRadius: "2px",
                       backgroundColor: theme.palette.info.main,
                       flexShrink: 0,
-                      marginRight: 1
+                      marginRight: 1,
                     }}
                   />
                 )}
@@ -1255,7 +1300,8 @@ function CustomerList() {
             </Tooltip>
           );
         },
-      },      {
+      },
+      {
         field: "business_type",
         headerName: "BUSINESS TYPE",
         width: 180,
@@ -1263,9 +1309,16 @@ function CustomerList() {
         // Change the sort field to cus_bt_id instead of business_type
         sortComparator: (v1, v2, param1, param2) => {
           // Use cus_bt_id for backend sorting
-          const cellParams = { id: param1.api.getCellParams(param1.id, 'cus_bt_id') };
-          const cellParams2 = { id: param2.api.getCellParams(param2.id, 'cus_bt_id') };
-          return param1.api.sortRowsLookup[cellParams.id] - param1.api.sortRowsLookup[cellParams2.id];
+          const cellParams = {
+            id: param1.api.getCellParams(param1.id, "cus_bt_id"),
+          };
+          const cellParams2 = {
+            id: param2.api.getCellParams(param2.id, "cus_bt_id"),
+          };
+          return (
+            param1.api.sortRowsLookup[cellParams.id] -
+            param1.api.sortRowsLookup[cellParams2.id]
+          );
         },
         renderCell: (params) => (
           <Typography
@@ -1286,7 +1339,8 @@ function CustomerList() {
         field: "cd_last_datetime",
         headerName: "RECALL",
         width: 140,
-        sortable: true,          renderCell: (params) => {
+        sortable: true,
+        renderCell: (params) => {
           const daysLeft = formatCustomRelativeTime(params.value);
           return (
             <Box
@@ -1310,11 +1364,16 @@ function CustomerList() {
                   display: "flex",
                   alignItems: "center",
                   gap: 0.5,
-                  animation: daysLeft <= 7 ? "subtle-pulse 1.5s infinite ease-in-out" : "none",
+                  animation:
+                    daysLeft <= 7
+                      ? "subtle-pulse 1.5s infinite ease-in-out"
+                      : "none",
                 }}
               >
                 {daysLeft <= 7 && (
-                  <Box component="span" sx={{ fontSize: "1.2rem" }}>⚠️</Box>
+                  <Box component="span" sx={{ fontSize: "1.2rem" }}>
+                    ⚠️
+                  </Box>
                 )}
                 {`${daysLeft} DAYS`}
               </Typography>
@@ -1334,22 +1393,25 @@ function CustomerList() {
         field: "cus_created_date",
         headerName: "CUSTOMER CREATE AT",
         width: 180,
-        sortable: true,        renderCell: (params) => {
+        sortable: true,
+        renderCell: (params) => {
           try {
             // Check if the value exists and is a valid date
             if (!params.value) return "—";
-            
+
             // Format the date for display using moment for consistent formatting
-            return moment(params.value).isValid() 
-              ? moment(params.value).format("D MMMM YYYY") 
+            return moment(params.value).isValid()
+              ? moment(params.value).format("D MMMM YYYY")
               : "—";
           } catch (error) {
             console.error("Error formatting date:", error);
             return "—";
-          }          const dateDisplay = params.value && moment(params.value).isValid() 
-            ? moment(params.value).format("D MMMM YYYY") 
-            : "—";
-            
+          }
+          const dateDisplay =
+            params.value && moment(params.value).isValid()
+              ? moment(params.value).format("D MMMM YYYY")
+              : "—";
+
           return (
             <Box
               sx={{
@@ -1420,21 +1482,26 @@ function CustomerList() {
         minWidth: 280,
         sortable: false,
         type: "actions",
-        getActions: (params) => [          <GridActionsCellItem
-            icon={<PiClockClockwise style={{ fontSize: 22, color: theme.palette.info.main }} />}
+        getActions: (params) => [
+          <GridActionsCellItem
+            icon={
+              <PiClockClockwise
+                style={{ fontSize: 22, color: theme.palette.info.main }}
+              />
+            }
             label="Recall"
             onClick={() => handleRecall(params.row)}
             showInMenu={false}
             title="Reset recall timer"
             sx={{
               border: `1px solid ${theme.palette.info.main}22`,
-              borderRadius: '50%',
-              padding: '4px',
-              transition: 'all 0.2s ease',
-              '&:hover': {
+              borderRadius: "50%",
+              padding: "4px",
+              transition: "all 0.2s ease",
+              "&:hover": {
                 backgroundColor: `${theme.palette.info.main}22`,
-                transform: 'scale(1.1)'
-              }
+                transform: "scale(1.1)",
+              },
             }}
           />,
           handleDisableChangeGroupBtn(true, params.row) ? (
@@ -1447,20 +1514,25 @@ function CustomerList() {
             />
           ) : (
             <GridActionsCellItem
-              icon={<PiArrowFatLinesUpFill style={{ fontSize: 22, color: theme.palette.success.main }} />}
+              icon={
+                <PiArrowFatLinesUpFill
+                  style={{ fontSize: 22, color: theme.palette.success.main }}
+                />
+              }
               label="Change Grade Up"
               onClick={() => handleChangeGroup(true, params.row)}
               disabled={false}
-              showInMenu={false}              title="Change grade up"
+              showInMenu={false}
+              title="Change grade up"
               sx={{
                 border: `1px solid ${theme.palette.success.main}22`,
-                borderRadius: '50%',
-                padding: '4px',
-                transition: 'all 0.2s ease',
-                '&:hover': {
+                borderRadius: "50%",
+                padding: "4px",
+                transition: "all 0.2s ease",
+                "&:hover": {
                   backgroundColor: `${theme.palette.success.main}22`,
-                  transform: 'scale(1.1)'
-                }
+                  transform: "scale(1.1)",
+                },
               }}
             />
           ),
@@ -1476,69 +1548,89 @@ function CustomerList() {
             />
           ) : (
             <GridActionsCellItem
-              icon={<PiArrowFatLinesDownFill style={{ fontSize: 22, color: theme.palette.warning.main }} />}
+              icon={
+                <PiArrowFatLinesDownFill
+                  style={{ fontSize: 22, color: theme.palette.warning.main }}
+                />
+              }
               label="Change Grade Down"
               onClick={() => handleChangeGroup(false, params.row)}
               disabled={false}
-              showInMenu={false}              title="Change grade down"
+              showInMenu={false}
+              title="Change grade down"
               sx={{
                 border: `1px solid ${theme.palette.warning.main}22`,
-                borderRadius: '50%',
-                padding: '4px',
-                transition: 'all 0.2s ease',
-                '&:hover': {
+                borderRadius: "50%",
+                padding: "4px",
+                transition: "all 0.2s ease",
+                "&:hover": {
                   backgroundColor: `${theme.palette.warning.main}22`,
-                  transform: 'scale(1.1)'
-                }
+                  transform: "scale(1.1)",
+                },
               }}
             />
           ),
           <GridActionsCellItem
-            icon={<MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />}
+            icon={
+              <MdOutlineManageSearch
+                style={{ fontSize: 26, color: theme.palette.primary.main }}
+              />
+            }
             label="View"
             onClick={() => handleOpenDialog("view", params.id)}
-            showInMenu={false}            title="View details"
+            showInMenu={false}
+            title="View details"
             sx={{
               border: `1px solid ${theme.palette.primary.main}22`,
-              borderRadius: '50%',
-              padding: '4px',
-              transition: 'all 0.2s ease',
-              '&:hover': {
+              borderRadius: "50%",
+              padding: "4px",
+              transition: "all 0.2s ease",
+              "&:hover": {
                 backgroundColor: `${theme.palette.primary.main}22`,
-                transform: 'scale(1.1)'
-              }
+                transform: "scale(1.1)",
+              },
             }}
           />,
           <GridActionsCellItem
-            icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
+            icon={
+              <CiEdit
+                style={{ fontSize: 26, color: theme.palette.secondary.main }}
+              />
+            }
             label="Edit"
             onClick={() => handleOpenDialog("edit", params.id)}
-            showInMenu={false}            title="Edit customer"
+            showInMenu={false}
+            title="Edit customer"
             sx={{
               border: `1px solid ${theme.palette.secondary.main}22`,
-              borderRadius: '50%',
-              padding: '4px',
-              transition: 'all 0.2s ease',
-              '&:hover': {
+              borderRadius: "50%",
+              padding: "4px",
+              transition: "all 0.2s ease",
+              "&:hover": {
                 backgroundColor: `${theme.palette.secondary.main}22`,
-                transform: 'scale(1.1)'
-              }
+                transform: "scale(1.1)",
+              },
             }}
           />,
           <GridActionsCellItem
-            icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
+            icon={
+              <BsTrash3
+                style={{ fontSize: 22, color: theme.palette.error.main }}
+              />
+            }
             label="Delete"
             onClick={() => handleDelete(params.row)}
-            showInMenu={false}            title="Delete customer"
+            showInMenu={false}
+            title="Delete customer"
             sx={{
               border: `1px solid ${theme.palette.error.main}22`,
-              borderRadius: '50%',
-              padding: '4px',
-              transition: 'all 0.2s ease',
-              '&:hover': {
+              borderRadius: "50%",
+              padding: "4px",
+              transition: "all 0.2s ease",
+              "&:hover": {
                 backgroundColor: `${theme.palette.error.main}22`,
-                transform: 'scale(1.1)'
-              }
+                transform: "scale(1.1)",
+              },
             }}
           />,
         ],
@@ -1570,21 +1662,22 @@ function CustomerList() {
             }}
           >
             รายการลูกค้า
-          </Typography>          <SortInfoDisplay sortModel={serverSortModel} />
+          </Typography>{" "}
+          <SortInfoDisplay sortModel={serverSortModel} />
         </Box>{" "}
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {isFetching && (
-            <Box 
-              sx={{ 
-                display: "flex", 
-                alignItems: "center", 
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
                 marginRight: 1,
                 color: "white",
                 fontSize: "0.75rem",
                 backgroundColor: "rgba(255,255,255,0.2)",
                 padding: "4px 8px",
                 borderRadius: "4px",
-                gap: 1
+                gap: 1,
               }}
             >
               <CircularProgress size={16} thickness={5} color="inherit" />
@@ -1656,7 +1749,8 @@ function CustomerList() {
               },
             }}
           >
-            <StyledDataGrid              disableRowSelectionOnClick
+            <StyledDataGrid
+              disableRowSelectionOnClick
               paginationMode="server"
               sortingMode="server"
               rows={itemList}
@@ -1664,21 +1758,22 @@ function CustomerList() {
               getRowId={(row) => row.cus_id}
               componentsProps={{
                 row: {
-                  style: { cursor: 'pointer' }
-                }
-              }}initialState={{
-                  pagination: { paginationModel },
-                  sorting: { sortModel: serverSortModel },
-                  columns: {
-                    columnVisibilityModel: {
-                      cus_no: false, // Hide ID column
-                      cus_channel: true, // Show Channel column
-                      business_type: true, // Show Business Type column
-                      cus_manage_by: true, // Show Sales Name column
-                      cus_name: true, // Show Customer column
-                      cus_company: false, // Hide Company column
-                      cus_tel_1: true, // Show Tel column
-                      cd_note: true, // Show Note column
+                  style: { cursor: "pointer" },
+                },
+              }}
+              initialState={{
+                pagination: { paginationModel },
+                sorting: { sortModel: serverSortModel },
+                columns: {
+                  columnVisibilityModel: {
+                    cus_no: false, // Hide ID column
+                    cus_channel: true, // Show Channel column
+                    business_type: true, // Show Business Type column
+                    cus_manage_by: true, // Show Sales Name column
+                    cus_name: true, // Show Customer column
+                    cus_company: false, // Hide Company column
+                    cus_tel_1: true, // Show Tel column
+                    cd_note: true, // Show Note column
                     cd_last_datetime: true, // Show Recall column
                     cus_created_date: true, // Show Customer Create At column
                     cus_email: false, // Hide Email column

@@ -22,6 +22,11 @@ function FilterTab() {
     }
   };
 
+  // Sort groups by mcg_sort to ensure they're shown in the right order: A, B, C, D
+  const sortedGroupList = [...groupList].sort(
+    (a, b) => a.mcg_sort - b.mcg_sort
+  );
+
   return (
     <>
       <ToggleButtonGroup
@@ -31,7 +36,7 @@ function FilterTab() {
         color="error-light"
       >
         <ToggleButton value="all">{`ทั้งหมด (${totalCount})`}</ToggleButton>
-        {groupList.map((item, index) => (
+        {sortedGroupList.map((item, index) => (
           <ToggleButton key={index} value={item.mcg_id}>
             {`${item.mcg_name} (${item.customer_group_count || 0})`}
           </ToggleButton>

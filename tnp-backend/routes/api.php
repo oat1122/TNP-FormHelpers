@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function() {
 
     //---------- Customer ----------
     Route::put('/customerRecall/{id}', [CustomerController::class, 'recall']);
+    Route::put('/customerChangeGrade/{id}', [CustomerController::class, 'changeGrade']);
 
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {

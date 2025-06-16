@@ -261,11 +261,19 @@ class CustomerController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get customer group
+            // Get grade D customer group (mcg_sort = 4)
             $group_q = CustomerGroup::where('mcg_is_use', true)
+                ->where('mcg_sort', 4) // Grade D has sort order 4
                 ->select('mcg_id', 'mcg_name', 'mcg_recall_default', 'mcg_sort')
-                ->orderBy('mcg_sort', 'desc')
                 ->first();
+                
+            // If grade D not found, fallback to the lowest grade customer group
+            if (!$group_q) {
+                $group_q = CustomerGroup::where('mcg_is_use', true)
+                    ->select('mcg_id', 'mcg_name', 'mcg_recall_default', 'mcg_sort')
+                    ->orderBy('mcg_sort', 'desc')
+                    ->first();
+            }
 
             // Get master customer
             $customer_q = Customer::select('cus_id', 'cus_no', 'cus_created_date')
@@ -283,6 +291,7 @@ class CustomerController extends Controller
             $customer->fill($data_input);
             $customer->cus_id = Str::uuid();
             $customer->cus_no = $this->customer_service->genCustomerNo($customer_q->cus_no);
+            $customer->cus_mcg_id = $group_q->mcg_id; // Set default grade (D)
             $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
             $customer->cus_created_date = now();
             $customer->cus_created_by = Auth::id();
@@ -518,6 +527,80 @@ class CustomerController extends Controller
                 'status' => 'error',
                 'message' => 'recall customer error : ' . $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Change customer grade up or down.
+     * Grade progression: D → C → B → A (upgrade)
+     * Grade regression: A → B, B → C, C → D (downgrade)
+     */
+    public function changeGrade(Request $request, string $id)
+    {
+        $direction = $request->input('direction'); // 'up' or 'down'
+        
+        try {
+            DB::beginTransaction();
+            
+            // Get the customer
+            $customer = Customer::findOrFail($id);
+            
+            // Get current customer group
+            $currentGroup = CustomerGroup::where('mcg_id', $customer->cus_mcg_id)
+                ->select('mcg_id', 'mcg_name', 'mcg_sort')
+                ->firstOrFail();
+            
+            // Get target group based on direction
+            $targetSort = $direction === 'up' 
+                ? $currentGroup->mcg_sort - 1  // Move up (e.g., B → A)
+                : $currentGroup->mcg_sort + 1; // Move down (e.g., B → C)
+                
+            // Find the target group by sort order
+            $targetGroup = CustomerGroup::where('mcg_sort', $targetSort)
+                ->where('mcg_is_use', true)
+                ->select('mcg_id', 'mcg_name', 'mcg_recall_default')
+                ->first();
+                
+            if (!$targetGroup) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Cannot change grade. Target grade not found.'
+                ], 400);
+            }
+            
+            // Update customer's group
+            $customer->cus_mcg_id = $targetGroup->mcg_id;
+            $customer->cus_updated_date = now();
+            $customer->cus_updated_by = Auth::id();
+            $customer->save();
+            
+            // Update recall date based on new group's settings
+            $customer_detail = CustomerDetail::where('cd_cus_id', $id)->first();
+            if ($customer_detail) {
+                $customer_detail->cd_last_datetime = $this->customer_service->setRecallDatetime($targetGroup->mcg_recall_default);
+                $customer_detail->cd_updated_date = now();
+                $customer_detail->cd_updated_by = Auth::id();
+                $customer_detail->save();
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'old_grade' => $currentGroup->mcg_name,
+                    'new_grade' => $targetGroup->mcg_name
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Change customer grade error: ' . $e);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Change customer grade error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -90,6 +90,14 @@ export const customerApi = createApi({
         body: payload,
       }),
     }),
+    changeGrade: builder.mutation({
+      invalidatesTags: ["Customer"],
+      query: (payload) => ({
+        url: `/customerChangeGrade/${payload.customerId}`,
+        method: "PUT",
+        body: { direction: payload.direction },
+      }),
+    }),
   }),
 });
 
@@ -99,4 +107,5 @@ export const {
   useUpdateCustomerMutation,
   useDelCustomerMutation,
   useUpdateRecallMutation,
+  useChangeGradeMutation,
 } = customerApi;

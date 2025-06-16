@@ -701,19 +701,46 @@ function CustomerList() {
       </Box>
     );
   }
-
   const handleOpenDialog = (mode, cus_id = null) => {
-    if (mode !== "create") {
+    // First, reset the input list to avoid any stale data
+    dispatch(resetInputList());
+    
+    // Then load the data if it's not create mode
+    if (mode !== "create" && cus_id) {
       const itemFill = itemList.find((item) => item.cus_id === cus_id);
-      dispatch(setInputList(itemFill));
-      dispatch(
-        setLocationSearch({
-          province_sort_id: itemFill.province_sort_id,
-          district_sort_id: itemFill.district_sort_id,
-        })
-      );
+      
+      if (itemFill) {
+        // Ensure cus_manage_by is properly formatted as an object
+        const formattedItem = {
+          ...itemFill,
+          cus_manage_by: itemFill.cus_manage_by ? 
+            (typeof itemFill.cus_manage_by === 'object' ? 
+              itemFill.cus_manage_by : 
+              { user_id: itemFill.cus_manage_by, username: "" })
+            : { user_id: "", username: "" }
+        };
+        
+        // Set the input data
+        dispatch(setInputList(formattedItem));
+        
+        // Set location search if province/district data is available
+        if (itemFill.province_sort_id || itemFill.district_sort_id) {
+          dispatch(
+            setLocationSearch({
+              province_sort_id: itemFill.province_sort_id || "",
+              district_sort_id: itemFill.district_sort_id || "",
+            })
+          );
+        }
+        
+        // Log for debugging
+        console.log(`Loading customer data for ${mode}: `, formattedItem);
+      } else {
+        console.warn(`Customer with ID ${cus_id} not found in itemList`);
+      }
     }
 
+    // Set mode and open dialog
     dispatch(setMode(mode));
     setOpenDialog(true);
   };

@@ -90,13 +90,24 @@ const StyledSelect = styled(Select)(({ theme }) => ({
 
 function DialogForm(props) {
   const dispatch = useDispatch();
-  const user = JSON.parse(localStorage.getItem("userData"));
+  // Safely parse user data with error handling
+  let user;
+  try {
+    const userData = localStorage.getItem("userData");
+    user = userData ? JSON.parse(userData) : { role: "", user_id: "", username: "" };
+  } catch (err) {
+    console.error('Error parsing userData from localStorage:', err);
+    user = { role: "", user_id: "", username: "" };
+  }
+  
   const isAdmin = user.role === "admin";
-  const inputList = useSelector((state) => state.customer.inputList);
-  const itemList = useSelector((state) => state.customer.itemList);
-  const mode = useSelector((state) => state.customer.mode);
-  const groupList = useSelector((state) => state.customer.groupList);
-  const locationSearch = useSelector((state) => state.global.locationSearch);
+  
+  // Get state safely with default values
+  const inputList = useSelector((state) => state?.customer?.inputList || {});
+  const itemList = useSelector((state) => state?.customer?.itemList || []);
+  const mode = useSelector((state) => state?.customer?.mode || "");
+  const groupList = useSelector((state) => state?.customer?.groupList || []);
+  const locationSearch = useSelector((state) => state?.global?.locationSearch || {});
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [subDistrictList, setSubDistrictList] = useState([]);
@@ -159,40 +170,50 @@ function DialogForm(props) {
     setErrors((prev) => ({ ...prev, cus_bt_id: "" }));
     setIsBusinessTypeManagerOpen(false);
   };  const handleInputChange = (e) => {
-    // Safely extract name and value
-    const name = e?.target?.name;
-    let value = e?.target?.value;
-
-    // Safety check - if we don't have a valid name, we can't update anything
-    if (!name) return;
-
-    if (name === "cus_tax_id" || name === "cus_zip_code") {
-      value = (value || "").replace(/[^0-9]/g, "");
-    } else if (name === "cus_manage_by") {
-      // Properly handle the cus_manage_by changes
-      // If value is empty string, set empty object with empty values
-      if (value === "" || value === null || value === undefined) {
-        value = { user_id: "", username: "" };
-      } else {
-        // Find the corresponding sales person
-        const salesPerson = salesList?.find((user) => user?.user_id === value) || null;
-        value = salesPerson
-          ? { user_id: salesPerson.user_id || "", username: salesPerson.username || "" }
-          : { user_id: "", username: "" };
+    try {
+      // Safely extract name and value
+      const name = e?.target?.name;
+      let value = e?.target?.value;
+  
+      // Safety check - if we don't have a valid name, we can't update anything
+      if (!name) {
+        console.warn('handleInputChange called with no name property:', e);
+        return;
       }
+  
+      if (name === "cus_tax_id" || name === "cus_zip_code") {
+        value = (value || "").replace(/[^0-9]/g, "");
+      } else if (name === "cus_manage_by") {
+        // Properly handle the cus_manage_by changes
+        // If value is empty string, set empty object with empty values
+        if (value === "" || value === null || value === undefined) {
+          value = { user_id: "", username: "" };
+        } else {
+          // Find the corresponding sales person
+          const salesPerson = Array.isArray(salesList) ? 
+            salesList.find((user) => user?.user_id === value) || null : null;
+          
+          value = salesPerson
+            ? { user_id: salesPerson.user_id || "", username: salesPerson.username || "" }
+            : { user_id: value, username: "" }; // If we can't find the user, at least keep the ID
+        }
+      }
+  
+      // Get current inputList safely (default to empty object if undefined)
+      const currentInputList = inputList || {};
+  
+      dispatch(
+        setInputList({
+          ...currentInputList, // Include existing values
+          [name]: value,
+        })
+      );
+  
+      // Clear error for this field if any
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    } catch (err) {
+      console.error('Error in handleInputChange:', err, e);
     }
-
-    // Get current inputList safely (default to empty object if undefined)
-    const currentInputList = inputList || {};
-
-    dispatch(
-      setInputList({
-        ...currentInputList, // Include existing values
-        [name]: value,
-      })
-    );
-
-    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSelectLocation = useCallback(
@@ -411,25 +432,30 @@ function DialogForm(props) {
     } else {
       Swal.close(); // Close loading when fetching stops
     }
-  }, [isFetching, roleIsFetching, businessTypesIsFetching]);  // Additional useEffect to ensure cus_manage_by is always properly initialized as an object
-  // This runs only once when the component mounts
+  }, [isFetching, roleIsFetching, businessTypesIsFetching]);  // Fix for initialization and data loading issues
+  // Run this effect both on mount and when modal opens (props.openDialog changes)
   useEffect(() => {
-    // If cus_manage_by is undefined, null, or not an object, initialize it
-    if (!inputList || !inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
-      console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
-      
-      // Create a safe version of the inputList
-      const safeInputList = inputList || {};
-      
-      dispatch(
-        setInputList({
-          ...safeInputList,
-          cus_manage_by: { user_id: "", username: "" }
-        })
-      );
+    if (props.openDialog) {
+      // Safe initialization of all form data
+      if (!inputList || typeof inputList !== 'object') {
+        console.info('Initializing inputList with default values');
+        dispatch(resetInputList());
+      } else {
+        // Ensure cus_manage_by is properly structured
+        if (!inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
+          console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
+          
+          dispatch(
+            setInputList({
+              ...inputList,
+              cus_manage_by: { user_id: "", username: "" }
+            })
+          );
+        }
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array = run once on mount
+  }, [props.openDialog]); // Run when dialog opens or closes
   return (
     <>
       <BusinessTypeManager
@@ -486,23 +512,29 @@ function DialogForm(props) {
                       readOnly={mode === "view"}
                       name="cus_manage_by"
                       value={
-                        // Add multiple safeguards to ensure value is never undefined
+                        // Enhanced safety logic for value
                         (() => {
-                          // First check if inputList exists
-                          if (!inputList) return "";
-                          
-                          // Then check if cus_manage_by exists and is an object
-                          const managedBy = inputList.cus_manage_by;
-                          if (!managedBy) return "";
-                          
-                          // If it's a string (from older data format), return as is if not empty
-                          if (typeof managedBy === 'string') return managedBy || "";
-                          
-                          // If it's an object, return user_id if it exists
-                          if (typeof managedBy === 'object') return managedBy.user_id || "";
-                          
-                          // Fallback to empty string
-                          return "";
+                          // Default to empty string if anything goes wrong
+                          try {
+                            // First check if inputList exists
+                            if (!inputList) return "";
+                            
+                            // Then check if cus_manage_by exists
+                            const managedBy = inputList.cus_manage_by;
+                            if (!managedBy) return "";
+                            
+                            // If it's a string (from older data format), return as is if not empty
+                            if (typeof managedBy === 'string') return managedBy || "";
+                            
+                            // If it's an object, return user_id if it exists
+                            if (typeof managedBy === 'object') return managedBy.user_id || "";
+                            
+                            // Fallback to empty string
+                            return "";
+                          } catch (err) {
+                            console.error('Error getting cus_manage_by value:', err);
+                            return "";
+                          }
                         })()
                       }
                       onChange={handleInputChange}
@@ -510,7 +542,8 @@ function DialogForm(props) {
                       <MenuItem disabled value="">
                         ชื่อผู้ดูแล
                       </MenuItem>
-                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>                      {Array.isArray(salesList) && salesList.length > 0 ? 
+                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
+                      {Array.isArray(salesList) && salesList.length > 0 ? 
                         salesList.map((item, index) => (
                           <MenuItem
                             key={(item?.user_id || '') + index}
@@ -526,8 +559,7 @@ function DialogForm(props) {
                     </StyledSelect>
                   </Grid>
                 )}{" "}
-                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
-                  <StyledSelect
+                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>                  <StyledSelect
                     required
                     fullWidth
                     displayEmpty
@@ -535,7 +567,17 @@ function DialogForm(props) {
                     sx={{ textTransform: "uppercase", cursor: "auto" }}
                     readOnly={mode === "view"}
                     name="cus_channel"
-                    value={inputList.cus_channel || ""}
+                    value={
+                      // Safe value access
+                      (() => {
+                        try {
+                          return inputList && inputList.cus_channel ? inputList.cus_channel : "";
+                        } catch (err) {
+                          console.error('Error getting cus_channel value:', err);
+                          return "";
+                        }
+                      })()
+                    }
                     onChange={handleInputChange}
                     error={!!errors.cus_channel}
                   >
@@ -560,8 +602,7 @@ function DialogForm(props) {
                   <Box
                     sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
                   >
-                    <Box sx={{ flexGrow: 1 }}>
-                      <StyledSelect
+                    <Box sx={{ flexGrow: 1 }}>                      <StyledSelect
                         required
                         fullWidth
                         displayEmpty
@@ -569,7 +610,17 @@ function DialogForm(props) {
                         sx={{ textTransform: "uppercase", textAlign: "start" }}
                         readOnly={mode === "view" || businessTypesIsFetching}
                         name="cus_bt_id"
-                        value={inputList.cus_bt_id || ""}
+                        value={
+                          // Safe value access
+                          (() => {
+                            try {
+                              return inputList && inputList.cus_bt_id ? inputList.cus_bt_id : "";
+                            } catch (err) {
+                              console.error('Error getting cus_bt_id value:', err);
+                              return "";
+                            }
+                          })()
+                        }
                         onChange={handleInputChange}
                         error={!!errors.cus_bt_id}
                         MenuProps={{
@@ -645,26 +696,26 @@ function DialogForm(props) {
                               }}
                             />
                           </Box>
-                        </MenuItem>
-                        {businessTypesList.map((item) => (
-                          <MenuItem
-                            key={item.bt_id}
-                            value={item.bt_id}
-                            sx={{
-                              fontFamily: "Kanit",
-                              "&.Mui-selected": {
-                                bgcolor: (theme) =>
-                                  `${theme.vars.palette.error.main}1A`,
-                                "&:hover": {
+                        </MenuItem>                        {Array.isArray(businessTypesList) && businessTypesList.length > 0 ? 
+                          businessTypesList.map((item) => (
+                            <MenuItem
+                              key={item?.bt_id || Math.random().toString()}
+                              value={item?.bt_id || ""}
+                              sx={{
+                                fontFamily: "Kanit",
+                                "&.Mui-selected": {
                                   bgcolor: (theme) =>
+                                    `${theme.vars.palette.error.main}1A`,
+                                  "&:hover": {
+                                    bgcolor: (theme) =>
                                     `${theme.vars.palette.error.main}26`,
                                 },
                               },
                             }}
                           >
-                            {item.bt_name}
+                            {item?.bt_name || 'Unknown Type'}
                           </MenuItem>
-                        ))}
+                        )) : <MenuItem value="" disabled>No business types available</MenuItem>}
                       </StyledSelect>
                       <FormHelperText error>
                         {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}

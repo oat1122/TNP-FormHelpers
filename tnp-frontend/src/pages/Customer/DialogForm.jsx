@@ -191,11 +191,18 @@ function DialogForm(props) {
         } else {
           // Find the corresponding sales person
           const salesPerson = Array.isArray(salesList) ? 
-            salesList.find((user) => user?.user_id === value) || null : null;
+            salesList.find((user) => user && typeof user === 'object' && user?.user_id === value) || null : null;
           
-          value = salesPerson
-            ? { user_id: salesPerson.user_id || "", username: salesPerson.username || "" }
-            : { user_id: value, username: "" }; // If we can't find the user, at least keep the ID
+          if (salesPerson) {
+            value = { 
+              user_id: salesPerson.user_id || "", 
+              username: salesPerson.username || "" 
+            };
+            console.log('Set manager to:', value);
+          } else {
+            console.warn(`Selected sales person ID ${value} not found in salesList`);
+            value = { user_id: "", username: "" };
+          }
         }
       }
   
@@ -456,19 +463,65 @@ function DialogForm(props) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.openDialog]); // Run when dialog opens or closes
+  // Enhanced helper function to safely handle cus_manage_by format
+  const getSafeManagerValue = useCallback((inputValue) => {
+    try {
+      // If no value, return empty string
+      if (!inputValue) return "";
+      
+      // If it's already a string, return it
+      if (typeof inputValue === 'string') return inputValue;
+      
+      // If it's an object with user_id, return that
+      if (typeof inputValue === 'object' && 'user_id' in inputValue) {
+        return inputValue.user_id || "";
+      }
+      
+      // Default fallback
+      return "";
+    } catch (err) {
+      console.error('Error in getSafeManagerValue:', err);
+      return "";
+    }
+  }, []);
+
+  useEffect(() => {
+    // If dialog is open, salesList is available, and we're in edit/view mode
+    if (props.openDialog && userRoleData?.sale_role && (mode === 'edit' || mode === 'view')) {
+      // Check if the current manager value exists in the salesList
+      const currentManagerId = getSafeManagerValue(inputList?.cus_manage_by);
+      
+      if (currentManagerId && currentManagerId !== "") {
+        const exists = userRoleData.sale_role.some(user => 
+          user.user_id === currentManagerId
+        );
+        
+        if (!exists) {
+          console.warn(`Selected manage_by (${currentManagerId}) not found in salesList. Resetting to empty value.`);
+          
+          // Reset to empty object if value doesn't exist in salesList
+          dispatch(
+            setInputList({
+              ...inputList,
+              cus_manage_by: { user_id: "", username: "" }
+            })
+          );
+        }
+      }
+    }
+  }, [props.openDialog, userRoleData, mode, inputList?.cus_manage_by, dispatch, getSafeManagerValue]);
   return (
     <>
       <BusinessTypeManager
         open={isBusinessTypeManagerOpen}
         onClose={handleCloseBusinessTypeManager}
         onTypeSelected={handleBusinessTypeSelected}
-      />
-      <Dialog
-        open={props.openDialog}
+      />      <Dialog
+        open={props.openDialog && !isFetching && !roleIsFetching && !businessTypesIsFetching}
         fullWidth
         maxWidth="xl"
         disableEscapeKeyDown
-        aria-hidden={props.openDialog ? false : true}
+        aria-hidden={(!props.openDialog || isFetching || roleIsFetching || businessTypesIsFetching) ? true : false}
       >
         <ErrorBoundary onReset={() => {
           // Reset state when error boundary is reset
@@ -504,55 +557,30 @@ function DialogForm(props) {
                 spacing={2}
               >
                 {isAdmin && (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>                    <StyledSelect
-                      fullWidth
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>                    <StyledSelect                      fullWidth
                       displayEmpty
                       size="small"
                       sx={{ textTransform: "capitalize", cursor: "auto" }}
                       readOnly={mode === "view"}
                       name="cus_manage_by"
-                      value={
-                        // Enhanced safety logic for value
-                        (() => {
-                          // Default to empty string if anything goes wrong
-                          try {
-                            // First check if inputList exists
-                            if (!inputList) return "";
-                            
-                            // Then check if cus_manage_by exists
-                            const managedBy = inputList.cus_manage_by;
-                            if (!managedBy) return "";
-                            
-                            // If it's a string (from older data format), return as is if not empty
-                            if (typeof managedBy === 'string') return managedBy || "";
-                            
-                            // If it's an object, return user_id if it exists
-                            if (typeof managedBy === 'object') return managedBy.user_id || "";
-                            
-                            // Fallback to empty string
-                            return "";
-                          } catch (err) {
-                            console.error('Error getting cus_manage_by value:', err);
-                            return "";
-                          }
-                        })()
-                      }
+                      value={getSafeManagerValue(inputList?.cus_manage_by)}
                       onChange={handleInputChange}
                     >
                       <MenuItem disabled value="">
                         ชื่อผู้ดูแล
-                      </MenuItem>
-                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
+                      </MenuItem>                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
                       {Array.isArray(salesList) && salesList.length > 0 ? 
-                        salesList.map((item, index) => (
-                          <MenuItem
-                            key={(item?.user_id || '') + index}
-                            value={item?.user_id || ''}
-                            sx={{ textTransform: "capitalize" }}
-                          >
-                            {item?.username || 'Unknown User'}
-                          </MenuItem>
-                        ))
+                        salesList
+                          .filter(item => item && typeof item === 'object') // Filter out any invalid items
+                          .map((item, index) => (
+                            <MenuItem
+                              key={(item?.user_id || '') + index}
+                              value={item?.user_id || ''}
+                              sx={{ textTransform: "capitalize" }}
+                            >
+                              {item?.username || 'Unknown User'}
+                            </MenuItem>
+                          ))
                         : 
                         <MenuItem value="" disabled>No sales users available</MenuItem>
                       }

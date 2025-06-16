@@ -706,18 +706,29 @@ function CustomerList() {
     dispatch(resetInputList());
     
     // Then load the data if it's not create mode
-    if (mode !== "create" && cus_id) {
-      const itemFill = itemList.find((item) => item.cus_id === cus_id);
+    if (mode !== "create" && cus_id) {      const itemFill = itemList.find((item) => item.cus_id === cus_id);
       
       if (itemFill) {
         // Ensure cus_manage_by is properly formatted as an object
+        let managedBy = { user_id: "", username: "" };
+        
+        if (itemFill.cus_manage_by) {
+          if (typeof itemFill.cus_manage_by === 'object' && itemFill.cus_manage_by.user_id) {
+            managedBy = {
+              user_id: String(itemFill.cus_manage_by.user_id),
+              username: itemFill.cus_manage_by.username || ""
+            };
+          } else if (typeof itemFill.cus_manage_by === 'string' || typeof itemFill.cus_manage_by === 'number') {
+            managedBy = {
+              user_id: String(itemFill.cus_manage_by),
+              username: ""
+            };
+          }
+        }
+        
         const formattedItem = {
           ...itemFill,
-          cus_manage_by: itemFill.cus_manage_by ? 
-            (typeof itemFill.cus_manage_by === 'object' ? 
-              itemFill.cus_manage_by : 
-              { user_id: itemFill.cus_manage_by, username: "" })
-            : { user_id: "", username: "" }
+          cus_manage_by: managedBy
         };
         
         // Set the input data

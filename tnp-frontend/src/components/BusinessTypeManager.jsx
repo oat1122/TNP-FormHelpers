@@ -60,14 +60,17 @@ function BusinessTypeManager({ open, onClose }) {
   const handleAddType = async () => {
     if (!newTypeName.trim()) return;
 
-    try {
-      await addBusinessType({
+    try {      await addBusinessType({
         bt_name: newTypeName.trim(),
       }).unwrap();
 
       setNewTypeName("");
       open_dialog_ok_timer("เพิ่มประเภทธุรกิจใหม่เรียบร้อย");
-      refetch();
+      refetch();      
+      // ปิดหน้าจัดการประเภทธุรกิจเมื่อเพิ่มเรียบร้อย
+      setTimeout(() => {
+        onClose();
+      }, 800);
     } catch (error) {
       open_dialog_error("เกิดข้อผิดพลาดในการเพิ่มประเภทธุรกิจ", error.message);
     }
@@ -81,12 +84,14 @@ function BusinessTypeManager({ open, onClose }) {
       await updateBusinessType({
         bt_id: editingType.bt_id,
         bt_name: newTypeName.trim(),
-      }).unwrap();
-
-      setEditingType(null);
+      }).unwrap();      setEditingType(null);
       setNewTypeName("");
       open_dialog_ok_timer("อัพเดทประเภทธุรกิจเรียบร้อย");
-      refetch();
+      refetch();      
+      // ปิดหน้าจัดการประเภทธุรกิจเมื่อแก้ไขเรียบร้อย
+      setTimeout(() => {
+        onClose();
+      }, 800);
     } catch (error) {
       open_dialog_error("เกิดข้อผิดพลาดในการอัพเดทประเภทธุรกิจ", error.message);
     }
@@ -154,10 +159,13 @@ function BusinessTypeManager({ open, onClose }) {
                 popup: 'swal-popup-top',
                 backdrop: 'swal2-backdrop-show',
               },
-              zIndex: 9999999,
-              position: 'center'
+              zIndex: 9999999,              position: 'center'
             });
-            refetch();
+            refetch();            
+            // ปิดหน้าจัดการประเภทธุรกิจเมื่อลบเรียบร้อย
+            setTimeout(() => {
+              onClose();
+            }, 1000);
           }
         } catch (error) {
           const errorMsg = error.data?.message || 

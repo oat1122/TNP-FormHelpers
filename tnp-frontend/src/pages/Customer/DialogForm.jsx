@@ -775,17 +775,16 @@ function DialogForm(props) {
                     </Tooltip>
                   </Box>
                 </Grid>
-                <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>
-                  <StyledOutlinedInput
+                <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>                  <StyledOutlinedInput
                     fullWidth
                     disabled
                     size="small"
                     value={
                       inputList.cus_created_date
                         ? moment(inputList.cus_created_date).format(
-                            "DD/MM/YYYY"
+                            "D MMMM YYYY"
                           )
-                        : moment().format("DD/MM/YYYY")
+                        : moment().format("D MMMM YYYY")
                     }
                     inputProps={{ style: { textAlign: "-webkit-center" } }}
                   />

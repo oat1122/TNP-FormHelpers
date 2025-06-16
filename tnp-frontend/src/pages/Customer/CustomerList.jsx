@@ -51,6 +51,7 @@ import { MdOutlineManageSearch } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
 import { CiEdit } from "react-icons/ci";
 import { BsTrash3 } from "react-icons/bs";
+import moment from "moment";
 import { PiClockClockwise } from "react-icons/pi";
 import { PiArrowFatLinesUpFill, PiArrowFatLinesDownFill } from "react-icons/pi";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
@@ -1333,22 +1334,22 @@ function CustomerList() {
         field: "cus_created_date",
         headerName: "CUSTOMER CREATE AT",
         width: 180,
-        sortable: true,
-        renderCell: (params) => {
-          // Check if the value exists and is a valid date
-          const isValidDate =
-            params.value && !isNaN(new Date(params.value).getTime());
-
-          // Format the date for display
-          const date = isValidDate ? new Date(params.value) : null;
-          const formattedDate = date
-            ? date.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })
+        sortable: true,        renderCell: (params) => {
+          try {
+            // Check if the value exists and is a valid date
+            if (!params.value) return "—";
+            
+            // Format the date for display using moment for consistent formatting
+            return moment(params.value).isValid() 
+              ? moment(params.value).format("D MMMM YYYY") 
+              : "—";
+          } catch (error) {
+            console.error("Error formatting date:", error);
+            return "—";
+          }          const dateDisplay = params.value && moment(params.value).isValid() 
+            ? moment(params.value).format("D MMMM YYYY") 
             : "—";
-
+            
           return (
             <Box
               sx={{
@@ -1358,7 +1359,7 @@ function CustomerList() {
                 width: "100%",
               }}
             >
-              <Typography variant="body2">{formattedDate}</Typography>
+              <Typography variant="body2">{dateDisplay}</Typography>
             </Box>
           );
         },

@@ -19,7 +19,7 @@ import {
   FormHelperText,
   Tooltip,
 } from "@mui/material";
-import { MdAdd, MdSettings, MdSearch } from "react-icons/md";
+import { MdAdd, MdSettings } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
 import {
@@ -49,7 +49,6 @@ import {
 } from "../../utils/import_lib";
 import { MdClose } from "react-icons/md";
 import Swal from "sweetalert2";
-import ErrorBoundary from "../../components/ErrorBoundary";
 
 const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,
@@ -90,24 +89,13 @@ const StyledSelect = styled(Select)(({ theme }) => ({
 
 function DialogForm(props) {
   const dispatch = useDispatch();
-  // Safely parse user data with error handling
-  let user;
-  try {
-    const userData = localStorage.getItem("userData");
-    user = userData ? JSON.parse(userData) : { role: "", user_id: "", username: "" };
-  } catch (err) {
-    console.error('Error parsing userData from localStorage:', err);
-    user = { role: "", user_id: "", username: "" };
-  }
-  
+  const user = JSON.parse(localStorage.getItem("userData"));
   const isAdmin = user.role === "admin";
-  
-  // Get state safely with default values
-  const inputList = useSelector((state) => state?.customer?.inputList || {});
-  const itemList = useSelector((state) => state?.customer?.itemList || []);
-  const mode = useSelector((state) => state?.customer?.mode || "");
-  const groupList = useSelector((state) => state?.customer?.groupList || []);
-  const locationSearch = useSelector((state) => state?.global?.locationSearch || {});
+  const inputList = useSelector((state) => state.customer.inputList);
+  const itemList = useSelector((state) => state.customer.itemList);
+  const mode = useSelector((state) => state.customer.mode);
+  const groupList = useSelector((state) => state.customer.groupList);
+  const locationSearch = useSelector((state) => state.global.locationSearch);
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [subDistrictList, setSubDistrictList] = useState([]);
@@ -169,58 +157,28 @@ function DialogForm(props) {
     );
     setErrors((prev) => ({ ...prev, cus_bt_id: "" }));
     setIsBusinessTypeManagerOpen(false);
-  };  const handleInputChange = (e) => {
-    try {
-      // Safely extract name and value
-      const name = e?.target?.name;
-      let value = e?.target?.value;
-  
-      // Safety check - if we don't have a valid name, we can't update anything
-      if (!name) {
-        console.warn('handleInputChange called with no name property:', e);
-        return;
-      }
-  
-      if (name === "cus_tax_id" || name === "cus_zip_code") {
-        value = (value || "").replace(/[^0-9]/g, "");
-      } else if (name === "cus_manage_by") {
-        // Properly handle the cus_manage_by changes
-        // If value is empty string, set empty object with empty values
-        if (value === "" || value === null || value === undefined) {
-          value = { user_id: "", username: "" };
-        } else {
-          // Find the corresponding sales person
-          const salesPerson = Array.isArray(salesList) ? 
-            salesList.find((user) => user && typeof user === 'object' && user?.user_id === value) || null : null;
-          
-          if (salesPerson) {
-            value = { 
-              user_id: salesPerson.user_id || "", 
-              username: salesPerson.username || "" 
-            };
-            console.log('Set manager to:', value);
-          } else {
-            console.warn(`Selected sales person ID ${value} not found in salesList`);
-            value = { user_id: "", username: "" };
-          }
-        }
-      }
-  
-      // Get current inputList safely (default to empty object if undefined)
-      const currentInputList = inputList || {};
-  
-      dispatch(
-        setInputList({
-          ...currentInputList, // Include existing values
-          [name]: value,
-        })
-      );
-  
-      // Clear error for this field if any
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    } catch (err) {
-      console.error('Error in handleInputChange:', err, e);
+  };
+
+  const handleInputChange = (e) => {
+    let { name, value } = e.target;
+
+    if (name === "cus_tax_id" || name === "cus_zip_code") {
+      value = value.replace(/[^0-9]/g, "");
+    } else if (name === "cus_manage_by") {
+      value = salesList.find((user) => user.user_id === value) || {
+        user_id: "",
+        username: "",
+      };
     }
+
+    dispatch(
+      setInputList({
+        ...inputList, // Include existing values
+        [name]: value,
+      })
+    );
+
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSelectLocation = useCallback(
@@ -364,6 +322,7 @@ function DialogForm(props) {
     props.handleCloseDialog();
     setErrors({});
   };
+
   useEffect(() => {
     if (mode === "create") {
       // Generate customer number
@@ -389,7 +348,7 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? { user_id: "", username: "" } : { user_id: user.user_id, username: user.username || "" },
+          cus_manage_by: isAdmin ? "" : { user_id: user.user_id },
         })
       );
     }
@@ -402,30 +361,12 @@ function DialogForm(props) {
       setSubDistrictList(locations.master_subdistrict);
     }
   }, [locations]);
+
   useEffect(() => {
     if (userRoleData) {
       setSalesList(userRoleData.sale_role);
-      
-      // Check if the current user_id from inputList.cus_manage_by exists in salesList
-      // If it doesn't exist and mode is edit/view, update the value to avoid out-of-range errors
-      if (mode === 'edit' || mode === 'view') {
-        const currentManagerId = inputList.cus_manage_by?.user_id;
-        
-        if (currentManagerId && 
-            currentManagerId !== "" &&
-            !userRoleData.sale_role.some(user => user.user_id === currentManagerId)) {
-          // The selected manager ID doesn't exist in the available options, reset it
-          console.warn(`Selected user_id=${currentManagerId} not found in available sales list. Resetting value.`);
-          dispatch(
-            setInputList({
-              ...inputList,
-              cus_manage_by: { user_id: "", username: "" }
-            })
-          );
-        }
-      }
     }
-  }, [userRoleData, mode, dispatch]);
+  }, [userRoleData]);
 
   useEffect(() => {
     if (businessTypesData) {
@@ -439,95 +380,22 @@ function DialogForm(props) {
     } else {
       Swal.close(); // Close loading when fetching stops
     }
-  }, [isFetching, roleIsFetching, businessTypesIsFetching]);  // Fix for initialization and data loading issues
-  // Run this effect both on mount and when modal opens (props.openDialog changes)
-  useEffect(() => {
-    if (props.openDialog) {
-      // Safe initialization of all form data
-      if (!inputList || typeof inputList !== 'object') {
-        console.info('Initializing inputList with default values');
-        dispatch(resetInputList());
-      } else {
-        // Ensure cus_manage_by is properly structured
-        if (!inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
-          console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
-          
-          dispatch(
-            setInputList({
-              ...inputList,
-              cus_manage_by: { user_id: "", username: "" }
-            })
-          );
-        }
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.openDialog]); // Run when dialog opens or closes
-  // Enhanced helper function to safely handle cus_manage_by format
-  const getSafeManagerValue = useCallback((inputValue) => {
-    try {
-      // If no value, return empty string
-      if (!inputValue) return "";
-      
-      // If it's already a string, return it
-      if (typeof inputValue === 'string') return inputValue;
-      
-      // If it's an object with user_id, return that
-      if (typeof inputValue === 'object' && 'user_id' in inputValue) {
-        return inputValue.user_id || "";
-      }
-      
-      // Default fallback
-      return "";
-    } catch (err) {
-      console.error('Error in getSafeManagerValue:', err);
-      return "";
-    }
-  }, []);
+  }, [isFetching, roleIsFetching, businessTypesIsFetching]);
 
-  useEffect(() => {
-    // If dialog is open, salesList is available, and we're in edit/view mode
-    if (props.openDialog && userRoleData?.sale_role && (mode === 'edit' || mode === 'view')) {
-      // Check if the current manager value exists in the salesList
-      const currentManagerId = getSafeManagerValue(inputList?.cus_manage_by);
-      
-      if (currentManagerId && currentManagerId !== "") {
-        const exists = userRoleData.sale_role.some(user => 
-          user.user_id === currentManagerId
-        );
-        
-        if (!exists) {
-          console.warn(`Selected manage_by (${currentManagerId}) not found in salesList. Resetting to empty value.`);
-          
-          // Reset to empty object if value doesn't exist in salesList
-          dispatch(
-            setInputList({
-              ...inputList,
-              cus_manage_by: { user_id: "", username: "" }
-            })
-          );
-        }
-      }
-    }
-  }, [props.openDialog, userRoleData, mode, inputList?.cus_manage_by, dispatch, getSafeManagerValue]);
   return (
     <>
       <BusinessTypeManager
         open={isBusinessTypeManagerOpen}
         onClose={handleCloseBusinessTypeManager}
         onTypeSelected={handleBusinessTypeSelected}
-      />      <Dialog
-        open={props.openDialog && !isFetching && !roleIsFetching && !businessTypesIsFetching}
+      />
+      <Dialog
+        open={props.openDialog}
         fullWidth
         maxWidth="xl"
         disableEscapeKeyDown
-        aria-hidden={(!props.openDialog || isFetching || roleIsFetching || businessTypesIsFetching) ? true : false}
+        aria-hidden={props.openDialog ? false : true}
       >
-        <ErrorBoundary onReset={() => {
-          // Reset state when error boundary is reset
-          dispatch(resetInputList());
-          props.handleCloseDialog();
-        }}>
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
           <DialogTitle sx={{ paddingBlock: 1 }}>
             <Box sx={{ maxWidth: 800, justifySelf: "center" }}>
@@ -557,37 +425,36 @@ function DialogForm(props) {
                 spacing={2}
               >
                 {isAdmin && (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>                    <StyledSelect                      fullWidth
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <StyledSelect
+                      fullWidth
                       displayEmpty
                       size="small"
                       sx={{ textTransform: "capitalize", cursor: "auto" }}
                       readOnly={mode === "view"}
                       name="cus_manage_by"
-                      value={getSafeManagerValue(inputList?.cus_manage_by)}
+                      value={inputList.cus_manage_by?.user_id || ""}
                       onChange={handleInputChange}
                     >
                       <MenuItem disabled value="">
                         ชื่อผู้ดูแล
-                      </MenuItem>                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
-                      {Array.isArray(salesList) && salesList.length > 0 ? 
-                        salesList
-                          .filter(item => item && typeof item === 'object') // Filter out any invalid items
-                          .map((item, index) => (
-                            <MenuItem
-                              key={(item?.user_id || '') + index}
-                              value={item?.user_id || ''}
-                              sx={{ textTransform: "capitalize" }}
-                            >
-                              {item?.username || 'Unknown User'}
-                            </MenuItem>
-                          ))
-                        : 
-                        <MenuItem value="" disabled>No sales users available</MenuItem>
-                      }
+                      </MenuItem>
+                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
+                      {salesList &&
+                        salesList.map((item, index) => (
+                          <MenuItem
+                            key={item.user_id + index}
+                            value={item.user_id}
+                            sx={{ textTransform: "capitalize" }}
+                          >
+                            {item.username}
+                          </MenuItem>
+                        ))}
                     </StyledSelect>
                   </Grid>
                 )}{" "}
-                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>                  <StyledSelect
+                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
+                  <StyledSelect
                     required
                     fullWidth
                     displayEmpty
@@ -595,17 +462,7 @@ function DialogForm(props) {
                     sx={{ textTransform: "uppercase", cursor: "auto" }}
                     readOnly={mode === "view"}
                     name="cus_channel"
-                    value={
-                      // Safe value access
-                      (() => {
-                        try {
-                          return inputList && inputList.cus_channel ? inputList.cus_channel : "";
-                        } catch (err) {
-                          console.error('Error getting cus_channel value:', err);
-                          return "";
-                        }
-                      })()
-                    }
+                    value={inputList.cus_channel || ""}
                     onChange={handleInputChange}
                     error={!!errors.cus_channel}
                   >
@@ -630,7 +487,8 @@ function DialogForm(props) {
                   <Box
                     sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
                   >
-                    <Box sx={{ flexGrow: 1 }}>                      <StyledSelect
+                    <Box sx={{ flexGrow: 1 }}>
+                      <StyledSelect
                         required
                         fullWidth
                         displayEmpty
@@ -638,17 +496,7 @@ function DialogForm(props) {
                         sx={{ textTransform: "uppercase", textAlign: "start" }}
                         readOnly={mode === "view" || businessTypesIsFetching}
                         name="cus_bt_id"
-                        value={
-                          // Safe value access
-                          (() => {
-                            try {
-                              return inputList && inputList.cus_bt_id ? inputList.cus_bt_id : "";
-                            } catch (err) {
-                              console.error('Error getting cus_bt_id value:', err);
-                              return "";
-                            }
-                          })()
-                        }
+                        value={inputList.cus_bt_id || ""}
                         onChange={handleInputChange}
                         error={!!errors.cus_bt_id}
                         MenuProps={{
@@ -657,98 +505,46 @@ function DialogForm(props) {
                               maxHeight: 300,
                             },
                           },
-                          anchorOrigin: {
-                            vertical: "bottom",
-                            horizontal: "left",
-                          },
-                          transformOrigin: {
-                            vertical: "top",
-                            horizontal: "left",
-                          },
                         }}
                       >
                         <MenuItem disabled value="">
                           ประเภทธุรกิจ
-                        </MenuItem>{" "}
-                        <MenuItem
-                          component="div"
-                          sx={{
-                            position: "sticky",
-                            top: 0,
-                            bgcolor: "background.paper",
-                            zIndex: 1,
-                            borderBottom: "1px solid",
-                            borderBottomColor: "divider",
-                            "&:hover": {
-                              bgcolor: "background.paper",
-                            },
-                          }}
-                          disableRipple
-                          tabIndex={-1}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
+                        </MenuItem>
+                        <MenuItem>
+                          <input
+                            autoFocus
+                            placeholder="ค้นหาประเภทธุรกิจ..."
+                            style={{
                               width: "100%",
+                              padding: "8px",
+                              boxSizing: "border-box",
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
                             }}
-                          >
-                            <MdSearch
-                              style={{ marginLeft: 8, color: "#757575" }}
-                            />
-                            <input
-                              autoFocus
-                              placeholder="ค้นหาประเภทธุรกิจ..."
-                              style={{
-                                width: "100%",
-                                padding: "8px",
-                                boxSizing: "border-box",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
-                                marginLeft: "4px",
-                                fontFamily: "Kanit, sans-serif",
-                                fontSize: "0.9rem",
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                const searchValue =
-                                  e.target.value.toLowerCase();
-                                const filteredList =
-                                  businessTypesData?.filter((item) =>
-                                    item.bt_name
-                                      .toLowerCase()
-                                      .includes(searchValue)
-                                  ) || [];
-                                setBusinessTypesList(filteredList);
-                              }}
-                            />
-                          </Box>
-                        </MenuItem>                        {Array.isArray(businessTypesList) && businessTypesList.length > 0 ? 
-                          businessTypesList.map((item) => (
-                            <MenuItem
-                              key={item?.bt_id || Math.random().toString()}
-                              value={item?.bt_id || ""}
-                              sx={{
-                                fontFamily: "Kanit",
-                                "&.Mui-selected": {
-                                  bgcolor: (theme) =>
-                                    `${theme.vars.palette.error.main}1A`,
-                                  "&:hover": {
-                                    bgcolor: (theme) =>
-                                    `${theme.vars.palette.error.main}26`,
-                                },
-                              },
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const searchValue = e.target.value.toLowerCase();
+                              const filteredList =
+                                businessTypesData?.filter((item) =>
+                                  item.bt_name
+                                    .toLowerCase()
+                                    .includes(searchValue)
+                                ) || [];
+                              setBusinessTypesList(filteredList);
                             }}
-                          >
-                            {item?.bt_name || 'Unknown Type'}
+                          />
+                        </MenuItem>
+                        {businessTypesList.map((item) => (
+                          <MenuItem key={item.bt_id} value={item.bt_id}>
+                            {item.bt_name}
                           </MenuItem>
-                        )) : <MenuItem value="" disabled>No business types available</MenuItem>}
+                        ))}
                       </StyledSelect>
                       <FormHelperText error>
                         {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}
                       </FormHelperText>
-                    </Box>{" "}
+                    </Box>
                     <Tooltip title="จัดการประเภทธุรกิจ">
                       <IconButton
                         color="primary"
@@ -760,31 +556,26 @@ function DialogForm(props) {
                           border: "1px solid",
                           borderColor: (theme) =>
                             theme.vars.palette.grey.outlinedInput,
-                          "&:hover": {
-                            bgcolor: (theme) =>
-                              `${theme.vars.palette.error.main}1A`,
-                            borderColor: (theme) =>
-                              theme.vars.palette.error.main,
-                          },
                         }}
                         disabled={mode === "view"}
                         onClick={handleOpenBusinessTypeManager}
                       >
-                        <MdSettings style={{ color: "#757575" }} />
+                        <MdSettings />
                       </IconButton>
                     </Tooltip>
                   </Box>
                 </Grid>
-                <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>                  <StyledOutlinedInput
+                <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>
+                  <StyledOutlinedInput
                     fullWidth
                     disabled
                     size="small"
                     value={
                       inputList.cus_created_date
                         ? moment(inputList.cus_created_date).format(
-                            "D MMMM YYYY"
+                            "DD/MM/YYYY"
                           )
-                        : moment().format("D MMMM YYYY")
+                        : moment().format("DD/MM/YYYY")
                     }
                     inputProps={{ style: { textAlign: "-webkit-center" } }}
                   />
@@ -1129,9 +920,9 @@ function DialogForm(props) {
                   </Button>
                 </Grid>
               </Grid>
-            </Box>          </DialogActions>
+            </Box>
+          </DialogActions>
         </form>
-        </ErrorBoundary>
       </Dialog>
     </>
   );

@@ -1,4 +1,3 @@
-// filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\DialogForm.jsx
 import { useState, useEffect, useCallback, useRef, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import ScrollContext from "./ScrollContext";
@@ -18,8 +17,32 @@ import {
   IconButton,
   FormHelperText,
   Tooltip,
+  Paper,
+  Typography,
+  TextField,
+  Tabs,
+  Tab,
+  Divider,
+  InputAdornment,
+  FormControl,
+  Card,
+  CardContent,
+  Chip,
+  Avatar,
 } from "@mui/material";
-import { MdAdd, MdSettings } from "react-icons/md";
+import { 
+  MdAdd, 
+  MdSettings, 
+  MdClose, 
+  MdPerson, 
+  MdBusiness, 
+  MdLocationOn, 
+  MdPhone,
+  MdEmail,
+  MdNotes,
+  MdSave,
+  MdCancel
+} from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
 import {
@@ -47,45 +70,75 @@ import {
   open_dialog_error,
   open_dialog_loading,
 } from "../../utils/import_lib";
-import { MdClose } from "react-icons/md";
 import Swal from "sweetalert2";
 
-const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.grey.outlinedInput,
-
-  "& fieldset": {
-    borderColor: theme.vars.palette.grey.outlinedInput,
-  },
-
-  "&.Mui-disabled": {
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: theme.vars.palette.grey.outlinedInput,
-    },
-
-    "& .MuiOutlinedInput-input": {
-      WebkitTextFillColor: theme.vars.palette.text.primary,
+// Custom styled components
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  "& .MuiOutlinedInput-root": {
+    backgroundColor: theme.vars.palette.grey.outlinedInput,
+    "&.Mui-disabled": {
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.grey.outlinedInput,
+      },
+      "& .MuiOutlinedInput-input": {
+        WebkitTextFillColor: theme.vars.palette.text.primary,
+      },
     },
   },
-}));
-
-const StyledLabel = styled(InputLabel)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.grey.main,
-  color: theme.vars.palette.grey.dark,
-  borderRadius: theme.vars.shape.borderRadius,
-  fontFamily: "Kanit",
-  fontSize: 16,
-  height: "100%",
-  alignContent: "center",
-  maxHeight: 40,
+  "& .MuiInputLabel-root": {
+    color: theme.vars.palette.grey.dark,
+    fontFamily: "Kanit",
+    fontSize: 14,
+  },
 }));
 
 const StyledSelect = styled(Select)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,
-
   "& fieldset": {
     borderColor: theme.vars.palette.grey.outlinedInput,
   },
 }));
+
+const SectionTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: 500,
+  marginBottom: theme.spacing(1),
+  color: theme.vars.palette.primary.main,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+}));
+
+const FormSection = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  padding: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[1],
+}));
+
+// Tab Panel component for tabbed interface
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`customer-tabpanel-${index}`}
+      aria-labelledby={`customer-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
+function a11yProps(index) {
+  return {
+    id: `customer-tab-${index}`,
+    'aria-controls': `customer-tabpanel-${index}`,
+  };
+}
 
 function DialogForm(props) {
   const dispatch = useDispatch();
@@ -96,33 +149,36 @@ function DialogForm(props) {
   const mode = useSelector((state) => state.customer.mode);
   const groupList = useSelector((state) => state.customer.groupList);
   const locationSearch = useSelector((state) => state.global.locationSearch);
+  
+  // State
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [subDistrictList, setSubDistrictList] = useState([]);
   const [salesList, setSalesList] = useState([]);
   const [businessTypesList, setBusinessTypesList] = useState([]);
-  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] =
-    useState(false);
+  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [tabValue, setTabValue] = useState(0);
+  
+  // Refs
+  const formRef = useRef(null);
+  
+  // Context
+  const { scrollToTop } = useContext(ScrollContext);
+  
+  // API hooks
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
-  const {
-    data: locations,
-    error,
-    isFetching,
-  } = useGetAllLocationQuery(locationSearch, { skip: !props.openDialog });
-  const {
-    data: userRoleData,
-    error: roleError,
-    isFetching: roleIsFetching,
-  } = useGetUserByRoleQuery("sale", { skip: !props.openDialog });
-  const {
-    data: businessTypesData,
-    error: businessTypesError,
-    isFetching: businessTypesIsFetching,
-  } = useGetAllBusinessTypesQuery(undefined, { skip: !props.openDialog });
-  const [saveLoading, setSaveLoading] = useState(false);
-  const formRef = useRef(null);
-  const [errors, setErrors] = useState({});
+  const { data: locations, error, isFetching } = useGetAllLocationQuery(
+    locationSearch, { skip: !props.openDialog }
+  );
+  const { data: userRoleData, error: roleError, isFetching: roleIsFetching } = 
+    useGetUserByRoleQuery("sale", { skip: !props.openDialog });
+  const { data: businessTypesData, error: businessTypesError, isFetching: businessTypesIsFetching } = 
+    useGetAllBusinessTypesQuery(undefined, { skip: !props.openDialog });
+  
+  // Constants
   const titleMap = {
     create: "เพิ่ม",
     edit: "แก้ไข",
@@ -135,10 +191,12 @@ function DialogForm(props) {
     { value: "3", title: "office" },
   ];
 
-  // const dateString = moment().add(30, "days");
-  const formattedRelativeTime = formatCustomRelativeTime(
-    inputList.cd_last_datetime
-  );
+  const formattedRelativeTime = formatCustomRelativeTime(inputList.cd_last_datetime);
+
+  // Handlers
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
   const handleOpenBusinessTypeManager = () => {
     setIsBusinessTypeManagerOpen(true);
@@ -173,7 +231,7 @@ function DialogForm(props) {
 
     dispatch(
       setInputList({
-        ...inputList, // Include existing values
+        ...inputList,
         [name]: value,
       })
     );
@@ -246,6 +304,7 @@ function DialogForm(props) {
     },
     [inputList, provincesList, districtList, subDistrictList, setLocationSearch]
   );
+
   const validateForm = () => {
     const form = formRef.current;
 
@@ -267,17 +326,35 @@ function DialogForm(props) {
       const firstErrorField = Object.keys(newErrors)[0];
 
       if (firstErrorField && formRef.current[firstErrorField]) {
-        formRef.current[firstErrorField].scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        formRef.current[firstErrorField].focus();
+        // Find which tab contains the error field
+        const errorFieldTab = getTabForField(firstErrorField);
+        setTabValue(errorFieldTab);
+        
+        // Wait for tab to render then scroll to field
+        setTimeout(() => {
+          formRef.current[firstErrorField].scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          formRef.current[firstErrorField].focus();
+        }, 100);
       }
 
       return false;
     }
   };
-  const { scrollToTop } = useContext(ScrollContext);
+  
+  // Helper function to determine which tab contains a specific field
+  const getTabForField = (fieldName) => {
+    const basicInfoFields = ['cus_company', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_depart', 'cus_bt_id', 'cus_channel', 'cus_manage_by'];
+    const contactFields = ['cus_tel_1', 'cus_tel_2', 'cus_email', 'cus_tax_id'];
+    const addressFields = ['cus_address', 'cus_pro_id', 'cus_dis_id', 'cus_sub_id', 'cus_zip_code'];
+    
+    if (basicInfoFields.includes(fieldName)) return 0;
+    if (contactFields.includes(fieldName)) return 1;
+    if (addressFields.includes(fieldName)) return 2;
+    return 3; // Notes tab for any other fields
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -285,16 +362,12 @@ function DialogForm(props) {
     if (validateForm()) {
       setSaveLoading(true);
 
-      let res;
-
       try {
         open_dialog_loading();
 
-        if (mode === "create") {
-          res = await addCustomer(inputList);
-        } else {
-          res = await updateCustomer(inputList);
-        }
+        const res = mode === "create" 
+          ? await addCustomer(inputList)
+          : await updateCustomer(inputList);
 
         if (res.data.status === "success") {
           props.handleCloseDialog();
@@ -302,7 +375,6 @@ function DialogForm(props) {
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
             setSaveLoading(false);
             dispatch(resetInputList());
-            // Scroll to top after customer is added or updated
             scrollToTop();
           });
         } else {
@@ -323,6 +395,7 @@ function DialogForm(props) {
     setErrors({});
   };
 
+  // Effects
   useEffect(() => {
     if (mode === "create") {
       // Generate customer number
@@ -331,7 +404,7 @@ function DialogForm(props) {
       );
       const newCusNo = genCustomerNo(maxCusNo);
 
-      // Get group ID (improved handling of empty groupList and simplified logic)
+      // Get group ID
       const cus_mcg_id =
         groupList.length > 0
           ? groupList.reduce(
@@ -341,13 +414,13 @@ function DialogForm(props) {
                   : max,
               groupList[0]
             ).mcg_id
-          : null; // Or your appropriate default if groupList is empty
+          : null;
 
       dispatch(
         setInputList({
           ...inputList,
           cus_no: newCusNo,
-          cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
+          cus_mcg_id: cus_mcg_id,
           cus_manage_by: isAdmin ? "" : { user_id: user.user_id },
         })
       );
@@ -392,535 +465,594 @@ function DialogForm(props) {
       <Dialog
         open={props.openDialog}
         fullWidth
-        maxWidth="xl"
+        maxWidth="md"
         disableEscapeKeyDown
         aria-hidden={props.openDialog ? false : true}
       >
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
-          <DialogTitle sx={{ paddingBlock: 1 }}>
-            <Box sx={{ maxWidth: 800, justifySelf: "center" }}>
-              {titleMap[mode] + `ข้อมูลลูกค้า`}
+          <DialogTitle sx={{ 
+            paddingBlock: 1, 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <Box>
+              <Typography variant="h6">
+                {titleMap[mode] + `ข้อมูลลูกค้า`}
+              </Typography>
+              {mode !== "create" && (
+                <Chip 
+                  size="small"
+                  color="info"
+                  label={`${formattedRelativeTime} Days`}
+                  sx={{ ml: 1 }}
+                />
+              )}
             </Box>
+            <IconButton
+              aria-label="close"
+              onClick={props.handleCloseDialog}
+              sx={(theme) => ({
+                color: theme.vars.palette.grey.title,
+              })}
+            >
+              <MdClose />
+            </IconButton>
           </DialogTitle>
-          <IconButton
-            aria-label="close"
-            onClick={props.handleCloseDialog}
-            sx={(theme) => ({
-              position: "absolute",
-              right: 8,
-              top: 10,
-              color: theme.vars.palette.grey.title,
-            })}
-          >
-            <MdClose />
-          </IconButton>
-          <DialogContent
-            dividers
-            sx={{ textAlign: "-webkit-center", paddingBottom: 0 }}
-          >
-            <Box sx={{ maxWidth: 800 }}>
-              <Grid
-                container
-                sx={{ paddingBlock: 2, justifyContent: "center" }}
-                spacing={2}
-              >
-                {isAdmin && (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <StyledSelect
-                      fullWidth
-                      displayEmpty
-                      size="small"
-                      sx={{ textTransform: "capitalize", cursor: "auto" }}
-                      readOnly={mode === "view"}
-                      name="cus_manage_by"
-                      value={inputList.cus_manage_by?.user_id || ""}
-                      onChange={handleInputChange}
-                    >
-                      <MenuItem disabled value="">
-                        ชื่อผู้ดูแล
-                      </MenuItem>
-                      <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
-                      {salesList &&
-                        salesList.map((item, index) => (
-                          <MenuItem
-                            key={item.user_id + index}
-                            value={item.user_id}
-                            sx={{ textTransform: "capitalize" }}
-                          >
-                            {item.username}
-                          </MenuItem>
-                        ))}
-                    </StyledSelect>
-                  </Grid>
-                )}{" "}
-                <Grid size={{ xs: 12, sm: isAdmin ? 6 : 12, md: 3 }}>
-                  <StyledSelect
-                    required
-                    fullWidth
-                    displayEmpty
-                    size="small"
-                    sx={{ textTransform: "uppercase", cursor: "auto" }}
-                    readOnly={mode === "view"}
-                    name="cus_channel"
-                    value={inputList.cus_channel || ""}
-                    onChange={handleInputChange}
-                    error={!!errors.cus_channel}
-                  >
-                    <MenuItem disabled value="">
-                      ช่องทางการติดต่อ
-                    </MenuItem>
-                    {selectList.map((item, index) => (
-                      <MenuItem
-                        key={item.value + index}
-                        value={item.value}
-                        sx={{ textTransform: "uppercase" }}
-                      >
-                        {item.title}
-                      </MenuItem>
-                    ))}
-                  </StyledSelect>
-                  <FormHelperText error>
-                    {errors.cus_channel && "กรุณาเลือกช่องทางการติดต่อ"}
-                  </FormHelperText>
-                </Grid>{" "}
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <Box
-                    sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                  >
-                    <Box sx={{ flexGrow: 1 }}>
-                      <StyledSelect
-                        required
+          
+          <DialogContent dividers>
+            <Box sx={{ width: '100%' }}>
+              {/* Customer Info Summary Card */}
+              <Card variant="outlined" sx={{ mb: 2 }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Grid container spacing={2}>
+                    <Grid size={12} md={8}>
+                      <StyledTextField
                         fullWidth
-                        displayEmpty
+                        required
+                        label="ชื่อบริษัท"
                         size="small"
-                        sx={{ textTransform: "uppercase", textAlign: "start" }}
-                        readOnly={mode === "view" || businessTypesIsFetching}
-                        name="cus_bt_id"
-                        value={inputList.cus_bt_id || ""}
+                        InputProps={{
+                          readOnly: mode === "view",
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <MdBusiness />
+                            </InputAdornment>
+                          ),
+                        }}
+                        name="cus_company"
+                        placeholder="บริษัท ธนพลัส 153 จำกัด"
+                        value={inputList.cus_company || ''}
                         onChange={handleInputChange}
-                        error={!!errors.cus_bt_id}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: 300,
-                            },
-                          },
-                        }}
-                      >
-                        <MenuItem disabled value="">
-                          ประเภทธุรกิจ
-                        </MenuItem>
-                        <MenuItem>
-                          <input
-                            autoFocus
-                            placeholder="ค้นหาประเภทธุรกิจ..."
-                            style={{
-                              width: "100%",
-                              padding: "8px",
-                              boxSizing: "border-box",
-                              border: "1px solid #ccc",
-                              borderRadius: "4px",
+                        error={!!errors.cus_company}
+                        helperText={errors.cus_company}
+                      />
+                    </Grid>
+                    
+                    {isAdmin && (
+                      <Grid size={12} md={4}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>ชื่อผู้ดูแล</InputLabel>
+                          <StyledSelect
+                            label="ชื่อผู้ดูแล"
+                            name="cus_manage_by"
+                            value={inputList.cus_manage_by?.user_id || ""}
+                            onChange={handleInputChange}
+                            readOnly={mode === "view"}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <MdPerson />
+                              </InputAdornment>
+                            }
+                          >
+                            <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
+                            {salesList &&
+                              salesList.map((item, index) => (
+                                <MenuItem
+                                  key={item.user_id + index}
+                                  value={item.user_id}
+                                  sx={{ textTransform: "capitalize" }}
+                                >
+                                  {item.username}
+                                </MenuItem>
+                              ))}
+                          </StyledSelect>
+                        </FormControl>
+                      </Grid>
+                    )}
+                    
+                    <Grid size={12} md={isAdmin ? 6 : 8}>
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel required>ประเภทธุรกิจ</InputLabel>
+                          <StyledSelect
+                            label="ประเภทธุรกิจ *"
+                            name="cus_bt_id"
+                            value={inputList.cus_bt_id || ""}
+                            onChange={handleInputChange}
+                            readOnly={mode === "view" || businessTypesIsFetching}
+                            error={!!errors.cus_bt_id}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <MdBusiness />
+                              </InputAdornment>
+                            }
+                            MenuProps={{
+                              PaperProps: {
+                                style: {
+                                  maxHeight: 300,
+                                },
+                              },
                             }}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const searchValue = e.target.value.toLowerCase();
-                              const filteredList =
-                                businessTypesData?.filter((item) =>
-                                  item.bt_name
-                                    .toLowerCase()
-                                    .includes(searchValue)
-                                ) || [];
-                              setBusinessTypesList(filteredList);
+                          >
+                            <MenuItem disabled value="">
+                              ประเภทธุรกิจ
+                            </MenuItem>
+                            <MenuItem>
+                              <input
+                                autoFocus
+                                placeholder="ค้นหาประเภทธุรกิจ..."
+                                style={{
+                                  width: "100%",
+                                  padding: "8px",
+                                  boxSizing: "border-box",
+                                  border: "1px solid #ccc",
+                                  borderRadius: "4px",
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  const searchValue = e.target.value.toLowerCase();
+                                  const filteredList =
+                                    businessTypesData?.filter((item) =>
+                                      item.bt_name
+                                        .toLowerCase()
+                                        .includes(searchValue)
+                                    ) || [];
+                                  setBusinessTypesList(filteredList);
+                                }}
+                              />
+                            </MenuItem>
+                            {businessTypesList.map((item) => (
+                              <MenuItem key={item.bt_id} value={item.bt_id}>
+                                {item.bt_name}
+                              </MenuItem>
+                            ))}
+                          </StyledSelect>
+                          <FormHelperText error>
+                            {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}
+                          </FormHelperText>
+                        </FormControl>
+                        <Tooltip title="จัดการประเภทธุรกิจ">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            sx={{
+                              mt: 0.5,
+                              bgcolor: (theme) =>
+                                theme.vars.palette.grey.outlinedInput,
+                              border: "1px solid",
+                              borderColor: (theme) =>
+                                theme.vars.palette.grey.outlinedInput,
                             }}
-                          />
-                        </MenuItem>
-                        {businessTypesList.map((item) => (
-                          <MenuItem key={item.bt_id} value={item.bt_id}>
-                            {item.bt_name}
-                          </MenuItem>
-                        ))}
-                      </StyledSelect>
-                      <FormHelperText error>
-                        {errors.cus_bt_id && "กรุณาเลือกประเภทธุรกิจ"}
-                      </FormHelperText>
-                    </Box>
-                    <Tooltip title="จัดการประเภทธุรกิจ">
-                      <IconButton
-                        color="primary"
+                            disabled={mode === "view"}
+                            onClick={handleOpenBusinessTypeManager}
+                          >
+                            <MdSettings />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Grid>
+                    
+                    <Grid size={12} md={4}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel required>ช่องทางการติดต่อ</InputLabel>
+                        <StyledSelect
+                          label="ช่องทางการติดต่อ *"
+                          name="cus_channel"
+                          value={inputList.cus_channel || ""}
+                          onChange={handleInputChange}
+                          readOnly={mode === "view"}
+                          error={!!errors.cus_channel}
+                        >
+                          {selectList.map((item, index) => (
+                            <MenuItem
+                              key={item.value + index}
+                              value={item.value}
+                              sx={{ textTransform: "uppercase" }}
+                            >
+                              {item.title}
+                            </MenuItem>
+                          ))}
+                        </StyledSelect>
+                        <FormHelperText error>
+                          {errors.cus_channel && "กรุณาเลือกช่องทางการติดต่อ"}
+                        </FormHelperText>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid size={12} md={2}>
+                      <StyledTextField
+                        fullWidth
+                        disabled
                         size="small"
-                        sx={{
-                          mt: 0.5,
-                          bgcolor: (theme) =>
-                            theme.vars.palette.grey.outlinedInput,
-                          border: "1px solid",
-                          borderColor: (theme) =>
-                            theme.vars.palette.grey.outlinedInput,
+                        label="วันที่สร้าง"
+                        value={
+                          inputList.cus_created_date
+                            ? moment(inputList.cus_created_date).format(
+                                "DD/MM/YYYY"
+                              )
+                            : moment().format("DD/MM/YYYY")
+                        }
+                        InputProps={{
+                          style: { textAlign: "center" },
                         }}
-                        disabled={mode === "view"}
-                        onClick={handleOpenBusinessTypeManager}
-                      >
-                        <MdSettings />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: mode === "create" ? 12 : 6, md: 2 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    disabled
-                    size="small"
-                    value={
-                      inputList.cus_created_date
-                        ? moment(inputList.cus_created_date).format(
-                            "DD/MM/YYYY"
-                          )
-                        : moment().format("DD/MM/YYYY")
-                    }
-                    inputProps={{ style: { textAlign: "-webkit-center" } }}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+              
+              {/* Tabs */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs 
+                  value={tabValue} 
+                  onChange={handleTabChange} 
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  aria-label="customer info tabs"
+                >
+                  <Tab 
+                    label="ข้อมูลพื้นฐาน" 
+                    icon={<MdPerson />} 
+                    iconPosition="start" 
+                    {...a11yProps(0)} 
                   />
-                </Grid>
-                {mode !== "create" && (
-                  <Grid size={{ xs: 6, md: 2 }}>
-                    <StyledOutlinedInput
+                  <Tab 
+                    label="ข้อมูลติดต่อ" 
+                    icon={<MdPhone />} 
+                    iconPosition="start" 
+                    {...a11yProps(1)} 
+                  />
+                  <Tab 
+                    label="ที่อยู่" 
+                    icon={<MdLocationOn />} 
+                    iconPosition="start" 
+                    {...a11yProps(2)} 
+                  />
+                  <Tab 
+                    label="บันทึกเพิ่มเติม" 
+                    icon={<MdNotes />} 
+                    iconPosition="start" 
+                    {...a11yProps(3)} 
+                  />
+                </Tabs>
+              </Box>
+              
+              {/* Tab 1: Basic Information */}
+              <TabPanel value={tabValue} index={0}>
+                <Grid container spacing={2}>
+                  <Grid size={12} md={4}>
+                    <StyledTextField
                       fullWidth
-                      disabled
+                      required
+                      label="ชื่อจริง"
                       size="small"
-                      value={`${formattedRelativeTime} Days`}
-                      inputProps={{
-                        style: {
-                          textAlign: "-webkit-center",
-                          textTransform: "uppercase",
-                        },
+                      name="cus_firstname"
+                      placeholder="ชื่อจริง"
+                      value={inputList.cus_firstname || ''}
+                      onChange={handleInputChange}
+                      error={!!errors.cus_firstname}
+                      helperText={errors.cus_firstname}
+                      InputProps={{
+                        readOnly: mode === "view",
                       }}
                     />
                   </Grid>
-                )}
-                <Grid size={12}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    required
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_company"
-                    placeholder="บริษัท ธนพลัส 153 จำกัด"
-                    value={inputList.cus_company}
-                    onChange={handleInputChange}
-                    inputProps={{ style: { textAlign: "center" } }}
-                    error={!!errors.cus_company}
-                  />
-                  <FormHelperText error>
-                    {errors.cus_company && "กรุณากรอกชื่อบริษัท"}
-                  </FormHelperText>
+                  
+                  <Grid size={12} md={4}>
+                    <StyledTextField
+                      fullWidth
+                      required
+                      label="นามสกุล"
+                      size="small"
+                      name="cus_lastname"
+                      placeholder="นามสกุล"
+                      value={inputList.cus_lastname || ''}
+                      onChange={handleInputChange}
+                      error={!!errors.cus_lastname}
+                      helperText={errors.cus_lastname}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12} md={4}>
+                    <StyledTextField
+                      fullWidth
+                      required
+                      label="ชื่อเล่น"
+                      size="small"
+                      name="cus_name"
+                      placeholder="ชื่อเล่น"
+                      value={inputList.cus_name || ''}
+                      onChange={handleInputChange}
+                      error={!!errors.cus_name}
+                      helperText={errors.cus_name}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="ตำแหน่ง"
+                      size="small"
+                      name="cus_depart"
+                      placeholder="ตำแหน่ง"
+                      value={inputList.cus_depart || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>
-                    <label style={{ color: "red", marginRight: 1 }}>*</label>
-                    ชื่อจริง
-                  </StyledLabel>
+              </TabPanel>
+              
+              {/* Tab 2: Contact Information */}
+              <TabPanel value={tabValue} index={1}>
+                <Grid container spacing={2}>
+                  <Grid size={12} md={6}>
+                    <StyledTextField
+                      fullWidth
+                      required
+                      label="เบอร์โทรศัพท์"
+                      size="small"
+                      name="cus_tel_1"
+                      placeholder="เบอร์"
+                      value={inputList.cus_tel_1 || ''}
+                      onChange={handleInputChange}
+                      error={!!errors.cus_tel_1}
+                      helperText={errors.cus_tel_1}
+                      InputProps={{
+                        readOnly: mode === "view",
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <MdPhone />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12} md={6}>
+                    <StyledTextField
+                      fullWidth
+                      label="เบอร์สำรอง"
+                      size="small"
+                      name="cus_tel_2"
+                      placeholder="เบอร์สำรอง"
+                      value={inputList.cus_tel_2 || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <MdPhone />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="อีเมล"
+                      size="small"
+                      name="cus_email"
+                      placeholder="อีเมล"
+                      value={inputList.cus_email || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <MdEmail />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="เลขผู้เสียภาษี"
+                      size="small"
+                      name="cus_tax_id"
+                      placeholder="เลขผู้เสียภาษี"
+                      value={inputList.cus_tax_id || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    required
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_firstname"
-                    placeholder="ชื่อจริง"
-                    value={inputList.cus_firstname}
-                    onChange={handleInputChange}
-                    error={!!errors.cus_firstname}
-                  />
-                  <FormHelperText error>
-                    {errors.cus_firstname && "กรุณากรอกชื่อจริง"}
-                  </FormHelperText>
+              </TabPanel>
+              
+              {/* Tab 3: Address Information */}
+              <TabPanel value={tabValue} index={2}>
+                <Grid container spacing={2}>
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="ที่อยู่"
+                      size="small"
+                      name="cus_address"
+                      placeholder="บ้านเลขที่/ถนน/ซอย/หมู่บ้าน"
+                      value={inputList.cus_address || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <MdLocationOn />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12} md={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>จังหวัด</InputLabel>
+                      <StyledSelect
+                        label="จังหวัด"
+                        name="cus_pro_id"
+                        value={inputList.cus_pro_id || ""}
+                        onChange={handleSelectLocation}
+                        readOnly={mode === "view"}
+                      >
+                        <MenuItem disabled value="">
+                          จังหวัด
+                        </MenuItem>
+                        {provincesList.map((item, index) => (
+                          <MenuItem key={index} value={item.pro_id}>
+                            {item.pro_name_th}
+                          </MenuItem>
+                        ))}
+                      </StyledSelect>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid size={12} md={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>เขต/อำเภอ</InputLabel>
+                      <StyledSelect
+                        label="เขต/อำเภอ"
+                        name="cus_dis_id"
+                        value={inputList.cus_dis_id || ""}
+                        onChange={handleSelectLocation}
+                        readOnly={mode === "view" || isFetching}
+                      >
+                        <MenuItem disabled value="">
+                          เขต/อำเภอ
+                        </MenuItem>
+                        {districtList.map((item, index) => (
+                          <MenuItem key={index} value={item.dis_id}>
+                            {item.dis_name_th}
+                          </MenuItem>
+                        ))}
+                      </StyledSelect>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid size={12} md={6}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>แขวง/ตำบล</InputLabel>
+                      <StyledSelect
+                        label="แขวง/ตำบล"
+                        name="cus_sub_id"
+                        value={inputList.cus_sub_id || ""}
+                        onChange={handleSelectLocation}
+                        readOnly={mode === "view" || isFetching}
+                      >
+                        <MenuItem disabled value="">
+                          แขวง/ตำบล
+                        </MenuItem>
+                        {subDistrictList.map((item, index) => (
+                          <MenuItem key={index} value={item.sub_id}>
+                            {item.sub_name_th}
+                          </MenuItem>
+                        ))}
+                      </StyledSelect>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid size={12} md={6}>
+                    <StyledTextField
+                      fullWidth
+                      label="รหัสไปรษณีย์"
+                      size="small"
+                      name="cus_zip_code"
+                      placeholder="รหัสไปรษณีย์"
+                      value={inputList.cus_zip_code || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>
-                    <label style={{ color: "red", marginRight: 1 }}>*</label>
-                    นามสกุล
-                  </StyledLabel>
+              </TabPanel>
+              
+              {/* Tab 4: Additional Notes */}
+              <TabPanel value={tabValue} index={3}>
+                <Grid container spacing={2}>
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="Note"
+                      multiline
+                      minRows={3}
+                      size="small"
+                      name="cd_note"
+                      value={inputList.cd_note || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid size={12}>
+                    <StyledTextField
+                      fullWidth
+                      label="รายละเอียดเพิ่มเติม"
+                      multiline
+                      minRows={5}
+                      size="small"
+                      name="cd_remark"
+                      value={inputList.cd_remark || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        readOnly: mode === "view",
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    required
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_lastname"
-                    placeholder="นามสกุล"
-                    value={inputList.cus_lastname}
-                    onChange={handleInputChange}
-                    error={!!errors.cus_lastname}
-                  />
-                  <FormHelperText error>
-                    {errors.cus_lastname && "กรุณากรอกนามสกุล "}
-                  </FormHelperText>
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>
-                    <label style={{ color: "red", marginRight: 1 }}>*</label>
-                    ชื่อเล่น
-                  </StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    required
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_name"
-                    placeholder="ชื่อเล่น"
-                    value={inputList.cus_name}
-                    onChange={handleInputChange}
-                    error={!!errors.cus_name}
-                  />
-                  <FormHelperText error>
-                    {errors.cus_name && "กรุณากรอกชื่อเล่น"}
-                  </FormHelperText>
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>ตำแหน่ง</StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_depart"
-                    placeholder="ตำแหน่ง"
-                    value={inputList.cus_depart}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>
-                    <label style={{ color: "red", marginRight: 1 }}>*</label>
-                    เบอร์
-                  </StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    required
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_tel_1"
-                    placeholder="เบอร์"
-                    value={inputList.cus_tel_1}
-                    onChange={handleInputChange}
-                    error={!!errors.cus_tel_1}
-                  />
-                  <FormHelperText error>
-                    {errors.cus_tel_1 && "กรุณากรอกเบอร์"}
-                  </FormHelperText>
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>เบอร์สำรอง</StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_tel_2"
-                    placeholder="เบอร์สำรอง"
-                    value={inputList.cus_tel_2}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>อีเมล</StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, md: 10 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_email"
-                    placeholder="อีเมล"
-                    value={inputList.cus_email}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>เลขผู้เสียภาษี</StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, md: 10 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cus_tax_id"
-                    placeholder="เลขผู้เสียภาษี"
-                    value={inputList.cus_tax_id}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid display={{ xs: "none", md: "block" }} size={2}>
-                  <StyledLabel>ที่อยู่</StyledLabel>
-                </Grid>
-                <Grid size={{ xs: 12, md: 10 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    placeholder="บ้านเลขที่/ถนน/ซอย/หมู่บ้าน"
-                    name="cus_address"
-                    value={inputList.cus_address}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Select
-                    // required
-                    fullWidth
-                    displayEmpty
-                    size="small"
-                    sx={{ textTransform: "uppercase", textAlign: "start" }}
-                    readOnly={mode === "view"}
-                    input={<StyledOutlinedInput />}
-                    name="cus_pro_id"
-                    value={inputList.cus_pro_id}
-                    onChange={handleSelectLocation}
-                  >
-                    <MenuItem disabled value="">
-                      จังหวัด
-                    </MenuItem>
-                    {provincesList.map((item, index) => (
-                      <MenuItem key={index} value={item.pro_id}>
-                        {item.pro_name_th}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Select
-                    // required
-                    fullWidth
-                    displayEmpty
-                    size="small"
-                    sx={{ textTransform: "uppercase", textAlign: "start" }}
-                    readOnly={mode === "view" || isFetching}
-                    input={<StyledOutlinedInput />}
-                    name="cus_dis_id"
-                    value={inputList.cus_dis_id}
-                    onChange={handleSelectLocation}
-                  >
-                    <MenuItem disabled value="">
-                      เขต/อำเภอ
-                    </MenuItem>
-                    {districtList.map((item, index) => (
-                      <MenuItem key={index} value={item.dis_id}>
-                        {item.dis_name_th}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Select
-                    // required
-                    fullWidth
-                    displayEmpty
-                    size="small"
-                    sx={{ textTransform: "uppercase", textAlign: "start" }}
-                    readOnly={mode === "view" || isFetching}
-                    input={<StyledOutlinedInput />}
-                    name="cus_sub_id"
-                    value={inputList.cus_sub_id}
-                    onChange={handleSelectLocation}
-                  >
-                    <MenuItem disabled value="">
-                      แขวง/ตำบล
-                    </MenuItem>
-                    {subDistrictList.map((item, index) => (
-                      <MenuItem key={index} value={item.sub_id}>
-                        {item.sub_name_th}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    size="small"
-                    readOnly={mode === "view"}
-                    placeholder="รหัสไปรษณีย์"
-                    name="cus_zip_code"
-                    value={inputList.cus_zip_code}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid size={12}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    multiline
-                    minRows={2}
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cd_note"
-                    value={inputList.cd_note}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-                <Grid size={12}>
-                  <StyledOutlinedInput
-                    fullWidth
-                    multiline
-                    minRows={5}
-                    size="small"
-                    readOnly={mode === "view"}
-                    name="cd_remark"
-                    value={inputList.cd_remark}
-                    onChange={handleInputChange}
-                  />
-                </Grid>
-              </Grid>
+              </TabPanel>
             </Box>
           </DialogContent>
-          <DialogActions sx={{ justifyContent: "center" }}>
-            <Box sx={{ width: 800 }}>
-              <Grid
-                container
-                sx={{
-                  paddingInline: { xs: 2, md: 0, lg: 1 },
-                  paddingBlock: 2,
-                  justifyContent: "end",
-                }}
-                spacing={2}
+          
+          <DialogActions sx={{ p: 2 }}>
+            {mode !== "view" && (
+              <Button
+                type="submit"
+                variant="contained"
+                color="error"
+                disabled={saveLoading}
+                startIcon={<MdSave />}
+                sx={{ mr: 1 }}
               >
-                {mode !== "view" && (
-                  <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-                    <Button
-                      fullWidth
-                      type="submit"
-                      variant="contained"
-                      color="error"
-                      disabled={saveLoading}
-                      sx={{
-                        height: 40,
-                      }}
-                    >
-                      บันทึก
-                    </Button>
-                  </Grid>
-                )}
-                <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    color="error"
-                    disabled={saveLoading}
-                    onClick={handleCloseDialog}
-                    sx={{
-                      height: 40,
-                    }}
-                  >
-                    ยกเลิก
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
+                บันทึก
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              color="error"
+              disabled={saveLoading}
+              onClick={handleCloseDialog}
+              startIcon={<MdCancel />}
+            >
+              ยกเลิก
+            </Button>
           </DialogActions>
         </form>
       </Dialog>

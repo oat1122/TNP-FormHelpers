@@ -82,7 +82,6 @@ import FilterPanel from "./FilterPanel";
 import FilterTags from "./FilterTags";
 import ScrollContext from "./ScrollContext";
 import ScrollTopButton from "./ScrollTopButton";
-import ColumnVisibilitySelector from "./ColumnVisibilitySelector";
 import {
   formatCustomRelativeTime,
   genCustomerNo,
@@ -1715,9 +1714,8 @@ function CustomerList() {
             >
               <CircularProgress size={16} thickness={5} color="inherit" />
               <Typography variant="caption">กำลังโหลด...</Typography>
-            </Box>
-          )}
-          <ColumnVisibilitySelector columns={columns} />
+            </Box>          )}
+          {/* ColumnVisibilitySelector component removed as requested */}
         </Box>
       </GridToolbarContainer>
     );

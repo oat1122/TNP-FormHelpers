@@ -30,18 +30,18 @@ import {
   Chip,
   Avatar,
 } from "@mui/material";
-import { 
-  MdAdd, 
-  MdSettings, 
-  MdClose, 
-  MdPerson, 
-  MdBusiness, 
-  MdLocationOn, 
+import {
+  MdAdd,
+  MdSettings,
+  MdClose,
+  MdPerson,
+  MdBusiness,
+  MdLocationOn,
   MdPhone,
   MdEmail,
   MdNotes,
   MdSave,
-  MdCancel
+  MdCancel,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
@@ -103,8 +103,8 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
   marginBottom: theme.spacing(1),
   color: theme.vars.palette.primary.main,
-  display: 'flex',
-  alignItems: 'center',
+  display: "flex",
+  alignItems: "center",
   gap: theme.spacing(1),
 }));
 
@@ -136,7 +136,7 @@ function TabPanel(props) {
 function a11yProps(index) {
   return {
     id: `customer-tab-${index}`,
-    'aria-controls': `customer-tabpanel-${index}`,
+    "aria-controls": `customer-tabpanel-${index}`,
   };
 }
 
@@ -149,35 +149,44 @@ function DialogForm(props) {
   const mode = useSelector((state) => state.customer.mode);
   const groupList = useSelector((state) => state.customer.groupList);
   const locationSearch = useSelector((state) => state.global.locationSearch);
-  
+
   // State
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
   const [subDistrictList, setSubDistrictList] = useState([]);
   const [salesList, setSalesList] = useState([]);
   const [businessTypesList, setBusinessTypesList] = useState([]);
-  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
+  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] =
+    useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [tabValue, setTabValue] = useState(0);
-  
+
   // Refs
   const formRef = useRef(null);
-  
+
   // Context
   const { scrollToTop } = useContext(ScrollContext);
-  
+
   // API hooks
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
-  const { data: locations, error, isFetching } = useGetAllLocationQuery(
-    locationSearch, { skip: !props.openDialog }
-  );
-  const { data: userRoleData, error: roleError, isFetching: roleIsFetching } = 
-    useGetUserByRoleQuery("sale", { skip: !props.openDialog });
-  const { data: businessTypesData, error: businessTypesError, isFetching: businessTypesIsFetching } = 
-    useGetAllBusinessTypesQuery(undefined, { skip: !props.openDialog });
-  
+  const {
+    data: locations,
+    error,
+    isFetching,
+  } = useGetAllLocationQuery(locationSearch, { skip: !props.openDialog });
+  const {
+    data: userRoleData,
+    error: roleError,
+    isFetching: roleIsFetching,
+  } = useGetUserByRoleQuery("sale", { skip: !props.openDialog });
+  const {
+    data: businessTypesData,
+    error: businessTypesError,
+    isFetching: businessTypesIsFetching,
+  } = useGetAllBusinessTypesQuery(undefined, { skip: !props.openDialog });
+
   // Constants
   const titleMap = {
     create: "เพิ่ม",
@@ -191,7 +200,9 @@ function DialogForm(props) {
     { value: "3", title: "office" },
   ];
 
-  const formattedRelativeTime = formatCustomRelativeTime(inputList.cd_last_datetime);
+  const formattedRelativeTime = formatCustomRelativeTime(
+    inputList.cd_last_datetime
+  );
 
   // Handlers
   const handleTabChange = (event, newValue) => {
@@ -329,7 +340,7 @@ function DialogForm(props) {
         // Find which tab contains the error field
         const errorFieldTab = getTabForField(firstErrorField);
         setTabValue(errorFieldTab);
-        
+
         // Wait for tab to render then scroll to field
         setTimeout(() => {
           formRef.current[firstErrorField].scrollIntoView({
@@ -343,13 +354,28 @@ function DialogForm(props) {
       return false;
     }
   };
-  
+
   // Helper function to determine which tab contains a specific field
   const getTabForField = (fieldName) => {
-    const basicInfoFields = ['cus_company', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_depart', 'cus_bt_id', 'cus_channel', 'cus_manage_by'];
-    const contactFields = ['cus_tel_1', 'cus_tel_2', 'cus_email', 'cus_tax_id'];
-    const addressFields = ['cus_address', 'cus_pro_id', 'cus_dis_id', 'cus_sub_id', 'cus_zip_code'];
-    
+    const basicInfoFields = [
+      "cus_company",
+      "cus_firstname",
+      "cus_lastname",
+      "cus_name",
+      "cus_depart",
+      "cus_bt_id",
+      "cus_channel",
+      "cus_manage_by",
+    ];
+    const contactFields = ["cus_tel_1", "cus_tel_2", "cus_email", "cus_tax_id"];
+    const addressFields = [
+      "cus_address",
+      "cus_pro_id",
+      "cus_dis_id",
+      "cus_sub_id",
+      "cus_zip_code",
+    ];
+
     if (basicInfoFields.includes(fieldName)) return 0;
     if (contactFields.includes(fieldName)) return 1;
     if (addressFields.includes(fieldName)) return 2;
@@ -365,9 +391,10 @@ function DialogForm(props) {
       try {
         open_dialog_loading();
 
-        const res = mode === "create" 
-          ? await addCustomer(inputList)
-          : await updateCustomer(inputList);
+        const res =
+          mode === "create"
+            ? await addCustomer(inputList)
+            : await updateCustomer(inputList);
 
         if (res.data.status === "success") {
           props.handleCloseDialog();
@@ -470,18 +497,20 @@ function DialogForm(props) {
         aria-hidden={props.openDialog ? false : true}
       >
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
-          <DialogTitle sx={{ 
-            paddingBlock: 1, 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
+          <DialogTitle
+            sx={{
+              paddingBlock: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box>
               <Typography variant="h6">
                 {titleMap[mode] + `ข้อมูลลูกค้า`}
               </Typography>
               {mode !== "create" && (
-                <Chip 
+                <Chip
                   size="small"
                   color="info"
                   label={`${formattedRelativeTime} Days`}
@@ -499,12 +528,41 @@ function DialogForm(props) {
               <MdClose />
             </IconButton>
           </DialogTitle>
-          
           <DialogContent dividers>
-            <Box sx={{ width: '100%' }}>
+            <Box sx={{ width: "100%" }}>
+              {" "}
+              {/* Note Card - แสดง Note สำคัญ */}
+              {inputList.cd_note && (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    mb: 2,
+                    borderLeft: "4px solid",
+                    borderColor: "#940c0c",
+                    bgcolor: "warning.lighter",
+                  }}
+                >
+                  <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                    {" "}
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <MdNotes
+                        style={{ fontSize: "18px", marginRight: "12px" }}
+                      />
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="bold"
+                        color="text.primary"
+                      >
+                        หมายเหตุสำคัญ
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1">{inputList.cd_note}</Typography>
+                  </CardContent>
+                </Card>
+              )}
               {/* Customer Info Summary Card */}
               <Card variant="outlined" sx={{ mb: 2 }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
                   <Grid container spacing={2}>
                     <Grid size={12} md={8}>
                       <StyledTextField
@@ -522,13 +580,13 @@ function DialogForm(props) {
                         }}
                         name="cus_company"
                         placeholder="บริษัท ธนพลัส 153 จำกัด"
-                        value={inputList.cus_company || ''}
+                        value={inputList.cus_company || ""}
                         onChange={handleInputChange}
                         error={!!errors.cus_company}
                         helperText={errors.cus_company}
                       />
                     </Grid>
-                    
+
                     {isAdmin && (
                       <Grid size={12} md={4}>
                         <FormControl fullWidth size="small">
@@ -560,9 +618,15 @@ function DialogForm(props) {
                         </FormControl>
                       </Grid>
                     )}
-                    
+
                     <Grid size={12} md={isAdmin ? 6 : 8}>
-                      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          alignItems: "flex-start",
+                        }}
+                      >
                         <FormControl fullWidth size="small">
                           <InputLabel required>ประเภทธุรกิจ</InputLabel>
                           <StyledSelect
@@ -570,7 +634,9 @@ function DialogForm(props) {
                             name="cus_bt_id"
                             value={inputList.cus_bt_id || ""}
                             onChange={handleInputChange}
-                            readOnly={mode === "view" || businessTypesIsFetching}
+                            readOnly={
+                              mode === "view" || businessTypesIsFetching
+                            }
                             error={!!errors.cus_bt_id}
                             startAdornment={
                               <InputAdornment position="start">
@@ -602,7 +668,8 @@ function DialogForm(props) {
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onChange={(e) => {
-                                  const searchValue = e.target.value.toLowerCase();
+                                  const searchValue =
+                                    e.target.value.toLowerCase();
                                   const filteredList =
                                     businessTypesData?.filter((item) =>
                                       item.bt_name
@@ -643,7 +710,7 @@ function DialogForm(props) {
                         </Tooltip>
                       </Box>
                     </Grid>
-                    
+
                     <Grid size={12} md={4}>
                       <FormControl fullWidth size="small">
                         <InputLabel required>ช่องทางการติดต่อ</InputLabel>
@@ -670,7 +737,7 @@ function DialogForm(props) {
                         </FormHelperText>
                       </FormControl>
                     </Grid>
-                    
+
                     <Grid size={12} md={2}>
                       <StyledTextField
                         fullWidth
@@ -692,43 +759,41 @@ function DialogForm(props) {
                   </Grid>
                 </CardContent>
               </Card>
-              
               {/* Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs 
-                  value={tabValue} 
-                  onChange={handleTabChange} 
+              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                <Tabs
+                  value={tabValue}
+                  onChange={handleTabChange}
                   variant="scrollable"
                   scrollButtons="auto"
                   aria-label="customer info tabs"
                 >
-                  <Tab 
-                    label="ข้อมูลพื้นฐาน" 
-                    icon={<MdPerson />} 
-                    iconPosition="start" 
-                    {...a11yProps(0)} 
+                  <Tab
+                    label="ข้อมูลพื้นฐาน"
+                    icon={<MdPerson />}
+                    iconPosition="start"
+                    {...a11yProps(0)}
                   />
-                  <Tab 
-                    label="ข้อมูลติดต่อ" 
-                    icon={<MdPhone />} 
-                    iconPosition="start" 
-                    {...a11yProps(1)} 
+                  <Tab
+                    label="ข้อมูลติดต่อ"
+                    icon={<MdPhone />}
+                    iconPosition="start"
+                    {...a11yProps(1)}
                   />
-                  <Tab 
-                    label="ที่อยู่" 
-                    icon={<MdLocationOn />} 
-                    iconPosition="start" 
-                    {...a11yProps(2)} 
+                  <Tab
+                    label="ที่อยู่"
+                    icon={<MdLocationOn />}
+                    iconPosition="start"
+                    {...a11yProps(2)}
                   />
-                  <Tab 
-                    label="บันทึกเพิ่มเติม" 
-                    icon={<MdNotes />} 
-                    iconPosition="start" 
-                    {...a11yProps(3)} 
+                  <Tab
+                    label="บันทึกเพิ่มเติม"
+                    icon={<MdNotes />}
+                    iconPosition="start"
+                    {...a11yProps(3)}
                   />
                 </Tabs>
               </Box>
-              
               {/* Tab 1: Basic Information */}
               <TabPanel value={tabValue} index={0}>
                 <Grid container spacing={2}>
@@ -740,7 +805,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_firstname"
                       placeholder="ชื่อจริง"
-                      value={inputList.cus_firstname || ''}
+                      value={inputList.cus_firstname || ""}
                       onChange={handleInputChange}
                       error={!!errors.cus_firstname}
                       helperText={errors.cus_firstname}
@@ -749,7 +814,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12} md={4}>
                     <StyledTextField
                       fullWidth
@@ -758,7 +823,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_lastname"
                       placeholder="นามสกุล"
-                      value={inputList.cus_lastname || ''}
+                      value={inputList.cus_lastname || ""}
                       onChange={handleInputChange}
                       error={!!errors.cus_lastname}
                       helperText={errors.cus_lastname}
@@ -767,7 +832,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12} md={4}>
                     <StyledTextField
                       fullWidth
@@ -776,7 +841,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_name"
                       placeholder="ชื่อเล่น"
-                      value={inputList.cus_name || ''}
+                      value={inputList.cus_name || ""}
                       onChange={handleInputChange}
                       error={!!errors.cus_name}
                       helperText={errors.cus_name}
@@ -785,7 +850,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12}>
                     <StyledTextField
                       fullWidth
@@ -793,7 +858,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_depart"
                       placeholder="ตำแหน่ง"
-                      value={inputList.cus_depart || ''}
+                      value={inputList.cus_depart || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -802,7 +867,6 @@ function DialogForm(props) {
                   </Grid>
                 </Grid>
               </TabPanel>
-              
               {/* Tab 2: Contact Information */}
               <TabPanel value={tabValue} index={1}>
                 <Grid container spacing={2}>
@@ -814,7 +878,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_tel_1"
                       placeholder="เบอร์"
-                      value={inputList.cus_tel_1 || ''}
+                      value={inputList.cus_tel_1 || ""}
                       onChange={handleInputChange}
                       error={!!errors.cus_tel_1}
                       helperText={errors.cus_tel_1}
@@ -828,7 +892,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12} md={6}>
                     <StyledTextField
                       fullWidth
@@ -836,7 +900,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_tel_2"
                       placeholder="เบอร์สำรอง"
-                      value={inputList.cus_tel_2 || ''}
+                      value={inputList.cus_tel_2 || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -848,7 +912,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12}>
                     <StyledTextField
                       fullWidth
@@ -856,7 +920,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_email"
                       placeholder="อีเมล"
-                      value={inputList.cus_email || ''}
+                      value={inputList.cus_email || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -868,7 +932,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12}>
                     <StyledTextField
                       fullWidth
@@ -876,7 +940,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_tax_id"
                       placeholder="เลขผู้เสียภาษี"
-                      value={inputList.cus_tax_id || ''}
+                      value={inputList.cus_tax_id || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -885,7 +949,6 @@ function DialogForm(props) {
                   </Grid>
                 </Grid>
               </TabPanel>
-              
               {/* Tab 3: Address Information */}
               <TabPanel value={tabValue} index={2}>
                 <Grid container spacing={2}>
@@ -896,7 +959,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_address"
                       placeholder="บ้านเลขที่/ถนน/ซอย/หมู่บ้าน"
-                      value={inputList.cus_address || ''}
+                      value={inputList.cus_address || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -908,7 +971,7 @@ function DialogForm(props) {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12} md={6}>
                     <FormControl fullWidth size="small">
                       <InputLabel>จังหวัด</InputLabel>
@@ -930,7 +993,7 @@ function DialogForm(props) {
                       </StyledSelect>
                     </FormControl>
                   </Grid>
-                  
+
                   <Grid size={12} md={6}>
                     <FormControl fullWidth size="small">
                       <InputLabel>เขต/อำเภอ</InputLabel>
@@ -952,7 +1015,7 @@ function DialogForm(props) {
                       </StyledSelect>
                     </FormControl>
                   </Grid>
-                  
+
                   <Grid size={12} md={6}>
                     <FormControl fullWidth size="small">
                       <InputLabel>แขวง/ตำบล</InputLabel>
@@ -974,7 +1037,7 @@ function DialogForm(props) {
                       </StyledSelect>
                     </FormControl>
                   </Grid>
-                  
+
                   <Grid size={12} md={6}>
                     <StyledTextField
                       fullWidth
@@ -982,7 +1045,7 @@ function DialogForm(props) {
                       size="small"
                       name="cus_zip_code"
                       placeholder="รหัสไปรษณีย์"
-                      value={inputList.cus_zip_code || ''}
+                      value={inputList.cus_zip_code || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -991,7 +1054,6 @@ function DialogForm(props) {
                   </Grid>
                 </Grid>
               </TabPanel>
-              
               {/* Tab 4: Additional Notes */}
               <TabPanel value={tabValue} index={3}>
                 <Grid container spacing={2}>
@@ -1003,14 +1065,14 @@ function DialogForm(props) {
                       minRows={3}
                       size="small"
                       name="cd_note"
-                      value={inputList.cd_note || ''}
+                      value={inputList.cd_note || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid size={12}>
                     <StyledTextField
                       fullWidth
@@ -1019,7 +1081,7 @@ function DialogForm(props) {
                       minRows={5}
                       size="small"
                       name="cd_remark"
-                      value={inputList.cd_remark || ''}
+                      value={inputList.cd_remark || ""}
                       onChange={handleInputChange}
                       InputProps={{
                         readOnly: mode === "view",
@@ -1030,7 +1092,7 @@ function DialogForm(props) {
               </TabPanel>
             </Box>
           </DialogContent>
-          
+
           <DialogActions sx={{ p: 2 }}>
             {mode !== "view" && (
               <Button

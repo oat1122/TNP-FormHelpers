@@ -603,4 +603,106 @@ class CustomerController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get customer counts per group with applied filters
+     */
+    public function getGroupCounts(Request $request)
+    {
+        try {
+            if (!$request->user) {
+                return response()->json([
+                    'message' => 'User is required'
+                ], 400);
+            }
+
+            // query user
+            $user_q = User::where('enable', 'Y')
+                ->where('user_id', $request->user)
+                ->select('user_id', 'role')
+                ->first();
+
+            if (!$user_q) {
+                return response()->json([
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Get all customer groups
+            $groups = CustomerGroup::active()
+                ->select('mcg_id')
+                ->get()
+                ->pluck('mcg_id')
+                ->toArray();
+
+            $group_counts = [];
+
+            // For each group, count customers with applied filters
+            foreach ($groups as $group_id) {
+                $query = Customer::active();
+                
+                // Filter by the current group
+                $query->where('cus_mcg_id', $group_id);
+
+                // Filter by user role
+                if ($user_q->role !== 'admin') {
+                    $query->where('cus_manage_by', $user_q->user_id);
+                }
+
+                // Apply search filter if provided
+                if ($request->has('search')) {
+                    $search_term = '%' . trim($request->search) . '%';
+                    $query->where(function ($q) use ($search_term) {
+                        $q->orWhere('cus_name', 'like', $search_term)
+                          ->orWhere('cus_company', 'like', $search_term)
+                          ->orWhere('cus_no', 'like', $search_term)
+                          ->orWhere('cus_tel_1', 'like', $search_term)
+                          ->orWhereHas('cusManageBy', function ($user_q) use ($search_term) {
+                              $user_q->where('username', 'like', $search_term);
+                          });
+                    });
+                }
+
+                // Date Range Filter
+                if ($request->has('start_date') || $request->has('end_date')) {
+                    $query->filterByDateRange($request->start_date, $request->end_date);
+                }
+
+                // Sales Names Filter
+                if ($request->has('sales_names')) {
+                    $salesNames = explode(',', $request->sales_names);
+                    $query->filterBySalesNames($salesNames);
+                }
+
+                // Channel Filter
+                if ($request->has('channels')) {
+                    $channels = explode(',', $request->channels);
+                    $query->filterByChannels($channels);
+                }
+
+                // Recall Range Filter
+                if ($request->has('min_recall_days') || $request->has('max_recall_days')) {
+                    $minDays = $request->has('min_recall_days') ? (int)$request->min_recall_days : null;
+                    $maxDays = $request->has('max_recall_days') ? (int)$request->max_recall_days : null;
+                    $query->filterByRecallRange($minDays, $maxDays);
+                }
+
+                // Count customers for this group with all filters applied
+                $count = $query->count();
+                $group_counts[$group_id] = $count;
+            }
+
+            return response()->json([
+                'group_counts' => $group_counts,
+                'timestamp' => now()->timestamp
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Fetch group counts error: ' . $e);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching group counts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

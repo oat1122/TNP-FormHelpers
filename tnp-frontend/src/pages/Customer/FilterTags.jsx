@@ -21,6 +21,8 @@ import {
 function FilterTags() {
   const dispatch = useDispatch();
   const filters = useSelector((state) => state.customer.filters);
+  const { scrollToTop } = useContext(ScrollContext);
+
   // Check if any filters are active
   const hasDateFilter =
     filters.dateRange.startDate || filters.dateRange.endDate;
@@ -52,8 +54,6 @@ function FilterTags() {
     }
     return "";
   };
-  // Format recall range for display has been removed
-  const { scrollToTop } = useContext(ScrollContext);
 
   // Handle clearing all filters
   const handleClearAllFilters = () => {
@@ -61,6 +61,7 @@ function FilterTags() {
     // Scroll to top when removing all filters
     scrollToTop();
   };
+
   return (
     <Box
       sx={{

@@ -499,7 +499,24 @@ function CustomerList() {
 
   // Get current theme for responsive behavior
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
+
+  // Get the scroll context
+  const scrollRef = useRef(null);
+  
+  // Add table container ref for scrolling
   const tableContainerRef = useRef(null);
+  
+  // Function to help with row identification for the DataGrid
+  const getRowId = (row) => {
+    return row.cus_id || row.id || `row-${Math.random().toString(36).substring(2, 15)}`;
+  };
+  
+  // Create a wrapper for the DataGrid
+  const DataGridWithRowIdFix = (props) => {
+    return <StyledDataGrid {...props} getRowId={getRowId} />;
+  };
 
   const { data, error, isFetching, isSuccess, refetch } =
     useGetAllCustomerQuery({
@@ -510,54 +527,59 @@ function CustomerList() {
       search: keyword,
       filters: filters,
       sortModel: serverSortModel,
-    }); // Scroll to top function
+    });  // Scroll to top function
   const scrollToTop = useCallback(() => {
     // Return early if we're in testing mode or SSR environment
     if (typeof window === "undefined") return;
 
-    const scrollOptions = { behavior: "smooth" };
-
-    // First try to scroll the container if it's available
-    if (tableContainerRef.current) {
-      try {
+    try {
+      // First try to scroll the container if it's available and properly initialized
+      if (tableContainerRef && tableContainerRef.current) {
         // Add a small delay to ensure UI has updated before scrolling
         setTimeout(() => {
-          // Scroll the container element to top
-          tableContainerRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-            inline: "nearest",
-          });
-
-          // Also ensure the window is scrolled to show the container at the top
-          const containerRect =
-            tableContainerRef.current.getBoundingClientRect();
-          if (containerRect.top < 0) {
-            window.scrollBy({
-              top: containerRect.top - 20, // Add a small offset for visual padding
+          try {
+            // Scroll the container element to top
+            tableContainerRef.current.scrollIntoView({
               behavior: "smooth",
+              block: "start",
+              inline: "nearest",
             });
+
+            // Also ensure the window is scrolled to show the container at the top
+            const containerRect = tableContainerRef.current.getBoundingClientRect();
+            if (containerRect.top < 0) {
+              window.scrollBy({
+                top: containerRect.top - 20, // Add a small offset for visual padding
+                behavior: "smooth",
+              });
+            }
+          } catch (innerError) {
+            // Fallback for browsers that don't support smooth scrolling
+            console.warn("Smooth scrolling not supported in timeout, using fallback", innerError);
+            if (tableContainerRef.current) {
+              tableContainerRef.current.scrollIntoView(true);
+            } else {
+              window.scrollTo(0, 0);
+            }
           }
         }, 50);
-      } catch (error) {
-        // Fallback for browsers that don't support smooth scrolling
-        console.warn("Smooth scrolling not supported, using fallback", error);
-        tableContainerRef.current.scrollIntoView(true);
-      }
-    } else {
-      // Otherwise scroll the window
-      try {
+      } else {
+        // Otherwise scroll the window
         window.scrollTo({
           top: 0,
           behavior: "smooth",
         });
-      } catch (error) {
-        // Fallback for browsers that don't support smooth scrolling
-        console.warn("Smooth scrolling not supported, using fallback", error);
+      }
+    } catch (error) {
+      // Ultimate fallback for any errors
+      console.warn("Error in scrollToTop, using basic fallback", error);
+      try {
         window.scrollTo(0, 0);
+      } catch (finalError) {
+        console.error("Failed to scroll to top", finalError);
       }
     }
-  }, [tableContainerRef]);
+  }, []); // Empty dependency array since tableContainerRef is stable
   // Handle changes in the sort model
   const handleSortModelChange = (newModel) => {
     // Only update if the sort model actually changed
@@ -1032,14 +1054,28 @@ function CustomerList() {
         ...responsiveVisibility,
       }));
     }
-  }, [isSmall, isExtraSmall]);
-  useEffect(() => {
+  }, [isSmall, isExtraSmall]);  useEffect(() => {
     if (isSuccess) {
       if (data.status === "error") {
         open_dialog_error("Fetch customer error", data.message);
       } else if (data.data) {
+        // อัพเดทข้อมูลลูกค้าในรายการ
         dispatch(setItemList(data.data));
-        dispatch(setGroupList(data.groups));
+        
+        // อัพเดทข้อมูลกลุ่มลูกค้า (เฉพาะเมื่อไม่มีการกรองข้อมูล)
+        // ถ้ามีการกรอง FilterTab จะคำนวณจำนวนจาก itemList เอง
+        const hasActiveFilters = 
+          filters.dateRange.startDate || 
+          filters.dateRange.endDate || 
+          (filters.salesName && filters.salesName.length > 0) || 
+          (filters.channel && filters.channel.length > 0);
+          
+        // อัพเดทข้อมูลกลุ่มเฉพาะเมื่อไม่มีการกรอง หรือเมื่อมีข้อมูลกลุ่มใหม่จาก API
+        if (!hasActiveFilters || data.groups) {
+          dispatch(setGroupList(data.groups));
+        }
+        
+        // อัพเดทจำนวนทั้งหมด
         dispatch(setTotalCount(data.total_count));
         setTotalItems(data.pagination.total_items);
 
@@ -1745,14 +1781,12 @@ function CustomerList() {
                 transition: "height 0.3s ease",
               },
             }}
-          >
-            <StyledDataGrid
+          >            <DataGridWithRowIdFix
               disableRowSelectionOnClick
               paginationMode="server"
               sortingMode="server"
               rows={itemList}
               columns={columns}
-              getRowId={(row) => row.cus_id}
               componentsProps={{
                 row: {
                   style: { cursor: "pointer" },

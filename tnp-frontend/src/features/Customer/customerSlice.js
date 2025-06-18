@@ -13,13 +13,13 @@ export const fetchFilteredCustomers = createAsyncThunk(
 
       const state = getState();
       const groupSelected = state.customer.groupSelected;
-      const userData = JSON.parse(localStorage.getItem("userData"));
-
-      // Prepare query parameters
+      const userData = JSON.parse(localStorage.getItem("userData"));      // Prepare query parameters
       const queryParams = {
         group: groupSelected !== "all" ? groupSelected : undefined,
         user: userData?.user_id,
       };
+      
+      console.log(`Fetching customers for group: ${groupSelected}, with filters:`, filters);
 
       // Date Range
       if (filters.dateRange.startDate) {
@@ -37,9 +37,10 @@ export const fetchFilteredCustomers = createAsyncThunk(
       if (Array.isArray(filters.channel) && filters.channel.length > 0) {
         queryParams.channels = filters.channel.join(",");
       }
+      
       // Get pagination settings from current state
       const paginationModel = state.customer.paginationModel;
-      queryParams.page = 1; // Reset to first page on filter change
+      queryParams.page = paginationModel.page + 1; // Convert 0-indexed to 1-indexed for API
       queryParams.per_page = paginationModel.pageSize;
 
       const queryString = qs.stringify(queryParams, { skipNulls: true });
@@ -58,15 +59,29 @@ export const fetchFilteredCustomers = createAsyncThunk(
       }
 
       const data = await response.json();
-
-      // Update the item list with the filtered results
-      dispatch(setItemList(data.data));
+      
+      // Ensure each row has a unique ID to prevent MissingRowIdError
+      const processedData = Array.isArray(data.data) ? data.data.map(row => {
+        // If the row doesn't have a cus_id, generate one
+        if (!row.cus_id) {
+          return { ...row, cus_id: `row-${Math.random().toString(36).substring(2, 15)}` };
+        }
+        return row;
+      }) : [];      // Update the item list with the filtered results
+      dispatch(setItemList(processedData));
 
       // Check if we have total_count in the response or use pagination total
       if (data.total_count) {
         dispatch(setTotalCount(data.total_count));
       } else if (data.pagination?.total_items) {
         dispatch(setTotalCount(data.pagination.total_items));
+      }
+      
+      // ถ้ามี groups ในการตอบกลับ ให้อัพเดทค่ากลุ่มลูกค้าด้วย
+      // แต่ถ้าเป็นการกรองแบบที่ไม่ได้ส่ง group ใหม่มาด้วย 
+      // ให้คงค่ากลุ่มเดิมไว้ เพื่อให้ FilterTab คำนวณจำนวนใหม่จาก itemList
+      if (data.groups && Array.isArray(data.groups)) {
+        dispatch(setGroupList(data.groups));
       }
 
       return data;

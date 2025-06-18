@@ -1,5 +1,12 @@
 // filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\FilterPanel.jsx
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  useMemo,
+  useCallback,
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 import ScrollContext from "./ScrollContext";
 import {
@@ -28,7 +35,6 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { useMemo, useCallback } from "react";
 import { debounce } from "lodash";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -126,8 +132,8 @@ class AdapterBuddhistDayjs extends AdapterDayjs {
 
 // Channel options
 const channelOptions = [
-  { value: "1", label: "Sales", icon: <MdPerson />, color: "#4caf50" },
-  { value: "2", label: "Online", icon: <MdLanguage />, color: "#2196f3" },
+  { value: "1", label: "Sales", icon: <MdPerson />, color: "#2196f3" },
+  { value: "2", label: "Online", icon: <MdLanguage />, color: "#4caf50" },
   { value: "3", label: "Office", icon: <MdBusiness />, color: "#ff9800" },
 ];
 
@@ -136,6 +142,7 @@ function FilterPanel() {
   const filters = useSelector((state) => state.customer.filters);
   const salesList = useSelector((state) => state.customer.salesList);
   const itemList = useSelector((state) => state.customer.itemList);
+  const groupSelected = useSelector((state) => state.customer.groupSelected);
   const userInfo = useSelector((state) => state.global.userInfo);
   const isLoading = useSelector((state) => state.customer.isLoading);
   const error = useSelector((state) => state.customer.error);
@@ -150,7 +157,7 @@ function FilterPanel() {
   // Create a ref for the debounce function to properly handle cleanup
   const debouncedApplyFiltersRef = useRef();
 
-  // Create working draft of filter values (only when filters change or when user makes edits)
+  // Create working draft of filter values
   const [draftFilters, setDraftFilters] = useState({
     dateRange: {
       startDate: filters.dateRange.startDate
@@ -167,12 +174,12 @@ function FilterPanel() {
   // Setup debounced filter function (created only once)
   useEffect(() => {
     debouncedApplyFiltersRef.current = debounce((filtersToApply) => {
-      console.log("🔥 Applying debounced filters:", filtersToApply);
       dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
       dispatch(setFilters(filtersToApply));
+      console.log("🔥 Applying debounced filters:", filtersToApply);
     }, 500);
 
-    // Cleanup debounced function on unmount to prevent memory leaks
+    // Cleanup debounced function on unmount
     return () => {
       if (debouncedApplyFiltersRef.current?.cancel) {
         debouncedApplyFiltersRef.current.cancel();
@@ -239,30 +246,36 @@ function FilterPanel() {
       },
       salesName: Array.isArray(draft.salesName) ? [...draft.salesName] : [],
       channel: Array.isArray(draft.channel) ? [...draft.channel] : [],
-    };
-  };
-  const { scrollToTop } = useContext(ScrollContext);
-
+    };  };
+  
+  const { scrollToTop } = useContext(ScrollContext); 
+  
   // Apply filters handler
   const handleApplyFilters = useCallback(() => {
     try {
       const filtersToApply = prepareFiltersForAPI(draftFilters);
+      console.log("กำลังใช้งานตัวกรอง:", filtersToApply, "กับกลุ่มปัจจุบัน:", groupSelected);
 
-      // Call the debounced function with check
-      if (debouncedApplyFiltersRef.current) {
-        setIsFiltering(true);
-        debouncedApplyFiltersRef.current(filtersToApply);
-      }
+      // Start loading state
+      setIsFiltering(true);
+
+      // Apply filters synchronously to ensure they're set before API call
+      dispatch(setFilters(filtersToApply));      // Reset to first page when applying filters
+      dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
 
       // Dispatch API action to fetch filtered customers
       dispatch(fetchFilteredCustomers(filtersToApply))
         .unwrap()
-        .then(() => {
+        .then((data) => {
           // Success handling
           setExpanded(false); // Collapse filter panel after applying
           setIsFiltering(false);
+
           // Scroll to top when filters have been applied
           scrollToTop();
+
+          // นับจำนวนข้อมูลที่ได้จากการกรอง
+          console.log(`กรองข้อมูลสำเร็จ: พบ ${data?.data?.length || 0} รายการ`);
         })
         .catch((error) => {
           console.error("Error applying filters:", error);
@@ -278,7 +291,7 @@ function FilterPanel() {
       setErrorMessage("เกิดข้อผิดพลาดในการใช้งานตัวกรอง");
       setIsFiltering(false);
     }
-  }, [draftFilters, dispatch, setExpanded]);
+  }, [draftFilters, dispatch, scrollToTop, groupSelected]);
 
   // Reset filters
   const handleResetFilters = useCallback(() => {

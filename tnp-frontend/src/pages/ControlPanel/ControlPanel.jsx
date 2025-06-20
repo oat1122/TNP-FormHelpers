@@ -21,6 +21,7 @@ import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
 import { LiaFileInvoiceDollarSolid } from "react-icons/lia";
 import { HiDocumentCurrencyDollar } from "react-icons/hi2";
+import { BsChatSquareDots } from "react-icons/bs";
 import { useGetPdCountQuery } from "../../api/slice";
 import { Spinner } from "react-bootstrap";
 
@@ -226,7 +227,23 @@ function ControlPanel() {
             </a>
           </div>
         </div>
+      </div>      <div className="row col-12 col-md-11 col-lg-8 mt-4 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
+        <h3>FEEDBACK & REPORTS</h3>
+        <hr />
+        <div className="col-3 ms-md-1 ms-lg-2 col-basic">
+          <a
+            className="btn btn-outline-danger pt-3"
+            href="/feedback"
+            style={{ width: "6.2rem" }}
+          >
+            <IconContext.Provider value={{ className: "icon-control-panel" }}>
+              <BsChatSquareDots />
+            </IconContext.Provider>
+            <label>FEEDBACK</label>
+          </a>
+        </div>
       </div>
+      
       <div className="row col-12 col-md-11 col-lg-8 mt-4 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
         <h3>SPECIFIC MANAGER TOOLS</h3>
         <hr />

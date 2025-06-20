@@ -142,6 +142,25 @@ Route::prefix('v1')->group(function() {
         Route::put('/pricing-update-status', 'update_status');
     });
 
+    //---------- Feedback System ----------
+    Route::controller(App\Http\Controllers\Api\V1\Feedback\FeedbackReportController::class)->group(function () {
+        Route::get('/feedback-reports', 'index');
+        Route::post('/feedback-reports', 'store');
+        Route::get('/feedback-reports/{id}', 'show');
+        Route::post('/feedback-reports/{id}/admin-response', 'adminResponse');
+        Route::put('/feedback-reports/{id}/resolved-status', 'updateResolvedStatus');
+        Route::delete('/feedback-reports/{id}', 'destroy');
+        Route::get('/feedback-statistics', 'getStatistics');
+    });
+
+    Route::controller(App\Http\Controllers\Api\V1\Feedback\EncouragingMessageController::class)->group(function () {
+        Route::get('/encouraging-messages/random', 'getRandom');
+        Route::get('/encouraging-messages', 'index');
+        Route::post('/encouraging-messages', 'store');
+        Route::put('/encouraging-messages/{id}', 'update');
+        Route::put('/encouraging-messages/{id}/toggle-active', 'toggleActive');
+    });
+
     //---------- Global ----------
     Route::controller(GlobalController::class)->group(function () {
         Route::get('/get-all-product-categories', 'get_all_product_categories');

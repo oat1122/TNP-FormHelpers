@@ -21,6 +21,7 @@ const TestToast = lazy(() => import("./pages/TestToast"));
 const UserList = lazy(() => import("./pages/UserManagement/UserList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
+const FeedbackPage = lazy(() => import("./features/Feedback/FeedbackPage"));
 
 function App() {
   return (
@@ -47,9 +48,10 @@ function App() {
             <Route path="/worksheet-update/:id" element={<WorksheetCreate />} />
 
             <Route path="/pricing" element={<PricingList />} />
-            <Route path="/pricing/create" element={<PricingForm mode="create" />} />
-            <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
+            <Route path="/pricing/create" element={<PricingForm mode="create" />} />            <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
             <Route path="/pricing/view/:id" element={<PricingForm mode="view" />} />
+            
+            <Route path="/feedback" element={<FeedbackPage />} />
 
             <Route path="/test" element={<Testing />} />
           </Route>

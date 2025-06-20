@@ -8,6 +8,7 @@ import { worksheetApi } from './features/Worksheet/worksheetApi';
 import { customerApi } from './features/Customer/customerApi';
 import { userManagementApi } from './features/UserManagement/userManagementApi';
 import { pricingApi } from './features/Pricing/pricingApi';
+import { feedbackApi } from './features/Feedback/feedbackApi';
 
 import globalSliceReducer from './features/globalSlice';
 import fabricCostReducer from './features/fabricCost/fabricCostSlice';
@@ -16,9 +17,9 @@ import worksheetSliceReducer from './features/Worksheet/worksheetSlice';
 import customerSliceReducer from './features/Customer/customerSlice';
 import userManagementReducers from './features/UserManagement/userManagementSlice';
 import pricingReducers from './features/Pricing/pricingSlice';
+import feedbackReducer from './features/Feedback/feedbackSlice';
 
-const store = configureStore({
-  reducer: {
+const store = configureStore({  reducer: {
     // Add the generated reducer as a specific top-level slice
     global: globalSliceReducer,
     monitorProduction: monitorProductionSliceReducer,
@@ -27,6 +28,7 @@ const store = configureStore({
     customer: customerSliceReducer,
     userManagement: userManagementReducers,
     pricing: pricingReducers,
+    feedback: feedbackReducer,
 
     // api
     [apiSlice.reducerPath]: apiSlice.reducer,
@@ -36,6 +38,7 @@ const store = configureStore({
     [customerApi.reducerPath]: customerApi.reducer,
     [userManagementApi.reducerPath]: userManagementApi.reducer,
     [pricingApi.reducerPath]: pricingApi.reducer,
+    [feedbackApi.reducerPath]: feedbackApi.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -48,6 +51,7 @@ const store = configureStore({
       customerApi.middleware,
       userManagementApi.middleware,
       pricingApi.middleware,
+      feedbackApi.middleware,
     ),
 })
 

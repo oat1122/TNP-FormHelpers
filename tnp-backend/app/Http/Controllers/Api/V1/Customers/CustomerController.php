@@ -440,6 +440,30 @@ class CustomerController extends Controller
         // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
         $this->sanitizeContactFields($data_input);
 
+        // Check for duplicate phone number or email (excluding current record)
+        $duplicate = Customer::query()
+            ->where(function ($q) use ($data_input) {
+                $phone1 = $data_input['cus_tel_1'] ?? null;
+                $phone2 = $data_input['cus_tel_2'] ?? null;
+                if ($phone1) {
+                    $q->where('cus_tel_1', $phone1)
+                      ->orWhere('cus_tel_2', $phone1);
+                }
+                if ($phone2) {
+                    $q->orWhere('cus_tel_1', $phone2)
+                      ->orWhere('cus_tel_2', $phone2);
+                }
+            })
+            ->orWhere('cus_email', $data_input['cus_email'] ?? null)
+            ->where('cus_id', '!=', $id)
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Duplicate phone number or email'
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();

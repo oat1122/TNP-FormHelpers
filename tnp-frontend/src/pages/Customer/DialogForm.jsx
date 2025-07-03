@@ -72,41 +72,14 @@ import {
 } from "../../utils/import_lib";
 import Swal from "sweetalert2";
 
-// Custom styled components
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: theme.vars.palette.grey.outlinedInput,
-    "&.Mui-disabled": {
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey.outlinedInput,
-      },
-      "& .MuiOutlinedInput-input": {
-        WebkitTextFillColor: theme.vars.palette.text.primary,
-      },
-    },
-  },
-  "& .MuiInputLabel-root": {
-    color: theme.vars.palette.grey.dark,
-    fontFamily: "Kanit",
-    fontSize: 14,
-  },
-}));
-
-const StyledSelect = styled(Select)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.grey.outlinedInput,
-  "& fieldset": {
-    borderColor: theme.vars.palette.grey.outlinedInput,
-  },
-}));
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontWeight: 500,
-  marginBottom: theme.spacing(1),
-  color: theme.vars.palette.primary.main,
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-}));
+import {
+  StyledTextField,
+  StyledSelect,
+} from "./components/DialogForm/StyledComponents";
+import BasicInfoFields from "./components/DialogForm/BasicInfoFields";
+import ContactInfoFields from "./components/DialogForm/ContactInfoFields";
+import AddressFields from "./components/DialogForm/AddressFields";
+import AdditionalNotesFields from "./components/DialogForm/AdditionalNotesFields";
 
 const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2),
@@ -796,299 +769,42 @@ function DialogForm(props) {
               </Box>
               {/* Tab 1: Basic Information */}
               <TabPanel value={tabValue} index={0}>
-                <Grid container spacing={2}>
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="ชื่อจริง"
-                      size="small"
-                      name="cus_firstname"
-                      placeholder="ชื่อจริง"
-                      value={inputList.cus_firstname || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_firstname}
-                      helperText={errors.cus_firstname}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="นามสกุล"
-                      size="small"
-                      name="cus_lastname"
-                      placeholder="นามสกุล"
-                      value={inputList.cus_lastname || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_lastname}
-                      helperText={errors.cus_lastname}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="ชื่อเล่น"
-                      size="small"
-                      name="cus_name"
-                      placeholder="ชื่อเล่น"
-                      value={inputList.cus_name || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_name}
-                      helperText={errors.cus_name}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="ตำแหน่ง"
-                      size="small"
-                      name="cus_depart"
-                      placeholder="ตำแหน่ง"
-                      value={inputList.cus_depart || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                <BasicInfoFields
+                  inputList={inputList}
+                  handleInputChange={handleInputChange}
+                  errors={errors}
+                  mode={mode}
+                />
               </TabPanel>
               {/* Tab 2: Contact Information */}
               <TabPanel value={tabValue} index={1}>
-                <Grid container spacing={2}>
-                  <Grid size={12} md={6}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="เบอร์โทรศัพท์"
-                      size="small"
-                      name="cus_tel_1"
-                      placeholder="เบอร์"
-                      value={inputList.cus_tel_1 || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_tel_1}
-                      helperText={errors.cus_tel_1}
-                      InputProps={{
-                        readOnly: mode === "view",
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MdPhone />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={6}>
-                    <StyledTextField
-                      fullWidth
-                      label="เบอร์สำรอง"
-                      size="small"
-                      name="cus_tel_2"
-                      placeholder="เบอร์สำรอง"
-                      value={inputList.cus_tel_2 || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MdPhone />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="อีเมล"
-                      size="small"
-                      name="cus_email"
-                      placeholder="อีเมล"
-                      value={inputList.cus_email || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MdEmail />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="เลขผู้เสียภาษี"
-                      size="small"
-                      name="cus_tax_id"
-                      placeholder="เลขผู้เสียภาษี"
-                      value={inputList.cus_tax_id || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                <ContactInfoFields
+                  inputList={inputList}
+                  handleInputChange={handleInputChange}
+                  errors={errors}
+                  mode={mode}
+                />
               </TabPanel>
               {/* Tab 3: Address Information */}
               <TabPanel value={tabValue} index={2}>
-                <Grid container spacing={2}>
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="ที่อยู่"
-                      size="small"
-                      name="cus_address"
-                      placeholder="บ้านเลขที่/ถนน/ซอย/หมู่บ้าน"
-                      value={inputList.cus_address || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MdLocationOn />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>จังหวัด</InputLabel>
-                      <StyledSelect
-                        label="จังหวัด"
-                        name="cus_pro_id"
-                        value={inputList.cus_pro_id || ""}
-                        onChange={handleSelectLocation}
-                        readOnly={mode === "view"}
-                      >
-                        <MenuItem disabled value="">
-                          จังหวัด
-                        </MenuItem>
-                        {provincesList.map((item, index) => (
-                          <MenuItem key={index} value={item.pro_id}>
-                            {item.pro_name_th}
-                          </MenuItem>
-                        ))}
-                      </StyledSelect>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid size={12} md={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>เขต/อำเภอ</InputLabel>
-                      <StyledSelect
-                        label="เขต/อำเภอ"
-                        name="cus_dis_id"
-                        value={inputList.cus_dis_id || ""}
-                        onChange={handleSelectLocation}
-                        readOnly={mode === "view" || isFetching}
-                      >
-                        <MenuItem disabled value="">
-                          เขต/อำเภอ
-                        </MenuItem>
-                        {districtList.map((item, index) => (
-                          <MenuItem key={index} value={item.dis_id}>
-                            {item.dis_name_th}
-                          </MenuItem>
-                        ))}
-                      </StyledSelect>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid size={12} md={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>แขวง/ตำบล</InputLabel>
-                      <StyledSelect
-                        label="แขวง/ตำบล"
-                        name="cus_sub_id"
-                        value={inputList.cus_sub_id || ""}
-                        onChange={handleSelectLocation}
-                        readOnly={mode === "view" || isFetching}
-                      >
-                        <MenuItem disabled value="">
-                          แขวง/ตำบล
-                        </MenuItem>
-                        {subDistrictList.map((item, index) => (
-                          <MenuItem key={index} value={item.sub_id}>
-                            {item.sub_name_th}
-                          </MenuItem>
-                        ))}
-                      </StyledSelect>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid size={12} md={6}>
-                    <StyledTextField
-                      fullWidth
-                      label="รหัสไปรษณีย์"
-                      size="small"
-                      name="cus_zip_code"
-                      placeholder="รหัสไปรษณีย์"
-                      value={inputList.cus_zip_code || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                <AddressFields
+                  inputList={inputList}
+                  handleInputChange={handleInputChange}
+                  mode={mode}
+                  handleSelectLocation={handleSelectLocation}
+                  provincesList={provincesList}
+                  districtList={districtList}
+                  subDistrictList={subDistrictList}
+                  isFetching={isFetching}
+                />
               </TabPanel>
               {/* Tab 4: Additional Notes */}
               <TabPanel value={tabValue} index={3}>
-                <Grid container spacing={2}>
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="Note"
-                      multiline
-                      minRows={3}
-                      size="small"
-                      name="cd_note"
-                      value={inputList.cd_note || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="รายละเอียดเพิ่มเติม"
-                      multiline
-                      minRows={5}
-                      size="small"
-                      name="cd_remark"
-                      value={inputList.cd_remark || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                <AdditionalNotesFields
+                  inputList={inputList}
+                  handleInputChange={handleInputChange}
+                  mode={mode}
+                />
               </TabPanel>
             </Box>
           </DialogContent>

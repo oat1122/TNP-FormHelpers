@@ -408,10 +408,10 @@ function DialogForm(props) {
 
         const res =
           mode === "create"
-            ? await addCustomer(inputList)
-            : await updateCustomer(inputList);
+            ? await addCustomer(inputList).unwrap()
+            : await updateCustomer(inputList).unwrap();
 
-        if (res.data.status === "success") {
+        if (res.status === "success") {
           props.handleCloseDialog();
 
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
@@ -421,12 +421,12 @@ function DialogForm(props) {
           });
         } else {
           setSaveLoading(false);
-          open_dialog_error(res.data.message);
-          console.error(res.data.message);
+          open_dialog_error(res.message);
+          console.error(res.message);
         }
       } catch (error) {
         setSaveLoading(false);
-        open_dialog_error(error.message, error);
+        open_dialog_error(error.data?.message || error.message, error);
         console.error(error);
       }
     }
@@ -706,22 +706,24 @@ function DialogForm(props) {
                           </FormHelperText>
                         </FormControl>
                         <Tooltip title="จัดการประเภทธุรกิจ">
-                          <IconButton
-                            color="primary"
-                            size="small"
-                            sx={{
-                              mt: 0.5,
-                              bgcolor: (theme) =>
-                                theme.vars.palette.grey.outlinedInput,
-                              border: "1px solid",
-                              borderColor: (theme) =>
-                                theme.vars.palette.grey.outlinedInput,
-                            }}
-                            disabled={mode === "view"}
-                            onClick={handleOpenBusinessTypeManager}
-                          >
-                            <MdSettings />
-                          </IconButton>
+                          <span>
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              sx={{
+                                mt: 0.5,
+                                bgcolor: (theme) =>
+                                  theme.vars.palette.grey.outlinedInput,
+                                border: "1px solid",
+                                borderColor: (theme) =>
+                                  theme.vars.palette.grey.outlinedInput,
+                              }}
+                              disabled={mode === "view"}
+                              onClick={handleOpenBusinessTypeManager}
+                            >
+                              <MdSettings />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </Box>
                     </Grid>

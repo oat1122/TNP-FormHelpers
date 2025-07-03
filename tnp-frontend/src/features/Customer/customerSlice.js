@@ -19,7 +19,6 @@ export const fetchFilteredCustomers = createAsyncThunk(
         user: userData?.user_id,
       };
       
-      console.log(`Fetching customers for group: ${groupSelected}, with filters:`, filters);
 
       // Date Range
       if (filters.dateRange.startDate) {

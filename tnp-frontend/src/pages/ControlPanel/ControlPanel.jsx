@@ -16,6 +16,7 @@ import {
   FaTshirt,
   FaUserClock,
   FaUsers,
+  FaChartBar,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -109,6 +110,14 @@ function ControlPanel() {
               <FaAddressBook />
             </IconContext.Provider>
             <label>CUSTOMER</label>
+          </a>
+        </div>
+        <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
+          <a className="btn btn-outline-danger pt-3" href="https://new-report.izasskobibe.com/" target="_blank" rel="noopener noreferrer">
+            <IconContext.Provider value={{ className: "icon-control-panel" }}>
+              <FaChartBar />
+            </IconContext.Provider>
+            <label>REPORT</label>
           </a>
         </div>
 

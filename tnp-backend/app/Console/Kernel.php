@@ -12,7 +12,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('customer:update-customer-manage-by')->runInBackground();
+        $schedule
+            ->command('customer:update-customer-manage-by')
+            ->daily()
+            ->runInBackground();
     }
 
     /**

@@ -714,8 +714,25 @@ class CustomerController extends Controller
         $fieldsToClean = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id'];
 
         foreach ($fieldsToClean as $field) {
-            if (isset($data[$field])) {
-                $data[$field] = preg_replace('/[^0-9]/', '', $data[$field]);
+            if (isset($data[$field]) && !empty($data[$field])) {
+                // ล้างข้อมูลให้เหลือเฉพาะตัวเลข
+                $cleaned = preg_replace('/[^0-9]/', '', $data[$field]);
+
+                // ตรวจสอบความยาวของเบอร์โทร
+                if (in_array($field, ['cus_tel_1', 'cus_tel_2']) && !empty($cleaned)) {
+                    if (strlen($cleaned) < 9 || strlen($cleaned) > 10) {
+                        throw new \InvalidArgumentException("เบอร์โทรศัพท์ไม่ถูกต้อง: {$field}");
+                    }
+                }
+
+                // ตรวจสอบเลขประจำตัวผู้เสียภาษี
+                if ($field === 'cus_tax_id' && !empty($cleaned)) {
+                    if (strlen($cleaned) !== 13) {
+                        throw new \InvalidArgumentException('เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก');
+                    }
+                }
+
+                $data[$field] = $cleaned;
             }
         }
     }

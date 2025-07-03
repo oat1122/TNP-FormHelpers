@@ -1508,6 +1508,14 @@ function CustomerList() {
                 pagination: CustomPagination,
                 toolbar: CustomToolbar,
               }}
+              slotProps={{
+                pagination: {
+                  paginationModel,
+                  setPaginationModel: (model) => dispatch(setPaginationModel(model)),
+                  totalItems,
+                  scrollToTop,
+                },
+              }}
               sx={{ border: 0 }}
               rowHeight={60}
               columnHeaderHeight={50}

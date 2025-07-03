@@ -254,6 +254,8 @@ class CustomerController extends Controller
             'cus_lastname' => 'required',
             'cus_name' => 'required',
             'cus_tel_1' => 'required',
+            'cus_manage_by' => 'nullable|array',
+            'cus_manage_by.user_id' => 'nullable|integer|exists:users,user_id',
         ]);
 
         $data_input = $request->all();
@@ -292,7 +294,7 @@ class CustomerController extends Controller
             $customer->cus_id = Str::uuid();
             $customer->cus_no = $this->customer_service->genCustomerNo($customer_q->cus_no);
             $customer->cus_mcg_id = $group_q->mcg_id; // Set default grade (D)
-            $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
+            $customer->cus_manage_by = data_get($data_input, 'cus_manage_by.user_id');
             $customer->cus_created_date = now();
             $customer->cus_created_by = Auth::id();
             $customer->cus_updated_date = now();
@@ -311,7 +313,7 @@ class CustomerController extends Controller
             $customer_detail->save();
 
             $rel_cus_user->rcs_cus_id = $cus_id;
-            $rel_cus_user->rcs_user_id = $data_input['cus_manage_by']['user_id'] ?? null;
+            $rel_cus_user->rcs_user_id = data_get($data_input, 'cus_manage_by.user_id');
             $rel_cus_user->save();
 
             DB::commit();
@@ -402,6 +404,8 @@ class CustomerController extends Controller
             'cus_lastname' => 'required',
             'cus_name' => 'required',
             'cus_tel_1' => 'required',
+            'cus_manage_by' => 'nullable|array',
+            'cus_manage_by.user_id' => 'nullable|integer|exists:users,user_id',
         ]);
 
         $data_input = $request->all();
@@ -420,7 +424,7 @@ class CustomerController extends Controller
 
             $customer = Customer::findOrFail($id);
             $customer->fill($data_input);
-            $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
+            $customer->cus_manage_by = data_get($data_input, 'cus_manage_by.user_id');
             $customer->cus_updated_date = now();
             $customer->cus_updated_by = Auth::id();
             $customer->save();

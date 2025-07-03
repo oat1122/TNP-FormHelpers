@@ -57,6 +57,7 @@ import {
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
+  useLazyCheckDuplicateQuery,
 } from "../../features/Customer/customerApi";
 import { setLocationSearch } from "../../features/globalSlice";
 import {
@@ -171,6 +172,7 @@ function DialogForm(props) {
   // API hooks
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
+  const [checkDuplicate] = useLazyCheckDuplicateQuery();
   const {
     data: locations,
     error,
@@ -389,6 +391,19 @@ function DialogForm(props) {
       setSaveLoading(true);
 
       try {
+        // Check for duplicate phone or email before saving
+        const dupResp = await checkDuplicate({
+          tel: inputList.cus_tel_1,
+          email: inputList.cus_email,
+          exclude: mode === "edit" ? inputList.cus_id : undefined,
+        }).unwrap();
+
+        if (dupResp.exists) {
+          setSaveLoading(false);
+          open_dialog_error("พบเบอร์โทรหรืออีเมลซ้ำในระบบ");
+          return;
+        }
+
         open_dialog_loading();
 
         const res =

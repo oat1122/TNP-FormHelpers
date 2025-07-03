@@ -82,6 +82,20 @@ export const customerApi = createApi({
         method: "DELETE",
       }),
     }),
+    checkDuplicate: builder.query({
+      query: (payload) => {
+        const queryParams = {
+          tel: payload?.tel,
+          email: payload?.email,
+          exclude: payload?.exclude,
+        };
+        const queryString = qs.stringify(queryParams, { skipNulls: true });
+        return {
+          url: `/customers/check-duplicate?${queryString}`,
+          method: "GET",
+        };
+      },
+    }),
     updateRecall: builder.mutation({
       invalidatesTags: ["Customer"],
       query: (payload) => ({
@@ -108,4 +122,5 @@ export const {
   useDelCustomerMutation,
   useUpdateRecallMutation,
   useChangeGradeMutation,
+  useLazyCheckDuplicateQuery,
 } = customerApi;

@@ -446,6 +446,8 @@ const SortInfoDisplay = ({ sortModel }) => {
 
 function CustomerList() {
   const user = JSON.parse(localStorage.getItem("userData"));
+  // Increment this value whenever the table column structure changes
+  const COLUMN_PREF_VERSION = 1;
   const [delCustomer] = useDelCustomerMutation();
   const [updateRecall] = useUpdateRecallMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
@@ -605,8 +607,9 @@ function CustomerList() {
 
     // Store column visibility in localStorage for persistence between sessions
     try {
-      // Add timestamp to track when preferences were last updated
+      // Add timestamp and version to track preferences
       const columnPreferences = {
+        version: COLUMN_PREF_VERSION,
         model: newModel,
         timestamp: new Date().toISOString(),
         username: user?.username || "unknown",
@@ -627,8 +630,9 @@ function CustomerList() {
 
     // Store column order in localStorage for persistence between sessions
     try {
-      // Save the column order with metadata
+      // Save the column order with metadata and version
       const columnOrderPreferences = {
+        version: COLUMN_PREF_VERSION,
         order: newOrder,
         timestamp: new Date().toISOString(),
         username: user?.username || "unknown",
@@ -972,12 +976,10 @@ function CustomerList() {
       if (savedVisibilityPrefs) {
         const savedPrefs = JSON.parse(savedVisibilityPrefs);
 
-        // Check if we have the new format with metadata
-        const savedModel = savedPrefs.model || savedPrefs;
-
-        // Apply the saved visibility settings
-        setColumnVisibilityModel(savedModel);
-
+        if (savedPrefs.version === COLUMN_PREF_VERSION) {
+          const savedModel = savedPrefs.model || savedPrefs;
+          setColumnVisibilityModel(savedModel);
+        }
       }
 
       // Load column order settings
@@ -985,12 +987,10 @@ function CustomerList() {
       if (savedOrderPrefs) {
         const savedOrderData = JSON.parse(savedOrderPrefs);
 
-        // Check if we have the new format with metadata
-        const savedOrder = savedOrderData.order || savedOrderData;
-
-        // Apply the saved order settings
-        setColumnOrderModel(savedOrder);
-
+        if (savedOrderData.version === COLUMN_PREF_VERSION) {
+          const savedOrder = savedOrderData.order || savedOrderData;
+          setColumnOrderModel(savedOrder);
+        }
       }
     } catch (error) {
       console.warn("Failed to load saved column settings", error);

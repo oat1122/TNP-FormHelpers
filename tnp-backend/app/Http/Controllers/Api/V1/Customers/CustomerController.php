@@ -263,6 +263,55 @@ class CustomerController extends Controller
         // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
         $this->sanitizeContactFields($data_input);
 
+        // Check for duplicate phone or email (excluding current record)
+        $duplicate = Customer::query()
+            ->where('cus_id', '!=', $id)
+            ->where(function ($q) use ($data_input) {
+                $phone1 = $data_input['cus_tel_1'] ?? null;
+                $phone2 = $data_input['cus_tel_2'] ?? null;
+                if ($phone1) {
+                    $q->where('cus_tel_1', $phone1)
+                      ->orWhere('cus_tel_2', $phone1);
+                }
+                if ($phone2) {
+                    $q->orWhere('cus_tel_1', $phone2)
+                      ->orWhere('cus_tel_2', $phone2);
+                }
+            })
+            ->orWhere('cus_email', $data_input['cus_email'] ?? null)
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Duplicate phone number or email'
+            ], 422);
+        }
+
+        // Check for duplicate phone or email
+        $duplicate = Customer::query()
+            ->where(function ($q) use ($data_input) {
+                $phone1 = $data_input['cus_tel_1'] ?? null;
+                $phone2 = $data_input['cus_tel_2'] ?? null;
+                if ($phone1) {
+                    $q->where('cus_tel_1', $phone1)
+                      ->orWhere('cus_tel_2', $phone1);
+                }
+                if ($phone2) {
+                    $q->orWhere('cus_tel_1', $phone2)
+                      ->orWhere('cus_tel_2', $phone2);
+                }
+            })
+            ->orWhere('cus_email', $data_input['cus_email'] ?? null)
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Duplicate phone number or email'
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -718,5 +767,34 @@ class CustomerController extends Controller
                 $data[$field] = preg_replace('/[^0-9]/', '', $data[$field]);
             }
         }
+    }
+
+    /**
+     * Check duplicate phone or email
+     */
+    public function checkDuplicate(Request $request)
+    {
+        $tel = $request->query('tel');
+        $email = $request->query('email');
+        $exclude = $request->query('exclude');
+
+        $query = Customer::query();
+
+        if ($tel) {
+            $query->where(function ($q) use ($tel) {
+                $q->where('cus_tel_1', $tel)
+                  ->orWhere('cus_tel_2', $tel);
+            });
+        }
+
+        if ($email) {
+            $query->orWhere('cus_email', $email);
+        }
+
+        if ($exclude) {
+            $query->where('cus_id', '!=', $exclude);
+        }
+
+        return response()->json(['exists' => $query->exists()]);
     }
 }

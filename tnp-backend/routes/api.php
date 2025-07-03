@@ -69,6 +69,8 @@ Route::prefix('v1')->group(function() {
         'pricing' => PricingController::class,
     ]);
 
+    Route::get('/customers/check-duplicate', [CustomerController::class, 'checkDuplicate']);
+
 
     //---------- User Management ----------
     Route::controller(UserController::class)->group(function () {

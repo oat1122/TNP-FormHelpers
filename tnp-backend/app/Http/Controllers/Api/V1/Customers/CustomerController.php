@@ -777,18 +777,22 @@ class CustomerController extends Controller
         $email = $request->query('email');
         $exclude = $request->query('exclude');
 
+        if (!$tel && !$email) {
+            return response()->json(['exists' => false]);
+        }
+
         $query = Customer::query();
 
-        if ($tel) {
-            $query->where(function ($q) use ($tel) {
+        $query->where(function ($q) use ($tel, $email) {
+            if ($tel) {
                 $q->where('cus_tel_1', $tel)
                   ->orWhere('cus_tel_2', $tel);
-            });
-        }
+            }
 
-        if ($email) {
-            $query->orWhere('cus_email', $email);
-        }
+            if ($email) {
+                $q->orWhere('cus_email', $email);
+            }
+        });
 
         if ($exclude) {
             $query->where('cus_id', '!=', $exclude);

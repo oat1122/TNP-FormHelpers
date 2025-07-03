@@ -5,7 +5,7 @@ import { StyledTextField } from "./StyledComponents";
 function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
   return (
     <Grid container spacing={2}>
-      <Grid size={12} md={4}>
+      <Grid size={12} md={6}>
         <StyledTextField
           fullWidth
           required
@@ -20,7 +20,7 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
           InputProps={{ readOnly: mode === "view" }}
         />
       </Grid>
-      <Grid size={12} md={4}>
+      <Grid size={12} md={6}>
         <StyledTextField
           fullWidth
           required
@@ -35,7 +35,7 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
           InputProps={{ readOnly: mode === "view" }}
         />
       </Grid>
-      <Grid size={12} md={4}>
+      <Grid size={12} md={6}>
         <StyledTextField
           fullWidth
           required
@@ -50,7 +50,7 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
           InputProps={{ readOnly: mode === "view" }}
         />
       </Grid>
-      <Grid size={12}>
+      <Grid size={12} md={6}>
         <StyledTextField
           fullWidth
           label="ตำแหน่ง"

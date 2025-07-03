@@ -20,8 +20,9 @@ import {
   Paper,
   Typography,
   TextField,
-  Tabs,
-  Tab,
+  Stepper,
+  Step,
+  StepLabel,
   Divider,
   InputAdornment,
   FormControl,
@@ -89,29 +90,7 @@ const FormSection = styled(Box)(({ theme }) => ({
   boxShadow: theme.shadows[1],
 }));
 
-// Tab Panel component for tabbed interface
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`customer-tabpanel-${index}`}
-      aria-labelledby={`customer-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
-    </div>
-  );
-}
-
-function a11yProps(index) {
-  return {
-    id: `customer-tab-${index}`,
-    "aria-controls": `customer-tabpanel-${index}`,
-  };
-}
+// Stepper based form sections
 
 function DialogForm(props) {
   const dispatch = useDispatch();
@@ -133,7 +112,8 @@ function DialogForm(props) {
     useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [tabValue, setTabValue] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const STEPS = 4;
 
   // Refs
   const formRef = useRef(null);
@@ -178,9 +158,6 @@ function DialogForm(props) {
   );
 
   // Handlers
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
 
   const handleOpenBusinessTypeManager = () => {
     setIsBusinessTypeManagerOpen(true);
@@ -199,6 +176,16 @@ function DialogForm(props) {
     );
     setErrors((prev) => ({ ...prev, cus_bt_id: "" }));
     setIsBusinessTypeManagerOpen(false);
+  };
+
+  const handleNextStep = () => {
+    if (validateStep(activeStep) && activeStep < STEPS - 1) {
+      setActiveStep((prev) => prev + 1);
+    }
+  };
+
+  const handleBackStep = () => {
+    setActiveStep((prev) => (prev > 0 ? prev - 1 : prev));
   };
 
   const handleInputChange = (e) => {
@@ -289,6 +276,57 @@ function DialogForm(props) {
     [inputList, provincesList, districtList, subDistrictList, setLocationSearch]
   );
 
+  const validateStep = (stepIndex) => {
+    const form = formRef.current;
+
+    const stepFields = [
+      [
+        "cus_company",
+        "cus_firstname",
+        "cus_lastname",
+        "cus_name",
+        "cus_depart",
+        "cus_bt_id",
+        "cus_channel",
+        "cus_manage_by",
+      ],
+      ["cus_tel_1", "cus_tel_2", "cus_email", "cus_tax_id"],
+      ["cus_address", "cus_pro_id", "cus_dis_id", "cus_sub_id", "cus_zip_code"],
+      [],
+    ];
+
+    const fieldsToCheck = stepFields[stepIndex] || [];
+
+    const newErrors = {};
+
+    if (stepIndex === 0 && !inputList.cus_bt_id) {
+      newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจ";
+    }
+
+    fieldsToCheck.forEach((field) => {
+      const el = form[field];
+      if (el && !el.checkValidity()) {
+        newErrors[field] = el.validationMessage;
+      }
+    });
+
+    if (Object.keys(newErrors).length === 0) {
+      return true;
+    }
+
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+
+    const firstErrorField = Object.keys(newErrors)[0];
+    if (firstErrorField && form[firstErrorField]) {
+      setTimeout(() => {
+        form[firstErrorField].scrollIntoView({ behavior: "smooth", block: "center" });
+        form[firstErrorField].focus();
+      }, 100);
+    }
+
+    return false;
+  };
+
   const validateForm = () => {
     const form = formRef.current;
 
@@ -310,11 +348,11 @@ function DialogForm(props) {
       const firstErrorField = Object.keys(newErrors)[0];
 
       if (firstErrorField && formRef.current[firstErrorField]) {
-        // Find which tab contains the error field
-        const errorFieldTab = getTabForField(firstErrorField);
-        setTabValue(errorFieldTab);
+        // Find which step contains the error field
+        const errorFieldStep = getStepForField(firstErrorField);
+        setActiveStep(errorFieldStep);
 
-        // Wait for tab to render then scroll to field
+        // Wait for step to render then scroll to field
         setTimeout(() => {
           formRef.current[firstErrorField].scrollIntoView({
             behavior: "smooth",
@@ -328,8 +366,8 @@ function DialogForm(props) {
     }
   };
 
-  // Helper function to determine which tab contains a specific field
-  const getTabForField = (fieldName) => {
+  // Helper function to determine which step contains a specific field
+  const getStepForField = (fieldName) => {
     const basicInfoFields = [
       "cus_company",
       "cus_firstname",
@@ -352,7 +390,7 @@ function DialogForm(props) {
     if (basicInfoFields.includes(fieldName)) return 0;
     if (contactFields.includes(fieldName)) return 1;
     if (addressFields.includes(fieldName)) return 2;
-    return 3; // Notes tab for any other fields
+    return 3; // Notes step for any other fields
   };
 
   const handleSubmit = async (e) => {
@@ -732,61 +770,41 @@ function DialogForm(props) {
                   </Grid>
                 </CardContent>
               </Card>
-              {/* Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs
-                  value={tabValue}
-                  onChange={handleTabChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  aria-label="customer info tabs"
-                >
-                  <Tab
-                    label="ข้อมูลพื้นฐาน"
-                    icon={<MdPerson />}
-                    iconPosition="start"
-                    {...a11yProps(0)}
-                  />
-                  <Tab
-                    label="ข้อมูลติดต่อ"
-                    icon={<MdPhone />}
-                    iconPosition="start"
-                    {...a11yProps(1)}
-                  />
-                  <Tab
-                    label="ที่อยู่"
-                    icon={<MdLocationOn />}
-                    iconPosition="start"
-                    {...a11yProps(2)}
-                  />
-                  <Tab
-                    label="บันทึกเพิ่มเติม"
-                    icon={<MdNotes />}
-                    iconPosition="start"
-                    {...a11yProps(3)}
-                  />
-                </Tabs>
-              </Box>
-              {/* Tab 1: Basic Information */}
-              <TabPanel value={tabValue} index={0}>
+              {/* Stepper */}
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+                <Step>
+                  <StepLabel>ข้อมูลพื้นฐาน</StepLabel>
+                </Step>
+                <Step>
+                  <StepLabel>ข้อมูลติดต่อ</StepLabel>
+                </Step>
+                <Step>
+                  <StepLabel>ที่อยู่</StepLabel>
+                </Step>
+                <Step>
+                  <StepLabel>บันทึกเพิ่มเติม</StepLabel>
+                </Step>
+              </Stepper>
+
+              {activeStep === 0 && (
                 <BasicInfoFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
                   errors={errors}
                   mode={mode}
                 />
-              </TabPanel>
-              {/* Tab 2: Contact Information */}
-              <TabPanel value={tabValue} index={1}>
+              )}
+
+              {activeStep === 1 && (
                 <ContactInfoFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
                   errors={errors}
                   mode={mode}
                 />
-              </TabPanel>
-              {/* Tab 3: Address Information */}
-              <TabPanel value={tabValue} index={2}>
+              )}
+
+              {activeStep === 2 && (
                 <AddressFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
@@ -797,20 +815,30 @@ function DialogForm(props) {
                   subDistrictList={subDistrictList}
                   isFetching={isFetching}
                 />
-              </TabPanel>
-              {/* Tab 4: Additional Notes */}
-              <TabPanel value={tabValue} index={3}>
+              )}
+
+              {activeStep === 3 && (
                 <AdditionalNotesFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
                   mode={mode}
                 />
-              </TabPanel>
+              )}
             </Box>
           </DialogContent>
 
           <DialogActions sx={{ p: 2 }}>
-            {mode !== "view" && (
+            {activeStep > 0 && (
+              <Button onClick={handleBackStep} disabled={saveLoading} sx={{ mr: 1 }}>
+                ย้อนกลับ
+              </Button>
+            )}
+            {mode !== "view" && activeStep < STEPS - 1 && (
+              <Button variant="contained" color="error" onClick={handleNextStep} disabled={saveLoading} sx={{ mr: 1 }}>
+                ถัดไป
+              </Button>
+            )}
+            {mode !== "view" && activeStep === STEPS - 1 && (
               <Button
                 type="submit"
                 variant="contained"

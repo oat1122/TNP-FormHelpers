@@ -780,8 +780,6 @@ function CustomerList() {
           );
         }
 
-        // Log for debugging
-        console.log(`Loading customer data for ${mode}: `, formattedItem);
       } else {
         console.warn(`Customer with ID ${cus_id} not found in itemList`);
       }
@@ -980,16 +978,6 @@ function CustomerList() {
         // Apply the saved visibility settings
         setColumnVisibilityModel(savedModel);
 
-        console.log(
-          `Loaded column visibility preferences${
-            savedPrefs.username ? " for " + savedPrefs.username : ""
-          }, ` +
-            `last saved: ${
-              savedPrefs.timestamp
-                ? new Date(savedPrefs.timestamp).toLocaleString()
-                : "unknown"
-            }`
-        );
       }
 
       // Load column order settings
@@ -1003,16 +991,6 @@ function CustomerList() {
         // Apply the saved order settings
         setColumnOrderModel(savedOrder);
 
-        console.log(
-          `Loaded column order preferences${
-            savedOrderData.username ? " for " + savedOrderData.username : ""
-          }, ` +
-            `last saved: ${
-              savedOrderData.timestamp
-                ? new Date(savedOrderData.timestamp).toLocaleString()
-                : "unknown"
-            }`
-        );
       }
     } catch (error) {
       console.warn("Failed to load saved column settings", error);

@@ -260,6 +260,9 @@ class CustomerController extends Controller
 
         $data_input = $request->all();
 
+        // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
+        $this->sanitizeContactFields($data_input);
+
         try {
             DB::beginTransaction();
 
@@ -411,12 +414,7 @@ class CustomerController extends Controller
         $data_input = $request->all();
 
         // Clean เบอร์โทรศัพท์ & Tax ID อัตโนมัติ
-        $fieldsToClean = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id'];
-        array_walk($fieldsToClean, function ($field) use (&$data_input) {
-            if (isset($data_input[$field])) {
-                $data_input[$field] = preg_replace('/[^0-9]/', '', $data_input[$field]);
-            }
-        });
+        $this->sanitizeContactFields($data_input);
 
 
         try {
@@ -707,6 +705,18 @@ class CustomerController extends Controller
                 'status' => 'error',
                 'message' => 'Error fetching group counts: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    // ฟังก์ชันสำหรับล้างข้อมูลเบอร์โทรศัพท์และเลขประจำตัวผู้เสียภาษี
+    private function sanitizeContactFields(array &$data)
+    {
+        $fieldsToClean = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id'];
+
+        foreach ($fieldsToClean as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = preg_replace('/[^0-9]/', '', $data[$field]);
+            }
         }
     }
 }

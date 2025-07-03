@@ -849,83 +849,91 @@ function CustomerList() {
     }
   };
 
-  const handleChangeGroup = async (is_up, params) => {
-    // Determine the direction of grade change
-    const direction = is_up ? "up" : "down";
-
-    // Get current grade information for display
-    const currentGroup = groupList.find(
-      (group) => group.mcg_id === params.cus_mcg_id
-    );
-    const currentGrade = currentGroup ? currentGroup.mcg_name : "?";
-
-    // Get target grade for display
-    let targetGrade = "?";
-    if (currentGroup) {
-      const targetSort = currentGroup.mcg_sort + (is_up ? -1 : 1);
-      const targetGroup = groupList.find(
-        (group) => group.mcg_sort === targetSort
-      );
-      if (targetGroup) {
-        targetGrade = targetGroup.mcg_name;
-      }
-    }
-
-    const gradeChangeText = is_up
-      ? `เปลี่ยนเกรดขึ้นจาก ${currentGrade} เป็น ${targetGrade}`
-      : `เปลี่ยนเกรดลงจาก ${currentGrade} เป็น ${targetGrade}`;
-
-    const confirmed = await swal_delete_by_id(
-      `กรุณายืนยันการเปลี่ยนเกรดของ ${params.cus_name}: ${gradeChangeText}`
-    );
-
-    if (confirmed) {
+  const handleChangeGroup = async (customerId, action) => {
+    try {
       open_dialog_loading();
 
-      try {
-        // Use the RTK Query mutation instead of axios
-        const res = await changeGrade({
-          customerId: params.cus_id,
-          direction: direction,
-        }).unwrap();
+      // หา customer และกลุ่มปัจจุบัน
+      const customer = itemList.find((c) => c.cus_id === customerId);
+      const currentGroupId = customer?.cus_mcg_id;
 
-        if (res.status === "success") {
-          open_dialog_ok_timer(
-            `เปลี่ยนเกรดสำเร็จ จาก ${res.data.old_grade} เป็น ${res.data.new_grade}`
-          );
-          // Reload data after grade change by refetching the current query
-          refetch();
-          // Scroll to top after group change is successful
-          scrollToTop();
-        }
-      } catch (error) {
-        open_dialog_error(error.data?.message || error.message, error);
-        console.error(error);
+      // mapping mcg_id -> mcg_sort
+      const groupOrderMap = groupList.reduce((map, g) => {
+        map[g.mcg_id] = g.mcg_sort;
+        return map;
+      }, {});
+
+      let targetGroupId = null;
+
+      if (action === "upgrade") {
+        // เลื่อนขึ้นหากลุ่มที่ order น้อยกว่า
+        targetGroupId = groupList
+          .filter((g) => groupOrderMap[g.mcg_id] < groupOrderMap[currentGroupId])
+          .sort(
+            (a, b) => groupOrderMap[b.mcg_id] - groupOrderMap[a.mcg_id]
+          )[0]?.mcg_id;
+      } else if (action === "downgrade") {
+        // เลื่อนลงหากลุ่มที่ order มากกว่า
+        targetGroupId = groupList
+          .filter((g) => groupOrderMap[g.mcg_id] > groupOrderMap[currentGroupId])
+          .sort(
+            (a, b) => groupOrderMap[a.mcg_id] - groupOrderMap[b.mcg_id]
+          )[0]?.mcg_id;
       }
+
+      if (!targetGroupId) {
+        open_dialog_error(
+          `ไม่สามารถ${
+            action === "upgrade" ? "อัพเกรด" : "ดาวน์เกรด"
+          }ลูกค้าได้`
+        );
+        return;
+      }
+
+      const res = await updateCustomer({
+        cus_id: customerId,
+        cus_mcg_id: targetGroupId,
+      }).unwrap();
+
+      if (res.status === "success") {
+        open_dialog_ok_timer(
+          action === "upgrade" ? "อัพเกรดลูกค้าสำเร็จ" : "ดาวน์เกรดลูกค้าสำเร็จ"
+        );
+        refetch();
+        scrollToTop();
+      }
+    } catch (error) {
+      open_dialog_error(error.data?.message || error.message, error);
+      console.error("Error changing customer group:", error);
     }
   };
 
   const handleDisableChangeGroupBtn = useMemo(
-    () => (is_up, params) => {
-      const matchGroup = groupList.find(
-        (group) => group.mcg_id === params.cus_mcg_id
+    () => (customerId, action) => {
+      if (!groupList || groupList.length === 0) return true;
+
+      const customer = itemList.find((c) => c.cus_id === customerId);
+      if (!customer) return true;
+
+      const currentGroup = groupList.find(
+        (g) => g.mcg_id === customer.cus_mcg_id
       );
-      if (!matchGroup) return true; // Disable if matchGroup is not found
+      if (!currentGroup) return true;
 
-      // For upgrade button (D → C → B → A): disable when at grade A (sort = 1)
-      // For downgrade button (A → B → C → D): disable when at grade D (sort = 4)
-      const minSort = 1; // Grade A has sort = 1
-      const maxSort = 4; // Grade D has sort = 4
+      const sortedGroups = [...groupList].sort(
+        (a, b) => a.mcg_sort - b.mcg_sort
+      );
+      const currentIndex = sortedGroups.findIndex(
+        (g) => g.mcg_id === currentGroup.mcg_id
+      );
 
-      if (is_up) {
-        // Disable upgrading when already at highest grade (A)
-        return matchGroup.mcg_sort <= minSort;
-      } else {
-        // Disable downgrading when already at lowest grade (D)
-        return matchGroup.mcg_sort >= maxSort;
-      }
+      if (action === "upgrade" && currentIndex <= 0) return true;
+      if (action === "downgrade" && currentIndex >= sortedGroups.length - 1)
+        return true;
+
+      return false;
     },
-    [groupList]
+    [groupList, itemList]
   );
   // Render when not found data.
   const NoDataComponent = () => (
@@ -1514,7 +1522,7 @@ function CustomerList() {
               },
             }}
           />,
-          handleDisableChangeGroupBtn(true, params.row) ? (
+          handleDisableChangeGroupBtn(params.row.cus_id, "upgrade") ? (
             // If button is disabled, don't use tooltip
             <GridActionsCellItem
               icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
@@ -1530,7 +1538,7 @@ function CustomerList() {
                 />
               }
               label="Change Grade Up"
-              onClick={() => handleChangeGroup(true, params.row)}
+              onClick={() => handleChangeGroup(params.row.cus_id, "upgrade")}
               disabled={false}
               showInMenu={false}
               title="Change grade up"
@@ -1546,7 +1554,7 @@ function CustomerList() {
               }}
             />
           ),
-          handleDisableChangeGroupBtn(false, params.row) ||
+          handleDisableChangeGroupBtn(params.row.cus_id, "downgrade") ||
           user.role !== "admin" ? (
             // If button is disabled, don't use tooltip
             <GridActionsCellItem
@@ -1564,7 +1572,7 @@ function CustomerList() {
                 />
               }
               label="Change Grade Down"
-              onClick={() => handleChangeGroup(false, params.row)}
+              onClick={() => handleChangeGroup(params.row.cus_id, "downgrade")}
               disabled={false}
               showInMenu={false}
               title="Change grade down"

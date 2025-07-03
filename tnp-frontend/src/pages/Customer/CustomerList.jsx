@@ -94,6 +94,11 @@ import {
   open_dialog_error,
 } from "../../utils/import_lib";
 import ErrorBoundary from "../../components/ErrorBoundary";
+import PageSizeSelector from "./components/CustomerList/PageSizeSelector";
+import SortInfoDisplay from "./components/CustomerList/SortInfoDisplay";
+import CustomPagination from "./components/CustomerList/CustomPagination";
+import CustomToolbar from "./components/CustomerList/CustomToolbar";
+import NoDataOverlay from "./components/CustomerList/NoDataOverlay";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeader": {
@@ -299,149 +304,12 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
-const StyledPagination = styled(Pagination)(({ theme }) => ({
-  "& .MuiPaginationItem-previousNext": {
-    backgroundColor: theme.vars.palette.error.dark,
-    color: "#fff",
-    height: 30,
-    width: 38,
-
-    "&:hover": {
-      backgroundColor: theme.vars.palette.error.main,
-    },
-  },
-
-  "& .MuiPaginationItem-page": {
-    backgroundColor: theme.vars.palette.grey.outlinedInput,
-    borderColor: theme.vars.palette.grey.outlinedInput,
-    height: 30,
-    width: 38,
-
-    "&:hover": {
-      backgroundColor: theme.vars.palette.grey.light,
-      borderColor: theme.vars.palette.grey.light,
-    },
-  },
-
-  "& .MuiPaginationItem-ellipsis": {
-    backgroundColor: theme.vars.palette.grey.outlinedInput,
-    borderColor: theme.vars.palette.grey.outlinedInput,
-    borderRadius: theme.vars.shape.borderRadius,
-    height: 30,
-    width: 38,
-    alignContent: "center",
-  },
-  "& .MuiPaginationItem-page.Mui-selected": {
-    backgroundColor: theme.vars.palette.error.light,
-    borderColor: theme.vars.palette.error.light,
-    color: theme.palette.common.white,
-    fontWeight: "bold",
-    transform: "scale(1.05)",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-    transition: "all 0.2s ease",
-
-    "&:hover": {
-      backgroundColor: theme.vars.palette.error.main,
-    },
-  },
-}));
-
 // Custom component for page size selection
-const PageSizeSelector = ({ value, onChange }) => {
-  const pageSizeOptions = [30, 50, 80, 100];
-
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Typography
-        variant="body2"
-        sx={{ color: (theme) => theme.vars.palette.grey.dark }}
-      >
-        Rows per page:
-      </Typography>
-      <FormControl size="small" sx={{ minWidth: 85 }}>
-        <Select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          displayEmpty
-          variant="outlined"
-          sx={{
-            borderRadius: 1,
-            backgroundColor: (theme) => theme.vars.palette.grey.outlinedInput,
-            ".MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
-            "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: "transparent",
-            },
-            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: "transparent",
-            },
-            ".MuiSelect-select": { py: 0.5, px: 1 },
-          }}
-        >
-          {pageSizeOptions.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option} rows
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
-  );
-};
 
 const channelMap = {
   1: "sales",
   2: "online",
   3: "office",
-};
-
-// Custom component for information about column sorting
-const SortInfoDisplay = ({ sortModel }) => {
-  if (!sortModel || sortModel.length === 0) {
-    return null;
-  }
-  const fieldMap = {
-    cus_no: "รหัสลูกค้า",
-    cus_channel: "ช่องทาง",
-    cus_bt_id: "ประเภทธุรกิจ",
-    business_type: "ประเภทธุรกิจ", // Keep for backward compatibility
-    cus_manage_by: "ชื่อเซลล์",
-    cus_name: "ชื่อลูกค้า",
-    cus_company: "ชื่อบริษัท",
-    cus_tel_1: "เบอร์โทร",
-    cd_last_datetime: "วันติดต่อกลับ",
-    cd_note: "หมายเหตุ",
-    cus_email: "อีเมล",
-    cus_address: "ที่อยู่",
-  };
-
-  const { field, sort } = sortModel[0];
-  const displayField = fieldMap[field] || field;
-  const displayDirection = sort === "asc" ? "ascending" : "descending";
-
-  // Use icons to make it more visually clear
-  const SortIcon =
-    sort === "asc"
-      ? () => <span style={{ fontSize: "0.8em", marginRight: "4px" }}>▲</span>
-      : () => <span style={{ fontSize: "0.8em", marginRight: "4px" }}>▼</span>;
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        padding: "4px 8px",
-        borderRadius: "4px",
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
-        color: "white",
-      }}
-    >
-      <SortIcon />
-      <Typography variant="caption" sx={{ fontWeight: "medium" }}>
-        เรียงตาม: {displayField} (
-        {displayDirection === "ascending" ? "น้อยไปมาก" : "มากไปน้อย"})
-      </Typography>
-    </Box>
-  );
 };
 
 function CustomerList() {
@@ -642,94 +510,7 @@ function CustomerList() {
       console.warn("Failed to save column order to localStorage", error);
     }
   }; // Pagination customize
-  function CustomPagination() {
-    const apiRef = useGridApiContext();
-    const page = useGridSelector(apiRef, gridPageSelector);
-    const pageCount = useGridSelector(apiRef, gridPageCountSelector);
-    const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-
-    // Reset page to first page after change group.
-    useEffect(() => {
-      if (paginationModel.page !== page) {
-        apiRef.current.setPage(0);
-        scrollToTop();
-      }
-    }, [paginationModel, scrollToTop]);
-
-    // Handle page size change
-    const handlePageSizeChange = (newPageSize) => {
-      const newModel = { ...paginationModel, pageSize: newPageSize, page: 0 };
-      dispatch(setPaginationModel(newModel));
-      apiRef.current.setPageSize(newPageSize);
-      scrollToTop();
-    };
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 2,
-          width: "100%",
-          p: 1,
-        }}
-      >
-        <PageSizeSelector
-          value={paginationModel.pageSize}
-          onChange={handlePageSizeChange}
-        />
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            flexWrap: "wrap",
-            justifyContent: "center",
-            flex: 1,
-          }}
-        >
-          <StyledPagination
-            color="error"
-            variant="outlined"
-            shape="rounded"
-            page={page + 1}
-            count={pageCount}
-            siblingCount={isXs ? 0 : 1}
-            boundaryCount={1}
-            // @ts-expect-error
-            renderItem={(props2) => (
-              <PaginationItem
-                {...props2}
-                disableRipple
-                slots={{ previous: FaChevronLeft, next: FaChevronRight }}
-              />
-            )}
-            onChange={(event, value) => {
-              apiRef.current.setPage(value - 1);
-              scrollToTop();
-            }}
-          />
-        </Box>
-
-        <Typography
-          variant="body2"
-          sx={{
-            color: (theme) => theme.vars.palette.grey.dark,
-            minWidth: 120,
-            textAlign: "right",
-          }}
-        >
-          {`${page * paginationModel.pageSize + 1}-${Math.min(
-            (page + 1) * paginationModel.pageSize,
-            totalItems
-          )} of ${totalItems}`}
-        </Typography>
-      </Box>
-    );
-  }
+  // CustomPagination component moved to separate file
   const handleOpenDialog = (mode, cus_id = null) => {
     // First, reset the input list to avoid any stale data
     dispatch(resetInputList());
@@ -927,42 +708,7 @@ function CustomerList() {
     },
     [groupList]
   );
-  // Render when not found data.
-  const NoDataComponent = () => (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        color: "gray",
-        padding: 5,
-        gap: 2,
-        backgroundColor: (theme) => `${theme.palette.grey.light}33`,
-        borderRadius: 2,
-      }}
-    >
-      <Box
-        sx={{
-          fontSize: 60,
-          opacity: 0.5,
-          animation: "subtle-pulse 2s infinite ease-in-out",
-        }}
-      >
-        📋
-      </Box>
-      <Typography sx={{ fontSize: 18, fontWeight: "medium" }}>
-        ไม่พบข้อมูลลูกค้า
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}
-      >
-        ลองใช้ตัวกรองอื่น หรือลองค้นหาด้วยคำสำคัญอื่น
-      </Typography>
-    </Box>
-  ); // Load saved column visibility and order settings from localStorage
+  // Render when not found data handled by NoDataOverlay component
   useEffect(() => {
     try {
       // Load column visibility settings
@@ -1656,48 +1402,7 @@ function CustomerList() {
     ]
   );
 
-  // Custom toolbar component
-  function CustomToolbar() {
-    return (
-      <GridToolbarContainer>
-        <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: "common.white",
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              mr: 2,
-            }}
-          >
-            รายการลูกค้า
-          </Typography>{" "}
-          <SortInfoDisplay sortModel={serverSortModel} />
-        </Box>{" "}
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          {isFetching && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                marginRight: 1,
-                color: "white",
-                fontSize: "0.75rem",
-                backgroundColor: "rgba(255,255,255,0.2)",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                gap: 1,
-              }}
-            >
-              <CircularProgress size={16} thickness={5} color="inherit" />
-              <Typography variant="caption">กำลังโหลด...</Typography>
-            </Box>          )}
-          {/* ColumnVisibilitySelector component removed as requested */}
-        </Box>
-      </GridToolbarContainer>
-    );
-  }
+  // CustomToolbar component moved to separate file
 
   return (
     <ScrollContext.Provider value={{ scrollToTop }}>
@@ -1799,9 +1504,17 @@ function CustomerList() {
               rowCount={totalItems}
               loading={isFetching || isLoading}
               slots={{
-                noRowsOverlay: NoDataComponent,
+                noRowsOverlay: NoDataOverlay,
                 pagination: CustomPagination,
                 toolbar: CustomToolbar,
+              }}
+              slotProps={{
+                pagination: {
+                  paginationModel,
+                  setPaginationModel: (model) => dispatch(setPaginationModel(model)),
+                  totalItems,
+                  scrollToTop,
+                },
               }}
               sx={{ border: 0 }}
               rowHeight={60}

@@ -8,10 +8,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  OutlinedInput,
   Grid2 as Grid,
-  styled,
-  Select,
   MenuItem,
   InputLabel,
   IconButton,
@@ -19,7 +16,6 @@ import {
   Tooltip,
   Paper,
   Typography,
-  TextField,
   Tabs,
   Tab,
   Divider,
@@ -44,6 +40,7 @@ import {
   MdCancel,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
+import BasicInfoTab from "./BasicInfoTab";
 import moment from "moment";
 import {
   formatCustomRelativeTime,
@@ -73,48 +70,12 @@ import {
 import Swal from "sweetalert2";
 
 // Custom styled components
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: theme.vars.palette.grey.outlinedInput,
-    "&.Mui-disabled": {
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey.outlinedInput,
-      },
-      "& .MuiOutlinedInput-input": {
-        WebkitTextFillColor: theme.vars.palette.text.primary,
-      },
-    },
-  },
-  "& .MuiInputLabel-root": {
-    color: theme.vars.palette.grey.dark,
-    fontFamily: "Kanit",
-    fontSize: 14,
-  },
-}));
-
-const StyledSelect = styled(Select)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.grey.outlinedInput,
-  "& fieldset": {
-    borderColor: theme.vars.palette.grey.outlinedInput,
-  },
-}));
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontWeight: 500,
-  marginBottom: theme.spacing(1),
-  color: theme.vars.palette.primary.main,
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-}));
-
-const FormSection = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(2),
-  padding: theme.spacing(2),
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[1],
-}));
+import {
+  StyledTextField,
+  StyledSelect,
+  SectionTitle,
+  FormSection,
+} from "./styles";
 
 // Tab Panel component for tabbed interface
 function TabPanel(props) {
@@ -796,76 +757,12 @@ function DialogForm(props) {
               </Box>
               {/* Tab 1: Basic Information */}
               <TabPanel value={tabValue} index={0}>
-                <Grid container spacing={2}>
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="ชื่อจริง"
-                      size="small"
-                      name="cus_firstname"
-                      placeholder="ชื่อจริง"
-                      value={inputList.cus_firstname || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_firstname}
-                      helperText={errors.cus_firstname}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="นามสกุล"
-                      size="small"
-                      name="cus_lastname"
-                      placeholder="นามสกุล"
-                      value={inputList.cus_lastname || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_lastname}
-                      helperText={errors.cus_lastname}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12} md={4}>
-                    <StyledTextField
-                      fullWidth
-                      required
-                      label="ชื่อเล่น"
-                      size="small"
-                      name="cus_name"
-                      placeholder="ชื่อเล่น"
-                      value={inputList.cus_name || ""}
-                      onChange={handleInputChange}
-                      error={!!errors.cus_name}
-                      helperText={errors.cus_name}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <StyledTextField
-                      fullWidth
-                      label="ตำแหน่ง"
-                      size="small"
-                      name="cus_depart"
-                      placeholder="ตำแหน่ง"
-                      value={inputList.cus_depart || ""}
-                      onChange={handleInputChange}
-                      InputProps={{
-                        readOnly: mode === "view",
-                      }}
-                    />
-                  </Grid>
-                </Grid>
+                <BasicInfoTab
+                  inputList={inputList}
+                  handleInputChange={handleInputChange}
+                  errors={errors}
+                  mode={mode}
+                />
               </TabPanel>
               {/* Tab 2: Contact Information */}
               <TabPanel value={tabValue} index={1}>

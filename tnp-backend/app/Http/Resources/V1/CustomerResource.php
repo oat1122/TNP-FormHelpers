@@ -23,9 +23,7 @@ class CustomerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        static $cus_no_r, $cus_channel_r, $cus_tel_1_r, $cus_tel_2_r;
-
-        $cus_no_r = str_pad($this->cus_no, 6, '0', STR_PAD_LEFT); // เติมเลข 0 ด้านหน้า cus_no ให้ครบ 6 หลัก
+        $cus_no_r  = str_pad($this->cus_no, 6, '0', STR_PAD_LEFT); // เติมเลข 0 ด้านหน้า cus_no ให้ครบ 6 หลัก
         $cus_tel_1_r = $this->globalService->formatThaiPhoneNumber($this->cus_tel_1);
         $cus_tel_2_r = $this->globalService->formatThaiPhoneNumber($this->cus_tel_2);
 

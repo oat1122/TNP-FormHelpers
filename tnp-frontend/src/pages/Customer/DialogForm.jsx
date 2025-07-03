@@ -391,16 +391,36 @@ function DialogForm(props) {
       setSaveLoading(true);
 
       try {
-        // Check for duplicate phone or email before saving
-        const dupResp = await checkDuplicate({
-          tel: inputList.cus_tel_1,
-          email: inputList.cus_email,
-          exclude: mode === "edit" ? inputList.cus_id : undefined,
-        }).unwrap();
+        // Check for duplicate phone numbers and email before saving
+        const duplicates = [];
 
-        if (dupResp.exists) {
+        if (inputList.cus_tel_1) {
+          const resp1 = await checkDuplicate({
+            tel: inputList.cus_tel_1,
+            exclude: mode === "edit" ? inputList.cus_id : undefined,
+          }).unwrap();
+          if (resp1.exists) duplicates.push("เบอร์โทร 1");
+        }
+
+        if (inputList.cus_tel_2) {
+          const resp2 = await checkDuplicate({
+            tel: inputList.cus_tel_2,
+            exclude: mode === "edit" ? inputList.cus_id : undefined,
+          }).unwrap();
+          if (resp2.exists) duplicates.push("เบอร์โทร 2");
+        }
+
+        if (inputList.cus_email) {
+          const resp3 = await checkDuplicate({
+            email: inputList.cus_email,
+            exclude: mode === "edit" ? inputList.cus_id : undefined,
+          }).unwrap();
+          if (resp3.exists) duplicates.push("อีเมล");
+        }
+
+        if (duplicates.length > 0) {
           setSaveLoading(false);
-          open_dialog_error("พบเบอร์โทรหรืออีเมลซ้ำในระบบ");
+          open_dialog_error(`พบข้อมูลซ้ำ: ${duplicates.join(", ")}`);
           return;
         }
 
@@ -413,6 +433,9 @@ function DialogForm(props) {
 
         if (res.status === "success") {
           props.handleCloseDialog();
+          if (props.onSaved) {
+            props.onSaved();
+          }
 
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
             setSaveLoading(false);

@@ -811,15 +811,17 @@ function CustomerList() {
       open_dialog_loading();
 
       try {
-        const res = await delCustomer(params.cus_id);
+        const res = await delCustomer(params.cus_id).unwrap();
 
-        if (res.data.status === "success") {
+        if (res.status === "success") {
           open_dialog_ok_timer("ลบข้อมูลสำเร็จ");
+          // Reload data after deletion
+          refetch();
           // Scroll to top after deletion is successful
           scrollToTop();
         }
       } catch (error) {
-        open_dialog_error(error.message, error);
+        open_dialog_error(error.data?.message || error.message, error);
         console.error(error);
       }
     }
@@ -839,15 +841,17 @@ function CustomerList() {
       };
 
       try {
-        const res = await updateRecall(inputUpdate);
+        const res = await updateRecall(inputUpdate).unwrap();
 
-        if (res.data.status === "success") {
+        if (res.status === "success") {
           open_dialog_ok_timer("รีเซตเวลาสำเร็จ");
+          // Reload data after recall timer reset
+          refetch();
           // Scroll to top after recall timer reset is successful
           scrollToTop();
         }
       } catch (error) {
-        open_dialog_error(error.message, error);
+        open_dialog_error(error.data?.message || error.message, error);
         console.error(error);
       }
     }
@@ -1706,6 +1710,7 @@ function CustomerList() {
           openDialog={openDialog}
           handleCloseDialog={handleCloseDialog}
           handleRecall={handleRecall}
+          onSaved={refetch}
         />
 
         <TitleBar title="customer" />

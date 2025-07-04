@@ -45,6 +45,7 @@ import {
   MdCheckCircle,
   MdError,
   MdInfo,
+  MdAccessTime,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
@@ -83,6 +84,10 @@ import BasicInfoFields from "./components/DialogForm/BasicInfoFields";
 import ContactInfoFields from "./components/DialogForm/ContactInfoFields";
 import AddressFields from "./components/DialogForm/AddressFields";
 import AdditionalNotesFields from "./components/DialogForm/AdditionalNotesFields";
+import EnhancedTabPanel from "./components/DialogForm/EnhancedTabPanel";
+import EnhancedTabs from "./components/DialogForm/EnhancedTabs";
+import EnhancedDialogTitle from "./components/DialogForm/EnhancedDialogTitle";
+import EnhancedDialogActions from "./components/DialogForm/EnhancedDialogActions";
 
 const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2),
@@ -90,6 +95,14 @@ const FormSection = styled(Box)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
   backgroundColor: theme.palette.background.paper,
   boxShadow: theme.shadows[1],
+}));
+
+const TabHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: theme.spacing(2),
+  paddingBottom: theme.spacing(1),
+  borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
 // Tab Panel component for tabbed interface
@@ -107,7 +120,7 @@ function TabPanel(props) {
       {value === index && (
         <Box 
           sx={{ 
-            py: 2, 
+            py: 2,
             backgroundColor: 'background.paper',
             borderRadius: 1,
             p: 2,
@@ -543,26 +556,34 @@ function DialogForm(props) {
         maxWidth="md"
         disableEscapeKeyDown
         aria-hidden={props.openDialog ? false : true}
+        PaperProps={{ 
+          elevation: 3,
+          sx: { borderRadius: 2 }
+        }}
       >
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
           <DialogTitle
             sx={{
-              paddingBlock: 1,
+              paddingBlock: 2,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: 'primary.lighter',
             }}
           >
-            <Box>
-              <Typography variant="h6">
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h6" fontWeight="600" color="primary.main">
                 {titleMap[mode] + `ข้อมูลลูกค้า`}
               </Typography>
               {mode !== "create" && (
                 <Chip
                   size="small"
                   color="info"
+                  icon={<MdAccessTime size={14} />}
                   label={`${formattedRelativeTime} Days`}
-                  sx={{ ml: 1 }}
+                  sx={{ ml: 1, fontWeight: 500 }}
                 />
               )}
             </Box>
@@ -571,35 +592,38 @@ function DialogForm(props) {
               onClick={props.handleCloseDialog}
               sx={(theme) => ({
                 color: theme.vars.palette.grey.title,
+                '&:hover': { 
+                  backgroundColor: 'error.lighter',
+                  color: 'error.main'
+                }
               })}
             >
               <MdClose />
             </IconButton>
           </DialogTitle>
-          <DialogContent dividers sx={{ maxHeight: '75vh', overflowY: 'auto' }}>
+          <DialogContent dividers sx={{ maxHeight: '80vh', overflowY: 'auto', p: 3 }}>
             <Box sx={{ width: "100%" }}>
-              {" "}
               {/* Note Card - แสดง Note สำคัญ */}
               {inputList.cd_note && (
                 <Card
                   variant="outlined"
                   sx={{
-                    mb: 2,
+                    mb: 3,
                     borderLeft: "4px solid",
                     borderColor: "#940c0c",
                     bgcolor: "warning.lighter",
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   }}
                 >
                   <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                    {" "}
                     <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                       <MdNotes
-                        style={{ fontSize: "18px", marginRight: "12px" }}
+                        style={{ fontSize: "20px", marginRight: "12px", color: '#940c0c' }}
                       />
                       <Typography
                         variant="subtitle1"
                         fontWeight="bold"
-                        color="text.primary"
+                        color="#940c0c"
                       >
                         หมายเหตุสำคัญ
                       </Typography>
@@ -608,10 +632,34 @@ function DialogForm(props) {
                   </CardContent>
                 </Card>
               )}
+              
               {/* Customer Info Summary Card */}
-              <Card variant="outlined" sx={{ mb: 2 }}>
-                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                  <Grid container spacing={2}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  mb: 3, 
+                  border: '1px solid', 
+                  borderColor: 'divider',
+                  borderRadius: 2
+                }}
+              >
+                <CardContent sx={{ p: 3, "&:last-child": { pb: 3 } }}>
+                  <Typography 
+                    variant="subtitle1" 
+                    fontWeight="600" 
+                    color="primary.main" 
+                    gutterBottom 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      mb: 2 
+                    }}
+                  >
+                    <MdBusiness style={{ marginRight: '8px' }} />
+                    ข้อมูลหลักของลูกค้า
+                  </Typography>
+                  
+                  <Grid container spacing={3}>
                     <Grid size={12} md={8}>
                       <StyledTextField
                         fullWidth
@@ -625,6 +673,7 @@ function DialogForm(props) {
                               <MdBusiness />
                             </InputAdornment>
                           ),
+                          sx: { backgroundColor: 'white' }
                         }}
                         name="cus_company"
                         placeholder="บริษัท ธนพลัส 153 จำกัด"
@@ -645,6 +694,7 @@ function DialogForm(props) {
                             value={inputList.cus_manage_by?.user_id || ""}
                             onChange={handleInputChange}
                             readOnly={mode === "view"}
+                            sx={{ backgroundColor: 'white' }}
                             startAdornment={
                               <InputAdornment position="start">
                                 <MdPerson />
@@ -686,6 +736,7 @@ function DialogForm(props) {
                               mode === "view" || businessTypesIsFetching
                             }
                             error={!!errors.cus_bt_id}
+                            sx={{ backgroundColor: 'white' }}
                             startAdornment={
                               <InputAdornment position="start">
                                 <MdBusiness />
@@ -749,6 +800,9 @@ function DialogForm(props) {
                               border: "1px solid",
                               borderColor: (theme) =>
                                 theme.vars.palette.grey.outlinedInput,
+                              '&:hover': {
+                                bgcolor: 'primary.lighter'
+                              }
                             }}
                             disabled={mode === "view"}
                             onClick={handleOpenBusinessTypeManager}
@@ -769,6 +823,7 @@ function DialogForm(props) {
                           onChange={handleInputChange}
                           readOnly={mode === "view"}
                           error={!!errors.cus_channel}
+                          sx={{ backgroundColor: 'white' }}
                         >
                           {selectList.map((item, index) => (
                             <MenuItem
@@ -801,20 +856,30 @@ function DialogForm(props) {
                         }
                         InputProps={{
                           style: { textAlign: "center" },
+                          sx: { backgroundColor: '#f5f5f5' }
                         }}
                       />
                     </Grid>
                   </Grid>
                 </CardContent>
               </Card>
+              
               {/* Tabs */}
-              <Box sx={{ mb: 2 }}>
+              <Box 
+                sx={{ 
+                  mb: 2,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  borderRadius: 1,
+                  overflow: 'hidden'
+                }}
+              >
                 <Tabs
                   value={tabValue}
                   onChange={handleTabChange}
                   variant="fullWidth"
                   aria-label="customer info tabs"
                   sx={{
+                    bgcolor: '#fafafa',
                     '& .MuiTabs-flexContainer': {
                       borderRadius: 1,
                       overflow: 'hidden'
@@ -903,120 +968,149 @@ function DialogForm(props) {
                   />
                 </Tabs>
               </Box>
+              
               {/* Tab 1: Basic Information */}
               <TabPanel value={tabValue} index={0}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    mb: 2, 
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: 'primary.main'
-                  }}
-                >
-                  <MdPerson style={{ marginRight: '8px' }} /> ข้อมูลพื้นฐาน
-                  {tabStatus.basicInfo === 'complete' && 
-                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
-                  }
-                </Typography>
-                <BasicInfoFields
-                  inputList={inputList}
-                  handleInputChange={handleInputChange}
-                  errors={errors}
-                  mode={mode}
-                />
+                <TabHeader>
+                  <MdPerson style={{ fontSize: '22px', color: 'primary.main', marginRight: '12px' }} />
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    ข้อมูลพื้นฐาน
+                    {tabStatus.basicInfo === 'complete' && 
+                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                  </Typography>
+                </TabHeader>
+                <FormSection>
+                  <BasicInfoFields
+                    inputList={inputList}
+                    handleInputChange={handleInputChange}
+                    errors={errors}
+                    mode={mode}
+                  />
+                </FormSection>
               </TabPanel>
+              
               {/* Tab 2: Contact Information */}
               <TabPanel value={tabValue} index={1}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    mb: 2, 
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: 'primary.main'
-                  }}
-                >
-                  <MdPhone style={{ marginRight: '8px' }} /> ข้อมูลติดต่อ
-                  {tabStatus.contactInfo === 'complete' && 
-                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
-                  }
-                </Typography>
-                <ContactInfoFields
-                  inputList={inputList}
-                  handleInputChange={handleInputChange}
-                  errors={errors}
-                  mode={mode}
-                />
+                <TabHeader>
+                  <MdPhone style={{ fontSize: '22px', color: 'primary.main', marginRight: '12px' }} />
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    ข้อมูลติดต่อ
+                    {tabStatus.contactInfo === 'complete' && 
+                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                    {tabStatus.contactInfo === 'incomplete' && 
+                      <MdError style={{ color: 'red', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                  </Typography>
+                </TabHeader>
+                <FormSection>
+                  <ContactInfoFields
+                    inputList={inputList}
+                    handleInputChange={handleInputChange}
+                    errors={errors}
+                    mode={mode}
+                  />
+                </FormSection>
               </TabPanel>
+              
               {/* Tab 3: Address Information */}
               <TabPanel value={tabValue} index={2}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    mb: 2, 
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: 'primary.main'
-                  }}
-                >
-                  <MdLocationOn style={{ marginRight: '8px' }} /> ที่อยู่
-                  {tabStatus.address === 'complete' && 
-                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
-                  }
-                  {tabStatus.address === 'optional' && 
-                    <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
-                  }
-                </Typography>
-                <AddressFields
-                  inputList={inputList}
-                  handleInputChange={handleInputChange}
-                  mode={mode}
-                  handleSelectLocation={handleSelectLocation}
-                  provincesList={provincesList}
-                  districtList={districtList}
-                  subDistrictList={subDistrictList}
-                  isFetching={isFetching}
-                />
+                <TabHeader>
+                  <MdLocationOn style={{ fontSize: '22px', color: 'primary.main', marginRight: '12px' }} />
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    ที่อยู่
+                    {tabStatus.address === 'complete' && 
+                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                    {tabStatus.address === 'optional' && 
+                      <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                  </Typography>
+                </TabHeader>
+                <FormSection>
+                  <AddressFields
+                    inputList={inputList}
+                    handleInputChange={handleInputChange}
+                    mode={mode}
+                    handleSelectLocation={handleSelectLocation}
+                    provincesList={provincesList}
+                    districtList={districtList}
+                    subDistrictList={subDistrictList}
+                    isFetching={isFetching}
+                  />
+                </FormSection>
               </TabPanel>
+              
               {/* Tab 4: Additional Notes */}
               <TabPanel value={tabValue} index={3}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    mb: 2, 
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: 'primary.main'
-                  }}
-                >
-                  <MdNotes style={{ marginRight: '8px' }} /> บันทึกเพิ่มเติม
-                  {tabStatus.notes === 'optional' && 
-                    <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
-                  }
-                </Typography>
-                <AdditionalNotesFields
-                  inputList={inputList}
-                  handleInputChange={handleInputChange}
-                  mode={mode}
-                />
+                <TabHeader>
+                  <MdNotes style={{ fontSize: '22px', color: 'primary.main', marginRight: '12px' }} />
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    บันทึกเพิ่มเติม
+                    {tabStatus.notes === 'optional' && 
+                      <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
+                    }
+                  </Typography>
+                </TabHeader>
+                <FormSection>
+                  <AdditionalNotesFields
+                    inputList={inputList}
+                    handleInputChange={handleInputChange}
+                    mode={mode}
+                  />
+                </FormSection>
               </TabPanel>
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ p: 2 }}>
+          <DialogActions sx={{ p: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
             {mode !== "view" && (
               <Button
                 type="submit"
                 variant="contained"
-                color="error"
+                color="primary"
                 disabled={saveLoading}
                 startIcon={<MdSave />}
-                sx={{ mr: 1 }}
+                size="large"
+                sx={{ 
+                  mr: 1,
+                  px: 3,
+                  fontWeight: 600,
+                  boxShadow: 2
+                }}
               >
                 บันทึก
               </Button>
@@ -1027,6 +1121,11 @@ function DialogForm(props) {
               disabled={saveLoading}
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
+              size="large"
+              sx={{ 
+                fontWeight: 600,
+                px: 2
+              }}
             >
               ยกเลิก
             </Button>

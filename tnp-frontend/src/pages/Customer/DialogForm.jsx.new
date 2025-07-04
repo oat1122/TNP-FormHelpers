@@ -95,23 +95,6 @@ function DialogForm(props) {
       return item.dis_id === locationSearch.district_sort_id;
     return inputList.cus_dis_id === item.dis_id;
   });
-  
-  // For phone number formatting
-  const formatPhoneNumber = (value) => {
-    if (!value) return value;
-    
-    // Strip all non-digits
-    const digits = value.replace(/\D/g, '');
-    
-    // Format based on length
-    if (digits.length <= 3) {
-      return digits;
-    } else if (digits.length <= 6) {
-      return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    } else {
-      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-    }
-  };
 
   // Set customer ID with a unique prefix for new customer
   useEffect(() => {
@@ -161,11 +144,6 @@ function DialogForm(props) {
   const handleInputChange = useCallback(
     (e) => {
       let { name, value } = e.target;
-      
-      // Format phone numbers as user types
-      if ((name === 'cus_tel_1' || name === 'cus_tel_2') && value) {
-        value = formatPhoneNumber(value);
-      }
       
       // Clear previous auto-save timer
       if (autoSaveTimer) {
@@ -259,7 +237,6 @@ function DialogForm(props) {
   // Form validation
   const validateForm = () => {
     const newErrors = {};
-    let isValid = true;
     
     // Check required fields based on current tab
     const requiredFields = [
@@ -270,40 +247,14 @@ function DialogForm(props) {
       "cus_channel"
     ];
     
+    let isValid = true;
+    
     requiredFields.forEach(field => {
       if (!inputList[field]) {
-        newErrors[field] = `กรุณากรอกข้อมูลในช่องนี้`;
+        newErrors[field] = `กรุณากรอก${field}`;
         isValid = false;
       }
     });
-    
-    // Enhanced validation for specific fields
-    
-    // Email validation
-    if (inputList.cus_email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(inputList.cus_email)) {
-        newErrors.cus_email = "รูปแบบอีเมลไม่ถูกต้อง";
-        isValid = false;
-      }
-    }
-    
-    // Phone validation
-    if (inputList.cus_tel_1) {
-      const phoneValue = inputList.cus_tel_1.replace(/\D/g, '');
-      if (phoneValue.length < 9 || phoneValue.length > 10) {
-        newErrors.cus_tel_1 = "เบอร์โทรต้องมี 9-10 หลัก";
-        isValid = false;
-      }
-    }
-    
-    // Tax ID validation
-    if (inputList.cus_tax_id) {
-      if (!/^\d+$/.test(inputList.cus_tax_id) || inputList.cus_tax_id.length !== 13) {
-        newErrors.cus_tax_id = "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก";
-        isValid = false;
-      }
-    }
     
     setErrors(newErrors);
     return isValid;

@@ -99,7 +99,7 @@ import SortInfoDisplay from "./components/CustomerList/SortInfoDisplay";
 import CustomPagination from "./components/CustomerList/CustomPagination";
 import CustomToolbar from "./components/CustomerList/CustomToolbar";
 import NoDataOverlay from "./components/CustomerList/NoDataOverlay";
-import useCustomerColumns from "./components/CustomerList/useCustomerColumns";
+import useCustomerColumns from "./components/CustomerList/useCustomerColumns.jsx";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeader": {

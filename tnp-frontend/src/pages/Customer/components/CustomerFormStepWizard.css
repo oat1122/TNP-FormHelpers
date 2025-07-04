@@ -1,5 +1,21 @@
 /* CustomerFormStepWizard.css */
 
+/* Common styles for all screens */
+.autosave-indicator {
+  transition: all 0.3s ease;
+}
+
+.autosave-indicator.highlight {
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 5px 10px;
+  border-radius: 4px;
+  animation: highlight 2s ease;
+}
+
+.fade-in {
+  animation: fade-in 0.5s ease forwards;
+}
+
 /* Mobile-specific styles */
 @media (max-width: 768px) {
   .MuiDialog-paperWidthMd {

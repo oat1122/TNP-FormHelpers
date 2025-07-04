@@ -167,6 +167,16 @@ function DialogForm(props) {
         value = formatPhoneNumber(value);
       }
       
+      // Format tax ID - allow only digits and limit to 13 characters
+      if (name === 'cus_tax_id') {
+        value = value.replace(/\D/g, '').slice(0, 13);
+      }
+      
+      // Sanitize company name - remove problematic characters
+      if (name === 'cus_company') {
+        value = value.replace(/[<>%$#@^&*()+={}[\]:;'"|\\\`]/g, '');
+      }
+      
       // Clear previous auto-save timer
       if (autoSaveTimer) {
         clearTimeout(autoSaveTimer);
@@ -243,7 +253,7 @@ function DialogForm(props) {
 
       dispatch(setInputList(updatedInputList));
     },
-    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList]
+    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList, formatPhoneNumber]
   );
 
   // Handle location selection
@@ -261,9 +271,11 @@ function DialogForm(props) {
     const newErrors = {};
     let isValid = true;
     
-    // Check required fields based on current tab
+    // Check required fields based on current step
     const requiredFields = [
       "cus_company",
+      "cus_firstname",
+      "cus_lastname",
       "cus_name",
       "cus_tel_1",
       "cus_bt_id",
@@ -297,12 +309,33 @@ function DialogForm(props) {
       }
     }
     
+    // Phone validation (optional second phone)
+    if (inputList.cus_tel_2) {
+      const phoneValue = inputList.cus_tel_2.replace(/\D/g, '');
+      if (phoneValue.length < 9 || phoneValue.length > 10) {
+        newErrors.cus_tel_2 = "เบอร์โทรต้องมี 9-10 หลัก";
+        isValid = false;
+      }
+    }
+    
     // Tax ID validation
     if (inputList.cus_tax_id) {
       if (!/^\d+$/.test(inputList.cus_tax_id) || inputList.cus_tax_id.length !== 13) {
         newErrors.cus_tax_id = "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก";
         isValid = false;
       }
+    }
+    
+    // Business type validation
+    if (inputList.cus_bt_id && !businessTypeList.some(bt => bt.bt_id === inputList.cus_bt_id)) {
+      newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจที่ถูกต้อง";
+      isValid = false;
+    }
+    
+    // Company name validation - no special characters
+    if (inputList.cus_company && /[<>%$#@!^&*()_+={}\[\]:;'"|\\]/.test(inputList.cus_company)) {
+      newErrors.cus_company = "ชื่อบริษัทมีอักขระพิเศษที่ไม่อนุญาต";
+      isValid = false;
     }
     
     setErrors(newErrors);
@@ -362,36 +395,68 @@ function DialogForm(props) {
     }
   };
 
-  // Load auto-saved draft
+  // Load auto-saved draft - improved with error handling and clean-up of old drafts
   useEffect(() => {
     if (mode === "add") {
       const savedDraft = localStorage.getItem("customerFormDraft");
       
       if (savedDraft) {
         try {
-          const { inputList: savedInputList, timestamp } = JSON.parse(savedDraft);
-          const savedTime = moment(timestamp);
-          // Only load drafts that are less than 24 hours old
-          if (moment().diff(savedTime, 'hours') < 24) {
-            // Ask user if they want to load the draft
-            Swal.fire({
-              title: 'พบข้อมูลที่บันทึกไว้',
-              text: `คุณต้องการโหลดข้อมูลที่บันทึกไว้เมื่อ ${savedTime.format('DD/MM/YYYY HH:mm')} หรือไม่?`,
-              icon: 'question',
-              showCancelButton: true,
-              confirmButtonColor: '#3085d6',
-              cancelButtonColor: '#d33',
-              confirmButtonText: 'ใช่, โหลดข้อมูล',
-              cancelButtonText: 'ไม่, เริ่มใหม่'
-            }).then((result) => {
-              if (result.isConfirmed) {
-                dispatch(setInputList(savedInputList));
-                setAutoSavedAt(new Date(timestamp));
-              }
-            });
+          const parsedDraft = JSON.parse(savedDraft);
+          const { inputList: savedInputList, timestamp, currentStep } = parsedDraft;
+          
+          if (!timestamp) {
+            // Invalid draft, remove it
+            localStorage.removeItem("customerFormDraft");
+            return;
           }
+          
+          const savedTime = moment(timestamp);
+          
+          // Clean up old drafts (older than 24 hours)
+          if (moment().diff(savedTime, 'hours') >= 24) {
+            localStorage.removeItem("customerFormDraft");
+            return;
+          }
+          
+          // Ask user if they want to load the draft
+          Swal.fire({
+            title: 'พบข้อมูลที่บันทึกไว้',
+            text: `คุณต้องการโหลดข้อมูลที่บันทึกไว้เมื่อ ${savedTime.format('DD/MM/YYYY HH:mm')} หรือไม่?`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ใช่, โหลดข้อมูล',
+            cancelButtonText: 'ไม่, เริ่มใหม่'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Validate data before loading
+              if (savedInputList && typeof savedInputList === 'object') {
+                // Ensure we have required fields
+                if (savedInputList.cus_id) {
+                  dispatch(setInputList(savedInputList));
+                  setAutoSavedAt(new Date(timestamp));
+                } else {
+                  console.warn("Draft data is missing required fields");
+                  localStorage.removeItem("customerFormDraft");
+                  Swal.fire({
+                    title: 'ข้อมูลไม่สมบูรณ์',
+                    text: 'ไม่สามารถโหลดข้อมูลร่างได้เนื่องจากข้อมูลไม่สมบูรณ์',
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                  });
+                }
+              }
+            } else {
+              // User chose not to use the draft, remove it
+              localStorage.removeItem("customerFormDraft");
+            }
+          });
         } catch (error) {
           console.error("Error loading draft:", error);
+          // Clear invalid draft data
+          localStorage.removeItem("customerFormDraft");
         }
       }
     }
@@ -413,7 +478,7 @@ function DialogForm(props) {
         handleCloseDialog={props.handleCloseDialog}
         inputList={inputList}
         errors={errors}
-        mode={mode}
+        mode={mode === 'add' ? 'create' : mode}
         handleInputChange={handleInputChange}
         handleSelectLocation={handleSelectLocation}
         handleSubmit={handleSubmit}
@@ -422,6 +487,11 @@ function DialogForm(props) {
         districtList={districtList}
         subDistrictList={subDistrictList}
         isFetching={isFetching}
+        businessTypeList={businessTypeList}
+        userList={userList}
+        formatPhoneNumber={formatPhoneNumber}
+        lastUpdated={formattedRelativeTime}
+        onAddBusinessType={() => setShowBusinessTypeManager(true)}
       />
     </>
   );

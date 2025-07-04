@@ -42,6 +42,9 @@ import {
   MdNotes,
   MdSave,
   MdCancel,
+  MdCheckCircle,
+  MdError,
+  MdInfo,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
@@ -101,7 +104,19 @@ function TabPanel(props) {
       aria-labelledby={`customer-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
+      {value === index && (
+        <Box 
+          sx={{ 
+            py: 2, 
+            backgroundColor: 'background.paper',
+            borderRadius: 1,
+            p: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}
+        >
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -134,6 +149,12 @@ function DialogForm(props) {
   const [saveLoading, setSaveLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [tabValue, setTabValue] = useState(0);
+  const [tabStatus, setTabStatus] = useState({
+    basicInfo: 'incomplete',
+    contactInfo: 'incomplete',
+    address: 'optional',
+    notes: 'optional'
+  });
 
   // Refs
   const formRef = useRef(null);
@@ -180,6 +201,13 @@ function DialogForm(props) {
   // Handlers
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    // Scroll to tab content with smooth animation
+    const tabContent = document.getElementById(`customer-tabpanel-${newValue}`);
+    if (tabContent) {
+      setTimeout(() => {
+        tabContent.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   };
 
   const handleOpenBusinessTypeManager = () => {
@@ -299,6 +327,8 @@ function DialogForm(props) {
     }
 
     if (form.checkValidity() && !newErrors.cus_bt_id) {
+      // อัปเดตสถานะแท็บอีกครั้งก่อนส่งฟอร์ม
+      updateTabStatus();
       return true;
     } else {
       // อัปเดต error state ตาม input ที่ยังไม่ได้กรอก
@@ -324,6 +354,8 @@ function DialogForm(props) {
         }, 100);
       }
 
+      // อัปเดตสถานะแท็บเพื่อแสดงว่าแท็บไหนยังมีข้อมูลไม่ครบถ้วน
+      updateTabStatus();
       return false;
     }
   };
@@ -394,6 +426,49 @@ function DialogForm(props) {
     props.handleCloseDialog();
     setErrors({});
   };
+
+  // ฟังก์ชันสำหรับตรวจสอบความครบถ้วนของแต่ละแท็บ
+  const updateTabStatus = useCallback(() => {
+    const validateBasicInfoTab = () => {
+      const requiredFields = ['cus_firstname', 'cus_lastname', 'cus_name', 'cus_bt_id'];
+      const isComplete = requiredFields.every(field => {
+        if (typeof inputList[field] === 'object') {
+          return inputList[field]?.user_id;
+        }
+        return inputList[field] && String(inputList[field]).trim() !== '';
+      });
+      return isComplete ? 'complete' : 'incomplete';
+    };
+
+    const validateContactInfoTab = () => {
+      // เช็คว่ามีการกรอกเบอร์โทรศัพท์หรือไม่
+      return inputList.cus_tel_1 ? 'complete' : 'incomplete';
+    };
+
+    const validateAddressTab = () => {
+      // ถ้าไม่มีข้อมูลที่อยู่เลย ถือว่าเป็น optional
+      if (!inputList.cus_address || inputList.cus_address.trim() === '') {
+        return 'optional';
+      }
+      
+      // ถ้ามีที่อยู่ ต้องมีจังหวัดด้วย
+      return inputList.cus_pro_id ? 'complete' : 'incomplete';
+    };
+
+    setTabStatus({
+      basicInfo: validateBasicInfoTab(),
+      contactInfo: validateContactInfoTab(),
+      address: validateAddressTab(),
+      notes: 'optional'  // แท็บบันทึกเพิ่มเติมไม่บังคับกรอก
+    });
+  }, [inputList]);
+
+  // ใช้ useEffect เพื่ออัพเดทสถานะเมื่อข้อมูลในฟอร์มเปลี่ยนแปลง
+  useEffect(() => {
+    if (props.openDialog) {
+      updateTabStatus();
+    }
+  }, [inputList, props.openDialog, updateTabStatus]);
 
   // Effects
   useEffect(() => {
@@ -501,7 +576,7 @@ function DialogForm(props) {
               <MdClose />
             </IconButton>
           </DialogTitle>
-          <DialogContent dividers>
+          <DialogContent dividers sx={{ maxHeight: '75vh', overflowY: 'auto' }}>
             <Box sx={{ width: "100%" }}>
               {" "}
               {/* Note Card - แสดง Note สำคัญ */}
@@ -733,42 +808,118 @@ function DialogForm(props) {
                 </CardContent>
               </Card>
               {/* Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+              <Box sx={{ mb: 2 }}>
                 <Tabs
                   value={tabValue}
                   onChange={handleTabChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
+                  variant="fullWidth"
                   aria-label="customer info tabs"
+                  sx={{
+                    '& .MuiTabs-flexContainer': {
+                      borderRadius: 1,
+                      overflow: 'hidden'
+                    },
+                    '& .MuiTab-root': {
+                      minHeight: '74px',
+                      fontSize: '0.95rem',
+                      fontWeight: 500,
+                      transition: 'all 0.2s',
+                      py: 1,
+                      textTransform: 'none',
+                      '&:hover': {
+                        bgcolor: 'rgba(0,0,0,0.03)'
+                      }
+                    },
+                    '& .Mui-selected': {
+                      bgcolor: 'primary.lighter',
+                      color: 'primary.main',
+                      fontWeight: 600
+                    }
+                  }}
                 >
                   <Tab
-                    label="ข้อมูลพื้นฐาน"
-                    icon={<MdPerson />}
-                    iconPosition="start"
+                    icon={<MdPerson style={{ fontSize: '1.5rem' }} />}
+                    iconPosition="top"
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        ข้อมูลพื้นฐาน
+                        {tabStatus.basicInfo === 'complete' && 
+                          <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
+                        }
+                        {tabStatus.basicInfo === 'incomplete' && 
+                          <MdError style={{ color: 'red', fontSize: '1rem' }} />
+                        }
+                      </Box>
+                    }
                     {...a11yProps(0)}
                   />
                   <Tab
-                    label="ข้อมูลติดต่อ"
-                    icon={<MdPhone />}
-                    iconPosition="start"
+                    icon={<MdPhone style={{ fontSize: '1.5rem' }} />}
+                    iconPosition="top"
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        ข้อมูลติดต่อ
+                        {tabStatus.contactInfo === 'complete' && 
+                          <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
+                        }
+                        {tabStatus.contactInfo === 'incomplete' && 
+                          <MdError style={{ color: 'red', fontSize: '1rem' }} />
+                        }
+                      </Box>
+                    }
                     {...a11yProps(1)}
                   />
                   <Tab
-                    label="ที่อยู่"
-                    icon={<MdLocationOn />}
-                    iconPosition="start"
+                    icon={<MdLocationOn style={{ fontSize: '1.5rem' }} />}
+                    iconPosition="top"
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        ที่อยู่
+                        {tabStatus.address === 'complete' && 
+                          <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
+                        }
+                        {tabStatus.address === 'incomplete' && 
+                          <MdError style={{ color: 'red', fontSize: '1rem' }} />
+                        }
+                        {tabStatus.address === 'optional' && 
+                          <MdInfo style={{ color: '#0288d1', fontSize: '1rem' }} />
+                        }
+                      </Box>
+                    }
                     {...a11yProps(2)}
                   />
                   <Tab
-                    label="บันทึกเพิ่มเติม"
-                    icon={<MdNotes />}
-                    iconPosition="start"
+                    icon={<MdNotes style={{ fontSize: '1.5rem' }} />}
+                    iconPosition="top"
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        บันทึกเพิ่มเติม
+                        {tabStatus.notes === 'optional' && 
+                          <MdInfo style={{ color: '#0288d1', fontSize: '1rem' }} />
+                        }
+                      </Box>
+                    }
                     {...a11yProps(3)}
                   />
                 </Tabs>
               </Box>
               {/* Tab 1: Basic Information */}
               <TabPanel value={tabValue} index={0}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    mb: 2, 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'primary.main'
+                  }}
+                >
+                  <MdPerson style={{ marginRight: '8px' }} /> ข้อมูลพื้นฐาน
+                  {tabStatus.basicInfo === 'complete' && 
+                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                  }
+                </Typography>
                 <BasicInfoFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
@@ -778,6 +929,21 @@ function DialogForm(props) {
               </TabPanel>
               {/* Tab 2: Contact Information */}
               <TabPanel value={tabValue} index={1}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    mb: 2, 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'primary.main'
+                  }}
+                >
+                  <MdPhone style={{ marginRight: '8px' }} /> ข้อมูลติดต่อ
+                  {tabStatus.contactInfo === 'complete' && 
+                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                  }
+                </Typography>
                 <ContactInfoFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
@@ -787,6 +953,24 @@ function DialogForm(props) {
               </TabPanel>
               {/* Tab 3: Address Information */}
               <TabPanel value={tabValue} index={2}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    mb: 2, 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'primary.main'
+                  }}
+                >
+                  <MdLocationOn style={{ marginRight: '8px' }} /> ที่อยู่
+                  {tabStatus.address === 'complete' && 
+                    <MdCheckCircle style={{ color: 'green', fontSize: '1rem', marginLeft: '8px' }} />
+                  }
+                  {tabStatus.address === 'optional' && 
+                    <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
+                  }
+                </Typography>
                 <AddressFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}
@@ -800,6 +984,21 @@ function DialogForm(props) {
               </TabPanel>
               {/* Tab 4: Additional Notes */}
               <TabPanel value={tabValue} index={3}>
+                <Typography 
+                  variant="subtitle1" 
+                  sx={{ 
+                    mb: 2, 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'primary.main'
+                  }}
+                >
+                  <MdNotes style={{ marginRight: '8px' }} /> บันทึกเพิ่มเติม
+                  {tabStatus.notes === 'optional' && 
+                    <MdInfo style={{ color: '#0288d1', fontSize: '1rem', marginLeft: '8px' }} />
+                  }
+                </Typography>
                 <AdditionalNotesFields
                   inputList={inputList}
                   handleInputChange={handleInputChange}

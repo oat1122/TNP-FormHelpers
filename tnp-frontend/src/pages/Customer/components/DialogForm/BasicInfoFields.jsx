@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Box, Typography, InputAdornment, Divider, Paper } from "@mui/material";
+import { Grid, Box, Typography, InputAdornment } from "@mui/material";
 import { StyledTextField } from "./StyledComponents";
 import { MdPerson, MdWork, MdBusinessCenter } from "react-icons/md";
 
@@ -7,12 +7,11 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
   return (
     <Box>
       {/* ส่วนข้อมูลส่วนตัว */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          mb: 3, 
-          borderRadius: 2,
+      <Box
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider'
         }}
@@ -88,14 +87,13 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
             />
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
 
       {/* ส่วนข้อมูลการทำงาน */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          borderRadius: 2,
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider'
         }}
@@ -134,7 +132,7 @@ function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
             />
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
     </Box>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, InputAdornment, Box, Typography, Paper } from "@mui/material";
+import { Grid, InputAdornment, Box, Typography } from "@mui/material";
 import { MdPhone, MdEmail, MdContactPhone, MdReceipt } from "react-icons/md";
 import { StyledTextField } from "./StyledComponents";
 
@@ -7,12 +7,11 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode }) {
   return (
     <Box>
       {/* ส่วนข้อมูลการติดต่อ */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          mb: 3, 
-          borderRadius: 2,
+      <Box
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider'
         }}
@@ -93,14 +92,13 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode }) {
             />
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
 
       {/* ส่วนข้อมูลทางภาษี */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          borderRadius: 2,
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider'
         }}
@@ -141,7 +139,7 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode }) {
             />
           </Grid>
         </Grid>
-      </Paper>
+      </Box>
     </Box>
   );
 }

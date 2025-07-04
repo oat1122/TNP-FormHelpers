@@ -7,7 +7,6 @@ import {
   InputAdornment,
   Typography,
   Box,
-  Paper,
   Divider,
 } from "@mui/material";
 import { MdLocationOn } from "react-icons/md";
@@ -24,7 +23,7 @@ function AddressFields({
   isFetching,
 }) {
   return (
-    <Paper elevation={0} sx={{ p: 2, backgroundColor: "#fafafa" }}>
+    <Box sx={{ p: 2, backgroundColor: "#fafafa", border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
       <Box mb={2}>
         <Typography variant="subtitle1" fontWeight="500" gutterBottom>
           ข้อมูลที่อยู่
@@ -145,7 +144,7 @@ function AddressFields({
           />
         </Grid>
       </Grid>
-    </Paper>
+    </Box>
   );
 }
 

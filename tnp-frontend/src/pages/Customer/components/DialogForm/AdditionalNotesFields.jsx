@@ -1,10 +1,10 @@
 import React from "react";
-import { Grid, Typography, Box, Paper } from "@mui/material";
+import { Grid, Typography, Box } from "@mui/material";
 import { StyledTextField } from "./StyledComponents";
 
 function AdditionalNotesFields({ inputList, handleInputChange, mode }) {
   return (
-    <Paper elevation={0} sx={{ p: 2, backgroundColor: "#fafafa" }}>
+    <Box sx={{ p: 2, backgroundColor: "#fafafa", border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
       <Box mb={2}>
         <Typography variant="subtitle1" fontWeight="500" gutterBottom>
           Additional Notes
@@ -46,7 +46,7 @@ function AdditionalNotesFields({ inputList, handleInputChange, mode }) {
           />
         </Grid>
       </Grid>
-    </Paper>
+    </Box>
   );
 }
 

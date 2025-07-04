@@ -29,6 +29,10 @@ import {
   CardContent,
   Chip,
   Avatar,
+  Stepper,
+  Step,
+  StepLabel,
+  LinearProgress,
 } from "@mui/material";
 import {
   MdAdd,
@@ -46,6 +50,8 @@ import {
   MdError,
   MdInfo,
   MdAccessTime,
+  MdNavigateNext,
+  MdNavigateBefore,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";
@@ -163,6 +169,7 @@ function DialogForm(props) {
   const [saveLoading, setSaveLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [tabValue, setTabValue] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const [tabStatus, setTabStatus] = useState({
     basicInfo: 'incomplete',
     contactInfo: 'incomplete',
@@ -202,6 +209,13 @@ function DialogForm(props) {
     view: "ดู",
   };
 
+  const steps = [
+    "ข้อมูลพื้นฐาน",
+    "ข้อมูลติดต่อ",
+    "ที่อยู่",
+    "บันทึกเพิ่มเติม",
+  ];
+
   const selectList = [
     { value: "1", title: "sales" },
     { value: "2", title: "online" },
@@ -215,6 +229,7 @@ function DialogForm(props) {
   // Handlers
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    setActiveStep(newValue);
     // Scroll to tab content with smooth animation
     const tabContent = document.getElementById(`customer-tabpanel-${newValue}`);
     if (tabContent) {
@@ -252,6 +267,22 @@ function DialogForm(props) {
     );
     setErrors((prev) => ({ ...prev, cus_bt_id: "" }));
     setIsBusinessTypeManagerOpen(false);
+  };
+
+  const handleNext = () => {
+    if (activeStep < steps.length - 1) {
+      setActiveStep((prev) => prev + 1);
+      setTabValue((prev) => prev + 1);
+    } else if (formRef.current) {
+      formRef.current.requestSubmit();
+    }
+  };
+
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep((prev) => prev - 1);
+      setTabValue((prev) => prev - 1);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -613,107 +644,25 @@ function DialogForm(props) {
               <MdClose />
             </IconButton>
           </DialogTitle>
-          <Box sx={{ 
+          <Box sx={{
             position: 'sticky',
-            top: 0, 
-            zIndex: 10, 
-            bgcolor: 'background.paper', 
+            top: 0,
+            zIndex: 10,
+            bgcolor: 'background.paper',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              aria-label="customer info tabs"
-              sx={{
-                bgcolor: '#fafafa',
-                '& .MuiTabs-flexContainer': {
-                  borderRadius: '4px 4px 0 0',
-                  overflow: 'hidden'
-                },
-                '& .MuiTab-root': {
-                  minHeight: '74px',
-                  fontSize: '0.95rem',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  py: 1,
-                  textTransform: 'none',
-                  '&:hover': {
-                    bgcolor: 'rgba(0,0,0,0.03)'
-                  }
-                },
-                '& .Mui-selected': {
-                  bgcolor: 'primary.lighter',
-                  color: 'primary.main',
-                  fontWeight: 600
-                }
-              }}
-            >
-              <Tab
-                icon={<MdPerson style={{ fontSize: '1.5rem' }} />}
-                iconPosition="top"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    ข้อมูลพื้นฐาน
-                    {tabStatus.basicInfo === 'complete' && 
-                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
-                    }
-                    {tabStatus.basicInfo === 'incomplete' && 
-                      <MdError style={{ color: 'red', fontSize: '1rem' }} />
-                    }
-                  </Box>
-                }
-                {...a11yProps(0)}
-              />
-              <Tab
-                icon={<MdPhone style={{ fontSize: '1.5rem' }} />}
-                iconPosition="top"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    ข้อมูลติดต่อ
-                    {tabStatus.contactInfo === 'complete' && 
-                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
-                    }
-                    {tabStatus.contactInfo === 'incomplete' && 
-                      <MdError style={{ color: 'red', fontSize: '1rem' }} />
-                    }
-                  </Box>
-                }
-                {...a11yProps(1)}
-              />
-              <Tab
-                icon={<MdLocationOn style={{ fontSize: '1.5rem' }} />}
-                iconPosition="top"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    ที่อยู่
-                    {tabStatus.address === 'complete' && 
-                      <MdCheckCircle style={{ color: 'green', fontSize: '1rem' }} />
-                    }
-                    {tabStatus.address === 'incomplete' && 
-                      <MdError style={{ color: 'red', fontSize: '1rem' }} />
-                    }
-                    {tabStatus.address === 'optional' && 
-                      <MdInfo style={{ color: '#0288d1', fontSize: '1rem' }} />
-                    }
-                  </Box>
-                }
-                {...a11yProps(2)}
-              />
-              <Tab
-                icon={<MdNotes style={{ fontSize: '1.5rem' }} />}
-                iconPosition="top"
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    บันทึกเพิ่มเติม
-                    {tabStatus.notes === 'optional' && 
-                      <MdInfo style={{ color: '#0288d1', fontSize: '1rem' }} />
-                    }
-                  </Box>
-                }
-                {...a11yProps(3)}
-              />
-            </Tabs>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {steps.map((label, index) => (
+                <Step key={label} completed={tabStatus[Object.keys(tabStatus)[index]] === 'complete'}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+            <LinearProgress
+              variant="determinate"
+              value={((activeStep) / (steps.length - 1)) * 100}
+              sx={{ mt: 1 }}
+            />
           </Box>
           <DialogContent divides sx={{ maxHeight: '80vh', p: 3 }}>
             <Box sx={{ width: "100%", height: '100%', overflowY: 'auto' }}>
@@ -1107,22 +1056,27 @@ function DialogForm(props) {
 
           <DialogActions sx={{ p: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
             {mode !== "view" && (
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={saveLoading}
-                startIcon={<MdSave />}
-                size="large"
-                sx={{ 
-                  mr: 1,
-                  px: 3,
-                  fontWeight: 600,
-                  boxShadow: 2
-                }}
-              >
-                บันทึก
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  onClick={handleBack}
+                  disabled={activeStep === 0}
+                  startIcon={<MdNavigateBefore />}
+                  sx={{ fontWeight: 600 }}
+                >
+                  ย้อนกลับ
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  variant="contained"
+                  color="primary"
+                  disabled={saveLoading}
+                  startIcon={activeStep === steps.length - 1 ? <MdSave /> : <MdNavigateNext />}
+                  sx={{ ml: 1, fontWeight: 600 }}
+                >
+                  {activeStep === steps.length - 1 ? 'บันทึก' : 'ถัดไป'}
+                </Button>
+              </>
             )}
             <Button
               variant="outlined"
@@ -1131,10 +1085,7 @@ function DialogForm(props) {
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
               size="large"
-              sx={{ 
-                fontWeight: 600,
-                px: 2
-              }}
+              sx={{ fontWeight: 600, px: 2 }}
             >
               ยกเลิก
             </Button>

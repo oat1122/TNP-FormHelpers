@@ -24,6 +24,15 @@ export const StyledSelect = styled(Select)(({ theme }) => ({
   "& fieldset": {
     borderColor: theme.vars.palette.grey.outlinedInput,
   },
+  "&.Mui-disabled": {
+    "& .MuiSelect-select": {
+      WebkitTextFillColor: theme.vars.palette.text.primary,
+      backgroundColor: theme.vars.palette.grey.outlinedInput,
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: theme.vars.palette.grey.outlinedInput,
+    },
+  },
 }));
 
 export const SectionTitle = styled(Typography)(({ theme }) => ({

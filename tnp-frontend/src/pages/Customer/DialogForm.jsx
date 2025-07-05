@@ -60,12 +60,13 @@ function DialogForm(props) {
     data: dataBt,
     isLoading: loadingBt,
     isError: errorBt,
+    refetch: refetchBusinessTypes,
   } = useGetAllBusinessTypesQuery();
   const {
     data: dataUser,
     isLoading: loadingUser,
     isError: errorUser,
-  } = useGetUserByRoleQuery("all");
+  } = useGetUserByRoleQuery();
   const {
     data: dataLocation,
     isLoading: loadingLocation,
@@ -79,9 +80,20 @@ function DialogForm(props) {
   const [showBusinessTypeManager, setShowBusinessTypeManager] = useState(false);
   const mode = props.mode || "add"; // add, edit, view
 
+  // Close Business Type dialog and refresh list
+  const handleCloseBusinessTypeManager = () => {
+    setShowBusinessTypeManager(false);
+    refetchBusinessTypes();
+  };
+
   // Create lists for form selections
+<<<<<<< HEAD
   const userList = dataUser?.result || [];
+  const businessTypeList = dataBt || [];
+=======
+  const userList = dataUser ? Object.values(dataUser).flat() : [];
   const businessTypeList = dataBt?.result || [];
+>>>>>>> 4f4e967c610d48ceb629531ba489f825fd4776e5
 
   // Location data
   const provincesList = dataLocation?.province || [];
@@ -174,7 +186,17 @@ function DialogForm(props) {
       
       // Sanitize company name - remove problematic characters
       if (name === 'cus_company') {
-        value = value.replace(/[<>%$#@^&*()+={}[\]:;'"|\\\`]/g, '');
+        value = value.replace(/[<>%$#@^&*()+={}[\]:;'"|\\`]/g, '');
+      }
+
+      // Convert manage_by selection to object
+      if (name === 'cus_manage_by') {
+        if (value === '') {
+          value = { user_id: '', username: '' };
+        } else {
+          const found = userList.find((u) => u.user_id === value);
+          value = found ? { user_id: found.user_id, username: found.username } : { user_id: '', username: '' };
+        }
       }
       
       // Clear previous auto-save timer
@@ -253,7 +275,7 @@ function DialogForm(props) {
 
       dispatch(setInputList(updatedInputList));
     },
-    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList, formatPhoneNumber]
+    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList, formatPhoneNumber, userList]
   );
 
   // Handle location selection
@@ -467,8 +489,8 @@ function DialogForm(props) {
       {/* Business Type Manager Dialog */}
       {showBusinessTypeManager && (
         <BusinessTypeManager
-          openDialog={showBusinessTypeManager}
-          handleCloseDialog={() => setShowBusinessTypeManager(false)}
+          open={showBusinessTypeManager}
+          onClose={handleCloseBusinessTypeManager}
         />
       )}
       

@@ -57,7 +57,7 @@ const steps = [
     description: 'กรอกชื่อบริษัทและผู้ติดต่อหลัก',
     icon: <MdBusiness />,
     required: true,
-    fields: ['cus_company', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_depart']
+    fields: ['cus_company', 'cus_firstname', 'cus_lastname', 'cus_name']
   },
   {
     id: 'business-details',

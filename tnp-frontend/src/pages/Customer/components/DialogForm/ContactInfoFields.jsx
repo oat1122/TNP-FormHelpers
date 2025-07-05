@@ -1,7 +1,8 @@
 import React from "react";
-import { Grid, InputAdornment, Box, Typography, Paper, FormControl, InputLabel, MenuItem } from "@mui/material";
+import { Grid, InputAdornment, Box, Typography, Paper, FormControl, InputLabel, MenuItem, CircularProgress } from "@mui/material";
 import { MdPhone, MdEmail, MdContactPhone, MdReceipt, MdSignalCellularAlt, MdBusiness, MdPerson } from "react-icons/md";
 import { StyledTextField, StyledSelect } from "./StyledComponents";
+import { useGetAllBusinessTypesQuery, useGetUserByRoleQuery } from "../../../../features/globalApi";
 
 const channelOptions = [
   { value: "1", label: "Sales" },
@@ -10,6 +11,14 @@ const channelOptions = [
 ];
 
 function ContactInfoFields({ inputList, handleInputChange, errors, mode, businessTypeList = [], userList = [] }) {
+  const {
+    data: apiBusinessTypes,
+    isLoading: loadingBusinessTypes,
+  } = useGetAllBusinessTypesQuery(undefined, { skip: businessTypeList.length > 0 });
+  const { data: apiUsers, isLoading: loadingUsers } = useGetUserByRoleQuery('all', { skip: userList.length > 0 });
+
+  const mergedBusinessTypes = businessTypeList.length > 0 ? businessTypeList : apiBusinessTypes?.result || [];
+  const mergedUserList = userList.length > 0 ? userList : apiUsers?.result || [];
   return (
     <Box>
       {/* ส่วนข้อมูลการติดต่อ */}
@@ -170,6 +179,9 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
           }}
         >
           <MdBusiness style={{ marginRight: 8 }} /> รายละเอียดธุรกิจ
+          {(loadingBusinessTypes || loadingUsers) && (
+            <CircularProgress size={16} sx={{ ml: 1 }} />
+          )}
         </Typography>
 
         <Grid container spacing={2}>
@@ -186,7 +198,7 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
                 <MenuItem disabled value="">
                   เลือกประเภทธุรกิจ
                 </MenuItem>
-                {businessTypeList.map((item) => (
+                {mergedBusinessTypes.map((item) => (
                   <MenuItem key={item.bt_id} value={item.bt_id}>
                     {item.bt_name}
                   </MenuItem>
@@ -230,7 +242,7 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
                 readOnly={mode === 'view'}
               >
                 <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
-                {userList.map((user) => (
+                {mergedUserList.map((user) => (
                   <MenuItem key={user.user_id} value={user.user_id}>
                     {user.username}
                   </MenuItem>

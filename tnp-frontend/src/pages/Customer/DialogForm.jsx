@@ -66,7 +66,7 @@ function DialogForm(props) {
     data: dataUser,
     isLoading: loadingUser,
     isError: errorUser,
-  } = useGetUserByRoleQuery("all");
+  } = useGetUserByRoleQuery();
   const {
     data: dataLocation,
     isLoading: loadingLocation,
@@ -87,7 +87,7 @@ function DialogForm(props) {
   };
 
   // Create lists for form selections
-  const userList = dataUser?.result || [];
+  const userList = dataUser ? Object.values(dataUser).flat() : [];
   const businessTypeList = dataBt?.result || [];
 
   // Location data

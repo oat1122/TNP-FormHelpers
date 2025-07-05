@@ -60,6 +60,7 @@ function DialogForm(props) {
     data: dataBt,
     isLoading: loadingBt,
     isError: errorBt,
+    refetch: refetchBusinessTypes,
   } = useGetAllBusinessTypesQuery();
   const {
     data: dataUser,
@@ -78,6 +79,12 @@ function DialogForm(props) {
   const [errors, setErrors] = useState({});
   const [showBusinessTypeManager, setShowBusinessTypeManager] = useState(false);
   const mode = props.mode || "add"; // add, edit, view
+
+  // Close Business Type dialog and refresh list
+  const handleCloseBusinessTypeManager = () => {
+    setShowBusinessTypeManager(false);
+    refetchBusinessTypes();
+  };
 
   // Create lists for form selections
   const userList = dataUser?.result || [];
@@ -477,8 +484,8 @@ function DialogForm(props) {
       {/* Business Type Manager Dialog */}
       {showBusinessTypeManager && (
         <BusinessTypeManager
-          openDialog={showBusinessTypeManager}
-          handleCloseDialog={() => setShowBusinessTypeManager(false)}
+          open={showBusinessTypeManager}
+          onClose={handleCloseBusinessTypeManager}
         />
       )}
       

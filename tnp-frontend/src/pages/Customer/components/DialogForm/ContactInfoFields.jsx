@@ -19,6 +19,7 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
   const {
     data: apiBusinessTypes,
     isLoading: loadingBusinessTypes,
+<<<<<<< HEAD
   } = useGetAllBusinessTypesQuery();
 
   // ดึงข้อมูล users ตาม role (admin ดูได้ทุกคน, sales ดูเฉพาะ sales)
@@ -69,6 +70,13 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
       handleInputChange(fakeEvent);
     }
   }, [isSales, currentUser?.user_id, inputList.cus_manage_by, mode, handleInputChange]);
+=======
+  } = useGetAllBusinessTypesQuery(undefined, { skip: businessTypeList.length > 0 });
+  const { data: apiUsers, isLoading: loadingUsers } = useGetUserByRoleQuery(undefined, { skip: userList.length > 0 });
+
+  const mergedBusinessTypes = businessTypeList.length > 0 ? businessTypeList : apiBusinessTypes?.result || [];
+  const mergedUserList = userList.length > 0 ? userList : apiUsers ? Object.values(apiUsers).flat() : [];
+>>>>>>> 4f4e967c610d48ceb629531ba489f825fd4776e5
   return (
     <Box>
       {/* ส่วนข้อมูลการติดต่อ */}

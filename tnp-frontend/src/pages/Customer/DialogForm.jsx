@@ -66,7 +66,7 @@ function DialogForm(props) {
     data: dataUser,
     isLoading: loadingUser,
     isError: errorUser,
-  } = useGetUserByRoleQuery("all");
+  } = useGetUserByRoleQuery();
   const {
     data: dataLocation,
     isLoading: loadingLocation,
@@ -87,8 +87,13 @@ function DialogForm(props) {
   };
 
   // Create lists for form selections
+<<<<<<< HEAD
   const userList = dataUser?.result || [];
   const businessTypeList = dataBt || [];
+=======
+  const userList = dataUser ? Object.values(dataUser).flat() : [];
+  const businessTypeList = dataBt?.result || [];
+>>>>>>> 4f4e967c610d48ceb629531ba489f825fd4776e5
 
   // Location data
   const provincesList = dataLocation?.province || [];

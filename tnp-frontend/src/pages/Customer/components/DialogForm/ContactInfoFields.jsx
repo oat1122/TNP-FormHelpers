@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Grid, InputAdornment, Box, Typography, Paper, FormControl, InputLabel, MenuItem, CircularProgress } from "@mui/material";
 import { MdPhone, MdEmail, MdContactPhone, MdReceipt, MdSignalCellularAlt, MdBusiness, MdPerson } from "react-icons/md";
 import { StyledTextField, StyledSelect } from "./StyledComponents";
@@ -11,14 +11,64 @@ const channelOptions = [
 ];
 
 function ContactInfoFields({ inputList, handleInputChange, errors, mode, businessTypeList = [], userList = [] }) {
+  // ดึงข้อมูล user ปัจจุบันจาก localStorage
+  const currentUser = JSON.parse(localStorage.getItem("userData"));
+  const isAdmin = currentUser?.role === "admin";
+  const isSales = currentUser?.role === "sale";
+
   const {
     data: apiBusinessTypes,
     isLoading: loadingBusinessTypes,
-  } = useGetAllBusinessTypesQuery(undefined, { skip: businessTypeList.length > 0 });
-  const { data: apiUsers, isLoading: loadingUsers } = useGetUserByRoleQuery('all', { skip: userList.length > 0 });
+  } = useGetAllBusinessTypesQuery();
 
-  const mergedBusinessTypes = businessTypeList.length > 0 ? businessTypeList : apiBusinessTypes?.result || [];
-  const mergedUserList = userList.length > 0 ? userList : apiUsers?.result || [];
+  // ดึงข้อมูล users ตาม role (admin ดูได้ทุกคน, sales ดูเฉพาะ sales)
+  const { data: apiUsers, isLoading: loadingUsers, error: usersError } = useGetUserByRoleQuery(
+    isAdmin ? 'sale,manager,admin' : 'sale', // Admin ดูได้หลาย roles
+    { skip: userList.length > 0 }
+  );
+
+  const mergedBusinessTypes = businessTypeList.length > 0 ? businessTypeList : apiBusinessTypes || [];
+
+  // จัดการข้อมูล users สำหรับผู้ดูแล
+  let mergedUserList = [];
+  if (userList.length > 0) {
+    mergedUserList = userList;
+  } else if (apiUsers) {
+    if (isAdmin) {
+      // Admin รวม users จากทุก role ที่ได้
+      const allRoleUsers = [];
+      ['sale_role', 'manager_role', 'admin_role'].forEach(roleKey => {
+        if (apiUsers[roleKey] && Array.isArray(apiUsers[roleKey])) {
+          allRoleUsers.push(...apiUsers[roleKey]);
+        }
+      });
+      mergedUserList = allRoleUsers;
+    } else if (isSales) {
+      // Sales ดูเฉพาะ sales role
+      if (apiUsers.sale_role && Array.isArray(apiUsers.sale_role)) {
+        mergedUserList = apiUsers.sale_role;
+      }
+    }
+  }
+
+  // Fallback: หากไม่มีข้อมูลจาก API ให้ใช้ currentUser
+  if (mergedUserList.length === 0 && currentUser) {
+    mergedUserList = [currentUser];
+  }
+
+  // useEffect สำหรับ auto-assign ผู้ดูแลถ้าเป็น sales role
+  useEffect(() => {
+    if (isSales && !inputList.cus_manage_by && mode !== 'view' && currentUser?.user_id) {
+      // Auto-assign ผู้ดูแลเป็นตัวเอง
+      const fakeEvent = {
+        target: {
+          name: 'cus_manage_by',
+          value: currentUser.user_id
+        }
+      };
+      handleInputChange(fakeEvent);
+    }
+  }, [isSales, currentUser?.user_id, inputList.cus_manage_by, mode, handleInputChange]);
   return (
     <Box>
       {/* ส่วนข้อมูลการติดต่อ */}
@@ -179,6 +229,7 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
           }}
         >
           <MdBusiness style={{ marginRight: 8 }} /> รายละเอียดธุรกิจ
+          <span style={{ color: 'red', marginLeft: 4 }}>*</span>
           {(loadingBusinessTypes || loadingUsers) && (
             <CircularProgress size={16} sx={{ ml: 1 }} />
           )}
@@ -228,26 +279,38 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
             </FormControl>
           </Grid>
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth size="small">
+            <FormControl 
+              fullWidth 
+              size="small"
+              disabled={mode === 'view'} // แก้ไข: เอา isSales ออก เพื่อให้สามารถเลือกได้
+            >
               <InputLabel>ผู้ดูแล</InputLabel>
               <StyledSelect
                 label="ผู้ดูแล"
                 name="cus_manage_by"
-                value={
-                  inputList.cus_manage_by && typeof inputList.cus_manage_by === 'object'
-                    ? inputList.cus_manage_by.user_id || ''
-                    : inputList.cus_manage_by || ''
-                }
+                value={inputList.cus_manage_by || ''} // แก้ไข: ใช้ค่าใน inputList โดยตรง
                 onChange={handleInputChange}
-                readOnly={mode === 'view'}
+                readOnly={isSales && mode !== 'view'} // แก้ไข: ใช้ readOnly แทน disabled สำหรับ sales
+                sx={{
+                  '& .MuiInputBase-input': {
+                    backgroundColor: isSales && mode !== 'view' ? '#f5f5f5' : 'inherit'
+                  }
+                }}
               >
                 <MenuItem value="">ไม่มีผู้ดูแล</MenuItem>
                 {mergedUserList.map((user) => (
                   <MenuItem key={user.user_id} value={user.user_id}>
-                    {user.username}
+                    {user.user_nickname || user.username}
+                    {user.role && isAdmin && ` (${user.role})`}
+                    {user.user_id === currentUser?.user_id && ' (คุณ)'}
                   </MenuItem>
                 ))}
               </StyledSelect>
+              {isSales && mode !== 'view' && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  คุณถูกกำหนดเป็นผู้ดูแลโดยอัตโนมัติ
+                </Typography>
+              )}
             </FormControl>
           </Grid>
         </Grid>

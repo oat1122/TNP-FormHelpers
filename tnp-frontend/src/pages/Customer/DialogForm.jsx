@@ -88,7 +88,7 @@ function DialogForm(props) {
 
   // Create lists for form selections
   const userList = dataUser?.result || [];
-  const businessTypeList = dataBt?.result || [];
+  const businessTypeList = dataBt || [];
 
   // Location data
   const provincesList = dataLocation?.province || [];

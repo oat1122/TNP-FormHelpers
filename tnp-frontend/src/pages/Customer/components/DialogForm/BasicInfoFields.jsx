@@ -6,6 +6,50 @@ import { MdPerson, MdWork, MdBusinessCenter } from "react-icons/md";
 function BasicInfoFields({ inputList, handleInputChange, errors, mode }) {
   return (
     <Box>
+      {/* ส่วนข้อมูลบริษัท */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider'
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{
+            mb: 2,
+            display: 'flex',
+            alignItems: 'center',
+            color: 'text.secondary',
+            fontWeight: 500
+          }}
+        >
+          <MdBusinessCenter style={{ marginRight: 8 }} /> ข้อมูลบริษัท
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <StyledTextField
+              fullWidth
+              required
+              label="ชื่อบริษัท"
+              size="small"
+              name="cus_company"
+              placeholder="ชื่อบริษัท"
+              value={inputList.cus_company || ''}
+              onChange={handleInputChange}
+              error={!!errors.cus_company}
+              helperText={errors.cus_company}
+              InputProps={{
+                readOnly: mode === 'view'
+              }}
+            />
+          </Grid>
+        </Grid>
+      </Paper>
       {/* ส่วนข้อมูลส่วนตัว */}
       <Paper 
         elevation={0} 

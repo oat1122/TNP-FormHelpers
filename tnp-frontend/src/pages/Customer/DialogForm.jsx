@@ -174,7 +174,17 @@ function DialogForm(props) {
       
       // Sanitize company name - remove problematic characters
       if (name === 'cus_company') {
-        value = value.replace(/[<>%$#@^&*()+={}[\]:;'"|\\\`]/g, '');
+        value = value.replace(/[<>%$#@^&*()+={}[\]:;'"|\\`]/g, '');
+      }
+
+      // Convert manage_by selection to object
+      if (name === 'cus_manage_by') {
+        if (value === '') {
+          value = { user_id: '', username: '' };
+        } else {
+          const found = userList.find((u) => u.user_id === value);
+          value = found ? { user_id: found.user_id, username: found.username } : { user_id: '', username: '' };
+        }
       }
       
       // Clear previous auto-save timer
@@ -253,7 +263,7 @@ function DialogForm(props) {
 
       dispatch(setInputList(updatedInputList));
     },
-    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList, formatPhoneNumber]
+    [inputList, autoSaveTimer, autoSaveForm, dispatch, districtList, locationSearch, provincesList, subDistrictList, formatPhoneNumber, userList]
   );
 
   // Handle location selection

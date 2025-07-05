@@ -15,10 +15,10 @@ function ContactInfoFields({ inputList, handleInputChange, errors, mode, busines
     data: apiBusinessTypes,
     isLoading: loadingBusinessTypes,
   } = useGetAllBusinessTypesQuery(undefined, { skip: businessTypeList.length > 0 });
-  const { data: apiUsers, isLoading: loadingUsers } = useGetUserByRoleQuery('all', { skip: userList.length > 0 });
+  const { data: apiUsers, isLoading: loadingUsers } = useGetUserByRoleQuery(undefined, { skip: userList.length > 0 });
 
   const mergedBusinessTypes = businessTypeList.length > 0 ? businessTypeList : apiBusinessTypes?.result || [];
-  const mergedUserList = userList.length > 0 ? userList : apiUsers?.result || [];
+  const mergedUserList = userList.length > 0 ? userList : apiUsers ? Object.values(apiUsers).flat() : [];
   return (
     <Box>
       {/* ส่วนข้อมูลการติดต่อ */}

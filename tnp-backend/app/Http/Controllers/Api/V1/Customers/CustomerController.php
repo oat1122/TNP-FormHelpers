@@ -503,7 +503,28 @@ class CustomerController extends Controller
                 ], 404);
             }
 
-            $customer_detail = CustomerDetail::findOrFail($id);
+            $customer_detail = CustomerDetail::find($id);
+
+            // If the provided id does not match a detail record, try locating by customer id
+            if (!$customer_detail && $request->has('cus_id')) {
+                $customer_detail = CustomerDetail::firstOrCreate(
+                    ['cd_cus_id' => $request->cus_id],
+                    [
+                        'cd_id' => (string) Str::uuid(),
+                        'cd_created_date' => now(),
+                        'cd_created_by' => Auth::id(),
+                        'cd_is_use' => true,
+                    ]
+                );
+            }
+
+            if (!$customer_detail) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Customer detail not found.'
+                ], 404);
+            }
+
             $customer_detail->fill($update_input);
             $customer_detail->cd_last_datetime = $this->customer_service->setRecallDatetime($group_q->mcg_recall_default);
             $customer_detail->cd_updated_date = now();

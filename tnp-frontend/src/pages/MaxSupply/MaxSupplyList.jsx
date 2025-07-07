@@ -64,7 +64,7 @@ import {
 // Components
 import TitleBar from "../../components/TitleBar";
 import StyledDataGrid from "../../components/StyledDataGrid";
-import FilterTab from "./FilterTab";
+import FilterTab from "./components/FilterTab";
 import AuditDialog from "./components/AuditDialog";
 
 // Utils

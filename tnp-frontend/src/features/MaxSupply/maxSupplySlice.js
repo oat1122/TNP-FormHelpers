@@ -27,6 +27,37 @@ const initialState = {
       startDate: null,
       endDate: null,
     },
+    overdue: false,
+    startingSoon: false,
+    customer: '',
+    productType: '',
+    quantityRange: {
+      min: null,
+      max: null,
+    },
+    printPointsRange: {
+      min: null,
+      max: null,
+    },
+  },
+  
+  // Stats
+  stats: {
+    total: 0,
+    pending: 0,
+    in_progress: 0,
+    completed: 0,
+    cancelled: 0,
+    overdue: 0,
+    startingSoon: 0,
+  },
+  
+  // Preferences
+  preferences: {
+    defaultView: 'list',
+    itemsPerPage: 15,
+    autoRefresh: false,
+    showQuickStats: true,
   },
   
   // Pagination
@@ -79,9 +110,49 @@ export const useMaxSupplyStore = create(
         filters: { ...state.filters, ...filters }
       })),
       
+      updateFilter: (filter, value) => set((state) => ({
+        filters: { ...state.filters, [filter]: value }
+      })),
+      
       resetFilters: () => set({
         filters: initialState.filters
       }),
+      
+      // Stats management
+      setStats: (stats) => set((state) => ({
+        stats: { ...state.stats, ...stats }
+      })),
+      
+      updateStats: (data) => {
+        const stats = {
+          total: data.length,
+          pending: data.filter(item => item.status === 'pending').length,
+          in_progress: data.filter(item => item.status === 'in_progress').length,
+          completed: data.filter(item => item.status === 'completed').length,
+          cancelled: data.filter(item => item.status === 'cancelled').length,
+          overdue: data.filter(item => {
+            const endDate = new Date(item.end_date);
+            const now = new Date();
+            return endDate < now && item.status !== 'completed';
+          }).length,
+          startingSoon: data.filter(item => {
+            const startDate = new Date(item.start_date);
+            const now = new Date();
+            const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+            return startDate >= now && startDate <= threeDaysFromNow;
+          }).length,
+        };
+        set({ stats });
+      },
+      
+      // Preferences management
+      setPreference: (key, value) => set((state) => ({
+        preferences: { ...state.preferences, [key]: value }
+      })),
+      
+      setPreferences: (preferences) => set((state) => ({
+        preferences: { ...state.preferences, ...preferences }
+      })),
       
       setPaginationModel: (paginationModel) => set({ paginationModel }),
       
@@ -129,9 +200,98 @@ export const useMaxSupplyStore = create(
         formData: { ...state.formData, [field]: value }
       })),
       
-      updateFilter: (filter, value) => set((state) => ({
-        filters: { ...state.filters, [filter]: value }
-      })),
+      // Apply filters to data
+      getFilteredData: (data) => {
+        const { filters } = get();
+        let filtered = [...data];
+        
+        // Search filter
+        if (filters.search) {
+          const searchTerm = filters.search.toLowerCase();
+          filtered = filtered.filter(item => 
+            item.production_code?.toLowerCase().includes(searchTerm) ||
+            item.customer_name?.toLowerCase().includes(searchTerm) ||
+            item.product_name?.toLowerCase().includes(searchTerm) ||
+            item.notes?.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        // Status filter
+        if (filters.status && filters.status !== 'all') {
+          filtered = filtered.filter(item => item.status === filters.status);
+        }
+        
+        // Priority filter
+        if (filters.priority && filters.priority !== 'all') {
+          filtered = filtered.filter(item => item.priority === filters.priority);
+        }
+        
+        // Date range filter
+        if (filters.dateRange?.startDate) {
+          const startDate = new Date(filters.dateRange.startDate);
+          filtered = filtered.filter(item => new Date(item.start_date) >= startDate);
+        }
+        
+        if (filters.dateRange?.endDate) {
+          const endDate = new Date(filters.dateRange.endDate);
+          filtered = filtered.filter(item => new Date(item.end_date) <= endDate);
+        }
+        
+        // Overdue filter
+        if (filters.overdue) {
+          const now = new Date();
+          filtered = filtered.filter(item => {
+            const endDate = new Date(item.end_date);
+            return endDate < now && item.status !== 'completed';
+          });
+        }
+        
+        // Starting soon filter
+        if (filters.startingSoon) {
+          const now = new Date();
+          const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+          filtered = filtered.filter(item => {
+            const startDate = new Date(item.start_date);
+            return startDate >= now && startDate <= threeDaysFromNow;
+          });
+        }
+        
+        // Customer filter
+        if (filters.customer) {
+          const customerTerm = filters.customer.toLowerCase();
+          filtered = filtered.filter(item => 
+            item.customer_name?.toLowerCase().includes(customerTerm)
+          );
+        }
+        
+        // Product type filter
+        if (filters.productType) {
+          const productTypeTerm = filters.productType.toLowerCase();
+          filtered = filtered.filter(item => 
+            item.product_name?.toLowerCase().includes(productTypeTerm)
+          );
+        }
+        
+        // Quantity range filter
+        if (filters.quantityRange?.min !== null) {
+          filtered = filtered.filter(item => item.quantity >= filters.quantityRange.min);
+        }
+        
+        if (filters.quantityRange?.max !== null) {
+          filtered = filtered.filter(item => item.quantity <= filters.quantityRange.max);
+        }
+        
+        // Print points range filter
+        if (filters.printPointsRange?.min !== null) {
+          filtered = filtered.filter(item => item.print_points >= filters.printPointsRange.min);
+        }
+        
+        if (filters.printPointsRange?.max !== null) {
+          filtered = filtered.filter(item => item.print_points <= filters.printPointsRange.max);
+        }
+        
+        return filtered;
+      },
       
       // Calculated form fields
       calculatePrintPoints: () => {

@@ -17,6 +17,9 @@ use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
+use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
+use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
+use App\Http\Controllers\Api\V1\MaxSupply\UploadController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -150,5 +153,11 @@ Route::prefix('v1')->group(function() {
         Route::put('/business-types/{id}', 'update_business_type');
         Route::delete('/business-types/{id}', 'delete_business_type');
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
+
     });
+    //---------- Max Supply ----------
+    Route::apiResource("max-supply", MaxSupplyController::class);
+    Route::patch("max-supply/{id}/status", [MaxSupplyController::class, "updateStatus"]);
+    Route::get("max-supply/calendar", [CalendarController::class, "index"]);
+    Route::post("max-supply/upload", [UploadController::class, "store"]);
 });

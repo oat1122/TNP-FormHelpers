@@ -75,29 +75,40 @@ export const generateProductionCode = () => {
  * Validate file for upload
  */
 export const validateFile = (file) => {
-  const errors = [];
   const maxSize = 10 * 1024 * 1024; // 10MB
   const allowedTypes = [
     'image/jpeg',
+    'image/jpg', 
     'image/png',
     'image/gif',
     'image/webp',
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
   ];
 
+  // Check file size
   if (file.size > maxSize) {
-    errors.push('ไฟล์ต้องมีขนาดไม่เกิน 10MB');
+    return {
+      isValid: false,
+      error: 'ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)',
+    };
   }
 
+  // Check file type
   if (!allowedTypes.includes(file.type)) {
-    errors.push('ประเภทไฟล์ไม่ถูกต้อง (รองรับ: JPEG, PNG, GIF, WebP, PDF, DOC, DOCX)');
+    return {
+      isValid: false,
+      error: 'ไม่รองรับไฟล์ประเภทนี้',
+    };
   }
 
   return {
-    isValid: errors.length === 0,
-    errors,
+    isValid: true,
+    error: null,
   };
 };
 

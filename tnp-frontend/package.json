@@ -20,7 +20,7 @@
     "@mui/material": "^6.3.0",
     "@mui/system": "^6.3.0",
     "@mui/x-data-grid": "^7.25.0",
-    "@mui/x-date-pickers": "^7.25.0",
+    "@mui/x-date-pickers": "^7.29.4",
     "@reduxjs/toolkit": "^1.9.3",
     "@tanstack/react-query": "^5.81.5",
     "@tanstack/react-query-devtools": "^5.81.5",

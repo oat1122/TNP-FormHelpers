@@ -73,13 +73,17 @@ const maxSupplySchema = z.object({
   product_name: z.string().min(1, "ชื่อสินค้าจำเป็น"),
   quantity: z.number().min(1, "จำนวนต้องมากกว่า 0"),
   print_points: z.number().min(0, "จุดพิมพ์ต้องไม่น้อยกว่า 0"),
-  start_date: z.date({ required_error: "วันที่เริ่มต้นจำเป็น" }),
-  end_date: z.date({ required_error: "วันที่สิ้นสุดจำเป็น" }),
+  start_date: z.any().refine((val) => moment.isMoment(val) && val.isValid(), {
+    message: "วันที่เริ่มต้นจำเป็น",
+  }),
+  end_date: z.any().refine((val) => moment.isMoment(val) && val.isValid(), {
+    message: "วันที่สิ้นสุดจำเป็น",
+  }),
   status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   notes: z.string().optional(),
 }).refine((data) => {
-  return moment(data.end_date).isAfter(moment(data.start_date));
+  return data.end_date.isAfter(data.start_date);
 }, {
   message: "วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น",
   path: ["end_date"],
@@ -137,8 +141,8 @@ function MaxSupplyForm({ mode = "create" }) {
       product_name: "",
       quantity: 0,
       print_points: 0,
-      start_date: moment().toDate(),
-      end_date: moment().add(7, 'days').toDate(),
+      start_date: moment(),
+      end_date: moment().add(7, 'days'),
       status: "pending",
       priority: "medium",
       notes: "",
@@ -165,8 +169,8 @@ function MaxSupplyForm({ mode = "create" }) {
         product_name: data.product_name,
         quantity: data.quantity,
         print_points: data.print_points,
-        start_date: moment(data.start_date).toDate(),
-        end_date: moment(data.end_date).toDate(),
+        start_date: moment(data.start_date),
+        end_date: moment(data.end_date),
         status: data.status,
         priority: data.priority,
         notes: data.notes || "",
@@ -194,8 +198,8 @@ function MaxSupplyForm({ mode = "create" }) {
     if (worksheet.due_date) {
       const dueDate = moment(worksheet.due_date);
       const startDate = dueDate.clone().subtract(7, 'days');
-      setValue("start_date", startDate.toDate());
-      setValue("end_date", dueDate.toDate());
+      setValue("start_date", startDate);
+      setValue("end_date", dueDate);
     }
 
     setActiveStep(1); // Move to next step
@@ -213,8 +217,8 @@ function MaxSupplyForm({ mode = "create" }) {
     try {
       const submitData = {
         ...data,
-        start_date: moment(data.start_date).format('YYYY-MM-DD'),
-        end_date: moment(data.end_date).format('YYYY-MM-DD'),
+        start_date: data.start_date.format('YYYY-MM-DD'),
+        end_date: data.end_date.format('YYYY-MM-DD'),
         created_by: JSON.parse(localStorage.getItem("userData"))?.user_uuid,
       };
 
@@ -487,9 +491,13 @@ function MaxSupplyForm({ mode = "create" }) {
                         <Controller
                           name="start_date"
                           control={control}
-                          render={({ field }) => (
+                          render={({ field: { value, onChange, ...field } }) => (
                             <DatePicker
                               {...field}
+                              value={value}
+                              onChange={(newValue) => {
+                                onChange(newValue);
+                              }}
                               label="วันที่เริ่มต้น"
                               disabled={mode === "view"}
                               slotProps={{
@@ -508,9 +516,13 @@ function MaxSupplyForm({ mode = "create" }) {
                         <Controller
                           name="end_date"
                           control={control}
-                          render={({ field }) => (
+                          render={({ field: { value, onChange, ...field } }) => (
                             <DatePicker
                               {...field}
+                              value={value}
+                              onChange={(newValue) => {
+                                onChange(newValue);
+                              }}
                               label="วันที่สิ้นสุด"
                               disabled={mode === "view"}
                               slotProps={{

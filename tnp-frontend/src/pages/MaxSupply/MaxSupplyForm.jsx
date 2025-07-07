@@ -75,6 +75,7 @@ import { useWorksheetList } from "../../features/Worksheet/worksheetApi";
 import { useMaxSupplyStore } from "../../features/MaxSupply/maxSupplySlice";
 import {
   calculatePrintPointsFromWorksheet,
+  summarizePrintPoints,
   generateProductionCode,
   getStatusConfig,
   getPriorityConfig,
@@ -121,6 +122,7 @@ function MaxSupplyForm({ mode = "create" }) {
   // State
   const [activeStep, setActiveStep] = useState(0);
   const [selectedWorksheet, setSelectedWorksheet] = useState(null);
+  const [worksheetPrintSummary, setWorksheetPrintSummary] = useState("");
   const [worksheetSearchTerm, setWorksheetSearchTerm] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -225,7 +227,9 @@ function MaxSupplyForm({ mode = "create" }) {
     if (!worksheet) return;
 
     setSelectedWorksheet(worksheet);
-    
+    const { summary, total } = summarizePrintPoints(worksheet);
+    setWorksheetPrintSummary(summary);
+
     // Auto-fill form with worksheet data
     setValue("worksheet_id", worksheet.worksheet_id);
     setValue(
@@ -243,7 +247,7 @@ function MaxSupplyForm({ mode = "create" }) {
     
     // Calculate print points - จำนวนเต็ม
     const printPoints = Math.max(1, Math.ceil(calculatePrintPointsFromWorksheet(worksheet)));
-    setValue("print_points", printPoints);
+    setValue("print_points", printPoints || total || 1);
 
     // Set default dates based on due date
     const startDate = moment(); // วันนี้
@@ -326,8 +330,13 @@ function MaxSupplyForm({ mode = "create" }) {
     setActiveStep(prev => Math.max(prev - 1, 0));
   };
 
+  const handleStepClick = (index) => {
+    setActiveStep(index);
+  };
+
   const handleResetWorksheet = () => {
     setSelectedWorksheet(null);
+    setWorksheetPrintSummary("");
     setValue("worksheet_id", "");
     
     // Clear auto-filled data (but keep manually entered data)
@@ -449,7 +458,9 @@ function MaxSupplyForm({ mode = "create" }) {
                   >
                     {steps.map((step, index) => (
                       <Step key={step.label} completed={completedSteps.has(index)}>
-                        <StepLabel 
+                        <StepLabel
+                          onClick={() => handleStepClick(index)}
+                          sx={{ cursor: 'pointer' }}
                           StepIconComponent={({ active, completed }) => (
                             <Box
                               sx={{
@@ -578,6 +589,11 @@ function MaxSupplyForm({ mode = "create" }) {
                               <Typography variant="caption" color="warning.main" sx={{ fontWeight: 'bold' }}>
                                 กำหนดส่ง: {moment(option.due_date).format('D MMMM YYYY')}
                               </Typography>
+                              {option.status?.title && (
+                                <Typography variant="caption" color="info.main" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                  สถานะ: {option.status.title}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
                         )}
@@ -625,8 +641,8 @@ function MaxSupplyForm({ mode = "create" }) {
                             <Typography variant="body2">
                               กรอกข้อมูลพื้นฐานของงานผลิต
                             </Typography>
-                            <Typography variant="caption" sx={{ 
-                              color: 'secondary.contrastText', 
+                            <Typography variant="caption" sx={{
+                              color: 'secondary.contrastText',
                               fontWeight: 'bold',
                               backgroundColor: 'rgba(255,255,255,0.1)',
                               px: 1,
@@ -637,6 +653,11 @@ function MaxSupplyForm({ mode = "create" }) {
                             }}>
                               📋 ใบงาน: {selectedWorksheet.work_id} - {selectedWorksheet.work_name}
                             </Typography>
+                            {selectedWorksheet.status?.title && (
+                              <Typography variant="caption" sx={{ color: 'secondary.contrastText', fontWeight: 'bold' }}>
+                                สถานะ: {selectedWorksheet.status.title}
+                              </Typography>
+                            )}
                           </Box>
                         ) : "กรอกข้อมูลพื้นฐานของงานผลิต"
                       }
@@ -661,6 +682,11 @@ function MaxSupplyForm({ mode = "create" }) {
                       }
                     />
                     <CardContent sx={{ p: 3 }}>
+                      {selectedWorksheet && worksheetPrintSummary && (
+                        <Alert severity="info" variant="outlined" sx={{ mb: 3 }}>
+                          จุดพิมพ์จากใบงาน: {worksheetPrintSummary}
+                        </Alert>
+                      )}
                       <Grid container spacing={3}>
                         <Grid xs={12} md={6}>
                           <Controller

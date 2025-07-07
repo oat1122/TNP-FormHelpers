@@ -1285,7 +1285,6 @@ function FilterPanel() {
                                 maxHeight: 300,
                               },
                               sx: {
-                                borderRadius: 2,
                                 mt: 0.5,
                                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
                                 border: "1px solid rgba(148, 12, 12, 0.2)",

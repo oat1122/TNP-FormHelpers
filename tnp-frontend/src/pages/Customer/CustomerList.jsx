@@ -402,21 +402,22 @@ function CustomerList() {
       open_dialog_loading();
 
       const inputUpdate = {
+        cus_id: params.cus_id,
         cus_mcg_id: params.cus_mcg_id,
         cd_id: params.cd_id,
         cd_updated_by: user.user_id,
       };
 
       try {
-        const res = await updateRecall(inputUpdate);
+        const res = await updateRecall(inputUpdate).unwrap();
 
-        if (res.data.status === "success") {
+        if (res.status === "success") {
           open_dialog_ok_timer("รีเซตเวลาสำเร็จ");
           // Scroll to top after recall timer reset is successful
           scrollToTop();
         }
       } catch (error) {
-        open_dialog_error(error.message, error);
+        open_dialog_error(error.data?.message || error.message, error);
         console.error(error);
       }
     }

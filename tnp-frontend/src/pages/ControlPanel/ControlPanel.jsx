@@ -17,6 +17,7 @@ import {
   FaUserClock,
   FaUsers,
   FaChartBar,
+  FaIndustry,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -236,10 +237,18 @@ function ControlPanel() {
           </div>
         </div>
       </div>
-      <div className="row col-12 col-md-11 col-lg-8 mt-4 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
+      <div className="row col-12 col-md-11 col-lg-8 mt-4 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
         <h3>SPECIFIC MANAGER TOOLS</h3>
         <hr />
         <div className="col-2 ms-md-1 ms-lg-2 col-basic">
+          <a className="btn btn-outline-danger pt-3" href="/max-supply">
+            <IconContext.Provider value={{ className: "icon-control-panel" }}>
+              <FaIndustry />
+            </IconContext.Provider>
+            <label>MAX SUPPLY</label>
+          </a>
+        </div>
+        <div className="col-2 ms-1 ms-md-3 ms-lg-3 col-basic">
           <a
             className="btn btn-outline-danger disable-link pt-3"
             href="#"

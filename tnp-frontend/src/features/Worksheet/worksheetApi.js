@@ -1,5 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { apiConfig } from "../../api/apiConfig";
+import { apiConfig, apiClient } from "../../api/apiConfig";
+import { useQuery } from '@tanstack/react-query';
+import qs from 'qs';
 
 export const worksheetApi = createApi({
   reducerPath: "worksheetApi",
@@ -57,6 +59,46 @@ export const worksheetApi = createApi({
     }),
   }),
 });
+
+// Tanstack Query API Functions for MaxSupply integration
+const worksheetAPI = {
+  getAll: async (filters = {}) => {
+    const queryParams = {
+      page: filters?.page || 1,
+      per_page: filters?.per_page || 10,
+      search: filters?.search,
+    };
+
+    const queryString = qs.stringify(queryParams, { skipNulls: true });
+    const url = queryString ? `/api/v1/worksheets?${queryString}` : '/api/v1/worksheets';
+    
+    const response = await apiClient.get(url);
+    return response.data;
+  },
+
+  getById: async (id) => {
+    const response = await apiClient.get(`/api/v1/worksheets/${id}`);
+    return response.data;
+  },
+};
+
+// Tanstack Query Hooks
+export const useWorksheetList = (filters = {}) => {
+  return useQuery({
+    queryKey: ['worksheets', 'list', filters],
+    queryFn: () => worksheetAPI.getAll(filters),
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useWorksheetDetail = (id) => {
+  return useQuery({
+    queryKey: ['worksheets', 'detail', id],
+    queryFn: () => worksheetAPI.getById(id),
+    enabled: !!id,
+  });
+};
 
 export const {
   useGetAllWorksheetQuery,

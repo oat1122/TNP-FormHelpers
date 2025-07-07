@@ -22,6 +22,11 @@ const UserList = lazy(() => import("./pages/UserManagement/UserList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
+// MaxSupply Components
+const MaxSupplyList = lazy(() => import("./pages/MaxSupply/MaxSupplyList"));
+const MaxSupplyForm = lazy(() => import("./pages/MaxSupply/MaxSupplyForm"));
+const MaxSupplyCalendar = lazy(() => import("./pages/MaxSupply/MaxSupplyCalendar"));
+
 function App() {
   return (
     <AppTheme>
@@ -50,6 +55,13 @@ function App() {
             <Route path="/pricing/create" element={<PricingForm mode="create" />} />
             <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
             <Route path="/pricing/view/:id" element={<PricingForm mode="view" />} />
+
+            {/* MaxSupply Routes */}
+            <Route path="/max-supply" element={<MaxSupplyList />} />
+            <Route path="/max-supply/create" element={<MaxSupplyForm mode="create" />} />
+            <Route path="/max-supply/edit/:id" element={<MaxSupplyForm mode="edit" />} />
+            <Route path="/max-supply/view/:id" element={<MaxSupplyForm mode="view" />} />
+            <Route path="/max-supply/calendar" element={<MaxSupplyCalendar />} />
 
             <Route path="/test" element={<Testing />} />
           </Route>

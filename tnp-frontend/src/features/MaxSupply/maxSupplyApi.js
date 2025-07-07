@@ -4,19 +4,19 @@ import qs from 'qs';
 
 // API Configuration
 const MAX_SUPPLY_ENDPOINTS = {
-  list: '/api/v1/max-supply',
-  detail: (id) => `/api/v1/max-supply/${id}`,
-  create: '/api/v1/max-supply',
-  update: (id) => `/api/v1/max-supply/${id}`,
-  delete: (id) => `/api/v1/max-supply/${id}`,
-  updateStatus: (id) => `/api/v1/max-supply/${id}/status`,
-  calendar: '/api/v1/max-supply/calendar',
-  auditLogs: (id) => `/api/v1/max-supply/${id}/audit-logs`,
-  stats: '/api/v1/max-supply/dashboard/stats',
-  files: (id) => `/api/v1/max-supply/${id}/files`,
-  uploadFiles: (id) => `/api/v1/max-supply/${id}/files`,
-  deleteFile: (maxSupplyId, fileId) => `/api/v1/max-supply/${maxSupplyId}/files/${fileId}`,
-  downloadFile: (maxSupplyId, fileId) => `/api/v1/max-supply/${maxSupplyId}/files/${fileId}/download`,
+  list: '/max-supply',
+  detail: (id) => `/max-supply/${id}`,
+  create: '/max-supply',
+  update: (id) => `/max-supply/${id}`,
+  delete: (id) => `/max-supply/${id}`,
+  updateStatus: (id) => `/max-supply/${id}/status`,
+  calendar: '/max-supply/calendar',
+  auditLogs: (id) => `/max-supply/${id}/audit-logs`,
+  stats: '/max-supply/dashboard/stats',
+  files: (id) => `/max-supply/${id}/files`,
+  uploadFiles: (id) => `/max-supply/${id}/files`,
+  deleteFile: (maxSupplyId, fileId) => `/max-supply/${maxSupplyId}/files/${fileId}`,
+  downloadFile: (maxSupplyId, fileId) => `/max-supply/${maxSupplyId}/files/${fileId}/download`,
 };
 
 // Query Keys

@@ -70,14 +70,14 @@ const worksheetAPI = {
     };
 
     const queryString = qs.stringify(queryParams, { skipNulls: true });
-    const url = queryString ? `/api/v1/worksheets?${queryString}` : '/api/v1/worksheets';
+    const url = queryString ? `/worksheets?${queryString}` : '/worksheets';
     
     const response = await apiClient.get(url);
     return response.data;
   },
 
   getById: async (id) => {
-    const response = await apiClient.get(`/api/v1/worksheets/${id}`);
+    const response = await apiClient.get(`/worksheets/${id}`);
     return response.data;
   },
 };

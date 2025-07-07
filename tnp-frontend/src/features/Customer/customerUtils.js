@@ -10,15 +10,16 @@ dayjs.locale("th");
 
 // แปลงค่าวันที่ตามลูกค้า ให้อยู่ในรูปแบบนับเวลาถอยหลัง
 export function formatCustomRelativeTime(dateString) {
-  const endOfDay = moment(dateString).endOf("day");
+  const recallDate = moment(dateString);
   const now = moment();
-  const diffInDays = endOfDay.diff(now, "days");
+  const diffInDays = recallDate.diff(now, "days", true); // use fractional days
+  const roundedDays = Math.ceil(diffInDays);
 
-  if (diffInDays >= 0) {
-    // Check for future dates
-    return diffInDays; // Customize the format for future
+  if (roundedDays >= 0) {
+    // Ensure at least 1 day when hours remain
+    return roundedDays;
   } else {
-    return "0"; // Customize for past
+    return 0; // Past dates return zero
   }
 }
 

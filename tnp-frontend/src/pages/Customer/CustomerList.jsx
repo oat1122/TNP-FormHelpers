@@ -82,10 +82,7 @@ import FilterPanel from "./FilterPanel";
 import FilterTags from "./FilterTags";
 import ScrollContext from "./ScrollContext";
 import ScrollTopButton from "./ScrollTopButton";
-import {
-  formatCustomRelativeTime,
-  genCustomerNo,
-} from "../../features/Customer/customerUtils";
+import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
 import DialogForm from "./DialogForm";
 import { swal_delete_by_id } from "../../utils/dialog_swal2/dialog_delete_by_id";
 import {

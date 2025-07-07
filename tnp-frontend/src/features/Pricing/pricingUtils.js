@@ -13,22 +13,6 @@ export function formatCustomRelativeTime(dateString) {
   }
 }
 
-export function genCustomerNo(lastCustomerNumber = null)
-{
-  const currentYear = moment().year().toString();
-
-  let nextId;
-  if (lastCustomerNumber) {
-    const lastYear = lastCustomerNumber.substring(0, 4);
-    const lastId = parseInt(lastCustomerNumber.substring(4), 10);
-
-    nextId = lastYear === currentYear ? lastId + 1 : 1;
-  } else {
-    nextId = 1;
-  }
-
-  return `${currentYear}${nextId.toString().padStart(6, "0")}`;
-};
 
 export function validateValue(props) {
   let result = "";

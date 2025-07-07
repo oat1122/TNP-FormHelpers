@@ -38,6 +38,22 @@ class CustomerService
         return $datetime;
     }
 
+    /**
+     * Sanitize phone and tax ID fields by stripping non-digit characters.
+     *
+     * @param array $data    Input data array passed by reference.
+     * @param array $fields  List of keys to clean.
+     * @return void
+     */
+    public function sanitizeNumbers(array &$data, array $fields = ['cus_tel_1', 'cus_tel_2', 'cus_tax_id']): void
+    {
+        foreach ($fields as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = preg_replace('/\D/', '', $data[$field]);
+            }
+        }
+    }
+
     // generate customer number
     public static function genCustomerNo(string $lastCustomerNumber = null): string
     {

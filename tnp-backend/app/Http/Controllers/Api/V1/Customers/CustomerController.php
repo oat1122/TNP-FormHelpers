@@ -496,6 +496,13 @@ class CustomerController extends Controller
                 ->select('mcg_id', 'mcg_name', 'mcg_recall_default')
                 ->first();
 
+            if (!$group_q) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Customer group not found.'
+                ], 404);
+            }
+
             $customer_detail = CustomerDetail::findOrFail($id);
             $customer_detail->fill($update_input);
             $customer_detail->cd_last_datetime = $this->customer_service->setRecallDatetime($group_q->mcg_recall_default);

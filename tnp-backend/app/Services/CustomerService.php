@@ -33,7 +33,21 @@ class CustomerService
     public function setRecallDatetime($default_recall_datetime)
     {
         $datetime = new DateTime();
-        $datetime->modify('+' . $default_recall_datetime);
+
+        $interval = trim($default_recall_datetime);
+
+        // Ensure the interval string has a leading '+' for DateTime::modify
+        if ($interval !== '' && $interval[0] !== '+') {
+            $interval = '+' . $interval;
+        }
+
+        try {
+            $datetime->modify($interval);
+        } catch (\Exception $e) {
+            // Fallback to current datetime if the interval is invalid
+            \Log::warning('Invalid recall interval provided: ' . $default_recall_datetime);
+        }
+
         $datetime->setTime(23, 59, 59);
         return $datetime;
     }

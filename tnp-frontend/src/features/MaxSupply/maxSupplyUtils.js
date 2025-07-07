@@ -21,45 +21,80 @@ export const formatDateForApi = (date) => {
  */
 export const calculatePrintPointsFromWorksheet = (worksheetData) => {
   if (!worksheetData) return 0;
-  
+
   const {
-    quantity = 0,
-    complexity = 1,
-    fabric_type = 'cotton',
-    screen_count = 1,
-    embroidery_count = 0,
-    dft_count = 0,
+    screen_point = 0,
+    screen_flex = 0,
+    screen_dft = 0,
+    screen_label = 0,
+    screen_embroider = 0,
+    screen_count,
+    embroidery_count,
+    dft_count,
+    quantity,
   } = worksheetData;
 
-  // Base calculation logic (ตามที่ระบุในโครงสร้าง)
-  let basePoints = quantity * 0.1; // 10% ของจำนวน
-  
-  // Complexity multiplier
+  // If explicit screen values exist, sum them
+  const explicit =
+    Number(screen_point) +
+    Number(screen_flex) +
+    Number(screen_dft) +
+    Number(screen_label) +
+    Number(screen_embroider);
+
+  if (explicit > 0) {
+    return explicit;
+  }
+
+  // Fallback to generic fields
+  const q = Number(quantity) || 0;
+  let basePoints = q * 0.1;
+
   const complexityMultiplier = {
-    'simple': 1,
-    'medium': 1.2,
-    'complex': 1.5,
-    'very_complex': 2,
+    simple: 1,
+    medium: 1.2,
+    complex: 1.5,
+    very_complex: 2,
   };
-  
-  basePoints *= complexityMultiplier[complexity] || 1;
-  
-  // Fabric type adjustment
+
+  basePoints *= complexityMultiplier[worksheetData.complexity] || 1;
+
   const fabricMultiplier = {
-    'cotton': 1,
-    'polyester': 1.1,
-    'blend': 1.05,
-    'premium': 1.3,
+    cotton: 1,
+    polyester: 1.1,
+    blend: 1.05,
+    premium: 1.3,
   };
-  
-  basePoints *= fabricMultiplier[fabric_type] || 1;
-  
-  // Additional process points
-  basePoints += (screen_count * 0.5);
-  basePoints += (embroidery_count * 1.0);
-  basePoints += (dft_count * 0.8);
-  
-  return Math.round(basePoints * 100) / 100; // Round to 2 decimal places
+
+  basePoints *= fabricMultiplier[worksheetData.fabric_type] || 1;
+
+  basePoints += (Number(screen_count) || 0) * 0.5;
+  basePoints += (Number(embroidery_count) || 0) * 1.0;
+  basePoints += (Number(dft_count) || 0) * 0.8;
+
+  return Math.round(basePoints * 100) / 100;
+};
+
+export const summarizePrintPoints = (worksheetData) => {
+  if (!worksheetData) return { summary: "", total: 0 };
+
+  const points = {
+    screen_point: Number(worksheetData.screen_point) || 0,
+    screen_flex: Number(worksheetData.screen_flex) || 0,
+    screen_dft: Number(worksheetData.screen_dft) || 0,
+    screen_label: Number(worksheetData.screen_label) || 0,
+    screen_embroider: Number(worksheetData.screen_embroider) || 0,
+  };
+
+  const parts = [];
+  if (points.screen_point) parts.push(`สกรีน ${points.screen_point}`);
+  if (points.screen_flex) parts.push(`เฟล็กซ์ ${points.screen_flex}`);
+  if (points.screen_dft) parts.push(`ดีเอฟที ${points.screen_dft}`);
+  if (points.screen_label) parts.push(`ลาเบล ${points.screen_label}`);
+  if (points.screen_embroider) parts.push(`ปัก ${points.screen_embroider}`);
+
+  const total = Object.values(points).reduce((a, b) => a + b, 0);
+  return { summary: parts.join(" / "), total };
 };
 
 /**

@@ -228,9 +228,18 @@ function MaxSupplyForm({ mode = "create" }) {
     
     // Auto-fill form with worksheet data
     setValue("worksheet_id", worksheet.worksheet_id);
-    setValue("customer_name", worksheet.customer_name || "");
-    setValue("product_name", worksheet.product_name || "");
-    setValue("quantity", worksheet.total_quantity || 0);
+    setValue(
+      "customer_name",
+      worksheet.customer_name || worksheet.cus_name || ""
+    );
+    setValue(
+      "product_name",
+      worksheet.product_name || worksheet.work_name || ""
+    );
+    setValue(
+      "quantity",
+      worksheet.total_quantity || worksheet.quantity || 0
+    );
     
     // Calculate print points - จำนวนเต็ม
     const printPoints = Math.max(1, Math.ceil(calculatePrintPointsFromWorksheet(worksheet)));
@@ -592,7 +601,7 @@ function MaxSupplyForm({ mode = "create" }) {
               )}
 
               {/* Step 2: Basic Information */}
-              {(mode !== "create" || activeStep >= 1) && (
+              {(mode !== "create" || activeStep === 1) && (
                 <Fade in timeout={500}>
                   <Card sx={{ overflow: 'visible' }}>
                     <CardHeader 
@@ -883,7 +892,7 @@ function MaxSupplyForm({ mode = "create" }) {
               )}
 
               {/* Step 3: Date and Status Information */}
-              {(mode !== "create" || activeStep >= 2) && (
+              {(mode !== "create" || activeStep === 2) && (
                 <Fade in timeout={700}>
                   <Card sx={{ overflow: 'visible' }}>
                     <CardHeader 
@@ -1062,31 +1071,45 @@ function MaxSupplyForm({ mode = "create" }) {
                           />
                         </Grid>
 
-                        {mode === "create" && (
-                          <Grid xs={12}>
-                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
-                              <Button
-                                variant="outlined"
-                                onClick={handleStepBack}
-                                startIcon={<MdArrowForward style={{ transform: 'rotate(180deg)' }} />}
-                                size="large"
-                                sx={{ borderRadius: 2 }}
-                              >
-                                ย้อนกลับ
-                              </Button>
-                              <Button
-                                variant="contained"
-                                onClick={() => handleStepComplete(2)}
-                                endIcon={<MdArrowForward />}
-                                disabled={!watchedValues.start_date || !watchedValues.end_date}
-                                size="large"
-                                sx={{ borderRadius: 2 }}
-                              >
-                                ดำเนินการต่อ
-                              </Button>
-                            </Box>
-                          </Grid>
-                        )}
+                          {mode === "create" && (
+                            <Grid xs={12}>
+                              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                  <Button
+                                    variant="outlined"
+                                    onClick={handleStepBack}
+                                    startIcon={<MdArrowForward style={{ transform: 'rotate(180deg)' }} />}
+                                    size="large"
+                                    sx={{ borderRadius: 2 }}
+                                  >
+                                    ย้อนกลับ
+                                  </Button>
+                                  {selectedWorksheet && (
+                                    <Button
+                                      variant="outlined"
+                                      color="warning"
+                                      onClick={() => setActiveStep(0)}
+                                      startIcon={<MdRefresh />}
+                                      size="large"
+                                      sx={{ borderRadius: 2 }}
+                                    >
+                                      เปลี่ยนใบงาน
+                                    </Button>
+                                  )}
+                                </Box>
+                                <Button
+                                  variant="contained"
+                                  onClick={() => handleStepComplete(2)}
+                                  endIcon={<MdArrowForward />}
+                                  disabled={!watchedValues.start_date || !watchedValues.end_date}
+                                  size="large"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  ดำเนินการต่อ
+                                </Button>
+                              </Box>
+                            </Grid>
+                          )}
                       </Grid>
                     </CardContent>
                   </Card>
@@ -1094,7 +1117,7 @@ function MaxSupplyForm({ mode = "create" }) {
               )}
 
               {/* Step 4: File Upload Section */}
-              {(mode === "create" && activeStep >= 3) || mode === "edit" && (
+              {(mode === "create" && activeStep === 3) || mode === "edit" && (
                 <Fade in timeout={900}>
                   <Card sx={{ overflow: 'visible' }}>
                     <CardHeader 
@@ -1145,7 +1168,7 @@ function MaxSupplyForm({ mode = "create" }) {
               )}
 
               {/* Action Buttons */}
-              {(mode !== "view" && (mode !== "create" || activeStep >= 3)) && (
+              {(mode !== "view" && (mode !== "create" || activeStep === 3)) && (
                 <Fade in timeout={1100}>
                   <Card sx={{ overflow: 'visible' }}>
                     <CardContent sx={{ p: 3 }}>

@@ -88,6 +88,21 @@ import FileUpload from "./components/FileUpload";
 // Set moment locale to Thai
 moment.locale('th');
 
+// Map worksheet status title to MUI color
+const getWorksheetStatusColor = (status) => {
+  switch (status) {
+    case 'Complete':
+      return 'success';
+    case 'Waiting Manager':
+    case 'Waiting Manager Approve':
+      return 'info';
+    case 'Editing':
+      return 'warning';
+    default:
+      return 'default';
+  }
+};
+
 // Validation schema
 const maxSupplySchema = z.object({
   worksheet_id: z.string().optional(),
@@ -123,6 +138,7 @@ function MaxSupplyForm({ mode = "create" }) {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedWorksheet, setSelectedWorksheet] = useState(null);
   const [worksheetPrintSummary, setWorksheetPrintSummary] = useState("");
+  const [worksheetPrintTotal, setWorksheetPrintTotal] = useState(0);
   const [worksheetSearchTerm, setWorksheetSearchTerm] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -229,6 +245,7 @@ function MaxSupplyForm({ mode = "create" }) {
     setSelectedWorksheet(worksheet);
     const { summary, total } = summarizePrintPoints(worksheet);
     setWorksheetPrintSummary(summary);
+    setWorksheetPrintTotal(total);
 
     // Auto-fill form with worksheet data
     setValue("worksheet_id", worksheet.worksheet_id);
@@ -590,9 +607,12 @@ function MaxSupplyForm({ mode = "create" }) {
                                 กำหนดส่ง: {moment(option.due_date).format('D MMMM YYYY')}
                               </Typography>
                               {option.status?.title && (
-                                <Typography variant="caption" color="info.main" sx={{ fontWeight: 'bold', display: 'block' }}>
-                                  สถานะ: {option.status.title}
-                                </Typography>
+                                <Chip
+                                  label={option.status.title}
+                                  size="small"
+                                  color={getWorksheetStatusColor(option.status.title)}
+                                  sx={{ fontWeight: 'bold', mt: 0.5 }}
+                                />
                               )}
                             </Box>
                           </Box>
@@ -654,9 +674,12 @@ function MaxSupplyForm({ mode = "create" }) {
                               📋 ใบงาน: {selectedWorksheet.work_id} - {selectedWorksheet.work_name}
                             </Typography>
                             {selectedWorksheet.status?.title && (
-                              <Typography variant="caption" sx={{ color: 'secondary.contrastText', fontWeight: 'bold' }}>
-                                สถานะ: {selectedWorksheet.status.title}
-                              </Typography>
+                              <Chip
+                                label={selectedWorksheet.status.title}
+                                size="small"
+                                color={getWorksheetStatusColor(selectedWorksheet.status.title)}
+                                sx={{ fontWeight: 'bold' }}
+                              />
                             )}
                           </Box>
                         ) : "กรอกข้อมูลพื้นฐานของงานผลิต"
@@ -684,7 +707,7 @@ function MaxSupplyForm({ mode = "create" }) {
                     <CardContent sx={{ p: 3 }}>
                       {selectedWorksheet && worksheetPrintSummary && (
                         <Alert severity="info" variant="outlined" sx={{ mb: 3 }}>
-                          จุดพิมพ์จากใบงาน: {worksheetPrintSummary}
+                          จุดสกรีน/ปัก: {worksheetPrintSummary} (รวม {worksheetPrintTotal} จุด)
                         </Alert>
                       )}
                       <Grid container spacing={3}>

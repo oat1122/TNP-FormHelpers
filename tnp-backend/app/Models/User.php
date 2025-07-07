@@ -85,4 +85,41 @@ class User extends Model implements Authenticatable
 		'user_updated_date',
 		'user_updated_by'
 	];
+
+	// Relationships for MaxSupply
+	public function maxSuppliesCreated()
+	{
+		return $this->hasMany(MaxSupply::class, 'created_by', 'user_id');
+	}
+
+	public function maxSuppliesUpdated()
+	{
+		return $this->hasMany(MaxSupply::class, 'updated_by', 'user_id');
+	}
+
+	public function maxSupplyLogs()
+	{
+		return $this->hasMany(MaxSupplyLog::class, 'user_id', 'user_id');
+	}
+
+	public function maxSupplyFiles()
+	{
+		return $this->hasMany(MaxSupplyFile::class, 'uploaded_by', 'user_id');
+	}
+
+	// Accessors for backward compatibility
+	public function getIdAttribute()
+	{
+		return $this->user_id;
+	}
+
+	public function getNameAttribute()
+	{
+		return trim($this->user_firstname . ' ' . $this->user_lastname);
+	}
+
+	public function getEmailAttribute()
+	{
+		return $this->username; // Assuming username is email
+	}
 }

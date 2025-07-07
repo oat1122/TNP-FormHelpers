@@ -111,6 +111,7 @@ const maxSupplySchema = z.object({
   product_name: z.string().min(1, "ชื่อสินค้าจำเป็น"),
   quantity: z.number().min(1, "จำนวนต้องมากกว่า 0"),
   print_points: z.number().min(1, "จุดพิมพ์ต้องเป็นจำนวนเต็มมากกว่า 0").int("จุดพิมพ์ต้องเป็นจำนวนเต็ม"),
+  screen: z.string().optional(),
   start_date: z.any().refine((val) => moment.isMoment(val) && val.isValid(), {
     message: "วันที่เริ่มต้นจำเป็น",
   }),
@@ -188,6 +189,7 @@ function MaxSupplyForm({ mode = "create" }) {
       product_name: "",
       quantity: 0,
       print_points: 1,
+      screen: "",
       start_date: moment(),
       end_date: moment().add(7, 'days'),
       status: "pending",
@@ -234,6 +236,7 @@ function MaxSupplyForm({ mode = "create" }) {
         status: data.status,
         priority: data.priority,
         notes: data.notes || "",
+        screen: data.additional_data?.screen || "",
       });
     }
   }, [maxSupplyData, mode, reset]);
@@ -257,6 +260,7 @@ function MaxSupplyForm({ mode = "create" }) {
       "product_name",
       worksheet.product_name || worksheet.work_name || ""
     );
+    setValue("screen", worksheet.screen_detail || "");
     setValue(
       "quantity",
       worksheet.total_quantity || worksheet.quantity || 0
@@ -307,11 +311,15 @@ function MaxSupplyForm({ mode = "create" }) {
   // Form submission
   const onSubmit = async (data) => {
     try {
+      const { screen, ...rest } = data;
       const submitData = {
-        ...data,
+        ...rest,
         start_date: data.start_date.format('YYYY-MM-DD'),
         end_date: data.end_date.format('YYYY-MM-DD'),
         created_by: JSON.parse(localStorage.getItem("userData") || '{}')?.user_uuid,
+        additional_data: {
+          screen: screen || '',
+        },
       };
 
       if (mode === "create") {
@@ -361,6 +369,7 @@ function MaxSupplyForm({ mode = "create" }) {
     setValue("product_name", "");
     setValue("quantity", 0);
     setValue("print_points", 1);
+    setValue("screen", "");
     
     // Reset dates to default
     setValue("start_date", moment());
@@ -775,6 +784,28 @@ function MaxSupplyForm({ mode = "create" }) {
                                 disabled={mode === "view"}
                                 error={!!errors.product_name}
                                 helperText={errors.product_name?.message}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                  }
+                                }}
+                              />
+                            )}
+                          />
+                        </Grid>
+
+                        <Grid xs={12} md={6}>
+                          <Controller
+                            name="screen"
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                label="สกรีน"
+                                fullWidth
+                                disabled={mode === "view"}
+                                error={!!errors.screen}
+                                helperText={errors.screen?.message}
                                 sx={{
                                   '& .MuiOutlinedInput-root': {
                                     borderRadius: 2,

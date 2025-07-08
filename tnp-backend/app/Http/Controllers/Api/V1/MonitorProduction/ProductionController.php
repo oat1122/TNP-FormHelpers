@@ -65,13 +65,42 @@ class ProductionController extends Controller
 
     public function getPdCount()
     {
-        $production = DB::table('productions')
+        // Get all productions with status = 1 (in process)
+        $productions = DB::table('productions')
             ->where('status', '=', 1)
             ->get();
 
-        $pdCount = count($production);
-
-        return response()->json($pdCount);
+        $pdCount = count($productions);
+        $totalShirts = 0;
+        
+        // Get all pd_ids
+        $pdIds = $productions->pluck('pd_id')->toArray();
+        
+        // Get worksheet data for old worksheets
+        $oldWorksheetData = DB::table('productions')
+            ->join('worksheets', 'productions.work_id', '=', 'worksheets.sheetID')
+            ->whereIn('productions.pd_id', $pdIds)
+            ->where('productions.status', '=', 1)
+            ->where('productions.new_worksheet_id', '=', null)
+            ->select('worksheets.quantity')
+            ->get();
+            
+        // Get worksheet data for new worksheets
+        $newWorksheetData = DB::table('productions')
+            ->join('new_worksheets', 'productions.new_worksheet_id', '=', 'new_worksheets.worksheet_id')
+            ->whereIn('productions.pd_id', $pdIds)
+            ->where('productions.status', '=', 1)
+            ->where('productions.new_worksheet_id', '!=', null)
+            ->select('new_worksheets.total_quantity as quantity')
+            ->get();
+            
+        // Calculate total shirts
+        $totalShirts = $oldWorksheetData->sum('quantity') + $newWorksheetData->sum('quantity');
+        
+        return response()->json([
+            'pdCount' => $pdCount,
+            'totalShirts' => $totalShirts
+        ]);
     }
 
     /**

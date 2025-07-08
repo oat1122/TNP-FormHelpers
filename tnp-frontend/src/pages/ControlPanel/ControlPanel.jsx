@@ -42,7 +42,7 @@ function ControlPanel() {
               <div className="text-center">
                 <Spinner animation="border" variant="danger" role="status" />
               </div>
-             ) : data }
+             ) : data?.pdCount }
             </label>
             <br />
             <label className="process-describe" htmlFor="process-describe">
@@ -50,7 +50,7 @@ function ControlPanel() {
             </label>
             <br />
             <label className="process-describe-th" htmlFor="process-describe">
-              (กำลังผลิต)
+              {data?.totalShirts ? `จำนวนเสื้อทั้งหมด ${data.totalShirts.toLocaleString()} ตัว` : "(กำลังผลิต)"}
             </label>
           </a>
         </div>

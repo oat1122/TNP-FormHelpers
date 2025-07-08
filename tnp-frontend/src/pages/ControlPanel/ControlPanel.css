@@ -65,7 +65,7 @@ label.process-describe {
 
 label.process-describe-th {
   color: #616161;
-  font-size: clamp(1.1rem, 1.6vw, 4rem);
+  font-size: clamp(1rem, 1.4vw, 3.5rem);
   cursor: pointer;
   letter-spacing: 0.1rem;
 }

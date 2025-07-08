@@ -41,6 +41,7 @@ export const apiSlice = createApi({
     }),
     getPdCount: builder.query({
       query: () => `getPdCount`,
+      transformResponse: (response) => response, // Return the full response object
     }),
     addNewNote: builder.mutation({
       query: (payload) => ({

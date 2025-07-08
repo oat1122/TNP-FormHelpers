@@ -187,34 +187,16 @@ function WorksheetList() {
       <TitleBar title="worksheet" />
       
       {/* dialog create btn */}
-      <div className="d-flex align-items-center justify-content-between">
-        { user.role === 'sale' || user.role === 'admin' ? (
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            className="btn-create-dialog"
-            sx={{ textTransform: "uppercase" }}
-          >
-            Create
-          </Button>
-        ) : null}
-        
+      { user.role === 'sale' || user.role === 'admin' ? (
         <Button
-          variant="outlined"
-          onClick={() => refetch()}
-          className="ms-2"
-          color="error"
-          size="small"
-          sx={{ 
-            position: 'absolute',
-            right: '20px',
-            top: '80px',
-            textTransform: "capitalize"
-          }}
+          variant="contained"
+          onClick={handleCreate}
+          className="btn-create-dialog"
+          sx={{ textTransform: "uppercase" }}
         >
-          {isFetching ? "Refreshing..." : "Refresh"}
+          Create
         </Button>
-      </div>
+      ) : null}
       
       <Dialog
         open={open}

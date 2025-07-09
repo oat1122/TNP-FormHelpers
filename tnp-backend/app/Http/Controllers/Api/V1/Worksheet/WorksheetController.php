@@ -42,12 +42,43 @@ class WorksheetController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $worksheets = Worksheet::where('deleted', '!=', 1)
-            ->orderByRaw("SUBSTRING(work_id, 3, 2) DESC, SUBSTRING(work_id, 1, 2) DESC, SUBSTRING(work_id, 6, 3) DESC")    
-            ->get();
-        return new WorksheetCollection($worksheets);
+        $perPage = $request->input('per_page', 10);
+        $keyword = trim($request->input('search'));
+
+        $query = Worksheet::where('deleted', '!=', 1);
+
+        if ($keyword !== '') {
+            $searchTerm = '%' . $keyword . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('work_id', 'like', $searchTerm)
+                    ->orWhere('work_name', 'like', $searchTerm)
+                    ->orWhereHas('nwsCreatedBy', function ($user_q) use ($searchTerm) {
+                        $user_q->where('username', 'like', $searchTerm);
+                    })
+                    ->orWhereHas('customer', function ($cus_q) use ($searchTerm) {
+                        $cus_q->where('cus_name', 'like', $searchTerm);
+                    });
+            });
+        }
+
+        $worksheets = $query->orderByRaw(
+                "SUBSTRING(work_id, 3, 2) DESC, SUBSTRING(work_id, 1, 2) DESC, SUBSTRING(work_id, 6, 3) DESC"
+            )
+            ->paginate($perPage);
+
+        $result = WorksheetCollection::make($worksheets);
+
+        return [
+            'data' => $result,
+            'pagination' => [
+                'current_page' => $worksheets->currentPage(),
+                'per_page' => $worksheets->perPage(),
+                'total_pages' => $worksheets->lastPage(),
+                'total_items' => $worksheets->total(),
+            ]
+        ];
     }
 
     /**

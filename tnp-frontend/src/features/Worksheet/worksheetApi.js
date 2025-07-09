@@ -7,7 +7,13 @@ export const worksheetApi = createApi({
   tagTypes: ["Worksheet", "Customer"],
   endpoints: (builder) => ({
     getAllWorksheet: builder.query({
-      query: () => `worksheets`,
+      query: (params = {}) => {
+        const { page = 1, per_page = 10, search } = params;
+        const queryParams = new URLSearchParams({ page, per_page });
+        if (search) queryParams.set("search", search);
+        const qs = queryParams.toString();
+        return `worksheets${qs ? `?${qs}` : ""}`;
+      },
       providesTags: ["Worksheet"],
     }),
     getMoreWorksheet: builder.query({

@@ -1,4 +1,4 @@
-import { useState, forwardRef, useEffect, useRef, useCallback } from "react";
+import { useState, forwardRef, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import WorksheetCard from "./WorksheetCard";
 import { 
@@ -39,15 +39,14 @@ const Transition = forwardRef(function Transition(props, ref) {
 function WorksheetList() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const [open, setOpen] = useState(false);
-  const [cardLimit, setCardLimit] = useState(10);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [filteredDataCache, setFilteredDataCache] = useState([]);
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
   const keyword = useSelector((state) => state.global.keyword);
   
   // Force refetch when keyword changes
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllWorksheetQuery(undefined, {
-    // The refetchOnMountOrArgChange ensures data is fresh
-    refetchOnMountOrArgChange: true
+  const { data, error, isFetching, isSuccess, refetch } = useGetAllWorksheetQuery({ search: keyword, page }, {
+    refetchOnMountOrArgChange: true,
   });
   
   const dispatch = useDispatch();
@@ -56,23 +55,9 @@ function WorksheetList() {
 
   const observer = useRef();
   const lastCardRef = useRef();
-  
-  // Debounced search function
-  const debouncedRefetch = useCallback(
-    (() => {
-      let timer;
-      return (searchTerm) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-          refetch();
-        }, 300); // 300ms delay
-      };
-    })(),
-    [refetch]
-  );
 
   const renderWorksheetCards = (data, isSuccess) => {
-    return data.slice(0, cardLimit).map((item, index) => {
+    return data.map((item, index) => {
       return (
         <Grid key={`${item.worksheet_id || item.work_id || index}`} size={1} data-testid="worksheet-card">
           <WorksheetCard data={item} isSuccess={isSuccess} />
@@ -83,7 +68,7 @@ function WorksheetList() {
 
   let content;
 
-  if (isFetching && !filteredDataCache.length) {
+  if (isFetching && !items.length) {
     content = (
       <div className="w-100 text-center mt-4">
         <CircularProgress color="error" size={60} />
@@ -95,7 +80,7 @@ function WorksheetList() {
         Error loading worksheets: {error.message || 'Unknown error'}
       </h2>
     );
-  } else if (!filteredDataCache.length) {
+  } else if (!items.length) {
     // No data available or no matching search results
     content = (
       <h1 className="text-center" style={{ width: "100%" }}>
@@ -104,10 +89,9 @@ function WorksheetList() {
     );
   } else {
     // Render the filtered data from cache
-    content = renderWorksheetCards(filteredDataCache, isSuccess);
+    content = renderWorksheetCards(items, isSuccess);
   }
-
-  const loadinContentgMore = filteredDataCache.length > cardLimit && (
+  const loadinContentgMore = hasMore && (
     <div className="w-100 text-center mt-4" ref={lastCardRef}>
       <CircularProgress color="error" size={60} />
     </div>
@@ -126,39 +110,25 @@ function WorksheetList() {
 
   // Handle keyword changes
   useEffect(() => {
-    // Trigger refetch when keyword changes
-    debouncedRefetch(keyword);
-    
-    // Reset card limit when search changes to show fresh results
-    setCardLimit(10);
-  }, [keyword, debouncedRefetch]);
+    setPage(1);
+    setItems([]);
+    setHasMore(true);
+  }, [keyword]);
   
-  // Filter data when data or keyword changes
+  // Update items when data changes
   useEffect(() => {
     if (isSuccess && data?.data) {
       const isManager = user.role === 'manager';
-      
+
       const filtered = data.data.filter((item) => {
         const isRelevantStatus = [2, 3, 4, 5, 6].includes(item.status.code);
-        const passesRoleFilter = (isManager && isRelevantStatus) || !isManager;
-        
-        if (!passesRoleFilter) return false;
-        
-        if (keyword !== '') {
-          const searchWorkID = (item.work_id || '').toLowerCase().includes(keyword.toLowerCase()); 
-          const searchWorkName = (item.work_name || '').toLowerCase().includes(keyword.toLowerCase()); 
-          const searchUserName = (item.sales_name || '').toLowerCase().includes(keyword.toLowerCase()); 
-          const searchCusName = (item.cus_name || '').toLowerCase().includes(keyword.toLowerCase()); 
-  
-          return searchWorkID || searchWorkName || searchUserName || searchCusName;
-        }
-        
-        return true;
+        return (isManager && isRelevantStatus) || !isManager;
       });
-      
-      setFilteredDataCache(filtered);
+
+      setItems((prev) => (page === 1 ? filtered : [...prev, ...filtered]));
+      setHasMore(data.pagination ? page < data.pagination.total_pages : false);
     }
-  }, [data, keyword, user.role, isSuccess]);
+  }, [data, isSuccess, user.role, page]);
 
   // Infinite scrolling setup
   useEffect(() => {
@@ -166,21 +136,18 @@ function WorksheetList() {
     if (observer.current) observer.current.disconnect();
 
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !loadingMore) {
-        setLoadingMore(true);
-        setTimeout(() => {
-          setCardLimit((prev) => prev + 10);
-          setLoadingMore(false);
-        }, 200);
+      if (entries[0].isIntersecting && hasMore && !isFetching) {
+        setPage((prev) => prev + 1);
       }
     });
+
     if (lastCardRef.current) observer.current.observe(lastCardRef.current);
 
     return () => {
       if (currentObserver) currentObserver.disconnect();
     };
 
-  }, [isFetching, loadingMore]);
+  }, [isFetching, hasMore]);
 
   return (
     <div className="worksheet-list">

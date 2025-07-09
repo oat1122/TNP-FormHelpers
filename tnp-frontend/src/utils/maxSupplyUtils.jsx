@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { FaTshirt, FaCircle } from 'react-icons/fa';
 import { MdScreenShare } from 'react-icons/md';
 import { IoShirtSharp } from 'react-icons/io5';
@@ -56,15 +57,17 @@ export const getStatusColor = (status) => {
  * @returns {JSX.Element} - React Icon component
  */
 export const getProductionTypeIcon = (type, size = 14) => {
+  const color = getProductionTypeColor(type);
+  const props = { size, color };
   switch (type) {
     case 'screen':
-      return <MdScreenShare size={size} color={getProductionTypeColor('screen')} />;
+      return createElement(MdScreenShare, props);
     case 'dtf':
-      return <FaTshirt size={size} color={getProductionTypeColor('dtf')} />;
+      return createElement(FaTshirt, props);
     case 'sublimation':
-      return <IoShirtSharp size={size} color={getProductionTypeColor('sublimation')} />;
+      return createElement(IoShirtSharp, props);
     default:
-      return <FaCircle size={size} color="#6b7280" />;
+      return createElement(FaCircle, { size, color: '#6b7280' });
   }
 };
 

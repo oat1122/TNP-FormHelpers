@@ -28,6 +28,8 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useMaxSupply } from '../../context/MaxSupplyContext';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -557,41 +559,45 @@ const MaxSupplyList = () => {
                 </Select>
               </FormControl>
               
-              <DatePicker 
-                label="ตั้งแต่วันที่"
-                value={startDate}
-                onChange={setStartDate}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    InputProps: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <FaCalendarAlt />
-                        </InputAdornment>
-                      )
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="ตั้งแต่วันที่"
+                  value={startDate}
+                  onChange={setStartDate}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      InputProps: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <FaCalendarAlt />
+                          </InputAdornment>
+                        )
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </LocalizationProvider>
               
-              <DatePicker 
-                label="ถึงวันที่"
-                value={endDate}
-                onChange={setEndDate}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    InputProps: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <FaCalendarAlt />
-                        </InputAdornment>
-                      )
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  label="ถึงวันที่"
+                  value={endDate}
+                  onChange={setEndDate}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      InputProps: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <FaCalendarAlt />
+                          </InputAdornment>
+                        )
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </LocalizationProvider>
               
               <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
                 <Button 

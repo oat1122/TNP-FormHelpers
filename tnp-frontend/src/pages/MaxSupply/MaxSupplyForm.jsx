@@ -27,6 +27,8 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useMaxSupply } from '../../context/MaxSupplyContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -909,8 +911,9 @@ const MaxSupplyForm = () => {
   };
   
   return (
-    <Box sx={{ p: isMobile ? 1 : 3 }}>
-      <Grid container spacing={2}>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ p: isMobile ? 1 : 3 }}>
+        <Grid container spacing={2}>
         <Grid item xs={12}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -996,6 +999,7 @@ const MaxSupplyForm = () => {
         </Grid>
       </Grid>
     </Box>
+    </LocalizationProvider>
   );
 };
 

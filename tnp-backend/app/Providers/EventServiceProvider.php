@@ -25,7 +25,8 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register MaxSupply observer
+        \App\Models\MaxSupply\MaxSupply::observe(\App\Observers\MaxSupply\MaxSupplyObserver::class);
     }
 
     /**

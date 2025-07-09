@@ -151,4 +151,37 @@ Route::prefix('v1')->group(function() {
         Route::delete('/business-types/{id}', 'delete_business_type');
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
     });
+
+
+    //---------- MaxSupply System ----------
+    Route::prefix('v1/max-supplies')->middleware('auth:sanctum')->group(function () {
+        // MaxSupply main endpoints
+        Route::get('/', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'store']);
+        Route::get('/{maxSupply}', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'show']);
+        Route::put('/{maxSupply}', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'update']);
+        Route::delete('/{maxSupply}', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'destroy']);
+        Route::patch('/{maxSupply}/status', [App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController::class, 'updateStatus']);
+    });
+
+    // Calendar endpoints
+    Route::prefix('v1/calendar')->middleware('auth:sanctum')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\MaxSupply\CalendarController::class, 'index']);
+        Route::get('/{year}/{month}', [App\Http\Controllers\Api\V1\MaxSupply\CalendarController::class, 'monthlyData']);
+        Route::get('/week/{date}', [App\Http\Controllers\Api\V1\MaxSupply\CalendarController::class, 'weeklyData']);
+    });
+
+    // Statistics endpoints
+    Route::prefix('v1/statistics')->middleware('auth:sanctum')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Api\V1\MaxSupply\StatisticsController::class, 'dashboard']);
+        Route::get('/production-types', [App\Http\Controllers\Api\V1\MaxSupply\StatisticsController::class, 'productionTypes']);
+        Route::get('/monthly/{year}/{month}', [App\Http\Controllers\Api\V1\MaxSupply\StatisticsController::class, 'monthly']);
+    });
+
+    // Mobile-specific endpoints
+    Route::prefix('v1/mobile')->middleware('auth:sanctum')->group(function () {
+        Route::get('/summary', [App\Http\Controllers\Api\V1\MaxSupply\MobileController::class, 'summary']);
+        Route::get('/recent-activities', [App\Http\Controllers\Api\V1\MaxSupply\MobileController::class, 'recentActivities']);
+        Route::get('/quick-actions', [App\Http\Controllers\Api\V1\MaxSupply\MobileController::class, 'quickActions']);
+    });
 });

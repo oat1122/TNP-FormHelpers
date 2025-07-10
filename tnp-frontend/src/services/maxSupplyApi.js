@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api/v1';
+// Allow overriding the API base URL via environment variable for development
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({

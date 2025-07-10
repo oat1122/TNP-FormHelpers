@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_END_POINT_URL || '/api/v1';
+;
 
 // Create axios instance with default config
 const api = axios.create({

@@ -16,7 +16,6 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  DatePicker,
   Chip,
   Alert,
   Paper,
@@ -468,15 +467,14 @@ const MaxSupplyForm = () => {
             label="วันที่เริ่ม"
             value={formData.start_date}
             onChange={(value) => handleInputChange('start_date', value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                fullWidth
-                error={!!errors.start_date}
-                helperText={errors.start_date}
-                required
-              />
-            )}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                error: !!errors.start_date,
+                helperText: errors.start_date,
+                required: true
+              }
+            }}
           />
         </LocalizationProvider>
       </Grid>
@@ -487,15 +485,14 @@ const MaxSupplyForm = () => {
             label="วันที่คาดว่าจะเสร็จ"
             value={formData.expected_completion_date}
             onChange={(value) => handleInputChange('expected_completion_date', value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                fullWidth
-                error={!!errors.expected_completion_date}
-                helperText={errors.expected_completion_date}
-                required
-              />
-            )}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                error: !!errors.expected_completion_date,
+                helperText: errors.expected_completion_date,
+                required: true
+              }
+            }}
           />
         </LocalizationProvider>
       </Grid>
@@ -506,15 +503,14 @@ const MaxSupplyForm = () => {
             label="วันครบกำหนด"
             value={formData.due_date}
             onChange={(value) => handleInputChange('due_date', value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                fullWidth
-                error={!!errors.due_date}
-                helperText={errors.due_date}
-                required
-              />
-            )}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                error: !!errors.due_date,
+                helperText: errors.due_date,
+                required: true
+              }
+            }}
           />
         </LocalizationProvider>
       </Grid>

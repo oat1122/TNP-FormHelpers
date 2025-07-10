@@ -119,17 +119,9 @@ const MaxSupplyHome = () => {
       
       console.log('MaxSupplyHome: Calling calendar API with params:', params);
       
-      // Use a more direct approach with fetch for debugging
-      const url = `/api/v1/calendar?view=${params.view}&date=${params.date}`;
-      console.log('MaxSupplyHome: Direct fetch URL:', url);
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('MaxSupplyHome: Calendar API direct fetch response:', data);
+      // Use the calendarApi service instead of direct fetch
+      const data = await calendarApi.getCalendarData(params);
+      console.log('MaxSupplyHome: Calendar API response:', data);
       
       if (data.status === 'success') {
         setMaxSupplies(data.data.events || []);

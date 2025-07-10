@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  import.meta.env.VITE_END_POINT_URL || '/api/v1';
-;
+const API_BASE_URL = import.meta.env.VITE_END_POINT_URL || '/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -124,6 +122,12 @@ export const calendarApi = {
       
       const response = await api.get(url);
       console.log('Calendar API response:', response);
+      
+      // Check for HTML response which would indicate an error
+      if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
+        throw new Error('Server returned HTML instead of JSON. This typically indicates a server error or authentication issue.');
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Calendar API error:', error.message);
@@ -219,4 +223,4 @@ export const generalApi = {
 };
 
 // Export default API instance
-export default api; 
+export default api;

@@ -15,20 +15,49 @@ import {
   Autocomplete,
   Alert,
   Paper,
-  Divider,
-  CircularProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  Avatar,
   Chip,
   useTheme,
   useMediaQuery,
+  TableContainer,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  CircularProgress,
+  Divider,
+  IconButton,
+  Collapse,
+  CardMedia,
 } from '@mui/material';
 import {
   Save,
   Cancel,
   AutoAwesome,
-  CalendarToday,
+  NavigateNext,
+  NavigateBefore,
+  CheckCircle,
+  Info,
+  Build,
+  Note,
+  Warning,
+  AddCircle,
+  RemoveCircle,
+  Image,
+  Schedule,
+  Person,
+  Category,
+  Straighten,
+  Print,
+  ColorLens,
   Assignment,
   ArrowBack,
   Refresh,
+  CalendarToday,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -53,6 +82,7 @@ const MaxSupplyForm = () => {
   const isEditMode = Boolean(id);
 
   // States
+  const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     worksheet_id: '',
     title: '',
@@ -68,6 +98,13 @@ const MaxSupplyForm = () => {
     notes: '',
     special_instructions: '',
     status: 'pending',
+    sample_image: null,
+    print_locations: {
+      screen: { enabled: false, position: '', colors: 0 },
+      dtf: { enabled: false, position: '', colors: 0 },
+      sublimation: { enabled: false, position: '', colors: 0 },
+    },
+    size_breakdown: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -82,9 +119,9 @@ const MaxSupplyForm = () => {
 
   // Production types
   const productionTypes = [
-    { value: 'screen', label: '🖥️ Screen Printing', color: '#7c3aed' },
-    { value: 'dtf', label: '🖨️ DTF (Direct to Film)', color: '#0891b2' },
-    { value: 'sublimation', label: '🎨 Sublimation', color: '#16a34a' },
+    { value: 'screen', label: '📺 Screen Printing', color: '#7c3aed' },
+    { value: 'dtf', label: '📱 DTF (Direct to Film)', color: '#0891b2' },
+    { value: 'sublimation', label: '⚽ Sublimation', color: '#16a34a' },
     { value: 'embroidery', label: '🧵 Embroidery', color: '#dc2626' },
   ];
 
@@ -97,6 +134,9 @@ const MaxSupplyForm = () => {
     { value: 'long-sleeve', label: 'เสื้อแขนยาว' },
   ];
 
+  // Size options
+  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+
   // Priority levels
   const priorityLevels = [
     { value: 'low', label: 'ต่ำ', color: '#10b981' },
@@ -105,179 +145,71 @@ const MaxSupplyForm = () => {
     { value: 'urgent', label: 'ด่วน', color: '#ef4444' },
   ];
 
-  // Size options
-  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-
-  // Process worksheet data into options format
-  const processWorksheetData = (data) => {
-    // If data is completely undefined or null
-    if (!data) {
-      console.error('processWorksheetData: Data is null or undefined');
-      return [];
+  // Steps definition
+  const steps = [
+    {
+      label: 'ข้อมูลพื้นฐาน',
+      icon: <Info />,
+      description: 'เลือก Worksheet และกรอกข้อมูลพื้นฐาน'
+    },
+    {
+      label: 'ข้อมูลการผลิต',
+      icon: <Build />,
+      description: 'กำหนดรายละเอียดการผลิตและจุดพิมพ์'
+    },
+    {
+      label: 'หมายเหตุ',
+      icon: <Note />,
+      description: 'เพิ่มหมายเหตุและข้อมูลเพิ่มเติม'
     }
+  ];
+
+  // Process worksheet data
+  const processWorksheetData = (data) => {
+    if (!data) return [];
     
     try {
-      // Normalize the data to an array
       let worksheetItems = [];
       
       if (Array.isArray(data)) {
-        // Direct array
         worksheetItems = data;
       } else if (data.data && Array.isArray(data.data)) {
-        // Standard API response format
         worksheetItems = data.data;
       } else if (typeof data === 'object') {
-        // Try to find any array property
         const arrayProps = Object.keys(data).filter(key => Array.isArray(data[key]));
         if (arrayProps.length > 0) {
-          // Use the first array property
           worksheetItems = data[arrayProps[0]];
-          console.log(`Found worksheets in property ${arrayProps[0]}`);
-        } else {
-          console.error('No array data found in response:', data);
-          return [];
         }
-      } else {
-        console.error('processWorksheetData: Unrecognized data format:', data);
-        return [];
       }
       
-      // Log the first item to understand the structure
-      if (worksheetItems.length > 0) {
-        console.log('MaxSupplyForm: Sample worksheet data item:', worksheetItems[0]);
-      } else {
-        console.warn('No worksheet items found in data');
-        return [];
-      }
-      
-      const options = worksheetItems
-        // Accept items even if they don't have worksheet_id, as long as they have some identifier
+      return worksheetItems
         .filter(ws => ws && (ws.worksheet_id || ws.id || ws.work_id))
-        .map(ws => {
-          const customerName = ws.customer_name || 'ไม่ระบุลูกค้า';
-          const productName = ws.product_name || ws.work_name || ws.title || 'ไม่ระบุชื่องาน';
-          const worksheetId = ws.worksheet_id || ws.id || ws.work_id || '';
-          const status = ws.status || 'unknown';
-          
-          // Skip items that already have production assigned
-          if (ws.has_production === true) {
-            console.log(`Skipping worksheet ${worksheetId} as it already has production assigned`);
-            return null;
-          }
-          
-          return {
-            id: worksheetId,
-            label: `${customerName} - ${productName} (${worksheetId.slice(0, 8)})`,
-            ...ws,
-          };
-        })
-        .filter(Boolean); // Remove null entries
-      
-      console.log('MaxSupplyForm: worksheet options created:', options);
-      return options;
+        .filter(ws => ws.has_production !== true)
+        .map(ws => ({
+          id: ws.worksheet_id || ws.id || ws.work_id || '',
+          label: `${ws.customer_name || 'ไม่ระบุ'} - ${ws.product_name || ws.work_name || ws.title || 'ไม่ระบุ'}`,
+          ...ws,
+        }));
     } catch (error) {
       console.error('Error processing worksheet data:', error);
       return [];
     }
   };
-  
+
   // Load worksheets
   useEffect(() => {
-    // Debug authentication tokens
     debugTokens();
-    
-    console.log('MaxSupplyForm: worksheetData received:', worksheetData);
-    
-    // Handle RTK query response
     if (worksheetData) {
-      let worksheetItems = [];
-      
-      // Handle different response formats
-      if (Array.isArray(worksheetData)) {
-        worksheetItems = worksheetData;
-      } else if (worksheetData.data && Array.isArray(worksheetData.data)) {
-        worksheetItems = worksheetData.data;
-      } else if (worksheetData.data?.data && Array.isArray(worksheetData.data.data)) {
-        worksheetItems = worksheetData.data.data;
-      }
-      
-      const options = processWorksheetData(worksheetItems);
+      const options = processWorksheetData(worksheetData);
       setWorksheetOptions(options);
     }
   }, [worksheetData]);
 
-  // Check for data passed from WorksheetList
-  useEffect(() => {
-    if (location.state?.worksheet && location.state?.autoFillData) {
-      console.log("Received worksheet data from navigation:", location.state.worksheet);
-      console.log("Auto fill data:", location.state.autoFillData);
-      
-      // Set the selected worksheet
-      setSelectedWorksheet(location.state.worksheet);
-      
-      // Auto-fill the form with data
-      const autoFillData = location.state.autoFillData;
-      setFormData(prev => ({
-        ...prev,
-        worksheet_id: autoFillData.worksheet_id,
-        title: autoFillData.title,
-        customer_name: autoFillData.customer_name,
-        production_type: autoFillData.production_type,
-        due_date: autoFillData.due_date ? dayjs(autoFillData.due_date) : dayjs().add(14, 'day'),
-        shirt_type: autoFillData.shirt_type,
-        total_quantity: autoFillData.total_quantity,
-        sizes: autoFillData.sizes,
-        special_instructions: autoFillData.special_instructions,
-      }));
-      
-      setAutoFillPreview(autoFillData);
-      toast.success('ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet แล้ว');
-    }
-  }, [location.state]);
-
-  // Load existing data for edit mode
-  useEffect(() => {
-    if (isEditMode && id) {
-      loadExistingData();
-    }
-  }, [isEditMode, id]);
-
-  // Load existing data
-  const loadExistingData = async () => {
-    try {
-      setLoading(true);
-      const response = await maxSupplyApi.getById(id);
-      
-      if (response.status === 'success') {
-        const item = response.data;
-        setFormData({
-          ...item,
-          start_date: dayjs(item.start_date),
-          expected_completion_date: dayjs(item.expected_completion_date),
-          due_date: dayjs(item.due_date),
-          sizes: item.sizes || [],
-        });
-        
-        // Find and set the selected worksheet
-        const worksheet = worksheetOptions.find(ws => ws.id === item.worksheet_id);
-        if (worksheet) {
-          setSelectedWorksheet(worksheet);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading existing data:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle worksheet selection and auto fill
+  // Handle worksheet selection
   const handleWorksheetSelect = (worksheet) => {
     setSelectedWorksheet(worksheet);
     
     if (worksheet) {
-      // Auto-fill data from worksheet
       const autoFillData = {
         worksheet_id: worksheet.id,
         title: worksheet.product_name || worksheet.title || `${worksheet.customer_name} - งานใหม่`,
@@ -288,6 +220,7 @@ const MaxSupplyForm = () => {
         total_quantity: worksheet.total_quantity || 0,
         sizes: worksheet.sizes || [],
         special_instructions: worksheet.special_note || worksheet.notes || '',
+        sample_image: worksheet.sample_image || null,
       };
       
       setFormData(prev => ({
@@ -302,14 +235,13 @@ const MaxSupplyForm = () => {
     }
   };
 
-  // Handle form field changes
+  // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
     
-    // Clear error for this field
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -318,75 +250,97 @@ const MaxSupplyForm = () => {
     }
   };
 
-  // Handle sizes change
-  const handleSizesChange = (newSizes) => {
+  // Handle size breakdown
+  const handleSizeBreakdown = (sizes) => {
+    const breakdown = sizes.map(size => ({
+      size,
+      quantity: 0,
+    }));
     setFormData(prev => ({
       ...prev,
-      sizes: newSizes,
+      sizes,
+      size_breakdown: breakdown,
     }));
   };
 
-  // Validate form
-  const validateForm = () => {
+  // Handle size quantity change
+  const handleSizeQuantityChange = (sizeIndex, quantity) => {
+    const newBreakdown = [...formData.size_breakdown];
+    newBreakdown[sizeIndex].quantity = quantity;
+    
+    const totalQuantity = newBreakdown.reduce((sum, item) => sum + item.quantity, 0);
+    
+    setFormData(prev => ({
+      ...prev,
+      size_breakdown: newBreakdown,
+      total_quantity: totalQuantity,
+    }));
+  };
+
+  // Handle print location changes
+  const handlePrintLocationChange = (type, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      print_locations: {
+        ...prev.print_locations,
+        [type]: {
+          ...prev.print_locations[type],
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  // Validate current step
+  const validateStep = (step) => {
     const newErrors = {};
     
-    if (!formData.title.trim()) {
-      newErrors.title = 'กรุณากรอกชื่องาน';
-    }
-    
-    if (!formData.customer_name.trim()) {
-      newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
-    }
-    
-    if (!formData.production_type) {
-      newErrors.production_type = 'กรุณาเลือกประเภทการผลิต';
-    }
-    
-    if (!formData.shirt_type) {
-      newErrors.shirt_type = 'กรุณาเลือกประเภทเสื้อ';
-    }
-    
-    if (!formData.total_quantity || formData.total_quantity <= 0) {
-      newErrors.total_quantity = 'กรุณากรอกจำนวนที่ถูกต้อง';
-    }
-    
-    if (!formData.start_date) {
-      newErrors.start_date = 'กรุณาเลือกวันที่เริ่มต้น';
-    }
-    
-    if (!formData.expected_completion_date) {
-      newErrors.expected_completion_date = 'กรุณาเลือกวันที่คาดว่าจะเสร็จ';
-    }
-    
-    if (!formData.due_date) {
-      newErrors.due_date = 'กรุณาเลือกวันที่ส่งมอบ';
-    }
-    
-    // Check date logic
-    if (formData.start_date && formData.expected_completion_date) {
-      if (formData.start_date.isAfter(formData.expected_completion_date)) {
-        newErrors.expected_completion_date = 'วันที่คาดว่าจะเสร็จต้องมาหลังวันที่เริ่มต้น';
-      }
-    }
-    
-    if (formData.expected_completion_date && formData.due_date) {
-      if (formData.expected_completion_date.isAfter(formData.due_date)) {
-        newErrors.due_date = 'วันที่ส่งมอบต้องมาหลังวันที่คาดว่าจะเสร็จ';
-      }
+    switch (step) {
+      case 0: // Basic Information
+        if (!formData.title.trim()) newErrors.title = 'กรุณากรอกชื่องาน';
+        if (!formData.customer_name.trim()) newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
+        if (!formData.start_date) newErrors.start_date = 'กรุณาเลือกวันที่เริ่มต้น';
+        if (!formData.expected_completion_date) newErrors.expected_completion_date = 'กรุณาเลือกวันที่คาดว่าจะเสร็จ';
+        if (!formData.due_date) newErrors.due_date = 'กรุณาเลือกวันที่ส่งมอบ';
+        
+        // Date validation
+        if (formData.expected_completion_date && formData.due_date) {
+          if (formData.expected_completion_date.isAfter(formData.due_date)) {
+            newErrors.expected_completion_date = 'วันที่คาดว่าจะเสร็จต้องมาก่อนวันที่ครบกำหนด';
+          }
+        }
+        break;
+        
+      case 1: // Production Information
+        if (!formData.shirt_type) newErrors.shirt_type = 'กรุณาเลือกประเภทเสื้อ';
+        if (!formData.production_type) newErrors.production_type = 'กรุณาเลือกประเภทการพิมพ์';
+        if (formData.sizes.length === 0) newErrors.sizes = 'กรุณาเลือกไซส์';
+        if (!formData.total_quantity || formData.total_quantity <= 0) newErrors.total_quantity = 'กรุณากรอกจำนวนที่ถูกต้อง';
+        break;
+        
+      case 2: // Notes
+        // Optional validation for notes
+        break;
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      toast.error('กรุณาตรวจสอบข้อมูลให้ครบถ้วน');
-      return;
+  // Handle step navigation
+  const handleNext = () => {
+    if (validateStep(activeStep)) {
+      setActiveStep(prev => prev + 1);
     }
+  };
+
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!validateStep(activeStep)) return;
     
     try {
       setSubmitLoading(true);
@@ -419,62 +373,21 @@ const MaxSupplyForm = () => {
     }
   };
 
-  // Handle cancel
-  const handleCancel = () => {
-    navigate('/max-supply');
-  };
-
-  // Add direct API call as a fallback
-  useEffect(() => {
-    // If RTK query is loading or undefined after 1 second, try direct API call
-    const timeoutId = setTimeout(async () => {
-      if (worksheetLoading || !worksheetData) {
-        console.log('MaxSupplyForm: Falling back to direct API call for worksheets');
-        try {
-          // Debug authentication tokens again before making the direct call
-          debugTokens();
-          const response = await worksheetApi.getForMaxSupply();
-          console.log('MaxSupplyForm: Direct API response for worksheets:', response);
-          
-          if (response.status === 'success' && response.data) {
-            const options = processWorksheetData(response.data);
-            setWorksheetOptions(options);
-          } else {
-            console.error('Direct API call failed to get worksheet data');
-          }
-        } catch (error) {
-          console.error('Error in direct API call for worksheets:', error);
-        }
-      }
-    }, 1500); // Give RTK Query a bit more time
-    
-    return () => clearTimeout(timeoutId);
-  }, [worksheetLoading, worksheetData]);
-
-  // Add a manual refresh function for the worksheet dropdown
+  // Manual refresh worksheets
   const manualRefreshWorksheets = async () => {
     try {
-      console.log('MaxSupplyForm: Manually refreshing worksheets');
-      debugTokens();
-      
-      // Show loading indicator
       toast.loading('กำลังโหลดข้อมูล Worksheet...', {id: 'worksheet-loading'});
       
       const response = await worksheetApi.getForMaxSupply();
-      
-      // Dismiss loading indicator
       toast.dismiss('worksheet-loading');
       
       if (response.status === 'success' && response.data) {
         const options = processWorksheetData(response.data);
         setWorksheetOptions(options);
         toast.success(`โหลดข้อมูล Worksheet สำเร็จ (${options.length} รายการ)`);
-      } else {
-        console.error('Manual refresh failed');
-        toast.error('ไม่สามารถโหลดข้อมูล Worksheet ได้');
       }
     } catch (error) {
-      console.error('Error in manual worksheet refresh:', error);
+      console.error('Error refreshing worksheets:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
       toast.dismiss('worksheet-loading');
     }
@@ -497,7 +410,7 @@ const MaxSupplyForm = () => {
             <Box display="flex" alignItems="center" gap={2} mb={2}>
               <Button
                 startIcon={<ArrowBack />}
-                onClick={handleCancel}
+                onClick={() => navigate('/max-supply')}
                 variant="outlined"
                 size="small"
               >
@@ -523,363 +436,118 @@ const MaxSupplyForm = () => {
                 </Typography>
               </Alert>
             )}
+
+            {/* Progress Stepper */}
+            <Stepper activeStep={activeStep} alternativeLabel={!isMobile}>
+              {steps.map((step, index) => (
+                <Step key={step.label}>
+                  <StepLabel 
+                    icon={
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: activeStep >= index ? 'primary.main' : 'grey.400',
+                          width: 32, 
+                          height: 32 
+                        }}
+                      >
+                        {activeStep > index ? <CheckCircle /> : step.icon}
+                      </Avatar>
+                    }
+                  >
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {step.label}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {step.description}
+                      </Typography>
+                    </Box>
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
           </Paper>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Worksheet Selection */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      เลือก Worksheet (Auto Fill)
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                      <Autocomplete
-                        value={selectedWorksheet}
-                        onChange={(event, newValue) => handleWorksheetSelect(newValue)}
-                        options={worksheetOptions}
-                        getOptionLabel={(option) => option.label || ''}
-                        loading={worksheetLoading}
-                        noOptionsText={
-                          <Box sx={{ textAlign: 'center', py: 1 }}>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              ไม่พบ Worksheet ที่มีสถานะ approved
-                            </Typography>
-                            <Button 
-                              size="small" 
-                              onClick={manualRefreshWorksheets}
-                              startIcon={<Refresh />}
-                            >
-                              รีเฟรชข้อมูล
-                            </Button>
-                          </Box>
-                        }
-                        sx={{ flexGrow: 1 }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
-                            variant="outlined"
-                            fullWidth
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {worksheetLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                            helperText={worksheetOptions.length === 0 ? 'ไม่พบข้อมูล Worksheet ที่มีสถานะ approved' : ''}
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <li {...props}>
-                            <Box>
-                              <Typography variant="body1">{option.label}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
-                              </Typography>
-                            </Box>
-                          </li>
-                        )}
-                        noOptionsText="ไม่พบ Worksheet"
-                      />
-                      <Button 
-                        variant="outlined" 
-                        onClick={manualRefreshWorksheets} 
-                        title="รีเฟรชข้อมูล Worksheet"
-                        sx={{ height: 56 }}
-                      >
-                        <Refresh />
-                      </Button>
-                    </Box>
-                      placeholder="ค้นหา Worksheet..."
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
+          {/* Form Content */}
+          <form onSubmit={(e) => e.preventDefault()}>
+            {activeStep === 0 && (
+              <StepBasicInfo
+                formData={formData}
+                errors={errors}
+                worksheetOptions={worksheetOptions}
+                worksheetLoading={worksheetLoading}
+                selectedWorksheet={selectedWorksheet}
+                onInputChange={handleInputChange}
+                onWorksheetSelect={handleWorksheetSelect}
+                onRefreshWorksheets={manualRefreshWorksheets}
+                priorityLevels={priorityLevels}
+              />
+            )}
 
-              {/* Basic Information */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      ข้อมูลพื้นฐาน
-                    </Typography>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          label="ชื่องาน"
-                          value={formData.title}
-                          onChange={(e) => handleInputChange('title', e.target.value)}
-                          error={!!errors.title}
-                          helperText={errors.title}
-                          fullWidth
-                          required
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          label="ชื่อลูกค้า"
-                          value={formData.customer_name}
-                          onChange={(e) => handleInputChange('customer_name', e.target.value)}
-                          error={!!errors.customer_name}
-                          helperText={errors.customer_name}
-                          fullWidth
-                          required
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth error={!!errors.production_type}>
-                          <InputLabel>ประเภทการผลิต</InputLabel>
-                          <Select
-                            value={formData.production_type}
-                            onChange={(e) => handleInputChange('production_type', e.target.value)}
-                            label="ประเภทการผลิต"
-                          >
-                            {productionTypes.map((type) => (
-                              <MenuItem key={type.value} value={type.value}>
-                                <Box display="flex" alignItems="center">
-                                  <Box
-                                    sx={{
-                                      width: 12,
-                                      height: 12,
-                                      backgroundColor: type.color,
-                                      borderRadius: '50%',
-                                      mr: 1,
-                                    }}
-                                  />
-                                  {type.label}
-                                </Box>
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth error={!!errors.shirt_type}>
-                          <InputLabel>ประเภทเสื้อ</InputLabel>
-                          <Select
-                            value={formData.shirt_type}
-                            onChange={(e) => handleInputChange('shirt_type', e.target.value)}
-                            label="ประเภทเสื้อ"
-                          >
-                            {shirtTypes.map((type) => (
-                              <MenuItem key={type.value} value={type.value}>
-                                {type.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          label="จำนวนรวม"
-                          type="number"
-                          value={formData.total_quantity}
-                          onChange={(e) => handleInputChange('total_quantity', parseInt(e.target.value) || 0)}
-                          error={!!errors.total_quantity}
-                          helperText={errors.total_quantity}
-                          fullWidth
-                          required
-                          inputProps={{ min: 1 }}
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth>
-                          <InputLabel>ระดับความสำคัญ</InputLabel>
-                          <Select
-                            value={formData.priority}
-                            onChange={(e) => handleInputChange('priority', e.target.value)}
-                            label="ระดับความสำคัญ"
-                          >
-                            {priorityLevels.map((level) => (
-                              <MenuItem key={level.value} value={level.value}>
-                                <Box display="flex" alignItems="center">
-                                  <Box
-                                    sx={{
-                                      width: 12,
-                                      height: 12,
-                                      backgroundColor: level.color,
-                                      borderRadius: '50%',
-                                      mr: 1,
-                                    }}
-                                  />
-                                  {level.label}
-                                </Box>
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
+            {activeStep === 1 && (
+              <StepProductionInfo
+                formData={formData}
+                errors={errors}
+                shirtTypes={shirtTypes}
+                productionTypes={productionTypes}
+                sizeOptions={sizeOptions}
+                onInputChange={handleInputChange}
+                onSizeBreakdown={handleSizeBreakdown}
+                onSizeQuantityChange={handleSizeQuantityChange}
+                onPrintLocationChange={handlePrintLocationChange}
+              />
+            )}
 
-              {/* Sizes */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      ไซส์
-                    </Typography>
-                    
-                    <Autocomplete
-                      multiple
-                      value={formData.sizes}
-                      onChange={(event, newValue) => handleSizesChange(newValue)}
-                      options={sizeOptions}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => (
-                          <Chip
-                            variant="outlined"
-                            label={option}
-                            {...getTagProps({ index })}
-                            key={option}
-                          />
-                        ))
-                      }
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="เลือกไซส์"
-                          placeholder="เลือกไซส์ที่ต้องการ"
-                        />
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
+            {activeStep === 2 && (
+              <StepNotes
+                formData={formData}
+                errors={errors}
+                onInputChange={handleInputChange}
+              />
+            )}
 
-              {/* Dates */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      <CalendarToday sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      วันที่
-                    </Typography>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={4}>
-                        <DatePicker
-                          label="วันที่เริ่มต้น"
-                          value={formData.start_date}
-                          onChange={(date) => handleInputChange('start_date', date)}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: !!errors.start_date,
-                              helperText: errors.start_date,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={4}>
-                        <DatePicker
-                          label="วันที่คาดว่าจะเสร็จ"
-                          value={formData.expected_completion_date}
-                          onChange={(date) => handleInputChange('expected_completion_date', date)}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: !!errors.expected_completion_date,
-                              helperText: errors.expected_completion_date,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={4}>
-                        <DatePicker
-                          label="วันที่ส่งมอบ"
-                          value={formData.due_date}
-                          onChange={(date) => handleInputChange('due_date', date)}
-                          slotProps={{
-                            textField: {
-                              fullWidth: true,
-                              error: !!errors.due_date,
-                              helperText: errors.due_date,
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Notes */}
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      หมายเหตุ
-                    </Typography>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          label="หมายเหตุทั่วไป"
-                          value={formData.notes}
-                          onChange={(e) => handleInputChange('notes', e.target.value)}
-                          multiline
-                          rows={4}
-                          fullWidth
-                          placeholder="หมายเหตุเพิ่มเติม..."
-                        />
-                      </Grid>
-                      
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          label="คำแนะนำพิเศษ"
-                          value={formData.special_instructions}
-                          onChange={(e) => handleInputChange('special_instructions', e.target.value)}
-                          multiline
-                          rows={4}
-                          fullWidth
-                          placeholder="คำแนะนำพิเศษสำหรับการผลิต..."
-                        />
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            {/* Actions */}
-            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                onClick={handleCancel}
-                disabled={submitLoading}
-                startIcon={<Cancel />}
-              >
-                ยกเลิก
-              </Button>
-              
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={submitLoading}
-                startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
-              >
-                {submitLoading ? 'กำลังบันทึก...' : (isEditMode ? 'อัปเดต' : 'สร้างงาน')}
-              </Button>
-            </Box>
+            {/* Navigation Buttons */}
+            <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Button
+                  disabled={activeStep === 0}
+                  onClick={handleBack}
+                  startIcon={<NavigateBefore />}
+                  variant="outlined"
+                >
+                  ย้อนกลับ
+                </Button>
+                
+                <Box display="flex" gap={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/max-supply')}
+                    startIcon={<Cancel />}
+                  >
+                    ยกเลิก
+                  </Button>
+                  
+                  {activeStep === steps.length - 1 ? (
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmit}
+                      disabled={submitLoading}
+                      startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
+                    >
+                      {submitLoading ? 'กำลังบันทึก...' : (isEditMode ? 'อัปเดต' : 'สร้างงาน')}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      onClick={handleNext}
+                      endIcon={<NavigateNext />}
+                    >
+                      ถัดไป
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
           </form>
         </Box>
       </Container>
@@ -887,4 +555,555 @@ const MaxSupplyForm = () => {
   );
 };
 
-export default MaxSupplyForm;
+// Step 1: Basic Information Component
+const StepBasicInfo = ({ 
+  formData, 
+  errors, 
+  worksheetOptions, 
+  worksheetLoading, 
+  selectedWorksheet,
+  onInputChange, 
+  onWorksheetSelect, 
+  onRefreshWorksheets,
+  priorityLevels 
+}) => {
+  return (
+    <Grid container spacing={3}>
+      {/* Worksheet Selection */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
+              เลือก Worksheet (Auto Fill)
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <Autocomplete
+                value={selectedWorksheet}
+                onChange={(event, newValue) => onWorksheetSelect(newValue)}
+                options={worksheetOptions}
+                getOptionLabel={(option) => option.label || ''}
+                loading={worksheetLoading}
+                sx={{ flexGrow: 1 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
+                    variant="outlined"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {worksheetLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box>
+                      <Typography variant="body1">{option.label}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                noOptionsText="ไม่พบ Worksheet"
+              />
+              <Button 
+                variant="outlined" 
+                onClick={onRefreshWorksheets} 
+                title="รีเฟรชข้อมูล Worksheet"
+                sx={{ height: 56 }}
+              >
+                <Refresh />
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Basic Information */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+              ข้อมูลพื้นฐาน
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="ชื่องาน"
+                  value={formData.title}
+                  onChange={(e) => onInputChange('title', e.target.value)}
+                  error={!!errors.title}
+                  helperText={errors.title}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="ชื่อลูกค้า"
+                  value={formData.customer_name}
+                  onChange={(e) => onInputChange('customer_name', e.target.value)}
+                  error={!!errors.customer_name}
+                  helperText={errors.customer_name}
+                  fullWidth
+                  required
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>ระดับความสำคัญ</InputLabel>
+                  <Select
+                    value={formData.priority}
+                    onChange={(e) => onInputChange('priority', e.target.value)}
+                    label="ระดับความสำคัญ"
+                  >
+                    {priorityLevels.map((level) => (
+                      <MenuItem key={level.value} value={level.value}>
+                        <Box display="flex" alignItems="center">
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              backgroundColor: level.color,
+                              borderRadius: '50%',
+                              mr: 1,
+                            }}
+                          />
+                          {level.label}
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Sample Image */}
+      {formData.sample_image && (
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <Image sx={{ mr: 1, verticalAlign: 'middle' }} />
+                รูปตัวอย่างเสื้อ
+              </Typography>
+              <CardMedia
+                component="img"
+                height="200"
+                image={formData.sample_image}
+                alt="Sample shirt"
+                sx={{ objectFit: 'contain', borderRadius: 1 }}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      )}
+
+      {/* Dates */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Schedule sx={{ mr: 1, verticalAlign: 'middle' }} />
+              กำหนดเวลา
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <DatePicker
+                  label="วันที่เริ่มต้น"
+                  value={formData.start_date}
+                  onChange={(date) => onInputChange('start_date', date)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.start_date,
+                      helperText: errors.start_date,
+                    },
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <DatePicker
+                  label="วันที่คาดว่าจะเสร็จ"
+                  value={formData.expected_completion_date}
+                  onChange={(date) => onInputChange('expected_completion_date', date)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.expected_completion_date,
+                      helperText: errors.expected_completion_date,
+                    },
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <DatePicker
+                  label="วันที่ครบกำหนด"
+                  value={formData.due_date}
+                  onChange={(date) => onInputChange('due_date', date)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.due_date,
+                      helperText: errors.due_date,
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+            
+            {formData.expected_completion_date && formData.due_date && 
+             formData.expected_completion_date.isAfter(formData.due_date) && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Warning sx={{ mr: 1 }} />
+                วันที่คาดว่าจะเสร็จเกินกำหนดส่งมอบ กรุณาตรวจสอบอีกครั้ง
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+};
+
+// Step 2: Production Information Component
+const StepProductionInfo = ({ 
+  formData, 
+  errors, 
+  shirtTypes, 
+  productionTypes,
+  sizeOptions,
+  onInputChange, 
+  onSizeBreakdown,
+  onSizeQuantityChange,
+  onPrintLocationChange 
+}) => {
+  return (
+    <Grid container spacing={3}>
+      {/* Shirt Type */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Category sx={{ mr: 1, verticalAlign: 'middle' }} />
+              ประเภทเสื้อ
+            </Typography>
+            
+            <FormControl fullWidth error={!!errors.shirt_type}>
+              <InputLabel>ประเภทเสื้อ</InputLabel>
+              <Select
+                value={formData.shirt_type}
+                onChange={(e) => onInputChange('shirt_type', e.target.value)}
+                label="ประเภทเสื้อ"
+              >
+                {shirtTypes.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.shirt_type && (
+                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                  {errors.shirt_type}
+                </Typography>
+              )}
+            </FormControl>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Size Selection */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Straighten sx={{ mr: 1, verticalAlign: 'middle' }} />
+              ขนาดและจำนวน
+            </Typography>
+            
+            <Autocomplete
+              multiple
+              value={formData.sizes}
+              onChange={(event, newValue) => onSizeBreakdown(newValue)}
+              options={sizeOptions}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    variant="outlined"
+                    label={option}
+                    {...getTagProps({ index })}
+                    key={option}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="เลือกไซส์"
+                  placeholder="เลือกไซส์ที่ต้องการ"
+                  error={!!errors.sizes}
+                  helperText={errors.sizes}
+                />
+              )}
+            />
+            
+            {/* Size Breakdown Table */}
+            {formData.size_breakdown.length > 0 && (
+              <TableContainer sx={{ mt: 2 }}>
+                <Table>
+                  <TableBody>
+                    {formData.size_breakdown.map((item, index) => (
+                      <TableRow key={item.size}>
+                        <TableCell>
+                          <Chip label={item.size} variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => onSizeQuantityChange(index, parseInt(e.target.value) || 0)}
+                            inputProps={{ min: 0 }}
+                            size="small"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell><strong>รวม</strong></TableCell>
+                      <TableCell><strong>{formData.total_quantity} ตัว</strong></TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Print Locations */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Print sx={{ mr: 1, verticalAlign: 'middle' }} />
+              จุดพิมพ์ (แยกกันคำนวณ)
+            </Typography>
+            
+            <Grid container spacing={2}>
+              {/* Screen Printing */}
+              <Grid item xs={12} md={4}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      📺 Screen Printing
+                    </Typography>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>เปิดใช้งาน</InputLabel>
+                      <Select
+                        value={formData.print_locations.screen.enabled}
+                        onChange={(e) => onPrintLocationChange('screen', 'enabled', e.target.value)}
+                        label="เปิดใช้งาน"
+                      >
+                        <MenuItem value={false}>ไม่ใช้</MenuItem>
+                        <MenuItem value={true}>ใช้</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <Collapse in={formData.print_locations.screen.enabled}>
+                      <TextField
+                        label="ตำแหน่งพิมพ์"
+                        value={formData.print_locations.screen.position}
+                        onChange={(e) => onPrintLocationChange('screen', 'position', e.target.value)}
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      />
+                      <TextField
+                        label="จำนวนสี"
+                        type="number"
+                        value={formData.print_locations.screen.colors}
+                        onChange={(e) => onPrintLocationChange('screen', 'colors', parseInt(e.target.value) || 0)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* DTF */}
+              <Grid item xs={12} md={4}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      📱 DTF (Direct to Film)
+                    </Typography>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>เปิดใช้งาน</InputLabel>
+                      <Select
+                        value={formData.print_locations.dtf.enabled}
+                        onChange={(e) => onPrintLocationChange('dtf', 'enabled', e.target.value)}
+                        label="เปิดใช้งาน"
+                      >
+                        <MenuItem value={false}>ไม่ใช้</MenuItem>
+                        <MenuItem value={true}>ใช้</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <Collapse in={formData.print_locations.dtf.enabled}>
+                      <TextField
+                        label="ตำแหน่งพิมพ์"
+                        value={formData.print_locations.dtf.position}
+                        onChange={(e) => onPrintLocationChange('dtf', 'position', e.target.value)}
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      />
+                      <TextField
+                        label="จำนวนสี"
+                        type="number"
+                        value={formData.print_locations.dtf.colors}
+                        onChange={(e) => onPrintLocationChange('dtf', 'colors', parseInt(e.target.value) || 0)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Sublimation */}
+              <Grid item xs={12} md={4}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      ⚽ Sublimation
+                    </Typography>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>เปิดใช้งาน</InputLabel>
+                      <Select
+                        value={formData.print_locations.sublimation.enabled}
+                        onChange={(e) => onPrintLocationChange('sublimation', 'enabled', e.target.value)}
+                        label="เปิดใช้งาน"
+                      >
+                        <MenuItem value={false}>ไม่ใช้</MenuItem>
+                        <MenuItem value={true}>ใช้</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <Collapse in={formData.print_locations.sublimation.enabled}>
+                      <TextField
+                        label="ตำแหน่งพิมพ์"
+                        value={formData.print_locations.sublimation.position}
+                        onChange={(e) => onPrintLocationChange('sublimation', 'position', e.target.value)}
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      />
+                      <TextField
+                        label="จำนวนสี"
+                        type="number"
+                        value={formData.print_locations.sublimation.colors}
+                        onChange={(e) => onPrintLocationChange('sublimation', 'colors', parseInt(e.target.value) || 0)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+};
+
+// Step 3: Notes Component
+const StepNotes = ({ formData, errors, onInputChange }) => {
+  return (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Note sx={{ mr: 1, verticalAlign: 'middle' }} />
+              หมายเหตุและข้อมูลเพิ่มเติม
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="หมายเหตุทั่วไป"
+                  value={formData.notes}
+                  onChange={(e) => onInputChange('notes', e.target.value)}
+                  multiline
+                  rows={4}
+                  fullWidth
+                  placeholder="หมายเหตุเพิ่มเติม..."
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="คำแนะนำพิเศษ"
+                  value={formData.special_instructions}
+                  onChange={(e) => onInputChange('special_instructions', e.target.value)}
+                  multiline
+                  rows={4}
+                  fullWidth
+                  placeholder="คำแนะนำพิเศษสำหรับการผลิต..."
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Summary */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <CheckCircle sx={{ mr: 1, verticalAlign: 'middle' }} />
+              สรุปข้อมูล
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2"><strong>ชื่องาน:</strong> {formData.title}</Typography>
+                <Typography variant="body2"><strong>ลูกค้า:</strong> {formData.customer_name}</Typography>
+                <Typography variant="body2"><strong>ประเภทเสื้อ:</strong> {formData.shirt_type}</Typography>
+                <Typography variant="body2"><strong>จำนวนรวม:</strong> {formData.total_quantity} ตัว</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2"><strong>วันที่เริ่ม:</strong> {formData.start_date?.format('DD/MM/YYYY')}</Typography>
+                <Typography variant="body2"><strong>วันที่คาดว่าจะเสร็จ:</strong> {formData.expected_completion_date?.format('DD/MM/YYYY')}</Typography>
+                <Typography variant="body2"><strong>วันที่ครบกำหนด:</strong> {formData.due_date?.format('DD/MM/YYYY')}</Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+};
+
+export default MaxSupplyForm; 

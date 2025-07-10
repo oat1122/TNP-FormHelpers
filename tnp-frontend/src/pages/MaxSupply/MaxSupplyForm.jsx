@@ -3,9 +3,6 @@ import {
   Box,
   Container,
   Typography,
-  Stepper,
-  Step,
-  StepLabel,
   Card,
   CardContent,
   Grid,
@@ -16,36 +13,34 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  Chip,
   Alert,
   Paper,
   Divider,
-  IconButton,
-  Avatar,
+  CircularProgress,
+  Chip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
-  Add,
-  Remove,
   Save,
   Cancel,
   AutoAwesome,
   CalendarToday,
   Assignment,
-  Note,
   ArrowBack,
-  ArrowForward,
-  CheckCircle,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
-import { format } from 'date-fns';
-// Import locale without direct reference to specific structure
-// This works with both date-fns v2.x and v4.x
-import * as dateFnsLocales from 'date-fns/locale';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import { maxSupplyApi, worksheetApi } from '../../services/maxSupplyApi';
+import { useGetAllWorksheetQuery } from '../../features/Worksheet/worksheetApi';
+import toast from 'react-hot-toast';
+
+// Set dayjs locale
+dayjs.locale('th');
 
 const MaxSupplyForm = () => {
   const theme = useTheme();
@@ -54,42 +49,40 @@ const MaxSupplyForm = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
-  const [activeStep, setActiveStep] = useState(0);
-  const [worksheets, setWorksheets] = useState([]);
+  // States
   const [formData, setFormData] = useState({
     worksheet_id: '',
     title: '',
     customer_name: '',
     production_type: '',
-    start_date: new Date(),
-    expected_completion_date: new Date(),
-    due_date: new Date(),
+    start_date: dayjs(),
+    expected_completion_date: dayjs().add(7, 'day'),
+    due_date: dayjs().add(14, 'day'),
     shirt_type: '',
     total_quantity: 0,
     sizes: [],
-    screen_points: 0,
-    dtf_points: 0,
-    sublimation_points: 0,
     priority: 'normal',
     notes: '',
     special_instructions: '',
+    status: 'pending',
   });
-  const [selectedWorksheet, setSelectedWorksheet] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [selectedWorksheet, setSelectedWorksheet] = useState(null);
+  const [worksheetOptions, setWorksheetOptions] = useState([]);
   const [autoFillPreview, setAutoFillPreview] = useState(null);
 
-  const steps = [
-    'ข้อมูลพื้นฐาน',
-    'ข้อมูลการผลิต',
-    'หมายเหตุ',
-  ];
+  // Get worksheets data
+  const { data: worksheetData, isLoading: worksheetLoading } = useGetAllWorksheetQuery();
 
   // Production types
   const productionTypes = [
-    { value: 'screen', label: '📺 Screen', color: '#7c3aed' },
-    { value: 'dtf', label: '📱 DTF', color: '#0891b2' },
-    { value: 'sublimation', label: '⚽ Sublimation', color: '#16a34a' },
+    { value: 'screen', label: '🖥️ Screen Printing', color: '#7c3aed' },
+    { value: 'dtf', label: '🖨️ DTF (Direct to Film)', color: '#0891b2' },
+    { value: 'sublimation', label: '🎨 Sublimation', color: '#16a34a' },
+    { value: 'embroidery', label: '🧵 Embroidery', color: '#dc2626' },
   ];
 
   // Shirt types
@@ -98,6 +91,7 @@ const MaxSupplyForm = () => {
     { value: 't-shirt', label: 'เสื้อยืด' },
     { value: 'hoodie', label: 'เสื้อฮูดี้' },
     { value: 'tank-top', label: 'เสื้อกล้าม' },
+    { value: 'long-sleeve', label: 'เสื้อแขนยาว' },
   ];
 
   // Priority levels
@@ -112,58 +106,72 @@ const MaxSupplyForm = () => {
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
   // Load worksheets
-  const loadWorksheets = async () => {
-    try {
-      const response = await fetch('/api/v1/worksheets');
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        setWorksheets(data.data);
-      }
-    } catch (error) {
-      console.error('Error loading worksheets:', error);
+  useEffect(() => {
+    if (worksheetData?.data) {
+      const options = worksheetData.data
+        .filter(ws => ws.status === 'approved' || ws.status === 'pending')
+        .map(ws => ({
+          id: ws.worksheet_id,
+          label: `${ws.customer_name} - ${ws.product_name || 'ไม่ระบุ'}`,
+          ...ws,
+        }));
+      setWorksheetOptions(options);
     }
-  };
+  }, [worksheetData]);
 
   // Load existing data for edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadExistingData();
+    }
+  }, [isEditMode, id]);
+
+  // Load existing data
   const loadExistingData = async () => {
     try {
-      const response = await fetch(`/api/v1/max-supplies/${id}`);
-      const data = await response.json();
+      setLoading(true);
+      const response = await maxSupplyApi.getById(id);
       
-      if (data.status === 'success') {
-        const item = data.data;
+      if (response.status === 'success') {
+        const item = response.data;
         setFormData({
           ...item,
-          start_date: new Date(item.start_date),
-          expected_completion_date: new Date(item.expected_completion_date),
-          due_date: new Date(item.due_date),
+          start_date: dayjs(item.start_date),
+          expected_completion_date: dayjs(item.expected_completion_date),
+          due_date: dayjs(item.due_date),
+          sizes: item.sizes || [],
         });
+        
+        // Find and set the selected worksheet
+        const worksheet = worksheetOptions.find(ws => ws.id === item.worksheet_id);
+        if (worksheet) {
+          setSelectedWorksheet(worksheet);
+        }
       }
     } catch (error) {
       console.error('Error loading existing data:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle worksheet selection
+  // Handle worksheet selection and auto fill
   const handleWorksheetSelect = (worksheet) => {
     setSelectedWorksheet(worksheet);
     
     if (worksheet) {
       // Auto-fill data from worksheet
       const autoFillData = {
-        worksheet_id: worksheet.worksheet_id,
-        title: worksheet.product_name || worksheet.title,
+        worksheet_id: worksheet.id,
+        title: worksheet.product_name || worksheet.title || `${worksheet.customer_name} - งานใหม่`,
         customer_name: worksheet.customer_name,
-        production_type: worksheet.items?.[0]?.print_type || '',
-        due_date: new Date(worksheet.due_date),
-        shirt_type: worksheet.items?.[0]?.shirt_type || '',
-        total_quantity: worksheet.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0,
-        sizes: worksheet.items?.[0]?.sizes || [],
-        screen_points: calculatePoints(worksheet.items, 'screen'),
-        dtf_points: calculatePoints(worksheet.items, 'dtf'),
-        sublimation_points: calculatePoints(worksheet.items, 'sublimation'),
-        special_instructions: worksheet.special_instructions || '',
+        production_type: worksheet.print_type || worksheet.production_type || '',
+        due_date: worksheet.due_date ? dayjs(worksheet.due_date) : dayjs().add(14, 'day'),
+        shirt_type: worksheet.shirt_type || '',
+        total_quantity: worksheet.total_quantity || 0,
+        sizes: worksheet.sizes || [],
+        special_instructions: worksheet.special_note || worksheet.notes || '',
       };
       
       setFormData(prev => ({
@@ -172,68 +180,33 @@ const MaxSupplyForm = () => {
       }));
       
       setAutoFillPreview(autoFillData);
+      toast.success('ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet แล้ว');
+    } else {
+      setAutoFillPreview(null);
     }
   };
 
-  // Calculate points for production type
-  const calculatePoints = (items, type) => {
-    if (!items) return 0;
-    
-    const basePoints = {
-      screen: 2,
-      dtf: 1,
-      sublimation: 3,
-    };
-    
-    return items
-      .filter(item => item.print_type === type)
-      .reduce((sum, item) => {
-        const sizes = item.sizes ? Object.keys(item.sizes).length : 1;
-        const colors = item.colors ? item.colors.length : 1;
-        return sum + (basePoints[type] * sizes * colors);
-      }, 0);
-  };
-
-  // Handle form data change
-  const handleInputChange = (name, value) => {
+  // Handle form field changes
+  const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [field]: value,
     }));
     
-    // Clear error when user starts typing
-    if (errors[name]) {
+    // Clear error for this field
+    if (errors[field]) {
       setErrors(prev => ({
         ...prev,
-        [name]: null,
+        [field]: '',
       }));
     }
   };
 
-  // Handle size management
-  const handleSizeChange = (index, field, value) => {
-    const newSizes = [...formData.sizes];
-    newSizes[index] = {
-      ...newSizes[index],
-      [field]: value,
-    };
+  // Handle sizes change
+  const handleSizesChange = (newSizes) => {
     setFormData(prev => ({
       ...prev,
       sizes: newSizes,
-    }));
-  };
-
-  const addSizeRow = () => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: [...prev.sizes, { sizes: [], quantity: 0 }],
-    }));
-  };
-
-  const removeSizeRow = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: prev.sizes.filter((_, i) => i !== index),
     }));
   };
 
@@ -241,33 +214,48 @@ const MaxSupplyForm = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (activeStep === 0) {
-      if (!formData.title) newErrors.title = 'กรุณากรอกชื่องาน';
-      if (!formData.customer_name) newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
-      if (!formData.production_type) newErrors.production_type = 'กรุณาเลือกประเภทการผลิต';
-      if (!formData.start_date) newErrors.start_date = 'กรุณาเลือกวันที่เริ่ม';
-      if (!formData.expected_completion_date) newErrors.expected_completion_date = 'กรุณาเลือกวันที่คาดว่าจะเสร็จ';
-      if (!formData.due_date) newErrors.due_date = 'กรุณาเลือกวันครบกำหนด';
-      
-      // Check date logic
-      if (formData.start_date && formData.expected_completion_date) {
-        if (formData.expected_completion_date < formData.start_date) {
-          newErrors.expected_completion_date = 'วันที่คาดว่าจะเสร็จต้องมากกว่าวันที่เริ่ม';
-        }
+    if (!formData.title.trim()) {
+      newErrors.title = 'กรุณากรอกชื่องาน';
+    }
+    
+    if (!formData.customer_name.trim()) {
+      newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
+    }
+    
+    if (!formData.production_type) {
+      newErrors.production_type = 'กรุณาเลือกประเภทการผลิต';
+    }
+    
+    if (!formData.shirt_type) {
+      newErrors.shirt_type = 'กรุณาเลือกประเภทเสื้อ';
+    }
+    
+    if (!formData.total_quantity || formData.total_quantity <= 0) {
+      newErrors.total_quantity = 'กรุณากรอกจำนวนที่ถูกต้อง';
+    }
+    
+    if (!formData.start_date) {
+      newErrors.start_date = 'กรุณาเลือกวันที่เริ่มต้น';
+    }
+    
+    if (!formData.expected_completion_date) {
+      newErrors.expected_completion_date = 'กรุณาเลือกวันที่คาดว่าจะเสร็จ';
+    }
+    
+    if (!formData.due_date) {
+      newErrors.due_date = 'กรุณาเลือกวันที่ส่งมอบ';
+    }
+    
+    // Check date logic
+    if (formData.start_date && formData.expected_completion_date) {
+      if (formData.start_date.isAfter(formData.expected_completion_date)) {
+        newErrors.expected_completion_date = 'วันที่คาดว่าจะเสร็จต้องมาหลังวันที่เริ่มต้น';
       }
-      
-      if (formData.expected_completion_date && formData.due_date) {
-        if (formData.expected_completion_date > formData.due_date) {
-          newErrors.expected_completion_date = 'วันที่คาดว่าจะเสร็จต้องไม่เกินวันครบกำหนด';
-        }
-      }
-    } else if (activeStep === 1) {
-      if (!formData.shirt_type) newErrors.shirt_type = 'กรุณาเลือกประเภทเสื้อ';
-      if (!formData.total_quantity || formData.total_quantity <= 0) {
-        newErrors.total_quantity = 'กรุณากรอกจำนวนที่ถูกต้อง';
-      }
-      if (!formData.sizes || formData.sizes.length === 0) {
-        newErrors.sizes = 'กรุณาเพิ่มข้อมูลขนาด';
+    }
+    
+    if (formData.expected_completion_date && formData.due_date) {
+      if (formData.expected_completion_date.isAfter(formData.due_date)) {
+        newErrors.due_date = 'วันที่ส่งมอบต้องมาหลังวันที่คาดว่าจะเสร็จ';
       }
     }
     
@@ -275,515 +263,428 @@ const MaxSupplyForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle next step
-  const handleNext = () => {
-    if (validateForm()) {
-      setActiveStep(prev => prev + 1);
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('กรุณาตรวจสอบข้อมูลให้ครบถ้วน');
+      return;
     }
-  };
-
-  // Handle previous step
-  const handleBack = () => {
-    setActiveStep(prev => prev - 1);
-  };
-
-  // Handle submit
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
     
     try {
-      setLoading(true);
+      setSubmitLoading(true);
       
-      const method = isEditMode ? 'PUT' : 'POST';
-      const url = isEditMode ? `/api/v1/max-supplies/${id}` : '/api/v1/max-supplies';
+      const submitData = {
+        ...formData,
+        start_date: formData.start_date.format('YYYY-MM-DD'),
+        expected_completion_date: formData.expected_completion_date.format('YYYY-MM-DD'),
+        due_date: formData.due_date.format('YYYY-MM-DD'),
+      };
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        navigate('/max-supply/list');
+      let response;
+      if (isEditMode) {
+        response = await maxSupplyApi.update(id, submitData);
       } else {
-        console.error('Error submitting form:', data.message);
+        response = await maxSupplyApi.create(submitData);
+      }
+      
+      if (response.status === 'success') {
+        toast.success(isEditMode ? 'อัปเดตข้อมูลสำเร็จ' : 'สร้างงานใหม่สำเร็จ');
+        navigate('/max-supply');
+      } else {
+        throw new Error(response.message || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadWorksheets();
-    if (isEditMode) {
-      loadExistingData();
-    }
-  }, [isEditMode, id]);
+  // Handle cancel
+  const handleCancel = () => {
+    navigate('/max-supply');
+  };
 
-  // Step 1: Basic Information
-  const StepBasicInfo = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              <AutoAwesome sx={{ mr: 1 }} />
-              เลือก Worksheet (Auto-fill)
-            </Typography>
-            <Autocomplete
-              options={worksheets}
-              getOptionLabel={(option) => `${option.code} - ${option.customer_name}`}
-              value={selectedWorksheet}
-              onChange={(event, value) => handleWorksheetSelect(value)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="เลือก Worksheet"
-                  placeholder="เลือก Worksheet เพื่อ Auto-fill ข้อมูล"
-                  helperText="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="subtitle2">{option.code}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {option.customer_name} - {option.product_name}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-            />
-          </CardContent>
-        </Card>
-      </Grid>
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-      {autoFillPreview && (
-        <Grid item xs={12}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              ข้อมูลที่จะ Auto-fill:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              <Chip label={`ชื่องาน: ${autoFillPreview.title}`} size="small" />
-              <Chip label={`ลูกค้า: ${autoFillPreview.customer_name}`} size="small" />
-              <Chip label={`ประเภท: ${autoFillPreview.production_type}`} size="small" />
-              <Chip label={`จำนวน: ${autoFillPreview.total_quantity}`} size="small" />
-            </Box>
-          </Alert>
-        </Grid>
-      )}
-
-      <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          label="ชื่องาน"
-          value={formData.title}
-          onChange={(e) => handleInputChange('title', e.target.value)}
-          error={!!errors.title}
-          helperText={errors.title}
-          required
-        />
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          label="ชื่อลูกค้า"
-          value={formData.customer_name}
-          onChange={(e) => handleInputChange('customer_name', e.target.value)}
-          error={!!errors.customer_name}
-          helperText={errors.customer_name}
-          required
-        />
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <FormControl fullWidth error={!!errors.production_type} required>
-          <InputLabel>ประเภทการผลิต</InputLabel>
-          <Select
-            value={formData.production_type}
-            onChange={(e) => handleInputChange('production_type', e.target.value)}
-            label="ประเภทการผลิต"
-          >
-            {productionTypes.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 12,
-                      height: 12,
-                      backgroundColor: type.color,
-                      borderRadius: '50%',
-                    }}
-                  />
-                  {type.label}
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-          {errors.production_type && (
-            <Typography variant="caption" color="error">
-              {errors.production_type}
-            </Typography>
-          )}
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <FormControl fullWidth>
-          <InputLabel>ความสำคัญ</InputLabel>
-          <Select
-            value={formData.priority}
-            onChange={(e) => handleInputChange('priority', e.target.value)}
-            label="ความสำคัญ"
-          >
-            {priorityLevels.map((level) => (
-              <MenuItem key={level.value} value={level.value}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 12,
-                      height: 12,
-                      backgroundColor: level.color,
-                      borderRadius: '50%',
-                    }}
-                  />
-                  {level.label}
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-          <MuiDatePicker
-            label="วันที่เริ่ม"
-            value={formData.start_date}
-            onChange={(value) => handleInputChange('start_date', value)}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: !!errors.start_date,
-                helperText: errors.start_date,
-                required: true
-              }
-            }}
-          />
-        </LocalizationProvider>
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-          <MuiDatePicker
-            label="วันที่คาดว่าจะเสร็จ"
-            value={formData.expected_completion_date}
-            onChange={(value) => handleInputChange('expected_completion_date', value)}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: !!errors.expected_completion_date,
-                helperText: errors.expected_completion_date,
-                required: true
-              }
-            }}
-          />
-        </LocalizationProvider>
-      </Grid>
-
-      <Grid item xs={12} md={4}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-          <MuiDatePicker
-            label="วันครบกำหนด"
-            value={formData.due_date}
-            onChange={(value) => handleInputChange('due_date', value)}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                error: !!errors.due_date,
-                helperText: errors.due_date,
-                required: true
-              }
-            }}
-          />
-        </LocalizationProvider>
-      </Grid>
-    </Grid>
-  );
-
-  // Step 2: Production Information
-  const StepProductionInfo = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <FormControl fullWidth error={!!errors.shirt_type} required>
-          <InputLabel>ประเภทเสื้อ</InputLabel>
-          <Select
-            value={formData.shirt_type}
-            onChange={(e) => handleInputChange('shirt_type', e.target.value)}
-            label="ประเภทเสื้อ"
-          >
-            {shirtTypes.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                {type.label}
-              </MenuItem>
-            ))}
-          </Select>
-          {errors.shirt_type && (
-            <Typography variant="caption" color="error">
-              {errors.shirt_type}
-            </Typography>
-          )}
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          label="จำนวนทั้งหมด"
-          type="number"
-          value={formData.total_quantity}
-          onChange={(e) => handleInputChange('total_quantity', parseInt(e.target.value) || 0)}
-          error={!!errors.total_quantity}
-          helperText={errors.total_quantity}
-          required
-          InputProps={{
-            inputProps: { min: 0 }
-          }}
-        />
-      </Grid>
-
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">การจัดการขนาด</Typography>
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
+      <Container maxWidth="lg">
+        <Box sx={{ py: 3 }}>
+          {/* Header */}
+          <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+            <Box display="flex" alignItems="center" gap={2} mb={2}>
               <Button
+                startIcon={<ArrowBack />}
+                onClick={handleCancel}
                 variant="outlined"
-                startIcon={<Add />}
-                onClick={addSizeRow}
                 size="small"
               >
-                เพิ่มขนาด
+                กลับ
               </Button>
+              <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
+                {isEditMode ? 'แก้ไขงาน Max Supply' : 'สร้างงาน Max Supply ใหม่'}
+              </Typography>
             </Box>
-            
-            {formData.sizes.map((sizeRow, index) => (
-              <Box key={index} sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle2">ชุดขนาดที่ {index + 1}</Typography>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => removeSizeRow(index)}
-                    disabled={formData.sizes.length === 1}
-                  >
-                    <Remove />
-                  </IconButton>
-                </Box>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={8}>
+
+            {/* Auto Fill Preview */}
+            {autoFillPreview && (
+              <Alert 
+                severity="info" 
+                icon={<AutoAwesome />}
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="body2">
+                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet:</strong><br />
+                  ลูกค้า: {autoFillPreview.customer_name} | 
+                  จำนวน: {autoFillPreview.total_quantity} ตัว | 
+                  ประเภท: {autoFillPreview.production_type}
+                </Typography>
+              </Alert>
+            )}
+          </Paper>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={3}>
+              {/* Worksheet Selection */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      เลือก Worksheet (Auto Fill)
+                    </Typography>
+                    
                     <Autocomplete
-                      multiple
-                      options={sizeOptions}
-                      value={sizeRow.sizes || []}
-                      onChange={(event, value) => handleSizeChange(index, 'sizes', value)}
+                      value={selectedWorksheet}
+                      onChange={(event, newValue) => handleWorksheetSelect(newValue)}
+                      options={worksheetOptions}
+                      getOptionLabel={(option) => option.label || ''}
+                      loading={worksheetLoading}
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          label="ขนาด"
-                          placeholder="เลือกขนาด"
+                          label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
+                          variant="outlined"
+                          fullWidth
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {worksheetLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
                         />
                       )}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          <Box>
+                            <Typography variant="body1">{option.label}</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
+                            </Typography>
+                          </Box>
+                        </li>
+                      )}
+                      noOptionsText="ไม่พบ Worksheet"
+                      placeholder="ค้นหา Worksheet..."
+                    />
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Basic Information */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      ข้อมูลพื้นฐาน
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="ชื่องาน"
+                          value={formData.title}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                          error={!!errors.title}
+                          helperText={errors.title}
+                          fullWidth
+                          required
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="ชื่อลูกค้า"
+                          value={formData.customer_name}
+                          onChange={(e) => handleInputChange('customer_name', e.target.value)}
+                          error={!!errors.customer_name}
+                          helperText={errors.customer_name}
+                          fullWidth
+                          required
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={!!errors.production_type}>
+                          <InputLabel>ประเภทการผลิต</InputLabel>
+                          <Select
+                            value={formData.production_type}
+                            onChange={(e) => handleInputChange('production_type', e.target.value)}
+                            label="ประเภทการผลิต"
+                          >
+                            {productionTypes.map((type) => (
+                              <MenuItem key={type.value} value={type.value}>
+                                <Box display="flex" alignItems="center">
+                                  <Box
+                                    sx={{
+                                      width: 12,
+                                      height: 12,
+                                      backgroundColor: type.color,
+                                      borderRadius: '50%',
+                                      mr: 1,
+                                    }}
+                                  />
+                                  {type.label}
+                                </Box>
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth error={!!errors.shirt_type}>
+                          <InputLabel>ประเภทเสื้อ</InputLabel>
+                          <Select
+                            value={formData.shirt_type}
+                            onChange={(e) => handleInputChange('shirt_type', e.target.value)}
+                            label="ประเภทเสื้อ"
+                          >
+                            {shirtTypes.map((type) => (
+                              <MenuItem key={type.value} value={type.value}>
+                                {type.label}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="จำนวนรวม"
+                          type="number"
+                          value={formData.total_quantity}
+                          onChange={(e) => handleInputChange('total_quantity', parseInt(e.target.value) || 0)}
+                          error={!!errors.total_quantity}
+                          helperText={errors.total_quantity}
+                          fullWidth
+                          required
+                          inputProps={{ min: 1 }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                          <InputLabel>ระดับความสำคัญ</InputLabel>
+                          <Select
+                            value={formData.priority}
+                            onChange={(e) => handleInputChange('priority', e.target.value)}
+                            label="ระดับความสำคัญ"
+                          >
+                            {priorityLevels.map((level) => (
+                              <MenuItem key={level.value} value={level.value}>
+                                <Box display="flex" alignItems="center">
+                                  <Box
+                                    sx={{
+                                      width: 12,
+                                      height: 12,
+                                      backgroundColor: level.color,
+                                      borderRadius: '50%',
+                                      mr: 1,
+                                    }}
+                                  />
+                                  {level.label}
+                                </Box>
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Sizes */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      ไซส์
+                    </Typography>
+                    
+                    <Autocomplete
+                      multiple
+                      value={formData.sizes}
+                      onChange={(event, newValue) => handleSizesChange(newValue)}
+                      options={sizeOptions}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => (
                           <Chip
+                            variant="outlined"
                             label={option}
                             {...getTagProps({ index })}
-                            size="small"
-                            key={index}
+                            key={option}
                           />
                         ))
                       }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="เลือกไซส์"
+                          placeholder="เลือกไซส์ที่ต้องการ"
+                        />
+                      )}
                     />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      label="จำนวน"
-                      type="number"
-                      value={sizeRow.quantity || 0}
-                      onChange={(e) => handleSizeChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                      InputProps={{
-                        inputProps: { min: 0 }
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            ))}
-            
-            {errors.sizes && (
-              <Typography variant="caption" color="error">
-                {errors.sizes}
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              จุดพิมพ์ (คำนวณอัตโนมัติ)
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary">
-                    {formData.screen_points}
-                  </Typography>
-                  <Typography variant="body2">📺 Screen Points</Typography>
-                </Paper>
+              {/* Dates */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      <CalendarToday sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      วันที่
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={4}>
+                        <DatePicker
+                          label="วันที่เริ่มต้น"
+                          value={formData.start_date}
+                          onChange={(date) => handleInputChange('start_date', date)}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.start_date,
+                              helperText: errors.start_date,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={4}>
+                        <DatePicker
+                          label="วันที่คาดว่าจะเสร็จ"
+                          value={formData.expected_completion_date}
+                          onChange={(date) => handleInputChange('expected_completion_date', date)}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.expected_completion_date,
+                              helperText: errors.expected_completion_date,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={4}>
+                        <DatePicker
+                          label="วันที่ส่งมอบ"
+                          value={formData.due_date}
+                          onChange={(date) => handleInputChange('due_date', date)}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.due_date,
+                              helperText: errors.due_date,
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary">
-                    {formData.dtf_points}
-                  </Typography>
-                  <Typography variant="body2">📱 DTF Points</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary">
-                    {formData.sublimation_points}
-                  </Typography>
-                  <Typography variant="body2">⚽ Sublimation Points</Typography>
-                </Paper>
+
+              {/* Notes */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      หมายเหตุ
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="หมายเหตุทั่วไป"
+                          value={formData.notes}
+                          onChange={(e) => handleInputChange('notes', e.target.value)}
+                          multiline
+                          rows={4}
+                          fullWidth
+                          placeholder="หมายเหตุเพิ่มเติม..."
+                        />
+                      </Grid>
+                      
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="คำแนะนำพิเศษ"
+                          value={formData.special_instructions}
+                          onChange={(e) => handleInputChange('special_instructions', e.target.value)}
+                          multiline
+                          rows={4}
+                          fullWidth
+                          placeholder="คำแนะนำพิเศษสำหรับการผลิต..."
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
 
-  // Step 3: Notes
-  const StepNotes = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="หมายเหตุ"
-          multiline
-          rows={4}
-          value={formData.notes}
-          onChange={(e) => handleInputChange('notes', e.target.value)}
-          placeholder="ข้อมูลเพิ่มเติม..."
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="คำแนะนำพิเศษ"
-          multiline
-          rows={4}
-          value={formData.special_instructions}
-          onChange={(e) => handleInputChange('special_instructions', e.target.value)}
-          placeholder="คำแนะนำพิเศษในการผลิต..."
-        />
-      </Grid>
-    </Grid>
-  );
-
-  const renderStepContent = () => {
-    switch (activeStep) {
-      case 0:
-        return <StepBasicInfo />;
-      case 1:
-        return <StepProductionInfo />;
-      case 2:
-        return <StepNotes />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate('/max-supply/list')}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight="bold" sx={{ ml: 2 }}>
-          {isEditMode ? 'แก้ไขงาน' : 'สร้างงานใหม่'}
-        </Typography>
-      </Box>
-
-      <Paper sx={{ p: 3 }}>
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        <Box sx={{ mb: 4 }}>
-          {renderStepContent()}
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Box>
-            <Button
-              onClick={() => navigate('/max-supply/list')}
-              startIcon={<Cancel />}
-              variant="outlined"
-              color="secondary"
-            >
-              ยกเลิก
-            </Button>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              startIcon={<ArrowBack />}
-              variant="outlined"
-            >
-              กลับ
-            </Button>
-            {activeStep === steps.length - 1 ? (
+            {/* Actions */}
+            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
-                onClick={handleSubmit}
-                startIcon={<Save />}
-                variant="contained"
-                disabled={loading}
+                variant="outlined"
+                onClick={handleCancel}
+                disabled={submitLoading}
+                startIcon={<Cancel />}
               >
-                {loading ? 'กำลังบันทึก...' : 'บันทึก'}
+                ยกเลิก
               </Button>
-            ) : (
+              
               <Button
-                onClick={handleNext}
-                endIcon={<ArrowForward />}
+                type="submit"
                 variant="contained"
+                disabled={submitLoading}
+                startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
               >
-                ถัดไป
+                {submitLoading ? 'กำลังบันทึก...' : (isEditMode ? 'อัปเดต' : 'สร้างงาน')}
               </Button>
-            )}
-          </Box>
+            </Box>
+          </form>
         </Box>
-      </Paper>
-    </Container>
+      </Container>
+    </LocalizationProvider>
   );
 };
 

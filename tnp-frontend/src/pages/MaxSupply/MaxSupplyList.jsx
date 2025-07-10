@@ -31,7 +31,9 @@ import {
   DialogContent,
   DialogActions,
   Tooltip,
+  
 } from '@mui/material';
+import { Close } from '@mui/icons-material';
 import {
   FaSearch,
   FaSync,

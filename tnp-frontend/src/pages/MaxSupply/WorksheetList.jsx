@@ -48,6 +48,7 @@ import { format } from 'date-fns';
 // This works with both date-fns v2.x and v4.x
 import * as dateFnsLocales from 'date-fns/locale';
 import { worksheetApi } from '../../services/maxSupplyApi';
+import { debugTokens } from '../../utils/tokenDebug';
 
 const WorksheetList = () => {
   const theme = useTheme();
@@ -85,13 +86,42 @@ const WorksheetList = () => {
   const loadWorksheets = async () => {
     try {
       setLoading(true);
+      console.log("WorksheetList: Fetching worksheets with filters:", filters);
+      
+      // Debug authentication tokens
+      debugTokens();
+      
+      // Add a token manually to ensure it's included in the request
+      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      if (!token) {
+        console.warn("No authentication token found! Requests might fail.");
+      }
+      
       const response = await worksheetApi.getForMaxSupply(filters);
+      console.log("WorksheetList: API response:", response);
       
       if (response.status === 'success') {
-        setWorksheets(response.data);
+        if (Array.isArray(response.data)) {
+          console.log("WorksheetList: Retrieved", response.data.length, "worksheets");
+          
+          // Log sample data to understand structure
+          if (response.data.length > 0) {
+            console.log("WorksheetList: Sample worksheet data:", response.data[0]);
+          }
+          
+          setWorksheets(response.data);
+        } else {
+          console.error("WorksheetList: Expected array but got:", typeof response.data);
+          console.error("WorksheetList: Data structure:", response.data);
+          setWorksheets([]);
+        }
+      } else {
+        console.error("WorksheetList: API returned error status:", response.status);
+        setWorksheets([]);
       }
     } catch (error) {
-      console.error('Error loading worksheets:', error);
+      console.error('WorksheetList: Error loading worksheets:', error);
+      setWorksheets([]);
     } finally {
       setLoading(false);
     }
@@ -182,6 +212,10 @@ const WorksheetList = () => {
   };
 
   useEffect(() => {
+    // Debug authentication tokens
+    debugTokens();
+    
+    // Then load worksheets
     loadWorksheets();
   }, [filters]);
 
@@ -605,4 +639,4 @@ const WorksheetList = () => {
   );
 };
 
-export default WorksheetList; 
+export default WorksheetList;

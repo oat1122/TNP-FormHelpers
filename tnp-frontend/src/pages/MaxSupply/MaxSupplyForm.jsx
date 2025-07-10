@@ -28,8 +28,9 @@ import {
   CalendarToday,
   Assignment,
   ArrowBack,
+  Refresh,
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -38,6 +39,7 @@ import 'dayjs/locale/th';
 import { maxSupplyApi, worksheetApi } from '../../services/maxSupplyApi';
 import { useGetAllWorksheetQuery } from '../../features/Worksheet/worksheetApi';
 import toast from 'react-hot-toast';
+import { debugTokens } from '../../utils/tokenDebug';
 
 // Set dayjs locale
 dayjs.locale('th');
@@ -47,6 +49,7 @@ const MaxSupplyForm = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
   const isEditMode = Boolean(id);
 
   // States
@@ -105,19 +108,132 @@ const MaxSupplyForm = () => {
   // Size options
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
+  // Process worksheet data into options format
+  const processWorksheetData = (data) => {
+    // If data is completely undefined or null
+    if (!data) {
+      console.error('processWorksheetData: Data is null or undefined');
+      return [];
+    }
+    
+    try {
+      // Normalize the data to an array
+      let worksheetItems = [];
+      
+      if (Array.isArray(data)) {
+        // Direct array
+        worksheetItems = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        // Standard API response format
+        worksheetItems = data.data;
+      } else if (typeof data === 'object') {
+        // Try to find any array property
+        const arrayProps = Object.keys(data).filter(key => Array.isArray(data[key]));
+        if (arrayProps.length > 0) {
+          // Use the first array property
+          worksheetItems = data[arrayProps[0]];
+          console.log(`Found worksheets in property ${arrayProps[0]}`);
+        } else {
+          console.error('No array data found in response:', data);
+          return [];
+        }
+      } else {
+        console.error('processWorksheetData: Unrecognized data format:', data);
+        return [];
+      }
+      
+      // Log the first item to understand the structure
+      if (worksheetItems.length > 0) {
+        console.log('MaxSupplyForm: Sample worksheet data item:', worksheetItems[0]);
+      } else {
+        console.warn('No worksheet items found in data');
+        return [];
+      }
+      
+      const options = worksheetItems
+        // Accept items even if they don't have worksheet_id, as long as they have some identifier
+        .filter(ws => ws && (ws.worksheet_id || ws.id || ws.work_id))
+        .map(ws => {
+          const customerName = ws.customer_name || 'ไม่ระบุลูกค้า';
+          const productName = ws.product_name || ws.work_name || ws.title || 'ไม่ระบุชื่องาน';
+          const worksheetId = ws.worksheet_id || ws.id || ws.work_id || '';
+          const status = ws.status || 'unknown';
+          
+          // Skip items that already have production assigned
+          if (ws.has_production === true) {
+            console.log(`Skipping worksheet ${worksheetId} as it already has production assigned`);
+            return null;
+          }
+          
+          return {
+            id: worksheetId,
+            label: `${customerName} - ${productName} (${worksheetId.slice(0, 8)})`,
+            ...ws,
+          };
+        })
+        .filter(Boolean); // Remove null entries
+      
+      console.log('MaxSupplyForm: worksheet options created:', options);
+      return options;
+    } catch (error) {
+      console.error('Error processing worksheet data:', error);
+      return [];
+    }
+  };
+  
   // Load worksheets
   useEffect(() => {
-    if (worksheetData?.data) {
-      const options = worksheetData.data
-        .filter(ws => ws.status === 'approved' || ws.status === 'pending')
-        .map(ws => ({
-          id: ws.worksheet_id,
-          label: `${ws.customer_name} - ${ws.product_name || 'ไม่ระบุ'}`,
-          ...ws,
-        }));
+    // Debug authentication tokens
+    debugTokens();
+    
+    console.log('MaxSupplyForm: worksheetData received:', worksheetData);
+    
+    // Handle RTK query response
+    if (worksheetData) {
+      let worksheetItems = [];
+      
+      // Handle different response formats
+      if (Array.isArray(worksheetData)) {
+        worksheetItems = worksheetData;
+      } else if (worksheetData.data && Array.isArray(worksheetData.data)) {
+        worksheetItems = worksheetData.data;
+      } else if (worksheetData.data?.data && Array.isArray(worksheetData.data.data)) {
+        worksheetItems = worksheetData.data.data;
+      }
+      
+      const options = processWorksheetData(worksheetItems);
       setWorksheetOptions(options);
     }
   }, [worksheetData]);
+
+  // Check for data passed from WorksheetList
+  useEffect(() => {
+    if (location.state?.worksheet && location.state?.autoFillData) {
+      console.log("Received worksheet data from navigation:", location.state.worksheet);
+      console.log("Auto fill data:", location.state.autoFillData);
+      
+      // Set the selected worksheet
+      setSelectedWorksheet(location.state.worksheet);
+      
+      // Auto-fill the form with data
+      const autoFillData = location.state.autoFillData;
+      setFormData(prev => ({
+        ...prev,
+        worksheet_id: autoFillData.worksheet_id,
+        title: autoFillData.title,
+        customer_name: autoFillData.customer_name,
+        production_type: autoFillData.production_type,
+        due_date: autoFillData.due_date ? dayjs(autoFillData.due_date) : dayjs().add(14, 'day'),
+        shirt_type: autoFillData.shirt_type,
+        total_quantity: autoFillData.total_quantity,
+        sizes: autoFillData.sizes,
+        special_instructions: autoFillData.special_instructions,
+      }));
+      
+      setAutoFillPreview(autoFillData);
+      toast.success('ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet แล้ว');
+    }
+  }, [location.state]);
 
   // Load existing data for edit mode
   useEffect(() => {
@@ -308,6 +424,62 @@ const MaxSupplyForm = () => {
     navigate('/max-supply');
   };
 
+  // Add direct API call as a fallback
+  useEffect(() => {
+    // If RTK query is loading or undefined after 1 second, try direct API call
+    const timeoutId = setTimeout(async () => {
+      if (worksheetLoading || !worksheetData) {
+        console.log('MaxSupplyForm: Falling back to direct API call for worksheets');
+        try {
+          // Debug authentication tokens again before making the direct call
+          debugTokens();
+          const response = await worksheetApi.getForMaxSupply();
+          console.log('MaxSupplyForm: Direct API response for worksheets:', response);
+          
+          if (response.status === 'success' && response.data) {
+            const options = processWorksheetData(response.data);
+            setWorksheetOptions(options);
+          } else {
+            console.error('Direct API call failed to get worksheet data');
+          }
+        } catch (error) {
+          console.error('Error in direct API call for worksheets:', error);
+        }
+      }
+    }, 1500); // Give RTK Query a bit more time
+    
+    return () => clearTimeout(timeoutId);
+  }, [worksheetLoading, worksheetData]);
+
+  // Add a manual refresh function for the worksheet dropdown
+  const manualRefreshWorksheets = async () => {
+    try {
+      console.log('MaxSupplyForm: Manually refreshing worksheets');
+      debugTokens();
+      
+      // Show loading indicator
+      toast.loading('กำลังโหลดข้อมูล Worksheet...', {id: 'worksheet-loading'});
+      
+      const response = await worksheetApi.getForMaxSupply();
+      
+      // Dismiss loading indicator
+      toast.dismiss('worksheet-loading');
+      
+      if (response.status === 'success' && response.data) {
+        const options = processWorksheetData(response.data);
+        setWorksheetOptions(options);
+        toast.success(`โหลดข้อมูล Worksheet สำเร็จ (${options.length} รายการ)`);
+      } else {
+        console.error('Manual refresh failed');
+        toast.error('ไม่สามารถโหลดข้อมูล Worksheet ได้');
+      }
+    } catch (error) {
+      console.error('Error in manual worksheet refresh:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      toast.dismiss('worksheet-loading');
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -365,40 +537,67 @@ const MaxSupplyForm = () => {
                       เลือก Worksheet (Auto Fill)
                     </Typography>
                     
-                    <Autocomplete
-                      value={selectedWorksheet}
-                      onChange={(event, newValue) => handleWorksheetSelect(newValue)}
-                      options={worksheetOptions}
-                      getOptionLabel={(option) => option.label || ''}
-                      loading={worksheetLoading}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
-                          variant="outlined"
-                          fullWidth
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {worksheetLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      renderOption={(props, option) => (
-                        <li {...props}>
-                          <Box>
-                            <Typography variant="body1">{option.label}</Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Autocomplete
+                        value={selectedWorksheet}
+                        onChange={(event, newValue) => handleWorksheetSelect(newValue)}
+                        options={worksheetOptions}
+                        getOptionLabel={(option) => option.label || ''}
+                        loading={worksheetLoading}
+                        noOptionsText={
+                          <Box sx={{ textAlign: 'center', py: 1 }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              ไม่พบ Worksheet ที่มีสถานะ approved
                             </Typography>
+                            <Button 
+                              size="small" 
+                              onClick={manualRefreshWorksheets}
+                              startIcon={<Refresh />}
+                            >
+                              รีเฟรชข้อมูล
+                            </Button>
                           </Box>
-                        </li>
-                      )}
-                      noOptionsText="ไม่พบ Worksheet"
+                        }
+                        sx={{ flexGrow: 1 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
+                            variant="outlined"
+                            fullWidth
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {worksheetLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                            helperText={worksheetOptions.length === 0 ? 'ไม่พบข้อมูล Worksheet ที่มีสถานะ approved' : ''}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            <Box>
+                              <Typography variant="body1">{option.label}</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
+                              </Typography>
+                            </Box>
+                          </li>
+                        )}
+                        noOptionsText="ไม่พบ Worksheet"
+                      />
+                      <Button 
+                        variant="outlined" 
+                        onClick={manualRefreshWorksheets} 
+                        title="รีเฟรชข้อมูล Worksheet"
+                        sx={{ height: 56 }}
+                      >
+                        <Refresh />
+                      </Button>
+                    </Box>
                       placeholder="ค้นหา Worksheet..."
                     />
                   </CardContent>
@@ -688,4 +887,4 @@ const MaxSupplyForm = () => {
   );
 };
 
-export default MaxSupplyForm; 
+export default MaxSupplyForm;

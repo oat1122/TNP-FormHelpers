@@ -4,12 +4,19 @@ export const apiConfig = {
       headers.set("Content-Type", "application/json");
       headers.set("Accept", "application/json");
 
-      // ดึง Token จาก localStorage (หรือ sessionStorage ตามที่คุณบันทึกไว้)
-      const token = localStorage.getItem("authToken"); // หรือ sessionStorage.getItem("authToken");
+      // Try to get token from multiple possible storage keys for backward compatibility
+      const authToken = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
+      
+      // Use whichever token is available
+      const finalToken = authToken || token;
 
-      // ถ้ามี Token ให้นำไปใส่ใน Authorization Header แบบ Bearer Token
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+      // If we have a token, add it to the Authorization header
+      if (finalToken) {
+        headers.set("Authorization", `Bearer ${finalToken}`);
+        console.log("API Config: Added token to request headers");
+      } else {
+        console.warn("API Config: No authentication token found");
       }
 
       return headers;

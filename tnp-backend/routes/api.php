@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
+use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
+use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -140,6 +142,25 @@ Route::prefix('v1')->group(function() {
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {
         Route::put('/pricing-update-status', 'update_status');
+    });
+
+    //---------- MaxSupply ----------
+    Route::prefix('max-supplies')->group(function () {
+        Route::get('/', [MaxSupplyController::class, 'index']);
+        Route::post('/', [MaxSupplyController::class, 'store']);
+        Route::get('/statistics', [MaxSupplyController::class, 'statistics']);
+        Route::get('/{id}', [MaxSupplyController::class, 'show']);
+        Route::put('/{id}', [MaxSupplyController::class, 'update']);
+        Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
+        Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
+    });
+
+    //---------- Calendar ----------
+    Route::prefix('calendar')->group(function () {
+        Route::get('/', [CalendarController::class, 'index']);
+        Route::get('/{year}/{month}', [CalendarController::class, 'monthlyData']);
+        Route::get('/week/{date}', [CalendarController::class, 'weeklyData']);
+        Route::get('/day/{date}', [CalendarController::class, 'dailyData']);
     });
 
     //---------- Global ----------

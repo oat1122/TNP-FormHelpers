@@ -23,18 +23,34 @@ class CalendarController extends Controller
             $view = $request->get('view', 'month'); // month, week, day
             $date = $request->get('date', now()->format('Y-m-d'));
 
+            // Debug parameters
+            Log::info('Calendar API index method called', [
+                'view' => $view,
+                'date' => $date,
+                'all_params' => $request->all(),
+                'url' => $request->fullUrl(),
+                'method' => $request->method()
+            ]);
+
             $data = $this->calendarService->getCalendarData($view, $date);
 
+            // Return JSON data with correct headers
             return response()->json([
                 'status' => 'success',
+                'message' => 'Calendar data retrieved successfully',
                 'data' => $data
+            ], 200, [
+                'Content-Type' => 'application/json'
             ]);
 
         } catch (\Exception $e) {
             Log::error('Get calendar data error: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to get calendar data'
+                'message' => 'Failed to get calendar data: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }

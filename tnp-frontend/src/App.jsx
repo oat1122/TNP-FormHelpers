@@ -7,6 +7,7 @@ import ControlPanel from "./pages/ControlPanel/ControlPanel";
 import CssBaseline from "@mui/material/CssBaseline";
 import AppTheme from "./AppTheme";
 import { CircularProgress } from "@mui/material";
+import { MaxSupplyProvider } from "./pages/MaxSupply/context/MaxSupplyContext";
 
 // Lazy loaded components
 const GridCard = lazy(() => import("./pages/MonitorProduction/GridCard"));
@@ -22,16 +23,24 @@ const UserList = lazy(() => import("./pages/UserManagement/UserList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
+// MaxSupply components
+const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));
+const MaxSupplyList = lazy(() => import("./pages/MaxSupply/MaxSupplyList"));
+const MaxSupplyForm = lazy(() => import("./pages/MaxSupply/MaxSupplyForm"));
+const MaxSupplyCalendar = lazy(() => import("./pages/MaxSupply/MaxSupplyCalendar"));
+const WorksheetListForMaxSupply = lazy(() => import("./pages/MaxSupply/WorksheetList"));
+
 function App() {
   return (
     <AppTheme>
       <CssBaseline /> {/* Reset CSS */}
-      <Suspense fallback={
-        <div className="text-center mt-4">
-          <CircularProgress color="error" size={60} />
-        </div>
-      }>
-        <Routes>
+      <MaxSupplyProvider>
+        <Suspense fallback={
+          <div className="text-center mt-4">
+            <CircularProgress color="error" size={60} />
+          </div>
+        }>
+          <Routes>
           <Route element={<AuthLayout />}>          <Route path="/" element={<ControlPanel />} />
             <Route path="/monitor" element={<GridCard />} />
             <Route path="/log" element={<ShowLog />} />
@@ -51,13 +60,24 @@ function App() {
             <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
             <Route path="/pricing/view/:id" element={<PricingForm mode="view" />} />
 
+            {/* MaxSupply Routes */}
+            <Route path="/max-supply" element={<MaxSupplyHome />} />
+            <Route path="/max-supply/home" element={<MaxSupplyHome />} />
+            <Route path="/max-supply/list" element={<MaxSupplyList />} />
+            <Route path="/max-supply/calendar" element={<MaxSupplyCalendar />} />
+            <Route path="/max-supply/create" element={<MaxSupplyForm />} />
+            <Route path="/max-supply/edit/:id" element={<MaxSupplyForm />} />
+            <Route path="/max-supply/:id" element={<MaxSupplyForm />} />
+            <Route path="/worksheets-for-maxsupply" element={<WorksheetListForMaxSupply />} />
+
             <Route path="/test" element={<Testing />} />
           </Route>
           <Route element={<GuestLayout />}>
             <Route path="/login" element={<AppLogin />} />
           </Route>
-        </Routes>
-      </Suspense>
+          </Routes>
+        </Suspense>
+      </MaxSupplyProvider>
     </AppTheme>
   );
 }

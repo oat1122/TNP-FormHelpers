@@ -80,7 +80,7 @@ function AppHeader() {
 
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
-  const pathList = ["/monitor", "/worksheet", "/customer", "/pricing", "/user-management"];
+  const pathList = ["/monitor", "/worksheet", "/customer", "/pricing", "/user-management", "/max-supply"];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   let content;
@@ -120,7 +120,7 @@ function AppHeader() {
   };
 
   // rendered search field
-  if (["/customer", "/pricing", "/user-management"].includes(location.pathname)) {
+  if (["/customer", "/pricing", "/user-management", "/max-supply/list"].includes(location.pathname)) {
     content = (
       <StyledPaper component="form" elevation={0} onSubmit={handleSubmit}>
         <Autocomplete

@@ -31,7 +31,9 @@ import {
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getWeek, startOfWeek, endOfWeek } from 'date-fns';
-import { th } from 'date-fns/locale';
+// Import locale without direct reference to specific structure
+// This works with both date-fns v2.x and v4.x
+import * as dateFnsLocales from 'date-fns/locale';
 
 const MaxSupplyHome = () => {
   const theme = useTheme();
@@ -377,7 +379,7 @@ const MaxSupplyHome = () => {
                       <FaChevronLeft />
         </IconButton>
         <Typography variant="h5" sx={{ mx: 3 }}>
-          {format(currentDate, 'MMMM yyyy', { locale: th })}
+          {format(currentDate, 'MMMM yyyy', { locale: dateFnsLocales.th })}
         </Typography>
         <IconButton onClick={() => navigateMonth('next')}>
                       <FaChevronRight />

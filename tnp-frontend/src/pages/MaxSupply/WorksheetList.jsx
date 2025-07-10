@@ -44,7 +44,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
+// Import locale without direct reference to specific structure
+// This works with both date-fns v2.x and v4.x
+import * as dateFnsLocales from 'date-fns/locale';
 import { worksheetApi } from '../../services/maxSupplyApi';
 
 const WorksheetList = () => {
@@ -215,14 +217,14 @@ const WorksheetList = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <CalendarToday fontSize="small" color="action" />
           <Typography variant="body2" color="text.secondary">
-            วันที่สั่ง: {format(new Date(worksheet.created_at), 'dd/MM/yyyy', { locale: th })}
+            วันที่สั่ง: {format(new Date(worksheet.created_at), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
           </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <CalendarToday fontSize="small" color="error" />
           <Typography variant="body2" color="error">
-            ครบกำหนด: {format(new Date(worksheet.due_date), 'dd/MM/yyyy', { locale: th })}
+            ครบกำหนด: {format(new Date(worksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
           </Typography>
         </Box>
 
@@ -372,7 +374,7 @@ const WorksheetList = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
-                        <strong>วันครบกำหนด:</strong> {format(new Date(autoFillPreview.due_date), 'dd/MM/yyyy', { locale: th })}
+                        <strong>วันครบกำหนด:</strong> {format(new Date(autoFillPreview.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -483,8 +485,8 @@ const WorksheetList = () => {
                 <Typography><strong>ชื่อสินค้า:</strong> {selectedWorksheet.product_name || 'ไม่ระบุ'}</Typography>
                 <Typography><strong>ลูกค้า:</strong> {selectedWorksheet.customer_name}</Typography>
                 <Typography><strong>สถานะ:</strong> {selectedWorksheet.status}</Typography>
-                <Typography><strong>วันที่สั่ง:</strong> {format(new Date(selectedWorksheet.created_at), 'dd/MM/yyyy', { locale: th })}</Typography>
-                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedWorksheet.due_date), 'dd/MM/yyyy', { locale: th })}</Typography>
+                <Typography><strong>วันที่สั่ง:</strong> {format(new Date(selectedWorksheet.created_at), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedWorksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>

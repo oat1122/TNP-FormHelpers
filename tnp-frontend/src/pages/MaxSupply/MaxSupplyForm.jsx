@@ -43,7 +43,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
+// Import locale without direct reference to specific structure
+// This works with both date-fns v2.x and v4.x
+import * as dateFnsLocales from 'date-fns/locale';
 
 const MaxSupplyForm = () => {
   const theme = useTheme();

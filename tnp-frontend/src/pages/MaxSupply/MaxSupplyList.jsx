@@ -45,7 +45,9 @@ import {
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
+// Import locale without direct reference to specific structure
+// This works with both date-fns v2.x and v4.x
+import * as dateFnsLocales from 'date-fns/locale';
 
 const MaxSupplyList = () => {
   const theme = useTheme();
@@ -311,7 +313,7 @@ const MaxSupplyList = () => {
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                📅 ครบกำหนด: {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: th })}
+                📅 ครบกำหนด: {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
               </Typography>
             </CardContent>
             <CardActions>
@@ -397,7 +399,7 @@ const MaxSupplyList = () => {
               <TableCell>{priorityLabels[item.priority] || item.priority}</TableCell>
               <TableCell>
                 <Typography variant="body2">
-                  {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: th })}
+                  {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
                 </Typography>
               </TableCell>
               <TableCell>{item.creator?.name || 'N/A'}</TableCell>
@@ -459,9 +461,9 @@ const MaxSupplyList = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   กำหนดการ
                 </Typography>
-                <Typography><strong>วันเริ่ม:</strong> {format(new Date(selectedItem.start_date), 'dd/MM/yyyy', { locale: th })}</Typography>
-                <Typography><strong>วันที่คาดว่าจะเสร็จ:</strong> {format(new Date(selectedItem.expected_completion_date), 'dd/MM/yyyy', { locale: th })}</Typography>
-                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: th })}</Typography>
+                <Typography><strong>วันเริ่ม:</strong> {format(new Date(selectedItem.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography><strong>วันที่คาดว่าจะเสร็จ:</strong> {format(new Date(selectedItem.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
                 <Typography><strong>จำนวนทั้งหมด:</strong> {selectedItem.total_quantity}</Typography>
                 <Typography><strong>จำนวนที่เสร็จ:</strong> {selectedItem.completed_quantity}</Typography>
                 <Typography><strong>ความคืบหน้า:</strong> {selectedItem.progress_percentage}%</Typography>

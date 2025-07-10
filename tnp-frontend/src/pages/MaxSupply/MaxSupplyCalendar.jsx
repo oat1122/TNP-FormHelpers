@@ -62,7 +62,9 @@ import {
   endOfDay,
   getDay,
 } from 'date-fns';
-import { th } from 'date-fns/locale';
+// Import locale without direct reference to specific structure
+// This works with both date-fns v2.x and v4.x
+import * as dateFnsLocales from 'date-fns/locale';
 
 const MaxSupplyCalendar = () => {
   const theme = useTheme();
@@ -399,7 +401,7 @@ const MaxSupplyCalendar = () => {
                   }}
                 >
                   <Typography variant="caption" color="text.secondary">
-                    {format(day, 'EEE', { locale: th })}
+                    {format(day, 'EEE', { locale: dateFnsLocales.th })}
                   </Typography>
                   <Typography
                     variant="h6"
@@ -456,7 +458,7 @@ const MaxSupplyCalendar = () => {
     return (
       <Paper sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
-          {format(currentDate, 'EEEE, dd MMMM yyyy', { locale: th })}
+          {format(currentDate, 'EEEE, dd MMMM yyyy', { locale: dateFnsLocales.th })}
         </Typography>
         
         <Grid container spacing={2}>
@@ -565,13 +567,13 @@ const MaxSupplyCalendar = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CalendarToday fontSize="small" color="action" />
                 <Typography variant="body2">
-                  วันที่เริ่ม: {format(new Date(selectedEvent.start_date), 'dd/MM/yyyy', { locale: th })}
+                  วันที่เริ่ม: {format(new Date(selectedEvent.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AccessTime fontSize="small" color="action" />
                 <Typography variant="body2">
-                  วันที่คาดว่าจะเสร็จ: {format(new Date(selectedEvent.expected_completion_date), 'dd/MM/yyyy', { locale: th })}
+                  วันที่คาดว่าจะเสร็จ: {format(new Date(selectedEvent.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
                 </Typography>
               </Box>
             </Box>
@@ -611,13 +613,13 @@ const MaxSupplyCalendar = () => {
   const getCurrentPeriodLabel = () => {
     switch (viewMode) {
       case 'month':
-        return format(currentDate, 'MMMM yyyy', { locale: th });
+        return format(currentDate, 'MMMM yyyy', { locale: dateFnsLocales.th });
       case 'week':
         const weekStart = startOfWeek(currentDate);
         const weekEnd = endOfWeek(currentDate);
-        return `${format(weekStart, 'dd MMM', { locale: th })} - ${format(weekEnd, 'dd MMM yyyy', { locale: th })}`;
+        return `${format(weekStart, 'dd MMM', { locale: dateFnsLocales.th })} - ${format(weekEnd, 'dd MMM yyyy', { locale: dateFnsLocales.th })}`;
       case 'day':
-        return format(currentDate, 'EEEE, dd MMMM yyyy', { locale: th });
+        return format(currentDate, 'EEEE, dd MMMM yyyy', { locale: dateFnsLocales.th });
       default:
         return '';
     }

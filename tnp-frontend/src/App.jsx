@@ -69,6 +69,7 @@ function App() {
             <Route path="/max-supply/edit/:id" element={<MaxSupplyForm />} />
             <Route path="/max-supply/:id" element={<MaxSupplyForm />} />
             <Route path="/worksheets-for-maxsupply" element={<WorksheetListForMaxSupply />} />
+            <Route path="/worksheets" element={<WorksheetListForMaxSupply />} />
 
             <Route path="/test" element={<Testing />} />
           </Route>

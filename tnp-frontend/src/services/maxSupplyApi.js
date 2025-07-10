@@ -1,8 +1,11 @@
 import axios from 'axios';
 
-// Allow overriding the API base URL via environment variable for development
+// Allow overriding the API base URL via environment variables
+// Support both legacy VITE_END_POINT_URL and new VITE_API_BASE_URL names
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || '/api/v1';
+  import.meta.env.VITE_END_POINT_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  '/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({

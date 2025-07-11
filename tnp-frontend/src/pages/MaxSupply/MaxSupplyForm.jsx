@@ -123,7 +123,7 @@ const MaxSupplyForm = () => {
   // Production types
   const productionTypes = [
     { value: 'screen', label: '📺 Screen Printing', color: '#7c3aed' },
-    { value: 'dtf', label: '📱 DTF (Direct to Film)', color: '#0891b2' },
+    { value: 'dtf', label: '📱 DFT (Direct Film Transfer)', color: '#0891b2' },
     { value: 'sublimation', label: '⚽ Sublimation', color: '#16a34a' },
     { value: 'embroidery', label: '🧵 Embroidery', color: '#dc2626' },
   ];
@@ -926,16 +926,6 @@ const MaxSupplyForm = () => {
                   ครบกำหนด: {autoFillPreview.due_date.format('DD/MM/YYYY')}
                   {autoFillPreview.newworks_code && ` | รหัส: ${autoFillPreview.newworks_code}`}
                   {autoFillPreview.fabric_info?.fabric_name && ` | ผ้า: ${autoFillPreview.fabric_info.fabric_name}`}
-                  <br/>
-                  <strong>จุดพิมพ์จาก NewWorkSheet :</strong>
-                  {autoFillPreview.print_locations?.screen?.enabled && ` Screen (${autoFillPreview.print_locations.screen.points} จุด)`}
-                  {autoFillPreview.print_locations?.dtf?.enabled && ` DTF (${autoFillPreview.print_locations.dtf.points} จุด)`}
-                  {autoFillPreview.print_locations?.sublimation?.enabled && ` Sublimation/Flex (${autoFillPreview.print_locations.sublimation.points} จุด)`}
-                  {autoFillPreview.print_locations?.embroidery?.enabled && ` ปัก (${autoFillPreview.print_locations.embroidery.points} จุด)`}
-                  {(!autoFillPreview.print_locations?.screen?.enabled && 
-                    !autoFillPreview.print_locations?.dtf?.enabled && 
-                    !autoFillPreview.print_locations?.sublimation?.enabled && 
-                    !autoFillPreview.print_locations?.embroidery?.enabled) && ' ไม่พบข้อมูลจุดพิมพ์'}
                 </Typography>
               </Alert>
             )}
@@ -1507,6 +1497,64 @@ const StepProductionInfo = ({
         </Card>
       </Grid>
 
+      {/* Work Calculation Section */}
+      {isAutoFilled && (
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
+                การคำนวณงานแต่ละประเภทการพิมพ์
+              </Typography>
+              
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>การคำนวณงานจาก WorkSheet:</strong><br/>
+                  {(() => {
+                    const workCalculations = [];
+                    
+                    if (formData.print_locations?.screen?.enabled) {
+                      const points = formData.print_locations.screen.points;
+                      const totalWork = points * formData.total_quantity;
+                      workCalculations.push(`Screen Printing ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Screen Printing มีงาน ${totalWork}`);
+                    }
+                    
+                    if (formData.print_locations?.dtf?.enabled) {
+                      const points = formData.print_locations.dtf.points;
+                      const totalWork = points * formData.total_quantity;
+                      workCalculations.push(`DTF (Direct Film Transfer) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน DTF มีงาน ${totalWork}`);
+                    }
+                    
+                    if (formData.print_locations?.sublimation?.enabled) {
+                      const points = formData.print_locations.sublimation.points;
+                      const totalWork = points * formData.total_quantity;
+                      workCalculations.push(`Sublimation/Flex ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Sublimation/Flex มีงาน ${totalWork}`);
+                    }
+                    
+                    if (formData.print_locations?.embroidery?.enabled) {
+                      const points = formData.print_locations.embroidery.points;
+                      const totalWork = points * formData.total_quantity;
+                      workCalculations.push(`Embroidery (ปัก) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Embroidery มีงาน ${totalWork}`);
+                    }
+                    
+                    if (workCalculations.length === 0) {
+                      return 'ไม่พบข้อมูลการพิมพ์/ปัก';
+                    }
+                    
+                    return workCalculations.map((calc, index) => (
+                      <span key={index}>
+                        {calc}
+                        {index < workCalculations.length - 1 && <br/>}
+                      </span>
+                    ));
+                  })()}
+                </Typography>
+              </Alert>
+            </CardContent>
+          </Card>
+        </Grid>
+      )}
+
       {/* Size Selection */}
       <Grid item xs={12}>
         <Card>
@@ -1805,27 +1853,7 @@ const StepProductionInfo = ({
               </Grid>
             </Grid>
             
-            {/* Summary of enabled print methods */}
-            {(formData.print_locations.screen.enabled || 
-              formData.print_locations.dtf.enabled || 
-              formData.print_locations.sublimation.enabled || 
-              formData.print_locations.embroidery.enabled) && (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>วิธีการพิมพ์ที่เปิดใช้งาน:</strong>
-                  {formData.print_locations.screen.enabled && 
-                    ` • Screen (${formData.print_locations.screen.points} จุด)`}
-                  {formData.print_locations.dtf.enabled && 
-                    ` • DTF (${formData.print_locations.dtf.points} จุด)`}
-                  {formData.print_locations.sublimation.enabled && 
-                    ` • Sublimation/Flex (${formData.print_locations.sublimation.points} จุด)`}
-                  {formData.print_locations.embroidery.enabled && 
-                    ` • ปัก (${formData.print_locations.embroidery.points} จุด)`}
-                  <br/>
-                  <em>หมายเหตุ: จุดพิมพ์ดึงมาจากฟิลด์ screen_point, screen_dft, screen_embroider, screen_flex ใน NewWorkSheet</em>
-                </Typography>
-              </Alert>
-            )}
+            
           </CardContent>
         </Card>
       </Grid>

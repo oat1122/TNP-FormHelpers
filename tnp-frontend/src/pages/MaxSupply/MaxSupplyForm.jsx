@@ -114,6 +114,22 @@ const MaxSupplyForm = () => {
   const [worksheetOptions, setWorksheetOptions] = useState([]);
   const [autoFillPreview, setAutoFillPreview] = useState(null);
 
+  // Prefill data when navigated from worksheet list
+  useEffect(() => {
+    if (!isEditMode && location.state?.autoFillData) {
+      const data = location.state.autoFillData;
+      setFormData(prev => ({
+        ...prev,
+        ...data,
+        start_date: data.start_date ? dayjs(data.start_date) : prev.start_date,
+        expected_completion_date: data.expected_completion_date ? dayjs(data.expected_completion_date) : prev.expected_completion_date,
+        due_date: data.due_date ? dayjs(data.due_date) : prev.due_date,
+      }));
+      setSelectedWorksheet(location.state.worksheet || null);
+      setAutoFillPreview(data);
+    }
+  }, [location.state, isEditMode]);
+
   // Get worksheets data
   const { data: worksheetData, isLoading: worksheetLoading } = useGetAllWorksheetQuery();
 

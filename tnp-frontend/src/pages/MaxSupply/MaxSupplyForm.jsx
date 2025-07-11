@@ -329,18 +329,117 @@ const MaxSupplyForm = () => {
     const sizes = [];
     const sizeBreakdown = [];
     
-    console.log('Parsing size breakdown from:', worksheet);
+    console.log('Parsing size breakdown from NewWorksNet:', worksheet);
     
     // Try to parse size details from NewWorksNet format
     try {
-      // Check if we have pattern_sizes array (NewWorksNet format)
-      if (worksheet.pattern_sizes && Array.isArray(worksheet.pattern_sizes)) {
+      // Check if we have pattern_sizes object (NewWorksNet format with men/women)
+      if (worksheet.pattern_sizes && typeof worksheet.pattern_sizes === 'object') {
+        console.log('Found pattern_sizes object:', worksheet.pattern_sizes);
+        
+        // Handle case where pattern_sizes is an array (direct size data)
+        if (Array.isArray(worksheet.pattern_sizes)) {
+          console.log('Pattern sizes is array format');
+          worksheet.pattern_sizes.forEach(sizeInfo => {
+            // Check for quantity in sizeInfo directly, or use total_quantity as fallback
+            let quantity = 0;
+            if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
+              quantity = parseInt(sizeInfo.quantity);
+            } else if (worksheet.total_quantity && worksheet.pattern_sizes.length > 0) {
+              // If no quantity specified, distribute total_quantity evenly
+              quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.length);
+            }
+            
+            if (sizeInfo.size_name && quantity > 0) {
+              const size = sizeInfo.size_name.toUpperCase();
+              sizes.push(size);
+              sizeBreakdown.push({ 
+                size, 
+                quantity, 
+                details: {
+                  chest: sizeInfo.chest,
+                  long: sizeInfo.long,
+                  shirt_size_id: sizeInfo.shirt_size_id,
+                  pattern_id: sizeInfo.pattern_id
+                }
+              });
+              console.log(`Added size from array: ${size} (${quantity})`);
+            }
+          });
+        }
+        // Handle case where pattern_sizes has men/women structure
+        else {
+          // Handle men sizes
+          if (worksheet.pattern_sizes.men && Array.isArray(worksheet.pattern_sizes.men)) {
+            worksheet.pattern_sizes.men.forEach(sizeInfo => {
+              // Check for quantity in sizeInfo directly, or use total_quantity as fallback
+              let quantity = 0;
+              if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
+                quantity = parseInt(sizeInfo.quantity);
+              } else if (worksheet.total_quantity && worksheet.pattern_sizes.men.length > 0) {
+                // If no quantity specified, distribute total_quantity evenly among men sizes
+                quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.men.length);
+              }
+              
+              if (sizeInfo.size_name && quantity > 0) {
+                const size = sizeInfo.size_name.toUpperCase();
+                sizes.push(size);
+                sizeBreakdown.push({ 
+                  size, 
+                  quantity, 
+                  gender: 'men',
+                  details: {
+                    chest: sizeInfo.chest,
+                    long: sizeInfo.long,
+                    shirt_size_id: sizeInfo.shirt_size_id
+                  }
+                });
+                console.log(`Added men size: ${size} (${quantity})`);
+              }
+            });
+          }
+          
+          // Handle women sizes
+          if (worksheet.pattern_sizes.women && Array.isArray(worksheet.pattern_sizes.women)) {
+            worksheet.pattern_sizes.women.forEach(sizeInfo => {
+              // Check for quantity in sizeInfo directly, or use total_quantity as fallback
+              let quantity = 0;
+              if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
+                quantity = parseInt(sizeInfo.quantity);
+              } else if (worksheet.total_quantity && worksheet.pattern_sizes.women.length > 0) {
+                // If no quantity specified, distribute total_quantity evenly among women sizes
+                quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.women.length);
+              }
+              
+              if (sizeInfo.size_name && quantity > 0) {
+                const size = sizeInfo.size_name.toUpperCase();
+                sizes.push(size);
+                sizeBreakdown.push({ 
+                  size, 
+                  quantity, 
+                  gender: 'women',
+                  details: {
+                    chest: sizeInfo.chest,
+                    long: sizeInfo.long,
+                    shirt_size_id: sizeInfo.shirt_size_id
+                  }
+                });
+                console.log(`Added women size: ${size} (${quantity})`);
+              }
+            });
+          }
+        }
+      }
+      
+      // Legacy: Check if we have pattern_sizes array (old NewWorksNet format)
+      else if (worksheet.pattern_sizes && Array.isArray(worksheet.pattern_sizes)) {
         worksheet.pattern_sizes.forEach(sizeInfo => {
           if (sizeInfo.size && sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
-            const size = sizeInfo.size.toUpperCase(); // Normalize size format
+            const size = sizeInfo.size.toUpperCase();
             const quantity = parseInt(sizeInfo.quantity);
             sizes.push(size);
             sizeBreakdown.push({ size, quantity });
+            console.log(`Added legacy size: ${size} (${quantity})`);
           }
         });
       }
@@ -349,7 +448,6 @@ const MaxSupplyForm = () => {
       else if (worksheet.size_details && typeof worksheet.size_details === 'string') {
         try {
           const sizeDetails = JSON.parse(worksheet.size_details);
-          
           Object.entries(sizeDetails).forEach(([size, quantity]) => {
             if (quantity > 0) {
               sizes.push(size.toUpperCase());
@@ -373,7 +471,6 @@ const MaxSupplyForm = () => {
       else if (worksheet.sizes && Array.isArray(worksheet.sizes)) {
         worksheet.sizes.forEach(size => {
           sizes.push(size.toUpperCase());
-          // Default to 0 quantity if not specified
           const quantity = worksheet.size_quantities ? 
             (worksheet.size_quantities[size] || 0) : 
             (worksheet.quantities && worksheet.quantities[size] ? worksheet.quantities[size] : 0);
@@ -396,34 +493,81 @@ const MaxSupplyForm = () => {
       }
       
       // Special handling for NewWorksNet: if size_tag exists and we have total_quantity but no sizes
-      if (sizes.length === 0 && worksheet.size_tag && worksheet.total_quantity > 0) {
-        // If there's only a total quantity but no size breakdown, create a default distribution
-        // This might be a single-size order or needs manual input
-        const defaultSizes = ['S', 'M', 'L', 'XL'];
-        const totalQty = parseInt(worksheet.total_quantity);
-        const qtyPerSize = Math.floor(totalQty / defaultSizes.length);
-        const remainder = totalQty % defaultSizes.length;
+      if (sizes.length === 0 && worksheet.total_quantity > 0) {
+        console.log('No sizes found, creating default distribution from total_quantity:', worksheet.total_quantity);
         
-        defaultSizes.forEach((size, index) => {
-          const quantity = qtyPerSize + (index < remainder ? 1 : 0);
-          if (quantity > 0) {
-            sizes.push(size);
-            sizeBreakdown.push({ size, quantity });
+        // If we have pattern_sizes data but no quantities, extract sizes from it
+        if (worksheet.pattern_sizes) {
+          const availableSizes = [];
+          
+          if (Array.isArray(worksheet.pattern_sizes)) {
+            worksheet.pattern_sizes.forEach(sizeInfo => {
+              if (sizeInfo.size_name) {
+                availableSizes.push(sizeInfo.size_name.toUpperCase());
+              }
+            });
+          } else if (typeof worksheet.pattern_sizes === 'object') {
+            if (worksheet.pattern_sizes.men) {
+              worksheet.pattern_sizes.men.forEach(sizeInfo => {
+                if (sizeInfo.size_name) {
+                  availableSizes.push(sizeInfo.size_name.toUpperCase());
+                }
+              });
+            }
+            if (worksheet.pattern_sizes.women) {
+              worksheet.pattern_sizes.women.forEach(sizeInfo => {
+                if (sizeInfo.size_name) {
+                  availableSizes.push(sizeInfo.size_name.toUpperCase());
+                }
+              });
+            }
           }
-        });
+          
+          // Use available sizes if we found any
+          if (availableSizes.length > 0) {
+            const totalQty = parseInt(worksheet.total_quantity);
+            const qtyPerSize = Math.floor(totalQty / availableSizes.length);
+            const remainder = totalQty % availableSizes.length;
+            
+            availableSizes.forEach((size, index) => {
+              const quantity = qtyPerSize + (index < remainder ? 1 : 0);
+              if (quantity > 0) {
+                sizes.push(size);
+                sizeBreakdown.push({ size, quantity });
+                console.log(`Added size from available sizes: ${size} (${quantity})`);
+              }
+            });
+          }
+        }
+        
+        // Final fallback: use default sizes if we still have nothing
+        if (sizes.length === 0) {
+          const defaultSizes = ['S', 'M', 'L', 'XL'];
+          const totalQty = parseInt(worksheet.total_quantity);
+          const qtyPerSize = Math.floor(totalQty / defaultSizes.length);
+          const remainder = totalQty % defaultSizes.length;
+          
+          defaultSizes.forEach((size, index) => {
+            const quantity = qtyPerSize + (index < remainder ? 1 : 0);
+            if (quantity > 0) {
+              sizes.push(size);
+              sizeBreakdown.push({ size, quantity });
+              console.log(`Added default size: ${size} (${quantity})`);
+            }
+          });
+        }
       }
       
       // Final fallback: if we still have no sizes but we know total quantity, ask user to specify
       if (sizes.length === 0 && worksheet.total_quantity > 0) {
-        // Don't auto-assign sizes, let user manually select
         console.log('No size information found, user needs to manually specify sizes');
       }
     } catch (error) {
       console.error('Error parsing size breakdown:', error);
     }
     
-    console.log('Parsed sizes:', sizes);
-    console.log('Parsed size breakdown:', sizeBreakdown);
+    console.log('Final parsed sizes:', sizes);
+    console.log('Final parsed size breakdown:', sizeBreakdown);
     
     return { sizes, sizeBreakdown };
   };
@@ -449,12 +593,16 @@ const MaxSupplyForm = () => {
       const mapShirtType = (typeShirt) => {
         if (!typeShirt) return '';
         const type = typeShirt.toLowerCase();
-        if (type.includes('polo')) return 'polo';
-        if (type.includes('t-shirt') || type.includes('tshirt')) return 't-shirt';
-        if (type.includes('hoodie') || type.includes('hood')) return 'hoodie';
-        if (type.includes('tank') || type.includes('กล้าม')) return 'tank-top';
-        if (type.includes('long') || type.includes('แขนยาว')) return 'long-sleeve';
-        return 't-shirt'; // default fallback
+        
+        // Map exact values from NewWorksNet
+        if (type === 'polo' || type.includes('polo')) return 'polo';
+        if (type === 't-shirt' || type === 'tshirt' || type.includes('t-shirt')) return 't-shirt';
+        if (type === 'hoodie' || type.includes('hoodie') || type.includes('hood')) return 'hoodie';
+        if (type === 'tank-top' || type.includes('tank') || type.includes('กล้าม')) return 'tank-top';
+        if (type === 'long-sleeve' || type.includes('long') || type.includes('แขนยาว')) return 'long-sleeve';
+        
+        // Default fallback
+        return 't-shirt';
       };
       
       // Determine production type from print information (can be multiple)
@@ -962,7 +1110,7 @@ const StepBasicInfo = ({
                     <Box>
                       <Typography variant="body1">{option.label}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {option.type_shirt || 'ไม่ระบุประเภท'} | 
+                        {option.type_shirt ? `ประเภท: ${option.type_shirt}` : 'ไม่ระบุประเภท'} | 
                         {option.total_quantity ? ` ${option.total_quantity} ตัว` : ' จำนวนไม่ระบุ'} | 
                         ผ้า: {option.fabric_name || 'ไม่ระบุ'} ({option.fabric_color || 'ไม่ระบุสี'})
                         {option.due_date && ` | ครบกำหนด: ${dayjs(option.due_date).format('DD/MM/YYYY')}`}
@@ -980,6 +1128,16 @@ const StepBasicInfo = ({
                           {option.screen_dft && ` DTF(${option.screen_dft})`}
                           {option.screen_embroider && ` ปัก(${option.screen_embroider})`}
                           {option.screen_flex && ` Flex(${option.screen_flex})`}
+                        </Typography>
+                      )}
+                      {/* Display pattern sizes summary */}
+                      {option.pattern_sizes && (
+                        <Typography variant="body2" color="info.main" sx={{ fontSize: '0.75rem' }}>
+                          ไซส์: 
+                          {option.pattern_sizes.men && option.pattern_sizes.men.length > 0 && 
+                            ` ชาย(${option.pattern_sizes.men.map(s => s.size_name?.toUpperCase()).join(', ')})`}
+                          {option.pattern_sizes.women && option.pattern_sizes.women.length > 0 && 
+                            ` หญิง(${option.pattern_sizes.women.map(s => s.size_name?.toUpperCase()).join(', ')})`}
                         </Typography>
                       )}
                     </Box>
@@ -1282,13 +1440,29 @@ const StepProductionInfo = ({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="เลือกไซส์ (Auto Fill จาก NewWorksNet)"
+                  label="เลือกไซส์ (Auto Fill จาก NewWorksNet pattern_sizes)"
                   placeholder="เลือกไซส์ที่ต้องการ"
                   error={!!errors.sizes}
-                  helperText={errors.sizes}
+                  helperText={errors.sizes || "ไซส์จะถูกดึงมาจาก pattern_sizes (men/women) ใน NewWorksNet"}
                 />
               )}
             />
+            
+            {/* Show pattern sizes info if available */}
+            {formData.size_breakdown.some(item => item.gender) && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>ข้อมูลไซส์จาก NewWorksNet pattern_sizes:</strong>
+                  <br/>
+                  {formData.size_breakdown.filter(item => item.gender === 'men').length > 0 && (
+                    <>ชาย: {formData.size_breakdown.filter(item => item.gender === 'men').map(item => `${item.size}(${item.quantity})`).join(', ')}<br/></>
+                  )}
+                  {formData.size_breakdown.filter(item => item.gender === 'women').length > 0 && (
+                    <>หญิง: {formData.size_breakdown.filter(item => item.gender === 'women').map(item => `${item.size}(${item.quantity})`).join(', ')}</>
+                  )}
+                </Typography>
+              </Alert>
+            )}
             
             {/* Size Breakdown Table */}
             {formData.size_breakdown.length > 0 && (
@@ -1296,9 +1470,26 @@ const StepProductionInfo = ({
                 <Table>
                   <TableBody>
                     {formData.size_breakdown.map((item, index) => (
-                      <TableRow key={item.size}>
+                      <TableRow key={`${item.size}-${item.gender || 'unisex'}-${index}`}>
                         <TableCell>
-                          <Chip label={item.size} variant="outlined" />
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Chip 
+                              label={item.size} 
+                              variant="outlined" 
+                              color={item.gender === 'men' ? 'primary' : item.gender === 'women' ? 'secondary' : 'default'}
+                              size="small"
+                            />
+                            {item.gender && (
+                              <Typography variant="caption" color="text.secondary">
+                                {item.gender === 'men' ? 'ชาย' : item.gender === 'women' ? 'หญิง' : ''}
+                              </Typography>
+                            )}
+                            {item.details?.chest && (
+                              <Typography variant="caption" color="text.secondary">
+                                (อก: {item.details.chest}")
+                              </Typography>
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <TextField
@@ -1307,6 +1498,7 @@ const StepProductionInfo = ({
                             onChange={(e) => onSizeQuantityChange(index, parseInt(e.target.value) || 0)}
                             inputProps={{ min: 0 }}
                             size="small"
+                            sx={{ width: 80 }}
                           />
                         </TableCell>
                       </TableRow>
@@ -1319,59 +1511,6 @@ const StepProductionInfo = ({
                 </Table>
               </TableContainer>
             )}
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Production Type */}
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ประเภทการพิมพ์เสื้อ (Auto Fill)
-            </Typography>
-            
-            <FormControl fullWidth error={!!errors.production_type} sx={{ mb: 2 }}>
-              <InputLabel>ประเภทการพิมพ์</InputLabel>
-              <Select
-                value={formData.production_type}
-                onChange={(e) => onInputChange('production_type', e.target.value)}
-                label="ประเภทการพิมพ์"
-              >
-                {productionTypes.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    <Box display="flex" alignItems="center">
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          backgroundColor: type.color,
-                          borderRadius: '50%',
-                          mr: 1,
-                        }}
-                      />
-                      {type.label}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.production_type && (
-                <Typography variant="caption" color="error">
-                  {errors.production_type}
-                </Typography>
-              )}
-            </FormControl>
-            
-            <Alert severity="info">
-              <Typography variant="body2">
-                ประเภทการพิมพ์เสื้อจะถูกดึงจาก NewWorksNet โดยอัตโนมัติ
-                {formData.special_instructions && formData.special_instructions.includes('DFT') && (
-                  <><br/><strong>ข้อมูลการพิมพ์จาก NewWorksNet:</strong> {formData.special_instructions}</>
-                )}
-                <br/><em>หมายเหตุ: งานหนึ่งสามารถมีการพิมพ์/ปักหลายประเภทพร้อมกัน โดยใช้ screen_dft, screen_point เป็นจำนวนจุดพิมพ์</em>
-              </Typography>
-            </Alert>
           </CardContent>
         </Card>
       </Grid>

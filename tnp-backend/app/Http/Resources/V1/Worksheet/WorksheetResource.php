@@ -33,6 +33,10 @@ class WorksheetResource extends JsonResource
         $pattern_sizes_r = $worksheetService->filterShirtPatternByType($shirt_sizes_data, $this->pattern_id, $this->worksheet_id);
 
         $data = [
+            'code' => $this->work_id,
+            'customer_name' => optional($this->customer)->cus_name ?? '',
+            'product_name' => $this->work_name,
+            'special_instructions' => $this->worksheet_note ?? '',
             'worksheet_id' => $this->worksheet_id,
             'work_id' => $this->work_id,
             'work_name' => $this->work_name,

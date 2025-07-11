@@ -157,28 +157,32 @@ const WorksheetList = () => {
 
   // Generate auto-fill preview
   const generateAutoFillPreview = (worksheet) => {
-    const items = worksheet.worksheet_items || [];
-    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    
-    // Calculate production points
-    const screenPoints = calculatePoints(items, 'screen');
-    const dtfPoints = calculatePoints(items, 'dtf');
-    const sublimationPoints = calculatePoints(items, 'sublimation');
-    
+    const sizes = {};
+    if (Array.isArray(worksheet.pattern_sizes)) {
+      worksheet.pattern_sizes.forEach(s => {
+        sizes[s.size_name] = s.quantity || 0;
+      });
+    } else if (worksheet.pattern_sizes) {
+      const arr = [...(worksheet.pattern_sizes.men || []), ...(worksheet.pattern_sizes.women || []), ...(worksheet.pattern_sizes.unisex || [])];
+      arr.forEach(s => {
+        sizes[s.size_name] = s.quantity || 0;
+      });
+    }
+
     return {
       worksheet_id: worksheet.worksheet_id,
-      title: worksheet.product_name || `งานผลิต ${worksheet.code}`,
-      customer_name: worksheet.customer_name,
-      production_type: items[0]?.print_type || 'screen',
+      title: worksheet.product_name || worksheet.work_name,
+      customer_name: worksheet.customer_name || worksheet.cus_name,
+      production_type: worksheet.screen_dft > 0 ? 'dtf' : 'screen',
       due_date: worksheet.due_date,
-      shirt_type: items[0]?.shirt_type || 'polo',
-      total_quantity: totalQuantity,
-      sizes: items[0]?.sizes || [],
-      screen_points: screenPoints,
-      dtf_points: dtfPoints,
-      sublimation_points: sublimationPoints,
-      special_instructions: worksheet.special_instructions || '',
-      items: items,
+      shirt_type: worksheet.type_shirt === 'polo-shirt' ? 'polo' : 't-shirt',
+      total_quantity: worksheet.total_quantity,
+      sizes: sizes,
+      screen_points: worksheet.screen_point || 0,
+      dtf_points: worksheet.screen_dft || 0,
+      sublimation_points: 0,
+      special_instructions: worksheet.special_instructions || worksheet.worksheet_note || '',
+      items: [],
     };
   };
 

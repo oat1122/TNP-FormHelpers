@@ -396,7 +396,17 @@ class WorksheetService
      */
     public function getFromNewWorksNet()
     {
-        return Worksheet::where('nws_is_deleted', false)
+        return Worksheet::with([
+                'customer',
+                'fabric.fabricCustoms',
+                'shirtPattern.shirtSizes',
+                'shirtScreen',
+                'exampleQty',
+                'poloDetail.poloEmbroiders',
+                'nwsCreatedBy',
+                'user',
+            ])
+            ->where('nws_is_deleted', false)
             ->orderByDesc('nws_created_date')
             ->get();
     }

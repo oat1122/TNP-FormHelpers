@@ -440,6 +440,45 @@ const MaxSupplyForm = () => {
     }
   };
 
+  // Auto fill when navigating from WorksheetList
+  useEffect(() => {
+    if (location.state) {
+      const { worksheet, autoFillData } = location.state;
+
+      if (worksheet) {
+        const label = `${worksheet.customer_name || worksheet.cus_name || ''} - ${
+          worksheet.product_name || worksheet.work_name || worksheet.title || ''}
+          ${worksheet.work_id ? ` (ID: ${worksheet.work_id})` : ''}`.trim();
+
+        handleWorksheetSelect({
+          ...worksheet,
+          id: `${worksheet.worksheet_id || worksheet.id || worksheet.work_id}-prefill`,
+          originalId: worksheet.worksheet_id || worksheet.id || worksheet.work_id,
+          label,
+        });
+      } else if (autoFillData) {
+        setFormData(prev => ({
+          ...prev,
+          ...autoFillData,
+          start_date: dayjs(autoFillData.start_date || dayjs()),
+          expected_completion_date: dayjs(
+            autoFillData.expected_completion_date || dayjs().add(7, 'day')
+          ),
+          due_date: dayjs(autoFillData.due_date || dayjs().add(14, 'day')),
+        }));
+        setAutoFillPreview({
+          ...autoFillData,
+          start_date: dayjs(autoFillData.start_date || dayjs()),
+          expected_completion_date: dayjs(
+            autoFillData.expected_completion_date || dayjs().add(7, 'day')
+          ),
+          due_date: dayjs(autoFillData.due_date || dayjs().add(14, 'day')),
+        });
+      }
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   // Handle input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({

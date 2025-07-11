@@ -58,6 +58,7 @@ import {
   ArrowBack,
   Refresh,
   CalendarToday,
+  Lock,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -918,7 +919,7 @@ const MaxSupplyForm = () => {
                 sx={{ mb: 2 }}
               >
                 <Typography variant="body2">
-                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก NewWorksNet:</strong><br />
+                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก NewWorkSheet:</strong><br />
                   ลูกค้า: {autoFillPreview.customer_name} | 
                   จำนวน: {autoFillPreview.total_quantity} ตัว | 
                   ประเภท: {autoFillPreview.production_type} | 
@@ -926,7 +927,7 @@ const MaxSupplyForm = () => {
                   {autoFillPreview.newworks_code && ` | รหัส: ${autoFillPreview.newworks_code}`}
                   {autoFillPreview.fabric_info?.fabric_name && ` | ผ้า: ${autoFillPreview.fabric_info.fabric_name}`}
                   <br/>
-                  <strong>จุดพิมพ์จาก NewWorksNet:</strong>
+                  <strong>จุดพิมพ์จาก NewWorkSheet :</strong>
                   {autoFillPreview.print_locations?.screen?.enabled && ` Screen (${autoFillPreview.print_locations.screen.points} จุด)`}
                   {autoFillPreview.print_locations?.dtf?.enabled && ` DTF (${autoFillPreview.print_locations.dtf.points} จุด)`}
                   {autoFillPreview.print_locations?.sublimation?.enabled && ` Sublimation/Flex (${autoFillPreview.print_locations.sublimation.points} จุด)`}
@@ -993,6 +994,7 @@ const MaxSupplyForm = () => {
                 shirtTypes={shirtTypes}
                 productionTypes={productionTypes}
                 sizeOptions={sizeOptions}
+                selectedWorksheet={selectedWorksheet}
                 onInputChange={handleInputChange}
                 onSizeBreakdown={handleSizeBreakdown}
                 onSizeQuantityChange={handleSizeQuantityChange}
@@ -1077,7 +1079,7 @@ const StepBasicInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-              เลือก Worksheet จาก NewWorksNet (Auto Fill)
+              เลือก Worksheet
             </Typography>
             
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -1091,7 +1093,7 @@ const StepBasicInfo = ({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก NewWorksNet"
+                    label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก WorkSheet"
                     variant="outlined"
                     fullWidth
                     InputProps={{
@@ -1105,44 +1107,133 @@ const StepBasicInfo = ({
                     }}
                   />
                 )}
-                renderOption={(props, option) => (
-                  <li {...props} key={option.id}>
-                    <Box>
-                      <Typography variant="body1">{option.label}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {option.type_shirt ? `ประเภท: ${option.type_shirt}` : 'ไม่ระบุประเภท'} | 
-                        {option.total_quantity ? ` ${option.total_quantity} ตัว` : ' จำนวนไม่ระบุ'} | 
-                        ผ้า: {option.fabric_name || 'ไม่ระบุ'} ({option.fabric_color || 'ไม่ระบุสี'})
-                        {option.due_date && ` | ครบกำหนด: ${dayjs(option.due_date).format('DD/MM/YYYY')}`}
-                      </Typography>
-                      {option.screen_detail && (
-                        <Typography variant="body2" color="primary" sx={{ fontSize: '0.75rem' }}>
-                          การพิมพ์: {option.screen_detail}
+                renderOption={(props, option) => {
+                  // Debug log to check pattern_sizes structure
+                  if (option.pattern_sizes) {
+                    console.log(`Dropdown option ${option.label} pattern_sizes:`, option.pattern_sizes);
+                  }
+                  
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box>
+                        <Typography variant="body1">{option.label}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {option.type_shirt ? `ประเภท: ${option.type_shirt}` : 'ไม่ระบุประเภท'} | 
+                          {option.total_quantity ? ` ${option.total_quantity} ตัว` : ' จำนวนไม่ระบุ'} | 
+                          ผ้า: {option.fabric_name || 'ไม่ระบุ'} ({option.fabric_color || 'ไม่ระบุสี'})
+                          {option.due_date && ` | ครบกำหนด: ${dayjs(option.due_date).format('DD/MM/YYYY')}`}
                         </Typography>
-                      )}
-                      {/* Display print points information */}
-                      {(option.screen_point || option.screen_dft || option.screen_embroider || option.screen_flex) && (
-                        <Typography variant="body2" color="secondary" sx={{ fontSize: '0.75rem' }}>
-                          จุดพิมพ์: 
-                          {option.screen_point && ` Screen(${option.screen_point})`}
-                          {option.screen_dft && ` DTF(${option.screen_dft})`}
-                          {option.screen_embroider && ` ปัก(${option.screen_embroider})`}
-                          {option.screen_flex && ` Flex(${option.screen_flex})`}
-                        </Typography>
-                      )}
-                      {/* Display pattern sizes summary */}
-                      {option.pattern_sizes && (
-                        <Typography variant="body2" color="info.main" sx={{ fontSize: '0.75rem' }}>
-                          ไซส์: 
-                          {option.pattern_sizes.men && option.pattern_sizes.men.length > 0 && 
-                            ` ชาย(${option.pattern_sizes.men.map(s => s.size_name?.toUpperCase()).join(', ')})`}
-                          {option.pattern_sizes.women && option.pattern_sizes.women.length > 0 && 
-                            ` หญิง(${option.pattern_sizes.women.map(s => s.size_name?.toUpperCase()).join(', ')})`}
-                        </Typography>
-                      )}
-                    </Box>
-                  </li>
-                )}
+                        {option.screen_detail && (
+                          <Typography variant="body2" color="primary" sx={{ fontSize: '0.75rem' }}>
+                            การพิมพ์: {option.screen_detail}
+                          </Typography>
+                        )}
+                        {/* Display print points information */}
+                        {(option.screen_point || option.screen_dft || option.screen_embroider || option.screen_flex) && (
+                          <Typography variant="body2" color="secondary" sx={{ fontSize: '0.75rem' }}>
+                            จุดพิมพ์: 
+                            {option.screen_point && ` Screen(${option.screen_point})`}
+                            {option.screen_dft && ` DTF(${option.screen_dft})`}
+                            {option.screen_embroider && ` ปัก(${option.screen_embroider})`}
+                            {option.screen_flex && ` Flex(${option.screen_flex})`}
+                          </Typography>
+                        )}
+                        {/* Display pattern sizes summary with quantities */}
+                        {(option.pattern_sizes || option.total_quantity) && (
+                          <Typography variant="body2" color="info.main" sx={{ fontSize: '0.75rem' }}>
+                            {option.pattern_sizes ? 'ไซส์: ' : 'จำนวนรวม: '}
+                            {(() => {
+                              if (!option.pattern_sizes) {
+                                return option.total_quantity ? `${option.total_quantity} ตัว` : 'ไม่ระบุ';
+                              }
+                              
+                              let sizeDisplay = '';
+                              
+                              // Handle array format
+                              if (Array.isArray(option.pattern_sizes) && option.pattern_sizes.length > 0) {
+                                const sizeWithQuantity = option.pattern_sizes
+                                  .map(s => {
+                                    const sizeName = (s.size_name || s.size || s.name || '').toString().toUpperCase();
+                                    const quantity = s.quantity || 0;
+                                    return sizeName && quantity > 0 ? `${sizeName}(${quantity})` : null;
+                                  })
+                                  .filter(Boolean);
+                                
+                                if (sizeWithQuantity.length > 0) {
+                                  sizeDisplay = sizeWithQuantity.join(', ');
+                                } else {
+                                  // Fallback: show sizes without quantity if quantities are missing
+                                  const sizes = option.pattern_sizes
+                                    .map(s => s.size_name || s.size || s.name)
+                                    .filter(Boolean)
+                                    .map(s => s.toString().toUpperCase());
+                                  if (sizes.length > 0) {
+                                    sizeDisplay = sizes.join(', ');
+                                  }
+                                }
+                              }
+                              
+                              // Handle object format with men/women
+                              if (typeof option.pattern_sizes === 'object' && !Array.isArray(option.pattern_sizes)) {
+                                const genderSizes = [];
+                                
+                                if (option.pattern_sizes.men && Array.isArray(option.pattern_sizes.men) && option.pattern_sizes.men.length > 0) {
+                                  const menSizes = option.pattern_sizes.men
+                                    .map(s => {
+                                      const sizeName = (s.size_name || s.size || s.name || '').toString().toUpperCase();
+                                      const quantity = s.quantity || 0;
+                                      return sizeName && quantity > 0 ? `${sizeName}(${quantity})` : null;
+                                    })
+                                    .filter(Boolean);
+                                  
+                                  if (menSizes.length > 0) {
+                                    genderSizes.push(`ชาย: ${menSizes.join(', ')}`);
+                                  } else {
+                                    // Fallback: show men sizes without quantity
+                                    const menSizesOnly = option.pattern_sizes.men
+                                      .map(s => s.size_name || s.size || s.name)
+                                      .filter(Boolean)
+                                      .map(s => s.toString().toUpperCase());
+                                    if (menSizesOnly.length > 0) {
+                                      genderSizes.push(`ชาย: ${menSizesOnly.join(', ')}`);
+                                    }
+                                  }
+                                }
+                                
+                                if (option.pattern_sizes.women && Array.isArray(option.pattern_sizes.women) && option.pattern_sizes.women.length > 0) {
+                                  const womenSizes = option.pattern_sizes.women
+                                    .map(s => {
+                                      const sizeName = (s.size_name || s.size || s.name || '').toString().toUpperCase();
+                                      const quantity = s.quantity || 0;
+                                      return sizeName && quantity > 0 ? `${sizeName}(${quantity})` : null;
+                                    })
+                                    .filter(Boolean);
+                                  
+                                  if (womenSizes.length > 0) {
+                                    genderSizes.push(`หญิง: ${womenSizes.join(', ')}`);
+                                  } else {
+                                    // Fallback: show women sizes without quantity
+                                    const womenSizesOnly = option.pattern_sizes.women
+                                      .map(s => s.size_name || s.size || s.name)
+                                      .filter(Boolean)
+                                      .map(s => s.toString().toUpperCase());
+                                    if (womenSizesOnly.length > 0) {
+                                      genderSizes.push(`หญิง: ${womenSizesOnly.join(', ')}`);
+                                    }
+                                  }
+                                }
+                                
+                                sizeDisplay = genderSizes.join(' | ');
+                              }
+                              
+                              return sizeDisplay || (option.total_quantity ? `${option.total_quantity} ตัว` : 'ไม่ระบุ');
+                            })()}
+                          </Typography>
+                        )}
+                      </Box>
+                    </li>
+                  );
+                }}
                 noOptionsText="ไม่พบ Worksheet จาก NewWorksNet"
               />
               <Button 
@@ -1157,11 +1248,10 @@ const StepBasicInfo = ({
             
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                <strong>1.</strong> คลิกปุ่มรีเฟรช <Refresh fontSize="small" /> เพื่อดึงข้อมูลล่าสุดจากระบบ NewWorksNet<br/>
-                <strong>2.</strong> เลือกรายการที่ต้องการจากรายการ Worksheet ด้านบน<br/>
-                <strong>3.</strong> ระบบจะกรอกข้อมูลให้อัตโนมัติตามข้อมูลที่มีใน NewWorksNet<br/>
-                <strong>4.</strong> จุดพิมพ์จะดึงมาจาก screen_point, screen_dft, screen_embroider, screen_flex (เป็นจำนวนจุดพิมพ์ ไม่ใช่สี)<br/>
-                <strong>5.</strong> งานหนึ่งสามารถมีการพิมพ์/ปักหลายประเภทพร้อมกันได้
+                <strong>1.</strong> คลิกปุ่มรีเฟรช <Refresh fontSize="small" /> เพื่อดึงข้อมูลล่าสุดจากระบบ NewWorkSheet<br/>
+                <strong>2.</strong> เลือกรายการที่ต้องการจากรายการ NewWorkSheet ด้านบน<br/>
+                <strong>3.</strong> ระบบจะกรอกข้อมูลให้อัตโนมัติตามข้อมูลที่มีใน NewWorkSheet<br/>
+                
               </Typography>
             </Alert>
           </CardContent>
@@ -1174,13 +1264,13 @@ const StepBasicInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ข้อมูลพื้นฐาน (Auto Fill จาก NewWorksNet)
+              ข้อมูลพื้นฐาน
             </Typography>
             
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="ชื่องาน (Auto Fill)"
+                  label="ชื่องาน"
                   value={formData.title}
                   onChange={(e) => onInputChange('title', e.target.value)}
                   error={!!errors.title}
@@ -1192,7 +1282,7 @@ const StepBasicInfo = ({
               
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="ชื่อลูกค้า (Auto Fill)"
+                  label="ชื่อลูกค้า"
                   value={formData.customer_name}
                   onChange={(e) => onInputChange('customer_name', e.target.value)}
                   error={!!errors.customer_name}
@@ -1241,7 +1331,7 @@ const StepBasicInfo = ({
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 <Image sx={{ mr: 1, verticalAlign: 'middle' }} />
-                รูปตัวอย่างเสื้อ (Auto Fill)
+                รูปตัวอย่างเสื้อ
               </Typography>
               <CardMedia
                 component="img"
@@ -1339,7 +1429,7 @@ const StepBasicInfo = ({
               
               <Grid item xs={12} md={4}>
                 <DatePicker
-                  label="วันที่ครบกำหนด (Auto Fill)"
+                  label="วันที่ครบกำหนด"
                   value={formData.due_date}
                   onChange={(date) => onInputChange('due_date', date)}
                   slotProps={{
@@ -1374,11 +1464,15 @@ const StepProductionInfo = ({
   shirtTypes, 
   productionTypes,
   sizeOptions,
+  selectedWorksheet,
   onInputChange, 
   onSizeBreakdown,
   onSizeQuantityChange,
   onPrintLocationChange 
 }) => {
+  // Check if data is auto-filled from worksheet
+  const isAutoFilled = Boolean(selectedWorksheet && formData.worksheet_id);
+  
   return (
     <Grid container spacing={3}>
       {/* Shirt Type */}
@@ -1387,7 +1481,7 @@ const StepProductionInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Category sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ประเภทเสื้อ (Auto Fill)
+              ประเภทเสื้อ 
             </Typography>
             
             <FormControl fullWidth error={!!errors.shirt_type}>
@@ -1419,14 +1513,28 @@ const StepProductionInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Straighten sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ขนาดและจำนวน (Auto Fill)
+              ขนาดและจำนวน
+              {isAutoFilled && (
+                <Lock sx={{ ml: 1, verticalAlign: 'middle', color: 'warning.main' }} />
+              )}
             </Typography>
+            
+            {/* Auto-fill warning */}
+            {isAutoFilled && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>ข้อมูลนี้ถูกกำหนดจาก NewWorksNet:</strong><br/>
+                  
+                </Typography>
+              </Alert>
+            )}
             
             <Autocomplete
               multiple
               value={formData.sizes}
-              onChange={(event, newValue) => onSizeBreakdown(newValue)}
+              onChange={(event, newValue) => !isAutoFilled && onSizeBreakdown(newValue)}
               options={sizeOptions}
+              disabled={isAutoFilled}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip
@@ -1434,6 +1542,7 @@ const StepProductionInfo = ({
                     label={option}
                     {...getTagProps({ index })}
                     key={option}
+                    onDelete={isAutoFilled ? undefined : getTagProps({ index }).onDelete}
                   />
                 ))
               }
@@ -1441,9 +1550,9 @@ const StepProductionInfo = ({
                 <TextField
                   {...params}
                   label="เลือกไซส์ (Auto Fill จาก NewWorksNet pattern_sizes)"
-                  placeholder="เลือกไซส์ที่ต้องการ"
+                  placeholder={isAutoFilled ? "ไซส์ถูกกำหนดจาก NewWorksNet (ไม่สามารถแก้ไขได้)" : "เลือกไซส์ที่ต้องการ"}
                   error={!!errors.sizes}
-                  helperText={errors.sizes || "ไซส์จะถูกดึงมาจาก pattern_sizes (men/women) ใน NewWorksNet"}
+                  helperText={errors.sizes || (isAutoFilled ? "ไซส์ถูกดึงมาจาก NewWorksNet และไม่สามารถแก้ไขได้" : "ไซส์จะถูกดึงมาจาก pattern_sizes (men/women) ใน NewWorksNet")}
                 />
               )}
             />
@@ -1495,10 +1604,12 @@ const StepProductionInfo = ({
                           <TextField
                             type="number"
                             value={item.quantity}
-                            onChange={(e) => onSizeQuantityChange(index, parseInt(e.target.value) || 0)}
-                            inputProps={{ min: 0 }}
+                            onChange={(e) => !isAutoFilled && onSizeQuantityChange(index, parseInt(e.target.value) || 0)}
+                            inputProps={{ min: 0, readOnly: isAutoFilled }}
                             size="small"
                             sx={{ width: 80 }}
+                            disabled={isAutoFilled}
+                            
                           />
                         </TableCell>
                       </TableRow>
@@ -1521,7 +1632,7 @@ const StepProductionInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Print sx={{ mr: 1, verticalAlign: 'middle' }} />
-              จุดพิมพ์ (Auto Fill จาก NewWorksNet)
+              จุดพิมพ์
             </Typography>
             
             <Grid container spacing={2}>
@@ -1701,7 +1812,7 @@ const StepProductionInfo = ({
               formData.print_locations.embroidery.enabled) && (
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>วิธีการพิมพ์ที่เปิดใช้งาน (Auto Fill จาก NewWorksNet):</strong>
+                  <strong>วิธีการพิมพ์ที่เปิดใช้งาน:</strong>
                   {formData.print_locations.screen.enabled && 
                     ` • Screen (${formData.print_locations.screen.points} จุด)`}
                   {formData.print_locations.dtf.enabled && 
@@ -1711,7 +1822,7 @@ const StepProductionInfo = ({
                   {formData.print_locations.embroidery.enabled && 
                     ` • ปัก (${formData.print_locations.embroidery.points} จุด)`}
                   <br/>
-                  <em>หมายเหตุ: จุดพิมพ์ดึงมาจากฟิลด์ screen_point, screen_dft, screen_embroider, screen_flex ใน NewWorksNet</em>
+                  <em>หมายเหตุ: จุดพิมพ์ดึงมาจากฟิลด์ screen_point, screen_dft, screen_embroider, screen_flex ใน NewWorkSheet</em>
                 </Typography>
               </Alert>
             )}

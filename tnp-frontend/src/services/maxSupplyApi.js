@@ -283,6 +283,20 @@ export const worksheetApi = {
       return { status: 'error', message: error.message, data: [] };
     }
   },
+
+  // Fetch worksheets directly from the NewWorksNet system
+  getFromNewWorksNet: async () => {
+    try {
+      const response = await api.get('/worksheets-newworksnet');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching worksheets from NewWorksNet:', error);
+      if (error.response) {
+        return { status: 'error', message: error.response.data?.message || 'Request failed' };
+      }
+      return { status: 'error', message: error.message };
+    }
+  },
 };
 
 // Customer API endpoints

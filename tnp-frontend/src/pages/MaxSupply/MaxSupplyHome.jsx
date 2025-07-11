@@ -276,6 +276,9 @@ const MaxSupplyHome = () => {
               maxSupplies={maxSupplies}
               calculateEventTimeline={calculateEventTimeline}
               organizeEventsInRows={organizeEventsInRows}
+              statistics={statistics}
+              onJobUpdate={refetch}
+              onJobDelete={handleDeleteJob}
             />
           </Grid>
 

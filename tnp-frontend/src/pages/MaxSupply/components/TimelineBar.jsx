@@ -1,28 +1,46 @@
 import React from 'react';
 import { Box, Typography, Tooltip } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 
-const TimelineBar = ({ timeline, rowIndex }) => {
-  const navigate = useNavigate();
+const TimelineBar = ({ timeline, rowIndex, onClick }) => {
   const event = timeline.event;
   const duration = differenceInDays(new Date(event.expected_completion_date), new Date(event.start_date)) + 1;
+  
+  // Production type colors and icons
+  const productionTypeConfig = {
+    screen: { color: '#0ea5e9', icon: '📺', label: 'Screen Printing' },
+    dtf: { color: '#f59e0b', icon: '📱', label: 'DTF' },
+    sublimation: { color: '#8b5cf6', icon: '⚽', label: 'Sublimation' },
+    embroidery: { color: '#10b981', icon: '🧵', label: 'Embroidery' },
+  };
+
+  const typeConfig = productionTypeConfig[event.production_type] || productionTypeConfig.screen;
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (onClick) {
+      onClick(event);
+    }
+  };
   
   return (
     <Tooltip
       title={
         <Box sx={{ p: 1 }}>
           <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
-            {event.title}
+            {typeConfig.icon} {event.title}
           </Typography>
           <Typography variant="caption" display="block" sx={{ opacity: 0.9 }}>
-            👤 {event.customer_name}
+            👤 {event.customer_name || 'ไม่ระบุลูกค้า'}
           </Typography>
           <Typography variant="caption" display="block" sx={{ opacity: 0.9 }}>
             📅 {format(new Date(event.start_date), 'dd/MM')} - {format(new Date(event.expected_completion_date), 'dd/MM')}
           </Typography>
           <Typography variant="caption" display="block" sx={{ opacity: 0.9 }}>
-            📦 {event.total_quantity} ตัว • {duration} วัน
+            📦 {event.total_quantity || 0} ตัว • {duration} วัน
+          </Typography>
+          <Typography variant="caption" display="block" sx={{ opacity: 0.9 }}>
+            🏷️ {typeConfig.label}
           </Typography>
         </Box>
       }
@@ -31,7 +49,7 @@ const TimelineBar = ({ timeline, rowIndex }) => {
       enterDelay={300}
     >
       <Box
-        onClick={() => navigate(`/max-supply/edit/${event.id}`)}
+        onClick={handleClick}
         sx={{
           position: 'absolute',
           left: `${(timeline.startCol / 7) * 100}%`,
@@ -44,7 +62,7 @@ const TimelineBar = ({ timeline, rowIndex }) => {
           alignItems: 'center',
         }}
       >
-        {/* จุดเริ่มต้น (วงกลมสีฟ้า) */}
+        {/* จุดเริ่มต้น (วงกลมตามสีประเภทงาน) */}
         <Box
           sx={{
             position: 'absolute',
@@ -52,7 +70,7 @@ const TimelineBar = ({ timeline, rowIndex }) => {
             top: 6,
             width: 8,
             height: 8,
-            bgcolor: '#0ea5e9',
+            bgcolor: typeConfig.color,
             borderRadius: '50%',
             border: '2px solid white',
             boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -69,17 +87,17 @@ const TimelineBar = ({ timeline, rowIndex }) => {
             top: '50%',
             transform: 'translateY(-50%)',
             height: 20,
-            bgcolor: '#0ea5e9',
+            bgcolor: typeConfig.color,
             borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             px: 1.5,
-            boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+            boxShadow: `0 2px 8px ${typeConfig.color}50`,
             border: '1px solid rgba(255,255,255,0.2)',
             transition: 'all 0.2s ease',
             '&:hover': {
               transform: 'translateY(-50%) scale(1.02)',
-              boxShadow: '0 4px 16px rgba(14, 165, 233, 0.4)',
+              boxShadow: `0 4px 16px ${typeConfig.color}66`,
             },
           }}
         >
@@ -95,7 +113,7 @@ const TimelineBar = ({ timeline, rowIndex }) => {
               textShadow: '0 1px 2px rgba(0,0,0,0.2)',
             }}
           >
-            {event.title}
+            {typeConfig.icon} {event.title}
           </Typography>
         </Box>
       </Box>

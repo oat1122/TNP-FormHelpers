@@ -113,6 +113,7 @@ const MaxSupplyForm = () => {
   const [selectedWorksheet, setSelectedWorksheet] = useState(null);
   const [worksheetOptions, setWorksheetOptions] = useState([]);
   const [autoFillPreview, setAutoFillPreview] = useState(null);
+  const [newworksNetLoading, setNewworksNetLoading] = useState(false);
 
   // Get worksheets data
   const { data: worksheetData, isLoading: worksheetLoading } = useGetAllWorksheetQuery();
@@ -182,14 +183,36 @@ const MaxSupplyForm = () => {
         }
       }
       
+      // Generate unique IDs and labels for worksheets
       return worksheetItems
         .filter(ws => ws && (ws.worksheet_id || ws.id || ws.work_id))
         .filter(ws => ws.has_production !== true)
-        .map(ws => ({
-          id: ws.worksheet_id || ws.id || ws.work_id || '',
-          label: `${ws.customer_name || 'ไม่ระบุ'} - ${ws.product_name || ws.work_name || ws.title || 'ไม่ระบุ'}`,
-          ...ws,
-        }));
+        .map((ws, index) => {
+          // Create a unique ID for each worksheet
+          const worksheetId = ws.worksheet_id || ws.id || ws.work_id || `ws-${index}`;
+          const uniqueId = `${worksheetId}-${index}`;
+          
+          // Create a descriptive label
+          const customerName = ws.customer_name || 'ไม่ระบุ';
+          const productName = ws.product_name || ws.work_name || ws.title || 'ไม่ระบุ';
+          let label = `${customerName} - ${productName}`;
+          
+          // Add some additional identification if available
+          if (ws.work_id) {
+            label += ` (ID: ${ws.work_id})`;
+          }
+          if (ws.created_at) {
+            const createdDate = dayjs(ws.created_at).format('DD/MM/YYYY');
+            label += ` - ${createdDate}`;
+          }
+          
+          return {
+            id: uniqueId,
+            originalId: worksheetId,
+            label: label,
+            ...ws,
+          };
+        });
     } catch (error) {
       console.error('Error processing worksheet data:', error);
       return [];
@@ -205,22 +228,204 @@ const MaxSupplyForm = () => {
     }
   }, [worksheetData]);
 
+  // Parse print locations from worksheet data
+  const parsePrintLocations = (worksheet) => {
+    const printLocations = {
+      screen: { enabled: false, position: '', colors: 0 },
+      dtf: { enabled: false, position: '', colors: 0 },
+      sublimation: { enabled: false, position: '', colors: 0 },
+    };
+    
+    console.log('Parsing print locations from:', worksheet);
+    
+    // Try to parse from worksheet.print_details if available
+    if (worksheet.print_details) {
+      try {
+        const printDetails = typeof worksheet.print_details === 'string' 
+          ? JSON.parse(worksheet.print_details) 
+          : worksheet.print_details;
+        
+        console.log('Parsed print details:', printDetails);
+        
+        // Check for screen printing
+        if (printDetails.screen) {
+          printLocations.screen.enabled = true;
+          printLocations.screen.position = printDetails.screen.position || '';
+          printLocations.screen.colors = printDetails.screen.colors || 0;
+        }
+        
+        // Check for DTF
+        if (printDetails.dtf) {
+          printLocations.dtf.enabled = true;
+          printLocations.dtf.position = printDetails.dtf.position || '';
+          printLocations.dtf.colors = printDetails.dtf.colors || 0;
+        }
+        
+        // Check for sublimation
+        if (printDetails.sublimation) {
+          printLocations.sublimation.enabled = true;
+          printLocations.sublimation.position = printDetails.sublimation.position || '';
+          printLocations.sublimation.colors = printDetails.sublimation.colors || 0;
+        }
+      } catch (error) {
+        console.error('Error parsing print details:', error);
+      }
+    } 
+    // Look for specific print fields in NewWorksNet format
+    else if (worksheet.print_position || worksheet.print_colors || worksheet.print_technique) {
+      // Determine which printing technique to enable based on print_technique or print_type
+      const printType = (worksheet.print_technique || worksheet.print_type || '').toLowerCase();
+      
+      if (printType.includes('screen')) {
+        printLocations.screen.enabled = true;
+        printLocations.screen.position = worksheet.print_position || '';
+        printLocations.screen.colors = parseInt(worksheet.print_colors) || 0;
+      } else if (printType.includes('dtf') || printType.includes('film')) {
+        printLocations.dtf.enabled = true;
+        printLocations.dtf.position = worksheet.print_position || '';
+        printLocations.dtf.colors = parseInt(worksheet.print_colors) || 0;
+      } else if (printType.includes('sublim')) {
+        printLocations.sublimation.enabled = true;
+        printLocations.sublimation.position = worksheet.print_position || '';
+        printLocations.sublimation.colors = parseInt(worksheet.print_colors) || 0;
+      } else {
+        // Default to screen printing if unknown
+        printLocations.screen.enabled = true;
+        printLocations.screen.position = worksheet.print_position || '';
+        printLocations.screen.colors = parseInt(worksheet.print_colors) || 0;
+      }
+    } else if (worksheet.print_type) {
+      // Fallback to basic print type
+      const printType = worksheet.print_type.toLowerCase();
+      
+      if (printType.includes('screen')) {
+        printLocations.screen.enabled = true;
+        // Try to find position and colors in other fields
+        printLocations.screen.position = worksheet.print_location || worksheet.print_area || '';
+        printLocations.screen.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
+      } else if (printType.includes('dtf')) {
+        printLocations.dtf.enabled = true;
+        printLocations.dtf.position = worksheet.print_location || worksheet.print_area || '';
+        printLocations.dtf.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
+      } else if (printType.includes('sublim')) {
+        printLocations.sublimation.enabled = true;
+        printLocations.sublimation.position = worksheet.print_location || worksheet.print_area || '';
+        printLocations.sublimation.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
+      }
+    }
+    
+    console.log('Parsed print locations:', printLocations);
+    
+    return printLocations;
+  };
+  
+  // Parse size breakdown from worksheet data
+  const parseSizeBreakdown = (worksheet) => {
+    const sizes = [];
+    const sizeBreakdown = [];
+    
+    console.log('Parsing size breakdown from:', worksheet);
+    
+    // Try to parse size details
+    try {
+      // Try parsing size_details as JSON string
+      if (worksheet.size_details && typeof worksheet.size_details === 'string') {
+        try {
+          const sizeDetails = JSON.parse(worksheet.size_details);
+          
+          Object.entries(sizeDetails).forEach(([size, quantity]) => {
+            if (quantity > 0) {
+              sizes.push(size);
+              sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to parse size_details JSON:', e);
+        }
+      } 
+      // Handle size_details as object
+      else if (worksheet.size_details && typeof worksheet.size_details === 'object') {
+        Object.entries(worksheet.size_details).forEach(([size, quantity]) => {
+          if (quantity > 0) {
+            sizes.push(size);
+            sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+          }
+        });
+      }
+      // Try worksheet.sizes as array
+      else if (worksheet.sizes && Array.isArray(worksheet.sizes)) {
+        worksheet.sizes.forEach(size => {
+          sizes.push(size);
+          // Default to 0 quantity if not specified
+          const quantity = worksheet.size_quantities ? 
+            (worksheet.size_quantities[size] || 0) : 
+            (worksheet.quantities && worksheet.quantities[size] ? worksheet.quantities[size] : 0);
+          sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+        });
+      }
+      // Look for size_S, size_M, size_L pattern in the data
+      else {
+        const sizeKeys = Object.keys(worksheet).filter(key => key.startsWith('size_') || key.match(/^[smlx]{1,4}$/i));
+        if (sizeKeys.length > 0) {
+          sizeKeys.forEach(key => {
+            const sizeName = key.startsWith('size_') ? key.replace('size_', '') : key.toUpperCase();
+            const quantity = parseInt(worksheet[key]) || 0;
+            if (quantity > 0) {
+              sizes.push(sizeName);
+              sizeBreakdown.push({ size: sizeName, quantity });
+            }
+          });
+        }
+      }
+      
+      // If we still have no sizes but we know total quantity, add a default size
+      if (sizes.length === 0 && worksheet.total_quantity > 0) {
+        sizes.push('M');
+        sizeBreakdown.push({ size: 'M', quantity: parseInt(worksheet.total_quantity) || 0 });
+      }
+    } catch (error) {
+      console.error('Error parsing size breakdown:', error);
+    }
+    
+    console.log('Parsed sizes:', sizes);
+    console.log('Parsed size breakdown:', sizeBreakdown);
+    
+    return { sizes, sizeBreakdown };
+  };
+
   // Handle worksheet selection
   const handleWorksheetSelect = (worksheet) => {
     setSelectedWorksheet(worksheet);
     
     if (worksheet) {
+      // Log worksheet data for debugging
+      console.log('Selected worksheet data:', worksheet);
+      
+      // Parse print locations
+      const printLocations = parsePrintLocations(worksheet);
+      
+      // Parse size breakdown
+      const { sizes, sizeBreakdown } = parseSizeBreakdown(worksheet);
+      
+      // Calculate total quantity
+      const totalQuantity = sizeBreakdown.reduce((sum, item) => sum + item.quantity, 0) || worksheet.total_quantity || 0;
+      
       const autoFillData = {
-        worksheet_id: worksheet.id,
+        // Use originalId for actual data, since id might be artificially generated
+        worksheet_id: worksheet.originalId || worksheet.id,
         title: worksheet.product_name || worksheet.title || `${worksheet.customer_name} - งานใหม่`,
         customer_name: worksheet.customer_name,
         production_type: worksheet.print_type || worksheet.production_type || '',
         due_date: worksheet.due_date ? dayjs(worksheet.due_date) : dayjs().add(14, 'day'),
+        start_date: dayjs(), // Set to current date
+        expected_completion_date: worksheet.due_date ? dayjs(worksheet.due_date).subtract(2, 'day') : dayjs().add(7, 'day'),
         shirt_type: worksheet.shirt_type || '',
-        total_quantity: worksheet.total_quantity || 0,
-        sizes: worksheet.sizes || [],
+        total_quantity: totalQuantity,
+        sizes: sizes,
+        size_breakdown: sizeBreakdown,
         special_instructions: worksheet.special_note || worksheet.notes || '',
-        sample_image: worksheet.sample_image || null,
+        sample_image: worksheet.sample_image || worksheet.image_url || null,
+        print_locations: printLocations,
       };
       
       setFormData(prev => ({
@@ -229,7 +434,7 @@ const MaxSupplyForm = () => {
       }));
       
       setAutoFillPreview(autoFillData);
-      toast.success('ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet แล้ว');
+      toast.success('ข้อมูลถูกกรอกอัตโนมัติจาก NewWorksNet แล้ว');
     } else {
       setAutoFillPreview(null);
     }
@@ -376,20 +581,36 @@ const MaxSupplyForm = () => {
   // Manual refresh worksheets
   const manualRefreshWorksheets = async () => {
     try {
-      toast.loading('กำลังโหลดข้อมูล Worksheet...', {id: 'worksheet-loading'});
+      toast.loading('กำลังโหลดข้อมูล Worksheet จาก NewWorksNet...', {id: 'worksheet-loading'});
+      setNewworksNetLoading(true);
       
-      const response = await worksheetApi.getForMaxSupply();
+      const response = await worksheetApi.getFromNewWorksNet();
       toast.dismiss('worksheet-loading');
       
-      if (response.status === 'success' && response.data) {
-        const options = processWorksheetData(response.data);
-        setWorksheetOptions(options);
-        toast.success(`โหลดข้อมูล Worksheet สำเร็จ (${options.length} รายการ)`);
+      console.log('NewWorksNet API response:', response);
+      
+      if (response && (response.status === 'success' || response.status === 200) && (response.data || response.worksheets)) {
+        const worksheetData = response.data || response.worksheets || [];
+        console.log('Raw worksheet data:', worksheetData);
+        
+        const options = processWorksheetData(worksheetData);
+        console.log('Processed worksheet options:', options);
+        
+        if (options && options.length > 0) {
+          setWorksheetOptions(options);
+          toast.success(`โหลดข้อมูล Worksheet จาก NewWorksNet สำเร็จ (${options.length} รายการ)`);
+        } else {
+          toast.warning('ไม่พบข้อมูล Worksheet ที่สามารถนำมาใช้งานได้');
+        }
+      } else {
+        toast.error('ไม่พบข้อมูลจาก NewWorksNet หรือข้อมูลมีรูปแบบไม่ถูกต้อง');
       }
     } catch (error) {
       console.error('Error refreshing worksheets:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลจาก NewWorksNet');
       toast.dismiss('worksheet-loading');
+    } finally {
+      setNewworksNetLoading(false);
     }
   };
 
@@ -424,15 +645,17 @@ const MaxSupplyForm = () => {
             {/* Auto Fill Preview */}
             {autoFillPreview && (
               <Alert 
-                severity="info" 
+                severity="success" 
                 icon={<AutoAwesome />}
                 sx={{ mb: 2 }}
               >
                 <Typography variant="body2">
-                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก Worksheet:</strong><br />
+                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก NewWorksNet:</strong><br />
                   ลูกค้า: {autoFillPreview.customer_name} | 
                   จำนวน: {autoFillPreview.total_quantity} ตัว | 
-                  ประเภท: {autoFillPreview.production_type}
+                  ประเภท: {autoFillPreview.production_type} | 
+                  ครบกำหนด: {autoFillPreview.due_date.format('DD/MM/YYYY')}
+                  {autoFillPreview.worksheet_id && ` | Worksheet ID: ${autoFillPreview.worksheet_id}`}
                 </Typography>
               </Alert>
             )}
@@ -575,7 +798,7 @@ const StepBasicInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-              เลือก Worksheet (Auto Fill)
+              เลือก Worksheet จาก NewWorksNet (Auto Fill)
             </Typography>
             
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -589,7 +812,7 @@ const StepBasicInfo = ({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติ"
+                    label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก NewWorksNet"
                     variant="outlined"
                     fullWidth
                     InputProps={{
@@ -604,26 +827,37 @@ const StepBasicInfo = ({
                   />
                 )}
                 renderOption={(props, option) => (
-                  <li {...props}>
+                  <li {...props} key={option.id}>
                     <Box>
                       <Typography variant="body1">{option.label}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {option.product_name} - {option.print_type} - {option.total_quantity} ตัว
+                        {option.print_type || 'ไม่ระบุประเภทการพิมพ์'} | 
+                        {option.total_quantity ? ` ${option.total_quantity} ตัว` : ' จำนวนไม่ระบุ'} | 
+                        ID: {option.originalId || option.id}
+                        {option.due_date && ` | ครบกำหนด: ${dayjs(option.due_date).format('DD/MM/YYYY')}`}
                       </Typography>
                     </Box>
                   </li>
                 )}
-                noOptionsText="ไม่พบ Worksheet"
+                noOptionsText="ไม่พบ Worksheet จาก NewWorksNet"
               />
               <Button 
                 variant="outlined" 
                 onClick={onRefreshWorksheets} 
-                title="รีเฟรชข้อมูล Worksheet"
+                title="โหลดข้อมูล Worksheet จาก NewWorksNet"
                 sx={{ height: 56 }}
               >
                 <Refresh />
               </Button>
             </Box>
+            
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>1.</strong> คลิกปุ่มรีเฟรช <Refresh fontSize="small" /> เพื่อดึงข้อมูลล่าสุดจากระบบ NewWorksNet<br/>
+                <strong>2.</strong> เลือกรายการที่ต้องการจากรายการ Worksheet ด้านบน<br/>
+                <strong>3.</strong> ระบบจะกรอกข้อมูลให้อัตโนมัติตามข้อมูลที่มีใน NewWorksNet
+              </Typography>
+            </Alert>
           </CardContent>
         </Card>
       </Grid>
@@ -634,13 +868,13 @@ const StepBasicInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ข้อมูลพื้นฐาน
+              ข้อมูลพื้นฐาน (Auto Fill จาก NewWorksNet)
             </Typography>
             
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="ชื่องาน"
+                  label="ชื่องาน (Auto Fill)"
                   value={formData.title}
                   onChange={(e) => onInputChange('title', e.target.value)}
                   error={!!errors.title}
@@ -652,7 +886,7 @@ const StepBasicInfo = ({
               
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="ชื่อลูกค้า"
+                  label="ชื่อลูกค้า (Auto Fill)"
                   value={formData.customer_name}
                   onChange={(e) => onInputChange('customer_name', e.target.value)}
                   error={!!errors.customer_name}
@@ -701,7 +935,7 @@ const StepBasicInfo = ({
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 <Image sx={{ mr: 1, verticalAlign: 'middle' }} />
-                รูปตัวอย่างเสื้อ
+                รูปตัวอย่างเสื้อ (Auto Fill)
               </Typography>
               <CardMedia
                 component="img"
@@ -727,14 +961,14 @@ const StepBasicInfo = ({
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <DatePicker
-                  label="วันที่เริ่มต้น"
+                  label="วันที่เริ่มต้น (วันที่ปัจจุบัน)"
                   value={formData.start_date}
                   onChange={(date) => onInputChange('start_date', date)}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       error: !!errors.start_date,
-                      helperText: errors.start_date,
+                      helperText: errors.start_date || "วันที่เริ่มต้นงาน (ตั้งเป็นวันที่ปัจจุบัน)",
                     },
                   }}
                 />
@@ -757,14 +991,14 @@ const StepBasicInfo = ({
               
               <Grid item xs={12} md={4}>
                 <DatePicker
-                  label="วันที่ครบกำหนด"
+                  label="วันที่ครบกำหนด (Auto Fill)"
                   value={formData.due_date}
                   onChange={(date) => onInputChange('due_date', date)}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       error: !!errors.due_date,
-                      helperText: errors.due_date,
+                      helperText: errors.due_date || "วันที่ครบกำหนดจาก NewWorksNet",
                     },
                   }}
                 />
@@ -775,7 +1009,7 @@ const StepBasicInfo = ({
              formData.expected_completion_date.isAfter(formData.due_date) && (
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Warning sx={{ mr: 1 }} />
-                วันที่คาดว่าจะเสร็จเกินกำหนดส่งมอบ กรุณาตรวจสอบอีกครั้ง
+                วันที่คาดว่าจะเสร็จเกินกำหนดส่งมอบจาก NewWorksNet กรุณาตรวจสอบอีกครั้ง
               </Alert>
             )}
           </CardContent>
@@ -805,7 +1039,7 @@ const StepProductionInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Category sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ประเภทเสื้อ
+              ประเภทเสื้อ (Auto Fill)
             </Typography>
             
             <FormControl fullWidth error={!!errors.shirt_type}>
@@ -837,7 +1071,7 @@ const StepProductionInfo = ({
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Straighten sx={{ mr: 1, verticalAlign: 'middle' }} />
-              ขนาดและจำนวน
+              ขนาดและจำนวน (Auto Fill)
             </Typography>
             
             <Autocomplete
@@ -858,7 +1092,7 @@ const StepProductionInfo = ({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="เลือกไซส์"
+                  label="เลือกไซส์ (Auto Fill จาก NewWorksNet)"
                   placeholder="เลือกไซส์ที่ต้องการ"
                   error={!!errors.sizes}
                   helperText={errors.sizes}
@@ -899,13 +1133,62 @@ const StepProductionInfo = ({
         </Card>
       </Grid>
 
+      {/* Production Type */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
+              ประเภทการพิมพ์เสื้อ (Auto Fill)
+            </Typography>
+            
+            <FormControl fullWidth error={!!errors.production_type} sx={{ mb: 2 }}>
+              <InputLabel>ประเภทการพิมพ์</InputLabel>
+              <Select
+                value={formData.production_type}
+                onChange={(e) => onInputChange('production_type', e.target.value)}
+                label="ประเภทการพิมพ์"
+              >
+                {productionTypes.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    <Box display="flex" alignItems="center">
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          backgroundColor: type.color,
+                          borderRadius: '50%',
+                          mr: 1,
+                        }}
+                      />
+                      {type.label}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.production_type && (
+                <Typography variant="caption" color="error">
+                  {errors.production_type}
+                </Typography>
+              )}
+            </FormControl>
+            
+            <Alert severity="info">
+              <Typography variant="body2">
+                ประเภทการพิมพ์เสื้อจะถูกดึงจาก NewWorksNet โดยอัตโนมัติ
+              </Typography>
+            </Alert>
+          </CardContent>
+        </Card>
+      </Grid>
+
       {/* Print Locations */}
       <Grid item xs={12}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               <Print sx={{ mr: 1, verticalAlign: 'middle' }} />
-              จุดพิมพ์ (แยกกันคำนวณ)
+              จุดพิมพ์ (Auto Fill จาก NewWorksNet)
             </Typography>
             
             <Grid container spacing={2}>
@@ -1106,4 +1389,4 @@ const StepNotes = ({ formData, errors, onInputChange }) => {
   );
 };
 
-export default MaxSupplyForm; 
+export default MaxSupplyForm;

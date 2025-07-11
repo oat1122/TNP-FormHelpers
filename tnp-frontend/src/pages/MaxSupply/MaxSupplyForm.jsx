@@ -100,9 +100,10 @@ const MaxSupplyForm = () => {
     status: 'pending',
     sample_image: null,
     print_locations: {
-      screen: { enabled: false, position: '', colors: 0 },
-      dtf: { enabled: false, position: '', colors: 0 },
-      sublimation: { enabled: false, position: '', colors: 0 },
+      screen: { enabled: false, position: '', points: 0 },
+      dtf: { enabled: false, position: '', points: 0 },
+      sublimation: { enabled: false, position: '', points: 0 },
+      embroidery: { enabled: false, position: '', points: 0 },
     },
     size_breakdown: [],
   });
@@ -231,74 +232,94 @@ const MaxSupplyForm = () => {
   // Parse print locations from worksheet data
   const parsePrintLocations = (worksheet) => {
     const printLocations = {
-      screen: { enabled: false, position: '', colors: 0 },
-      dtf: { enabled: false, position: '', colors: 0 },
-      sublimation: { enabled: false, position: '', colors: 0 },
+      screen: { enabled: false, position: '', points: 0 },
+      dtf: { enabled: false, position: '', points: 0 },
+      sublimation: { enabled: false, position: '', points: 0 },
+      embroidery: { enabled: false, position: '', points: 0 },
     };
     
-    console.log('Parsing print locations from:', worksheet);
+    console.log('Parsing print locations from NewWorksNet:', worksheet);
     
     // Parse screen details from NewWorksNet format
     if (worksheet.screen_detail) {
       const screenDetail = worksheet.screen_detail.toLowerCase();
       
-      // Check for DTF references
-      if (screenDetail.includes('dtf') || screenDetail.includes('dft')) {
+      // Extract positions from screen_detail
+      const extractPositions = (text) => {
+        const positions = [];
+        if (text.includes('หน้า') || text.includes('ด้านหน้า')) positions.push('หน้า');
+        if (text.includes('หลัง') || text.includes('ด้านหลัง')) positions.push('หลัง');
+        if (text.includes('แขน')) positions.push('แขน');
+        if (text.includes('ข้าง')) positions.push('ข้าง');
+        if (text.includes('คอ')) positions.push('คอ');
+        return positions.join(', ') || 'ไม่ระบุ';
+      };
+      
+      // Check for DTF/DFT printing - use screen_dft as print points
+      if ((screenDetail.includes('dtf') || screenDetail.includes('dft')) && worksheet.screen_dft) {
         printLocations.dtf.enabled = true;
-        
-        // Extract DTF count from screen_dft field
-        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
-          printLocations.dtf.colors = parseInt(worksheet.screen_dft);
-        }
-        
-        // Try to extract position info from screen_detail
-        const positions = [];
-        if (screenDetail.includes('หน้า')) positions.push('หน้า');
-        if (screenDetail.includes('หลัง')) positions.push('หลัง');
-        if (screenDetail.includes('แขน')) positions.push('แขน');
-        if (positions.length > 0) {
-          printLocations.dtf.position = positions.join(', ');
-        }
+        printLocations.dtf.points = parseInt(worksheet.screen_dft) || 0;
+        printLocations.dtf.position = extractPositions(screenDetail);
+        console.log('DTF enabled with points:', printLocations.dtf.points);
       }
       
-      // Check for screen printing references
-      if (screenDetail.includes('สกรีน') && !screenDetail.includes('dtf') && !screenDetail.includes('dft')) {
+      // Check for Screen printing - use screen_point as print points
+      if (screenDetail.includes('สกรีน') && worksheet.screen_point) {
         printLocations.screen.enabled = true;
-        
-        // Extract screen points
-        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
-          printLocations.screen.colors = parseInt(worksheet.screen_point);
-        }
-        
-        // Extract position
-        const positions = [];
-        if (screenDetail.includes('หน้า')) positions.push('หน้า');
-        if (screenDetail.includes('หลัง')) positions.push('หลัง');
-        if (screenDetail.includes('แขน')) positions.push('แขน');
-        if (positions.length > 0) {
-          printLocations.screen.position = positions.join(', ');
-        }
+        printLocations.screen.points = parseInt(worksheet.screen_point) || 0;
+        printLocations.screen.position = extractPositions(screenDetail);
+        console.log('Screen enabled with points:', printLocations.screen.points);
       }
       
-      // Check for sublimation (though not in this example)
-      if (screenDetail.includes('sublim') || screenDetail.includes('ซับลิ')) {
+      // Check for Embroidery - use screen_embroider as print points
+      if ((screenDetail.includes('ปัก') || screenDetail.includes('embroider')) && worksheet.screen_embroider) {
+        printLocations.embroidery.enabled = true;
+        printLocations.embroidery.points = parseInt(worksheet.screen_embroider) || 1;
+        printLocations.embroidery.position = extractPositions(screenDetail);
+        console.log('Embroidery enabled with points:', printLocations.embroidery.points);
+      }
+      
+      // Check for Flex/Vinyl - use screen_flex as print points
+      if (screenDetail.includes('flex') && worksheet.screen_flex) {
+        // Use sublimation slot for flex printing
         printLocations.sublimation.enabled = true;
+        printLocations.sublimation.points = parseInt(worksheet.screen_flex) || 0;
+        printLocations.sublimation.position = extractPositions(screenDetail);
+        console.log('Flex/Sublimation enabled with points:', printLocations.sublimation.points);
       }
     }
     
-    // Fallback: if we have screen_point but no specific technique detected, assume screen printing
-    if (!printLocations.screen.enabled && !printLocations.dtf.enabled && !printLocations.sublimation.enabled) {
-      if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
-        printLocations.screen.enabled = true;
-        printLocations.screen.colors = parseInt(worksheet.screen_point);
-      }
-      if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
-        printLocations.dtf.enabled = true;
-        printLocations.dtf.colors = parseInt(worksheet.screen_dft);
-      }
+    // Important: Enable printing types based on available point fields even without screen_detail
+    // This handles cases where NewWorksNet has point data but no detailed description
+    if (!printLocations.dtf.enabled && worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
+      printLocations.dtf.enabled = true;
+      printLocations.dtf.points = parseInt(worksheet.screen_dft);
+      printLocations.dtf.position = 'ไม่ระบุ';
+      console.log('DTF fallback enabled with points:', printLocations.dtf.points);
     }
     
-    console.log('Parsed print locations:', printLocations);
+    if (!printLocations.screen.enabled && worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
+      printLocations.screen.enabled = true;
+      printLocations.screen.points = parseInt(worksheet.screen_point);
+      printLocations.screen.position = 'ไม่ระบุ';
+      console.log('Screen fallback enabled with points:', printLocations.screen.points);
+    }
+    
+    if (!printLocations.embroidery.enabled && worksheet.screen_embroider && parseInt(worksheet.screen_embroider) > 0) {
+      printLocations.embroidery.enabled = true;
+      printLocations.embroidery.points = parseInt(worksheet.screen_embroider);
+      printLocations.embroidery.position = 'ไม่ระบุ';
+      console.log('Embroidery fallback enabled with points:', printLocations.embroidery.points);
+    }
+    
+    if (!printLocations.sublimation.enabled && worksheet.screen_flex && parseInt(worksheet.screen_flex) > 0) {
+      printLocations.sublimation.enabled = true;
+      printLocations.sublimation.points = parseInt(worksheet.screen_flex);
+      printLocations.sublimation.position = 'ไม่ระบุ';
+      console.log('Flex/Sublimation fallback enabled with points:', printLocations.sublimation.points);
+    }
+    
+    console.log('Final parsed print locations:', printLocations);
     
     return printLocations;
   };
@@ -436,12 +457,27 @@ const MaxSupplyForm = () => {
         return 't-shirt'; // default fallback
       };
       
-      // Determine production type from print information
+      // Determine production type from print information (can be multiple)
       const determineProductionType = () => {
-        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) return 'dtf';
-        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) return 'screen';
-        if (worksheet.screen_embroider) return 'embroidery';
-        return 'screen'; // default fallback
+        const enabledTypes = [];
+        
+        // Check each print type with their respective fields
+        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) enabledTypes.push('dtf');
+        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) enabledTypes.push('screen');
+        if (worksheet.screen_embroider && parseInt(worksheet.screen_embroider) > 0) enabledTypes.push('embroidery');
+        if (worksheet.screen_flex && parseInt(worksheet.screen_flex) > 0) enabledTypes.push('sublimation'); // Using sublimation for flex
+        
+        console.log('Enabled print types from NewWorksNet:', enabledTypes);
+        
+        // Priority order: DTF > Screen > Embroidery > Sublimation/Flex
+        // Return the highest priority type as the primary production type
+        if (enabledTypes.includes('dtf')) return 'dtf';
+        if (enabledTypes.includes('screen')) return 'screen';
+        if (enabledTypes.includes('embroidery')) return 'embroidery';
+        if (enabledTypes.includes('sublimation')) return 'sublimation';
+        
+        // Default fallback
+        return 'screen';
       };
       
       const autoFillData = {
@@ -741,6 +777,16 @@ const MaxSupplyForm = () => {
                   ครบกำหนด: {autoFillPreview.due_date.format('DD/MM/YYYY')}
                   {autoFillPreview.newworks_code && ` | รหัส: ${autoFillPreview.newworks_code}`}
                   {autoFillPreview.fabric_info?.fabric_name && ` | ผ้า: ${autoFillPreview.fabric_info.fabric_name}`}
+                  <br/>
+                  <strong>จุดพิมพ์จาก NewWorksNet:</strong>
+                  {autoFillPreview.print_locations?.screen?.enabled && ` Screen (${autoFillPreview.print_locations.screen.points} จุด)`}
+                  {autoFillPreview.print_locations?.dtf?.enabled && ` DTF (${autoFillPreview.print_locations.dtf.points} จุด)`}
+                  {autoFillPreview.print_locations?.sublimation?.enabled && ` Sublimation/Flex (${autoFillPreview.print_locations.sublimation.points} จุด)`}
+                  {autoFillPreview.print_locations?.embroidery?.enabled && ` ปัก (${autoFillPreview.print_locations.embroidery.points} จุด)`}
+                  {(!autoFillPreview.print_locations?.screen?.enabled && 
+                    !autoFillPreview.print_locations?.dtf?.enabled && 
+                    !autoFillPreview.print_locations?.sublimation?.enabled && 
+                    !autoFillPreview.print_locations?.embroidery?.enabled) && ' ไม่พบข้อมูลจุดพิมพ์'}
                 </Typography>
               </Alert>
             )}
@@ -926,6 +972,16 @@ const StepBasicInfo = ({
                           การพิมพ์: {option.screen_detail}
                         </Typography>
                       )}
+                      {/* Display print points information */}
+                      {(option.screen_point || option.screen_dft || option.screen_embroider || option.screen_flex) && (
+                        <Typography variant="body2" color="secondary" sx={{ fontSize: '0.75rem' }}>
+                          จุดพิมพ์: 
+                          {option.screen_point && ` Screen(${option.screen_point})`}
+                          {option.screen_dft && ` DTF(${option.screen_dft})`}
+                          {option.screen_embroider && ` ปัก(${option.screen_embroider})`}
+                          {option.screen_flex && ` Flex(${option.screen_flex})`}
+                        </Typography>
+                      )}
                     </Box>
                   </li>
                 )}
@@ -945,7 +1001,9 @@ const StepBasicInfo = ({
               <Typography variant="body2">
                 <strong>1.</strong> คลิกปุ่มรีเฟรช <Refresh fontSize="small" /> เพื่อดึงข้อมูลล่าสุดจากระบบ NewWorksNet<br/>
                 <strong>2.</strong> เลือกรายการที่ต้องการจากรายการ Worksheet ด้านบน<br/>
-                <strong>3.</strong> ระบบจะกรอกข้อมูลให้อัตโนมัติตามข้อมูลที่มีใน NewWorksNet
+                <strong>3.</strong> ระบบจะกรอกข้อมูลให้อัตโนมัติตามข้อมูลที่มีใน NewWorksNet<br/>
+                <strong>4.</strong> จุดพิมพ์จะดึงมาจาก screen_point, screen_dft, screen_embroider, screen_flex (เป็นจำนวนจุดพิมพ์ ไม่ใช่สี)<br/>
+                <strong>5.</strong> งานหนึ่งสามารถมีการพิมพ์/ปักหลายประเภทพร้อมกันได้
               </Typography>
             </Alert>
           </CardContent>
@@ -1309,8 +1367,9 @@ const StepProductionInfo = ({
               <Typography variant="body2">
                 ประเภทการพิมพ์เสื้อจะถูกดึงจาก NewWorksNet โดยอัตโนมัติ
                 {formData.special_instructions && formData.special_instructions.includes('DFT') && (
-                  <><br/><strong>ข้อมูลการพิมพ์:</strong> {formData.special_instructions}</>
+                  <><br/><strong>ข้อมูลการพิมพ์จาก NewWorksNet:</strong> {formData.special_instructions}</>
                 )}
+                <br/><em>หมายเหตุ: งานหนึ่งสามารถมีการพิมพ์/ปักหลายประเภทพร้อมกัน โดยใช้ screen_dft, screen_point เป็นจำนวนจุดพิมพ์</em>
               </Typography>
             </Alert>
           </CardContent>
@@ -1328,7 +1387,7 @@ const StepProductionInfo = ({
             
             <Grid container spacing={2}>
               {/* Screen Printing */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>
@@ -1353,14 +1412,16 @@ const StepProductionInfo = ({
                         onChange={(e) => onPrintLocationChange('screen', 'position', e.target.value)}
                         fullWidth
                         sx={{ mb: 2 }}
+                        placeholder="เช่น หน้า, หลัง, แขน"
                       />
                       <TextField
-                        label="จำนวนสี"
+                        label="จำนวนจุดพิมพ์"
                         type="number"
-                        value={formData.print_locations.screen.colors}
-                        onChange={(e) => onPrintLocationChange('screen', 'colors', parseInt(e.target.value) || 0)}
+                        value={formData.print_locations.screen.points}
+                        onChange={(e) => onPrintLocationChange('screen', 'points', parseInt(e.target.value) || 0)}
                         fullWidth
                         inputProps={{ min: 0 }}
+                        helperText="จำนวนจุดที่ต้องสกรีน (screen_point)"
                       />
                     </Collapse>
                   </CardContent>
@@ -1368,7 +1429,7 @@ const StepProductionInfo = ({
               </Grid>
 
               {/* DTF */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>
@@ -1393,26 +1454,28 @@ const StepProductionInfo = ({
                         onChange={(e) => onPrintLocationChange('dtf', 'position', e.target.value)}
                         fullWidth
                         sx={{ mb: 2 }}
+                        placeholder="เช่น หน้า, หลัง, แขน"
                       />
                       <TextField
-                        label="จำนวนสี"
+                        label="จำนวนจุดพิมพ์"
                         type="number"
-                        value={formData.print_locations.dtf.colors}
-                        onChange={(e) => onPrintLocationChange('dtf', 'colors', parseInt(e.target.value) || 0)}
+                        value={formData.print_locations.dtf.points}
+                        onChange={(e) => onPrintLocationChange('dtf', 'points', parseInt(e.target.value) || 0)}
                         fullWidth
                         inputProps={{ min: 0 }}
+                        helperText="จำนวนจุดที่ต้อง DTF (screen_dft)"
                       />
                     </Collapse>
                   </CardContent>
                 </Card>
               </Grid>
 
-              {/* Sublimation */}
-              <Grid item xs={12} md={4}>
+              {/* Sublimation/Flex */}
+              <Grid item xs={12} md={3}>
                 <Card variant="outlined">
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>
-                      ⚽ Sublimation
+                      ⚽ Sublimation/Flex
                     </Typography>
                     <FormControl fullWidth sx={{ mb: 2 }}>
                       <InputLabel>เปิดใช้งาน</InputLabel>
@@ -1433,20 +1496,86 @@ const StepProductionInfo = ({
                         onChange={(e) => onPrintLocationChange('sublimation', 'position', e.target.value)}
                         fullWidth
                         sx={{ mb: 2 }}
+                        placeholder="เช่น หน้า, หลัง, แขน"
                       />
                       <TextField
-                        label="จำนวนสี"
+                        label="จำนวนจุดพิมพ์"
                         type="number"
-                        value={formData.print_locations.sublimation.colors}
-                        onChange={(e) => onPrintLocationChange('sublimation', 'colors', parseInt(e.target.value) || 0)}
+                        value={formData.print_locations.sublimation.points}
+                        onChange={(e) => onPrintLocationChange('sublimation', 'points', parseInt(e.target.value) || 0)}
                         fullWidth
                         inputProps={{ min: 0 }}
+                        helperText="จำนวนจุด Sublimation/Flex (screen_flex)"
+                      />
+                    </Collapse>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Embroidery */}
+              <Grid item xs={12} md={3}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      🧵 Embroidery (ปัก)
+                    </Typography>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>เปิดใช้งาน</InputLabel>
+                      <Select
+                        value={formData.print_locations.embroidery.enabled}
+                        onChange={(e) => onPrintLocationChange('embroidery', 'enabled', e.target.value)}
+                        label="เปิดใช้งาน"
+                      >
+                        <MenuItem value={false}>ไม่ใช้</MenuItem>
+                        <MenuItem value={true}>ใช้</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <Collapse in={formData.print_locations.embroidery.enabled}>
+                      <TextField
+                        label="ตำแหน่งปัก"
+                        value={formData.print_locations.embroidery.position}
+                        onChange={(e) => onPrintLocationChange('embroidery', 'position', e.target.value)}
+                        fullWidth
+                        sx={{ mb: 2 }}
+                        placeholder="เช่น หน้า, หลัง, แขน"
+                      />
+                      <TextField
+                        label="จำนวนจุดปัก"
+                        type="number"
+                        value={formData.print_locations.embroidery.points}
+                        onChange={(e) => onPrintLocationChange('embroidery', 'points', parseInt(e.target.value) || 0)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                        helperText="จำนวนจุดที่ต้องปัก (screen_embroider)"
                       />
                     </Collapse>
                   </CardContent>
                 </Card>
               </Grid>
             </Grid>
+            
+            {/* Summary of enabled print methods */}
+            {(formData.print_locations.screen.enabled || 
+              formData.print_locations.dtf.enabled || 
+              formData.print_locations.sublimation.enabled || 
+              formData.print_locations.embroidery.enabled) && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>วิธีการพิมพ์ที่เปิดใช้งาน (Auto Fill จาก NewWorksNet):</strong>
+                  {formData.print_locations.screen.enabled && 
+                    ` • Screen (${formData.print_locations.screen.points} จุด)`}
+                  {formData.print_locations.dtf.enabled && 
+                    ` • DTF (${formData.print_locations.dtf.points} จุด)`}
+                  {formData.print_locations.sublimation.enabled && 
+                    ` • Sublimation/Flex (${formData.print_locations.sublimation.points} จุด)`}
+                  {formData.print_locations.embroidery.enabled && 
+                    ` • ปัก (${formData.print_locations.embroidery.points} จุด)`}
+                  <br/>
+                  <em>หมายเหตุ: จุดพิมพ์ดึงมาจากฟิลด์ screen_point, screen_dft, screen_embroider, screen_flex ใน NewWorksNet</em>
+                </Typography>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       </Grid>

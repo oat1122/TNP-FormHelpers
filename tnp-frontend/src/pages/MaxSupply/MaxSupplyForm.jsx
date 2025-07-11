@@ -238,79 +238,63 @@ const MaxSupplyForm = () => {
     
     console.log('Parsing print locations from:', worksheet);
     
-    // Try to parse from worksheet.print_details if available
-    if (worksheet.print_details) {
-      try {
-        const printDetails = typeof worksheet.print_details === 'string' 
-          ? JSON.parse(worksheet.print_details) 
-          : worksheet.print_details;
-        
-        console.log('Parsed print details:', printDetails);
-        
-        // Check for screen printing
-        if (printDetails.screen) {
-          printLocations.screen.enabled = true;
-          printLocations.screen.position = printDetails.screen.position || '';
-          printLocations.screen.colors = printDetails.screen.colors || 0;
-        }
-        
-        // Check for DTF
-        if (printDetails.dtf) {
-          printLocations.dtf.enabled = true;
-          printLocations.dtf.position = printDetails.dtf.position || '';
-          printLocations.dtf.colors = printDetails.dtf.colors || 0;
-        }
-        
-        // Check for sublimation
-        if (printDetails.sublimation) {
-          printLocations.sublimation.enabled = true;
-          printLocations.sublimation.position = printDetails.sublimation.position || '';
-          printLocations.sublimation.colors = printDetails.sublimation.colors || 0;
-        }
-      } catch (error) {
-        console.error('Error parsing print details:', error);
-      }
-    } 
-    // Look for specific print fields in NewWorksNet format
-    else if (worksheet.print_position || worksheet.print_colors || worksheet.print_technique) {
-      // Determine which printing technique to enable based on print_technique or print_type
-      const printType = (worksheet.print_technique || worksheet.print_type || '').toLowerCase();
+    // Parse screen details from NewWorksNet format
+    if (worksheet.screen_detail) {
+      const screenDetail = worksheet.screen_detail.toLowerCase();
       
-      if (printType.includes('screen')) {
-        printLocations.screen.enabled = true;
-        printLocations.screen.position = worksheet.print_position || '';
-        printLocations.screen.colors = parseInt(worksheet.print_colors) || 0;
-      } else if (printType.includes('dtf') || printType.includes('film')) {
+      // Check for DTF references
+      if (screenDetail.includes('dtf') || screenDetail.includes('dft')) {
         printLocations.dtf.enabled = true;
-        printLocations.dtf.position = worksheet.print_position || '';
-        printLocations.dtf.colors = parseInt(worksheet.print_colors) || 0;
-      } else if (printType.includes('sublim')) {
-        printLocations.sublimation.enabled = true;
-        printLocations.sublimation.position = worksheet.print_position || '';
-        printLocations.sublimation.colors = parseInt(worksheet.print_colors) || 0;
-      } else {
-        // Default to screen printing if unknown
-        printLocations.screen.enabled = true;
-        printLocations.screen.position = worksheet.print_position || '';
-        printLocations.screen.colors = parseInt(worksheet.print_colors) || 0;
+        
+        // Extract DTF count from screen_dft field
+        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
+          printLocations.dtf.colors = parseInt(worksheet.screen_dft);
+        }
+        
+        // Try to extract position info from screen_detail
+        const positions = [];
+        if (screenDetail.includes('หน้า')) positions.push('หน้า');
+        if (screenDetail.includes('หลัง')) positions.push('หลัง');
+        if (screenDetail.includes('แขน')) positions.push('แขน');
+        if (positions.length > 0) {
+          printLocations.dtf.position = positions.join(', ');
+        }
       }
-    } else if (worksheet.print_type) {
-      // Fallback to basic print type
-      const printType = worksheet.print_type.toLowerCase();
       
-      if (printType.includes('screen')) {
+      // Check for screen printing references
+      if (screenDetail.includes('สกรีน') && !screenDetail.includes('dtf') && !screenDetail.includes('dft')) {
         printLocations.screen.enabled = true;
-        // Try to find position and colors in other fields
-        printLocations.screen.position = worksheet.print_location || worksheet.print_area || '';
-        printLocations.screen.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
-      } else if (printType.includes('dtf')) {
-        printLocations.dtf.enabled = true;
-        printLocations.dtf.position = worksheet.print_location || worksheet.print_area || '';
-        printLocations.dtf.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
-      } else if (printType.includes('sublim')) {
+        
+        // Extract screen points
+        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
+          printLocations.screen.colors = parseInt(worksheet.screen_point);
+        }
+        
+        // Extract position
+        const positions = [];
+        if (screenDetail.includes('หน้า')) positions.push('หน้า');
+        if (screenDetail.includes('หลัง')) positions.push('หลัง');
+        if (screenDetail.includes('แขน')) positions.push('แขน');
+        if (positions.length > 0) {
+          printLocations.screen.position = positions.join(', ');
+        }
+      }
+      
+      // Check for sublimation (though not in this example)
+      if (screenDetail.includes('sublim') || screenDetail.includes('ซับลิ')) {
         printLocations.sublimation.enabled = true;
-        printLocations.sublimation.position = worksheet.print_location || worksheet.print_area || '';
-        printLocations.sublimation.colors = parseInt(worksheet.colors || worksheet.color_count || 0);
+      }
+    }
+    
+    // Fallback: if we have screen_point but no specific technique detected, assume screen printing
+    if (!printLocations.screen.enabled && !printLocations.dtf.enabled && !printLocations.sublimation.enabled) {
+      if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
+        printLocations.screen.enabled = true;
+        printLocations.screen.colors = parseInt(worksheet.screen_point);
+      }
+      if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
+        printLocations.dtf.enabled = true;
+        printLocations.dtf.colors = parseInt(worksheet.screen_dft);
       }
     }
     
@@ -326,17 +310,29 @@ const MaxSupplyForm = () => {
     
     console.log('Parsing size breakdown from:', worksheet);
     
-    // Try to parse size details
+    // Try to parse size details from NewWorksNet format
     try {
-      // Try parsing size_details as JSON string
-      if (worksheet.size_details && typeof worksheet.size_details === 'string') {
+      // Check if we have pattern_sizes array (NewWorksNet format)
+      if (worksheet.pattern_sizes && Array.isArray(worksheet.pattern_sizes)) {
+        worksheet.pattern_sizes.forEach(sizeInfo => {
+          if (sizeInfo.size && sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
+            const size = sizeInfo.size.toUpperCase(); // Normalize size format
+            const quantity = parseInt(sizeInfo.quantity);
+            sizes.push(size);
+            sizeBreakdown.push({ size, quantity });
+          }
+        });
+      }
+      
+      // If no pattern_sizes, try parsing size_details as JSON string
+      else if (worksheet.size_details && typeof worksheet.size_details === 'string') {
         try {
           const sizeDetails = JSON.parse(worksheet.size_details);
           
           Object.entries(sizeDetails).forEach(([size, quantity]) => {
             if (quantity > 0) {
-              sizes.push(size);
-              sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+              sizes.push(size.toUpperCase());
+              sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
             }
           });
         } catch (e) {
@@ -347,20 +343,20 @@ const MaxSupplyForm = () => {
       else if (worksheet.size_details && typeof worksheet.size_details === 'object') {
         Object.entries(worksheet.size_details).forEach(([size, quantity]) => {
           if (quantity > 0) {
-            sizes.push(size);
-            sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+            sizes.push(size.toUpperCase());
+            sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
           }
         });
       }
       // Try worksheet.sizes as array
       else if (worksheet.sizes && Array.isArray(worksheet.sizes)) {
         worksheet.sizes.forEach(size => {
-          sizes.push(size);
+          sizes.push(size.toUpperCase());
           // Default to 0 quantity if not specified
           const quantity = worksheet.size_quantities ? 
             (worksheet.size_quantities[size] || 0) : 
             (worksheet.quantities && worksheet.quantities[size] ? worksheet.quantities[size] : 0);
-          sizeBreakdown.push({ size, quantity: parseInt(quantity) });
+          sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
         });
       }
       // Look for size_S, size_M, size_L pattern in the data
@@ -368,7 +364,7 @@ const MaxSupplyForm = () => {
         const sizeKeys = Object.keys(worksheet).filter(key => key.startsWith('size_') || key.match(/^[smlx]{1,4}$/i));
         if (sizeKeys.length > 0) {
           sizeKeys.forEach(key => {
-            const sizeName = key.startsWith('size_') ? key.replace('size_', '') : key.toUpperCase();
+            const sizeName = key.startsWith('size_') ? key.replace('size_', '').toUpperCase() : key.toUpperCase();
             const quantity = parseInt(worksheet[key]) || 0;
             if (quantity > 0) {
               sizes.push(sizeName);
@@ -378,10 +374,28 @@ const MaxSupplyForm = () => {
         }
       }
       
-      // If we still have no sizes but we know total quantity, add a default size
+      // Special handling for NewWorksNet: if size_tag exists and we have total_quantity but no sizes
+      if (sizes.length === 0 && worksheet.size_tag && worksheet.total_quantity > 0) {
+        // If there's only a total quantity but no size breakdown, create a default distribution
+        // This might be a single-size order or needs manual input
+        const defaultSizes = ['S', 'M', 'L', 'XL'];
+        const totalQty = parseInt(worksheet.total_quantity);
+        const qtyPerSize = Math.floor(totalQty / defaultSizes.length);
+        const remainder = totalQty % defaultSizes.length;
+        
+        defaultSizes.forEach((size, index) => {
+          const quantity = qtyPerSize + (index < remainder ? 1 : 0);
+          if (quantity > 0) {
+            sizes.push(size);
+            sizeBreakdown.push({ size, quantity });
+          }
+        });
+      }
+      
+      // Final fallback: if we still have no sizes but we know total quantity, ask user to specify
       if (sizes.length === 0 && worksheet.total_quantity > 0) {
-        sizes.push('M');
-        sizeBreakdown.push({ size: 'M', quantity: parseInt(worksheet.total_quantity) || 0 });
+        // Don't auto-assign sizes, let user manually select
+        console.log('No size information found, user needs to manually specify sizes');
       }
     } catch (error) {
       console.error('Error parsing size breakdown:', error);
@@ -410,22 +424,53 @@ const MaxSupplyForm = () => {
       // Calculate total quantity
       const totalQuantity = sizeBreakdown.reduce((sum, item) => sum + item.quantity, 0) || worksheet.total_quantity || 0;
       
+      // Map shirt type from NewWorksNet to our format
+      const mapShirtType = (typeShirt) => {
+        if (!typeShirt) return '';
+        const type = typeShirt.toLowerCase();
+        if (type.includes('polo')) return 'polo';
+        if (type.includes('t-shirt') || type.includes('tshirt')) return 't-shirt';
+        if (type.includes('hoodie') || type.includes('hood')) return 'hoodie';
+        if (type.includes('tank') || type.includes('กล้าม')) return 'tank-top';
+        if (type.includes('long') || type.includes('แขนยาว')) return 'long-sleeve';
+        return 't-shirt'; // default fallback
+      };
+      
+      // Determine production type from print information
+      const determineProductionType = () => {
+        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) return 'dtf';
+        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) return 'screen';
+        if (worksheet.screen_embroider) return 'embroidery';
+        return 'screen'; // default fallback
+      };
+      
       const autoFillData = {
         // Use originalId for actual data, since id might be artificially generated
         worksheet_id: worksheet.originalId || worksheet.id,
-        title: worksheet.product_name || worksheet.title || `${worksheet.customer_name} - งานใหม่`,
-        customer_name: worksheet.customer_name,
-        production_type: worksheet.print_type || worksheet.production_type || '',
+        title: worksheet.product_name || worksheet.work_name || `${worksheet.customer_name} - งานใหม่`,
+        customer_name: worksheet.customer_name || worksheet.cus_name,
+        production_type: determineProductionType(),
         due_date: worksheet.due_date ? dayjs(worksheet.due_date) : dayjs().add(14, 'day'),
         start_date: dayjs(), // Set to current date
         expected_completion_date: worksheet.due_date ? dayjs(worksheet.due_date).subtract(2, 'day') : dayjs().add(7, 'day'),
-        shirt_type: worksheet.shirt_type || '',
+        shirt_type: mapShirtType(worksheet.type_shirt),
         total_quantity: totalQuantity,
         sizes: sizes,
         size_breakdown: sizeBreakdown,
-        special_instructions: worksheet.special_note || worksheet.notes || '',
-        sample_image: worksheet.sample_image || worksheet.image_url || null,
+        special_instructions: worksheet.worksheet_note || worksheet.special_instructions || worksheet.screen_detail || '',
+        sample_image: worksheet.images || worksheet.sample_image || worksheet.image_url || null,
         print_locations: printLocations,
+        // Additional fields from NewWorksNet
+        fabric_info: {
+          fabric_name: worksheet.fabric_name,
+          fabric_color: worksheet.fabric_color,
+          fabric_factory: worksheet.fabric_factory
+        },
+        pattern_info: {
+          pattern_name: worksheet.pattern_name,
+          pattern_type: worksheet.pattern_type
+        },
+        newworks_code: worksheet.code || worksheet.work_id,
       };
       
       setFormData(prev => ({
@@ -694,7 +739,8 @@ const MaxSupplyForm = () => {
                   จำนวน: {autoFillPreview.total_quantity} ตัว | 
                   ประเภท: {autoFillPreview.production_type} | 
                   ครบกำหนด: {autoFillPreview.due_date.format('DD/MM/YYYY')}
-                  {autoFillPreview.worksheet_id && ` | Worksheet ID: ${autoFillPreview.worksheet_id}`}
+                  {autoFillPreview.newworks_code && ` | รหัส: ${autoFillPreview.newworks_code}`}
+                  {autoFillPreview.fabric_info?.fabric_name && ` | ผ้า: ${autoFillPreview.fabric_info.fabric_name}`}
                 </Typography>
               </Alert>
             )}
@@ -870,11 +916,16 @@ const StepBasicInfo = ({
                     <Box>
                       <Typography variant="body1">{option.label}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {option.print_type || 'ไม่ระบุประเภทการพิมพ์'} | 
+                        {option.type_shirt || 'ไม่ระบุประเภท'} | 
                         {option.total_quantity ? ` ${option.total_quantity} ตัว` : ' จำนวนไม่ระบุ'} | 
-                        ID: {option.originalId || option.id}
+                        ผ้า: {option.fabric_name || 'ไม่ระบุ'} ({option.fabric_color || 'ไม่ระบุสี'})
                         {option.due_date && ` | ครบกำหนด: ${dayjs(option.due_date).format('DD/MM/YYYY')}`}
                       </Typography>
+                      {option.screen_detail && (
+                        <Typography variant="body2" color="primary" sx={{ fontSize: '0.75rem' }}>
+                          การพิมพ์: {option.screen_detail}
+                        </Typography>
+                      )}
                     </Box>
                   </li>
                 )}
@@ -983,6 +1034,48 @@ const StepBasicInfo = ({
                 alt="Sample shirt"
                 sx={{ objectFit: 'contain', borderRadius: 1 }}
               />
+            </CardContent>
+          </Card>
+        </Grid>
+      )}
+
+      {/* NewWorksNet Additional Info */}
+      {(formData.fabric_info || formData.pattern_info || formData.newworks_code) && (
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <Info sx={{ mr: 1, verticalAlign: 'middle' }} />
+                ข้อมูลเพิ่มเติมจาก NewWorksNet
+              </Typography>
+              
+              <Grid container spacing={2}>
+                {formData.newworks_code && (
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2">
+                      <strong>รหัสงาน:</strong> {formData.newworks_code}
+                    </Typography>
+                  </Grid>
+                )}
+                
+                {formData.fabric_info?.fabric_name && (
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2">
+                      <strong>ผ้า:</strong> {formData.fabric_info.fabric_name}
+                      {formData.fabric_info.fabric_color && ` (${formData.fabric_info.fabric_color})`}
+                      {formData.fabric_info.fabric_factory && ` - โรงงาน: ${formData.fabric_info.fabric_factory}`}
+                    </Typography>
+                  </Grid>
+                )}
+                
+                {formData.pattern_info?.pattern_name && (
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="body2">
+                      <strong>แพทเทิร์น:</strong> {formData.pattern_info.pattern_name}
+                    </Typography>
+                  </Grid>
+                )}
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
@@ -1215,6 +1308,9 @@ const StepProductionInfo = ({
             <Alert severity="info">
               <Typography variant="body2">
                 ประเภทการพิมพ์เสื้อจะถูกดึงจาก NewWorksNet โดยอัตโนมัติ
+                {formData.special_instructions && formData.special_instructions.includes('DFT') && (
+                  <><br/><strong>ข้อมูลการพิมพ์:</strong> {formData.special_instructions}</>
+                )}
               </Typography>
             </Alert>
           </CardContent>

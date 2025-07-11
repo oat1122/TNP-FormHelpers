@@ -26,28 +26,32 @@ const StatisticsCards = ({ statistics, loading }) => {
       label: 'Screen Printing',
       icon: '📺',
       color: '#8B5CF6',
-      count: statistics.by_production_type?.screen || 0,
+      count: statistics.work_calculations?.job_count?.screen || 0,
+      workload: statistics.work_calculations?.current_workload?.screen || 0,
     },
     {
       key: 'dtf',
       label: 'DTF',
       icon: '📱',
       color: '#06B6D4',
-      count: statistics.by_production_type?.dtf || 0,
+      count: statistics.work_calculations?.job_count?.dtf || 0,
+      workload: statistics.work_calculations?.current_workload?.dtf || 0,
     },
     {
       key: 'sublimation',
       label: 'Sublimation',
       icon: '⚽',
       color: '#10B981',
-      count: statistics.by_production_type?.sublimation || 0,
+      count: statistics.work_calculations?.job_count?.sublimation || 0,
+      workload: statistics.work_calculations?.current_workload?.sublimation || 0,
     },
     {
       key: 'embroidery',
       label: 'Embroidery',
       icon: '🧵',
       color: '#F59E0B',
-      count: statistics.by_production_type?.embroidery || 0,
+      count: statistics.work_calculations?.job_count?.embroidery || 0,
+      workload: statistics.work_calculations?.current_workload?.embroidery || 0,
     },
   ];
 
@@ -129,7 +133,7 @@ const StatisticsCards = ({ statistics, loading }) => {
     </Card>
   );
 
-  const ProductionTypeCard = ({ type, count, total }) => {
+  const ProductionTypeCard = ({ type, count, workload, total }) => {
     const percentage = total > 0 ? (count / total) * 100 : 0;
     
     return (
@@ -145,6 +149,9 @@ const StatisticsCards = ({ statistics, loading }) => {
               </Typography>
               <Typography variant="h5" color={type.color} fontWeight="bold">
                 {loading ? '-' : count}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                งานทั้งหมด {loading ? '-' : workload} ชิ้น
               </Typography>
             </Box>
           </Box>
@@ -199,18 +206,24 @@ const StatisticsCards = ({ statistics, loading }) => {
 
       {/* Production Type Statistics */}
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Production Types
+        Production Types (จำนวนงานแต่ละประเภท)
       </Typography>
       <Grid container spacing={2}>
-        {productionTypeData.map((type) => (
-          <Grid item xs={12} sm={6} md={3} key={type.key}>
-            <ProductionTypeCard
-              type={type}
-              count={type.count}
-              total={statistics.total}
-            />
-          </Grid>
-        ))}
+        {productionTypeData.map((type) => {
+          // Calculate total job count from work_calculations
+          const totalJobCount = productionTypeData.reduce((sum, item) => sum + item.count, 0);
+          
+          return (
+            <Grid item xs={12} sm={6} md={3} key={type.key}>
+              <ProductionTypeCard
+                type={type}
+                count={type.count}
+                workload={type.workload}
+                total={totalJobCount}
+              />
+            </Grid>
+          );
+        })}
       </Grid>
     </Box>
   );

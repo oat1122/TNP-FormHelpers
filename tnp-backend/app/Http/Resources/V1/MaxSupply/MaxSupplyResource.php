@@ -48,6 +48,7 @@ class MaxSupplyResource extends JsonResource
             'screen_points' => $this->screen_points,
             'dtf_points' => $this->dtf_points,
             'sublimation_points' => $this->sublimation_points,
+            'work_calculations' => $this->work_calculations,
             'notes' => $this->notes,
             'special_instructions' => $this->special_instructions,
             'is_overdue' => $this->is_overdue,

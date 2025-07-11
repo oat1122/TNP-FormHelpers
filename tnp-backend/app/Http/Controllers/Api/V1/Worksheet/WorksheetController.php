@@ -839,7 +839,7 @@ class WorksheetController extends Controller
             $worksheets = $this->worksheetService->getFromNewWorksNet();
             return response()->json([
                 'status' => 'success',
-                'data' => $worksheets
+                'data' => WorksheetResource::collection($worksheets)
             ]);
         } catch (\Exception $e) {
             Log::error('getFromNewWorksNet error : ' . $e);

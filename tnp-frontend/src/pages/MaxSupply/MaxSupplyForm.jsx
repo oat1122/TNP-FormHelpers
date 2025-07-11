@@ -3,36 +3,16 @@ import {
   Box,
   Container,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Autocomplete,
   Alert,
   Paper,
   Stepper,
   Step,
   StepLabel,
-  StepContent,
   Avatar,
-  Chip,
   useTheme,
   useMediaQuery,
-  TableContainer,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
   CircularProgress,
-  Divider,
-  IconButton,
-  Collapse,
-  CardMedia,
 } from '@mui/material';
 import {
   Save,
@@ -44,21 +24,7 @@ import {
   Info,
   Build,
   Note,
-  Warning,
-  AddCircle,
-  RemoveCircle,
-  Image,
-  Schedule,
-  Person,
-  Category,
-  Straighten,
-  Print,
-  ColorLens,
-  Assignment,
   ArrowBack,
-  Refresh,
-  CalendarToday,
-  Lock,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -1184,11 +1150,5 @@ const MaxSupplyForm = () => {
     </LocalizationProvider>
   );
 };
-
-
-
-
-
-
 
 export default MaxSupplyForm;

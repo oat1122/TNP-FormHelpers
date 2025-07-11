@@ -15,25 +15,60 @@ import {
   Tooltip,
   useTheme,
   useMediaQuery,
+  Avatar,
+  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Tab,
+  Tabs,
+  LinearProgress,
+  Alert,
+  Skeleton,
 } from '@mui/material';
-import { calendarApi } from '../../services/maxSupplyApi';
+import { 
+  maxSupplyApi, 
+  calendarApi 
+} from '../../services/maxSupplyApi';
+import { useMaxSupplyData } from '../../hooks/useMaxSupplyData';
+import { useFallbackData } from '../../hooks/useFallbackData';
+import { StatisticsCards } from '../../components/MaxSupply';
 import {
-  FaChevronLeft,
-  FaChevronRight,
-  FaCalendarAlt,
-  FaPlus,
-  FaChartBar,
-  FaFileAlt,
-  FaCalendarDay,
-  FaCalendarWeek,
-  FaCalendarCheck,
-  FaTh,
-} from 'react-icons/fa';
+  ChevronLeft,
+  ChevronRight,
+  CalendarToday,
+  Add,
+  GridView,
+  ViewWeek,
+  ViewDay,
+  CheckCircle,
+  Schedule,
+  Person,
+  Assignment,
+  Circle,
+  AccessTime,
+  TrendingUp,
+  Today,
+  Dashboard,
+  Message,
+  Refresh,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getWeek, startOfWeek, endOfWeek } from 'date-fns';
-// Import locale without direct reference to specific structure
-// This works with both date-fns v2.x and v4.x
-import * as dateFnsLocales from 'date-fns/locale';
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isSameDay, 
+  isToday, 
+  addMonths, 
+  subMonths, 
+  getDay,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns';
+import { th } from 'date-fns/locale';
 
 const MaxSupplyHome = () => {
   const theme = useTheme();
@@ -41,53 +76,72 @@ const MaxSupplyHome = () => {
   const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('month'); // month, week, day
-  const [maxSupplies, setMaxSupplies] = useState([]);
-  const [statistics, setStatistics] = useState({
-    screen: 0,
-    dtf: 0,
-    sublimation: 0,
-    weeklyStats: [],
+  const [viewMode, setViewMode] = useState('month'); 
+  const [currentTab, setCurrentTab] = useState(1); // 0=Dashboard, 1=Calendar, 2=Messages
+  
+  // Use custom hook for data management
+  const { 
+    data: realMaxSupplies, 
+    loading, 
+    error, 
+    statistics: realStatistics, 
+    refetch, 
+    getEventsForDate: getRealEventsForDate,
+    getUpcomingDeadlines: getRealUpcomingDeadlines 
+  } = useMaxSupplyData({
+    view: viewMode,
+    date: currentDate,
   });
-  const [loading, setLoading] = useState(true);
 
-  // Production type colors
-  const productionColors = {
-    screen: '#7c3aed',
-    dtf: '#0891b2',
-    sublimation: '#16a34a',
+  // Fallback data when backend is not available
+  const {
+    data: fallbackMaxSupplies,
+    statistics: fallbackStatistics,
+    getEventsForDate: getFallbackEventsForDate,
+    getUpcomingDeadlines: getFallbackUpcomingDeadlines,
+  } = useFallbackData();
+
+  // Fallback mode when backend is not available
+  const isBackendUnavailable = error && (
+    error.includes('Cannot connect to server') || 
+    error.includes('Network Error') ||
+    error.includes('timeout')
+  );
+
+  // Use fallback data when backend is unavailable
+  const maxSupplies = isBackendUnavailable ? fallbackMaxSupplies : realMaxSupplies;
+  const statistics = isBackendUnavailable ? fallbackStatistics : realStatistics;
+  const getEventsForDate = isBackendUnavailable ? getFallbackEventsForDate : getRealEventsForDate;
+  const getUpcomingDeadlines = isBackendUnavailable ? getFallbackUpcomingDeadlines : getRealUpcomingDeadlines;
+
+  // Production type colors and labels
+  const productionTypes = {
+    screen: { color: '#8B5CF6', emoji: '📺', label: 'Screen Printing' },
+    dtf: { color: '#06B6D4', emoji: '📱', label: 'DTF' },
+    sublimation: { color: '#10B981', emoji: '⚽', label: 'Sublimation' },
+    embroidery: { color: '#F59E0B', emoji: '🧵', label: 'Embroidery' },
   };
 
-  // Production type icons
-  const productionIcons = {
-    screen: '📺',
-    dtf: '📱',
-    sublimation: '⚽',
-  };
 
-  // Status colors
-  const statusColors = {
-    pending: '#d97706',
-    in_progress: '#2563eb',
-    completed: '#059669',
-    cancelled: '#dc2626',
-  };
 
-  // Generate calendar days
+  // Tab labels
+  const tabs = [
+    { label: 'Dashboard', icon: <Dashboard /> },
+    { label: 'Calendar', icon: <CalendarToday /> },
+    { label: 'Messages', icon: <Message /> },
+  ];
+
+  // Generate calendar days including previous/next month days for full calendar grid
   const generateCalendarDays = (date) => {
-    const start = startOfMonth(date);
-    const end = endOfMonth(date);
-    return eachDayOfInterval({ start, end });
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 }); // Sunday start
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    
+    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   };
 
-  // Get events for specific date
-  const getEventsForDate = (date) => {
-    return maxSupplies.filter(event => {
-      const eventStart = new Date(event.start_date);
-      const eventEnd = new Date(event.expected_completion_date);
-      return date >= eventStart && date <= eventEnd;
-    });
-  };
+
 
   // Navigate months
   const navigateMonth = (direction) => {
@@ -103,301 +157,427 @@ const MaxSupplyHome = () => {
     setCurrentDate(new Date());
   };
 
-  // Change view mode
-  const changeViewMode = (mode) => {
-    setViewMode(mode);
-  };
-
-  // Load calendar data
-  const loadCalendarData = async () => {
-    try {
-      setLoading(true);
-      
-      // Only include essential parameters
-      const params = {
-        view: viewMode,
-        date: format(currentDate, 'yyyy-MM-dd')
-      };
-      
-      console.log('MaxSupplyHome: Calling calendar API with params:', params);
-      
-      // Use the calendarApi service instead of direct fetch
-      const data = await calendarApi.getCalendarData(params);
-      console.log('MaxSupplyHome: Calendar API response:', data);
-      
-      if (data.status === 'success') {
-        setMaxSupplies(data.data.events || []);
-        setStatistics(data.data.statistics || {});
-      }
-    } catch (error) {
-      console.error('Error loading calendar data:', error);
-      // Show error message to user
-      alert(`Failed to load calendar data: ${error.message}. Check console for details.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Refetch data when filters change (but not too frequently)
   useEffect(() => {
-    loadCalendarData();
-  }, [currentDate, viewMode]);
+    const timer = setTimeout(() => {
+      refetch();
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timer);
+  }, [currentDate, viewMode]); // Remove refetch from dependencies
+
+  // Welcome Section Component
+  // Navigation Tabs Component
+  const NavigationTabs = () => (
+    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+      <Tabs 
+        value={currentTab} 
+        onChange={(e, newValue) => setCurrentTab(newValue)}
+        sx={{
+          '& .MuiTab-root': {
+            textTransform: 'none',
+            fontSize: '1rem',
+            fontWeight: 500,
+          }
+        }}
+      >
+        {tabs.map((tab, index) => (
+          <Tab 
+            key={index}
+            icon={tab.icon} 
+            label={tab.label} 
+            iconPosition="start"
+            sx={{ minHeight: 48 }}
+          />
+        ))}
+      </Tabs>
+    </Box>
+  );
 
   // Event Card Component
-  const EventCard = ({ event }) => (
-    <Card
-      sx={{
-        mb: 1,
-        p: 1,
-        borderLeft: 4,
-        borderLeftColor: productionColors[event.production_type],
-        cursor: 'pointer',
-        '&:hover': {
-          backgroundColor: 'rgba(0, 0, 0, 0.04)',
-        },
-      }}
-      onClick={() => navigate(`/max-supply/${event.id}`)}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="subtitle2" fontWeight="bold">
-            {productionIcons[event.production_type]} {event.code}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {event.title}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            👤 {event.creator}
-          </Typography>
-        </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Chip
-            label={event.status}
-            size="small"
-            sx={{
-              bgcolor: statusColors[event.status],
-              color: 'white',
-              fontSize: '0.7rem',
-            }}
-          />
-          <Typography variant="caption" display="block" color="text.secondary">
-            ⏰ {format(new Date(event.start_date), 'd-M')}
+  const EventCard = ({ event }) => {
+    const prodType = productionTypes[event.production_type] || productionTypes.screen;
+    
+    return (
+      <Box
+        sx={{
+          bgcolor: prodType.color,
+          color: 'white',
+          p: 0.5,
+          borderRadius: 1,
+          mb: 0.5,
+          fontSize: '0.75rem',
+          cursor: 'pointer',
+          '&:hover': {
+            opacity: 0.8,
+          },
+        }}
+        onClick={() => navigate(`/max-supply/edit/${event.id}`)}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Circle sx={{ fontSize: '0.5rem' }} />
+          <Typography variant="caption" noWrap sx={{ flex: 1 }}>
+            {event.title || 'งานไม่ระบุชื่อ'}
           </Typography>
         </Box>
       </Box>
-    </Card>
-  );
+    );
+  };
 
-  // Calendar Month View
-  const CalendarMonthView = () => {
+  // Calendar Component
+  const CalendarView = () => {
     const days = generateCalendarDays(currentDate);
-    const weekDays = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekDaysThai = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
     return (
-      <Paper sx={{ p: 2 }}>
-        {/* Week headers */}
-        <Grid container spacing={1} sx={{ mb: 1 }}>
-          {weekDays.map((day, index) => (
-            <Grid item xs key={index} sx={{ textAlign: 'center' }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                {day}
-              </Typography>
-            </Grid>
-          ))}
-        </Grid>
+      <Paper sx={{ p: 2, borderRadius: 2 }}>
+        {/* Calendar Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h5" fontWeight="bold">
+            Calendar
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<GridView />}
+              onClick={() => setViewMode('month')}
+              sx={{ 
+                bgcolor: viewMode === 'month' ? 'primary.main' : 'transparent',
+                color: viewMode === 'month' ? 'white' : 'inherit'
+              }}
+            >
+              Month
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ViewWeek />}
+              onClick={() => setViewMode('week')}
+            >
+              Week
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ViewDay />}
+              onClick={() => setViewMode('day')}
+            >
+              Day
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add />}
+              onClick={() => navigate('/max-supply/create')}
+              sx={{ bgcolor: '#FB923C', '&:hover': { bgcolor: '#F97316' } }}
+            >
+              Create a job
+            </Button>
+          </Box>
+        </Box>
 
-        {/* Calendar grid */}
-        <Grid container spacing={1}>
-          {days.map((day, index) => {
-            const events = getEventsForDate(day);
-            const dayNum = format(day, 'd');
-            const isCurrentDay = isToday(day);
+        {/* Calendar Navigation */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton onClick={() => navigateMonth('prev')} size="small">
+              <ChevronLeft />
+            </IconButton>
+            <Typography variant="h6" sx={{ minWidth: 200, textAlign: 'center' }}>
+              {format(currentDate, 'MMMM yyyy', { locale: th })}
+            </Typography>
+            <IconButton onClick={() => navigateMonth('next')} size="small">
+              <ChevronRight />
+            </IconButton>
+          </Box>
+                     <Box sx={{ display: 'flex', gap: 1 }}>
+             <Button variant="outlined" size="small" onClick={goToToday}>
+               Today
+             </Button>
+             <Button 
+               variant="outlined" 
+               size="small" 
+               onClick={refetch}
+               disabled={loading}
+             >
+               <Refresh />
+             </Button>
+           </Box>
+        </Box>
 
-            return (
-              <Grid item xs={12/7} key={index}>
-                <Box
-                  sx={{
-                    minHeight: isMobile ? 80 : 120,
+        {/* Calendar Grid */}
+        <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          {/* Week headers */}
+          <Grid container sx={{ bgcolor: 'grey.50' }}>
+            {weekDaysThai.map((day, index) => (
+              <Grid item xs key={index} sx={{ p: 1, textAlign: 'center', borderRight: 1, borderColor: 'divider' }}>
+                <Typography variant="body2" fontWeight="bold">
+                  {day}
+                </Typography>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Calendar days */}
+          <Grid container>
+            {days.map((day, index) => {
+              const events = getEventsForDate(day);
+              const dayNum = format(day, 'd');
+              const isCurrentDay = isToday(day);
+              const isCurrentMonth = isSameDay(startOfMonth(day), startOfMonth(currentDate)) ||
+                                   (day >= startOfMonth(currentDate) && day <= endOfMonth(currentDate));
+
+              return (
+                <Grid 
+                  item 
+                  xs 
+                  key={index} 
+                  sx={{ 
+                    minHeight: 120,
                     border: 1,
                     borderColor: 'divider',
-                    borderRadius: 1,
                     p: 1,
-                    backgroundColor: isCurrentDay ? 'primary.light' : 'background.default',
+                    bgcolor: isCurrentDay ? '#FEF3C7' : (isCurrentMonth ? 'white' : 'grey.50'),
                   }}
                 >
                   <Typography
                     variant="body2"
                     fontWeight={isCurrentDay ? 'bold' : 'normal'}
-                    color={isCurrentDay ? 'primary.main' : 'text.primary'}
+                    color={!isCurrentMonth ? 'text.disabled' : (isCurrentDay ? 'primary.main' : 'text.primary')}
+                    sx={{ mb: 1 }}
                   >
                     {dayNum}
                   </Typography>
-                  {events.slice(0, isMobile ? 1 : 3).map((event, idx) => (
+                  {events.slice(0, 3).map((event, idx) => (
                     <EventCard key={idx} event={event} />
                   ))}
-                  {events.length > (isMobile ? 1 : 3) && (
+                  {events.length > 3 && (
                     <Typography variant="caption" color="text.secondary">
-                      +{events.length - (isMobile ? 1 : 3)} เพิ่มเติม
+                      +{events.length - 3} more
                     </Typography>
                   )}
-                </Box>
-              </Grid>
-            );
-          })}
-        </Grid>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Box>
       </Paper>
     );
   };
 
-  // Statistics Panel
-  const StatisticsPanel = () => (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        สถิติรายเดือน
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h4" color="primary">
-              {statistics.screen || 0}
+  // Sidebar Components
+  const DeadlineSection = () => {
+    const upcomingDeadlines = getUpcomingDeadlines(7);
+    
+    return (
+      <Paper sx={{ p: 2, borderRadius: 2, mb: 2 }}>
+        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Schedule color="primary" />
+          Deadline
+        </Typography>
+        <Button variant="text" size="small" sx={{ color: 'text.secondary', mb: 2 }}>
+          Clear all
+        </Button>
+        
+        <List dense>
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 3 }).map((_, index) => (
+              <ListItem key={index} sx={{ px: 0 }}>
+                <ListItemIcon>
+                  <Skeleton variant="circular" width={12} height={12} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={<Skeleton variant="text" width="80%" />}
+                  secondary={<Skeleton variant="text" width="60%" />}
+                />
+              </ListItem>
+            ))
+          ) : upcomingDeadlines.length > 0 ? (
+            upcomingDeadlines.slice(0, 3).map((item, index) => (
+              <ListItem key={index} sx={{ px: 0 }}>
+                <ListItemIcon>
+                  <Circle sx={{ fontSize: '0.8rem', color: productionTypes[item.production_type]?.color }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.title || 'งานไม่ระบุชื่อ'}
+                  secondary={item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy') : 'ไม่ระบุ'}
+                />
+              </ListItem>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+              ไม่มีงานที่ใกล้ครบกำหนดใน 7 วันข้างหน้า
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              📺 Screen
-            </Typography>
-          </Box>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h4" color="primary">
-              {statistics.dtf || 0}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              📱 DTF
-            </Typography>
-          </Box>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h4" color="primary">
-              {statistics.sublimation || 0}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              ⚽ Sublimation
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-    </Paper>
-  );
+          )}
+        </List>
+      </Paper>
+    );
+  };
 
-  // Quick Actions
-  const QuickActions = () => (
-    <Paper sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        การดำเนินการด่วน
-      </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<FaPlus />}
-            onClick={() => navigate('/max-supply/create')}
-          >
-            สร้างงานใหม่
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<FaFileAlt />}
-            onClick={() => navigate('/worksheets')}
-          >
-            ดู Worksheet
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<FaChartBar />}
-            onClick={() => navigate('/reports')}
-          >
-            รายงาน
-          </Button>
-        </Grid>
-      </Grid>
-    </Paper>
-  );
+  const JobStatusSection = () => {
+    // Map statistics to display data
+    const statusData = [
+      { 
+        key: 'pending', 
+        label: 'Available', 
+        color: '#F59E0B', 
+        count: statistics.pending || 0 
+      },
+      { 
+        key: 'in_progress', 
+        label: 'Booked', 
+        color: '#3B82F6', 
+        count: statistics.in_progress || 0 
+      },
+      { 
+        key: 'completed', 
+        label: 'In progress', 
+        color: '#10B981', 
+        count: statistics.completed || 0 
+      },
+    ];
+
+    return (
+      <Paper sx={{ p: 2, borderRadius: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          Job statuses
+        </Typography>
+        <Button variant="text" size="small" sx={{ color: 'text.secondary', mb: 2 }}>
+          Clear all
+        </Button>
+        
+        <List dense>
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 3 }).map((_, index) => (
+              <ListItem key={index} sx={{ px: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                  <Skeleton variant="circular" width={12} height={12} />
+                  <Skeleton variant="text" width="60%" />
+                </Box>
+                <Skeleton variant="text" width="20%" />
+              </ListItem>
+            ))
+          ) : (
+            statusData.map((status) => (
+              <ListItem key={status.key} sx={{ px: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                  <Circle sx={{ fontSize: '0.8rem', color: status.color }} />
+                  <Typography variant="body2">{status.label}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  ({status.count})
+                </Typography>
+              </ListItem>
+            ))
+          )}
+        </List>
+      </Paper>
+    );
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        <LinearProgress sx={{ mb: 3 }} />
+        <Typography>Loading calendar data...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
-          กำหนดการผลิต
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<FaCalendarDay />}
-            onClick={goToToday}
-            size="small"
-          >
-            วันนี้
-          </Button>
-          <Button
-            variant={viewMode === 'month' ? 'contained' : 'outlined'}
-            startIcon={<FaTh />}
-            onClick={() => changeViewMode('month')}
-            size="small"
-          >
-            เดือน
-          </Button>
-          <Button
-            variant={viewMode === 'week' ? 'contained' : 'outlined'}
-            startIcon={<FaCalendarWeek />}
-            onClick={() => changeViewMode('week')}
-            size="small"
-          >
-            สัปดาห์
-          </Button>
-          <Button
-            variant={viewMode === 'day' ? 'contained' : 'outlined'}
-            startIcon={<FaCalendarCheck />}
-            onClick={() => changeViewMode('day')}
-            size="small"
-          >
-            วัน
-          </Button>
-        </Box>
-      </Box>
+      {/* Navigation Tabs */}
+      <NavigationTabs />
 
-      {/* Calendar Navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigateMonth('prev')}>
-                      <FaChevronLeft />
-        </IconButton>
-        <Typography variant="h5" sx={{ mx: 3 }}>
-          {format(currentDate, 'MMMM yyyy', { locale: dateFnsLocales.th })}
-        </Typography>
-        <IconButton onClick={() => navigateMonth('next')}>
-                      <FaChevronRight />
-        </IconButton>
-      </Box>
+      {/* Error Alert or Demo Mode Alert */}
+      {error && isBackendUnavailable && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              size="small" 
+              onClick={refetch} 
+              disabled={loading}
+              sx={{ color: 'inherit' }}
+            >
+              {loading ? 'กำลังลอง...' : 'เชื่อมต่อ Backend'}
+            </Button>
+          }
+        >
+          <Typography variant="body2">
+            <strong>🚧 โหมดสาธิต (Demo Mode)</strong>
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            ไม่สามารถเชื่อมต่อกับ Backend ได้ แต่คุณยังสามารถดู UI และ Layout ได้ปกติ
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
+            💡 <strong>วิธีแก้ไข:</strong> เปิด Laravel server ที่ <code>localhost:8000</code> แล้วคลิก "เชื่อมต่อ Backend"
+          </Typography>
+        </Alert>
+      )}
+
+      {error && !isBackendUnavailable && (
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              size="small" 
+              onClick={refetch} 
+              disabled={loading}
+              sx={{ color: 'inherit' }}
+            >
+              {loading ? 'กำลังลอง...' : 'ลองใหม่'}
+            </Button>
+          }
+        >
+          <Typography variant="body2">
+            <strong>เกิดข้อผิดพลาด:</strong> {error}
+          </Typography>
+        </Alert>
+      )}
 
       {/* Main Content */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={9}>
-          <CalendarMonthView />
+      {currentTab === 1 && (
+        <Grid container spacing={3}>
+          {/* Calendar */}
+          <Grid item xs={12} lg={9}>
+            <CalendarView />
+          </Grid>
+
+          {/* Sidebar */}
+          <Grid item xs={12} lg={3}>
+            <DeadlineSection />
+            <JobStatusSection />
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <StatisticsPanel />
-            <QuickActions />
-          </Box>
-        </Grid>
-      </Grid>
+      )}
+
+      {/* Other tab content placeholders */}
+      {currentTab === 0 && (
+        <Box>
+          <StatisticsCards 
+            statistics={statistics} 
+            loading={loading} 
+          />
+        </Box>
+      )}
+
+      {currentTab === 2 && (
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+          <Message sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+          <Typography variant="h5" color="text.secondary">
+            Messages
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Messages feature coming soon
+          </Typography>
+        </Paper>
+      )}
     </Container>
   );
 };

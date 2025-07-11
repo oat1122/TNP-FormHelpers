@@ -829,4 +829,24 @@ class WorksheetController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ดึงข้อมูล Worksheet จากระบบ NewWorksNet
+     */
+    public function getFromNewWorksNet()
+    {
+        try {
+            $worksheets = $this->worksheetService->getFromNewWorksNet();
+            return response()->json([
+                'status' => 'success',
+                'data' => $worksheets
+            ]);
+        } catch (\Exception $e) {
+            Log::error('getFromNewWorksNet error : ' . $e);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'getFromNewWorksNet error : ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

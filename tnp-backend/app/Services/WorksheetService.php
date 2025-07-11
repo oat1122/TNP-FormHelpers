@@ -390,4 +390,14 @@ class WorksheetService
             return $pos_a - $pos_b;
         });
     }
+
+    /**
+     * ดึงข้อมูล Worksheet จากระบบ NewWorksNet
+     */
+    public function getFromNewWorksNet()
+    {
+        return Worksheet::where('nws_is_deleted', false)
+            ->orderByDesc('nws_created_date')
+            ->get();
+    }
 }

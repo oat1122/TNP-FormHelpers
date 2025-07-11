@@ -125,6 +125,9 @@ Route::prefix('v1')->group(function() {
     Route::controller(WorksheetController::class)->group(function () {
         Route::get('/get-all-customers', 'getAllCustomers');
 
+        // ดึงข้อมูล worksheet จากระบบ NewWorksNet
+        Route::get('/worksheets-newworksnet', 'getFromNewWorksNet');
+
         Route::post('/worksheet-gen-pdf', 'generatePdf');
         Route::post('/worksheet-upload-image', 'uploadImage');
 

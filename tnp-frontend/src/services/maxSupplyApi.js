@@ -33,13 +33,25 @@ api.interceptors.request.use(
     // Use whichever token is available
     const finalToken = authToken || token;
 
+    // Debug: Log all localStorage keys and values
+    console.log("=== AUTH TOKEN DEBUG ===");
+    console.log("localStorage keys:", Object.keys(localStorage));
+    console.log("authToken:", authToken);
+    console.log("token:", token);
+    console.log("finalToken:", finalToken);
+    
     // If we have a token, add it to the Authorization header
     if (finalToken) {
       config.headers.Authorization = `Bearer ${finalToken}`;
       console.log("MaxSupply API: Added token to request headers");
     } else {
       console.warn("MaxSupply API: No authentication token found");
+      console.warn("Available localStorage keys:", Object.keys(localStorage));
     }
+    
+    console.log("Request config:", config);
+    console.log("========================");
+    
     return config;
   },
   (error) => {

@@ -120,21 +120,21 @@ const MaxSupplyForm = () => {
   // Get worksheets data
   const { data: worksheetData, isLoading: worksheetLoading } = useGetAllWorksheetQuery();
 
-  // Production types
+  // Production types (matched to backend validation)
   const productionTypes = [
     { value: 'screen', label: '📺 Screen Printing', color: '#7c3aed' },
-    { value: 'dtf', label: '📱 DFT (Direct Film Transfer)', color: '#0891b2' },
+    { value: 'dtf', label: '📱 DTF (Direct Film Transfer)', color: '#0891b2' },
     { value: 'sublimation', label: '⚽ Sublimation', color: '#16a34a' },
-    { value: 'embroidery', label: '🧵 Embroidery', color: '#dc2626' },
+    // Note: embroidery is not supported in backend yet
   ];
 
-  // Shirt types
+  // Shirt types (matched to backend enum)
   const shirtTypes = [
     { value: 'polo', label: 'เสื้อโปโล' },
     { value: 't-shirt', label: 'เสื้อยืด' },
     { value: 'hoodie', label: 'เสื้อฮูดี้' },
     { value: 'tank-top', label: 'เสื้อกล้าม' },
-    { value: 'long-sleeve', label: 'เสื้อแขนยาว' },
+    // Note: 'long-sleeve' is not supported in backend enum
   ];
 
   // Size options
@@ -771,6 +771,7 @@ const MaxSupplyForm = () => {
     
     switch (step) {
       case 0: // Basic Information
+        if (!formData.worksheet_id) newErrors.worksheet_id = 'กรุณาเลือก Worksheet จาก NewWorksNet';
         if (!formData.title.trim()) newErrors.title = 'กรุณากรอกชื่องาน';
         if (!formData.customer_name.trim()) newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
         if (!formData.start_date) newErrors.start_date = 'กรุณาเลือกวันที่เริ่มต้น';
@@ -819,12 +820,118 @@ const MaxSupplyForm = () => {
     try {
       setSubmitLoading(true);
       
+      // Check if user is authenticated
+      const authToken = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
+      const isLoggedIn = localStorage.getItem("isLoggedIn");
+      
+      if (!authToken && !token) {
+        toast.error('กรุณาเข้าสู่ระบบก่อนสร้างงาน');
+        navigate('/login');
+        return;
+      }
+      
+      if (!isLoggedIn) {
+        toast.error('กรุณาเข้าสู่ระบบก่อนสร้างงาน');
+        navigate('/login');
+        return;
+      }
+      
+      // Convert size breakdown to the format expected by backend: {"S": 50, "M": 150, "L": 200}
+      const sizesObject = {};
+      if (formData.size_breakdown && formData.size_breakdown.length > 0) {
+        formData.size_breakdown.forEach(item => {
+          sizesObject[item.size] = item.quantity;
+        });
+      }
+      
+      // Calculate work summary for each print type
+      const workCalculations = {};
+      if (formData.print_locations?.screen?.enabled) {
+        const points = formData.print_locations.screen.points;
+        const totalWork = points * formData.total_quantity;
+        workCalculations.screen = {
+          points,
+          total_quantity: formData.total_quantity,
+          total_work: totalWork,
+          description: `Screen Printing ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Screen Printing มีงาน ${totalWork}`
+        };
+      }
+      
+      if (formData.print_locations?.dtf?.enabled) {
+        const points = formData.print_locations.dtf.points;
+        const totalWork = points * formData.total_quantity;
+        workCalculations.dtf = {
+          points,
+          total_quantity: formData.total_quantity,
+          total_work: totalWork,
+          description: `DTF (Direct Film Transfer) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน DTF มีงาน ${totalWork}`
+        };
+      }
+      
+      if (formData.print_locations?.sublimation?.enabled) {
+        const points = formData.print_locations.sublimation.points;
+        const totalWork = points * formData.total_quantity;
+        workCalculations.sublimation = {
+          points,
+          total_quantity: formData.total_quantity,
+          total_work: totalWork,
+          description: `Sublimation/Flex ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Sublimation/Flex มีงาน ${totalWork}`
+        };
+      }
+      
+      if (formData.print_locations?.embroidery?.enabled) {
+        const points = formData.print_locations.embroidery.points;
+        const totalWork = points * formData.total_quantity;
+        workCalculations.embroidery = {
+          points,
+          total_quantity: formData.total_quantity,
+          total_work: totalWork,
+          description: `Embroidery (ปัก) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Embroidery มีงาน ${totalWork}`
+        };
+      }
+      
+      // Transform formData to match backend expectations
       const submitData = {
-        ...formData,
-        start_date: formData.start_date.format('YYYY-MM-DD'),
+        worksheet_id: formData.worksheet_id,
+        title: formData.title,
+        production_type: formData.production_type, // Must be: screen, dtf, sublimation
+        start_date: formData.start_date ? formData.start_date.format('YYYY-MM-DD') : null,
         expected_completion_date: formData.expected_completion_date.format('YYYY-MM-DD'),
-        due_date: formData.due_date.format('YYYY-MM-DD'),
+        priority: formData.priority,
+        sizes: sizesObject, // Object with size names as keys and quantities as values
+        notes: formData.notes,
+        special_instructions: formData.special_instructions,
+        work_calculations: workCalculations, // Add work calculations
       };
+
+      // Add optional fields if they exist
+      if (formData.customer_name) submitData.customer_name = formData.customer_name;
+      if (formData.shirt_type) submitData.shirt_type = formData.shirt_type;
+      if (formData.total_quantity) submitData.total_quantity = formData.total_quantity;
+      if (formData.due_date) submitData.due_date = formData.due_date.format('YYYY-MM-DD');
+      
+      // Add print points based on production type
+      if (formData.production_type === 'screen') {
+        submitData.screen_points = formData.print_locations?.screen?.points || 0;
+      } else if (formData.production_type === 'dtf') {
+        submitData.dtf_points = formData.print_locations?.dtf?.points || 0;
+      } else if (formData.production_type === 'sublimation') {
+        submitData.sublimation_points = formData.print_locations?.sublimation?.points || 0;
+      }
+
+      console.log('=== SUBMIT DATA DEBUG ===');
+      console.log('Authentication status:');
+      console.log('  authToken:', authToken ? 'present' : 'missing');
+      console.log('  token:', token ? 'present' : 'missing');
+      console.log('  isLoggedIn:', isLoggedIn);
+      console.log('Original formData:', formData);
+      console.log('Size breakdown:', formData.size_breakdown);
+      console.log('Transformed sizes object:', sizesObject);
+      console.log('Work calculations:', workCalculations);
+      console.log('Transformed submitData:', submitData);
+      console.log('Production type:', submitData.production_type);
+      console.log('========================');
       
       let response;
       if (isEditMode) {
@@ -840,8 +947,36 @@ const MaxSupplyForm = () => {
         throw new Error(response.message || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      console.error('=== SUBMIT ERROR DEBUG ===');
+      console.error('Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      console.error('========================');
+      
+      // Handle specific authentication errors
+      if (error.response?.status === 401) {
+        toast.error('กรุณาเข้าสู่ระบบใหม่');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('isLoggedIn');
+        navigate('/login');
+        return;
+      }
+      
+      // Show detailed error message if available
+      if (error.response?.data?.errors) {
+        console.error('Validation errors:', error.response.data.errors);
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+          .join('\n');
+        toast.error(`Validation Error:\n${errorMessages}`);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      }
     } finally {
       setSubmitLoading(false);
     }
@@ -1084,6 +1219,8 @@ const StepBasicInfo = ({
                   <TextField
                     {...params}
                     label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก WorkSheet"
+                    error={!!errors.worksheet_id}
+                    helperText={errors.worksheet_id}
                     variant="outlined"
                     fullWidth
                     InputProps={{
@@ -1466,7 +1603,7 @@ const StepProductionInfo = ({
   return (
     <Grid container spacing={3}>
       {/* Shirt Type */}
-      <Grid item xs={12}>
+      <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -1490,6 +1627,49 @@ const StepProductionInfo = ({
               {errors.shirt_type && (
                 <Typography variant="caption" color="error" sx={{ mt: 1 }}>
                   {errors.shirt_type}
+                </Typography>
+              )}
+            </FormControl>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Production Type */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
+              ประเภทการพิมพ์
+            </Typography>
+            
+            <FormControl fullWidth error={!!errors.production_type}>
+              <InputLabel>ประเภทการพิมพ์</InputLabel>
+              <Select
+                value={formData.production_type}
+                onChange={(e) => onInputChange('production_type', e.target.value)}
+                label="ประเภทการพิมพ์"
+              >
+                {productionTypes.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    <Box display="flex" alignItems="center">
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          backgroundColor: type.color,
+                          borderRadius: '50%',
+                          mr: 1,
+                        }}
+                      />
+                      {type.label}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.production_type && (
+                <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                  {errors.production_type}
                 </Typography>
               )}
             </FormControl>

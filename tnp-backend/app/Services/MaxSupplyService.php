@@ -46,6 +46,7 @@ class MaxSupplyService
                 'sublimation_points' => $printPoints['sublimation'],
                 'notes' => $data['notes'] ?? null,
                 'special_instructions' => $data['special_instructions'] ?? $worksheet->worksheet_note,
+                'work_calculations' => $data['work_calculations'] ?? null,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);

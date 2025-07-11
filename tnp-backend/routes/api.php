@@ -42,6 +42,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    //---------- MaxSupply ----------
+    Route::prefix('max-supplies')->group(function () {
+        Route::get('/', [MaxSupplyController::class, 'index']);
+        Route::post('/', [MaxSupplyController::class, 'store']);
+        Route::get('/statistics', [MaxSupplyController::class, 'statistics']);
+        Route::get('/{id}', [MaxSupplyController::class, 'show']);
+        Route::put('/{id}', [MaxSupplyController::class, 'update']);
+        Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
+        Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
+    });
 });
 
 Route::prefix('v1')->group(function() {
@@ -150,17 +161,6 @@ Route::prefix('v1')->group(function() {
     //---------- Calendar ----------
     Route::prefix('calendar')->group(function () {
         require __DIR__.'/calendar.php';
-    });
-
-    //---------- MaxSupply ----------
-    Route::prefix('max-supplies')->group(function () {
-        Route::get('/', [MaxSupplyController::class, 'index']);
-        Route::post('/', [MaxSupplyController::class, 'store']);
-        Route::get('/statistics', [MaxSupplyController::class, 'statistics']);
-        Route::get('/{id}', [MaxSupplyController::class, 'show']);
-        Route::put('/{id}', [MaxSupplyController::class, 'update']);
-        Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
-        Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
     });
 
     //---------- Global ----------

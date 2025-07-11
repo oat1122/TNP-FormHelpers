@@ -31,12 +31,14 @@ class MaxSupply extends Model
         'sublimation_points',
         'notes',
         'special_instructions',
+        'work_calculations',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
         'sizes' => 'array',
+        'work_calculations' => 'array',
         'start_date' => 'date',
         'expected_completion_date' => 'date',
         'due_date' => 'date',

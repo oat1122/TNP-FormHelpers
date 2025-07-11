@@ -21,7 +21,7 @@ class UpdateMaxSupplyRequest extends FormRequest
     {
         return [
             'title' => 'nullable|string|max:255',
-            'production_type' => 'nullable|in:screen,dtf,sublimation',
+            'production_type' => 'nullable|in:screen,dtf,sublimation,embroidery',
             'start_date' => 'nullable|date',
             'expected_completion_date' => 'nullable|date|after_or_equal:start_date',
             'priority' => 'nullable|in:low,normal,high,urgent',

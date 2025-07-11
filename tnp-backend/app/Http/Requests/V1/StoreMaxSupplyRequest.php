@@ -22,7 +22,7 @@ class StoreMaxSupplyRequest extends FormRequest
         return [
             'worksheet_id' => 'required|exists:new_worksheets,worksheet_id',
             'title' => 'nullable|string|max:255',
-            'production_type' => 'required|in:screen,dtf,sublimation',
+            'production_type' => 'required|in:screen,dtf,sublimation,embroidery',
             'start_date' => 'nullable|date|after_or_equal:today',
             'expected_completion_date' => 'required|date|after_or_equal:start_date',
             'priority' => 'nullable|in:low,normal,high,urgent',

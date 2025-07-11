@@ -862,7 +862,7 @@ const MaxSupplyForm = () => {
       const submitData = {
         worksheet_id: formData.worksheet_id,
         title: formData.title,
-        production_type: formData.production_type, // Must be: screen, dtf, sublimation
+        production_type: formData.production_type, // Must be: screen, dtf, sublimation, embroidery
         start_date: formData.start_date ? formData.start_date.format('YYYY-MM-DD') : null,
         expected_completion_date: formData.expected_completion_date.format('YYYY-MM-DD'),
         priority: formData.priority,
@@ -877,6 +877,13 @@ const MaxSupplyForm = () => {
       if (formData.shirt_type) submitData.shirt_type = formData.shirt_type;
       if (formData.total_quantity) submitData.total_quantity = formData.total_quantity;
       if (formData.due_date) submitData.due_date = formData.due_date.format('YYYY-MM-DD');
+
+      // Debug production type validation
+      console.log('=== PRODUCTION TYPE DEBUG ===');
+      console.log('Form production_type:', formData.production_type);
+      console.log('Submit production_type:', submitData.production_type);
+      console.log('Is valid production_type:', ['screen', 'dtf', 'sublimation', 'embroidery'].includes(submitData.production_type));
+      console.log('============================');
       
       // Add print points based on production type
       if (formData.production_type === 'screen') {

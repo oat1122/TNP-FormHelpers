@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Tooltip, Chip, useMediaQuery, useTheme } from '@mui/material';
 import { productionTypeConfig, statusConfig, priorityConfig, CALENDAR_CONFIG } from '../../utils/constants';
 import { formatShortDate } from '../../utils/dateFormatters';
+import ProductionTypeIcon from '../ProductionTypeIcon';
 
 const TimelineBar = ({ 
   timeline, 
@@ -109,9 +110,12 @@ const TimelineBar = ({
           key={`${timeline.event.id}-segment-${index}`}
           title={
             <Box sx={{ p: 1 }}>
-              <Typography variant="body2" fontWeight="bold" gutterBottom>
-                {typeConfig.icon} {event.customer_name || event.title}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <ProductionTypeIcon type={event.production_type} size={20} color="white" />
+                <Typography variant="body2" fontWeight="bold" sx={{ ml: 1 }}>
+                  {event.customer_name || event.title}
+                </Typography>
+              </Box>
               <Typography variant="caption" display="block">
                 <strong>ประเภท:</strong> {typeConfig.label}
               </Typography>
@@ -239,31 +243,59 @@ const TimelineBar = ({
               )}
 
               {/* Content - show on all segments but different for each */}
-              <Typography
-                variant="caption"
+              <Box
                 sx={{
-                  color: 'white',
-                  fontWeight: 600,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  fontSize: isMobile ? '0.55rem' : '0.65rem',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
                   ml: segment.isFirstSegment ? (isMobile ? 1 : 1.5) : (isMobile ? 0.5 : 1),
-                  flex: 1,
-                  lineHeight: 1.2,
+                  overflow: 'hidden',
                 }}
-                title={`${typeConfig.icon} ${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
               >
-                {segment.isFirstSegment ? (
-                  isMobile 
-                    ? `${typeConfig.icon} ${(event.customer_name || event.title).substring(0, 10)}${(event.customer_name || event.title).length > 10 ? '...' : ''}`
-                    : `${typeConfig.icon} ${event.customer_name || event.title}`
-                ) : (
-                  // Continuation segments show abbreviated name or just icon
-                  isMobile ? typeConfig.icon : `${typeConfig.icon} (ต่อ)`
+                <ProductionTypeIcon 
+                  type={event.production_type} 
+                  size={isMobile ? 12 : 14} 
+                  color="white" 
+                />
+                {segment.isFirstSegment && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'white',
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontSize: isMobile ? '0.55rem' : '0.65rem',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                      ml: 0.5,
+                      flex: 1,
+                      lineHeight: 1.2,
+                    }}
+                    title={`${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
+                  >
+                    {isMobile 
+                      ? `${(event.customer_name || event.title).substring(0, 10)}${(event.customer_name || event.title).length > 10 ? '...' : ''}`
+                      : `${event.customer_name || event.title}`
+                    }
+                  </Typography>
                 )}
-              </Typography>
+                {!segment.isFirstSegment && !isMobile && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '0.55rem',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                      ml: 0.5,
+                      opacity: 0.8,
+                    }}
+                  >
+                    (ต่อ)
+                  </Typography>
+                )}
+              </Box>
 
               {/* Duration badge - only on last segment and if wide enough */}
               {segment.isLastSegment && timeline.duration > 1 && !isMobile && parseFloat(segment.width) > 15 && (

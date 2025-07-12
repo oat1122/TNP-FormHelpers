@@ -48,6 +48,8 @@ import { format } from 'date-fns';
 // Import locale without direct reference to specific structure
 // This works with both date-fns v2.x and v4.x
 import * as dateFnsLocales from 'date-fns/locale';
+import ProductionTypeIcon from './components/ProductionTypeIcon';
+import { productionTypeConfig } from './utils/constants';
 
 const MaxSupplyList = () => {
   const theme = useTheme();
@@ -72,15 +74,14 @@ const MaxSupplyList = () => {
 
   // Production type colors and icons
   const productionColors = {
-    screen: '#7c3aed',
-    dtf: '#0891b2',
-    sublimation: '#16a34a',
+    screen: productionTypeConfig.screen.color,
+    dtf: productionTypeConfig.dtf.color,
+    sublimation: productionTypeConfig.sublimation.color,
+    embroidery: productionTypeConfig.embroidery.color,
   };
 
-  const productionIcons = {
-    screen: '📺',
-    dtf: '📱',
-    sublimation: '⚽',
+  const getProductionTypeIcon = (type) => {
+    return <ProductionTypeIcon type={type} size={20} />;
   };
 
   // Status colors
@@ -302,7 +303,12 @@ const MaxSupplyList = () => {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Chip
-                  label={`${productionIcons[item.production_type]} ${item.production_type}`}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {getProductionTypeIcon(item.production_type)}
+                      {item.production_type}
+                    </Box>
+                  }
                   sx={{
                     bgcolor: productionColors[item.production_type],
                     color: 'white',
@@ -378,7 +384,12 @@ const MaxSupplyList = () => {
               </TableCell>
               <TableCell>
                 <Chip
-                  label={`${productionIcons[item.production_type]} ${item.production_type}`}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {getProductionTypeIcon(item.production_type)}
+                      {item.production_type}
+                    </Box>
+                  }
                   size="small"
                   sx={{
                     bgcolor: productionColors[item.production_type],

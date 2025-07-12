@@ -9,13 +9,21 @@ export const useCalendarEvents = (currentDate, maxSupplies) => {
   const [dayEventsDialogOpen, setDayEventsDialogOpen] = useState(false);
   const [hoveredTimeline, setHoveredTimeline] = useState(null);
 
-  // Get calendar days for the current month
+  // Get calendar days for the current month - แสดงครบ 42 วัน (6 สัปดาห์)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
-    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    
+    // เพิ่มความแน่ใจให้ได้ 42 วัน (6 สัปดาห์)
+    const days = [];
+    for (let i = 0; i < 42; i++) {
+      const day = new Date(calendarStart);
+      day.setDate(calendarStart.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
   }, [currentDate]);
 
   // Filter events based on current filter

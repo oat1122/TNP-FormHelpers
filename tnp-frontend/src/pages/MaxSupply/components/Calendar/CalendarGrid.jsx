@@ -6,6 +6,7 @@ import { th } from 'date-fns/locale';
 import { DAY_NAMES, productionTypeConfig, priorityConfig } from '../../utils/constants';
 import { getEventsForDate } from '../../utils/calendarUtils';
 import TimelineBar from './TimelineBar';
+import ProductionTypeIcon from '../ProductionTypeIcon';
 
 const CalendarGrid = ({ 
   calendarDays, 
@@ -46,7 +47,7 @@ const CalendarGrid = ({
       </Box>
 
       {/* Calendar Days with Enhanced Timeline */}
-      <Box sx={{ position: 'relative', height: isMobile ? '400px' : '600px', bgcolor: 'grey.50' }}>
+      <Box sx={{ position: 'relative', height: isMobile ? '480px' : '600px', bgcolor: 'grey.50' }}>
         {/* Days Grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', position: 'relative', zIndex: 1 }}>
           {calendarDays.map((day, index) => {
@@ -61,7 +62,7 @@ const CalendarGrid = ({
                 sx={{ 
                   border: 1,
                   borderColor: 'divider',
-                  height: isMobile ? '80px' : '120px', // Fixed height instead of minHeight
+                  height: isMobile ? '160px' : '200px', // เพิ่มความสูงเพื่อรองรับ 4 แถว timeline
                   position: 'relative',
                   backgroundColor: isTodayDate 
                     ? '#e8f0fe' 
@@ -71,6 +72,7 @@ const CalendarGrid = ({
                   opacity: isCurrentMonth ? 1 : 0.7,
                   transition: 'all 0.2s ease',
                   cursor: dayEvents.length > 0 ? 'pointer' : 'default',
+                  overflow: 'hidden', // 💥 ป้องกันล้น
                   '&:hover': {
                     backgroundColor: isTodayDate ? '#e8f0fe' : '#f0f9ff',
                     transform: dayEvents.length > 0 ? 'scale(1.02)' : 'none',
@@ -111,20 +113,29 @@ const CalendarGrid = ({
                           <Box
                             key={event.id}
                             sx={{
-                              width: isMobile ? 4 : 6,
-                              height: isMobile ? 4 : 6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: isMobile ? 16 : 20,
+                              height: isMobile ? 16 : 20,
                               borderRadius: '50%',
                               backgroundColor: typeConfig.color,
                               boxShadow: `0 1px 3px ${typeConfig.color}40`,
-                              opacity: 0.8,
+                              opacity: 0.9,
                               border: event.priority === 'urgent' || event.priority === 'high' ? `2px solid ${priorityInfo.color}` : 'none',
                               animation: event.priority === 'urgent' ? 'pulse 1.5s infinite' : 'none',
                               '@keyframes pulse': {
-                                '0%, 100%': { opacity: 0.8 },
+                                '0%, 100%': { opacity: 0.9 },
                                 '50%': { opacity: 1 },
                               },
                             }}
-                          />
+                          >
+                            <ProductionTypeIcon 
+                              type={event.production_type} 
+                              size={isMobile ? 10 : 12} 
+                              color="white" 
+                            />
+                          </Box>
                         );
                       }
                       return null;
@@ -176,6 +187,49 @@ const CalendarGrid = ({
                       return null;
                     })()}
                   </Box>
+                  
+                  {/* Per-cell Timeline Overflow Indicator */}
+                  {(() => {
+                    const dayEventsTimelines = eventRows.reduce((acc, row, rowIndex) => {
+                      const dayTimelines = row.filter(timeline => {
+                        const timelineStartDate = format(parseISO(timeline.event.start_date), 'yyyy-MM-dd');
+                        const dayString = format(day, 'yyyy-MM-dd');
+                        return timelineStartDate === dayString;
+                      });
+                      return acc.concat(dayTimelines);
+                    }, []);
+                    
+                    const visibleTimelineCount = Math.min(dayEventsTimelines.length, 4);
+                    const hiddenTimelineCount = dayEventsTimelines.length - visibleTimelineCount;
+                    
+                    if (hiddenTimelineCount > 0) {
+                      return (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: 6,
+                            right: 6,
+                            bgcolor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            fontSize: '0.65rem',
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            zIndex: 20,
+                            pointerEvents: 'auto',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => {
+                            onDayClick(day);
+                          }}
+                        >
+                          +{hiddenTimelineCount} งานเพิ่มเติม
+                        </Box>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </Box>
               </Box>
             );
@@ -190,6 +244,7 @@ const CalendarGrid = ({
             left: 0, 
             width: '100%', 
             height: '100%', 
+            overflow: 'hidden', // 💥 ป้องกันล้น
             pointerEvents: 'none',
             zIndex: 10,
           }}
@@ -299,8 +354,8 @@ const CalendarGrid = ({
             </Box>
           ) : (
             <>
-              {/* Timeline Bars */}
-              {eventRows.map((row, rowIndex) => (
+              {/* Timeline Bars - แสดงเฉพาะ 4 แถวแรก */}
+              {eventRows.slice(0, 4).map((row, rowIndex) => (
                 <Box key={rowIndex}>
                   {row.map((timeline) => (
                     <Box key={timeline.event.id} sx={{ pointerEvents: 'auto' }}>
@@ -317,8 +372,8 @@ const CalendarGrid = ({
                 </Box>
               ))}
               
-              {/* Overflow Indicator */}
-              {overflowTimelines.length > 0 && (
+              {/* Overflow Indicator - รวมทั้งแถวที่เกิน และงานใน overflow */}
+              {(eventRows.length > 4 || overflowTimelines.length > 0) && (
                 <Box
                   sx={{
                     position: 'absolute',
@@ -340,10 +395,11 @@ const CalendarGrid = ({
                   onClick={() => {
                     // Show overflow events in a dialog or expand view
                     console.log('Overflow events:', overflowTimelines);
+                    console.log('Hidden rows:', eventRows.slice(4));
                   }}
                 >
                   <Typography variant="body2" fontWeight="bold">
-                    +{overflowTimelines.length} งานเพิ่มเติม
+                    +{(eventRows.length > 4 ? eventRows.slice(4).flat().length : 0) + overflowTimelines.length} งานเพิ่มเติม
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
                     คลิกเพื่อดูทั้งหมด

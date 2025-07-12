@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import TimePeriodSelector from './TimePeriodSelector';
 import useProductionCapacityCalculation from '../../hooks/useProductionCapacityCalculation';
+import ProductionTypeIcon from '../../pages/MaxSupply/components/ProductionTypeIcon';
 
 const StatisticsCards = ({ 
   statistics, 
@@ -54,32 +55,32 @@ const StatisticsCards = ({
     {
       key: 'screen',
       label: 'Screen Printing',
-      icon: '📺',
-      color: '#8B5CF6',
+      icon: <ProductionTypeIcon type="screen" size={24} />,
+      color: '#1a73e8',
       count: workCalc?.job_count?.screen || 0,
       workload: workCalc?.current_workload?.screen || 0,
     },
     {
       key: 'dtf',
       label: 'DTF',
-      icon: '📱',
-      color: '#06B6D4',
+      icon: <ProductionTypeIcon type="dtf" size={24} />,
+      color: '#f9ab00',
       count: workCalc?.job_count?.dtf || 0,
       workload: workCalc?.current_workload?.dtf || 0,
     },
     {
       key: 'sublimation',
       label: 'Sublimation',
-      icon: '⚽',
-      color: '#10B981',
+      icon: <ProductionTypeIcon type="sublimation" size={24} />,
+      color: '#9334e6',
       count: workCalc?.job_count?.sublimation || 0,
       workload: workCalc?.current_workload?.sublimation || 0,
     },
     {
       key: 'embroidery',
       label: 'Embroidery',
-      icon: '🧵',
-      color: '#F59E0B',
+      icon: <ProductionTypeIcon type="embroidery" size={24} />,
+      color: '#137333',
       count: workCalc?.job_count?.embroidery || 0,
       workload: workCalc?.current_workload?.embroidery || 0,
     },
@@ -190,9 +191,17 @@ const StatisticsCards = ({
       <Card sx={{ height: '100%' }}>
         <CardContent sx={{ pb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h3" sx={{ mr: 1 }}>
+            <Avatar
+              sx={{
+                bgcolor: `${type.color}20`,
+                color: type.color,
+                width: 48,
+                height: 48,
+                mr: 2,
+              }}
+            >
               {type.icon}
-            </Typography>
+            </Avatar>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="subtitle1" fontWeight="bold">
                 {type.label}

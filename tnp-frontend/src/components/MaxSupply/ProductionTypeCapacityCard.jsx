@@ -9,10 +9,12 @@ import {
   Stack,
   Box,
   useTheme,
+  Avatar,
 } from '@mui/material';
 import {
   Speed,
 } from '@mui/icons-material';
+import ProductionTypeIcon from '../../pages/MaxSupply/components/ProductionTypeIcon';
 
 const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
   const theme = useTheme();
@@ -55,9 +57,17 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
           <Box display="flex" alignItems="center">
-            <Typography variant="h6" sx={{ mr: 1 }}>
-              {type.icon}
-            </Typography>
+            <Avatar
+              sx={{
+                bgcolor: `${type.color}20`,
+                color: type.color,
+                width: 40,
+                height: 40,
+                mr: 1,
+              }}
+            >
+              <ProductionTypeIcon type={type.key} size={20} />
+            </Avatar>
             <Typography variant="h6" fontWeight="bold" color={type.color}>
               {type.label}
             </Typography>

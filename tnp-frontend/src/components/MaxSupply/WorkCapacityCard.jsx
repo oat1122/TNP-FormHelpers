@@ -15,6 +15,7 @@ import ProductionTypeCapacityCard from './ProductionTypeCapacityCard';
 import CapacitySummary from './CapacitySummary';
 import TimePeriodSelector from './TimePeriodSelector';
 import useProductionCapacityCalculation from '../../hooks/useProductionCapacityCalculation';
+import { productionTypeConfig } from '../../pages/MaxSupply/utils/constants';
 
 const WorkCapacityCard = ({ 
   statistics, 
@@ -53,30 +54,26 @@ const WorkCapacityCard = ({
     { 
       key: 'dtf', 
       label: 'DTF', 
-      icon: '📱', 
-      color: theme.palette.info.main,
-      bgColor: theme.palette.info.light + '20',
+      color: productionTypeConfig.dtf.color,
+      bgColor: productionTypeConfig.dtf.bgColor,
     },
     { 
       key: 'screen', 
-      label: 'Screen', 
-      icon: '📺', 
-      color: theme.palette.primary.main,
-      bgColor: theme.palette.primary.light + '20',
+      label: 'Screen Printing', 
+      color: productionTypeConfig.screen.color,
+      bgColor: productionTypeConfig.screen.bgColor,
     },
     { 
       key: 'sublimation', 
       label: 'Sublimation', 
-      icon: '⚽', 
-      color: theme.palette.success.main,
-      bgColor: theme.palette.success.light + '20',
+      color: productionTypeConfig.sublimation.color,
+      bgColor: productionTypeConfig.sublimation.bgColor,
     },
     { 
       key: 'embroidery', 
       label: 'Embroidery', 
-      icon: '🧵', 
-      color: theme.palette.warning.main,
-      bgColor: theme.palette.warning.light + '20',
+      color: productionTypeConfig.embroidery.color,
+      bgColor: productionTypeConfig.embroidery.bgColor,
     },
   ];
 

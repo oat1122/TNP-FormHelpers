@@ -29,15 +29,15 @@ const ContextMenu = ({
     >
       <MenuItem onClick={() => onStatusChange(job, 'pending')}>
         <RadioButtonUnchecked sx={{ mr: 1 }} fontSize="small" />
-        ย้ายไป In Progress
+        ย้ายไป กำลังรอ
       </MenuItem>
       <MenuItem onClick={() => onStatusChange(job, 'in_progress')}>
         <Schedule sx={{ mr: 1 }} fontSize="small" />
-        ย้ายไป In Review
+        ย้ายไป กำลังผลิต
       </MenuItem>
       <MenuItem onClick={() => onStatusChange(job, 'completed')}>
         <CheckCircle sx={{ mr: 1 }} fontSize="small" />
-        ย้ายไป Done
+        ย้ายไป เสร็จสิ้น
       </MenuItem>
       <MenuItem divider />
       <MenuItem onClick={() => onDeleteClick(job)} sx={{ color: 'error.main' }}>

@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   ScreenShare, 
   PhoneAndroid, 
-  Sports, 
+  LocalPrintshop, 
   ContentCut,
   Help as HelpIcon 
 } from '@mui/icons-material';
@@ -14,7 +14,7 @@ const ProductionTypeIcon = ({ type, size = 20, color = 'inherit', ...props }) =>
   const iconComponents = {
     ScreenShare,
     PhoneAndroid,
-    Sports,
+    LocalPrintshop, // เปลี่ยนจาก Sports เป็น LocalPrintshop สำหรับ sublimation
     ContentCut,
   };
   

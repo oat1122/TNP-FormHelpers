@@ -76,12 +76,6 @@ const WorksheetList = () => {
     sublimation: '#16a34a',
   };
 
-  const productionIcons = {
-    screen: '📺',
-    dtf: '📱',
-    sublimation: '⚽',
-  };
-
   // Load worksheets
   const loadWorksheets = async () => {
     try {
@@ -447,9 +441,9 @@ const WorksheetList = () => {
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>จุดพิมพ์:</strong> 
-                        📺 {autoFillPreview.screen_points}, 
-                        📱 {autoFillPreview.dtf_points}, 
-                        ⚽ {autoFillPreview.sublimation_points}
+                        Screen: {autoFillPreview.screen_points}, 
+                        DTF: {autoFillPreview.dtf_points}, 
+                        Sublimation: {autoFillPreview.sublimation_points}
                       </Typography>
                     </Box>
                   </Box>

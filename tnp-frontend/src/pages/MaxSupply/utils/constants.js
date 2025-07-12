@@ -1,55 +1,55 @@
-// Production Type Configuration - Enhanced with gradients and better colors
+// Production Type Configuration - Enhanced with Material-UI icons and consistent colors
 export const productionTypeConfig = {
   screen: { 
-    color: '#1a73e8', 
-    bgColor: '#e8f0fe',
+    color: '#B20000', // ใช้สีหลักของระบบ 
+    bgColor: '#fef2f2',
     iconComponent: 'ScreenShare', // Material-UI icon
     icon: '📺', // เก็บเป็น fallback
     label: 'Screen Printing',
-    gradient: 'linear-gradient(135deg, #1a73e8, #1557b0)',
-    lightColor: '#e8f0fe',
+    gradient: 'linear-gradient(135deg, #B20000, #900F0F)',
+    lightColor: '#fef2f2',
   },
   dtf: { 
-    color: '#f9ab00', 
-    bgColor: '#fef7e0',
+    color: '#E36264', // ใช้สี secondary ของระบบ
+    bgColor: '#fef2f2',
     iconComponent: 'PhoneAndroid', // Material-UI icon
     icon: '📱', // เก็บเป็น fallback
     label: 'DTF',
-    gradient: 'linear-gradient(135deg, #f9ab00, #e37400)',
-    lightColor: '#fef7e0',
+    gradient: 'linear-gradient(135deg, #E36264, #B20000)',
+    lightColor: '#fef2f2',
   },
   sublimation: { 
-    color: '#9334e6', 
-    bgColor: '#f3e8ff',
-    iconComponent: 'Sports', // Material-UI icon
-    icon: '⚽', // เก็บเป็น fallback
+    color: '#16a34a', // เก็บสีเขียวไว้เพื่อแยกประเภท
+    bgColor: '#f0fdf4',
+    iconComponent: 'LocalPrintshop', // เปลี่ยนเป็นไอคอนที่เหมาะสมกว่า
+    icon: '🖨️', // เก็บเป็น fallback
     label: 'Sublimation',
-    gradient: 'linear-gradient(135deg, #9334e6, #7c2d99)',
-    lightColor: '#f3e8ff',
+    gradient: 'linear-gradient(135deg, #16a34a, #15803d)',
+    lightColor: '#f0fdf4',
   },
   embroidery: { 
-    color: '#137333', 
-    bgColor: '#e6f4ea',
+    color: '#0891b2', // ใช้สีฟ้าเพื่อแยกประเภท
+    bgColor: '#f0f9ff',
     iconComponent: 'ContentCut', // Material-UI icon
     icon: '🧵', // เก็บเป็น fallback
     label: 'Embroidery',
-    gradient: 'linear-gradient(135deg, #137333, #0f5132)',
-    lightColor: '#e6f4ea',
+    gradient: 'linear-gradient(135deg, #0891b2, #0e7490)',
+    lightColor: '#f0f9ff',
   },
 };
 
 export const statusConfig = {
-  pending: { color: '#f9ab00', label: 'รอดำเนินการ', bgColor: '#fef7e0' },
-  in_progress: { color: '#1a73e8', label: 'กำลังดำเนินการ', bgColor: '#e8f0fe' },
-  completed: { color: '#137333', label: 'เสร็จสิ้น', bgColor: '#e6f4ea' },
-  cancelled: { color: '#d93025', label: 'ยกเลิก', bgColor: '#fce8e6' },
+  pending: { color: '#f59e0b', label: 'รอดำเนินการ', bgColor: '#fef3c7' }, // ใช้สีเหลืองแทนส้ม
+  in_progress: { color: '#B20000', label: 'กำลังดำเนินการ', bgColor: '#fef2f2' }, // ใช้สีหลักของระบบ
+  completed: { color: '#059669', label: 'เสร็จสิ้น', bgColor: '#d1fae5' }, // เก็บสีเขียวไว้
+  cancelled: { color: '#dc2626', label: 'ยกเลิก', bgColor: '#fee2e2' }, // เก็บสีแดงไว้
 };
 
 export const priorityConfig = {
-  low: { color: '#5f6368', label: 'ต่ำ' },
-  normal: { color: '#1a73e8', label: 'ปกติ' },
-  high: { color: '#f9ab00', label: 'สูง' },
-  urgent: { color: '#d93025', label: 'เร่งด่วน' },
+  low: { color: '#6b7280', label: 'ต่ำ' }, // เก็บสีเทาไว้
+  normal: { color: '#B20000', label: 'ปกติ' }, // ใช้สีหลักของระบบ
+  high: { color: '#f59e0b', label: 'สูง' }, // ใช้สีเหลือง/ส้ม
+  urgent: { color: '#dc2626', label: 'เร่งด่วน' }, // เก็บสีแดงเข้มไว้เพื่อเน้นความเร่งด่วน
 };
 
 // Calendar configuration constants

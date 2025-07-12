@@ -58,7 +58,7 @@ const DayEventsDialog = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           pb: 2,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #B20000 0%, #900F0F 100%)', // ใช้สีหลักของระบบ
           color: 'white',
         }}
       >

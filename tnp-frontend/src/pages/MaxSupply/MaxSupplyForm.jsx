@@ -33,6 +33,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import { maxSupplyApi, worksheetApi } from '../../services/maxSupplyApi';
+import { productionTypeConfig } from './components/Shared/constants';
 import { useGetAllWorksheetQuery } from '../../features/Worksheet/worksheetApi';
 import toast from 'react-hot-toast';
 import { debugTokens } from '../../utils/tokenDebug';
@@ -87,11 +88,11 @@ const MaxSupplyForm = () => {
   // Get worksheets data
   const { data: worksheetData, isLoading: worksheetLoading } = useGetAllWorksheetQuery();
 
-  // Production types (matched to backend validation)
+  // Production types (matched to backend validation) 
   const productionTypes = [
-    { value: 'screen', label: '📺 Screen Printing', color: '#7c3aed' },
-    { value: 'dtf', label: '📱 DTF (Direct Film Transfer)', color: '#0891b2' },
-    { value: 'sublimation', label: '⚽ Sublimation', color: '#16a34a' },
+    { value: 'screen', label: 'Screen Printing', color: productionTypeConfig.screen.color },
+    { value: 'dtf', label: 'DTF (Direct Film Transfer)', color: productionTypeConfig.dtf.color },
+    { value: 'sublimation', label: 'Sublimation', color: productionTypeConfig.sublimation.color },
     // Note: embroidery is not supported in backend yet
   ];
 
@@ -1117,6 +1118,7 @@ const MaxSupplyForm = () => {
                   onClick={handleBack}
                   startIcon={<NavigateBefore />}
                   variant="outlined"
+                  color="primary"
                 >
                   ย้อนกลับ
                 </Button>
@@ -1126,6 +1128,7 @@ const MaxSupplyForm = () => {
                     variant="outlined"
                     onClick={() => navigate('/max-supply')}
                     startIcon={<Cancel />}
+                    color="error"
                   >
                     ยกเลิก
                   </Button>
@@ -1133,6 +1136,7 @@ const MaxSupplyForm = () => {
                   {activeStep === steps.length - 1 ? (
                     <Button
                       variant="contained"
+                      color="primary"
                       onClick={handleSubmit}
                       disabled={submitLoading}
                       startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
@@ -1142,6 +1146,7 @@ const MaxSupplyForm = () => {
                   ) : (
                     <Button
                       variant="contained"
+                      color="primary"
                       onClick={handleNext}
                       endIcon={<NavigateNext />}
                     >

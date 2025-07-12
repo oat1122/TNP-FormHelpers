@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { productionTypeConfig, statusConfig, priorityConfig } from '../../utils/constants';
 import { formatDate, formatShortDate, calculateDuration, formatDuration, isOverdue } from '../../utils/dateFormatters';
+import ProductionTypeIcon from '../ProductionTypeIcon';
 
 const JobDetailsDialog = ({ 
   open, 
@@ -99,7 +100,7 @@ const JobDetailsDialog = ({
                 height: 56,
               }}
             >
-              <Typography variant="h5">{typeConfig.icon}</Typography>
+              <ProductionTypeIcon type={selectedJob.production_type} size={24} color="white" />
             </Avatar>
             <Box>
               <Typography variant="h6" fontWeight="bold">

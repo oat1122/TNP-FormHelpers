@@ -20,7 +20,6 @@ import {
   NavigationTabs,
   DeadlineSection,
   JobStatusSection,
-  TestButtons,
 } from './components';
 import EnhancedCalendarView from './components/CalendarView';
 import { 
@@ -242,7 +241,6 @@ const MaxSupplyHome = () => {
       {/* Other tab content placeholders */}
       {currentTab === 0 && (
         <Box>
-          <TestButtons statistics={statistics} />
           <StatisticsCards 
             statistics={statistics} 
             loading={loading}

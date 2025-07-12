@@ -19,7 +19,20 @@ const NavigationTabs = ({ currentTab, setCurrentTab }) => {
             textTransform: 'none',
             fontSize: '1rem',
             fontWeight: 500,
-          }
+            color: '#666666', // สีเทาสำหรับ tab ที่ไม่ active
+            '&.Mui-selected': {
+              color: '#B20000', // สีหลักของระบบสำหรับ tab ที่ active
+              fontWeight: 600,
+            },
+            '&:hover': {
+              color: '#E36264', // สีรองสำหรับ hover
+              backgroundColor: 'rgba(178, 0, 0, 0.04)', // พื้นหลังอ่อนๆ เมื่อ hover
+            },
+          },
+          '& .MuiTabs-indicator': {
+            backgroundColor: '#B20000', // สีของแถบบอก active tab
+            height: 3, // ความหนาของแถบ
+          },
         }}
       >
         {tabs.map((tab, index) => (
@@ -28,7 +41,12 @@ const NavigationTabs = ({ currentTab, setCurrentTab }) => {
             icon={tab.icon} 
             label={tab.label} 
             iconPosition="start"
-            sx={{ minHeight: 48 }}
+            sx={{ 
+              minHeight: 48,
+              '& .MuiSvgIcon-root': {
+                fontSize: '1.25rem', // ขนาดไอคอน
+              },
+            }}
           />
         ))}
       </Tabs>

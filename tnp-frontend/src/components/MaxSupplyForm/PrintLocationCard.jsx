@@ -30,7 +30,7 @@ const PrintLocationCard = ({ formData, onPrintLocationChange }) => {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="subtitle1" gutterBottom>
-                  📺 Screen Printing
+                  Screen Printing
                 </Typography>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>เปิดใช้งาน</InputLabel>
@@ -72,7 +72,7 @@ const PrintLocationCard = ({ formData, onPrintLocationChange }) => {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="subtitle1" gutterBottom>
-                  📱 DTF (Direct to Film)
+                  DTF (Direct to Film)
                 </Typography>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>เปิดใช้งาน</InputLabel>
@@ -114,7 +114,7 @@ const PrintLocationCard = ({ formData, onPrintLocationChange }) => {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="subtitle1" gutterBottom>
-                  ⚽ Sublimation/Flex
+                  Sublimation/Flex
                 </Typography>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>เปิดใช้งาน</InputLabel>
@@ -156,7 +156,7 @@ const PrintLocationCard = ({ formData, onPrintLocationChange }) => {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="subtitle1" gutterBottom>
-                  🧵 Embroidery (ปัก)
+                  Embroidery (ปัก)
                 </Typography>
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>เปิดใช้งาน</InputLabel>

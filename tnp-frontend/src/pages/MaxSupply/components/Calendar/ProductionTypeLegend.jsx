@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Box, Paper, Typography, Button, Chip, Badge, useTheme } from '@mui/material';
 import { productionTypeConfig } from '../../utils/constants';
+import ProductionTypeIcon from '../ProductionTypeIcon';
 
 const ProductionTypeLegend = ({ 
   maxSupplies, 
@@ -39,7 +40,12 @@ const ProductionTypeLegend = ({
             size="small"
             variant={filter.status === 'in_progress' ? 'contained' : 'outlined'}
             onClick={() => setFilter({ ...filter, status: filter.status === 'in_progress' ? 'all' : 'in_progress' })}
-            sx={{ fontSize: '0.75rem', height: 28, bgcolor: filter.status === 'in_progress' ? '#1a73e8' : 'transparent' }}
+            sx={{ 
+              fontSize: '0.75rem', 
+              height: 28, 
+              bgcolor: filter.status === 'in_progress' ? '#B20000' : 'transparent', // ใช้สีหลักของระบบ
+              borderColor: filter.status === 'in_progress' ? '#B20000' : 'currentColor'
+            }}
           >
             กำลังดำเนินการ
           </Button>
@@ -56,7 +62,7 @@ const ProductionTypeLegend = ({
               onClick={() => setFilter({ ...filter, type: isSelected ? 'all' : key })}
               label={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span style={{ fontSize: '16px' }}>{config.icon}</span>
+                  <ProductionTypeIcon type={key} size={16} color={isSelected ? 'white' : config.color} />
                   <span>{config.label}</span>
                   <Badge
                     badgeContent={count}

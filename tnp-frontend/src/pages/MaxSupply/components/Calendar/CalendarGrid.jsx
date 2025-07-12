@@ -1,6 +1,10 @@
 import React from 'react';
 import { Box, Paper, Typography, useTheme, useMediaQuery } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { 
+  Refresh as RefreshIcon,
+  CalendarMonth as CalendarIcon,
+  Search as SearchIcon
+} from '@mui/icons-material';
 import { format, isToday, isSameMonth, parseISO } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { DAY_NAMES, productionTypeConfig, priorityConfig } from '../../utils/constants';
@@ -318,13 +322,12 @@ const CalendarGrid = ({
                 width: 80, 
                 height: 80, 
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', // ปรับเป็นสีโทนแดงอ่อน
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '2rem',
               }}>
-                📅
+                <CalendarIcon sx={{ fontSize: '2rem', color: '#B20000' }} />
               </Box>
               <Typography variant="h6" color="text.secondary" textAlign="center">
                 ไม่มีงานในเดือนนี้
@@ -356,9 +359,8 @@ const CalendarGrid = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '2rem',
               }}>
-                🔍
+                <SearchIcon sx={{ fontSize: '2rem', color: '#f59e0b' }} />
               </Box>
               <Typography variant="h6" color="text.secondary" textAlign="center">
                 ไม่มีงานที่ตรงกับตัวกรอง

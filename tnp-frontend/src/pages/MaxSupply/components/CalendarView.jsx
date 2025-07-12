@@ -19,6 +19,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
+  CalendarMonth as CalendarIcon,
+  TipsAndUpdates as TipsIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -139,95 +141,28 @@ const EnhancedCalendarView = ({
 
   return (
     <Box>
-      {/* Quick Stats Bar */}
-      <Paper elevation={1} sx={{ 
-        p: isMobile ? 1.5 : 2, 
-        mb: 2, 
-        bgcolor: 'grey.50', 
-        borderLeft: '4px solid #667eea',
-        display: 'flex',
-        alignItems: 'center',
-        gap: isMobile ? 2 : 3,
-        flexWrap: 'wrap',
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            bgcolor: '#1a73e8' 
-          }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            กำลังดำเนินการ:
-          </Typography>
-          <Typography variant="body2" fontWeight="bold" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            {filteredEvents.filter(e => e.status === 'in_progress').length}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            bgcolor: '#f9ab00' 
-          }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            รอดำเนินการ:
-          </Typography>
-          <Typography variant="body2" fontWeight="bold" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            {filteredEvents.filter(e => e.status === 'pending').length}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            bgcolor: '#137333' 
-          }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            เสร็จสิ้น:
-          </Typography>
-          <Typography variant="body2" fontWeight="bold" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            {filteredEvents.filter(e => e.status === 'completed').length}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            bgcolor: '#d93025' 
-          }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}>
-            เร่งด่วน:
-          </Typography>
-          <Typography variant="body2" fontWeight="bold" color="error" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            {filteredEvents.filter(e => e.priority === 'urgent').length}
-          </Typography>
-        </Box>
-      </Paper>
-
       {/* Enhanced Calendar Header */}
       <Paper elevation={2} sx={{ 
         p: isMobile ? 2 : 3, 
         mb: 2, 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+        background: 'linear-gradient(135deg, #B20000 0%, #900F0F 100%)', // ใช้สีหลักของระบบ
         color: 'white',
         borderRadius: 2,
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" flexDirection={isMobile ? 'column' : 'row'} gap={isMobile ? 2 : 0}>
           <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
-            <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight="bold">
+            <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isMobile ? 'center' : 'flex-start' }}>
+              <CalendarIcon sx={{ fontSize: 'inherit' }} />
               {format(currentDate, 'MMMM yyyy', { locale: th })}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5, fontSize: isMobile ? '0.8rem' : '0.875rem' }}>
-              📅 แผนผังการผลิต • งานทั้งหมด {maxSupplies.length} รายการ
+              แผนผังการผลิต • งานทั้งหมด {maxSupplies.length} รายการ
               {filteredEvents.length !== maxSupplies.length && ` (แสดง ${filteredEvents.length} งาน)`}
             </Typography>
             {!isMobile && (
-              <Typography variant="caption" sx={{ opacity: 0.7, mt: 0.5, display: 'block' }}>
-                💡 ใช้ Ctrl+← → เพื่อเปลี่ยนเดือน, Ctrl+Home เพื่อไปวันนี้
+              <Typography variant="caption" sx={{ opacity: 0.7, mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <TipsIcon sx={{ fontSize: '14px' }} />
+                ใช้ Ctrl+← → เพื่อเปลี่ยนเดือน, Ctrl+Home เพื่อไปวันนี้
               </Typography>
             )}
           </Box>

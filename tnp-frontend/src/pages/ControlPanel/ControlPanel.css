@@ -49,16 +49,22 @@ a.btn.disable-link label {
 
 /* MaxSupply Production Statistics */
 .max-supply-stats {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 0.5rem;
+  background-color: #ebebeb;
+  border: 0.2rem solid #d2cece;
+  border-radius: 1rem;
   padding: 1rem;
   margin-top: 1rem;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .max-supply-stats h6 {
-  color: #495057;
+  color: #616161;
   margin-bottom: 0.75rem;
+  font-size: clamp(1rem, 1.4vw, 3.5rem);
+  letter-spacing: 0.1rem;
 }
 
 .production-type-card {
@@ -68,6 +74,7 @@ a.btn.disable-link label {
   margin-bottom: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  border: 0.1rem solid #e8e4e5;
 }
 
 .production-type-card:hover {
@@ -76,14 +83,16 @@ a.btn.disable-link label {
 }
 
 .production-type-card .count {
-  font-size: 1.25rem;
+  font-size: clamp(2rem, 4vw, 4rem);
   font-weight: bold;
-  color: #212529;
+  color: #c65050;
+  line-height: 1;
 }
 
 .production-type-card .workload {
-  font-size: 0.875rem;
-  color: #6c757d;
+  font-size: clamp(0.8rem, 1.2vw, 1.5rem);
+  color: #616161;
+  letter-spacing: 0.05rem;
 }
 
 label.count-process {
@@ -148,13 +157,19 @@ label.count-process div.text-center {
 }
 
 .btn-secondary.btn-process {
-  height: 100%;
+  height: auto;
+  min-height: 200px;
   width: 100%;
   background-color: #ebebeb;
   border: 0.2rem solid #d2cece;
   border-radius: 1rem;
   color: #000000;
   line-height: clamp(1.5rem, 2vw, 3rem);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .btn-secondary:hover.btn-process {

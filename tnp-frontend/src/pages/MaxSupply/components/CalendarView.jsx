@@ -300,32 +300,76 @@ const EnhancedCalendarView = ({
         return b.width - a.width;
       });
     
+    console.log('=== ORGANIZING TIMELINE ROWS ===');
+    console.log('Total timelines to organize:', timelines.length);
+    
     const rows = [];
     
-    timelines.forEach(timeline => {
+    timelines.forEach((timeline, index) => {
+      const currentStart = timeline.startCol;
+      const currentEnd = timeline.startCol + timeline.width - 1;
+      
+      console.log(`\nProcessing timeline ${index + 1}:`, {
+        eventId: timeline.event.id,
+        title: timeline.event.title || timeline.event.customer_name,
+        startCol: currentStart,
+        endCol: currentEnd,
+        width: timeline.width,
+        range: `${currentStart}-${currentEnd}`
+      });
+      
       let placed = false;
       
       // Try to place in existing rows
       for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
         const row = rows[rowIndex];
+        
+        // Check for overlap with any timeline in this row
         const hasOverlap = row.some(existingTimeline => {
+          const existingStart = existingTimeline.startCol;
           const existingEnd = existingTimeline.startCol + existingTimeline.width - 1;
-          const currentEnd = timeline.startCol + timeline.width - 1;
-          return !(existingEnd < timeline.startCol || currentEnd < existingTimeline.startCol);
+          
+          // Two timelines overlap if one starts before the other ends
+          const overlaps = !(existingEnd < currentStart || currentEnd < existingStart);
+          
+          if (overlaps) {
+            console.log(`  Overlap detected with existing timeline in row ${rowIndex}:`, {
+              existingId: existingTimeline.event.id,
+              existingRange: `${existingStart}-${existingEnd}`,
+              currentRange: `${currentStart}-${currentEnd}`,
+              overlapCondition: `!(${existingEnd} < ${currentStart} || ${currentEnd} < ${existingStart}) = ${overlaps}`
+            });
+          }
+          
+          return overlaps;
         });
         
         if (!hasOverlap) {
           row.push(timeline);
           placed = true;
+          console.log(`  ✓ Placed in existing row ${rowIndex} (no overlap)`);
           break;
+        } else {
+          console.log(`  ✗ Cannot place in row ${rowIndex} (overlap detected)`);
         }
       }
       
       // If no suitable row found, create new row
       if (!placed) {
         rows.push([timeline]);
+        console.log(`  ✓ Created new row ${rows.length - 1}`);
       }
     });
+    
+    // Final debug output
+    console.log('\n=== FINAL ROW ORGANIZATION ===');
+    rows.forEach((row, rowIndex) => {
+      console.log(`Row ${rowIndex} (${row.length} timelines):`);
+      row.forEach((timeline, timelineIndex) => {
+        console.log(`  ${timelineIndex + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.startCol}-${timeline.startCol + timeline.width - 1})`);
+      });
+    });
+    console.log('=== END ROW ORGANIZATION ===\n');
 
     return rows;
   };
@@ -461,10 +505,22 @@ const EnhancedCalendarView = ({
     const isHovered = hoveredTimeline?.event?.id === event.id;
     const isUrgent = event.priority === 'urgent';
     
-    // Calculate correct position based on total calendar days
-    const totalDays = calendarDays.length;
-    const leftPercent = (timeline.startCol / totalDays) * 100;
-    const widthPercent = Math.max((timeline.width / totalDays) * 100, 8); // Minimum 8% width
+    // Calculate position for 7-column grid layout
+    const daysPerWeek = 7;
+    const totalCalendarDays = calendarDays.length;
+    const numberOfWeeks = Math.ceil(totalCalendarDays / daysPerWeek);
+    
+    // Calculate which week and day within week the event starts
+    const startWeek = Math.floor(timeline.startCol / daysPerWeek);
+    const startDayInWeek = timeline.startCol % daysPerWeek;
+    const endCol = timeline.startCol + timeline.width - 1;
+    const endWeek = Math.floor(endCol / daysPerWeek);
+    const endDayInWeek = endCol % daysPerWeek;
+    
+    // Improved positioning constants
+    const calendarRowHeight = isMobile ? 80 : 120; // Match height from calendar days
+    const baseTimelineOffset = isMobile ? 45 : 60; // Reduced from 55/85 to 45/60
+    const timelineRowSpacing = isMobile ? 20 : 22; // Reduced from 26/30 to 20/22
     
     // Debug position calculation
     console.log('TimelineBar position calculation:', {
@@ -472,182 +528,285 @@ const EnhancedCalendarView = ({
       eventTitle: event.title || event.customer_name,
       startCol: timeline.startCol,
       width: timeline.width,
-      totalDays,
-      leftPercent: leftPercent,
-      widthPercent: widthPercent,
-      eventStart: timeline.eventStartStr,
-      eventEnd: timeline.eventEndStr,
-      actualStart: timeline.actualStart,
-      actualEnd: timeline.actualEnd
+      rowIndex,
+      startWeek,
+      startDayInWeek,
+      endWeek,
+      endDayInWeek,
+      positioning: {
+        calendarRowHeight,
+        baseTimelineOffset,
+        timelineRowSpacing,
+        calculatedTop: startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing
+      }
     });
     
-    return (
-      <Tooltip
-        title={
-          <Box sx={{ p: 1 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              {typeConfig.icon} {event.customer_name || event.title}
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>ประเภท:</strong> {typeConfig.label}
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>สถานะ:</strong> {statusInfo.label}
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>ระยะเวลา:</strong> {timeline.duration} วัน
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>เริ่ม:</strong> {formatShortDate(event.start_date)}
-            </Typography>
-            {event.expected_completion_date && (
-              <Typography variant="caption" display="block">
-                <strong>คาดว่าเสร็จ:</strong> {formatShortDate(event.expected_completion_date)}
-              </Typography>
-            )}
-            {event.due_date && (
-              <Typography variant="caption" display="block">
-                <strong>ครบกำหนด:</strong> {formatShortDate(event.due_date)}
-              </Typography>
-            )}
-            <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.8 }}>
-              คลิกเพื่อดูรายละเอียด
-            </Typography>
-          </Box>
+    // For multi-week events, create separate timeline segments
+    const segments = [];
+    
+    if (startWeek === endWeek) {
+      // Event is within the same week
+      const left = (startDayInWeek / daysPerWeek) * 100;
+      const width = ((endDayInWeek - startDayInWeek + 1) / daysPerWeek) * 100;
+      const top = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+      
+      segments.push({
+        left: `${left}%`,
+        width: `${Math.max(width, 2)}%`, // Minimum 2% width
+        top: `${top}px`,
+        segmentIndex: 0,
+        isFirstSegment: true,
+        isLastSegment: true,
+      });
+      
+      console.log('Single week segment:', {
+        left: `${left}%`,
+        width: `${Math.max(width, 2)}%`,
+        top: `${top}px`,
+        calculation: `week(${startWeek}) × ${calendarRowHeight} + ${baseTimelineOffset} + row(${rowIndex}) × ${timelineRowSpacing} = ${top}px`
+      });
+    } else {
+      // Event spans multiple weeks
+      
+      // First week segment
+      const firstWeekLeft = (startDayInWeek / daysPerWeek) * 100;
+      const firstWeekWidth = ((daysPerWeek - startDayInWeek) / daysPerWeek) * 100;
+      const firstWeekTop = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+      
+      segments.push({
+        left: `${firstWeekLeft}%`,
+        width: `${firstWeekWidth}%`,
+        top: `${firstWeekTop}px`,
+        segmentIndex: 0,
+        isFirstSegment: true,
+        isLastSegment: false,
+      });
+      
+      // Middle weeks (if any)
+      for (let week = startWeek + 1; week < endWeek; week++) {
+        const middleWeekTop = week * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+        segments.push({
+          left: '0%',
+          width: '100%',
+          top: `${middleWeekTop}px`,
+          segmentIndex: week - startWeek,
+          isFirstSegment: false,
+          isLastSegment: false,
+        });
+      }
+      
+      // Last week segment
+      if (endWeek > startWeek) {
+        const lastWeekWidth = ((endDayInWeek + 1) / daysPerWeek) * 100;
+        const lastWeekTop = endWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+        
+        segments.push({
+          left: '0%',
+          width: `${lastWeekWidth}%`,
+          top: `${lastWeekTop}px`,
+          segmentIndex: endWeek - startWeek,
+          isFirstSegment: false,
+          isLastSegment: true,
+        });
+      }
+      
+      console.log('Multi-week segments:', {
+        totalSegments: segments.length,
+        firstSegment: segments[0],
+        lastSegment: segments[segments.length - 1],
+        positioning: {
+          baseTimelineOffset,
+          timelineRowSpacing,
+          rowIndex
         }
-        placement="top"
-        arrow
-        disableInteractive={false}
-        sx={{
-          '& .MuiTooltip-tooltip': {
-            bgcolor: 'rgba(0, 0, 0, 0.9)',
-            color: 'white',
-            borderRadius: 2,
-            maxWidth: 300,
-          },
-        }}
-      >
-        <Box
-          onClick={() => handleTimelineClick(event)}
-          onMouseEnter={() => setHoveredTimeline(timeline)}
-          onMouseLeave={() => setHoveredTimeline(null)}
-          sx={{
-            position: 'absolute',
-            left: `${leftPercent}%`,
-            width: `${widthPercent}%`,
-            height: isMobile ? 18 : 22,
-            top: (isMobile ? 45 : 65) + rowIndex * (isMobile ? 22 : 26),
-            cursor: 'pointer',
-            zIndex: isHovered ? 25 : 15,
-            display: 'flex',
-            alignItems: 'center',
-            px: isMobile ? 0.5 : 1,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: isHovered ? (isMobile ? 'translateY(-1px) scale(1.01)' : 'translateY(-2px) scale(1.02)') : 'none',
-            minWidth: isMobile ? '40px' : '60px', // Ensure minimum width for visibility
-            maxWidth: '100%', // Prevent overflow
-            minHeight: isMobile ? 18 : 22,
-          }}
-        >
-        {/* Main Timeline Bar */}
-        <Box
-          sx={{
-            position: 'absolute',
-            left: '2px',
-            right: '2px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            height: isMobile ? 16 : 20,
-            background: typeConfig.gradient,
-            borderRadius: isMobile ? '8px' : '10px',
-            display: 'flex',
-            alignItems: 'center',
-            px: isMobile ? 0.5 : 1,
-            boxShadow: isHovered 
-              ? `0 8px 25px ${typeConfig.color}40` 
-              : `0 3px 12px ${typeConfig.color}30`,
-            border: `1px solid ${typeConfig.color}`,
-            animation: isUrgent ? 'pulse 2s infinite' : 'none',
-            overflow: 'hidden',
-            '@keyframes pulse': {
-              '0%, 100%': { opacity: 1 },
-              '50%': { opacity: 0.8 },
-            },
-          }}
-        >
-          {/* Priority indicator */}
-          {(event.priority === 'high' || event.priority === 'urgent') && (
+      });
+    }
+    
+    return (
+      <>
+        {segments.map((segment, index) => (
+          <Tooltip
+            key={`${timeline.event.id}-segment-${index}`}
+            title={
+              <Box sx={{ p: 1 }}>
+                <Typography variant="body2" fontWeight="bold" gutterBottom>
+                  {typeConfig.icon} {event.customer_name || event.title}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  <strong>ประเภท:</strong> {typeConfig.label}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  <strong>สถานะ:</strong> {statusInfo.label}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  <strong>ระยะเวลา:</strong> {timeline.duration} วัน
+                </Typography>
+                <Typography variant="caption" display="block">
+                  <strong>เริ่ม:</strong> {formatShortDate(event.start_date)}
+                </Typography>
+                {event.expected_completion_date && (
+                  <Typography variant="caption" display="block">
+                    <strong>คาดว่าเสร็จ:</strong> {formatShortDate(event.expected_completion_date)}
+                  </Typography>
+                )}
+                {event.due_date && (
+                  <Typography variant="caption" display="block">
+                    <strong>ครบกำหนด:</strong> {formatShortDate(event.due_date)}
+                  </Typography>
+                )}
+                <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.8 }}>
+                  คลิกเพื่อดูรายละเอียด
+                </Typography>
+              </Box>
+            }
+            placement="top"
+            arrow
+            disableInteractive={false}
+            sx={{
+              '& .MuiTooltip-tooltip': {
+                bgcolor: 'rgba(0, 0, 0, 0.9)',
+                color: 'white',
+                borderRadius: 2,
+                maxWidth: 300,
+              },
+            }}
+          >
             <Box
+              onClick={() => handleTimelineClick(event)}
+              onMouseEnter={() => setHoveredTimeline(timeline)}
+              onMouseLeave={() => setHoveredTimeline(null)}
               sx={{
                 position: 'absolute',
-                left: -2,
-                top: -2,
-                bottom: -2,
-                width: 4,
-                background: priorityInfo.color,
-                borderRadius: '2px',
+                left: segment.left,
+                width: segment.width,
+                height: isMobile ? 18 : 22,
+                top: segment.top,
+                cursor: 'pointer',
+                zIndex: isHovered ? 25 : 15,
+                display: 'flex',
+                alignItems: 'center',
+                px: isMobile ? 0.5 : 1,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isHovered ? (isMobile ? 'translateY(-1px) scale(1.01)' : 'translateY(-2px) scale(1.02)') : 'none',
+                minWidth: isMobile ? '40px' : '60px', // Ensure minimum width for visibility
+                maxWidth: '100%', // Prevent overflow
+                minHeight: isMobile ? 18 : 22,
+                pointerEvents: 'auto',
               }}
-            />
-          )}
+            >
+              {/* Main Timeline Bar */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: '2px',
+                  right: '2px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  height: isMobile ? 16 : 20,
+                  background: typeConfig.gradient,
+                  borderRadius: segment.isFirstSegment && segment.isLastSegment 
+                    ? (isMobile ? '8px' : '10px')
+                    : segment.isFirstSegment 
+                      ? (isMobile ? '8px 0 0 8px' : '10px 0 0 10px')
+                      : segment.isLastSegment 
+                        ? (isMobile ? '0 8px 8px 0' : '0 10px 10px 0')
+                        : '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  px: isMobile ? 0.5 : 1,
+                  boxShadow: isHovered 
+                    ? `0 8px 25px ${typeConfig.color}40` 
+                    : `0 3px 12px ${typeConfig.color}30`,
+                  border: `1px solid ${typeConfig.color}`,
+                  animation: isUrgent ? 'pulse 2s infinite' : 'none',
+                  overflow: 'hidden',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.8 },
+                  },
+                }}
+              >
+                {/* Priority indicator - only on first segment */}
+                {(event.priority === 'high' || event.priority === 'urgent') && segment.isFirstSegment && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: -2,
+                      top: -2,
+                      bottom: -2,
+                      width: 4,
+                      background: priorityInfo.color,
+                      borderRadius: '2px',
+                    }}
+                  />
+                )}
 
-          {/* Start indicator */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: isMobile ? 3 : 4,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: isMobile ? 4 : 5,
-              height: isMobile ? 4 : 5,
-              bgcolor: 'rgba(255,255,255,0.95)',
-              borderRadius: '50%',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-            }}
-          />
+                {/* Start indicator - only on first segment */}
+                {segment.isFirstSegment && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: isMobile ? 3 : 4,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: isMobile ? 4 : 5,
+                      height: isMobile ? 4 : 5,
+                      bgcolor: 'rgba(255,255,255,0.95)',
+                      borderRadius: '50%',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                )}
 
-          {/* Content */}
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'white',
-              fontWeight: 600,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: isMobile ? '0.55rem' : '0.65rem',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              ml: isMobile ? 1 : 1.5,
-              flex: 1,
-              lineHeight: 1.2,
-            }}
-            title={`${typeConfig.icon} ${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
-          >
-            {isMobile 
-              ? `${typeConfig.icon} ${(event.customer_name || event.title).substring(0, 10)}${(event.customer_name || event.title).length > 10 ? '...' : ''}`
-              : `${typeConfig.icon} ${event.customer_name || event.title}`
-            }
-          </Typography>
+                {/* Content - show on all segments but different for each */}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'white',
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    fontSize: isMobile ? '0.55rem' : '0.65rem',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    ml: segment.isFirstSegment ? (isMobile ? 1 : 1.5) : (isMobile ? 0.5 : 1),
+                    flex: 1,
+                    lineHeight: 1.2,
+                  }}
+                  title={`${typeConfig.icon} ${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
+                >
+                  {segment.isFirstSegment ? (
+                    isMobile 
+                      ? `${typeConfig.icon} ${(event.customer_name || event.title).substring(0, 10)}${(event.customer_name || event.title).length > 10 ? '...' : ''}`
+                      : `${typeConfig.icon} ${event.customer_name || event.title}`
+                  ) : (
+                    // Continuation segments show abbreviated name or just icon
+                    isMobile ? typeConfig.icon : `${typeConfig.icon} (ต่อ)`
+                  )}
+                </Typography>
 
-          {/* Duration badge */}
-          {timeline.duration > 1 && !isMobile && timeline.width > 60 && (
-            <Chip
-              label={timeline.duration > 7 ? `${Math.ceil(timeline.duration / 7)}w` : `${timeline.duration}d`}
-              size="small"
-              sx={{
-                height: 14,
-                fontSize: '0.45rem',
-                bgcolor: 'rgba(255,255,255,0.25)',
-                color: 'white',
-                fontWeight: 'bold',
-                '& .MuiChip-label': { px: 0.3 },
-                ml: 0.5,
-                minWidth: 'auto',
-              }}
-            />
-          )}
-        </Box>
-      </Box>
-      </Tooltip>
+                {/* Duration badge - only on last segment and if wide enough */}
+                {segment.isLastSegment && timeline.duration > 1 && !isMobile && parseFloat(segment.width) > 15 && (
+                  <Chip
+                    label={timeline.duration > 7 ? `${Math.ceil(timeline.duration / 7)}w` : `${timeline.duration}d`}
+                    size="small"
+                    sx={{
+                      height: 14,
+                      fontSize: '0.45rem',
+                      bgcolor: 'rgba(255,255,255,0.25)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      '& .MuiChip-label': { px: 0.3 },
+                      ml: 0.5,
+                      minWidth: 'auto',
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Tooltip>
+        ))}
+      </>
     );
   };
 
@@ -1058,26 +1217,40 @@ const EnhancedCalendarView = ({
     }
     
     if (eventRows.length > 0) {
+      console.log('=== TIMELINE ROW SUMMARY ===');
       eventRows.forEach((row, rowIndex) => {
-        console.log(`Row ${rowIndex}:`, row.map(timeline => ({
-          eventId: timeline.event.id,
-          title: timeline.event.title || timeline.event.customer_name,
-          startCol: timeline.startCol,
-          width: timeline.width,
-          duration: timeline.duration,
-          actualStart: timeline.actualStart,
-          actualEnd: timeline.actualEnd,
-          eventStartStr: timeline.eventStartStr,
-          eventEndStr: timeline.eventEndStr,
-          leftPercent: (timeline.startCol / calendarDays.length) * 100,
-          widthPercent: (timeline.width / calendarDays.length) * 100,
-          totalCalendarDays: calendarDays.length
-        })));
+        console.log(`Row ${rowIndex} (${row.length} timelines):`);
+        row.forEach((timeline, timelineIndex) => {
+          const event = timeline.event;
+          const startWeek = Math.floor(timeline.startCol / 7);
+          const startDayInWeek = timeline.startCol % 7;
+          const calendarRowHeight = isMobile ? 80 : 120;
+          const baseTimelineOffset = isMobile ? 45 : 60;
+          const timelineRowSpacing = isMobile ? 20 : 22;
+          const expectedTop = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+          
+          console.log(`  ${timelineIndex + 1}. ${event.title || event.customer_name}:`, {
+            eventId: timeline.event.id,
+            startCol: timeline.startCol,
+            width: timeline.width,
+            duration: timeline.duration,
+            range: `${timeline.startCol}-${timeline.startCol + timeline.width - 1}`,
+            positioning: {
+              startWeek,
+              startDayInWeek,
+              rowIndex,
+              expectedTop: `${expectedTop}px`,
+              leftPercent: `${((timeline.startCol % 7) / 7) * 100}%`,
+              widthPercent: `${(timeline.width / calendarDays.length) * 100}%`
+            }
+          });
+        });
       });
+      console.log('=== END TIMELINE ROW SUMMARY ===');
     }
     
     console.log('=== END CALENDAR DEBUG ===');
-  }, [filteredEvents, eventRows, currentDate, calendarDays, maxSupplies]);
+  }, [filteredEvents, eventRows, currentDate, calendarDays, maxSupplies, isMobile]);
 
   return (
     <Box>
@@ -1243,7 +1416,7 @@ const EnhancedCalendarView = ({
         </Box>
 
         {/* Calendar Days with Enhanced Timeline */}
-        <Box sx={{ position: 'relative', minHeight: isMobile ? '400px' : '600px', bgcolor: 'grey.50' }}>
+        <Box sx={{ position: 'relative', height: isMobile ? '400px' : '600px', bgcolor: 'grey.50' }}>
           {/* Days Grid */}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', position: 'relative', zIndex: 1 }}>
             {calendarDays.map((day, index) => {
@@ -1257,7 +1430,7 @@ const EnhancedCalendarView = ({
                   sx={{ 
                     border: 1,
                     borderColor: 'divider',
-                    minHeight: isMobile ? '80px' : '120px',
+                    height: isMobile ? '80px' : '120px', // Fixed height instead of minHeight
                     position: 'relative',
                     backgroundColor: isTodayDate 
                       ? '#e8f0fe' 
@@ -1452,7 +1625,7 @@ const EnhancedCalendarView = ({
                       <TimelineBar 
                         timeline={timeline} 
                         rowIndex={rowIndex} 
-                        calendarDays={calendarDays} 
+                        calendarDays={calendarDays}
                       />
                     </Box>
                   ))}

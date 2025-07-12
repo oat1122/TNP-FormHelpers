@@ -15,19 +15,19 @@ const JobStatusSection = ({ statistics, loading }) => {
   const statusData = [
     { 
       key: 'pending', 
-      label: 'Available', 
+      label: 'กำลังรอ', 
       color: '#F59E0B', 
       count: statistics.pending || 0 
     },
     { 
       key: 'in_progress', 
-      label: 'Booked', 
+      label: 'กำลังผลิต', 
       color: '#3B82F6', 
       count: statistics.in_progress || 0 
     },
     { 
       key: 'completed', 
-      label: 'In progress', 
+      label: 'เสร็จสิ้น', 
       color: '#10B981', 
       count: statistics.completed || 0 
     },

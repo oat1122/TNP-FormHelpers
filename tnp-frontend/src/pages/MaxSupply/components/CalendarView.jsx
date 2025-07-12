@@ -144,55 +144,95 @@ const EnhancedCalendarView = ({
 
   // Calculate event timeline position and width for multi-day spanning
   const calculateEventTimeline = (event, calendarDays) => {
-    if (!event.start_date || !event.expected_completion_date) return null;
+    if (!event.start_date) return null;
     
     try {
       const eventStart = typeof event.start_date === 'string' ? parseISO(event.start_date) : event.start_date;
-      const eventEnd = typeof event.expected_completion_date === 'string' ? parseISO(event.expected_completion_date) : event.expected_completion_date;
+      
+      // Use expected_completion_date, fallback to due_date if not available
+      const endDateStr = event.expected_completion_date || event.due_date;
+      if (!endDateStr) return null;
+      
+      const eventEnd = typeof endDateStr === 'string' ? parseISO(endDateStr) : endDateStr;
       
       if (!isValid(eventStart) || !isValid(eventEnd)) return null;
       
+      // Convert to date strings for comparison
+      const eventStartStr = format(eventStart, 'yyyy-MM-dd');
+      const eventEndStr = format(eventEnd, 'yyyy-MM-dd');
+      
       // Find start and end positions in calendar
       const startIndex = calendarDays.findIndex(day => 
-        format(day, 'yyyy-MM-dd') === format(eventStart, 'yyyy-MM-dd')
+        format(day, 'yyyy-MM-dd') === eventStartStr
       );
       const endIndex = calendarDays.findIndex(day => 
-        format(day, 'yyyy-MM-dd') === format(eventEnd, 'yyyy-MM-dd')
+        format(day, 'yyyy-MM-dd') === eventEndStr
       );
 
+      // Calendar range for debugging
+      const calendarStart = calendarDays[0];
+      const calendarEnd = calendarDays[calendarDays.length - 1];
+      
+      // Debug logging for event calculation
+      console.log('=== CALCULATING TIMELINE ===');
+      console.log('Event:', event.id, event.title || event.customer_name);
+      console.log('Event dates:', eventStartStr, 'to', eventEndStr);
+      console.log('Backend dates:', {
+        start_date: event.start_date,
+        expected_completion_date: event.expected_completion_date,
+        due_date: event.due_date,
+        using_end_date: endDateStr
+      });
+      console.log('Calendar range:', format(calendarStart, 'yyyy-MM-dd'), 'to', format(calendarEnd, 'yyyy-MM-dd'));
+      console.log('Calendar days length:', calendarDays.length);
+      console.log('Found indices - start:', startIndex, 'end:', endIndex);
+      
       // Handle events that span beyond the current calendar view
       let actualStart, actualEnd;
       
       if (startIndex === -1 && endIndex === -1) {
         // Event is completely outside the current view
         // Check if event spans across the entire view
-        const calendarStart = calendarDays[0];
-        const calendarEnd = calendarDays[calendarDays.length - 1];
-        
         if (eventStart <= calendarStart && eventEnd >= calendarEnd) {
           // Event spans the entire calendar view
           actualStart = 0;
           actualEnd = calendarDays.length - 1;
+          console.log('Case: Event spans entire calendar view');
         } else {
           // Event is completely outside, don't show
+          console.log('Case: Event is completely outside calendar view');
           return null;
         }
       } else if (startIndex === -1) {
         // Event starts before calendar view but ends within
         actualStart = 0;
         actualEnd = endIndex;
+        console.log('Case: Event starts before calendar, ends within');
       } else if (endIndex === -1) {
         // Event starts within calendar view but ends after
         actualStart = startIndex;
         actualEnd = calendarDays.length - 1;
+        console.log('Case: Event starts within calendar, ends after');
       } else {
         // Event is completely within calendar view
         actualStart = startIndex;
         actualEnd = endIndex;
+        console.log('Case: Event is completely within calendar view');
       }
       
       const width = actualEnd - actualStart + 1;
       const duration = differenceInDays(eventEnd, eventStart) + 1;
+
+      console.log('Final calculation result:', {
+        actualStart,
+        actualEnd,
+        startCol: actualStart,
+        width,
+        duration,
+        leftPercent: `${(actualStart / 7) * 100}%`,
+        widthPercent: `${(width / 7) * 100}%`
+      });
+      console.log('=== END TIMELINE CALCULATION ===');
 
       return {
         startCol: actualStart,
@@ -201,6 +241,8 @@ const EnhancedCalendarView = ({
         duration,
         startIndex,
         endIndex,
+        actualStart,
+        actualEnd,
       };
     } catch (error) {
       console.error('Error calculating timeline for event:', event.id, error);
@@ -258,7 +300,10 @@ const EnhancedCalendarView = ({
     });
   }, [maxSupplies, filter]);
 
-  const eventRows = useMemo(() => organizeEventsInRows(filteredEvents, calendarDays), [filteredEvents, calendarDays]);
+  const eventRows = useMemo(() => {
+    const rows = organizeEventsInRows(filteredEvents, calendarDays);
+    return rows;
+  }, [filteredEvents, calendarDays]);
 
   // Get events for a specific date (for dots display)
   const getEventsForDate = (date) => {
@@ -373,26 +418,77 @@ const EnhancedCalendarView = ({
     const isUrgent = event.priority === 'urgent';
     
     return (
-      <Box
-        onClick={() => handleTimelineClick(event)}
-        onMouseEnter={() => setHoveredTimeline(timeline)}
-        onMouseLeave={() => setHoveredTimeline(null)}
+      <Tooltip
+        title={
+          <Box sx={{ p: 1 }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              {typeConfig.icon} {event.customer_name || event.title}
+            </Typography>
+            <Typography variant="caption" display="block">
+              <strong>ประเภท:</strong> {typeConfig.label}
+            </Typography>
+            <Typography variant="caption" display="block">
+              <strong>สถานะ:</strong> {statusInfo.label}
+            </Typography>
+            <Typography variant="caption" display="block">
+              <strong>ระยะเวลา:</strong> {timeline.duration} วัน
+            </Typography>
+            <Typography variant="caption" display="block">
+              <strong>เริ่ม:</strong> {formatShortDate(event.start_date)}
+            </Typography>
+            {event.expected_completion_date && (
+              <Typography variant="caption" display="block">
+                <strong>คาดว่าเสร็จ:</strong> {formatShortDate(event.expected_completion_date)}
+              </Typography>
+            )}
+            {event.due_date && (
+              <Typography variant="caption" display="block">
+                <strong>ครบกำหนด:</strong> {formatShortDate(event.due_date)}
+              </Typography>
+            )}
+            <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.8 }}>
+              คลิกเพื่อดูรายละเอียด
+            </Typography>
+          </Box>
+        }
+        placement="top"
+        arrow
+        disableInteractive={false}
         sx={{
-          position: 'absolute',
-          left: `${(timeline.startCol / 7) * 100}%`,
-          width: `${(timeline.width / 7) * 100}%`,
-          height: isMobile ? 18 : 22,
-          top: (isMobile ? 45 : 65) + rowIndex * (isMobile ? 22 : 26),
-          cursor: 'pointer',
-          zIndex: isHovered ? 25 : 15,
-          display: 'flex',
-          alignItems: 'center',
-          px: isMobile ? 0.5 : 1,
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isHovered ? (isMobile ? 'translateY(-1px) scale(1.01)' : 'translateY(-2px) scale(1.02)') : 'none',
-          minWidth: timeline.width > 1 ? 'auto' : isMobile ? '60px' : '80px', // Minimum width for single-day events
+          '& .MuiTooltip-tooltip': {
+            bgcolor: 'rgba(0, 0, 0, 0.9)',
+            color: 'white',
+            borderRadius: 2,
+            maxWidth: 300,
+          },
         }}
       >
+        <Box
+          onClick={() => handleTimelineClick(event)}
+          onMouseEnter={() => setHoveredTimeline(timeline)}
+          onMouseLeave={() => setHoveredTimeline(null)}
+          sx={{
+            position: 'absolute',
+            left: `${(timeline.startCol / 7) * 100}%`,
+            width: `${Math.max((timeline.width / 7) * 100, 8)}%`, // Minimum 8% width for visibility
+            height: isMobile ? 18 : 22,
+            top: (isMobile ? 45 : 65) + rowIndex * (isMobile ? 22 : 26),
+            cursor: 'pointer',
+            zIndex: isHovered ? 25 : 15,
+            display: 'flex',
+            alignItems: 'center',
+            px: isMobile ? 0.5 : 1,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? (isMobile ? 'translateY(-1px) scale(1.01)' : 'translateY(-2px) scale(1.02)') : 'none',
+            minWidth: isMobile ? '40px' : '60px', // Ensure minimum width for visibility
+            maxWidth: '100%', // Prevent overflow
+            // Temporary debug styling - remove after fixing
+            border: '2px solid red',
+            backgroundColor: 'rgba(255,255,0,0.3)',
+            // Force visibility
+            minHeight: isMobile ? 18 : 22,
+          }}
+        >
         {/* Main Timeline Bar */}
         <Box
           sx={{
@@ -462,6 +558,7 @@ const EnhancedCalendarView = ({
               ml: isMobile ? 1.5 : 2.5,
               flex: 1,
             }}
+            title={`${typeConfig.icon} ${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
           >
             {isMobile ? `${typeConfig.icon} ${event.customer_name || event.title}` : `${typeConfig.icon} ${event.customer_name || event.title}`}
           </Typography>
@@ -477,12 +574,14 @@ const EnhancedCalendarView = ({
                 bgcolor: 'rgba(255,255,255,0.2)',
                 color: 'white',
                 fontWeight: 'bold',
-                '& .MuiChip-label': { px: 0.4 }
+                '& .MuiChip-label': { px: 0.4 },
+                ml: 0.5
               }}
             />
           )}
         </Box>
       </Box>
+      </Tooltip>
     );
   };
 
@@ -582,8 +681,9 @@ const EnhancedCalendarView = ({
     const typeConfig = productionTypeConfig[selectedJob.production_type] || productionTypeConfig.screen;
     const statusInfo = statusConfig[selectedJob.status] || statusConfig.pending;
     const priorityInfo = priorityConfig[selectedJob.priority] || priorityConfig.normal;
-    const duration = selectedJob.start_date && selectedJob.expected_completion_date 
-      ? differenceInDays(parseISO(selectedJob.expected_completion_date), parseISO(selectedJob.start_date)) + 1
+    const endDateForDuration = selectedJob.expected_completion_date || selectedJob.due_date;
+    const duration = selectedJob.start_date && endDateForDuration 
+      ? differenceInDays(parseISO(endDateForDuration), parseISO(selectedJob.start_date)) + 1
       : 0;
 
     return (
@@ -709,17 +809,40 @@ const EnhancedCalendarView = ({
                       {formatDate(selectedJob.start_date)}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">วันที่เสร็จ:</Typography>
-                    <Typography variant="body2" fontWeight="medium">
-                      {formatDate(selectedJob.expected_completion_date)}
-                    </Typography>
-                  </Box>
+                  {selectedJob.expected_completion_date && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">วันที่คาดว่าเสร็จ:</Typography>
+                      <Typography variant="body2" fontWeight="medium">
+                        {formatDate(selectedJob.expected_completion_date)}
+                      </Typography>
+                    </Box>
+                  )}
+                  {selectedJob.due_date && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">วันครบกำหนด:</Typography>
+                      <Typography variant="body2" fontWeight="medium" color={new Date(selectedJob.due_date) < new Date() ? 'error.main' : 'text.primary'}>
+                        {formatDate(selectedJob.due_date)}
+                      </Typography>
+                    </Box>
+                  )}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary">ระยะเวลา:</Typography>
                     <Typography variant="body2" fontWeight="medium" color={typeConfig.color}>
                       {duration > 7 ? `${Math.ceil(duration / 7)} สัปดาห์ (${duration} วัน)` : `${duration} วัน`}
                     </Typography>
+                  </Box>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: typeConfig.lightColor, borderRadius: 1, border: `1px solid ${typeConfig.color}30` }}>
+                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                      การแสดงผลบนปฏิทิน
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: typeConfig.color, fontWeight: 'bold' }}>
+                      {typeConfig.icon} Timeline bar ข้ามจาก {formatShortDate(selectedJob.start_date)} ถึง {formatShortDate(selectedJob.expected_completion_date || selectedJob.due_date)}
+                    </Typography>
+                    {selectedJob.due_date && selectedJob.expected_completion_date && selectedJob.due_date !== selectedJob.expected_completion_date && (
+                      <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                        ⚠️ วันครบกำหนด: {formatShortDate(selectedJob.due_date)}
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
               </Card>
@@ -824,6 +947,57 @@ const EnhancedCalendarView = ({
       </Dialog>
     );
   };
+
+  // Debug function to understand data structure
+  const debugEventData = () => {
+    console.log('=== DEBUG EVENT DATA ===');
+    console.log('Current date:', format(currentDate, 'yyyy-MM-dd'));
+    console.log('Calendar range:', format(calendarDays[0], 'yyyy-MM-dd'), 'to', format(calendarDays[calendarDays.length - 1], 'yyyy-MM-dd'));
+    console.log('Total events:', maxSupplies.length);
+    console.log('Filtered events:', filteredEvents.length);
+    console.log('Event rows:', eventRows.length);
+    
+    filteredEvents.forEach((event, index) => {
+      console.log(`Event ${index + 1}:`, {
+        id: event.id,
+        title: event.title || event.customer_name,
+        start_date: event.start_date,
+        expected_completion_date: event.expected_completion_date,
+        production_type: event.production_type,
+        status: event.status
+      });
+    });
+    
+         eventRows.forEach((row, rowIndex) => {
+       console.log(`Row ${rowIndex}:`, row.map(timeline => {
+         const leftPercent = (timeline.startCol / 7) * 100;
+         const widthPercent = (timeline.width / 7) * 100;
+         return {
+           eventId: timeline.event.id,
+           title: timeline.event.title || timeline.event.customer_name,
+           startCol: timeline.startCol,
+           width: timeline.width,
+           duration: timeline.duration,
+           actualStart: timeline.actualStart,
+           actualEnd: timeline.actualEnd,
+           startIndex: timeline.startIndex,
+           endIndex: timeline.endIndex,
+           leftPercent: `${leftPercent.toFixed(1)}%`,
+           widthPercent: `${widthPercent.toFixed(1)}%`,
+           cssLeft: leftPercent,
+           cssWidth: widthPercent
+         };
+       }));
+     });
+    console.log('=== END DEBUG ===');
+  };
+
+  // Auto-debug when data changes
+  useEffect(() => {
+    if (filteredEvents.length > 0) {
+      debugEventData();
+    }
+  }, [filteredEvents, eventRows]);
 
   return (
     <Box>

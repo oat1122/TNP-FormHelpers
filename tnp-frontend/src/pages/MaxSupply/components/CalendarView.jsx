@@ -144,22 +144,50 @@ const EnhancedCalendarView = ({
 
   // Calculate event timeline position and width for multi-day spanning
   const calculateEventTimeline = (event, calendarDays) => {
-    if (!event.start_date) return null;
+    console.log('=== TIMELINE CALCULATION START ===');
+    console.log('Event data:', {
+      id: event.id,
+      title: event.title,
+      customer_name: event.customer_name,
+      start_date: event.start_date,
+      expected_completion_date: event.expected_completion_date,
+      due_date: event.due_date,
+      production_type: event.production_type,
+      status: event.status
+    });
+    
+    if (!event.start_date) {
+      console.log('No start_date, returning null');
+      return null;
+    }
     
     try {
       const eventStart = typeof event.start_date === 'string' ? parseISO(event.start_date) : event.start_date;
       
       // Use expected_completion_date, fallback to due_date if not available
       const endDateStr = event.expected_completion_date || event.due_date;
-      if (!endDateStr) return null;
+      if (!endDateStr) {
+        console.log('No end date found, returning null');
+        return null;
+      }
       
       const eventEnd = typeof endDateStr === 'string' ? parseISO(endDateStr) : endDateStr;
       
-      if (!isValid(eventStart) || !isValid(eventEnd)) return null;
+      if (!isValid(eventStart) || !isValid(eventEnd)) {
+        console.log('Invalid dates, returning null');
+        return null;
+      }
       
       // Convert to date strings for comparison
       const eventStartStr = format(eventStart, 'yyyy-MM-dd');
       const eventEndStr = format(eventEnd, 'yyyy-MM-dd');
+      
+      console.log('Parsed dates:', {
+        eventStart: eventStartStr,
+        eventEnd: eventEndStr,
+        eventStartObj: eventStart,
+        eventEndObj: eventEnd
+      });
       
       // Find start and end positions in calendar
       const startIndex = calendarDays.findIndex(day => 
@@ -173,64 +201,71 @@ const EnhancedCalendarView = ({
       const calendarStart = calendarDays[0];
       const calendarEnd = calendarDays[calendarDays.length - 1];
       
-      // Debug logging for event calculation
+      // Enhanced debug logging
       console.log('=== CALCULATING TIMELINE ===');
       console.log('Event:', event.id, event.title || event.customer_name);
       console.log('Event dates:', eventStartStr, 'to', eventEndStr);
-      console.log('Backend dates:', {
-        start_date: event.start_date,
-        expected_completion_date: event.expected_completion_date,
-        due_date: event.due_date,
-        using_end_date: endDateStr
-      });
       console.log('Calendar range:', format(calendarStart, 'yyyy-MM-dd'), 'to', format(calendarEnd, 'yyyy-MM-dd'));
-      console.log('Calendar days length:', calendarDays.length);
-      console.log('Found indices - start:', startIndex, 'end:', endIndex);
+      console.log('Start index:', startIndex, 'End index:', endIndex);
       
       // Handle events that span beyond the current calendar view
       let actualStart, actualEnd;
       
+      // Check if event has any intersection with current calendar view
+      const eventIntersectsCalendar = (eventStart <= calendarEnd && eventEnd >= calendarStart);
+      console.log('Event intersects calendar:', eventIntersectsCalendar);
+      
+      if (!eventIntersectsCalendar) {
+        // Event is completely outside current calendar view
+        console.log('Event completely outside calendar view');
+        return null;
+      }
+      
       if (startIndex === -1 && endIndex === -1) {
-        // Event is completely outside the current view
-        // Check if event spans across the entire view
+        // Event spans across the entire calendar view
         if (eventStart <= calendarStart && eventEnd >= calendarEnd) {
-          // Event spans the entire calendar view
           actualStart = 0;
           actualEnd = calendarDays.length - 1;
-          console.log('Case: Event spans entire calendar view');
+          console.log('Event spans entire calendar view');
         } else {
-          // Event is completely outside, don't show
-          console.log('Case: Event is completely outside calendar view');
+          console.log('Event outside calendar view (case 2)');
           return null;
         }
       } else if (startIndex === -1) {
         // Event starts before calendar view but ends within
         actualStart = 0;
         actualEnd = endIndex;
-        console.log('Case: Event starts before calendar, ends within');
+        console.log('Event starts before calendar, ends within');
       } else if (endIndex === -1) {
         // Event starts within calendar view but ends after
         actualStart = startIndex;
         actualEnd = calendarDays.length - 1;
-        console.log('Case: Event starts within calendar, ends after');
+        console.log('Event starts within calendar, ends after', { startIndex, actualStart, actualEnd });
       } else {
         // Event is completely within calendar view
         actualStart = startIndex;
         actualEnd = endIndex;
-        console.log('Case: Event is completely within calendar view');
+        console.log('Event completely within calendar view', { startIndex, endIndex, actualStart, actualEnd });
       }
       
-      const width = actualEnd - actualStart + 1;
+      const width = actualStart <= actualEnd ? actualEnd - actualStart + 1 : 0;
+      if (width <= 0) {
+        console.log('Invalid width:', width);
+        return null;
+      }
+      
       const duration = differenceInDays(eventEnd, eventStart) + 1;
-
-      console.log('Final calculation result:', {
+      
+      console.log('Final result:', {
         actualStart,
         actualEnd,
-        startCol: actualStart,
         width,
         duration,
-        leftPercent: `${(actualStart / 7) * 100}%`,
-        widthPercent: `${(width / 7) * 100}%`
+        leftPercent: (actualStart / calendarDays.length) * 100,
+        widthPercent: (width / calendarDays.length) * 100,
+        totalCalendarDays: calendarDays.length,
+        startIndex,
+        endIndex
       });
       console.log('=== END TIMELINE CALCULATION ===');
 
@@ -243,6 +278,10 @@ const EnhancedCalendarView = ({
         endIndex,
         actualStart,
         actualEnd,
+        eventStart,
+        eventEnd,
+        eventStartStr,
+        eventEndStr,
       };
     } catch (error) {
       console.error('Error calculating timeline for event:', event.id, error);
@@ -309,10 +348,15 @@ const EnhancedCalendarView = ({
   const getEventsForDate = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return filteredEvents.filter(job => {
-      if (!job.start_date || !job.expected_completion_date) return false;
+      if (!job.start_date) return false;
+      
+      // Use expected_completion_date, fallback to due_date if not available
+      const endDateStr = job.expected_completion_date || job.due_date;
+      if (!endDateStr) return false;
+      
       try {
         const startDate = format(parseISO(job.start_date), 'yyyy-MM-dd');
-        const endDate = format(parseISO(job.expected_completion_date), 'yyyy-MM-dd');
+        const endDate = format(parseISO(endDateStr), 'yyyy-MM-dd');
         return dateStr >= startDate && dateStr <= endDate;
       } catch {
         return false;
@@ -408,7 +452,7 @@ const EnhancedCalendarView = ({
   };
 
   // Timeline Bar Component
-  const TimelineBar = ({ timeline, rowIndex }) => {
+  const TimelineBar = ({ timeline, rowIndex, calendarDays }) => {
     const event = timeline.event;
     const typeConfig = productionTypeConfig[event.production_type] || productionTypeConfig.screen;
     const statusInfo = statusConfig[event.status] || statusConfig.pending;
@@ -416,6 +460,26 @@ const EnhancedCalendarView = ({
     
     const isHovered = hoveredTimeline?.event?.id === event.id;
     const isUrgent = event.priority === 'urgent';
+    
+    // Calculate correct position based on total calendar days
+    const totalDays = calendarDays.length;
+    const leftPercent = (timeline.startCol / totalDays) * 100;
+    const widthPercent = Math.max((timeline.width / totalDays) * 100, 8); // Minimum 8% width
+    
+    // Debug position calculation
+    console.log('TimelineBar position calculation:', {
+      eventId: event.id,
+      eventTitle: event.title || event.customer_name,
+      startCol: timeline.startCol,
+      width: timeline.width,
+      totalDays,
+      leftPercent: leftPercent,
+      widthPercent: widthPercent,
+      eventStart: timeline.eventStartStr,
+      eventEnd: timeline.eventEndStr,
+      actualStart: timeline.actualStart,
+      actualEnd: timeline.actualEnd
+    });
     
     return (
       <Tooltip
@@ -469,8 +533,8 @@ const EnhancedCalendarView = ({
           onMouseLeave={() => setHoveredTimeline(null)}
           sx={{
             position: 'absolute',
-            left: `${(timeline.startCol / 7) * 100}%`,
-            width: `${Math.max((timeline.width / 7) * 100, 8)}%`, // Minimum 8% width for visibility
+            left: `${leftPercent}%`,
+            width: `${widthPercent}%`,
             height: isMobile ? 18 : 22,
             top: (isMobile ? 45 : 65) + rowIndex * (isMobile ? 22 : 26),
             cursor: 'pointer',
@@ -482,10 +546,6 @@ const EnhancedCalendarView = ({
             transform: isHovered ? (isMobile ? 'translateY(-1px) scale(1.01)' : 'translateY(-2px) scale(1.02)') : 'none',
             minWidth: isMobile ? '40px' : '60px', // Ensure minimum width for visibility
             maxWidth: '100%', // Prevent overflow
-            // Temporary debug styling - remove after fixing
-            border: '2px solid red',
-            backgroundColor: 'rgba(255,255,0,0.3)',
-            // Force visibility
             minHeight: isMobile ? 18 : 22,
           }}
         >
@@ -497,17 +557,18 @@ const EnhancedCalendarView = ({
             right: '2px',
             top: '50%',
             transform: 'translateY(-50%)',
-            height: isMobile ? 18 : 22,
+            height: isMobile ? 16 : 20,
             background: typeConfig.gradient,
-            borderRadius: isMobile ? '9px' : '11px',
+            borderRadius: isMobile ? '8px' : '10px',
             display: 'flex',
             alignItems: 'center',
-            px: isMobile ? 1 : 2,
+            px: isMobile ? 0.5 : 1,
             boxShadow: isHovered 
               ? `0 8px 25px ${typeConfig.color}40` 
               : `0 3px 12px ${typeConfig.color}30`,
             border: `1px solid ${typeConfig.color}`,
             animation: isUrgent ? 'pulse 2s infinite' : 'none',
+            overflow: 'hidden',
             '@keyframes pulse': {
               '0%, 100%': { opacity: 1 },
               '50%': { opacity: 0.8 },
@@ -533,12 +594,12 @@ const EnhancedCalendarView = ({
           <Box
             sx={{
               position: 'absolute',
-              left: isMobile ? 5 : 7,
+              left: isMobile ? 3 : 4,
               top: '50%',
               transform: 'translateY(-50%)',
-              width: isMobile ? 5 : 6,
-              height: isMobile ? 5 : 6,
-              bgcolor: 'rgba(255,255,255,0.9)',
+              width: isMobile ? 4 : 5,
+              height: isMobile ? 4 : 5,
+              bgcolor: 'rgba(255,255,255,0.95)',
               borderRadius: '50%',
               boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
             }}
@@ -553,29 +614,34 @@ const EnhancedCalendarView = ({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              fontSize: isMobile ? '0.6rem' : '0.7rem',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-              ml: isMobile ? 1.5 : 2.5,
+              fontSize: isMobile ? '0.55rem' : '0.65rem',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              ml: isMobile ? 1 : 1.5,
               flex: 1,
+              lineHeight: 1.2,
             }}
             title={`${typeConfig.icon} ${event.customer_name || event.title} (${formatShortDate(event.start_date)} - ${formatShortDate(event.expected_completion_date)})`}
           >
-            {isMobile ? `${typeConfig.icon} ${event.customer_name || event.title}` : `${typeConfig.icon} ${event.customer_name || event.title}`}
+            {isMobile 
+              ? `${typeConfig.icon} ${(event.customer_name || event.title).substring(0, 10)}${(event.customer_name || event.title).length > 10 ? '...' : ''}`
+              : `${typeConfig.icon} ${event.customer_name || event.title}`
+            }
           </Typography>
 
           {/* Duration badge */}
-          {timeline.duration > 1 && !isMobile && (
+          {timeline.duration > 1 && !isMobile && timeline.width > 60 && (
             <Chip
               label={timeline.duration > 7 ? `${Math.ceil(timeline.duration / 7)}w` : `${timeline.duration}d`}
               size="small"
               sx={{
-                height: 16,
-                fontSize: '0.5rem',
-                bgcolor: 'rgba(255,255,255,0.2)',
+                height: 14,
+                fontSize: '0.45rem',
+                bgcolor: 'rgba(255,255,255,0.25)',
                 color: 'white',
                 fontWeight: 'bold',
-                '& .MuiChip-label': { px: 0.4 },
-                ml: 0.5
+                '& .MuiChip-label': { px: 0.3 },
+                ml: 0.5,
+                minWidth: 'auto',
               }}
             />
           )}
@@ -948,56 +1014,70 @@ const EnhancedCalendarView = ({
     );
   };
 
-  // Debug function to understand data structure
-  const debugEventData = () => {
-    console.log('=== DEBUG EVENT DATA ===');
+  // Auto-debug when data changes
+  useEffect(() => {
+    console.log('=== CALENDAR DEBUG ===');
     console.log('Current date:', format(currentDate, 'yyyy-MM-dd'));
     console.log('Calendar range:', format(calendarDays[0], 'yyyy-MM-dd'), 'to', format(calendarDays[calendarDays.length - 1], 'yyyy-MM-dd'));
     console.log('Total events:', maxSupplies.length);
     console.log('Filtered events:', filteredEvents.length);
     console.log('Event rows:', eventRows.length);
     
-    filteredEvents.forEach((event, index) => {
-      console.log(`Event ${index + 1}:`, {
-        id: event.id,
-        title: event.title || event.customer_name,
-        start_date: event.start_date,
-        expected_completion_date: event.expected_completion_date,
-        production_type: event.production_type,
-        status: event.status
+    if (maxSupplies.length > 0) {
+      console.log('All maxSupplies events:');
+      maxSupplies.forEach((event, index) => {
+        const endDateStr = event.expected_completion_date || event.due_date;
+        console.log(`Event ${index + 1}:`, {
+          id: event.id,
+          title: event.title || event.customer_name,
+          start_date: event.start_date,
+          expected_completion_date: event.expected_completion_date,
+          due_date: event.due_date,
+          using_end_date: endDateStr,
+          production_type: event.production_type,
+          status: event.status
+        });
       });
-    });
-    
-         eventRows.forEach((row, rowIndex) => {
-       console.log(`Row ${rowIndex}:`, row.map(timeline => {
-         const leftPercent = (timeline.startCol / 7) * 100;
-         const widthPercent = (timeline.width / 7) * 100;
-         return {
-           eventId: timeline.event.id,
-           title: timeline.event.title || timeline.event.customer_name,
-           startCol: timeline.startCol,
-           width: timeline.width,
-           duration: timeline.duration,
-           actualStart: timeline.actualStart,
-           actualEnd: timeline.actualEnd,
-           startIndex: timeline.startIndex,
-           endIndex: timeline.endIndex,
-           leftPercent: `${leftPercent.toFixed(1)}%`,
-           widthPercent: `${widthPercent.toFixed(1)}%`,
-           cssLeft: leftPercent,
-           cssWidth: widthPercent
-         };
-       }));
-     });
-    console.log('=== END DEBUG ===');
-  };
-
-  // Auto-debug when data changes
-  useEffect(() => {
-    if (filteredEvents.length > 0) {
-      debugEventData();
     }
-  }, [filteredEvents, eventRows]);
+    
+    if (filteredEvents.length > 0) {
+      console.log('Filtered events:');
+      filteredEvents.forEach((event, index) => {
+        const endDateStr = event.expected_completion_date || event.due_date;
+        console.log(`Filtered Event ${index + 1}:`, {
+          id: event.id,
+          title: event.title || event.customer_name,
+          start_date: event.start_date,
+          expected_completion_date: event.expected_completion_date,
+          due_date: event.due_date,
+          using_end_date: endDateStr,
+          production_type: event.production_type,
+          status: event.status
+        });
+      });
+    }
+    
+    if (eventRows.length > 0) {
+      eventRows.forEach((row, rowIndex) => {
+        console.log(`Row ${rowIndex}:`, row.map(timeline => ({
+          eventId: timeline.event.id,
+          title: timeline.event.title || timeline.event.customer_name,
+          startCol: timeline.startCol,
+          width: timeline.width,
+          duration: timeline.duration,
+          actualStart: timeline.actualStart,
+          actualEnd: timeline.actualEnd,
+          eventStartStr: timeline.eventStartStr,
+          eventEndStr: timeline.eventEndStr,
+          leftPercent: (timeline.startCol / calendarDays.length) * 100,
+          widthPercent: (timeline.width / calendarDays.length) * 100,
+          totalCalendarDays: calendarDays.length
+        })));
+      });
+    }
+    
+    console.log('=== END CALENDAR DEBUG ===');
+  }, [filteredEvents, eventRows, currentDate, calendarDays, maxSupplies]);
 
   return (
     <Box>
@@ -1369,7 +1449,11 @@ const EnhancedCalendarView = ({
                 <Box key={rowIndex}>
                   {row.map((timeline) => (
                     <Box key={timeline.event.id} sx={{ pointerEvents: 'auto' }}>
-                      <TimelineBar timeline={timeline} rowIndex={rowIndex} />
+                      <TimelineBar 
+                        timeline={timeline} 
+                        rowIndex={rowIndex} 
+                        calendarDays={calendarDays} 
+                      />
                     </Box>
                   ))}
                 </Box>

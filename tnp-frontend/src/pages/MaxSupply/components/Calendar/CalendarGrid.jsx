@@ -24,6 +24,10 @@ const CalendarGrid = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // คำนวณจำนวนแถวของปฏิทิน
+  const numRows = Math.ceil(calendarDays.length / 7);
+  const cellHeight = isMobile ? '160px' : '200px';
+
   return (
     <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
       {/* Day Headers */}
@@ -47,9 +51,20 @@ const CalendarGrid = ({
       </Box>
 
       {/* Calendar Days with Enhanced Timeline */}
-      <Box sx={{ position: 'relative', height: isMobile ? '480px' : '600px', bgcolor: 'grey.50' }}>
+      <Box sx={{ 
+        position: 'relative', 
+        height: `calc(${numRows} * ${cellHeight})`, // คำนวณความสูงตามจำนวนแถวจริง
+        minHeight: isMobile ? '480px' : '600px', // ความสูงขั้นต่ำ
+        bgcolor: 'grey.50' 
+      }}>
         {/* Days Grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', position: 'relative', zIndex: 1 }}>
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gridTemplateRows: `repeat(${numRows}, ${cellHeight})`, // ปรับจำนวนแถวตามจำนวนที่คำนวณได้
+          position: 'relative', 
+          zIndex: 1 
+        }}>
           {calendarDays.map((day, index) => {
             const dayEvents = getEventsForDate(day, filteredEvents);
             const isCurrentMonth = isSameMonth(day, currentDate);
@@ -62,7 +77,7 @@ const CalendarGrid = ({
                 sx={{ 
                   border: 1,
                   borderColor: 'divider',
-                  height: isMobile ? '160px' : '200px', // เพิ่มความสูงเพื่อรองรับ 4 แถว timeline
+                  height: cellHeight, // ใช้ความสูงที่คำนวณแล้ว
                   position: 'relative',
                   backgroundColor: isTodayDate 
                     ? '#e8f0fe' 
@@ -366,6 +381,7 @@ const CalendarGrid = ({
                         hoveredTimeline={hoveredTimeline}
                         setHoveredTimeline={setHoveredTimeline}
                         onTimelineClick={onTimelineClick}
+                        cellHeight={cellHeight}
                       />
                     </Box>
                   ))}

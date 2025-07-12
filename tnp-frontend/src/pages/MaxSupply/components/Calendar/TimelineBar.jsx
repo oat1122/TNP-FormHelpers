@@ -10,7 +10,8 @@ const TimelineBar = ({
   calendarDays, 
   hoveredTimeline, 
   setHoveredTimeline, 
-  onTimelineClick 
+  onTimelineClick,
+  cellHeight // เพิ่ม parameter สำหรับความสูงแต่ละ cell
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -35,8 +36,8 @@ const TimelineBar = ({
   const endWeek = Math.floor(endCol / daysPerWeek);
   const endDayInWeek = endCol % daysPerWeek;
   
-  // Improved positioning constants
-  const calendarRowHeight = isMobile ? CALENDAR_CONFIG.MOBILE_CALENDAR_HEIGHT : CALENDAR_CONFIG.DESKTOP_CALENDAR_HEIGHT;
+  // ใช้ความสูงจริงของ cell แทนค่าคงที่
+  const calendarRowHeight = parseInt(cellHeight) || (isMobile ? CALENDAR_CONFIG.MOBILE_CALENDAR_HEIGHT : CALENDAR_CONFIG.DESKTOP_CALENDAR_HEIGHT);
   const baseTimelineOffset = isMobile ? CALENDAR_CONFIG.MOBILE_TIMELINE_OFFSET : CALENDAR_CONFIG.DESKTOP_TIMELINE_OFFSET;
   const timelineRowSpacing = isMobile ? CALENDAR_CONFIG.MOBILE_TIMELINE_SPACING : CALENDAR_CONFIG.DESKTOP_TIMELINE_SPACING;
   

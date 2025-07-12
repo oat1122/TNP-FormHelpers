@@ -74,19 +74,18 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
 
   const workingData = maxSupplies.length > 0 ? maxSupplies : defaultMockData;
 
-  // Get calendar days for the current month - แสดงครบ 42 วัน (6 สัปดาห์)
+  // Get calendar days for the current month - แสดงตามจำนวนสัปดาห์ที่จำเป็น
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 }); // Sunday
     
-    // เพิ่มความแน่ใจให้ได้ 42 วัน (6 สัปดาห์)
-    const days = [];
-    for (let i = 0; i < 42; i++) {
-      const day = new Date(calendarStart);
-      day.setDate(calendarStart.getDate() + i);
-      days.push(day);
-    }
+    // สร้างช่วงวันที่จาก calendarStart ถึง calendarEnd
+    const days = eachDayOfInterval({
+      start: calendarStart,
+      end: calendarEnd
+    });
     
     return days;
   }, [currentDate]);

@@ -3,10 +3,33 @@
     max-width: 1600px;
 }
 
+/* Smooth animations for cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth transition for filter changes */
+.grid-card .row {
+    transition: opacity 0.3s ease;
+}
+
 .card {
     border-radius: 1.3rem !important;
     border-width: 0.18rem !important;
     border-color: #d6d3d1 !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-title {

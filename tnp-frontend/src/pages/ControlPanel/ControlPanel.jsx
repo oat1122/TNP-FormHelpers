@@ -27,10 +27,15 @@ import { GiPriceTag } from "react-icons/gi";
 import { LiaFileInvoiceDollarSolid } from "react-icons/lia";
 import { HiDocumentCurrencyDollar } from "react-icons/hi2";
 import { useGetPdCountQuery } from "../../api/slice";
+import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
+import { productionTypeConfig } from "../../pages/MaxSupply/utils/constants";
 import { Spinner } from "react-bootstrap";
 
 function ControlPanel() {
   const { data, isLoading } = useGetPdCountQuery();
+  const { data: maxSupplyData, statistics: maxSupplyStats } = useMaxSupplyData({
+    status: 'in_progress' // Only get in-progress jobs
+  });
   const user = JSON.parse(localStorage.getItem("userData"));
 
   return (
@@ -57,6 +62,63 @@ function ControlPanel() {
               {data?.totalShirts ? `จำนวนเสื้อทั้งหมด ${data.totalShirts.toLocaleString()} ตัว` : "(กำลังผลิต)"}
             </label>
           </a>
+          
+          {/* MaxSupply Production Statistics */}
+          <div className="max-supply-stats">
+            <h6 className="text-center fw-bold">งานผลิตแบ่งตามประเภท</h6>
+            {maxSupplyStats?.work_calculations ? (
+              <div className="row">
+                <div className="col-6 mb-2">
+                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.screen.color}` }}>
+                    <div className="fw-bold" style={{ color: productionTypeConfig.screen.color, fontSize: '0.8rem' }}>
+                      Screen
+                    </div>
+                    <div className="count">{maxSupplyStats.work_calculations.job_count.screen || 0}</div>
+                    <div className="workload">
+                      {maxSupplyStats.work_calculations.current_workload.screen || 0} ชิ้น
+                    </div>
+                  </div>
+                </div>
+                <div className="col-6 mb-2">
+                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.dtf.color}` }}>
+                    <div className="fw-bold" style={{ color: productionTypeConfig.dtf.color, fontSize: '0.8rem' }}>
+                      DTF
+                    </div>
+                    <div className="count">{maxSupplyStats.work_calculations.job_count.dtf || 0}</div>
+                    <div className="workload">
+                      {maxSupplyStats.work_calculations.current_workload.dtf || 0} ชิ้น
+                    </div>
+                  </div>
+                </div>
+                <div className="col-6 mb-2">
+                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.sublimation.color}` }}>
+                    <div className="fw-bold" style={{ color: productionTypeConfig.sublimation.color, fontSize: '0.8rem' }}>
+                      Sublimation
+                    </div>
+                    <div className="count">{maxSupplyStats.work_calculations.job_count.sublimation || 0}</div>
+                    <div className="workload">
+                      {maxSupplyStats.work_calculations.current_workload.sublimation || 0} ชิ้น
+                    </div>
+                  </div>
+                </div>
+                <div className="col-6 mb-2">
+                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.embroidery.color}` }}>
+                    <div className="fw-bold" style={{ color: productionTypeConfig.embroidery.color, fontSize: '0.8rem' }}>
+                      Embroidery
+                    </div>
+                    <div className="count">{maxSupplyStats.work_calculations.job_count.embroidery || 0}</div>
+                    <div className="workload">
+                      {maxSupplyStats.work_calculations.current_workload.embroidery || 0} ชิ้น
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center">
+                <small className="text-muted">กำลังโหลดข้อมูล...</small>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
       <div className="row col-12 col-md-11 col-lg-8 col-xl-8 mt-4 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">

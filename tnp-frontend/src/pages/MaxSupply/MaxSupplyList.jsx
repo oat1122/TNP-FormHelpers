@@ -50,6 +50,7 @@ import { format } from 'date-fns';
 import * as dateFnsLocales from 'date-fns/locale';
 import ProductionTypeIcon from './components/ProductionTypeIcon';
 import { productionTypeConfig } from './utils/constants';
+import { maxSupplyApi } from '../../services/maxSupplyApi';
 
 const MaxSupplyList = () => {
   const theme = useTheme();
@@ -84,7 +85,7 @@ const MaxSupplyList = () => {
     return <ProductionTypeIcon type={type} size={20} />;
   };
 
-  // Status colors
+  // Status colors - เอาอิโมจิออกสำหรับโหมด PC
   const statusColors = {
     pending: '#d97706',
     in_progress: '#2563eb',
@@ -93,6 +94,14 @@ const MaxSupplyList = () => {
   };
 
   const statusLabels = {
+    pending: 'รอเริ่ม',
+    in_progress: 'กำลังผลิต',
+    completed: 'เสร็จสิ้น',
+    cancelled: 'ยกเลิก',
+  };
+
+  // Status labels with emoji for mobile
+  const statusLabelsWithEmoji = {
     pending: '🟡 รอเริ่ม',
     in_progress: '🔵 กำลังผลิต',
     completed: '🟢 เสร็จสิ้น',
@@ -110,19 +119,18 @@ const MaxSupplyList = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      const params = {
         page: page.toString(),
         per_page: '20',
         ...filters,
-      });
+      };
 
-      const response = await fetch(`/api/v1/max-supplies?${params}`);
-      const data = await response.json();
+      const response = await maxSupplyApi.getAll(params);
 
-      if (data.status === 'success') {
-        setMaxSupplies(data.data);
-        setTotalPages(data.pagination.total_pages);
-        setTotalItems(data.pagination.total_items);
+      if (response.status === 'success') {
+        setMaxSupplies(response.data);
+        setTotalPages(response.pagination.total_pages);
+        setTotalItems(response.pagination.total_items);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -154,13 +162,8 @@ const MaxSupplyList = () => {
   const handleDelete = async (id) => {
     if (window.confirm('คุณต้องการลบงานนี้หรือไม่?')) {
       try {
-        const response = await fetch(`/api/v1/max-supplies/${id}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          loadData();
-        }
+        await maxSupplyApi.delete(id);
+        loadData();
       } catch (error) {
         console.error('Error deleting item:', error);
       }
@@ -170,11 +173,10 @@ const MaxSupplyList = () => {
   // Handle view detail
   const handleViewDetail = async (id) => {
     try {
-      const response = await fetch(`/api/v1/max-supplies/${id}`);
-      const data = await response.json();
+      const response = await maxSupplyApi.getById(id);
 
-      if (data.status === 'success') {
-        setSelectedItem(data.data);
+      if (response.status === 'success') {
+        setSelectedItem(response.data);
         setDetailDialog(true);
       }
     } catch (error) {
@@ -294,7 +296,7 @@ const MaxSupplyList = () => {
                   </Typography>
                 </Box>
                 <Chip
-                  label={statusLabels[item.status]}
+                  label={statusLabelsWithEmoji[item.status]}
                   sx={{
                     bgcolor: statusColors[item.status],
                     color: 'white',
@@ -318,9 +320,17 @@ const MaxSupplyList = () => {
                   👤 {item.creator?.name || 'N/A'}
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary">
-                📅 ครบกำหนด: {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  📅 วันที่เริ่ม: {item.start_date ? format(new Date(item.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  📅 วันที่คาดว่าเสร็จ: {item.expected_completion_date ? format(new Date(item.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  📅 ครบกำหนด: {item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
+                </Typography>
+              </Box>
             </CardContent>
             <CardActions>
               <Button
@@ -358,13 +368,14 @@ const MaxSupplyList = () => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>ID</TableCell>
+            <TableCell>รหัส</TableCell>
             <TableCell>ชื่องาน</TableCell>
             <TableCell>ประเภท</TableCell>
             <TableCell>สถานะ</TableCell>
             <TableCell>ความสำคัญ</TableCell>
+            <TableCell>วันที่เริ่ม</TableCell>
+            <TableCell>วันที่คาดว่าเสร็จ</TableCell>
             <TableCell>ครบกำหนด</TableCell>
-            <TableCell>ผู้สร้าง</TableCell>
             <TableCell>จัดการ</TableCell>
           </TableRow>
         </TableHead>
@@ -387,7 +398,7 @@ const MaxSupplyList = () => {
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       {getProductionTypeIcon(item.production_type)}
-                      {item.production_type}
+                      {productionTypeConfig[item.production_type]?.label || item.production_type}
                     </Box>
                   }
                   size="small"
@@ -410,10 +421,19 @@ const MaxSupplyList = () => {
               <TableCell>{priorityLabels[item.priority] || item.priority}</TableCell>
               <TableCell>
                 <Typography variant="body2">
-                  {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+                  {item.start_date ? format(new Date(item.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
                 </Typography>
               </TableCell>
-              <TableCell>{item.creator?.name || 'N/A'}</TableCell>
+              <TableCell>
+                <Typography variant="body2">
+                  {item.expected_completion_date ? format(new Date(item.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="body2">
+                  {item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}
+                </Typography>
+              </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Tooltip title="ดูรายละเอียด">
@@ -462,7 +482,7 @@ const MaxSupplyList = () => {
                 <Typography><strong>รหัส:</strong> {selectedItem.code}</Typography>
                 <Typography><strong>ชื่องาน:</strong> {selectedItem.title}</Typography>
                 <Typography><strong>ลูกค้า:</strong> {selectedItem.customer_name}</Typography>
-                <Typography><strong>ประเภท:</strong> {selectedItem.production_type}</Typography>
+                <Typography><strong>ประเภท:</strong> {productionTypeConfig[selectedItem.production_type]?.label || selectedItem.production_type}</Typography>
                 <Typography><strong>สถานะ:</strong> {statusLabels[selectedItem.status]}</Typography>
                 <Typography><strong>ความสำคัญ:</strong> {priorityLabels[selectedItem.priority]}</Typography>
               </Box>
@@ -472,9 +492,9 @@ const MaxSupplyList = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   กำหนดการ
                 </Typography>
-                <Typography><strong>วันเริ่ม:</strong> {format(new Date(selectedItem.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
-                <Typography><strong>วันที่คาดว่าจะเสร็จ:</strong> {format(new Date(selectedItem.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
-                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography><strong>วันเริ่ม:</strong> {selectedItem.start_date ? format(new Date(selectedItem.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}</Typography>
+                <Typography><strong>วันที่คาดว่าจะเสร็จ:</strong> {selectedItem.expected_completion_date ? format(new Date(selectedItem.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}</Typography>
+                <Typography><strong>วันครบกำหนด:</strong> {selectedItem.due_date ? format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'N/A'}</Typography>
                 <Typography><strong>จำนวนทั้งหมด:</strong> {selectedItem.total_quantity}</Typography>
                 <Typography><strong>จำนวนที่เสร็จ:</strong> {selectedItem.completed_quantity}</Typography>
                 <Typography><strong>ความคืบหน้า:</strong> {selectedItem.progress_percentage}%</Typography>

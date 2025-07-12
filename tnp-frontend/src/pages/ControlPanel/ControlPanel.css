@@ -47,6 +47,45 @@ a.btn.disable-link label {
   cursor: default;
 }
 
+/* MaxSupply Production Statistics */
+.max-supply-stats {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.max-supply-stats h6 {
+  color: #495057;
+  margin-bottom: 0.75rem;
+}
+
+.production-type-card {
+  background-color: white;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.production-type-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.production-type-card .count {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #212529;
+}
+
+.production-type-card .workload {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
 label.count-process {
   color: #c65050;
   font-size: clamp(5rem, 10vw, 9rem);

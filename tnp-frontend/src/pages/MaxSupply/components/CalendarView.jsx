@@ -229,8 +229,8 @@ const EnhancedCalendarView = ({
         startCol: actualStart,
         width,
         duration,
-        leftPercent: `${(actualStart / 7) * 100}%`,
-        widthPercent: `${(width / 7) * 100}%`
+        leftPercent: `${(actualStart / calendarDays.length) * 100}%`,
+        widthPercent: `${(width / calendarDays.length) * 100}%`
       });
       console.log('=== END TIMELINE CALCULATION ===');
 
@@ -469,8 +469,8 @@ const EnhancedCalendarView = ({
           onMouseLeave={() => setHoveredTimeline(null)}
           sx={{
             position: 'absolute',
-            left: `${(timeline.startCol / 7) * 100}%`,
-            width: `${Math.max((timeline.width / 7) * 100, 8)}%`, // Minimum 8% width for visibility
+            left: `${ (timeline.startCol / calendarDays.length) * 100}%`,
+            width: `${Math.max( (timeline.width / calendarDays.length) * 100, 8)}%`, // Minimum 8% width for visibility
             height: isMobile ? 18 : 22,
             top: (isMobile ? 45 : 65) + rowIndex * (isMobile ? 22 : 26),
             cursor: 'pointer',
@@ -970,8 +970,8 @@ const EnhancedCalendarView = ({
     
          eventRows.forEach((row, rowIndex) => {
        console.log(`Row ${rowIndex}:`, row.map(timeline => {
-         const leftPercent = (timeline.startCol / 7) * 100;
-         const widthPercent = (timeline.width / 7) * 100;
+         const leftPercent =  (timeline.startCol / calendarDays.length) * 100;
+         const widthPercent =  (timeline.width / calendarDays.length) * 100;
          return {
            eventId: timeline.event.id,
            title: timeline.event.title || timeline.event.customer_name,

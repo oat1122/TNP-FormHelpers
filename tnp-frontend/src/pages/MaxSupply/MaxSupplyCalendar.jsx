@@ -369,8 +369,8 @@ const MaxSupplyCalendar = () => {
           onClick={() => handleEventClick(event)}
           sx={{
             position: 'absolute',
-            left: `${(timeline.startCol / 7) * 100}%`,
-            width: `${(timeline.width / 7) * 100}%`,
+            left: `${ (timeline.startCol / days.length) * 100}%`,
+            width: `${ (timeline.width / days.length) * 100}%`,
             height: 24,
             top: rowIndex * 28,
             backgroundColor: bgColor,
@@ -520,8 +520,8 @@ const MaxSupplyCalendar = () => {
                   key={`${rowIndex}-${timelineIndex}`}
                   sx={{
                     position: 'absolute',
-                    left: `${(timeline.startCol / 7) * 100}%`,
-                    width: `${(timeline.width / 7) * 100}%`,
+                    left: `${ (timeline.startCol / days.length) * 100}%`,
+                    width: `${ (timeline.width / days.length) * 100}%`,
                     top: 40 + rowIndex * 28,
                     height: 24,
                     pointerEvents: 'auto',

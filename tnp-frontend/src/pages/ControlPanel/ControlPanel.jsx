@@ -66,7 +66,7 @@ function ControlPanel() {
 
           {/* MaxSupply Production Statistics */}
           <div className="max-supply-stats">
-            <h6 className="text-center fw-bold">งานผลิตแบ่งตามประเภท</h6>
+            <h6 className="text-center fw-bold">งานที่กำลังผลิต</h6>
             {maxSupplyStats?.work_calculations ? (
               <div className="row g-2">
                 <div className="col-6">
@@ -94,7 +94,7 @@ function ControlPanel() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="col-6">
                   <div
                     className="production-type-card"
@@ -120,7 +120,7 @@ function ControlPanel() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="col-6">
                   <div
                     className="production-type-card"
@@ -147,7 +147,7 @@ function ControlPanel() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="col-6">
                   <div
                     className="production-type-card"

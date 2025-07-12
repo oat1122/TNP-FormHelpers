@@ -22,17 +22,25 @@ class CalendarController extends Controller
         try {
             $view = $request->get('view', 'month'); // month, week, day
             $date = $request->get('date', now()->format('Y-m-d'));
+            
+            // Additional filter parameters
+            $filters = [
+                'status' => $request->get('status', 'all'),
+                'production_type' => $request->get('production_type', 'all'),
+                'priority' => $request->get('priority', 'all'),
+            ];
 
             // Debug parameters
             Log::info('Calendar API index method called', [
                 'view' => $view,
                 'date' => $date,
+                'filters' => $filters,
                 'all_params' => $request->all(),
                 'url' => $request->fullUrl(),
                 'method' => $request->method()
             ]);
 
-            $data = $this->calendarService->getCalendarData($view, $date);
+            $data = $this->calendarService->getCalendarData($view, $date, $filters);
 
             // Return JSON data with correct headers
             return response()->json([

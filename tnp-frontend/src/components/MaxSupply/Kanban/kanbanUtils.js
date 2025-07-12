@@ -10,19 +10,22 @@ export const COLUMN_CONFIGS = [
     id: 'pending',
     title: 'In Progress',
     color: '#FEF3C7', // Yellow background
-    icon: <RadioButtonUnchecked />,
+    icon: 'RadioButtonUnchecked',
+    iconComponent: RadioButtonUnchecked,
   },
   {
     id: 'in_progress', 
     title: 'In Review',
     color: '#E0E7FF', // Purple background
-    icon: <Schedule />,
+    icon: 'Schedule',
+    iconComponent: Schedule,
   },
   {
     id: 'completed',
     title: 'Done',
     color: '#D1FAE5', // Green background
-    icon: <CheckCircle />,
+    icon: 'CheckCircle',
+    iconComponent: CheckCircle,
   },
 ];
 

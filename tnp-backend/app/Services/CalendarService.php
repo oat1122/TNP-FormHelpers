@@ -11,7 +11,7 @@ class CalendarService
     /**
      * ข้อมูลปฏิทิน
      */
-    public function getCalendarData(string $view, string $date): array
+    public function getCalendarData(string $view, string $date, array $filters = []): array
     {
         // ตรวจสอบและแปลงข้อมูล
         if (empty($date)) {
@@ -29,22 +29,22 @@ class CalendarService
         }
 
         return match($view) {
-            'month' => $this->getMonthlyData($startDate->year, $startDate->month),
-            'week' => $this->getWeeklyData($date),
-            'day' => $this->getDailyData($date),
-            default => $this->getMonthlyData($startDate->year, $startDate->month)
+            'month' => $this->getMonthlyData($startDate->year, $startDate->month, $filters),
+            'week' => $this->getWeeklyData($date, $filters),
+            'day' => $this->getDailyData($date, $filters),
+            default => $this->getMonthlyData($startDate->year, $startDate->month, $filters)
         };
     }
 
     /**
      * ข้อมูลรายเดือน
      */
-    public function getMonthlyData(int $year, int $month): array
+    public function getMonthlyData(int $year, int $month, array $filters = []): array
     {
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        $maxSupplies = MaxSupply::with(['worksheet', 'creator'])
+        $query = MaxSupply::with(['worksheet', 'creator'])
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('start_date', [$startDate, $endDate])
                       ->orWhereBetween('expected_completion_date', [$startDate, $endDate])
@@ -52,9 +52,22 @@ class CalendarService
                           $q->where('start_date', '<=', $startDate)
                             ->where('expected_completion_date', '>=', $endDate);
                       });
-            })
-            ->orderBy('start_date')
-            ->get();
+            });
+
+        // Apply filters
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['production_type']) && $filters['production_type'] !== 'all') {
+            $query->where('production_type', $filters['production_type']);
+        }
+
+        if (!empty($filters['priority']) && $filters['priority'] !== 'all') {
+            $query->where('priority', $filters['priority']);
+        }
+
+        $maxSupplies = $query->orderBy('start_date')->get();
 
         // จัดกลุ่มงานตามวัน
         $events = [];
@@ -111,7 +124,7 @@ class CalendarService
     /**
      * ข้อมูลรายสัปดาห์
      */
-    public function getWeeklyData(string $date): array
+    public function getWeeklyData(string $date, array $filters = []): array
     {
         $startDate = Carbon::parse($date)->startOfWeek();
         $endDate = $startDate->copy()->endOfWeek();
@@ -156,7 +169,7 @@ class CalendarService
     /**
      * ข้อมูลรายวัน
      */
-    public function getDailyData(string $date): array
+    public function getDailyData(string $date, array $filters = []): array
     {
         $targetDate = Carbon::parse($date);
 

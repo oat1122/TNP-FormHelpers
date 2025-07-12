@@ -37,11 +37,8 @@ import {
   FaSync,
   FaFilter,
   FaPlus,
-  FaEdit,
-  FaTrash,
   FaEye,
   FaCalendarAlt,
-  FaTimes,
 } from 'react-icons/fa';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -329,14 +326,14 @@ const MaxSupplyList = () => {
               </Button>
               <Button
                 size="small"
-                startIcon={<FaEdit />}
+                startIcon={<EditIcon />}
                 onClick={() => navigate(`/max-supply/edit/${item.id}`)}
               >
                 แก้ไข
               </Button>
               <Button
                 size="small"
-                startIcon={<FaTrash />}
+                startIcon={<DeleteIcon />}
                 color="error"
                 onClick={() => handleDelete(item.id)}
               >

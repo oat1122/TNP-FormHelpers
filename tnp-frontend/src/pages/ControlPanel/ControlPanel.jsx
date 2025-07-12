@@ -34,7 +34,7 @@ import { Spinner } from "react-bootstrap";
 function ControlPanel() {
   const { data, isLoading } = useGetPdCountQuery();
   const { data: maxSupplyData, statistics: maxSupplyStats } = useMaxSupplyData({
-    status: 'in_progress' // Only get in-progress jobs
+    status: "in_progress", // Only get in-progress jobs
   });
   const user = JSON.parse(localStorage.getItem("userData"));
 
@@ -43,15 +43,14 @@ function ControlPanel() {
       <aside className="row row-process float-lg-end col-12 col-md-11 col-lg-3 pt-3 pt-md-4 pt-lg-2 mx-auto">
         <div className="col-lg-10 col-xl-9 mx-auto">
           <a className="btn btn-secondary btn-process" href="/monitor">
-            <label
-              className="count-process"
-              htmlFor="count-process"
-            >
-             { isLoading ? (
-              <div className="text-center">
-                <Spinner animation="border" variant="danger" role="status" />
-              </div>
-             ) : data?.pdCount }
+            <label className="count-process" htmlFor="count-process">
+              {isLoading ? (
+                <div className="text-center">
+                  <Spinner animation="border" variant="danger" role="status" />
+                </div>
+              ) : (
+                data?.pdCount
+              )}
             </label>
             <br />
             <label className="process-describe" htmlFor="process-describe">
@@ -59,56 +58,119 @@ function ControlPanel() {
             </label>
             <br />
             <label className="process-describe-th" htmlFor="process-describe">
-              {data?.totalShirts ? `จำนวนเสื้อทั้งหมด ${data.totalShirts.toLocaleString()} ตัว` : "(กำลังผลิต)"}
+              {data?.totalShirts
+                ? `จำนวนเสื้อทั้งหมด ${data.totalShirts.toLocaleString()} ตัว`
+                : "(กำลังผลิต)"}
             </label>
           </a>
-          
+
           {/* MaxSupply Production Statistics */}
           <div className="max-supply-stats">
             <h6 className="text-center fw-bold">งานผลิตแบ่งตามประเภท</h6>
             {maxSupplyStats?.work_calculations ? (
-              <div className="row">
-                <div className="col-6 mb-2">
-                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.screen.color}` }}>
-                    <div className="fw-bold" style={{ color: productionTypeConfig.screen.color, fontSize: '0.8rem' }}>
+              <div className="row g-2">
+                <div className="col-6">
+                  <div
+                    className="production-type-card"
+                    style={{
+                      borderLeft: `4px solid ${productionTypeConfig.screen.color}`,
+                    }}
+                  >
+                    <div
+                      className="production-type-name"
+                      style={{
+                        color: productionTypeConfig.screen.color,
+                      }}
+                    >
                       Screen
                     </div>
-                    <div className="count">{maxSupplyStats.work_calculations.job_count.screen || 0}</div>
+                    <div className="count">
+                      {maxSupplyStats.work_calculations.job_count.screen || 0}
+                    </div>
                     <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload.screen || 0} ชิ้น
+                      {maxSupplyStats.work_calculations.current_workload
+                        .screen || 0}{" "}
+                      ชิ้น
                     </div>
                   </div>
                 </div>
-                <div className="col-6 mb-2">
-                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.dtf.color}` }}>
-                    <div className="fw-bold" style={{ color: productionTypeConfig.dtf.color, fontSize: '0.8rem' }}>
+                
+                <div className="col-6">
+                  <div
+                    className="production-type-card"
+                    style={{
+                      borderLeft: `4px solid ${productionTypeConfig.dtf.color}`,
+                    }}
+                  >
+                    <div
+                      className="production-type-name"
+                      style={{
+                        color: productionTypeConfig.dtf.color,
+                      }}
+                    >
                       DTF
                     </div>
-                    <div className="count">{maxSupplyStats.work_calculations.job_count.dtf || 0}</div>
+                    <div className="count">
+                      {maxSupplyStats.work_calculations.job_count.dtf || 0}
+                    </div>
                     <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload.dtf || 0} ชิ้น
+                      {maxSupplyStats.work_calculations.current_workload.dtf ||
+                        0}{" "}
+                      ชิ้น
                     </div>
                   </div>
                 </div>
-                <div className="col-6 mb-2">
-                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.sublimation.color}` }}>
-                    <div className="fw-bold" style={{ color: productionTypeConfig.sublimation.color, fontSize: '0.8rem' }}>
+                
+                <div className="col-6">
+                  <div
+                    className="production-type-card"
+                    style={{
+                      borderLeft: `4px solid ${productionTypeConfig.sublimation.color}`,
+                    }}
+                  >
+                    <div
+                      className="production-type-name"
+                      style={{
+                        color: productionTypeConfig.sublimation.color,
+                      }}
+                    >
                       Sublimation
                     </div>
-                    <div className="count">{maxSupplyStats.work_calculations.job_count.sublimation || 0}</div>
+                    <div className="count">
+                      {maxSupplyStats.work_calculations.job_count.sublimation ||
+                        0}
+                    </div>
                     <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload.sublimation || 0} ชิ้น
+                      {maxSupplyStats.work_calculations.current_workload
+                        .sublimation || 0}{" "}
+                      ชิ้น
                     </div>
                   </div>
                 </div>
-                <div className="col-6 mb-2">
-                  <div className="production-type-card" style={{ borderLeft: `4px solid ${productionTypeConfig.embroidery.color}` }}>
-                    <div className="fw-bold" style={{ color: productionTypeConfig.embroidery.color, fontSize: '0.8rem' }}>
+                
+                <div className="col-6">
+                  <div
+                    className="production-type-card"
+                    style={{
+                      borderLeft: `4px solid ${productionTypeConfig.embroidery.color}`,
+                    }}
+                  >
+                    <div
+                      className="production-type-name"
+                      style={{
+                        color: productionTypeConfig.embroidery.color,
+                      }}
+                    >
                       Embroidery
                     </div>
-                    <div className="count">{maxSupplyStats.work_calculations.job_count.embroidery || 0}</div>
+                    <div className="count">
+                      {maxSupplyStats.work_calculations.job_count.embroidery ||
+                        0}
+                    </div>
                     <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload.embroidery || 0} ชิ้น
+                      {maxSupplyStats.work_calculations.current_workload
+                        .embroidery || 0}{" "}
+                      ชิ้น
                     </div>
                   </div>
                 </div>
@@ -179,7 +241,12 @@ function ControlPanel() {
           </a>
         </div>
         <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
-          <a className="btn btn-outline-danger pt-3" href="https://new-report.izasskobibe.com/" target="_blank" rel="noopener noreferrer">
+          <a
+            className="btn btn-outline-danger pt-3"
+            href="https://new-report.izasskobibe.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaChartBar />
             </IconContext.Provider>
@@ -187,19 +254,28 @@ function ControlPanel() {
           </a>
         </div>
 
-        { user.role === "admin" && (
-        <div className="col-12 ms-1 ms-md-1 ms-lg-2 ms-xl-3 mt-3 mt-md-3 mt-xl-0 px-1 col-basic">
-          <a className="btn btn-outline-danger pt-3" href="/user-management" style={{ width: "min-content" }}>
-            <IconContext.Provider value={{ className: "icon-control-panel" }}>
-              <FaUsers />
-            </IconContext.Provider>
-            <label style={{ textTransform: "uppercase", paddingTop: "0.5rem", lineHeight: "0.7rem" }}>
-              User Management
-            </label>
-          </a>
-        </div>
-        ) }
-
+        {user.role === "admin" && (
+          <div className="col-12 ms-1 ms-md-1 ms-lg-2 ms-xl-3 mt-3 mt-md-3 mt-xl-0 px-1 col-basic">
+            <a
+              className="btn btn-outline-danger pt-3"
+              href="/user-management"
+              style={{ width: "min-content" }}
+            >
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaUsers />
+              </IconContext.Provider>
+              <label
+                style={{
+                  textTransform: "uppercase",
+                  paddingTop: "0.5rem",
+                  lineHeight: "0.7rem",
+                }}
+              >
+                User Management
+              </label>
+            </a>
+          </div>
+        )}
       </div>
       <div className="row col-12 col-md-11 col-lg-8 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
         <h3>SPECIFIC SALE TOOLS</h3>
@@ -214,7 +290,9 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaTshirt />
             </IconContext.Provider>
-            <label style={{ lineHeight: '0.75rem', paddingTop: 8 }}>WORK SHEET V.1</label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
+              WORK SHEET V.1
+            </label>
           </a>
           <div className="vr vr-home"></div>
           <a
@@ -225,11 +303,18 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaShirt />
             </IconContext.Provider>
-            <label style={{ lineHeight: '0.75rem', paddingTop: 8 }}>WORK SHEET V.2</label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
+              WORK SHEET V.2
+            </label>
           </a>
           <div className="vr vr-home"></div>
           <a className="btn btn-outline-danger pt-3" href="/pricing">
-            <IconContext.Provider value={{ className: "icon-control-panel", style: {fontSize: '2.25rem'} }}>
+            <IconContext.Provider
+              value={{
+                className: "icon-control-panel",
+                style: { fontSize: "2.25rem" },
+              }}
+            >
               <HiDocumentCurrencyDollar />
             </IconContext.Provider>
             <label>PRICING</label>
@@ -263,7 +348,9 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaIndustry />
             </IconContext.Provider>
-            <label style={{ lineHeight: '0.75rem', paddingTop: 8 }}>MAX SUPPLY HOME</label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
+              MAX SUPPLY HOME
+            </label>
           </a>
           <div className="vr vr-home"></div>
           <a
@@ -274,10 +361,12 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaList />
             </IconContext.Provider>
-            <label style={{ lineHeight: '0.75rem', paddingTop: 8 }}>JOB LIST</label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
+              JOB LIST
+            </label>
           </a>
           <div className="vr vr-home"></div>
-          
+
           <div className="vr vr-home"></div>
           <a className="btn btn-outline-danger pt-3" href="/max-supply/create">
             <IconContext.Provider value={{ className: "icon-control-panel" }}>

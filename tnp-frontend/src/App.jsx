@@ -27,7 +27,7 @@ const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));
 const MaxSupplyList = lazy(() => import("./pages/MaxSupply/MaxSupplyList"));
 const MaxSupplyForm = lazy(() => import("./pages/MaxSupply/MaxSupplyForm"));
-const MaxSupplyCalendar = lazy(() => import("./pages/MaxSupply/MaxSupplyCalendar"));
+
 const WorksheetListForMaxSupply = lazy(() => import("./pages/MaxSupply/WorksheetList"));
 
 function App() {
@@ -64,7 +64,7 @@ function App() {
             <Route path="/max-supply" element={<MaxSupplyHome />} />
             <Route path="/max-supply/home" element={<MaxSupplyHome />} />
             <Route path="/max-supply/list" element={<MaxSupplyList />} />
-            <Route path="/max-supply/calendar" element={<MaxSupplyCalendar />} />
+            
             <Route path="/max-supply/create" element={<MaxSupplyForm />} />
             <Route path="/max-supply/edit/:id" element={<MaxSupplyForm />} />
             <Route path="/max-supply/:id" element={<MaxSupplyForm />} />

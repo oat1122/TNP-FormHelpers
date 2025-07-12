@@ -215,12 +215,7 @@ function ControlPanel() {
             <label style={{ lineHeight: '0.75rem', paddingTop: 8 }}>JOB LIST</label>
           </a>
           <div className="vr vr-home"></div>
-          <a className="btn btn-outline-danger pt-3" href="/max-supply/calendar">
-            <IconContext.Provider value={{ className: "icon-control-panel" }}>
-              <FaCalendarAlt />
-            </IconContext.Provider>
-            <label>CALENDAR</label>
-          </a>
+          
           <div className="vr vr-home"></div>
           <a className="btn btn-outline-danger pt-3" href="/max-supply/create">
             <IconContext.Provider value={{ className: "icon-control-panel" }}>

@@ -62,10 +62,9 @@
 ### Components Structure
 ```
 pages/MaxSupply/
-├── MaxSupplyHome.jsx          # หน้าหลัก
+├── MaxSupplyHome.jsx          # หน้าหลัก (มี Calendar tab อยู่ในนี้)
 ├── MaxSupplyForm.jsx          # ฟอร์มสร้าง/แก้ไข
 ├── MaxSupplyList.jsx          # รายการงาน
-├── MaxSupplyCalendar.jsx      # Calendar view แบบเต็ม
 └── components/
     └── StepBasicInfo.jsx      # Form steps
     └── StepProductionInfo.jsx

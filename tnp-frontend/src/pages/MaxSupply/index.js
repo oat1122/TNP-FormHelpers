@@ -2,7 +2,6 @@
 export { default as MaxSupplyHome } from './MaxSupplyHome';
 export { default as MaxSupplyList } from './MaxSupplyList';
 export { default as MaxSupplyForm } from './MaxSupplyForm';
-export { default as MaxSupplyCalendar } from './MaxSupplyCalendar';
 export { default as WorksheetList } from './WorksheetList';
 
 // Context

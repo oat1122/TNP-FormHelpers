@@ -8,15 +8,16 @@ import {
   Assessment,
 } from '@mui/icons-material';
 
-const CapacitySummary = ({ workCalc }) => {
+const CapacitySummary = ({ workCalc, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
   const formatNumber = (number) => {
     return new Intl.NumberFormat('th-TH').format(number);
   };
 
   const totalJobs = Object.values(workCalc.job_count || {}).reduce((sum, val) => sum + val, 0);
   const totalWorkload = Object.values(workCalc.current_workload).reduce((sum, val) => sum + val, 0);
-  const totalDailyCapacity = Object.values(workCalc.capacity.daily).reduce((sum, val) => sum + val, 0);
-  const averageUtilization = totalDailyCapacity > 0 ? Math.round((totalWorkload / totalDailyCapacity) * 100) : 0;
+  const totalCapacity = Object.values(workCalc.capacity?.total || workCalc.capacity?.daily || {}).reduce((sum, val) => sum + val, 0);
+  const totalDailyCapacity = Object.values(workCalc.capacity?.daily || {}).reduce((sum, val) => sum + val, 0);
+  const averageUtilization = totalCapacity > 0 ? Math.round((totalWorkload / totalCapacity) * 100) : 0;
 
   return (
     <Box>
@@ -48,10 +49,10 @@ const CapacitySummary = ({ workCalc }) => {
         <Grid item xs={3}>
           <Box textAlign="center">
             <Typography variant="h6" fontWeight="bold" color="success.main">
-              {formatNumber(totalDailyCapacity)}
+              {formatNumber(totalCapacity)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              กำลังการผลิต/วัน
+              กำลังการผลิต{periodLabel}
             </Typography>
           </Box>
         </Grid>

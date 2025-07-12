@@ -7,4 +7,5 @@ export * from './Kanban';
 
 // WorkCapacity components
 export { default as ProductionTypeCapacityCard } from './ProductionTypeCapacityCard';
-export { default as CapacitySummary } from './CapacitySummary'; 
+export { default as CapacitySummary } from './CapacitySummary';
+export { default as TimePeriodSelector } from './TimePeriodSelector'; 

@@ -14,15 +14,16 @@ import {
   Speed,
 } from '@mui/icons-material';
 
-const ProductionTypeCapacityCard = ({ type, workCalc }) => {
+const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
   const theme = useTheme();
   
   const currentWorkload = workCalc.current_workload[type.key] || 0;
-  const dailyCapacity = workCalc.capacity.daily[type.key] || 0;
+  const totalCapacity = workCalc.capacity?.total?.[type.key] || 0;
+  const dailyCapacity = workCalc.capacity?.daily?.[type.key] || 0;
   const utilization = workCalc.utilization[type.key] || 0;
-  const dailyRemaining = workCalc.remaining_capacity.daily[type.key] || 0;
-  const weeklyRemaining = workCalc.remaining_capacity.weekly[type.key] || 0;
-  const monthlyRemaining = workCalc.remaining_capacity.monthly[type.key] || 0;
+  const remainingCapacity = workCalc.remaining_capacity[type.key] || 0;
+  const jobCount = workCalc.job_count?.[type.key] || 0;
+  const periodDays = workCalc.capacity?.period_days || 1;
 
   const formatNumber = (number) => {
     return new Intl.NumberFormat('th-TH').format(number);
@@ -113,30 +114,32 @@ const ProductionTypeCapacityCard = ({ type, workCalc }) => {
           
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
-              คงเหลือ/วัน:
+              กำลังการผลิต{periodLabel}:
             </Typography>
             <Typography variant="body2" fontWeight="bold" color={type.color}>
-              {formatNumber(dailyRemaining)} งาน
+              {formatNumber(totalCapacity)} งาน
             </Typography>
           </Box>
 
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
-              คงเหลือ/สัปดาห์:
+              คงเหลือ{periodLabel}:
             </Typography>
             <Typography variant="body2" fontWeight="bold" color={type.color}>
-              {formatNumber(weeklyRemaining)} งาน
+              {formatNumber(remainingCapacity)} งาน
             </Typography>
           </Box>
 
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              คงเหลือ/เดือน:
-            </Typography>
-            <Typography variant="body2" fontWeight="bold" color={type.color}>
-              {formatNumber(monthlyRemaining)} งาน
-            </Typography>
-          </Box>
+          {periodDays > 1 && (
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                จำนวนวันในช่วง:
+              </Typography>
+              <Typography variant="body2" fontWeight="bold" color="text.secondary">
+                {periodDays} วัน
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </CardContent>
     </Card>

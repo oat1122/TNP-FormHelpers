@@ -38,6 +38,7 @@ const MaxSupplyHome = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('month'); 
   const [currentTab, setCurrentTab] = useState(0); // 0=Dashboard, 1=Calendar, 2=Manager (default to Dashboard for better UX)
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState('today'); // Shared time period state
   
   // Use custom hook for data management
   const { 
@@ -244,10 +245,18 @@ const MaxSupplyHome = () => {
           <TestButtons statistics={statistics} />
           <StatisticsCards 
             statistics={statistics} 
-            loading={loading} 
+            loading={loading}
+            allData={maxSupplies}
+            selectedTimePeriod={selectedTimePeriod}
+            setSelectedTimePeriod={setSelectedTimePeriod}
           />
           <Box sx={{ mt: 3 }}>
-            <WorkCapacityCard statistics={statistics} />
+            <WorkCapacityCard 
+              statistics={statistics} 
+              allData={maxSupplies}
+              selectedTimePeriod={selectedTimePeriod}
+              setSelectedTimePeriod={setSelectedTimePeriod}
+            />
           </Box>
         </Box>
       )}

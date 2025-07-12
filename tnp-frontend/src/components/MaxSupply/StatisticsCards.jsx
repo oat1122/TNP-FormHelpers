@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Card,
@@ -18,40 +18,70 @@ import {
   PendingActions,
   PlayArrow,
 } from '@mui/icons-material';
+import TimePeriodSelector from './TimePeriodSelector';
+import useProductionCapacityCalculation from '../../hooks/useProductionCapacityCalculation';
 
-const StatisticsCards = ({ statistics, loading }) => {
+const StatisticsCards = ({ 
+  statistics, 
+  loading, 
+  allData = [], 
+  selectedTimePeriod: externalSelectedTimePeriod,
+  setSelectedTimePeriod: externalSetSelectedTimePeriod 
+}) => {
+  // Use the new production capacity calculation hook
+  const {
+    selectedTimePeriod: internalSelectedTimePeriod,
+    setSelectedTimePeriod: internalSetSelectedTimePeriod,
+    calculationResult,
+    getCapacityDisplayLabel,
+  } = useProductionCapacityCalculation(allData, externalSelectedTimePeriod);
+  
+  // Use external state if provided, otherwise use internal state
+  const selectedTimePeriod = externalSelectedTimePeriod || internalSelectedTimePeriod;
+  const setSelectedTimePeriod = externalSetSelectedTimePeriod || internalSetSelectedTimePeriod;
+  
+  // Sync internal state with external state
+  useEffect(() => {
+    if (externalSelectedTimePeriod && externalSelectedTimePeriod !== internalSelectedTimePeriod) {
+      internalSetSelectedTimePeriod(externalSelectedTimePeriod);
+    }
+  }, [externalSelectedTimePeriod, internalSelectedTimePeriod, internalSetSelectedTimePeriod]);
+  
+  // Use calculation result data (for time period specific calculations)
+  const workCalc = calculationResult?.work_calculations || statistics?.work_calculations;
+  
   const productionTypeData = [
     {
       key: 'screen',
       label: 'Screen Printing',
       icon: '📺',
       color: '#8B5CF6',
-      count: statistics.work_calculations?.job_count?.screen || 0,
-      workload: statistics.work_calculations?.current_workload?.screen || 0,
+      count: workCalc?.job_count?.screen || 0,
+      workload: workCalc?.current_workload?.screen || 0,
     },
     {
       key: 'dtf',
       label: 'DTF',
       icon: '📱',
       color: '#06B6D4',
-      count: statistics.work_calculations?.job_count?.dtf || 0,
-      workload: statistics.work_calculations?.current_workload?.dtf || 0,
+      count: workCalc?.job_count?.dtf || 0,
+      workload: workCalc?.current_workload?.dtf || 0,
     },
     {
       key: 'sublimation',
       label: 'Sublimation',
       icon: '⚽',
       color: '#10B981',
-      count: statistics.work_calculations?.job_count?.sublimation || 0,
-      workload: statistics.work_calculations?.current_workload?.sublimation || 0,
+      count: workCalc?.job_count?.sublimation || 0,
+      workload: workCalc?.current_workload?.sublimation || 0,
     },
     {
       key: 'embroidery',
       label: 'Embroidery',
       icon: '🧵',
       color: '#F59E0B',
-      count: statistics.work_calculations?.job_count?.embroidery || 0,
-      workload: statistics.work_calculations?.current_workload?.embroidery || 0,
+      count: workCalc?.job_count?.embroidery || 0,
+      workload: workCalc?.current_workload?.embroidery || 0,
     },
   ];
 
@@ -133,8 +163,28 @@ const StatisticsCards = ({ statistics, loading }) => {
     </Card>
   );
 
-  const ProductionTypeCard = ({ type, count, workload, total }) => {
+  const ProductionTypeCard = ({ type, count, workload, total, statistics, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
     const percentage = total > 0 ? (count / total) * 100 : 0;
+    
+    // Production capacity data
+    const dailyCapacity = statistics?.work_calculations?.capacity?.daily?.[type.key] || 0;
+    const totalCapacity = statistics?.work_calculations?.capacity?.total?.[type.key] || dailyCapacity;
+    const utilization = statistics?.work_calculations?.utilization?.[type.key] || 0;
+    const periodDays = statistics?.work_calculations?.capacity?.period_days || 1;
+    
+    const getUtilizationColor = (percentage) => {
+      if (percentage >= 90) return '#EF4444'; // Red
+      if (percentage >= 70) return '#F59E0B'; // Orange
+      if (percentage >= 50) return '#3B82F6'; // Blue
+      return '#10B981'; // Green
+    };
+    
+    const getUtilizationLabel = (percentage) => {
+      if (percentage >= 90) return 'สูงมาก';
+      if (percentage >= 70) return 'สูง';
+      if (percentage >= 50) return 'ปานกลาง';
+      return 'ต่ำ';
+    };
     
     return (
       <Card sx={{ height: '100%' }}>
@@ -143,7 +193,7 @@ const StatisticsCards = ({ statistics, loading }) => {
             <Typography variant="h3" sx={{ mr: 1 }}>
               {type.icon}
             </Typography>
-            <Box>
+            <Box sx={{ flexGrow: 1 }}>
               <Typography variant="subtitle1" fontWeight="bold">
                 {type.label}
               </Typography>
@@ -154,10 +204,22 @@ const StatisticsCards = ({ statistics, loading }) => {
                 งานทั้งหมด {loading ? '-' : workload} ชิ้น
               </Typography>
             </Box>
+            {!loading && utilization > 0 && (
+              <Chip
+                size="small"
+                label={`${utilization}%`}
+                sx={{
+                  bgcolor: getUtilizationColor(utilization),
+                  color: 'white',
+                  fontWeight: 'bold',
+                  minWidth: 50,
+                }}
+              />
+            )}
           </Box>
           
           {!loading && total > 0 && (
-            <Box>
+            <Box sx={{ mb: 2 }}>
               <LinearProgress
                 variant="determinate"
                 value={percentage}
@@ -176,6 +238,28 @@ const StatisticsCards = ({ statistics, loading }) => {
               </Typography>
             </Box>
           )}
+          
+          {/* Production Capacity Info */}
+          {!loading && dailyCapacity > 0 && (
+            <Box sx={{ 
+              mt: 1, 
+              pt: 1, 
+              borderTop: '1px solid',
+              borderTopColor: 'divider',
+            }}>
+                             <Typography variant="caption" color="text.secondary" display="block">
+                 กำลังการผลิต/วัน: {dailyCapacity.toLocaleString()} งาน
+               </Typography>
+               {periodDays > 1 && (
+                 <Typography variant="caption" color="text.secondary" display="block">
+                   กำลังการผลิต{periodLabel}: {totalCapacity.toLocaleString()} งาน
+                 </Typography>
+               )}
+               <Typography variant="caption" color={getUtilizationColor(utilization)} display="block">
+                 การใช้งาน{periodLabel}: {getUtilizationLabel(utilization)} ({utilization}%)
+               </Typography>
+            </Box>
+          )}
         </CardContent>
       </Card>
     );
@@ -185,7 +269,10 @@ const StatisticsCards = ({ statistics, loading }) => {
     <Box>
       {/* Status Statistics */}
       <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Job Overview
+        Job Overview - สถานะงานทั้งหมด
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+        แสดงจำนวนงานทั้งหมดในระบบ จำแนกตามสถานะ
       </Typography>
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {statusData.map((item) => {
@@ -205,9 +292,22 @@ const StatisticsCards = ({ statistics, loading }) => {
       </Grid>
 
       {/* Production Type Statistics */}
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Production Types (จำนวนงานแต่ละประเภท)
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            Production Types - งานที่กำลังดำเนินการ ({getCapacityDisplayLabel(selectedTimePeriod)})
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            แสดงเฉพาะงานที่มีสถานะ "กำลังดำเนินการ" ในช่วงเวลา{getCapacityDisplayLabel(selectedTimePeriod)}
+          </Typography>
+        </Box>
+                 <Box sx={{ minWidth: 300, ml: 2 }}>
+           <TimePeriodSelector
+             value={selectedTimePeriod}
+             onChange={setSelectedTimePeriod}
+           />
+         </Box>
+      </Box>
       <Grid container spacing={2}>
         {productionTypeData.map((type) => {
           // Calculate total job count from work_calculations
@@ -220,11 +320,41 @@ const StatisticsCards = ({ statistics, loading }) => {
                 count={type.count}
                 workload={type.workload}
                 total={totalJobCount}
+                statistics={{ work_calculations: workCalc }}
+                timePeriod={selectedTimePeriod}
+                periodLabel={getCapacityDisplayLabel(selectedTimePeriod)}
               />
             </Grid>
           );
         })}
       </Grid>
+      
+      {/* Debug Information (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+          <Typography variant="caption" color="text.secondary" gutterBottom>
+            Debug Info (Development Only):
+          </Typography>
+                     <Typography variant="caption" display="block" color="text.secondary">
+             Selected period: {selectedTimePeriod} ({getCapacityDisplayLabel(selectedTimePeriod)}) {externalSelectedTimePeriod ? '(External)' : '(Internal)'}
+           </Typography>
+           <Typography variant="caption" display="block" color="text.secondary">
+             Items in period: {calculationResult?.total_items || 0}
+           </Typography>
+           <Typography variant="caption" display="block" color="text.secondary">
+             Period days: {calculationResult?.work_calculations?.capacity?.period_days || 1}
+           </Typography>
+           <Typography variant="caption" display="block" color="text.secondary">
+             Total In-Progress Jobs: {productionTypeData.reduce((sum, item) => sum + item.count, 0)}
+           </Typography>
+           <Typography variant="caption" display="block" color="text.secondary">
+             Total Workload: {productionTypeData.reduce((sum, item) => sum + item.workload, 0)} ชิ้น
+           </Typography>
+           <Typography variant="caption" display="block" color="text.secondary">
+             Work Calculations: {JSON.stringify(workCalc || {}, null, 2)}
+           </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

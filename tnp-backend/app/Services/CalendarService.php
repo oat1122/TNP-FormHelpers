@@ -55,15 +55,15 @@ class CalendarService
             });
 
         // Apply filters
-        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+        if (isset($filters['status']) && !empty($filters['status']) && $filters['status'] !== 'all') {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['production_type']) && $filters['production_type'] !== 'all') {
+        if (isset($filters['production_type']) && !empty($filters['production_type']) && $filters['production_type'] !== 'all') {
             $query->where('production_type', $filters['production_type']);
         }
 
-        if (!empty($filters['priority']) && $filters['priority'] !== 'all') {
+        if (isset($filters['priority']) && !empty($filters['priority']) && $filters['priority'] !== 'all') {
             $query->where('priority', $filters['priority']);
         }
 
@@ -77,6 +77,7 @@ class CalendarService
                 'screen' => 0,
                 'dtf' => 0,
                 'sublimation' => 0,
+                'embroidery' => 0,
                 'total_jobs' => 0,
                 'completed' => 0,
                 'in_progress' => 0,
@@ -92,10 +93,10 @@ class CalendarService
                 'production_type' => $maxSupply->production_type,
                 'status' => $maxSupply->status,
                 'priority' => $maxSupply->priority,
-                'start_date' => $maxSupply->start_date->format('Y-m-d'),
-                'end_date' => $maxSupply->expected_completion_date->format('Y-m-d'),
-                'due_date' => $maxSupply->due_date->format('Y-m-d'),
-                'creator' => $maxSupply->creator->user_nickname ?? $maxSupply->creator->username,
+                'start_date' => $maxSupply->start_date ? $maxSupply->start_date->format('Y-m-d') : null,
+                'end_date' => $maxSupply->expected_completion_date ? $maxSupply->expected_completion_date->format('Y-m-d') : null,
+                'due_date' => $maxSupply->due_date ? $maxSupply->due_date->format('Y-m-d') : null,
+                'creator' => $maxSupply->creator ? ($maxSupply->creator->user_nickname ?? $maxSupply->creator->username) : null,
                 'customer' => $maxSupply->customer_name,
                 'quantity' => $maxSupply->total_quantity,
                 'progress' => $maxSupply->progress_percentage,
@@ -104,9 +105,19 @@ class CalendarService
             ];
 
             // คำนวณสถิติ
-            $statistics['monthly_total'][$maxSupply->production_type]++;
+            $productionType = $maxSupply->production_type ?? 'screen';
+            $status = $maxSupply->status ?? 'pending';
+            
+            if (!isset($statistics['monthly_total'][$productionType])) {
+                $statistics['monthly_total'][$productionType] = 0;
+            }
+            if (!isset($statistics['monthly_total'][$status])) {
+                $statistics['monthly_total'][$status] = 0;
+            }
+            
+            $statistics['monthly_total'][$productionType]++;
             $statistics['monthly_total']['total_jobs']++;
-            $statistics['monthly_total'][$maxSupply->status]++;
+            $statistics['monthly_total'][$status]++;
         }
 
         // คำนวณสถิติรายสัปดาห์

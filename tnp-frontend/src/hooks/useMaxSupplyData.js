@@ -285,7 +285,8 @@ export const useMaxSupplyData = (filters = {}) => {
       }
 
       // Calculate job count and current workload from work_calculations
-      if (item.work_calculations) {
+      // Only count jobs that are in progress
+      if (item.work_calculations && item.status === 'in_progress') {
         try {
           let workCalc = item.work_calculations;
           

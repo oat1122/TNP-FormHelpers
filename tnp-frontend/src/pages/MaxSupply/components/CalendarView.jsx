@@ -82,6 +82,8 @@ const EnhancedCalendarView = ({
   const [hoveredTimeline, setHoveredTimeline] = useState(null);
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'week'
   const [filter, setFilter] = useState({ type: 'all', status: 'all' });
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [dayEventsDialogOpen, setDayEventsDialogOpen] = useState(false);
 
   // Production Type Configuration - Enhanced with gradients and better colors
   const productionTypeConfig = {
@@ -289,22 +291,37 @@ const EnhancedCalendarView = ({
     }
   };
 
-  // Organize events into rows to avoid overlap
+  // Organize events into rows to avoid overlap with limitations
   const organizeEventsInRows = (events, calendarDays) => {
+    const MAX_ROWS = 3;
+    const MAX_EVENTS_PER_ROW = 2;
+    const MAX_TOTAL_EVENTS = MAX_ROWS * MAX_EVENTS_PER_ROW; // 6 events max
+    
+    // Priority order for sorting
+    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+    
     const timelines = events
       .map(event => calculateEventTimeline(event, calendarDays))
       .filter(Boolean)
       .sort((a, b) => {
-        // Sort by start date, then by duration (longer first)
+        // Sort by priority first, then by start date, then by duration
+        const priorityA = priorityOrder[a.event.priority] || 3;
+        const priorityB = priorityOrder[b.event.priority] || 3;
+        
+        if (priorityA !== priorityB) return priorityA - priorityB;
         if (a.startCol !== b.startCol) return a.startCol - b.startCol;
         return b.width - a.width;
       });
     
-    console.log('=== ORGANIZING TIMELINE ROWS ===');
+    console.log('=== ORGANIZING TIMELINE ROWS (LIMITED) ===');
     console.log('Total timelines to organize:', timelines.length);
+    console.log('Maximum displayable timelines:', MAX_TOTAL_EVENTS);
     
     const rows = [];
+    const displayedTimelines = [];
+    const overflowTimelines = [];
     
+    // Process timelines with row and count limitations
     timelines.forEach((timeline, index) => {
       const currentStart = timeline.startCol;
       const currentEnd = timeline.startCol + timeline.width - 1;
@@ -312,17 +329,31 @@ const EnhancedCalendarView = ({
       console.log(`\nProcessing timeline ${index + 1}:`, {
         eventId: timeline.event.id,
         title: timeline.event.title || timeline.event.customer_name,
+        priority: timeline.event.priority,
         startCol: currentStart,
         endCol: currentEnd,
         width: timeline.width,
         range: `${currentStart}-${currentEnd}`
       });
       
+      // Check if we've reached the maximum total events
+      if (displayedTimelines.length >= MAX_TOTAL_EVENTS) {
+        overflowTimelines.push(timeline);
+        console.log(`  ⚠️ Added to overflow (total limit reached: ${MAX_TOTAL_EVENTS})`);
+        return;
+      }
+      
       let placed = false;
       
       // Try to place in existing rows
-      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      for (let rowIndex = 0; rowIndex < rows.length && rowIndex < MAX_ROWS; rowIndex++) {
         const row = rows[rowIndex];
+        
+        // Check if this row has reached its limit
+        if (row.length >= MAX_EVENTS_PER_ROW) {
+          console.log(`  ✗ Row ${rowIndex} is full (${row.length}/${MAX_EVENTS_PER_ROW})`);
+          continue;
+        }
         
         // Check for overlap with any timeline in this row
         const hasOverlap = row.some(existingTimeline => {
@@ -336,8 +367,7 @@ const EnhancedCalendarView = ({
             console.log(`  Overlap detected with existing timeline in row ${rowIndex}:`, {
               existingId: existingTimeline.event.id,
               existingRange: `${existingStart}-${existingEnd}`,
-              currentRange: `${currentStart}-${currentEnd}`,
-              overlapCondition: `!(${existingEnd} < ${currentStart} || ${currentEnd} < ${existingStart}) = ${overlaps}`
+              currentRange: `${currentStart}-${currentEnd}`
             });
           }
           
@@ -346,32 +376,58 @@ const EnhancedCalendarView = ({
         
         if (!hasOverlap) {
           row.push(timeline);
+          displayedTimelines.push(timeline);
           placed = true;
-          console.log(`  ✓ Placed in existing row ${rowIndex} (no overlap)`);
+          console.log(`  ✓ Placed in existing row ${rowIndex} (${row.length}/${MAX_EVENTS_PER_ROW})`);
           break;
         } else {
           console.log(`  ✗ Cannot place in row ${rowIndex} (overlap detected)`);
         }
       }
       
-      // If no suitable row found, create new row
-      if (!placed) {
+      // If no suitable row found and we can create a new row
+      if (!placed && rows.length < MAX_ROWS) {
         rows.push([timeline]);
-        console.log(`  ✓ Created new row ${rows.length - 1}`);
+        displayedTimelines.push(timeline);
+        console.log(`  ✓ Created new row ${rows.length - 1} (1/${MAX_EVENTS_PER_ROW})`);
+        placed = true;
+      }
+      
+      // If still not placed, add to overflow
+      if (!placed) {
+        overflowTimelines.push(timeline);
+        console.log(`  ⚠️ Added to overflow (no available rows)`);
       }
     });
     
     // Final debug output
-    console.log('\n=== FINAL ROW ORGANIZATION ===');
+    console.log('\n=== FINAL ROW ORGANIZATION (LIMITED) ===');
+    console.log(`Displayed timelines: ${displayedTimelines.length}/${MAX_TOTAL_EVENTS}`);
+    console.log(`Overflow timelines: ${overflowTimelines.length}`);
+    
     rows.forEach((row, rowIndex) => {
-      console.log(`Row ${rowIndex} (${row.length} timelines):`);
+      console.log(`Row ${rowIndex} (${row.length}/${MAX_EVENTS_PER_ROW} timelines):`);
       row.forEach((timeline, timelineIndex) => {
-        console.log(`  ${timelineIndex + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.startCol}-${timeline.startCol + timeline.width - 1})`);
+        console.log(`  ${timelineIndex + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.event.priority}) (${timeline.startCol}-${timeline.startCol + timeline.width - 1})`);
       });
     });
+    
+    if (overflowTimelines.length > 0) {
+      console.log(`\nOverflow (${overflowTimelines.length} timelines):`);
+      overflowTimelines.forEach((timeline, index) => {
+        console.log(`  ${index + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.event.priority})`);
+      });
+    }
+    
     console.log('=== END ROW ORGANIZATION ===\n');
 
-    return rows;
+    return {
+      rows,
+      displayedTimelines,
+      overflowTimelines,
+      totalTimelines: timelines.length,
+      maxDisplayable: MAX_TOTAL_EVENTS
+    };
   };
 
   // Filter events based on current filter
@@ -383,10 +439,14 @@ const EnhancedCalendarView = ({
     });
   }, [maxSupplies, filter]);
 
-  const eventRows = useMemo(() => {
-    const rows = organizeEventsInRows(filteredEvents, calendarDays);
-    return rows;
+  const eventRowsData = useMemo(() => {
+    const result = organizeEventsInRows(filteredEvents, calendarDays);
+    return result;
   }, [filteredEvents, calendarDays]);
+
+  const eventRows = eventRowsData.rows;
+  const overflowTimelines = eventRowsData.overflowTimelines;
+  const totalTimelines = eventRowsData.totalTimelines;
 
   // Get events for a specific date (for dots display)
   const getEventsForDate = (date) => {
@@ -434,6 +494,21 @@ const EnhancedCalendarView = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigateMonth]);
+
+  // Handle day click
+  const handleDayClick = (date) => {
+    const dayEvents = getEventsForDate(date);
+    if (dayEvents.length > 0) {
+      setSelectedDate(date);
+      setDayEventsDialogOpen(true);
+    }
+  };
+
+  // Handle day events dialog close
+  const handleDayEventsDialogClose = () => {
+    setDayEventsDialogOpen(false);
+    setSelectedDate(null);
+  };
 
   // Handle timeline click
   const handleTimelineClick = (job) => {
@@ -523,23 +598,23 @@ const EnhancedCalendarView = ({
     const timelineRowSpacing = isMobile ? 20 : 22; // Reduced from 26/30 to 20/22
     
     // Debug position calculation
-    console.log('TimelineBar position calculation:', {
-      eventId: event.id,
-      eventTitle: event.title || event.customer_name,
-      startCol: timeline.startCol,
-      width: timeline.width,
-      rowIndex,
-      startWeek,
-      startDayInWeek,
-      endWeek,
-      endDayInWeek,
-      positioning: {
-        calendarRowHeight,
-        baseTimelineOffset,
-        timelineRowSpacing,
-        calculatedTop: startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing
-      }
-    });
+    // console.log('TimelineBar position calculation:', {
+    //   eventId: event.id,
+    //   eventTitle: event.title || event.customer_name,
+    //   startCol: timeline.startCol,
+    //   width: timeline.width,
+    //   rowIndex,
+    //   startWeek,
+    //   startDayInWeek,
+    //   endWeek,
+    //   endDayInWeek,
+    //   positioning: {
+    //     calendarRowHeight,
+    //     baseTimelineOffset,
+    //     timelineRowSpacing,
+    //     calculatedTop: startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing
+    //   }
+    // });
     
     // For multi-week events, create separate timeline segments
     const segments = [];
@@ -559,12 +634,12 @@ const EnhancedCalendarView = ({
         isLastSegment: true,
       });
       
-      console.log('Single week segment:', {
-        left: `${left}%`,
-        width: `${Math.max(width, 2)}%`,
-        top: `${top}px`,
-        calculation: `week(${startWeek}) × ${calendarRowHeight} + ${baseTimelineOffset} + row(${rowIndex}) × ${timelineRowSpacing} = ${top}px`
-      });
+      // console.log('Single week segment:', {
+      //   left: `${left}%`,
+      //   width: `${Math.max(width, 2)}%`,
+      //   top: `${top}px`,
+      //   calculation: `week(${startWeek}) × ${calendarRowHeight} + ${baseTimelineOffset} + row(${rowIndex}) × ${timelineRowSpacing} = ${top}px`
+      // });
     } else {
       // Event spans multiple weeks
       
@@ -610,16 +685,16 @@ const EnhancedCalendarView = ({
         });
       }
       
-      console.log('Multi-week segments:', {
-        totalSegments: segments.length,
-        firstSegment: segments[0],
-        lastSegment: segments[segments.length - 1],
-        positioning: {
-          baseTimelineOffset,
-          timelineRowSpacing,
-          rowIndex
-        }
-      });
+      // console.log('Multi-week segments:', {
+      //   totalSegments: segments.length,
+      //   firstSegment: segments[0],
+      //   lastSegment: segments[segments.length - 1],
+      //   positioning: {
+      //     baseTimelineOffset,
+      //     timelineRowSpacing,
+      //     rowIndex
+      //   }
+      // });
     }
     
     return (
@@ -896,6 +971,172 @@ const EnhancedCalendarView = ({
           })}
         </Box>
       </Paper>
+    );
+  };
+
+  // Day Events Dialog
+  const DayEventsDialog = () => {
+    if (!selectedDate) return null;
+
+    const dayEvents = getEventsForDate(selectedDate);
+    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+    
+    const sortedEvents = dayEvents.sort((a, b) => {
+      const priorityA = priorityOrder[a.priority] || 3;
+      const priorityB = priorityOrder[b.priority] || 3;
+      return priorityA - priorityB;
+    });
+
+    return (
+      <Dialog
+        open={dayEventsDialogOpen}
+        onClose={handleDayEventsDialogClose}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: isMobile ? 0 : 2,
+            maxHeight: '80vh',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            pb: 2,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+              <EventIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                งานวันที่ {format(selectedDate, 'dd MMMM yyyy', { locale: th })}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                รวม {dayEvents.length} งาน
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={handleDayEventsDialogClose} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+            {sortedEvents.map((event, index) => {
+              const typeConfig = productionTypeConfig[event.production_type] || productionTypeConfig.screen;
+              const statusInfo = statusConfig[event.status] || statusConfig.pending;
+              const priorityInfo = priorityConfig[event.priority] || priorityConfig.normal;
+              
+              return (
+                <Box
+                  key={event.id}
+                  onClick={() => {
+                    handleDayEventsDialogClose();
+                    setSelectedJob(event);
+                  }}
+                  sx={{
+                    p: 3,
+                    borderBottom: index < sortedEvents.length - 1 ? 1 : 0,
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    '&:hover': {
+                      bgcolor: 'grey.50',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: typeConfig.color,
+                        width: 48,
+                        height: 48,
+                        fontSize: '1.5rem',
+                      }}
+                    >
+                      {typeConfig.icon}
+                    </Avatar>
+                    
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        {event.title || event.customer_name || 'งานไม่ระบุชื่อ'}
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                        <Chip
+                          label={priorityInfo.label}
+                          size="small"
+                          sx={{
+                            bgcolor: `${priorityInfo.color}20`,
+                            color: priorityInfo.color,
+                            fontWeight: 600,
+                          }}
+                        />
+                        <Chip
+                          label={statusInfo.label}
+                          size="small"
+                          sx={{
+                            bgcolor: statusInfo.bgColor,
+                            color: statusInfo.color,
+                            fontWeight: 600,
+                          }}
+                        />
+                        <Chip
+                          label={typeConfig.label}
+                          size="small"
+                          sx={{
+                            bgcolor: typeConfig.bgColor,
+                            color: typeConfig.color,
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>ลูกค้า:</strong> {event.customer_name || 'ไม่ระบุ'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>จำนวน:</strong> {event.total_quantity || 0} ตัว
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>เริ่ม:</strong> {formatDate(event.start_date)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>คาดว่าเสร็จ:</strong> {formatDate(event.expected_completion_date)}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={handleDayEventsDialogClose} variant="outlined">
+            ปิด
+          </Button>
+        </DialogActions>
+      </Dialog>
     );
   };
 
@@ -1181,6 +1422,8 @@ const EnhancedCalendarView = ({
     console.log('Total events:', maxSupplies.length);
     console.log('Filtered events:', filteredEvents.length);
     console.log('Event rows:', eventRows.length);
+    console.log('Overflow timelines:', overflowTimelines.length);
+    console.log('Total timelines:', totalTimelines);
     
     if (maxSupplies.length > 0) {
       console.log('All maxSupplies events:');
@@ -1194,18 +1437,27 @@ const EnhancedCalendarView = ({
           due_date: event.due_date,
           using_end_date: endDateStr,
           production_type: event.production_type,
-          status: event.status
+          status: event.status,
+          priority: event.priority
         });
       });
     }
     
     if (filteredEvents.length > 0) {
-      console.log('Filtered events:');
-      filteredEvents.forEach((event, index) => {
+      console.log('Filtered events (priority sorted):');
+      const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+      const sortedForDebug = [...filteredEvents].sort((a, b) => {
+        const priorityA = priorityOrder[a.priority] || 3;
+        const priorityB = priorityOrder[b.priority] || 3;
+        return priorityA - priorityB;
+      });
+      
+      sortedForDebug.forEach((event, index) => {
         const endDateStr = event.expected_completion_date || event.due_date;
         console.log(`Filtered Event ${index + 1}:`, {
           id: event.id,
           title: event.title || event.customer_name,
+          priority: event.priority,
           start_date: event.start_date,
           expected_completion_date: event.expected_completion_date,
           due_date: event.due_date,
@@ -1217,9 +1469,9 @@ const EnhancedCalendarView = ({
     }
     
     if (eventRows.length > 0) {
-      console.log('=== TIMELINE ROW SUMMARY ===');
+      console.log('=== TIMELINE ROW SUMMARY (LIMITED) ===');
       eventRows.forEach((row, rowIndex) => {
-        console.log(`Row ${rowIndex} (${row.length} timelines):`);
+        console.log(`Row ${rowIndex} (${row.length}/2 timelines):`);
         row.forEach((timeline, timelineIndex) => {
           const event = timeline.event;
           const startWeek = Math.floor(timeline.startCol / 7);
@@ -1229,7 +1481,7 @@ const EnhancedCalendarView = ({
           const timelineRowSpacing = isMobile ? 20 : 22;
           const expectedTop = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
           
-          console.log(`  ${timelineIndex + 1}. ${event.title || event.customer_name}:`, {
+          console.log(`  ${timelineIndex + 1}. ${event.title || event.customer_name} (${event.priority}):`, {
             eventId: timeline.event.id,
             startCol: timeline.startCol,
             width: timeline.width,
@@ -1246,11 +1498,25 @@ const EnhancedCalendarView = ({
           });
         });
       });
+      
+      if (overflowTimelines.length > 0) {
+        console.log(`\n=== OVERFLOW TIMELINES (${overflowTimelines.length}) ===`);
+        overflowTimelines.forEach((timeline, index) => {
+          console.log(`  ${index + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.event.priority}):`, {
+            eventId: timeline.event.id,
+            startCol: timeline.startCol,
+            width: timeline.width,
+            duration: timeline.duration,
+            range: `${timeline.startCol}-${timeline.startCol + timeline.width - 1}`,
+          });
+        });
+      }
+      
       console.log('=== END TIMELINE ROW SUMMARY ===');
     }
     
     console.log('=== END CALENDAR DEBUG ===');
-  }, [filteredEvents, eventRows, currentDate, calendarDays, maxSupplies, isMobile]);
+  }, [filteredEvents, eventRows, overflowTimelines, totalTimelines, currentDate, calendarDays, maxSupplies, isMobile]);
 
   return (
     <Box>
@@ -1427,6 +1693,7 @@ const EnhancedCalendarView = ({
               return (
                 <Box 
                   key={day.toISOString()} 
+                  onClick={() => handleDayClick(day)}
                   sx={{ 
                     border: 1,
                     borderColor: 'divider',
@@ -1439,8 +1706,10 @@ const EnhancedCalendarView = ({
                         : '#f9fafb',
                     opacity: isCurrentMonth ? 1 : 0.7,
                     transition: 'all 0.2s ease',
+                    cursor: dayEvents.length > 0 ? 'pointer' : 'default',
                     '&:hover': {
                       backgroundColor: isTodayDate ? '#e8f0fe' : '#f0f9ff',
+                      transform: dayEvents.length > 0 ? 'scale(1.02)' : 'none',
                     }
                   }}
                 >
@@ -1464,12 +1733,13 @@ const EnhancedCalendarView = ({
                       {format(day, 'd')}
                     </Typography>
                     
-                    {/* Event dots for jobs starting on this day - only show starting dots, timeline will handle the spanning */}
+                    {/* Enhanced Event dots for jobs starting on this day */}
                     <Box sx={{ mt: 0.25, display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-                      {dayEvents.slice(0, isMobile ? 1 : 2).map((event) => {
+                      {dayEvents.slice(0, 2).map((event) => {
                         const eventStartDate = format(parseISO(event.start_date), 'yyyy-MM-dd');
                         const currentDayStr = format(day, 'yyyy-MM-dd');
                         const typeConfig = productionTypeConfig[event.production_type] || productionTypeConfig.screen;
+                        const priorityInfo = priorityConfig[event.priority] || priorityConfig.normal;
                         
                         // Only show dots for jobs that start on this specific day
                         if (eventStartDate === currentDayStr) {
@@ -1477,12 +1747,18 @@ const EnhancedCalendarView = ({
                             <Box
                               key={event.id}
                               sx={{
-                                width: isMobile ? 3 : 4,
-                                height: isMobile ? 3 : 4,
+                                width: isMobile ? 4 : 6,
+                                height: isMobile ? 4 : 6,
                                 borderRadius: '50%',
                                 backgroundColor: typeConfig.color,
-                                boxShadow: `0 1px 2px ${typeConfig.color}40`,
-                                opacity: 0.6,
+                                boxShadow: `0 1px 3px ${typeConfig.color}40`,
+                                opacity: 0.8,
+                                border: event.priority === 'urgent' || event.priority === 'high' ? `2px solid ${priorityInfo.color}` : 'none',
+                                animation: event.priority === 'urgent' ? 'pulse 1.5s infinite' : 'none',
+                                '@keyframes pulse': {
+                                  '0%, 100%': { opacity: 0.8 },
+                                  '50%': { opacity: 1 },
+                                },
                               }}
                             />
                           );
@@ -1490,11 +1766,51 @@ const EnhancedCalendarView = ({
                         return null;
                       })}
                       
-                      {dayEvents.filter(event => format(parseISO(event.start_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')).length > (isMobile ? 1 : 2) && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: isMobile ? '0.4rem' : '0.5rem', opacity: 0.6 }}>
-                          +{dayEvents.filter(event => format(parseISO(event.start_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')).length - (isMobile ? 1 : 2)}
-                        </Typography>
-                      )}
+                      {/* Enhanced overflow indicator */}
+                      {(() => {
+                        const startingJobsCount = dayEvents.filter(event => 
+                          format(parseISO(event.start_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
+                        ).length;
+                        const totalJobsCount = dayEvents.length;
+                        
+                        if (startingJobsCount > 2) {
+                          return (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                fontSize: isMobile ? '0.4rem' : '0.5rem', 
+                                opacity: 0.8,
+                                color: 'primary.main',
+                                fontWeight: 'bold',
+                                backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                                borderRadius: '4px',
+                                px: 0.5,
+                                py: 0.25,
+                              }}
+                            >
+                              +{startingJobsCount - 2}
+                            </Typography>
+                          );
+                        }
+                        
+                        if (totalJobsCount > startingJobsCount && startingJobsCount <= 2) {
+                          return (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                fontSize: isMobile ? '0.4rem' : '0.5rem', 
+                                opacity: 0.6,
+                                color: 'text.secondary',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              •{totalJobsCount}
+                            </Typography>
+                          );
+                        }
+                        
+                        return null;
+                      })()}
                     </Box>
                   </Box>
                 </Box>
@@ -1618,19 +1934,56 @@ const EnhancedCalendarView = ({
                 </Typography>
               </Box>
             ) : (
-              eventRows.map((row, rowIndex) => (
-                <Box key={rowIndex}>
-                  {row.map((timeline) => (
-                    <Box key={timeline.event.id} sx={{ pointerEvents: 'auto' }}>
-                      <TimelineBar 
-                        timeline={timeline} 
-                        rowIndex={rowIndex} 
-                        calendarDays={calendarDays}
-                      />
-                    </Box>
-                  ))}
-                </Box>
-              ))
+              <>
+                {/* Timeline Bars */}
+                {eventRows.map((row, rowIndex) => (
+                  <Box key={rowIndex}>
+                    {row.map((timeline) => (
+                      <Box key={timeline.event.id} sx={{ pointerEvents: 'auto' }}>
+                        <TimelineBar 
+                          timeline={timeline} 
+                          rowIndex={rowIndex} 
+                          calendarDays={calendarDays}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                ))}
+                
+                {/* Overflow Indicator */}
+                {overflowTimelines.length > 0 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 10,
+                      right: 10,
+                      bgcolor: 'rgba(0, 0, 0, 0.8)',
+                      color: 'white',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      zIndex: 20,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: 'rgba(0, 0, 0, 0.9)',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                    onClick={() => {
+                      // Show overflow events in a dialog or expand view
+                      console.log('Overflow events:', overflowTimelines);
+                    }}
+                  >
+                    <Typography variant="body2" fontWeight="bold">
+                      +{overflowTimelines.length} งานเพิ่มเติม
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      คลิกเพื่อดูทั้งหมด
+                    </Typography>
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         </Box>
@@ -1638,6 +1991,9 @@ const EnhancedCalendarView = ({
 
       {/* Enhanced Job Details Dialog */}
       <JobDetailsDialog />
+
+      {/* Day Events Dialog */}
+      <DayEventsDialog />
 
       {/* Context Menu */}
       <Menu

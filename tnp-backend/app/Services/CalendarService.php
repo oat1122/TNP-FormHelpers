@@ -13,7 +13,20 @@ class CalendarService
      */
     public function getCalendarData(string $view, string $date): array
     {
-        $startDate = Carbon::parse($date);
+        // ตรวจสอบและแปลงข้อมูล
+        if (empty($date)) {
+            $date = now()->format('Y-m-d');
+        }
+        
+        if (empty($view)) {
+            $view = 'month';
+        }
+
+        try {
+            $startDate = Carbon::parse($date);
+        } catch (\Exception $e) {
+            $startDate = Carbon::now();
+        }
 
         return match($view) {
             'month' => $this->getMonthlyData($startDate->year, $startDate->month),

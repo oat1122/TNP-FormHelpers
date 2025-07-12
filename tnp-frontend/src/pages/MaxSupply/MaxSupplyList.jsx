@@ -43,6 +43,9 @@ import {
   FaCalendarAlt,
   FaTimes,
 } from 'react-icons/fa';
+import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 // Import locale without direct reference to specific structure
@@ -412,12 +415,12 @@ const MaxSupplyList = () => {
                   </Tooltip>
                   <Tooltip title="แก้ไข">
                     <IconButton size="small" onClick={() => navigate(`/max-supply/edit/${item.id}`)}>
-                      <Edit />
+                      <EditIcon  />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="ลบ">
                     <IconButton size="small" color="error" onClick={() => handleDelete(item.id)}>
-                      <Delete />
+                      <DeleteIcon  />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -436,7 +439,7 @@ const MaxSupplyList = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">รายละเอียดงาน</Typography>
           <IconButton onClick={() => setDetailDialog(false)}>
-            <Close />
+            <CloseIcon  />
           </IconButton>
         </Box>
       </DialogTitle>

@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { addDays, subDays } from 'date-fns';
 
 export const useFallbackData = () => {
   const fallbackData = useMemo(() => {
-    const now = new Date();
+    // Use July 2025 as base date for demo data
+    const baseDate = new Date(2025, 6, 15); // July 15, 2025
     
     return [
       {
@@ -11,9 +11,9 @@ export const useFallbackData = () => {
         title: 'เสื้อโปโล ABC Company',
         customer_name: 'ABC Company',
         production_type: 'screen',
-        start_date: subDays(now, 3).toISOString(),
-        expected_completion_date: addDays(now, 2).toISOString(),
-        due_date: addDays(now, 5).toISOString(),
+        start_date: new Date(2025, 6, 5).toISOString(), // July 5, 2025
+        expected_completion_date: new Date(2025, 6, 12).toISOString(), // July 12, 2025 (7 days)
+        due_date: new Date(2025, 6, 15).toISOString(), // July 15, 2025
         status: 'in_progress',
         total_quantity: 500,
         priority: 'high',
@@ -32,9 +32,9 @@ export const useFallbackData = () => {
         title: 'เสื้อยืด XYZ Corp',
         customer_name: 'XYZ Corp',
         production_type: 'dtf',
-        start_date: addDays(now, 1).toISOString(),
-        expected_completion_date: addDays(now, 7).toISOString(),
-        due_date: addDays(now, 10).toISOString(),
+        start_date: new Date(2025, 6, 8).toISOString(), // July 8, 2025
+        expected_completion_date: new Date(2025, 6, 25).toISOString(), // July 25, 2025 (17 days)
+        due_date: new Date(2025, 6, 28).toISOString(), // July 28, 2025
         status: 'pending',
         total_quantity: 300,
         priority: 'normal',
@@ -53,9 +53,9 @@ export const useFallbackData = () => {
         title: 'เสื้อฮูดี้ DEF Ltd',
         customer_name: 'DEF Ltd',
         production_type: 'sublimation',
-        start_date: addDays(now, 5).toISOString(),
-        expected_completion_date: addDays(now, 10).toISOString(),
-        due_date: addDays(now, 12).toISOString(),
+        start_date: new Date(2025, 6, 14).toISOString(), // July 14, 2025
+        expected_completion_date: new Date(2025, 7, 5).toISOString(), // Aug 5, 2025 (22 days, spans to next month)
+        due_date: new Date(2025, 7, 8).toISOString(), // Aug 8, 2025
         status: 'pending',
         total_quantity: 150,
         priority: 'low',
@@ -74,9 +74,9 @@ export const useFallbackData = () => {
         title: 'เสื้อโปโล GHI Inc',
         customer_name: 'GHI Inc',
         production_type: 'embroidery',
-        start_date: addDays(now, 2).toISOString(),
-        expected_completion_date: addDays(now, 5).toISOString(),
-        due_date: addDays(now, 7).toISOString(),
+        start_date: new Date(2025, 6, 10).toISOString(), // July 10, 2025
+        expected_completion_date: new Date(2025, 6, 18).toISOString(), // July 18, 2025 (8 days)
+        due_date: new Date(2025, 6, 20).toISOString(), // July 20, 2025
         status: 'completed',
         total_quantity: 200,
         priority: 'urgent',
@@ -95,9 +95,9 @@ export const useFallbackData = () => {
         title: 'เสื้อกีฬา JKL Team',
         customer_name: 'JKL Team',
         production_type: 'screen',
-        start_date: addDays(now, 3).toISOString(),
-        expected_completion_date: addDays(now, 6).toISOString(),
-        due_date: addDays(now, 8).toISOString(),
+        start_date: new Date(2025, 6, 16).toISOString(), // July 16, 2025
+        expected_completion_date: new Date(2025, 6, 21).toISOString(), // July 21, 2025 (5 days)
+        due_date: new Date(2025, 6, 23).toISOString(), // July 23, 2025
         status: 'pending',
         total_quantity: 250,
         priority: 'normal',
@@ -116,9 +116,9 @@ export const useFallbackData = () => {
         title: 'เสื้อโปโล MNO School',
         customer_name: 'MNO School',
         production_type: 'dtf',
-        start_date: addDays(now, 4).toISOString(),
-        expected_completion_date: addDays(now, 8).toISOString(),
-        due_date: addDays(now, 11).toISOString(),
+        start_date: new Date(2025, 6, 20).toISOString(), // July 20, 2025
+        expected_completion_date: new Date(2025, 6, 30).toISOString(), // July 30, 2025 (10 days)
+        due_date: new Date(2025, 7, 2).toISOString(), // Aug 2, 2025
         status: 'pending',
         total_quantity: 180,
         priority: 'high',
@@ -137,9 +137,9 @@ export const useFallbackData = () => {
         title: 'เสื้อทำงาน PQR Corp',
         customer_name: 'PQR Corp',
         production_type: 'sublimation',
-        start_date: addDays(now, 6).toISOString(),
-        expected_completion_date: addDays(now, 9).toISOString(),
-        due_date: addDays(now, 12).toISOString(),
+        start_date: new Date(2025, 6, 22).toISOString(), // July 22, 2025
+        expected_completion_date: new Date(2025, 6, 26).toISOString(), // July 26, 2025 (4 days)
+        due_date: new Date(2025, 6, 29).toISOString(), // July 29, 2025
         status: 'pending',
         total_quantity: 120,
         priority: 'normal',
@@ -158,9 +158,9 @@ export const useFallbackData = () => {
         title: 'เสื้อยูนิฟอร์ม STU Ltd',
         customer_name: 'STU Ltd',
         production_type: 'embroidery',
-        start_date: addDays(now, 7).toISOString(),
-        expected_completion_date: addDays(now, 11).toISOString(),
-        due_date: addDays(now, 14).toISOString(),
+        start_date: new Date(2025, 6, 24).toISOString(), // July 24, 2025
+        expected_completion_date: new Date(2025, 6, 30).toISOString(), // July 30, 2025 (6 days)
+        due_date: new Date(2025, 7, 3).toISOString(), // Aug 3, 2025
         status: 'pending',
         total_quantity: 90,
         priority: 'low',
@@ -179,9 +179,9 @@ export const useFallbackData = () => {
         title: 'เสื้อ Event VWX Club',
         customer_name: 'VWX Club',
         production_type: 'screen',
-        start_date: addDays(now, 8).toISOString(),
-        expected_completion_date: addDays(now, 12).toISOString(),
-        due_date: addDays(now, 15).toISOString(),
+        start_date: new Date(2025, 6, 26).toISOString(), // July 26, 2025
+        expected_completion_date: new Date(2025, 7, 8).toISOString(), // Aug 8, 2025 (13 days, spans to next month)
+        due_date: new Date(2025, 7, 11).toISOString(), // Aug 11, 2025
         status: 'pending',
         total_quantity: 400,
         priority: 'urgent',
@@ -200,9 +200,9 @@ export const useFallbackData = () => {
         title: 'เสื้อโปรโมท YZA Brand',
         customer_name: 'YZA Brand',
         production_type: 'dtf',
-        start_date: addDays(now, 9).toISOString(),
-        expected_completion_date: addDays(now, 13).toISOString(),
-        due_date: addDays(now, 16).toISOString(),
+        start_date: new Date(2025, 6, 28).toISOString(), // July 28, 2025
+        expected_completion_date: new Date(2025, 7, 5).toISOString(), // Aug 5, 2025 (8 days, spans to next month)
+        due_date: new Date(2025, 7, 8).toISOString(), // Aug 8, 2025
         status: 'pending',
         total_quantity: 220,
         priority: 'normal',

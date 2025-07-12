@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 const KanbanBoard = ({ 
   maxSupplies = [], 
@@ -43,6 +44,7 @@ const KanbanBoard = ({
   onDeleteJob, 
   loading = false 
 }) => {
+  const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState({ open: false, job: null });
   const [menuAnchor, setMenuAnchor] = useState({ element: null, job: null });
   const [draggedJob, setDraggedJob] = useState(null);
@@ -360,7 +362,11 @@ const KanbanBoard = ({
             ลากและวางการ์ดงานเพื่อเปลี่ยนสถานะ หรือคลิกปุ่ม ⋮ เพื่อจัดการ
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />}>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />}
+          onClick={() => navigate('/max-supply/create')}
+        >
           เพิ่มงานใหม่
         </Button>
       </Box>

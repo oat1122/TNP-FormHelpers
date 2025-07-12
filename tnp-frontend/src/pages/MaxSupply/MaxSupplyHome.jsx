@@ -18,11 +18,11 @@ import { useFallbackData } from '../../hooks/useFallbackData';
 import { StatisticsCards, WorkCapacityCard, KanbanBoard } from '../../components/MaxSupply';
 import {
   NavigationTabs,
-  CalendarView,
   DeadlineSection,
   JobStatusSection,
   TestButtons,
 } from './components';
+import EnhancedCalendarView from './components/CalendarView';
 import { 
   format, 
   startOfMonth, 
@@ -68,11 +68,13 @@ const MaxSupplyHome = () => {
     error.includes('timeout')
   );
 
-  // Use fallback data when backend is unavailable
+  // Use fallback data only when backend is unavailable
   const maxSupplies = isBackendUnavailable ? fallbackMaxSupplies : realMaxSupplies;
   const statistics = isBackendUnavailable ? fallbackStatistics : realStatistics;
   const getEventsForDate = isBackendUnavailable ? getFallbackEventsForDate : getRealEventsForDate;
   const getUpcomingDeadlines = isBackendUnavailable ? getFallbackUpcomingDeadlines : getRealUpcomingDeadlines;
+
+
 
   // Handler for status change
   const handleStatusChange = async (jobId, newStatus) => {
@@ -112,8 +114,10 @@ const MaxSupplyHome = () => {
   const navigateMonth = (direction) => {
     if (direction === 'prev') {
       setCurrentDate(subMonths(currentDate, 1));
-    } else {
+    } else if (direction === 'next') {
       setCurrentDate(addMonths(currentDate, 1));
+    } else if (direction === 'today') {
+      setCurrentDate(new Date());
     }
   };
 
@@ -126,70 +130,7 @@ const MaxSupplyHome = () => {
     return () => clearTimeout(timer);
   }, [currentDate, viewMode]); // Remove refetch from dependencies
 
-  // Calculate event timeline position and width
-  const calculateEventTimeline = (event, calendarDays) => {
-    const eventStart = new Date(event.start_date);
-    const eventEnd = new Date(event.expected_completion_date);
-    
-    // Find start and end positions in calendar
-    const startIndex = calendarDays.findIndex(day => 
-      format(day, 'yyyy-MM-dd') === format(eventStart, 'yyyy-MM-dd')
-    );
-    const endIndex = calendarDays.findIndex(day => 
-      format(day, 'yyyy-MM-dd') === format(eventEnd, 'yyyy-MM-dd')
-    );
 
-    // If event is not in current view, don't show
-    if (startIndex === -1 && endIndex === -1) return null;
-
-    // Calculate position and width
-    const actualStart = Math.max(0, startIndex);
-    const actualEnd = Math.min(calendarDays.length - 1, endIndex >= 0 ? endIndex : startIndex);
-    const width = actualEnd - actualStart + 1;
-
-    return {
-      startCol: actualStart,
-      width,
-      event,
-    };
-  };
-
-  // Organize events into rows to avoid overlap
-  const organizeEventsInRows = (events, calendarDays) => {
-    const timelines = events
-      .map(event => calculateEventTimeline(event, calendarDays))
-      .filter(Boolean);
-
-    const rows = [];
-    
-    timelines.forEach(timeline => {
-      let placed = false;
-      
-      // Try to place in existing rows
-      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-        const row = rows[rowIndex];
-        const hasOverlap = row.some(existingTimeline => {
-          const existingEnd = existingTimeline.startCol + existingTimeline.width - 1;
-          const currentEnd = timeline.startCol + timeline.width - 1;
-          
-          return !(existingEnd < timeline.startCol || currentEnd < existingTimeline.startCol);
-        });
-        
-        if (!hasOverlap) {
-          row.push(timeline);
-          placed = true;
-          break;
-        }
-      }
-      
-      // If no suitable row found, create new row
-      if (!placed) {
-        rows.push([timeline]);
-      }
-    });
-
-    return rows;
-  };
 
 
 
@@ -215,6 +156,8 @@ const MaxSupplyHome = () => {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
       />
+
+
 
       {/* Error Alert or Demo Mode Alert */}
       {error && isBackendUnavailable && (
@@ -270,15 +213,14 @@ const MaxSupplyHome = () => {
         <Grid container spacing={3}>
           {/* Calendar */}
           <Grid item xs={12} lg={9}>
-            <CalendarView 
+            <EnhancedCalendarView 
               currentDate={currentDate}
               navigateMonth={navigateMonth}
               maxSupplies={maxSupplies}
-              calculateEventTimeline={calculateEventTimeline}
-              organizeEventsInRows={organizeEventsInRows}
               statistics={statistics}
               onJobUpdate={refetch}
               onJobDelete={handleDeleteJob}
+              loading={loading}
             />
           </Grid>
 

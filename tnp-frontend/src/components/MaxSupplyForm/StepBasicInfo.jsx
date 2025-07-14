@@ -19,7 +19,9 @@ const StepBasicInfo = ({
   onInputChange, 
   onWorksheetSelect, 
   onRefreshWorksheets,
-  priorityLevels 
+  priorityLevels,
+  language = 'th',
+  t = (key) => key
 }) => {
   return (
     <Grid container spacing={3}>
@@ -32,6 +34,8 @@ const StepBasicInfo = ({
           onWorksheetSelect={onWorksheetSelect}
           onRefreshWorksheets={onRefreshWorksheets}
           errors={errors}
+          language={language}
+          t={t}
         />
       </Grid>
 
@@ -42,6 +46,8 @@ const StepBasicInfo = ({
           errors={errors}
           priorityLevels={priorityLevels}
           onInputChange={onInputChange}
+          language={language}
+          t={t}
         />
       </Grid>
 
@@ -61,6 +67,8 @@ const StepBasicInfo = ({
           formData={formData}
           errors={errors}
           onInputChange={onInputChange}
+          language={language}
+          t={t}
         />
       </Grid>
     </Grid>

@@ -9,49 +9,77 @@ import {
   Build,
 } from '@mui/icons-material';
 
-const WorkCalculationCard = ({ formData, isAutoFilled }) => {
+const WorkCalculationCard = ({ formData, isAutoFilled, language = 'th', t = (key) => key }) => {
   if (!isAutoFilled) return null;
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
+    <Card sx={{ borderRadius: { xs: 2, md: 1 } }}>
+      <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          className={language === 'my' ? 'myanmar-text' : ''}
+          sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' } }}
+        >
           <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
-          การคำนวณงานแต่ละประเภทการพิมพ์
+          {t('workCalculationByType')}
         </Typography>
         
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            <strong>การคำนวณงานจาก WorkSheet:</strong><br/>
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mb: 2,
+            '& .MuiAlert-message': {
+              fontSize: { xs: '0.875rem', md: '0.875rem' }
+            }
+          }}
+        >
+          <Typography 
+            variant="body2"
+            className={language === 'my' ? 'myanmar-text' : ''}
+          >
+            <strong>{t('workCalculationFromWorksheet')}</strong><br/>
             {(() => {
               const workCalculations = [];
               
               if (formData.print_locations?.screen?.enabled) {
                 const points = formData.print_locations.screen.points;
                 const totalWork = points * formData.total_quantity;
-                workCalculations.push(`Screen Printing ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Screen Printing มีงาน ${totalWork}`);
+                const calculation = language === 'th' 
+                  ? `Screen Printing ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('screenPrintingWork')} ${totalWork}`
+                  : `Screen Printing ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('screenPrintingWork')} ${totalWork}`;
+                workCalculations.push(calculation);
               }
               
               if (formData.print_locations?.dtf?.enabled) {
                 const points = formData.print_locations.dtf.points;
                 const totalWork = points * formData.total_quantity;
-                workCalculations.push(`DTF (Direct Film Transfer) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน DTF มีงาน ${totalWork}`);
+                const calculation = language === 'th'
+                  ? `DTF (Direct Film Transfer) ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('dtfWork')} ${totalWork}`
+                  : `DTF (Direct Film Transfer) ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('dtfWork')} ${totalWork}`;
+                workCalculations.push(calculation);
               }
               
               if (formData.print_locations?.sublimation?.enabled) {
                 const points = formData.print_locations.sublimation.points;
                 const totalWork = points * formData.total_quantity;
-                workCalculations.push(`Sublimation/Flex ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Sublimation/Flex มีงาน ${totalWork}`);
+                const calculation = language === 'th'
+                  ? `Sublimation/Flex ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('sublimationWork')} ${totalWork}`
+                  : `Sublimation/Flex ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('sublimationWork')} ${totalWork}`;
+                workCalculations.push(calculation);
               }
               
               if (formData.print_locations?.embroidery?.enabled) {
                 const points = formData.print_locations.embroidery.points;
                 const totalWork = points * formData.total_quantity;
-                workCalculations.push(`Embroidery (ปัก) ${points} จุด เสื้อทั้งหมด ${formData.total_quantity} ตัว (${points}×${formData.total_quantity}=${totalWork}) งาน Embroidery มีงาน ${totalWork}`);
+                const calculation = language === 'th'
+                  ? `Embroidery (ปัก) ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('embroideryWork')} ${totalWork}`
+                  : `Embroidery ${points} ${t('pointsLabel')} ${t('totalShirts')} ${formData.total_quantity} ${t('pieces')} (${points}×${formData.total_quantity}=${totalWork}) ${t('embroideryWork')} ${totalWork}`;
+                workCalculations.push(calculation);
               }
               
               if (workCalculations.length === 0) {
-                return 'ไม่พบข้อมูลการพิมพ์/ปัก';
+                return language === 'th' ? 'ไม่พบข้อมูลการพิมพ์/ปัก' : 'ပရင့်/ပန်း အချက်အလက်မတွေ့ပါ';
               }
               
               return workCalculations.map((calc, index) => (

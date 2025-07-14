@@ -12,39 +12,45 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 
-const StepNotes = ({ formData, errors, onInputChange }) => {
+const StepNotes = ({ formData, errors, onInputChange, language = 'th', t = (key) => key }) => {
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+              className={language === 'my' ? 'myanmar-text' : ''}
+            >
               <Note sx={{ mr: 1, verticalAlign: 'middle' }} />
-              หมายเหตุและข้อมูลเพิ่มเติม
+              {t('stepNotes')}
             </Typography>
             
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="หมายเหตุทั่วไป"
+                  label={t('notes')}
                   value={formData.notes}
                   onChange={(e) => onInputChange('notes', e.target.value)}
                   multiline
                   rows={4}
                   fullWidth
-                  placeholder="หมายเหตุเพิ่มเติม..."
+                  placeholder={language === 'th' ? 'หมายเหตุเพิ่มเติม...' : 'နောက်ထပ်မှတ်စုများ...'}
+                  className={language === 'my' ? 'myanmar-text' : ''}
                 />
               </Grid>
               
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="คำแนะนำพิเศษ"
+                  label={t('specialInstructions')}
                   value={formData.special_instructions}
                   onChange={(e) => onInputChange('special_instructions', e.target.value)}
                   multiline
                   rows={4}
                   fullWidth
-                  placeholder="คำแนะนำพิเศษสำหรับการผลิต..."
+                  placeholder={language === 'th' ? 'คำแนะนำพิเศษสำหรับการผลิต...' : 'ထုတ်လုပ်မှုအတွက် အထူးညွှန်ကြားချက်များ...'}
+                  className={language === 'my' ? 'myanmar-text' : ''}
                 />
               </Grid>
             </Grid>

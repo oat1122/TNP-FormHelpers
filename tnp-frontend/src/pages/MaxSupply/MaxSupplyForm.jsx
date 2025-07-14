@@ -13,6 +13,7 @@ import {
   useTheme,
   useMediaQuery,
   CircularProgress,
+  Fab,
 } from '@mui/material';
 import {
   Save,
@@ -25,6 +26,7 @@ import {
   Build,
   Note,
   ArrowBack,
+  Translate,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -38,6 +40,9 @@ import { useGetAllWorksheetQuery } from '../../features/Worksheet/worksheetApi';
 import toast from 'react-hot-toast';
 import { debugTokens } from '../../utils/tokenDebug';
 import { StepBasicInfo, StepProductionInfo, StepNotes } from '../../components/MaxSupplyForm';
+import { useTranslation } from '../../utils/translations';
+import LanguageToggle from '../../components/LanguageToggle';
+import '../../styles/MaxSupplyFormMobile.css';
 
 // Set dayjs locale
 dayjs.locale('th');
@@ -45,10 +50,12 @@ dayjs.locale('th');
 const MaxSupplyForm = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
   const isEditMode = Boolean(id);
+  const { t, language, changeLanguage } = useTranslation();
 
   // States
   const [activeStep, setActiveStep] = useState(0);
@@ -90,18 +97,18 @@ const MaxSupplyForm = () => {
 
   // Production types (matched to backend validation) 
   const productionTypes = [
-    { value: 'screen', label: 'Screen Printing', color: productionTypeConfig.screen.color },
-    { value: 'dtf', label: 'DTF (Direct Film Transfer)', color: productionTypeConfig.dtf.color },
-    { value: 'sublimation', label: 'Sublimation', color: productionTypeConfig.sublimation.color },
+    { value: 'screen', label: t('screen'), color: productionTypeConfig.screen.color },
+    { value: 'dtf', label: t('dtf'), color: productionTypeConfig.dtf.color },
+    { value: 'sublimation', label: t('sublimation'), color: productionTypeConfig.sublimation.color },
     // Note: embroidery is not supported in backend yet
   ];
 
   // Shirt types (matched to backend enum)
   const shirtTypes = [
-    { value: 'polo', label: 'เสื้อโปโล' },
-    { value: 't-shirt', label: 'เสื้อยืด' },
-    { value: 'hoodie', label: 'เสื้อฮูดี้' },
-    { value: 'tank-top', label: 'เสื้อกล้าม' },
+    { value: 'polo', label: t('polo') },
+    { value: 't-shirt', label: t('tshirt') },
+    { value: 'hoodie', label: t('hoodie') },
+    { value: 'tank-top', label: t('tankTop') },
     // Note: 'long-sleeve' is not supported in backend enum
   ];
 
@@ -110,28 +117,28 @@ const MaxSupplyForm = () => {
 
   // Priority levels
   const priorityLevels = [
-    { value: 'low', label: 'ต่ำ', color: '#10b981' },
-    { value: 'normal', label: 'ปกติ', color: '#6b7280' },
-    { value: 'high', label: 'สูง', color: '#f59e0b' },
-    { value: 'urgent', label: 'ด่วน', color: '#ef4444' },
+    { value: 'low', label: t('lowPriority'), color: '#10b981' },
+    { value: 'normal', label: t('normalPriority'), color: '#6b7280' },
+    { value: 'high', label: t('highPriority'), color: '#f59e0b' },
+    { value: 'urgent', label: t('urgentPriority'), color: '#ef4444' },
   ];
 
   // Steps definition
   const steps = [
     {
-      label: 'ข้อมูลพื้นฐาน',
+      label: t('stepBasicInfo'),
       icon: <Info />,
-      description: 'เลือก Worksheet และกรอกข้อมูลพื้นฐาน'
+      description: t('stepBasicInfoDesc')
     },
     {
-      label: 'ข้อมูลการผลิต',
+      label: t('stepProductionInfo'),
       icon: <Build />,
-      description: 'กำหนดรายละเอียดการผลิตและจุดพิมพ์'
+      description: t('stepProductionInfoDesc')
     },
     {
-      label: 'หมายเหตุ',
+      label: t('stepNotes'),
       icon: <Note />,
-      description: 'เพิ่มหมายเหตุและข้อมูลเพิ่มเติม'
+      description: t('stepNotesDesc')
     }
   ];
 
@@ -1015,162 +1022,299 @@ const MaxSupplyForm = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
-      <Container maxWidth="lg">
-        <Box sx={{ py: 3 }}>
-          {/* Header */}
-          <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-            <Box display="flex" alignItems="center" gap={2} mb={2}>
-              <Button
-                startIcon={<ArrowBack />}
-                onClick={() => navigate('/max-supply')}
-                variant="outlined"
-                size="small"
+      <Box className="max-supply-form">
+        {/* Floating Language Toggle for Mobile */}
+        {isSmallMobile && (
+          <Box 
+            className="floating-language-toggle"
+            sx={{
+              position: 'fixed',
+              top: { xs: 12, sm: 16 },
+              right: { xs: 12, sm: 16 },
+              zIndex: 1300,
+              bgcolor: 'background.paper',
+              borderRadius: { xs: 5, sm: 6 },
+              boxShadow: { xs: '0 2px 16px rgba(0,0,0,0.12)', sm: '0 4px 20px rgba(0,0,0,0.15)' },
+              p: { xs: 0.25, sm: 0.5 },
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                boxShadow: { xs: '0 4px 20px rgba(0,0,0,0.18)', sm: '0 6px 24px rgba(0,0,0,0.2)' },
+                transform: 'translateY(-1px)'
+              }
+            }}
+          >
+            <LanguageToggle 
+              language={language} 
+              onLanguageChange={changeLanguage} 
+              compact={true}
+            />
+          </Box>
+        )}
+
+        <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+          <Box sx={{ py: { xs: 1, md: 3 } }}>
+            {/* Header */}
+            <Paper 
+              elevation={1} 
+              className="mobile-header"
+              sx={{ 
+                p: { xs: 2, md: 3 }, 
+                mb: { xs: 2, md: 3 },
+                borderRadius: { xs: 2, md: 1 }
+              }}
+            >
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                gap={2} 
+                mb={2}
+                flexDirection={{ xs: 'column', sm: 'row' }}
               >
-                กลับ
-              </Button>
-              <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-                {isEditMode ? 'แก้ไขงาน Max Supply' : 'สร้างงาน Max Supply ใหม่'}
-              </Typography>
-            </Box>
-
-            {/* Auto Fill Preview */}
-            {autoFillPreview && (
-              <Alert 
-                severity="success" 
-                icon={<AutoAwesome />}
-                sx={{ mb: 2 }}
-              >
-                <Typography variant="body2">
-                  <strong>ข้อมูลถูกกรอกอัตโนมัติจาก NewWorkSheet:</strong><br />
-                  ลูกค้า: {autoFillPreview.customer_name} | 
-                  จำนวน: {autoFillPreview.total_quantity} ตัว | 
-                  ประเภท: {autoFillPreview.production_type} | 
-                  ครบกำหนด: {autoFillPreview.due_date.format('DD/MM/YYYY')}
-                  {autoFillPreview.newworks_code && ` | รหัส: ${autoFillPreview.newworks_code}`}
-                  {autoFillPreview.fabric_info?.fabric_name && ` | ผ้า: ${autoFillPreview.fabric_info.fabric_name}`}
-                </Typography>
-              </Alert>
-            )}
-
-            {/* Progress Stepper */}
-            <Stepper activeStep={activeStep} alternativeLabel={!isMobile}>
-              {steps.map((step, index) => (
-                <Step key={step.label}>
-                  <StepLabel 
-                    icon={
-                      <Avatar 
-                        sx={{ 
-                          bgcolor: activeStep >= index ? 'primary.main' : 'grey.400',
-                          width: 32, 
-                          height: 32 
-                        }}
-                      >
-                        {activeStep > index ? <CheckCircle /> : step.icon}
-                      </Avatar>
-                    }
-                  >
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {step.label}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {step.description}
-                      </Typography>
-                    </Box>
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-          </Paper>
-
-          {/* Form Content */}
-          <form onSubmit={(e) => e.preventDefault()}>
-            {activeStep === 0 && (
-              <StepBasicInfo
-                formData={formData}
-                errors={errors}
-                worksheetOptions={worksheetOptions}
-                worksheetLoading={worksheetLoading}
-                selectedWorksheet={selectedWorksheet}
-                onInputChange={handleInputChange}
-                onWorksheetSelect={handleWorksheetSelect}
-                onRefreshWorksheets={manualRefreshWorksheets}
-                priorityLevels={priorityLevels}
-              />
-            )}
-
-            {activeStep === 1 && (
-              <StepProductionInfo
-                formData={formData}
-                errors={errors}
-                shirtTypes={shirtTypes}
-                productionTypes={productionTypes}
-                sizeOptions={sizeOptions}
-                selectedWorksheet={selectedWorksheet}
-                onInputChange={handleInputChange}
-                onSizeBreakdown={handleSizeBreakdown}
-                onSizeQuantityChange={handleSizeQuantityChange}
-                onPrintLocationChange={handlePrintLocationChange}
-              />
-            )}
-
-            {activeStep === 2 && (
-              <StepNotes
-                formData={formData}
-                errors={errors}
-                onInputChange={handleInputChange}
-              />
-            )}
-
-            {/* Navigation Buttons */}
-            <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Button
-                  disabled={activeStep === 0}
-                  onClick={handleBack}
-                  startIcon={<NavigateBefore />}
-                  variant="outlined"
-                  color="primary"
-                >
-                  ย้อนกลับ
-                </Button>
-                
-                <Box display="flex" gap={2}>
+                <Box display="flex" alignItems="center" gap={2} width="100%">
                   <Button
-                    variant="outlined"
+                    startIcon={<ArrowBack />}
                     onClick={() => navigate('/max-supply')}
-                    startIcon={<Cancel />}
-                    color="error"
+                    variant="outlined"
+                    size={isSmallMobile ? "medium" : "small"}
+                    className="touch-button"
                   >
-                    ยกเลิก
+                    {t('back')}
+                  </Button>
+                  <Typography 
+                    variant={isSmallMobile ? "h5" : "h4"} 
+                    component="h1" 
+                    sx={{ 
+                      flexGrow: 1,
+                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' },
+                      lineHeight: 1.2,
+                      className: language === 'my' ? 'myanmar-text' : ''
+                    }}
+                  >
+                    {isEditMode ? t('editTitle') : t('title')}
+                  </Typography>
+                </Box>
+
+                {/* Desktop Language Toggle */}
+                {!isSmallMobile && (
+                  <LanguageToggle 
+                    language={language} 
+                    onLanguageChange={changeLanguage} 
+                    compact={isMobile}
+                  />
+                )}
+              </Box>
+
+              {/* Auto Fill Preview */}
+              {autoFillPreview && (
+                <Alert 
+                  severity="success" 
+                  icon={<AutoAwesome />}
+                  className="mobile-alert"
+                  sx={{ 
+                    mb: 2,
+                    fontSize: { xs: '0.875rem', md: '0.875rem' }
+                  }}
+                >
+                  <Typography variant="body2" className={language === 'my' ? 'myanmar-text' : ''}>
+                    <strong>{t('autoFillMessage')}</strong><br />
+                    {t('customerLabel')} {autoFillPreview.customer_name} | 
+                    {t('quantityLabel')} {autoFillPreview.total_quantity} {t('pieces')} | 
+                    {t('typeLabel')} {autoFillPreview.production_type} | 
+                    {t('dueDateLabel')} {autoFillPreview.due_date.format('DD/MM/YYYY')}
+                    {autoFillPreview.newworks_code && ` | ${t('codeLabel')} ${autoFillPreview.newworks_code}`}
+                    {autoFillPreview.fabric_info?.fabric_name && ` | ${t('fabricLabel')} ${autoFillPreview.fabric_info.fabric_name}`}
+                  </Typography>
+                </Alert>
+              )}
+
+              {/* Progress Stepper */}
+              <Stepper 
+                activeStep={activeStep} 
+                alternativeLabel={!isMobile}
+                className={isMobile ? "mobile-stepper" : ""}
+                orientation={isSmallMobile ? "vertical" : "horizontal"}
+                sx={{
+                  '& .MuiStepLabel-label': {
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    className: language === 'my' ? 'myanmar-text' : ''
+                  }
+                }}
+              >
+                {steps.map((step, index) => (
+                  <Step key={step.label}>
+                    <StepLabel 
+                      icon={
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: activeStep >= index ? 'primary.main' : 'grey.400',
+                            width: { xs: 28, md: 32 }, 
+                            height: { xs: 28, md: 32 },
+                            fontSize: { xs: '0.75rem', md: '1rem' }
+                          }}
+                        >
+                          {activeStep > index ? <CheckCircle /> : step.icon}
+                        </Avatar>
+                      }
+                    >
+                      <Box>
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight="bold"
+                          sx={{ 
+                            fontSize: { xs: '0.875rem', md: '1rem' },
+                            className: language === 'my' ? 'myanmar-text' : ''
+                          }}
+                        >
+                          {step.label}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: { xs: '0.75rem', md: '0.875rem' },
+                            className: language === 'my' ? 'myanmar-text' : ''
+                          }}
+                        >
+                          {step.description}
+                        </Typography>
+                      </Box>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+            </Paper>
+
+            {/* Form Content */}
+            <form onSubmit={(e) => e.preventDefault()}>
+              <Box className="mobile-step-content">
+                {activeStep === 0 && (
+                  <StepBasicInfo
+                    formData={formData}
+                    errors={errors}
+                    worksheetOptions={worksheetOptions}
+                    worksheetLoading={worksheetLoading}
+                    selectedWorksheet={selectedWorksheet}
+                    onInputChange={handleInputChange}
+                    onWorksheetSelect={handleWorksheetSelect}
+                    onRefreshWorksheets={manualRefreshWorksheets}
+                    priorityLevels={priorityLevels}
+                    language={language}
+                    t={t}
+                  />
+                )}
+
+                {activeStep === 1 && (
+                  <StepProductionInfo
+                    formData={formData}
+                    errors={errors}
+                    shirtTypes={shirtTypes}
+                    productionTypes={productionTypes}
+                    sizeOptions={sizeOptions}
+                    selectedWorksheet={selectedWorksheet}
+                    onInputChange={handleInputChange}
+                    onSizeBreakdown={handleSizeBreakdown}
+                    onSizeQuantityChange={handleSizeQuantityChange}
+                    onPrintLocationChange={handlePrintLocationChange}
+                    language={language}
+                    t={t}
+                  />
+                )}
+
+                {activeStep === 2 && (
+                  <StepNotes
+                    formData={formData}
+                    errors={errors}
+                    onInputChange={handleInputChange}
+                    language={language}
+                    t={t}
+                  />
+                )}
+              </Box>
+
+              {/* Navigation Buttons */}
+              <Paper 
+                elevation={1} 
+                className={isSmallMobile ? "mobile-sticky-nav" : ""}
+                sx={{ 
+                  p: { xs: 2, md: 3 }, 
+                  mt: { xs: 2, md: 3 },
+                  borderRadius: { xs: '12px 12px 0 0', md: 1 }
+                }}
+              >
+                <Box 
+                  display="flex" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  className={isSmallMobile ? "mobile-nav-buttons" : ""}
+                  flexDirection={{ xs: 'column', sm: 'row' }}
+                  gap={{ xs: 2, sm: 0 }}
+                >
+                  <Button
+                    disabled={activeStep === 0}
+                    onClick={handleBack}
+                    startIcon={<NavigateBefore />}
+                    variant="outlined"
+                    color="primary"
+                    className="touch-button"
+                    sx={{ 
+                      width: { xs: '100%', sm: 'auto' },
+                      order: { xs: 2, sm: 1 }
+                    }}
+                  >
+                    {t('previous')}
                   </Button>
                   
-                  {activeStep === steps.length - 1 ? (
+                  <Box 
+                    display="flex" 
+                    gap={2}
+                    sx={{ 
+                      width: { xs: '100%', sm: 'auto' },
+                      order: { xs: 1, sm: 2 },
+                      flexDirection: { xs: 'column', sm: 'row' }
+                    }}
+                  >
                     <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleSubmit}
-                      disabled={submitLoading}
-                      startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
+                      variant="outlined"
+                      onClick={() => navigate('/max-supply')}
+                      startIcon={<Cancel />}
+                      color="error"
+                      className="touch-button"
+                      sx={{ width: { xs: '100%', sm: 'auto' } }}
                     >
-                      {submitLoading ? 'กำลังบันทึก...' : (isEditMode ? 'อัปเดต' : 'สร้างงาน')}
+                      {t('cancel')}
                     </Button>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleNext}
-                      endIcon={<NavigateNext />}
-                    >
-                      ถัดไป
-                    </Button>
-                  )}
+                    
+                    {activeStep === steps.length - 1 ? (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSubmit}
+                        disabled={submitLoading}
+                        startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
+                        className="touch-button"
+                        sx={{ width: { xs: '100%', sm: 'auto' } }}
+                      >
+                        {submitLoading ? t('saving') : (isEditMode ? t('update') : t('create'))}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleNext}
+                        endIcon={<NavigateNext />}
+                        className="touch-button"
+                        sx={{ width: { xs: '100%', sm: 'auto' } }}
+                      >
+                        {t('next')}
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
-              </Box>
-            </Paper>
-          </form>
-        </Box>
-      </Container>
+              </Paper>
+            </form>
+          </Box>
+        </Container>
+      </Box>
     </LocalizationProvider>
   );
 };

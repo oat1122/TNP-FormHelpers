@@ -74,6 +74,20 @@ const theme = createTheme({
           font-style: normal;
           font-display: swap;
         }
+        
+        /* Myanmar fonts */
+        @font-face {
+          font-family: 'Myanmar3';
+          src: local('Myanmar3'), local('Myanmar Text'), local('Pyidaungsu'), local('Noto Sans Myanmar');
+          font-display: swap;
+        }
+        
+        /* Myanmar text styling */
+        .myanmar-text {
+          font-family: 'Myanmar3', 'Pyidaungsu', 'Myanmar Text', 'Noto Sans Myanmar', sans-serif !important;
+          line-height: 1.6 !important;
+          font-weight: 400 !important;
+        }
       `,
     },
     MuiTextField: {

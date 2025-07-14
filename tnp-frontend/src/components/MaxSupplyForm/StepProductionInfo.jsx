@@ -20,7 +20,9 @@ const StepProductionInfo = ({
   onInputChange, 
   onSizeBreakdown,
   onSizeQuantityChange,
-  onPrintLocationChange 
+  onPrintLocationChange,
+  language = 'th',
+  t = (key) => key
 }) => {
   // Check if data is auto-filled from worksheet
   const isAutoFilled = Boolean(selectedWorksheet && formData.worksheet_id);
@@ -52,6 +54,8 @@ const StepProductionInfo = ({
         <WorkCalculationCard
           formData={formData}
           isAutoFilled={isAutoFilled}
+          language={language}
+          t={t}
         />
       </Grid>
 

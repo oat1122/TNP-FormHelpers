@@ -22,14 +22,20 @@ const WorksheetSelector = ({
   worksheetLoading,
   onWorksheetSelect,
   onRefreshWorksheets,
-  errors 
+  errors,
+  language = 'th',
+  t = (key) => key
 }) => {
   return (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+          className={language === 'my' ? 'myanmar-text' : ''}
+        >
           <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-          เลือก Worksheet
+          {t('selectWorksheet')}
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -43,11 +49,15 @@ const WorksheetSelector = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก WorkSheet"
+                label={language === 'th' ? 
+                  "เลือก Worksheet เพื่อกรอกข้อมูลอัตโนมัติจาก WorkSheet" : 
+                  "Worksheet ရွေးချယ်ပါ WorkSheet မှ အလိုအလျောက်ဖြည့်စွက်ရန်"
+                }
                 error={!!errors.worksheet_id}
                 helperText={errors.worksheet_id}
                 variant="outlined"
                 fullWidth
+                className={language === 'my' ? 'myanmar-text' : ''}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (

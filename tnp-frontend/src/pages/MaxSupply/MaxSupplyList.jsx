@@ -12,11 +12,7 @@ import {
   Stack,
   Fab,
 } from "@mui/material";
-import {
-  FaPlus,
-  FaChartLine,
-  FaSortAmountDown,
-} from "react-icons/fa";
+import { FaPlus, FaChartLine, FaSortAmountDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import ProductionTypeIcon from "./components/ProductionTypeIcon";
@@ -144,7 +140,7 @@ const MaxSupplyList = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Filter out "all" values and empty values before sending to API
       const filteredParams = Object.fromEntries(
         Object.entries(filters).filter(([key, value]) => {
@@ -175,7 +171,7 @@ const MaxSupplyList = () => {
       // Debug: Log all filters and final params
       console.log("Current filters state:", filters);
       console.log("Filter params being sent to API:", params);
-      
+
       const response = await maxSupplyApi.getAll(params);
       setMaxSupplies(response.data || []);
       setTotalPages(response.meta?.last_page || 1);
@@ -193,23 +189,33 @@ const MaxSupplyList = () => {
   // Handle filter change with enhanced validation and logic
   const handleFilterChange = (name, value) => {
     console.log(`Filter changed: ${name} = ${value}`);
-    
+
     // Handle search with automatic trimming
     if (name === "search") {
       value = value.trim();
     }
-    
+
     // Handle date validation
-    if (name === "date_from" && filters.date_to && value && new Date(value) > new Date(filters.date_to)) {
+    if (
+      name === "date_from" &&
+      filters.date_to &&
+      value &&
+      new Date(value) > new Date(filters.date_to)
+    ) {
       alert("วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด");
       return;
     }
-    
-    if (name === "date_to" && filters.date_from && value && new Date(value) < new Date(filters.date_from)) {
+
+    if (
+      name === "date_to" &&
+      filters.date_from &&
+      value &&
+      new Date(value) < new Date(filters.date_from)
+    ) {
       alert("วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม");
       return;
     }
-    
+
     // Handle mutually exclusive filters (overdue_only vs urgent_only)
     if (name === "overdue_only" && value === true) {
       setFilters((prev) => ({
@@ -220,7 +226,7 @@ const MaxSupplyList = () => {
       setPage(1);
       return;
     }
-    
+
     if (name === "urgent_only" && value === true) {
       setFilters((prev) => ({
         ...prev,
@@ -230,7 +236,7 @@ const MaxSupplyList = () => {
       setPage(1);
       return;
     }
-    
+
     // Handle normal filter changes
     setFilters((prev) => ({
       ...prev,
@@ -293,8 +299,10 @@ const MaxSupplyList = () => {
   // Handle edit
   const handleEditClick = async (item) => {
     try {
+      console.log("🔧 handleEditClick called with item:", item);
       setEditItem(item);
       setEditDialog(true);
+      console.log("🔧 editDialog set to true, editItem set to:", item);
     } catch (error) {
       console.error("Error setting edit item:", error);
     }
@@ -305,14 +313,14 @@ const MaxSupplyList = () => {
     try {
       console.log("Attempting to save updated item:", updatedItem);
       console.log("Item to edit:", editItem);
-      
+
       // Make sure we have the correct ID
       const itemId = editItem?.id;
       if (!itemId) {
         console.error("No item ID found for update");
         return;
       }
-      
+
       const response = await maxSupplyApi.update(itemId, updatedItem);
       console.log("Update response:", response);
       setEditDialog(false);
@@ -545,14 +553,14 @@ const MaxSupplyList = () => {
         priorityColors={priorityColors}
         onEditClick={handleEditClick}
       />
-      
+
       <DeleteConfirmDialog
         open={deleteConfirmDialog}
         onClose={() => setDeleteConfirmDialog(false)}
         onConfirm={handleDeleteConfirm}
         itemToDelete={itemToDelete}
       />
-      
+
       {/* Edit Form Dialog */}
       <MaxSupplyEditForm
         open={editDialog}

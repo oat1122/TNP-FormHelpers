@@ -1,118 +1,119 @@
 .worksheet-card .MuiTypography-root {
-    font-family: 'PSL Kittithada';
-    font-weight: 600;
+  font-family: "PSL Kittithada";
+  font-weight: 600;
 }
 
-.worksheet-create .MuiTypography-h5, .customer-dialog .MuiTypography-h5 {
-    font-family: 'KanitLight';
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+.worksheet-create .MuiTypography-h5,
+.customer-dialog .MuiTypography-h5 {
+  font-family: "KanitLight";
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .worksheet-create .MuiTypography-h6 {
-    font-family: 'KanitLight';
-    font-size: 1.125rem;
+  font-family: "KanitLight";
+  font-size: 1.125rem;
 }
 
 .worksheet-create .title-shirt.MuiTypography-h6 {
-    font-family: "PSL Kittithada";
-    letter-spacing: 0.2rem;
-    text-transform: uppercase;
-    font-weight: 600;
-    font-size: 1.5rem;
-    color: #424242;
+  font-family: "PSL Kittithada";
+  letter-spacing: 0.2rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #424242;
 }
 
 .worksheet-card .MuiTypography-h6 {
-    letter-spacing: 1px;
-    line-height: 1.3;
-    font-size: 1.125rem;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  font-size: 1.125rem;
 }
 
 .worksheet-card.MuiCard-root {
-    border: 2px solid #D7D7D7;
-    border-radius: 15px;
-    box-shadow: none;
+  border: 2px solid #d7d7d7;
+  border-radius: 15px;
+  box-shadow: none;
 }
 
 .worksheet-card .MuiGrid-root.MuiGrid-container {
-    border-color: #D7D7D7;
+  border-color: #d7d7d7;
 }
 
 .worksheet-card .box-card-media {
-    position: relative;
+  position: relative;
 }
 
 /* ---------- start dialog display image ---------- */
 .MuiDialog-root.dialog-image-display .MuiPaper-root {
-    max-width: 1080px;
+  max-width: 1080px;
 }
 
 .MuiDialog-root.dialog-image-display .MuiDialogTitle-root {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
 }
 
 .MuiDialog-root.dialog-image-display .MuiDialogContent-root {
-    border-bottom: none;
+  border-bottom: none;
 }
 /* ---------- end dialog display image ---------- */
 
 /* ---------- start image action button ---------- */
 .worksheet-card .MuiGrid-container.row-image-action-btn {
-    position: absolute;
-    top: 90%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  position: absolute;
+  top: 90%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .worksheet-card .MuiGrid-container.row-image-action-btn button {
-    background-color: rgba(226, 226, 226, 0.9);
+  background-color: rgba(226, 226, 226, 0.9);
 }
 
 .worksheet-card .MuiGrid-container.row-image-action-btn button:hover {
-    background-color: rgba(215, 215, 215, 1);
+  background-color: rgba(215, 215, 215, 1);
 }
 
 .worksheet-card .MuiGrid-container.row-image-upload-btn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .worksheet-card .MuiGrid-container.row-image-upload-btn button {
-    background-color: rgba(226, 226, 226, 0.9);
+  background-color: rgba(226, 226, 226, 0.9);
 }
 
 .worksheet-card .MuiGrid-container.row-image-upload-btn button:hover {
-    background-color: rgba(215, 215, 215, 1);
+  background-color: rgba(215, 215, 215, 1);
 }
 /* ---------- end image action button ---------- */
 
 /* ---------- start dialog create btn ---------- */
 .dialog-btn-create .MuiPaper-root.MuiPaper-elevation {
-    background-color: rgba(34, 34, 34, 0.9) !important;
+  background-color: rgba(34, 34, 34, 0.9) !important;
 }
 
 .dialog-btn-create.MuiDialog-root {
-    position: absolute;
-    top: 2rem;
-    right: unset;
-    bottom: unset;
+  position: absolute;
+  top: 2rem;
+  right: unset;
+  bottom: unset;
 }
 
 .dialog-btn-create .MuiPaper-root.MuiPaper-elevation {
-    margin-left: 0;
-    height: 32rem;
-    border-radius: 0 1rem 1rem 0;
+  margin-left: 0;
+  height: 32rem;
+  border-radius: 0 1rem 1rem 0;
 }
 
 .dialog-btn-create .MuiBackdrop-root.MuiModal-backdrop {
-    opacity: 0 !important;
+  opacity: 0 !important;
 }
 /* ---------- end dialog create btn ---------- */
 
@@ -124,38 +125,38 @@
 
 /* ---------- start btn ---------- */
 .worksheet-list .btn-create-dialog {
-    font-family: 'PSL Kittithada';
-    font-size: 1rem;
-    line-height: normal;
-    letter-spacing: 0.2rem;
-    background-color: #202020;
-    border-radius: 0 0 10px 10px;
-    transform: rotate(-90deg);
-    position: absolute;
-    top: 9rem;
-    left: -4rem;
-    width: 9rem;
+  font-family: "PSL Kittithada";
+  font-size: 1rem;
+  line-height: normal;
+  letter-spacing: 0.2rem;
+  background-color: #202020;
+  border-radius: 0 0 10px 10px;
+  transform: rotate(-90deg);
+  position: absolute;
+  top: 9rem;
+  left: -4rem;
+  width: 9rem;
 }
 
 .worksheet-list .btn-create-dialog:hover {
-    background-color: #333333;
+  background-color: #333333;
 }
 
 .swal2-confirm.swal2-worksheet {
-    font-weight: 600 !important;
-    letter-spacing: 0.1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1rem !important;
 }
 .swal2-cancel.swal2-worksheet {
-    background-color: transparent !important;
-    border: 1px solid #d33 !important; 
-    color: #d33 !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1rem !important;
+  background-color: transparent !important;
+  border: 1px solid #d33 !important;
+  color: #d33 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1rem !important;
 }
 
 .swal2-cancel.swal2-worksheet:hover {
-    background-image: none !important;
-    background-color: rgba(221, 51, 51, 0.1) !important;
+  background-image: none !important;
+  background-color: rgba(221, 51, 51, 0.1) !important;
 }
 /* ---------- end btn ---------- */
 
@@ -210,7 +211,7 @@
 }
 
 .filter-indicator::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -5px;
   right: -5px;
@@ -231,7 +232,7 @@
   .worksheet-filter .MuiGrid-item {
     margin-bottom: 16px;
   }
-  
+
   .worksheet-filter .MuiChip-root {
     margin-bottom: 8px;
   }

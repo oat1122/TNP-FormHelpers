@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 /**
  * Custom hook สำหรับ debounced value
@@ -39,17 +39,20 @@ export const useIntersectionObserver = (callback, options = {}) => {
 
     disconnect();
 
-    observerRef.current = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          callback(entry);
-        }
-      });
-    }, {
-      threshold: 0.1,
-      rootMargin: '50px',
-      ...options,
-    });
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            callback(entry);
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "50px",
+        ...options,
+      }
+    );
 
     observerRef.current.observe(targetRef);
 
@@ -69,25 +72,28 @@ export const usePerformanceMonitor = (componentName) => {
 
   useEffect(() => {
     renderCountRef.current += 1;
-    
-    if (process.env.NODE_ENV === 'development') {
+
+    if (process.env.NODE_ENV === "development") {
       const renderTime = performance.now() - startTimeRef.current;
-      
+
       console.log(`[Performance] ${componentName}:`, {
         renderCount: renderCountRef.current,
         renderTime: `${renderTime.toFixed(2)}ms`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-    
+
     startTimeRef.current = performance.now();
   });
 
-  const logCustomMetric = useCallback((metricName, value) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Performance] ${componentName} - ${metricName}:`, value);
-    }
-  }, [componentName]);
+  const logCustomMetric = useCallback(
+    (metricName, value) => {
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[Performance] ${componentName} - ${metricName}:`, value);
+      }
+    },
+    [componentName]
+  );
 
   return { logCustomMetric };
 };
@@ -107,14 +113,17 @@ export const useOptimizedLocalStorage = (key, initialValue) => {
     }
   });
 
-  const setValue = useCallback((value) => {
-    try {
-      setStoredValue(value);
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-  }, [key]);
+  const setValue = useCallback(
+    (value) => {
+      try {
+        setStoredValue(value);
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
+      }
+    },
+    [key]
+  );
 
   const removeValue = useCallback(() => {
     try {
@@ -132,7 +141,8 @@ export const useOptimizedLocalStorage = (key, initialValue) => {
  * Custom hook สำหรับ API cache management
  * ใช้สำหรับจัดการ cache ของ API responses
  */
-export const useApiCache = (cacheKey, ttl = 300000) => { // 5 minutes default
+export const useApiCache = (cacheKey, ttl = 300000) => {
+  // 5 minutes default
   const getCachedData = useCallback(() => {
     try {
       const cached = localStorage.getItem(`api_cache_${cacheKey}`);
@@ -148,28 +158,34 @@ export const useApiCache = (cacheKey, ttl = 300000) => { // 5 minutes default
 
       return data;
     } catch (error) {
-      console.warn('Error reading API cache:', error);
+      console.warn("Error reading API cache:", error);
       return null;
     }
   }, [cacheKey, ttl]);
 
-  const setCachedData = useCallback((data) => {
-    try {
-      const cacheData = {
-        data,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`api_cache_${cacheKey}`, JSON.stringify(cacheData));
-    } catch (error) {
-      console.warn('Error setting API cache:', error);
-    }
-  }, [cacheKey]);
+  const setCachedData = useCallback(
+    (data) => {
+      try {
+        const cacheData = {
+          data,
+          timestamp: Date.now(),
+        };
+        localStorage.setItem(
+          `api_cache_${cacheKey}`,
+          JSON.stringify(cacheData)
+        );
+      } catch (error) {
+        console.warn("Error setting API cache:", error);
+      }
+    },
+    [cacheKey]
+  );
 
   const clearCache = useCallback(() => {
     try {
       localStorage.removeItem(`api_cache_${cacheKey}`);
     } catch (error) {
-      console.warn('Error clearing API cache:', error);
+      console.warn("Error clearing API cache:", error);
     }
   }, [cacheKey]);
 

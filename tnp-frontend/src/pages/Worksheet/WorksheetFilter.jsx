@@ -22,10 +22,11 @@ function WorksheetFilter({
   initialFilters = { salesName: "", status: "" },
 }) {
   const [filters, setFilters] = useState(initialFilters);
-  
+
   // Get user data to check role permissions
   const user = JSON.parse(localStorage.getItem("userData"));
-  const canUseFilter = user && (user.role === 'manager' || user.role === 'admin');
+  const canUseFilter =
+    user && (user.role === "manager" || user.role === "admin");
 
   // If user doesn't have permission, don't render the filter
   if (!canUseFilter) {
@@ -45,7 +46,7 @@ function WorksheetFilter({
   // Memoized extraction of unique sales names from data
   const uniqueSalesNames = useMemo(() => {
     if (!data?.data) return [];
-    
+
     const salesNames = data.data
       .map((item) => item.sales_name)
       .filter((name) => name && name.trim() !== "")
@@ -55,18 +56,24 @@ function WorksheetFilter({
   }, [data]);
 
   // Memoized status options (static data)
-  const statusOptions = useMemo(() => [
-    { value: "Complete", label: "Complete" },
-    { value: "Waiting Manager", label: "Waiting Manager" },
-    { value: "Waiting Manager Approve", label: "Waiting Manager Approve" },
-    { value: "Editing", label: "Editing" },
-  ], []);
+  const statusOptions = useMemo(
+    () => [
+      { value: "Complete", label: "Complete" },
+      { value: "Waiting Manager", label: "Waiting Manager" },
+      { value: "Waiting Manager Approve", label: "Waiting Manager Approve" },
+      { value: "Editing", label: "Editing" },
+    ],
+    []
+  );
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    const newFilters = { ...filters, [filterType]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  }, [filters, onFilterChange]);
+  const handleFilterChange = useCallback(
+    (filterType, value) => {
+      const newFilters = { ...filters, [filterType]: value };
+      setFilters(newFilters);
+      onFilterChange(newFilters);
+    },
+    [filters, onFilterChange]
+  );
 
   const handleClearFilters = useCallback(() => {
     const clearedFilters = { salesName: "", status: "" };
@@ -74,8 +81,8 @@ function WorksheetFilter({
     onFilterChange(clearedFilters);
   }, [onFilterChange]);
 
-  const hasActiveFilters = useMemo(() => 
-    filters.salesName !== "" || filters.status !== "", 
+  const hasActiveFilters = useMemo(
+    () => filters.salesName !== "" || filters.status !== "",
     [filters.salesName, filters.status]
   );
 

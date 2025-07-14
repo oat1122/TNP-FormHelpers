@@ -65,114 +65,108 @@ function ControlPanel() {
           </a>
 
           {/* MaxSupply Production Statistics */}
-          <div className="max-supply-stats">
+          <div className="max-supply-stats-container">
             <h6 className="text-center fw-bold">งานที่กำลังผลิต</h6>
             {maxSupplyStats?.work_calculations ? (
               <div className="row g-2">
                 <div className="col-6">
-                  <div
-                    className="production-type-card"
+                  <button
+                    className="btn btn-secondary btn-production-type"
                     style={{
                       borderLeft: `4px solid ${productionTypeConfig.screen.color}`,
                     }}
                   >
-                    <div
-                      className="production-type-name"
-                      style={{
-                        color: productionTypeConfig.screen.color,
-                      }}
-                    >
-                      Screen
-                    </div>
-                    <div className="count">
+                    <label className="count-production" htmlFor="count-screen">
                       {maxSupplyStats.work_calculations.job_count.screen || 0}
-                    </div>
-                    <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload
-                        .screen || 0}{" "}
-                      ชิ้น
-                    </div>
-                  </div>
+                    </label>
+                    <br />
+                    <label 
+                      className="production-describe"
+                      style={{ color: productionTypeConfig.screen.color }}
+                      htmlFor="production-screen"
+                    >
+                      SCREEN
+                    </label>
+                    <br />
+                    <label className="production-describe-th" htmlFor="production-screen">
+                      จำนวน {maxSupplyStats.work_calculations.current_workload.screen || 0} ชิ้น
+                    </label>
+                  </button>
                 </div>
 
                 <div className="col-6">
-                  <div
-                    className="production-type-card"
+                  <button
+                    className="btn btn-secondary btn-production-type"
                     style={{
                       borderLeft: `4px solid ${productionTypeConfig.dtf.color}`,
                     }}
                   >
-                    <div
-                      className="production-type-name"
-                      style={{
-                        color: productionTypeConfig.dtf.color,
-                      }}
+                    <label className="count-production" htmlFor="count-dtf">
+                      {maxSupplyStats.work_calculations.job_count.dtf || 0}
+                    </label>
+                    <br />
+                    <label 
+                      className="production-describe"
+                      style={{ color: productionTypeConfig.dtf.color }}
+                      htmlFor="production-dtf"
                     >
                       DTF
-                    </div>
-                    <div className="count">
-                      {maxSupplyStats.work_calculations.job_count.dtf || 0}
-                    </div>
-                    <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload.dtf ||
-                        0}{" "}
-                      ชิ้น
-                    </div>
-                  </div>
+                    </label>
+                    <br />
+                    <label className="production-describe-th" htmlFor="production-dtf">
+                      จำนวน {maxSupplyStats.work_calculations.current_workload.dtf || 0} ชิ้น
+                    </label>
+                  </button>
                 </div>
 
                 <div className="col-6">
-                  <div
-                    className="production-type-card"
+                  <button
+                    className="btn btn-secondary btn-production-type"
                     style={{
                       borderLeft: `4px solid ${productionTypeConfig.sublimation.color}`,
                     }}
                   >
-                    <div
-                      className="production-type-name"
-                      style={{
-                        color: productionTypeConfig.sublimation.color,
-                      }}
+                    <label className="count-production" htmlFor="count-sublimation">
+                      {maxSupplyStats.work_calculations.job_count.sublimation || 0}
+                    </label>
+                    <br />
+                    <label 
+                      className="production-describe"
+                      style={{ color: productionTypeConfig.sublimation.color }}
+                      htmlFor="production-sublimation"
                     >
-                      Sublimation
-                    </div>
-                    <div className="count">
-                      {maxSupplyStats.work_calculations.job_count.sublimation ||
-                        0}
-                    </div>
-                    <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload
-                        .sublimation || 0}{" "}
-                      ชิ้น
-                    </div>
-                  </div>
+                      SUBLIMATION
+                    </label>
+                    <br />
+                    <label className="production-describe-th" htmlFor="production-sublimation">
+                      จำนวน {maxSupplyStats.work_calculations.current_workload.sublimation || 0} ชิ้น
+                    </label>
+                  </button>
                 </div>
 
                 <div className="col-6">
-                  <div
-                    className="production-type-card"
+                  <button
+                    className="btn btn-secondary btn-production-type"
                     style={{
                       borderLeft: `4px solid ${productionTypeConfig.embroidery.color}`,
                     }}
                   >
-                    <div
-                      className="production-type-name"
-                      style={{
-                        color: productionTypeConfig.embroidery.color,
-                      }}
+                    <label className="count-production" htmlFor="count-embroidery">
+                      {maxSupplyStats.work_calculations.job_count.embroidery || 0}
+                    </label>
+                    <br />
+                    <label 
+                      className="production-describe"
+                      style={{ color: productionTypeConfig.embroidery.color }}
+                      htmlFor="production-embroidery"
                     >
-                      Embroidery
-                    </div>
-                    <div className="count">
-                      {maxSupplyStats.work_calculations.job_count.embroidery ||
-                        0}
-                    </div>
-                    <div className="workload">
-                      {maxSupplyStats.work_calculations.current_workload
-                        .embroidery || 0}{" "}
-                      ชิ้น
-                    </div>
-                  </div>
+                      EMBROIDERY
+                    </label>
+                    <br />
+                    <label className="production-describe-th" htmlFor="production-embroidery">
+                      จำนวน {maxSupplyStats.work_calculations.current_workload.embroidery || 0} ชิ้น
+                    </label>
+                  </button>
                 </div>
               </div>
             ) : (

@@ -1,17 +1,24 @@
-import { useState, forwardRef, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  useState,
+  forwardRef,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import WorksheetCard from "./WorksheetCard";
 import WorksheetFilter from "./WorksheetFilter";
 import WorksheetListSkeleton from "./WorksheetListSkeleton";
-import { 
-  AppBar, 
+import {
+  AppBar,
   Box,
   Button,
-  Dialog, 
-  DialogContent, 
-  DialogContentText, 
+  Dialog,
+  DialogContent,
+  DialogContentText,
   Container,
-  CircularProgress, 
+  CircularProgress,
   Grid2 as Grid,
   Slide,
   Toolbar,
@@ -45,21 +52,25 @@ function WorksheetList() {
   const [cardLimit, setCardLimit] = useState(10);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filteredDataCache, setFilteredDataCache] = useState([]);
-  const [worksheetFilters, setWorksheetFilters] = useState({ salesName: '', status: '' });
+  const [worksheetFilters, setWorksheetFilters] = useState({
+    salesName: "",
+    status: "",
+  });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const keyword = useSelector((state) => state.global.keyword);
-  
+
   // Optimized API query with better caching strategy
-  const { data, error, isFetching, isSuccess, refetch, isLoading } = useGetAllWorksheetQuery(undefined, {
-    // Enable caching for 5 minutes to reduce API calls
-    pollingInterval: 0,
-    refetchOnMountOrArgChange: 300000, // 5 minutes
-    refetchOnFocus: false,
-    refetchOnReconnect: true,
-    // Keep previous data while fetching new data
-    keepPreviousData: true,
-  });
-  
+  const { data, error, isFetching, isSuccess, refetch, isLoading } =
+    useGetAllWorksheetQuery(undefined, {
+      // Enable caching for 5 minutes to reduce API calls
+      pollingInterval: 0,
+      refetchOnMountOrArgChange: 300000, // 5 minutes
+      refetchOnFocus: false,
+      refetchOnReconnect: true,
+      // Keep previous data while fetching new data
+      keepPreviousData: true,
+    });
+
   const dispatch = useDispatch();
   const tShirtImg = import.meta.env.VITE_IMAGE_T_SHIRT_CREATE;
   const poloShirtImg = import.meta.env.VITE_IMAGE_POLO_SHIRT_CREATE;
@@ -67,14 +78,14 @@ function WorksheetList() {
   const observer = useRef();
   const lastCardRef = useRef();
   const searchTimeoutRef = useRef();
-  
+
   // Optimized debounced search function with longer delay to reduce API calls
   const debouncedRefetch = useCallback(
     (searchTerm) => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
-      
+
       searchTimeoutRef.current = setTimeout(() => {
         // Only refetch if search term is significantly different or empty
         if (searchTerm.length === 0 || searchTerm.length >= 2) {
@@ -86,17 +97,30 @@ function WorksheetList() {
   );
 
   // Memoized render function for worksheet cards
-  const renderWorksheetCards = useCallback((data, isSuccess) => {
-    return (
-      <Grid container spacing={3} marginTop={1} marginBottom={4} columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5 }}>
-        {data.slice(0, cardLimit).map((item, index) => (
-          <Grid key={`${item.worksheet_id || item.work_id || index}`} size={1} data-testid="worksheet-card">
-            <WorksheetCard data={item} isSuccess={isSuccess} />
-          </Grid>
-        ))}
-      </Grid>
-    );
-  }, [cardLimit]);
+  const renderWorksheetCards = useCallback(
+    (data, isSuccess) => {
+      return (
+        <Grid
+          container
+          spacing={3}
+          marginTop={1}
+          marginBottom={4}
+          columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5 }}
+        >
+          {data.slice(0, cardLimit).map((item, index) => (
+            <Grid
+              key={`${item.worksheet_id || item.work_id || index}`}
+              size={1}
+              data-testid="worksheet-card"
+            >
+              <WorksheetCard data={item} isSuccess={isSuccess} />
+            </Grid>
+          ))}
+        </Grid>
+      );
+    },
+    [cardLimit]
+  );
 
   // Optimized content rendering with skeleton loading
   const content = useMemo(() => {
@@ -104,16 +128,16 @@ function WorksheetList() {
     if ((isLoading || isFetching) && isInitialLoad) {
       return <WorksheetListSkeleton count={cardLimit} />;
     }
-    
+
     if (error) {
       return (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Box sx={{ textAlign: "center", py: 4 }}>
           <Typography variant="h6" color="error">
-            Error loading worksheets: {error.message || 'Unknown error'}
+            Error loading worksheets: {error.message || "Unknown error"}
           </Typography>
-          <Button 
-            variant="outlined" 
-            color="error" 
+          <Button
+            variant="outlined"
+            color="error"
             onClick={() => refetch()}
             sx={{ mt: 2 }}
           >
@@ -122,14 +146,14 @@ function WorksheetList() {
         </Box>
       );
     }
-    
+
     if (!filteredDataCache.length) {
       return (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Box sx={{ textAlign: "center", py: 4 }}>
           <Typography variant="h6" color="text.secondary">
-            {keyword || worksheetFilters.salesName || worksheetFilters.status 
-              ? 'No matching worksheets found.' 
-              : 'There is no worksheet data available.'}
+            {keyword || worksheetFilters.salesName || worksheetFilters.status
+              ? "No matching worksheets found."
+              : "There is no worksheet data available."}
           </Typography>
         </Box>
       );
@@ -137,17 +161,17 @@ function WorksheetList() {
 
     return renderWorksheetCards(filteredDataCache, isSuccess);
   }, [
-    isLoading, 
-    isFetching, 
-    isInitialLoad, 
-    error, 
-    filteredDataCache, 
-    keyword, 
-    worksheetFilters, 
-    cardLimit, 
-    renderWorksheetCards, 
-    isSuccess, 
-    refetch
+    isLoading,
+    isFetching,
+    isInitialLoad,
+    error,
+    filteredDataCache,
+    keyword,
+    worksheetFilters,
+    cardLimit,
+    renderWorksheetCards,
+    isSuccess,
+    refetch,
   ]);
 
   // Optimized loading more indicator
@@ -158,10 +182,10 @@ function WorksheetList() {
     // 3. Currently loading more data
     const hasMoreData = filteredDataCache.length > cardLimit;
     const isShowingPartialData = cardLimit < filteredDataCache.length;
-    
+
     if (hasMoreData && isShowingPartialData && !isInitialLoad && loadingMore) {
       return (
-        <Box sx={{ textAlign: 'center', py: 2 }} ref={lastCardRef}>
+        <Box sx={{ textAlign: "center", py: 2 }} ref={lastCardRef}>
           <CircularProgress color="error" size={40} />
           <Typography variant="body2" sx={{ mt: 1 }}>
             Loading more worksheets...
@@ -169,20 +193,17 @@ function WorksheetList() {
         </Box>
       );
     }
-    
+
     // Show the intersection observer target even when not loading (for triggering next load)
     if (hasMoreData && isShowingPartialData && !isInitialLoad && !loadingMore) {
       return (
-        <Box 
-          ref={lastCardRef} 
-          sx={{ height: '20px', visibility: 'hidden' }} 
-        />
+        <Box ref={lastCardRef} sx={{ height: "20px", visibility: "hidden" }} />
       );
     }
-    
+
     return null;
   }, [filteredDataCache.length, cardLimit, isInitialLoad, loadingMore]);
-  
+
   const handleCreate = useCallback(() => {
     setOpen((prev) => !prev);
   }, []);
@@ -204,61 +225,79 @@ function WorksheetList() {
   }, [data, isSuccess, dispatch]);
 
   // Handle filter changes - Only for authorized roles
-  const handleFilterChange = useCallback((newFilters) => {
-    // Check if user has permission to use filters
-    if (user.role === 'manager' || user.role === 'admin') {
-      setWorksheetFilters(newFilters);
-      setCardLimit(10); // Reset card limit when filters change
-      setLoadingMore(false); // Reset loading more state
-    }
-  }, [user.role]);
+  const handleFilterChange = useCallback(
+    (newFilters) => {
+      // Check if user has permission to use filters
+      if (user.role === "manager" || user.role === "admin") {
+        setWorksheetFilters(newFilters);
+        setCardLimit(10); // Reset card limit when filters change
+        setLoadingMore(false); // Reset loading more state
+      }
+    },
+    [user.role]
+  );
 
   // Handle keyword changes
   useEffect(() => {
     // Trigger refetch when keyword changes
     debouncedRefetch(keyword);
-    
+
     // Reset card limit and loading state when search changes to show fresh results
     setCardLimit(10);
     setLoadingMore(false);
   }, [keyword, debouncedRefetch]);
-  
+
   // Memoized filtered data for better performance
   const filteredData = useMemo(() => {
     if (!isSuccess || !data?.data) return [];
-    
-    const isManager = user.role === 'manager';
-    
+
+    const isManager = user.role === "manager";
+
     return data.data.filter((item) => {
       // Role-based filtering
       const isRelevantStatus = [2, 3, 4, 5, 6].includes(item.status.code);
       const passesRoleFilter = (isManager && isRelevantStatus) || !isManager;
-      
-      if (!passesRoleFilter) return false;
-      
-      // Keyword search filtering
-      if (keyword !== '') {
-        const searchKeyword = keyword.toLowerCase();
-        const searchWorkID = (item.work_id || '').toLowerCase().includes(searchKeyword); 
-        const searchWorkName = (item.work_name || '').toLowerCase().includes(searchKeyword); 
-        const searchUserName = (item.sales_name || '').toLowerCase().includes(searchKeyword); 
-        const searchCusName = (item.cus_name || '').toLowerCase().includes(searchKeyword); 
 
-        const passesKeywordFilter = searchWorkID || searchWorkName || searchUserName || searchCusName;
+      if (!passesRoleFilter) return false;
+
+      // Keyword search filtering
+      if (keyword !== "") {
+        const searchKeyword = keyword.toLowerCase();
+        const searchWorkID = (item.work_id || "")
+          .toLowerCase()
+          .includes(searchKeyword);
+        const searchWorkName = (item.work_name || "")
+          .toLowerCase()
+          .includes(searchKeyword);
+        const searchUserName = (item.sales_name || "")
+          .toLowerCase()
+          .includes(searchKeyword);
+        const searchCusName = (item.cus_name || "")
+          .toLowerCase()
+          .includes(searchKeyword);
+
+        const passesKeywordFilter =
+          searchWorkID || searchWorkName || searchUserName || searchCusName;
         if (!passesKeywordFilter) return false;
       }
 
       // Additional filters - Only apply if user has permission
-      if (user.role === 'manager' || user.role === 'admin') {
-        if (worksheetFilters.salesName !== '' && item.sales_name !== worksheetFilters.salesName) {
+      if (user.role === "manager" || user.role === "admin") {
+        if (
+          worksheetFilters.salesName !== "" &&
+          item.sales_name !== worksheetFilters.salesName
+        ) {
           return false;
         }
 
-        if (worksheetFilters.status !== '' && item.status.title !== worksheetFilters.status) {
+        if (
+          worksheetFilters.status !== "" &&
+          item.status.title !== worksheetFilters.status
+        ) {
           return false;
         }
       }
-      
+
       return true;
     });
   }, [data, keyword, worksheetFilters, user.role, isSuccess]);
@@ -283,13 +322,15 @@ function WorksheetList() {
         if (entry.isIntersecting && !loadingMore && !isInitialLoad) {
           // Check if there's actually more data to load
           const hasMoreData = filteredDataCache.length > cardLimit;
-          
+
           if (hasMoreData) {
             setLoadingMore(true);
             // Use requestAnimationFrame for better performance
             requestAnimationFrame(() => {
               setTimeout(() => {
-                setCardLimit((prev) => Math.min(prev + 10, filteredDataCache.length));
+                setCardLimit((prev) =>
+                  Math.min(prev + 10, filteredDataCache.length)
+                );
                 setLoadingMore(false);
               }, 100); // Reduced delay for faster loading
             });
@@ -298,10 +339,10 @@ function WorksheetList() {
       },
       {
         threshold: 0.1,
-        rootMargin: '50px', // Start loading before element is fully visible
+        rootMargin: "50px", // Start loading before element is fully visible
       }
     );
-    
+
     if (lastCardRef.current) {
       observer.current.observe(lastCardRef.current);
     }
@@ -314,10 +355,10 @@ function WorksheetList() {
   return (
     <div className="worksheet-list">
       <TitleBar title="worksheet" />
-      
+
       {/* dialog create btn */}
       <div className="d-flex align-items-center justify-content-between">
-        { user.role === 'sale' || user.role === 'admin' ? (
+        {user.role === "sale" || user.role === "admin" ? (
           <Button
             variant="contained"
             onClick={handleCreate}
@@ -330,16 +371,16 @@ function WorksheetList() {
       </div>
 
       {/* Worksheet Filter Component - Only for Manager and Admin */}
-      {(user.role === 'manager' || user.role === 'admin') && (
+      {(user.role === "manager" || user.role === "admin") && (
         <Box paddingX={3} marginTop={3}>
-          <WorksheetFilter 
+          <WorksheetFilter
             data={data}
             onFilterChange={handleFilterChange}
             initialFilters={worksheetFilters}
           />
         </Box>
       )}
-      
+
       <Dialog
         open={open}
         TransitionComponent={Transition}

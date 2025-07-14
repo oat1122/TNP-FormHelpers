@@ -140,20 +140,43 @@ const MaxSupplyEditForm = ({
     }
 
     try {
-      const updatedData = {
-        ...item,
-        title: formData.title.trim(),
-        customer_name: formData.customer_name.trim(),
-        start_date: formData.start_date.toISOString(),
-        expected_completion_date: formData.expected_completion_date.toISOString(),
-        production_type: formData.production_type,
-        shirt_type: formData.shirt_type,
-        notes: formData.notes.trim(),
-        special_instructions: formData.special_instructions.trim(),
-        priority: formData.priority,
-        updated_at: new Date().toISOString(),
-      };
+      // Only send fields that the backend expects and format them properly
+      const updatedData = {};
+      
+      // Add fields only if they have values
+      if (formData.title && formData.title.trim()) {
+        updatedData.title = formData.title.trim();
+      }
+      
+      if (formData.production_type) {
+        updatedData.production_type = formData.production_type;
+      }
+      
+      if (formData.start_date) {
+        updatedData.start_date = formData.start_date.format('YYYY-MM-DD');
+      }
+      
+      if (formData.expected_completion_date) {
+        updatedData.expected_completion_date = formData.expected_completion_date.format('YYYY-MM-DD');
+      }
+      
+      if (formData.priority) {
+        updatedData.priority = formData.priority;
+      }
+      
+      if (formData.shirt_type) {
+        updatedData.shirt_type = formData.shirt_type;
+      }
+      
+      if (formData.notes) {
+        updatedData.notes = formData.notes.trim();
+      }
+      
+      if (formData.special_instructions) {
+        updatedData.special_instructions = formData.special_instructions.trim();
+      }
 
+      console.log('Sending update data:', updatedData);
       await onSave(updatedData);
       toast.success('แก้ไขข้อมูลสำเร็จ');
       onClose();

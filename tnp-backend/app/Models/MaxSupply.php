@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 use App\Models\Worksheet\Worksheet;
 use App\Models\User\User;
 
@@ -81,7 +82,29 @@ class MaxSupply extends Model
 
     public function scopeByDateRange($query, $start, $end)
     {
-        return $query->whereBetween('start_date', [$start, $end]);
+        // กรองตาม start_date (วันที่เริ่มงาน)
+        return $query->whereBetween('start_date', [
+            Carbon::parse($start)->startOfDay(),
+            Carbon::parse($end)->endOfDay()
+        ]);
+    }
+
+    public function scopeByCompletionDateRange($query, $start, $end)
+    {
+        // กรองตาม expected_completion_date (วันที่คาดว่าจะเสร็จ)
+        return $query->whereBetween('expected_completion_date', [
+            Carbon::parse($start)->startOfDay(),
+            Carbon::parse($end)->endOfDay()
+        ]);
+    }
+
+    public function scopeByCreatedDateRange($query, $start, $end)
+    {
+        // กรองตาม created_at (วันที่สร้าง)
+        return $query->whereBetween('created_at', [
+            Carbon::parse($start)->startOfDay(),
+            Carbon::parse($end)->endOfDay()
+        ]);
     }
 
     public function scopeOverdue($query)

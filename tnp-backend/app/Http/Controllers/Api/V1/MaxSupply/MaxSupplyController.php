@@ -50,7 +50,20 @@ class MaxSupplyController extends Controller
             }
 
             if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->byDateRange($request->date_from, $request->date_to);
+                // กรองตาม start_date (default)
+                $dateType = $request->input('date_type', 'start_date');
+                
+                switch ($dateType) {
+                    case 'completion_date':
+                        $query->byCompletionDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'created_at':
+                        $query->byCreatedDateRange($request->date_from, $request->date_to);
+                        break;
+                    default:
+                        $query->byDateRange($request->date_from, $request->date_to);
+                        break;
+                }
             }
 
             if ($request->filled('overdue') && $request->overdue === 'true') {
@@ -226,7 +239,20 @@ class MaxSupplyController extends Controller
 
             // Filter by date range if provided
             if ($request->filled('date_from') && $request->filled('date_to')) {
-                $query->byDateRange($request->date_from, $request->date_to);
+                // กรองตาม start_date (default) สำหรับ statistics
+                $dateType = $request->input('date_type', 'start_date');
+                
+                switch ($dateType) {
+                    case 'completion_date':
+                        $query->byCompletionDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'created_at':
+                        $query->byCreatedDateRange($request->date_from, $request->date_to);
+                        break;
+                    default:
+                        $query->byDateRange($request->date_from, $request->date_to);
+                        break;
+                }
             } else {
                 // Default to current month
                 $query->whereMonth('created_at', now()->month)

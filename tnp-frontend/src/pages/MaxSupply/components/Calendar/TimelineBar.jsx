@@ -48,7 +48,8 @@ const TimelineBar = ({
     // Event is within the same week
     const left = (startDayInWeek / daysPerWeek) * 100;
     const width = ((endDayInWeek - startDayInWeek + 1) / daysPerWeek) * 100;
-    const top = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+    // ขยับให้ไปอยู่ล่างสุดของ cell แต่อยู่ภายใน cell อย่างปลอดภัย
+    const top = startWeek * calendarRowHeight + (calendarRowHeight - timelineRowSpacing * (rowIndex + 1));
     
     segments.push({
       left: `${left}%`,
@@ -64,7 +65,8 @@ const TimelineBar = ({
     // First week segment
     const firstWeekLeft = (startDayInWeek / daysPerWeek) * 100;
     const firstWeekWidth = ((daysPerWeek - startDayInWeek) / daysPerWeek) * 100;
-    const firstWeekTop = startWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+    // ขยับให้ไปอยู่ล่างสุดของ cell แต่อยู่ภายใน cell อย่างปลอดภัย
+    const firstWeekTop = startWeek * calendarRowHeight + (calendarRowHeight - timelineRowSpacing * (rowIndex + 1));
     
     segments.push({
       left: `${firstWeekLeft}%`,
@@ -77,7 +79,8 @@ const TimelineBar = ({
     
     // Middle weeks (if any)
     for (let week = startWeek + 1; week < endWeek; week++) {
-      const middleWeekTop = week * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+      // ขยับให้ไปอยู่ล่างสุดของ cell แต่อยู่ภายใน cell อย่างปลอดภัย
+      const middleWeekTop = week * calendarRowHeight + (calendarRowHeight - timelineRowSpacing * (rowIndex + 1));
       segments.push({
         left: '0%',
         width: '100%',
@@ -91,7 +94,8 @@ const TimelineBar = ({
     // Last week segment
     if (endWeek > startWeek) {
       const lastWeekWidth = ((endDayInWeek + 1) / daysPerWeek) * 100;
-      const lastWeekTop = endWeek * calendarRowHeight + baseTimelineOffset + rowIndex * timelineRowSpacing;
+      // ขยับให้ไปอยู่ล่างสุดของ cell แต่อยู่ภายใน cell อย่างปลอดภัย
+      const lastWeekTop = endWeek * calendarRowHeight + (calendarRowHeight - timelineRowSpacing * (rowIndex + 1));
       
       segments.push({
         left: '0%',

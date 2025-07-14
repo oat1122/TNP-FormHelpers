@@ -95,7 +95,8 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
     return workingData.filter(job => {
       const typeMatch = filter.type === 'all' || job.production_type === filter.type;
       const statusMatch = filter.status === 'all' || job.status === filter.status;
-      return typeMatch && statusMatch;
+      const isNotCompleted = job.status !== 'completed'; // ไม่แสดง Timeline Bar ถ้าสถานะเป็น completed
+      return typeMatch && statusMatch && isNotCompleted;
     });
   }, [workingData, filter]);
 

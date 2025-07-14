@@ -58,11 +58,11 @@ export const priorityConfig = {
 
 // Calendar configuration constants
 export const CALENDAR_CONFIG = {
-  MAX_ROWS: 4, // เพิ่มจาก 3 เป็น 4 แถว
+  MAX_ROWS: 5, // เพิ่มจาก 4 เป็น 5 แถว
   MAX_EVENTS_PER_ROW: 2,
   DAYS_PER_WEEK: 7,
-  MOBILE_CALENDAR_HEIGHT: 160, // เพิ่มจาก 80 เป็น 160
-  DESKTOP_CALENDAR_HEIGHT: 200, // เพิ่มจาก 120 เป็น 200
+  MOBILE_CALENDAR_HEIGHT: 180, // เพิ่มจาก 160 เป็น 180 เพื่อรองรับ 5 แถว
+  DESKTOP_CALENDAR_HEIGHT: 230, // เพิ่มจาก 200 เป็น 230 เพื่อรองรับ 5 แถว
   MOBILE_TIMELINE_OFFSET: 45,
   DESKTOP_TIMELINE_OFFSET: 60,
   MOBILE_TIMELINE_SPACING: 20,

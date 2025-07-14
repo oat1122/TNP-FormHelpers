@@ -218,7 +218,7 @@ const CalendarGrid = ({
                       return acc.concat(dayTimelines);
                     }, []);
                     
-                    const visibleTimelineCount = Math.min(dayEventsTimelines.length, 4);
+                    const visibleTimelineCount = Math.min(dayEventsTimelines.length, 5);
                     const hiddenTimelineCount = dayEventsTimelines.length - visibleTimelineCount;
                     
                     if (hiddenTimelineCount > 0) {
@@ -371,8 +371,8 @@ const CalendarGrid = ({
             </Box>
           ) : (
             <>
-              {/* Timeline Bars - แสดงเฉพาะ 4 แถวแรก */}
-              {eventRows.slice(0, 4).map((row, rowIndex) => (
+              {/* Timeline Bars - แสดงเฉพาะ 5 แถวแรก */}
+              {eventRows.slice(0, 5).map((row, rowIndex) => (
                 <Box key={rowIndex}>
                   {row.map((timeline) => (
                     <Box key={timeline.event.id} sx={{ pointerEvents: 'auto' }}>
@@ -391,7 +391,7 @@ const CalendarGrid = ({
               ))}
               
               {/* Overflow Indicator - รวมทั้งแถวที่เกิน และงานใน overflow */}
-              {(eventRows.length > 4 || overflowTimelines.length > 0) && (
+              {(eventRows.length > 5 || overflowTimelines.length > 0) && (
                 <Box
                   sx={{
                     position: 'absolute',
@@ -413,11 +413,11 @@ const CalendarGrid = ({
                   onClick={() => {
                     // Show overflow events in a dialog or expand view
                     console.log('Overflow events:', overflowTimelines);
-                    console.log('Hidden rows:', eventRows.slice(4));
+                    console.log('Hidden rows:', eventRows.slice(5));
                   }}
                 >
                   <Typography variant="body2" fontWeight="bold">
-                    +{(eventRows.length > 4 ? eventRows.slice(4).flat().length : 0) + overflowTimelines.length} งานเพิ่มเติม
+                    +{(eventRows.length > 5 ? eventRows.slice(5).flat().length : 0) + overflowTimelines.length} งานเพิ่มเติม
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
                     คลิกเพื่อดูทั้งหมด

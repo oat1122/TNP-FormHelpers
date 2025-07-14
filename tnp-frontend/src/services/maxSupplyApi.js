@@ -33,24 +33,29 @@ api.interceptors.request.use(
     // Use whichever token is available
     const finalToken = authToken || token;
 
-    // Debug: Log all localStorage keys and values
-    console.log("=== AUTH TOKEN DEBUG ===");
-    console.log("localStorage keys:", Object.keys(localStorage));
-    console.log("authToken:", authToken);
-    console.log("token:", token);
-    console.log("finalToken:", finalToken);
+    if (import.meta.env.DEV) {
+      console.log("=== AUTH TOKEN DEBUG ===");
+      console.log("localStorage keys:", Object.keys(localStorage));
+      console.log("authToken:", authToken);
+      console.log("token:", token);
+      console.log("finalToken:", finalToken);
+    }
     
     // If we have a token, add it to the Authorization header
     if (finalToken) {
       config.headers.Authorization = `Bearer ${finalToken}`;
-      console.log("MaxSupply API: Added token to request headers");
-    } else {
+      if (import.meta.env.DEV) {
+        console.log("MaxSupply API: Added token to request headers");
+      }
+    } else if (import.meta.env.DEV) {
       console.warn("MaxSupply API: No authentication token found");
       console.warn("Available localStorage keys:", Object.keys(localStorage));
     }
-    
-    console.log("Request config:", config);
-    console.log("========================");
+
+    if (import.meta.env.DEV) {
+      console.log("Request config:", config);
+      console.log("========================");
+    }
     
     return config;
   },
@@ -141,10 +146,14 @@ export const calendarApi = {
         url += `?${queryString}`;
       }
       
-      console.log('Sending calendar request to:', url);
-      
+      if (import.meta.env.DEV) {
+        console.log('Sending calendar request to:', url);
+      }
+
       const response = await api.get(url);
-      console.log('Calendar API response:', response);
+      if (import.meta.env.DEV) {
+        console.log('Calendar API response:', response);
+      }
       
       // Check for HTML response which would indicate an error
       if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {

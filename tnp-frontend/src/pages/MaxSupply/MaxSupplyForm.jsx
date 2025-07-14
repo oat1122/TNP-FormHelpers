@@ -38,6 +38,12 @@ import { useGetAllWorksheetQuery } from '../../features/Worksheet/worksheetApi';
 import toast from 'react-hot-toast';
 import { debugTokens } from '../../utils/tokenDebug';
 import { StepBasicInfo, StepProductionInfo, StepNotes } from '../../components/MaxSupplyForm';
+import {
+  parsePrintLocations,
+  parseSizeBreakdown,
+  mapShirtType,
+  determineProductionType,
+} from './components/Forms/FormUtils';
 
 // Set dayjs locale
 dayjs.locale('th');
@@ -197,357 +203,14 @@ const MaxSupplyForm = () => {
       setWorksheetOptions(options);
     }
   }, [worksheetData]);
-
-  // Parse print locations from worksheet data
-  const parsePrintLocations = (worksheet) => {
-    const printLocations = {
-      screen: { enabled: false, position: '', points: 0 },
-      dtf: { enabled: false, position: '', points: 0 },
-      sublimation: { enabled: false, position: '', points: 0 },
-      embroidery: { enabled: false, position: '', points: 0 },
-    };
-    
-    console.log('Parsing print locations from NewWorksNet:', worksheet);
-    
-    // Parse screen details from NewWorksNet format
-    if (worksheet.screen_detail) {
-      const screenDetail = worksheet.screen_detail.toLowerCase();
-      
-      // Extract positions from screen_detail
-      const extractPositions = (text) => {
-        const positions = [];
-        if (text.includes('หน้า') || text.includes('ด้านหน้า')) positions.push('หน้า');
-        if (text.includes('หลัง') || text.includes('ด้านหลัง')) positions.push('หลัง');
-        if (text.includes('แขน')) positions.push('แขน');
-        if (text.includes('ข้าง')) positions.push('ข้าง');
-        if (text.includes('คอ')) positions.push('คอ');
-        return positions.join(', ') || 'ไม่ระบุ';
-      };
-      
-      // Check for DTF/DFT printing - use screen_dft as print points
-      if ((screenDetail.includes('dtf') || screenDetail.includes('dft')) && worksheet.screen_dft) {
-        printLocations.dtf.enabled = true;
-        printLocations.dtf.points = parseInt(worksheet.screen_dft) || 0;
-        printLocations.dtf.position = extractPositions(screenDetail);
-        console.log('DTF enabled with points:', printLocations.dtf.points);
-      }
-      
-      // Check for Screen printing - use screen_point as print points
-      if (screenDetail.includes('สกรีน') && worksheet.screen_point) {
-        printLocations.screen.enabled = true;
-        printLocations.screen.points = parseInt(worksheet.screen_point) || 0;
-        printLocations.screen.position = extractPositions(screenDetail);
-        console.log('Screen enabled with points:', printLocations.screen.points);
-      }
-      
-      // Check for Embroidery - use screen_embroider as print points
-      if ((screenDetail.includes('ปัก') || screenDetail.includes('embroider')) && worksheet.screen_embroider) {
-        printLocations.embroidery.enabled = true;
-        printLocations.embroidery.points = parseInt(worksheet.screen_embroider) || 1;
-        printLocations.embroidery.position = extractPositions(screenDetail);
-        console.log('Embroidery enabled with points:', printLocations.embroidery.points);
-      }
-      
-      // Check for Flex/Vinyl - use screen_flex as print points
-      if (screenDetail.includes('flex') && worksheet.screen_flex) {
-        // Use sublimation slot for flex printing
-        printLocations.sublimation.enabled = true;
-        printLocations.sublimation.points = parseInt(worksheet.screen_flex) || 0;
-        printLocations.sublimation.position = extractPositions(screenDetail);
-        console.log('Flex/Sublimation enabled with points:', printLocations.sublimation.points);
-      }
-    }
-    
-    // Important: Enable printing types based on available point fields even without screen_detail
-    // This handles cases where NewWorksNet has point data but no detailed description
-    if (!printLocations.dtf.enabled && worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) {
-      printLocations.dtf.enabled = true;
-      printLocations.dtf.points = parseInt(worksheet.screen_dft);
-      printLocations.dtf.position = 'ไม่ระบุ';
-      console.log('DTF fallback enabled with points:', printLocations.dtf.points);
-    }
-    
-    if (!printLocations.screen.enabled && worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
-      printLocations.screen.enabled = true;
-      printLocations.screen.points = parseInt(worksheet.screen_point);
-      printLocations.screen.position = 'ไม่ระบุ';
-      console.log('Screen fallback enabled with points:', printLocations.screen.points);
-    }
-    
-    if (!printLocations.embroidery.enabled && worksheet.screen_embroider && parseInt(worksheet.screen_embroider) > 0) {
-      printLocations.embroidery.enabled = true;
-      printLocations.embroidery.points = parseInt(worksheet.screen_embroider);
-      printLocations.embroidery.position = 'ไม่ระบุ';
-      console.log('Embroidery fallback enabled with points:', printLocations.embroidery.points);
-    }
-    
-    if (!printLocations.sublimation.enabled && worksheet.screen_flex && parseInt(worksheet.screen_flex) > 0) {
-      printLocations.sublimation.enabled = true;
-      printLocations.sublimation.points = parseInt(worksheet.screen_flex);
-      printLocations.sublimation.position = 'ไม่ระบุ';
-      console.log('Flex/Sublimation fallback enabled with points:', printLocations.sublimation.points);
-    }
-    
-    console.log('Final parsed print locations:', printLocations);
-    
-    return printLocations;
-  };
-  
-  // Parse size breakdown from worksheet data
-  const parseSizeBreakdown = (worksheet) => {
-    const sizes = [];
-    const sizeBreakdown = [];
-    
-    console.log('Parsing size breakdown from NewWorksNet:', worksheet);
-    
-    // Try to parse size details from NewWorksNet format
-    try {
-      // Check if we have pattern_sizes object (NewWorksNet format with men/women)
-      if (worksheet.pattern_sizes && typeof worksheet.pattern_sizes === 'object') {
-        console.log('Found pattern_sizes object:', worksheet.pattern_sizes);
-        
-        // Handle case where pattern_sizes is an array (direct size data)
-        if (Array.isArray(worksheet.pattern_sizes)) {
-          console.log('Pattern sizes is array format');
-          worksheet.pattern_sizes.forEach(sizeInfo => {
-            // Check for quantity in sizeInfo directly, or use total_quantity as fallback
-            let quantity = 0;
-            if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
-              quantity = parseInt(sizeInfo.quantity);
-            } else if (worksheet.total_quantity && worksheet.pattern_sizes.length > 0) {
-              // If no quantity specified, distribute total_quantity evenly
-              quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.length);
-            }
-            
-            if (sizeInfo.size_name && quantity > 0) {
-              const size = sizeInfo.size_name.toUpperCase();
-              sizes.push(size);
-              sizeBreakdown.push({ 
-                size, 
-                quantity, 
-                details: {
-                  chest: sizeInfo.chest,
-                  long: sizeInfo.long,
-                  shirt_size_id: sizeInfo.shirt_size_id,
-                  pattern_id: sizeInfo.pattern_id
-                }
-              });
-              console.log(`Added size from array: ${size} (${quantity})`);
-            }
-          });
-        }
-        // Handle case where pattern_sizes has men/women structure
-        else {
-          // Handle men sizes
-          if (worksheet.pattern_sizes.men && Array.isArray(worksheet.pattern_sizes.men)) {
-            worksheet.pattern_sizes.men.forEach(sizeInfo => {
-              // Check for quantity in sizeInfo directly, or use total_quantity as fallback
-              let quantity = 0;
-              if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
-                quantity = parseInt(sizeInfo.quantity);
-              } else if (worksheet.total_quantity && worksheet.pattern_sizes.men.length > 0) {
-                // If no quantity specified, distribute total_quantity evenly among men sizes
-                quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.men.length);
-              }
-              
-              if (sizeInfo.size_name && quantity > 0) {
-                const size = sizeInfo.size_name.toUpperCase();
-                sizes.push(size);
-                sizeBreakdown.push({ 
-                  size, 
-                  quantity, 
-                  gender: 'men',
-                  details: {
-                    chest: sizeInfo.chest,
-                    long: sizeInfo.long,
-                    shirt_size_id: sizeInfo.shirt_size_id
-                  }
-                });
-                console.log(`Added men size: ${size} (${quantity})`);
-              }
-            });
-          }
-          
-          // Handle women sizes
-          if (worksheet.pattern_sizes.women && Array.isArray(worksheet.pattern_sizes.women)) {
-            worksheet.pattern_sizes.women.forEach(sizeInfo => {
-              // Check for quantity in sizeInfo directly, or use total_quantity as fallback
-              let quantity = 0;
-              if (sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
-                quantity = parseInt(sizeInfo.quantity);
-              } else if (worksheet.total_quantity && worksheet.pattern_sizes.women.length > 0) {
-                // If no quantity specified, distribute total_quantity evenly among women sizes
-                quantity = Math.floor(parseInt(worksheet.total_quantity) / worksheet.pattern_sizes.women.length);
-              }
-              
-              if (sizeInfo.size_name && quantity > 0) {
-                const size = sizeInfo.size_name.toUpperCase();
-                sizes.push(size);
-                sizeBreakdown.push({ 
-                  size, 
-                  quantity, 
-                  gender: 'women',
-                  details: {
-                    chest: sizeInfo.chest,
-                    long: sizeInfo.long,
-                    shirt_size_id: sizeInfo.shirt_size_id
-                  }
-                });
-                console.log(`Added women size: ${size} (${quantity})`);
-              }
-            });
-          }
-        }
-      }
-      
-      // Legacy: Check if we have pattern_sizes array (old NewWorksNet format)
-      else if (worksheet.pattern_sizes && Array.isArray(worksheet.pattern_sizes)) {
-        worksheet.pattern_sizes.forEach(sizeInfo => {
-          if (sizeInfo.size && sizeInfo.quantity && parseInt(sizeInfo.quantity) > 0) {
-            const size = sizeInfo.size.toUpperCase();
-            const quantity = parseInt(sizeInfo.quantity);
-            sizes.push(size);
-            sizeBreakdown.push({ size, quantity });
-            console.log(`Added legacy size: ${size} (${quantity})`);
-          }
-        });
-      }
-      
-      // If no pattern_sizes, try parsing size_details as JSON string
-      else if (worksheet.size_details && typeof worksheet.size_details === 'string') {
-        try {
-          const sizeDetails = JSON.parse(worksheet.size_details);
-          Object.entries(sizeDetails).forEach(([size, quantity]) => {
-            if (quantity > 0) {
-              sizes.push(size.toUpperCase());
-              sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
-            }
-          });
-        } catch (e) {
-          console.warn('Failed to parse size_details JSON:', e);
-        }
-      } 
-      // Handle size_details as object
-      else if (worksheet.size_details && typeof worksheet.size_details === 'object') {
-        Object.entries(worksheet.size_details).forEach(([size, quantity]) => {
-          if (quantity > 0) {
-            sizes.push(size.toUpperCase());
-            sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
-          }
-        });
-      }
-      // Try worksheet.sizes as array
-      else if (worksheet.sizes && Array.isArray(worksheet.sizes)) {
-        worksheet.sizes.forEach(size => {
-          sizes.push(size.toUpperCase());
-          const quantity = worksheet.size_quantities ? 
-            (worksheet.size_quantities[size] || 0) : 
-            (worksheet.quantities && worksheet.quantities[size] ? worksheet.quantities[size] : 0);
-          sizeBreakdown.push({ size: size.toUpperCase(), quantity: parseInt(quantity) });
-        });
-      }
-      // Look for size_S, size_M, size_L pattern in the data
-      else {
-        const sizeKeys = Object.keys(worksheet).filter(key => key.startsWith('size_') || key.match(/^[smlx]{1,4}$/i));
-        if (sizeKeys.length > 0) {
-          sizeKeys.forEach(key => {
-            const sizeName = key.startsWith('size_') ? key.replace('size_', '').toUpperCase() : key.toUpperCase();
-            const quantity = parseInt(worksheet[key]) || 0;
-            if (quantity > 0) {
-              sizes.push(sizeName);
-              sizeBreakdown.push({ size: sizeName, quantity });
-            }
-          });
-        }
-      }
-      
-      // Special handling for NewWorksNet: if size_tag exists and we have total_quantity but no sizes
-      if (sizes.length === 0 && worksheet.total_quantity > 0) {
-        console.log('No sizes found, creating default distribution from total_quantity:', worksheet.total_quantity);
-        
-        // If we have pattern_sizes data but no quantities, extract sizes from it
-        if (worksheet.pattern_sizes) {
-          const availableSizes = [];
-          
-          if (Array.isArray(worksheet.pattern_sizes)) {
-            worksheet.pattern_sizes.forEach(sizeInfo => {
-              if (sizeInfo.size_name) {
-                availableSizes.push(sizeInfo.size_name.toUpperCase());
-              }
-            });
-          } else if (typeof worksheet.pattern_sizes === 'object') {
-            if (worksheet.pattern_sizes.men) {
-              worksheet.pattern_sizes.men.forEach(sizeInfo => {
-                if (sizeInfo.size_name) {
-                  availableSizes.push(sizeInfo.size_name.toUpperCase());
-                }
-              });
-            }
-            if (worksheet.pattern_sizes.women) {
-              worksheet.pattern_sizes.women.forEach(sizeInfo => {
-                if (sizeInfo.size_name) {
-                  availableSizes.push(sizeInfo.size_name.toUpperCase());
-                }
-              });
-            }
-          }
-          
-          // Use available sizes if we found any
-          if (availableSizes.length > 0) {
-            const totalQty = parseInt(worksheet.total_quantity);
-            const qtyPerSize = Math.floor(totalQty / availableSizes.length);
-            const remainder = totalQty % availableSizes.length;
-            
-            availableSizes.forEach((size, index) => {
-              const quantity = qtyPerSize + (index < remainder ? 1 : 0);
-              if (quantity > 0) {
-                sizes.push(size);
-                sizeBreakdown.push({ size, quantity });
-                console.log(`Added size from available sizes: ${size} (${quantity})`);
-              }
-            });
-          }
-        }
-        
-        // Final fallback: use default sizes if we still have nothing
-        if (sizes.length === 0) {
-          const defaultSizes = ['S', 'M', 'L', 'XL'];
-          const totalQty = parseInt(worksheet.total_quantity);
-          const qtyPerSize = Math.floor(totalQty / defaultSizes.length);
-          const remainder = totalQty % defaultSizes.length;
-          
-          defaultSizes.forEach((size, index) => {
-            const quantity = qtyPerSize + (index < remainder ? 1 : 0);
-            if (quantity > 0) {
-              sizes.push(size);
-              sizeBreakdown.push({ size, quantity });
-              console.log(`Added default size: ${size} (${quantity})`);
-            }
-          });
-        }
-      }
-      
-      // Final fallback: if we still have no sizes but we know total quantity, ask user to specify
-      if (sizes.length === 0 && worksheet.total_quantity > 0) {
-        console.log('No size information found, user needs to manually specify sizes');
-      }
-    } catch (error) {
-      console.error('Error parsing size breakdown:', error);
-    }
-    
-    console.log('Final parsed sizes:', sizes);
-    console.log('Final parsed size breakdown:', sizeBreakdown);
-    
-    return { sizes, sizeBreakdown };
-  };
-
   // Handle worksheet selection
   const handleWorksheetSelect = (worksheet) => {
     setSelectedWorksheet(worksheet);
     
     if (worksheet) {
-      // Log worksheet data for debugging
-      console.log('Selected worksheet data:', worksheet);
+      if (import.meta.env.DEV) {
+        console.log('Selected worksheet data:', worksheet);
+      }
       
       // Parse print locations
       const printLocations = parsePrintLocations(worksheet);
@@ -558,44 +221,7 @@ const MaxSupplyForm = () => {
       // Calculate total quantity
       const totalQuantity = sizeBreakdown.reduce((sum, item) => sum + item.quantity, 0) || worksheet.total_quantity || 0;
       
-      // Map shirt type from NewWorksNet to our format
-      const mapShirtType = (typeShirt) => {
-        if (!typeShirt) return '';
-        const type = typeShirt.toLowerCase();
-        
-        // Map exact values from NewWorksNet
-        if (type === 'polo' || type.includes('polo')) return 'polo';
-        if (type === 't-shirt' || type === 'tshirt' || type.includes('t-shirt')) return 't-shirt';
-        if (type === 'hoodie' || type.includes('hoodie') || type.includes('hood')) return 'hoodie';
-        if (type === 'tank-top' || type.includes('tank') || type.includes('กล้าม')) return 'tank-top';
-        if (type === 'long-sleeve' || type.includes('long') || type.includes('แขนยาว')) return 'long-sleeve';
-        
-        // Default fallback
-        return 't-shirt';
-      };
       
-      // Determine production type from print information (can be multiple)
-      const determineProductionType = () => {
-        const enabledTypes = [];
-        
-        // Check each print type with their respective fields
-        if (worksheet.screen_dft && parseInt(worksheet.screen_dft) > 0) enabledTypes.push('dtf');
-        if (worksheet.screen_point && parseInt(worksheet.screen_point) > 0) enabledTypes.push('screen');
-        if (worksheet.screen_embroider && parseInt(worksheet.screen_embroider) > 0) enabledTypes.push('embroidery');
-        if (worksheet.screen_flex && parseInt(worksheet.screen_flex) > 0) enabledTypes.push('sublimation'); // Using sublimation for flex
-        
-        console.log('Enabled print types from NewWorksNet:', enabledTypes);
-        
-        // Priority order: DTF > Screen > Embroidery > Sublimation/Flex
-        // Return the highest priority type as the primary production type
-        if (enabledTypes.includes('dtf')) return 'dtf';
-        if (enabledTypes.includes('screen')) return 'screen';
-        if (enabledTypes.includes('embroidery')) return 'embroidery';
-        if (enabledTypes.includes('sublimation')) return 'sublimation';
-        
-        // Default fallback
-        return 'screen';
-      };
       
       const autoFillData = {
         // Use originalId for actual data, since id might be artificially generated
@@ -879,12 +505,13 @@ const MaxSupplyForm = () => {
       if (formData.total_quantity) submitData.total_quantity = formData.total_quantity;
       if (formData.due_date) submitData.due_date = formData.due_date.format('YYYY-MM-DD');
 
-      // Debug production type validation
-      console.log('=== PRODUCTION TYPE DEBUG ===');
-      console.log('Form production_type:', formData.production_type);
-      console.log('Submit production_type:', submitData.production_type);
-      console.log('Is valid production_type:', ['screen', 'dtf', 'sublimation', 'embroidery'].includes(submitData.production_type));
-      console.log('============================');
+      if (import.meta.env.DEV) {
+        console.log('=== PRODUCTION TYPE DEBUG ===');
+        console.log('Form production_type:', formData.production_type);
+        console.log('Submit production_type:', submitData.production_type);
+        console.log('Is valid production_type:', ['screen', 'dtf', 'sublimation', 'embroidery'].includes(submitData.production_type));
+        console.log('============================');
+      }
       
       // Add print points based on production type
       if (formData.production_type === 'screen') {

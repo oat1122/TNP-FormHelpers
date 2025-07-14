@@ -14,8 +14,10 @@ export const apiConfig = {
       // If we have a token, add it to the Authorization header
       if (finalToken) {
         headers.set("Authorization", `Bearer ${finalToken}`);
-        console.log("API Config: Added token to request headers");
-      } else {
+        if (import.meta.env.DEV) {
+          console.log("API Config: Added token to request headers");
+        }
+      } else if (import.meta.env.DEV) {
         console.warn("API Config: No authentication token found");
       }
 
@@ -23,4 +25,3 @@ export const apiConfig = {
     },
     credentials: "include",
   };
-  

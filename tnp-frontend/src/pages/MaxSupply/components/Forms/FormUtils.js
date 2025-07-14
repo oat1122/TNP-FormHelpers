@@ -63,7 +63,9 @@ export const parsePrintLocations = (worksheet) => {
     embroidery: { enabled: false, position: '', points: 0 },
   };
   
-  console.log('Parsing print locations from NewWorksNet:', worksheet);
+  if (import.meta.env.DEV) {
+    console.log('Parsing print locations from NewWorksNet:', worksheet);
+  }
   
   // Parse screen details from NewWorksNet format
   if (worksheet.screen_detail) {
@@ -85,7 +87,9 @@ export const parsePrintLocations = (worksheet) => {
       printLocations.dtf.enabled = true;
       printLocations.dtf.points = parseInt(worksheet.screen_dft) || 0;
       printLocations.dtf.position = extractPositions(screenDetail);
-      console.log('DTF enabled with points:', printLocations.dtf.points);
+      if (import.meta.env.DEV) {
+        console.log('DTF enabled with points:', printLocations.dtf.points);
+      }
     }
     
     // Check for Screen printing - use screen_point as print points
@@ -93,7 +97,9 @@ export const parsePrintLocations = (worksheet) => {
       printLocations.screen.enabled = true;
       printLocations.screen.points = parseInt(worksheet.screen_point) || 0;
       printLocations.screen.position = extractPositions(screenDetail);
-      console.log('Screen enabled with points:', printLocations.screen.points);
+      if (import.meta.env.DEV) {
+        console.log('Screen enabled with points:', printLocations.screen.points);
+      }
     }
     
     // Check for Embroidery - use screen_embroider as print points
@@ -101,7 +107,9 @@ export const parsePrintLocations = (worksheet) => {
       printLocations.embroidery.enabled = true;
       printLocations.embroidery.points = parseInt(worksheet.screen_embroider) || 1;
       printLocations.embroidery.position = extractPositions(screenDetail);
-      console.log('Embroidery enabled with points:', printLocations.embroidery.points);
+      if (import.meta.env.DEV) {
+        console.log('Embroidery enabled with points:', printLocations.embroidery.points);
+      }
     }
     
     // Check for Flex/Vinyl - use screen_flex as print points
@@ -110,7 +118,9 @@ export const parsePrintLocations = (worksheet) => {
       printLocations.sublimation.enabled = true;
       printLocations.sublimation.points = parseInt(worksheet.screen_flex) || 0;
       printLocations.sublimation.position = extractPositions(screenDetail);
-      console.log('Flex/Sublimation enabled with points:', printLocations.sublimation.points);
+      if (import.meta.env.DEV) {
+        console.log('Flex/Sublimation enabled with points:', printLocations.sublimation.points);
+      }
     }
   }
   
@@ -120,28 +130,36 @@ export const parsePrintLocations = (worksheet) => {
     printLocations.dtf.enabled = true;
     printLocations.dtf.points = parseInt(worksheet.screen_dft);
     printLocations.dtf.position = 'ไม่ระบุ';
-    console.log('DTF fallback enabled with points:', printLocations.dtf.points);
+    if (import.meta.env.DEV) {
+      console.log('DTF fallback enabled with points:', printLocations.dtf.points);
+    }
   }
   
   if (!printLocations.screen.enabled && worksheet.screen_point && parseInt(worksheet.screen_point) > 0) {
     printLocations.screen.enabled = true;
     printLocations.screen.points = parseInt(worksheet.screen_point);
     printLocations.screen.position = 'ไม่ระบุ';
-    console.log('Screen fallback enabled with points:', printLocations.screen.points);
+    if (import.meta.env.DEV) {
+      console.log('Screen fallback enabled with points:', printLocations.screen.points);
+    }
   }
   
   if (!printLocations.embroidery.enabled && worksheet.screen_embroider && parseInt(worksheet.screen_embroider) > 0) {
     printLocations.embroidery.enabled = true;
     printLocations.embroidery.points = parseInt(worksheet.screen_embroider);
     printLocations.embroidery.position = 'ไม่ระบุ';
-    console.log('Embroidery fallback enabled with points:', printLocations.embroidery.points);
+    if (import.meta.env.DEV) {
+      console.log('Embroidery fallback enabled with points:', printLocations.embroidery.points);
+    }
   }
   
   if (!printLocations.sublimation.enabled && worksheet.screen_flex && parseInt(worksheet.screen_flex) > 0) {
     printLocations.sublimation.enabled = true;
     printLocations.sublimation.points = parseInt(worksheet.screen_flex);
     printLocations.sublimation.position = 'ไม่ระบุ';
-    console.log('Sublimation fallback enabled with points:', printLocations.sublimation.points);
+    if (import.meta.env.DEV) {
+      console.log('Sublimation fallback enabled with points:', printLocations.sublimation.points);
+    }
   }
   
   return printLocations;

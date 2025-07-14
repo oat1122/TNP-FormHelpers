@@ -31,7 +31,6 @@ import {
   FormControlLabel,
   FormGroup,
   FormLabel,
-  Grid2 as Grid,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -55,6 +54,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 
 import { styled } from "@mui/system";
 

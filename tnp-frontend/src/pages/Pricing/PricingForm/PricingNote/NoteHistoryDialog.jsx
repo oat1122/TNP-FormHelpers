@@ -6,12 +6,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid2 as Grid,
   IconButton,
   InputLabel,
   styled,
   Typography,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { MdClose } from "react-icons/md";
 import moment from "moment";
 import { amber, brown } from "@mui/material/colors";

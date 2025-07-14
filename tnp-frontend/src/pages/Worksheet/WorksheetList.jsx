@@ -10,12 +10,12 @@ import {
   DialogContentText, 
   Container,
   CircularProgress, 
-  Grid2 as Grid,
   Slide,
   Toolbar,
   Typography,
   Pagination,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import "./Worksheet.css";
 import {
   useGetAllWorksheetQuery,

@@ -7,7 +7,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid2 as Grid,
   styled,
   Select,
   MenuItem,
@@ -23,6 +22,7 @@ import {
   Divider,
   FormHelperText,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   resetInputList,
 } from "../../features/Customer/customerSlice";

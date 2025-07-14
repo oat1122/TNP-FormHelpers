@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import {
   Button,
-  Grid2 as Grid,
   Typography,
   OutlinedInput,
   styled,
   InputLabel,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 
 import CustomerSectDialog from "./CustomerSectDialog.jsx";
 import { MdManageSearch } from "react-icons/md";

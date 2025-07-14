@@ -14,7 +14,6 @@ import {
   Button,
   TextField,
   MenuItem,
-  Grid2 as Grid,
   Typography,
   Accordion,
   AccordionSummary,
@@ -35,6 +34,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { debounce } from "lodash";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";

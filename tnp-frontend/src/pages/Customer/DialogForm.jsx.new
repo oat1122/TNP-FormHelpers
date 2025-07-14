@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogActions,
   OutlinedInput,
-  Grid2 as Grid,
   styled,
   Select,
   MenuItem,
@@ -19,6 +18,7 @@ import {
   FormHelperText,
   Tooltip,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { MdAdd, MdSettings } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import moment from "moment";

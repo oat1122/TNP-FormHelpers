@@ -4,7 +4,6 @@ import { Controller } from "react-hook-form";
 import {
   Button,
   Divider,
-  Grid2 as Grid,
   Typography,
   OutlinedInput,
   styled,
@@ -13,6 +12,7 @@ import {
   InputLabel,
   FormHelperText,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";

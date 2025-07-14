@@ -8,9 +8,9 @@ import {
   CardContent,
   Container,
   Divider,
-  Grid2 as Grid,
   styled,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { useAddPricingReqMutation, useUpdatePricingReqMutation, useGetPricingQuery, } from "../../features/Pricing/pricingApi";
 import {
   setMode,

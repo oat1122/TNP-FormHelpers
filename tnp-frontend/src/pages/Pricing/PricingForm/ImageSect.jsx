@@ -4,9 +4,9 @@ import {
   Box,
   CardActionArea,
   CardMedia,
-  Grid2 as Grid,
   Typography,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 
 import ImageActionBtn from "./ImageSect/ImageActionBtn.jsx";
 import ImagesDialog from "./ImageSect/ImagesDialog.jsx";

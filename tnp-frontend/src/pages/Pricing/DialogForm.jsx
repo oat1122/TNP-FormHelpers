@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogActions,
   OutlinedInput,
-  Grid2 as Grid,
   styled,
   Select,
   MenuItem,
@@ -16,6 +15,7 @@ import {
   IconButton,
   FormHelperText,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import moment from "moment";
 import {
   formatCustomRelativeTime,

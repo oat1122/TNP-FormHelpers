@@ -4,7 +4,6 @@ import { Controller } from "react-hook-form";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import initImage from "../../../../assets/img/t-shirt_mockup-v2.jpg";
 import { setImagePreviewForm } from "../../../../features/Pricing/pricingSlice";
-import { Box, Button, CardMedia, Dialog, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, IconButton, styled } from "@mui/material";
 import { fileToBase64 } from "../../../../utils/utilityFunction";
 
 

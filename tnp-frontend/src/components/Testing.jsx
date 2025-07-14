@@ -7,7 +7,6 @@ import {
   Button,
   Dialog,
   DialogActions,
-  Grid2 as Grid,
   Autocomplete,
   TextField,
   OutlinedInput,
@@ -20,6 +19,7 @@ import {
   CardMedia,
   TextareaAutosize,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { PiClockClockwise } from "react-icons/pi";
 import { CgTimelapse } from "react-icons/cg";
 import { IoSearch } from "react-icons/io5";

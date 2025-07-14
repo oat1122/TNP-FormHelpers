@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogActions,
   OutlinedInput,
-  Grid2 as Grid,
   styled,
   Select,
   MenuItem,
@@ -30,6 +29,7 @@ import {
   Chip,
   Avatar,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   MdAdd,
   MdSettings,

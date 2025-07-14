@@ -6,7 +6,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid2 as Grid,
   styled,
   InputLabel,
   IconButton,
@@ -14,6 +13,7 @@ import {
   InputAdornment,
   Divider,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   open_dialog_ok_timer,
   open_dialog_error,

@@ -3,12 +3,12 @@ import { useSelector } from "react-redux";
 import {
   Button,
   Divider,
-  Grid2 as Grid,
   OutlinedInput,
   styled,
   InputLabel,
   IconButton,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import moment from "moment";
 import { MdHistory } from "react-icons/md";
 

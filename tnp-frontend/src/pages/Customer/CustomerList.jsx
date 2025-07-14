@@ -25,7 +25,6 @@ import {
   DialogContentText,
   Container,
   CircularProgress,
-  Grid2 as Grid,
   Slide,
   Toolbar,
   Typography,
@@ -47,6 +46,7 @@ import {
   Tooltip,
   Chip,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { MdOutlineManageSearch } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
 import { CiEdit } from "react-icons/ci";

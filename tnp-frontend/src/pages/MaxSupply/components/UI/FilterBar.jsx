@@ -238,6 +238,26 @@ const FilterBar = ({
                 </FormControl>
               </Grid>
 
+              <Grid item xs={12} md={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>ประเภทวันที่</InputLabel>
+                  <Select
+                    value={filters.date_type || "start_date"}
+                    onChange={(e) =>
+                      onFilterChange("date_type", e.target.value)
+                    }
+                    label="ประเภทวันที่"
+                  >
+                    <MenuItem value="start_date">วันที่เริ่มงาน</MenuItem>
+                    <MenuItem value="completion_date">วันที่คาดว่าจะเสร็จ</MenuItem>
+                    <MenuItem value="due_date">วันที่ครบกำหนด</MenuItem>
+                    <MenuItem value="actual_completion_date">วันที่เสร็จจริง</MenuItem>
+                    <MenuItem value="due_or_completion">ครบกำหนด/เสร็จจริง</MenuItem>
+                    <MenuItem value="created_at">วันที่สร้าง</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
               <Grid item xs={6} md={2}>
                 <TextField
                   fullWidth
@@ -279,6 +299,7 @@ const FilterBar = ({
                         !filters.overdue_only
                       )
                     }
+                    title="แสดงเฉพาะงานที่เลยกำหนดแล้ว"
                   >
                     เลยกำหนดเท่านั้น
                   </Button>
@@ -290,10 +311,16 @@ const FilterBar = ({
                     onClick={() =>
                       onFilterChange("urgent_only", !filters.urgent_only)
                     }
+                    title="แสดงเฉพาะงานที่ใกล้ครบกำหนด (ภายใน 2 วัน)"
                   >
                     ด่วนเท่านั้น
                   </Button>
                 </Stack>
+                {(filters.overdue_only || filters.urgent_only) && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                    💡 เลือกได้เพียงตัวเลือกเดียว: เลยกำหนด หรือ ด่วน
+                  </Typography>
+                )}
               </Grid>
             </Grid>
           </Box>

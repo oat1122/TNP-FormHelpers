@@ -57,6 +57,7 @@ const MaxSupplyList = () => {
     status: "all",
     production_type: "all",
     priority: "all",
+    date_type: "start_date",
     date_from: "",
     date_to: "",
     overdue_only: false,
@@ -189,9 +190,48 @@ const MaxSupplyList = () => {
     }
   };
 
-  // Handle filter change with debounce for search
+  // Handle filter change with enhanced validation and logic
   const handleFilterChange = (name, value) => {
     console.log(`Filter changed: ${name} = ${value}`);
+    
+    // Handle search with automatic trimming
+    if (name === "search") {
+      value = value.trim();
+    }
+    
+    // Handle date validation
+    if (name === "date_from" && filters.date_to && value && new Date(value) > new Date(filters.date_to)) {
+      alert("วันที่เริ่มต้องไม่เกินวันที่สิ้นสุด");
+      return;
+    }
+    
+    if (name === "date_to" && filters.date_from && value && new Date(value) < new Date(filters.date_from)) {
+      alert("วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม");
+      return;
+    }
+    
+    // Handle mutually exclusive filters (overdue_only vs urgent_only)
+    if (name === "overdue_only" && value === true) {
+      setFilters((prev) => ({
+        ...prev,
+        overdue_only: true,
+        urgent_only: false, // ปิด urgent_only เมื่อเปิด overdue_only
+      }));
+      setPage(1);
+      return;
+    }
+    
+    if (name === "urgent_only" && value === true) {
+      setFilters((prev) => ({
+        ...prev,
+        urgent_only: true,
+        overdue_only: false, // ปิด overdue_only เมื่อเปิด urgent_only
+      }));
+      setPage(1);
+      return;
+    }
+    
+    // Handle normal filter changes
     setFilters((prev) => ({
       ...prev,
       [name]: value,

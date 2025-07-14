@@ -107,9 +107,47 @@ class MaxSupply extends Model
         ]);
     }
 
+    public function scopeByDueDateRange($query, $start, $end)
+    {
+        // กรองตาม due_date (วันที่ครบกำหนด)
+        return $query->whereBetween('due_date', [
+            Carbon::parse($start)->startOfDay(),
+            Carbon::parse($end)->endOfDay()
+        ]);
+    }
+
+    public function scopeByActualCompletionDateRange($query, $start, $end)
+    {
+        // กรองตาม actual_completion_date (วันที่เสร็จจริง)
+        return $query->whereBetween('actual_completion_date', [
+            Carbon::parse($start)->startOfDay(),
+            Carbon::parse($end)->endOfDay()
+        ]);
+    }
+
+    public function scopeByDueDateOrCompletionDate($query, $start, $end)
+    {
+        // กรองตาม due_date หรือ actual_completion_date
+        $startDate = Carbon::parse($start)->startOfDay();
+        $endDate = Carbon::parse($end)->endOfDay();
+        
+        return $query->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('due_date', [$startDate, $endDate])
+              ->orWhereBetween('actual_completion_date', [$startDate, $endDate]);
+        });
+    }
+
     public function scopeOverdue($query)
     {
         return $query->where('due_date', '<', now())
+                     ->whereNotIn('status', ['completed', 'cancelled']);
+    }
+
+    public function scopeUrgent($query)
+    {
+        // งานที่ใกล้ครบกำหนดภายใน 2 วัน แต่ยังไม่ overdue
+        return $query->where('due_date', '>=', now())
+                     ->where('due_date', '<=', now()->addDays(2))
                      ->whereNotIn('status', ['completed', 'cancelled']);
     }
 

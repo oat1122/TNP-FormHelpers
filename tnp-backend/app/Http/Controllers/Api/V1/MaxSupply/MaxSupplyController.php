@@ -11,6 +11,7 @@ use App\Services\MaxSupplyService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class MaxSupplyController extends Controller
 {
@@ -24,8 +25,26 @@ class MaxSupplyController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = MaxSupply::with(['worksheet', 'creator'])
-                ->orderBy('created_at', 'desc');
+            // Debug: Log all incoming parameters
+            Log::info('MaxSupply index request parameters:', $request->all());
+            
+            $query = MaxSupply::with(['worksheet', 'creator']);
+            
+            // Handle sorting
+            $sortBy = $request->input('sort_by', 'created_at');
+            $sortOrder = $request->input('sort_order', 'desc');
+            
+            // Validate sort fields to prevent SQL injection
+            $allowedSortFields = [
+                'created_at', 'updated_at', 'start_date', 'expected_completion_date', 
+                'due_date', 'title', 'status', 'priority', 'production_type'
+            ];
+            
+            if (in_array($sortBy, $allowedSortFields)) {
+                $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
 
             // Filters
             if ($request->filled('production_type') && $request->production_type !== 'all') {
@@ -60,22 +79,51 @@ class MaxSupplyController extends Controller
                     case 'created_at':
                         $query->byCreatedDateRange($request->date_from, $request->date_to);
                         break;
+                    case 'due_date':
+                        $query->byDueDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'actual_completion_date':
+                        $query->byActualCompletionDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'due_or_completion':
+                        $query->byDueDateOrCompletionDate($request->date_from, $request->date_to);
+                        break;
                     default:
                         $query->byDateRange($request->date_from, $request->date_to);
                         break;
                 }
             }
 
+            // Handle overdue and urgent filters (mutually exclusive)
+            if ($request->boolean('overdue_only')) {
+                $query->overdue();
+            } elseif ($request->boolean('urgent_only')) {
+                $query->urgent();
+            }
+
+            // Legacy support for 'overdue' parameter
             if ($request->filled('overdue') && $request->overdue === 'true') {
                 $query->overdue();
             }
 
-            $perPage = $request->input('per_page', 20);
+            $perPage = min($request->input('per_page', 10), 100); // จำกัดไม่เกิน 100
             $maxSupplies = $query->paginate($perPage);
+            
+            // Debug: Log query result count
+            Log::info('MaxSupply query result count:', ['total' => $maxSupplies->total()]);
 
             return response()->json([
                 'status' => 'success',
-                'data' => MaxSupplyResource::collection($maxSupplies),
+                'data' => MaxSupplyResource::collection($maxSupplies->items()),
+                'meta' => [
+                    'current_page' => $maxSupplies->currentPage(),
+                    'per_page' => $maxSupplies->perPage(),
+                    'last_page' => $maxSupplies->lastPage(),
+                    'total' => $maxSupplies->total(),
+                    'from' => $maxSupplies->firstItem(),
+                    'to' => $maxSupplies->lastItem(),
+                ],
+                // เก็บ pagination key เก่าไว้เพื่อ backward compatibility
                 'pagination' => [
                     'current_page' => $maxSupplies->currentPage(),
                     'per_page' => $maxSupplies->perPage(),
@@ -85,10 +133,14 @@ class MaxSupplyController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Get max supplies error: ' . $e->getMessage());
+            Log::error('Get max supplies error: ' . $e->getMessage(), [
+                'request_params' => $request->all(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to get max supplies'
+                'message' => 'Failed to get max supplies',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -248,6 +300,15 @@ class MaxSupplyController extends Controller
                         break;
                     case 'created_at':
                         $query->byCreatedDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'due_date':
+                        $query->byDueDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'actual_completion_date':
+                        $query->byActualCompletionDateRange($request->date_from, $request->date_to);
+                        break;
+                    case 'due_or_completion':
+                        $query->byDueDateOrCompletionDate($request->date_from, $request->date_to);
                         break;
                     default:
                         $query->byDateRange($request->date_from, $request->date_to);

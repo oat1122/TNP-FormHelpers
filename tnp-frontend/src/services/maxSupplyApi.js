@@ -33,24 +33,18 @@ api.interceptors.request.use(
     // Use whichever token is available
     const finalToken = authToken || token;
 
-    // Debug: Log all localStorage keys and values
-    console.log("=== AUTH TOKEN DEBUG ===");
-    console.log("localStorage keys:", Object.keys(localStorage));
-    console.log("authToken:", authToken);
-    console.log("token:", token);
-    console.log("finalToken:", finalToken);
+    // Debug: Log only in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log("MaxSupply API: Token check -", finalToken ? 'Found' : 'Not found');
+    }
     
     // If we have a token, add it to the Authorization header
     if (finalToken) {
       config.headers.Authorization = `Bearer ${finalToken}`;
-      console.log("MaxSupply API: Added token to request headers");
     } else {
       console.warn("MaxSupply API: No authentication token found");
       console.warn("Available localStorage keys:", Object.keys(localStorage));
     }
-    
-    console.log("Request config:", config);
-    console.log("========================");
     
     return config;
   },
@@ -64,9 +58,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Handle unauthorized access - disabled to prevent infinite refresh loops
+      console.warn('Received 401 Unauthorized, but auto-redirect disabled');
+      // localStorage.removeItem('token');
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -141,10 +136,17 @@ export const calendarApi = {
         url += `?${queryString}`;
       }
       
-      console.log('Sending calendar request to:', url);
+      // Debug: Log only in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Calendar API request to:', url);
+      }
       
       const response = await api.get(url);
-      console.log('Calendar API response:', response);
+      
+      // Debug: Log response only in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Calendar API response received');
+      }
       
       // Check for HTML response which would indicate an error
       if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {

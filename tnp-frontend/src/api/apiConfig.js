@@ -14,7 +14,9 @@ export const apiConfig = {
       // If we have a token, add it to the Authorization header
       if (finalToken) {
         headers.set("Authorization", `Bearer ${finalToken}`);
-        console.log("API Config: Added token to request headers");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("API Config: Added token to request headers");
+        }
       } else {
         console.warn("API Config: No authentication token found");
       }

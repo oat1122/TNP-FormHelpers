@@ -37,9 +37,13 @@ export async function handleCheckUpdate(userData) {
   }
 }
 
-// ตรวจสอบ Session หมดอายุ
+// ตรวจสอบ Session หมดอายุ - ปิดการใช้งานเพื่อป้องกันการ refresh หน้าซ้ำๆ
 export async function handleCheckSessionExpires() {
+  // Token expiry checking disabled to prevent infinite refresh loops
+  console.log('Session expiry check disabled');
+  return;
 
+  /* Original code commented out to prevent token expiry issues
   const tokenExpiry = localStorage.getItem('tokenExpiry');
 
   const now = new Date().getTime();
@@ -58,4 +62,5 @@ export async function handleCheckSessionExpires() {
       handlelogout();
     }
   }
+  */
 }

@@ -58,14 +58,18 @@ export const useMaxSupplyData = (filters = {}) => {
   const loadData = useCallback(async (forceRefresh = false) => {
     // Prevent concurrent requests
     if (isLoadingRef.current && !forceRefresh) {
-      console.log('Request already in progress, skipping...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Request already in progress, skipping...');
+      }
       return;
     }
 
     // Debounce requests (minimum 1 second between requests)
     const now = Date.now();
     if (!forceRefresh && now - lastRequestTimeRef.current < 1000) {
-      console.log('Request too soon, debouncing...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Request too soon, debouncing...');
+      }
       return;
     }
 
@@ -89,37 +93,45 @@ export const useMaxSupplyData = (filters = {}) => {
         date: filters.date ? format(filters.date, 'yyyy-MM-dd') : undefined,
       };
 
-      console.log('Loading MaxSupply data with params:', params);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Loading MaxSupply data with params:', params);
+      }
 
       const response = await maxSupplyApi.getAll(params);
       
       // Check if request was aborted
       if (abortControllerRef.current?.signal.aborted) {
-        console.log('Request was aborted');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Request was aborted');
+        }
         return;
       }
 
-      console.log('MaxSupply API response:', response);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('MaxSupply API response received');
+      }
 
       if (response.status === 'success' || response.data) {
         const items = response.data || response.max_supplies || [];
         const normalizedData = Array.isArray(items) ? items : [];
         
-        // Debug logging for work_calculations data
-        console.log('Raw items from API:', items);
-        normalizedData.forEach((item, index) => {
-          console.log(`Item ${index} fields:`, Object.keys(item));
-          if (item.work_calculations) {
-            console.log(`Item ${index} work_calculations:`, item.work_calculations);
-            console.log(`Item ${index} work_calculations type:`, typeof item.work_calculations);
-          } else {
-            console.log(`Item ${index} has no work_calculations field`);
-          }
-        });
-        
-        // Log summary of work_calculations found
-        const itemsWithWorkCalc = normalizedData.filter(item => item.work_calculations);
-        console.log(`Found ${itemsWithWorkCalc.length} items with work_calculations out of ${normalizedData.length} total items`);
+        // Debug logging for work_calculations data - development only
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Raw items from API:', items);
+          normalizedData.forEach((item, index) => {
+            console.log(`Item ${index} fields:`, Object.keys(item));
+            if (item.work_calculations) {
+              console.log(`Item ${index} work_calculations:`, item.work_calculations);
+              console.log(`Item ${index} work_calculations type:`, typeof item.work_calculations);
+            } else {
+              console.log(`Item ${index} has no work_calculations field`);
+            }
+          });
+          
+          // Log summary of work_calculations found
+          const itemsWithWorkCalc = normalizedData.filter(item => item.work_calculations);
+          console.log(`Found ${itemsWithWorkCalc.length} items with work_calculations out of ${normalizedData.length} total items`);
+        }
         
         setData(normalizedData);
 
@@ -127,15 +139,19 @@ export const useMaxSupplyData = (filters = {}) => {
         const stats = calculateStatistics(normalizedData);
         setStatistics(stats);
         
-        console.log('Loaded data:', normalizedData);
-        console.log('Calculated statistics:', stats);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Loaded data:', normalizedData);
+          console.log('Calculated statistics:', stats);
+        }
       } else {
         throw new Error(response.message || 'Failed to load data');
       }
     } catch (err) {
       // Don't set error if request was aborted
       if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
-        console.log('Request aborted');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Request aborted');
+        }
         return;
       }
 
@@ -336,19 +352,23 @@ export const useMaxSupplyData = (filters = {}) => {
         stats.work_calculations.remaining_capacity.monthly[type] = 
           Math.max(0, monthlyCapacity - currentWorkload);
         
-        // Enhanced logging for capacity calculations
-        console.log(`Capacity calculation for ${type}:`, {
-          currentWorkload,
-          dailyCapacity,
-          utilizationPercentage: `${utilizationPercentage}%`,
-          remainingDaily: dailyCapacity - currentWorkload,
-          remainingWeekly: weeklyCapacity - currentWorkload,
-          remainingMonthly: monthlyCapacity - currentWorkload
-        });
+        // Enhanced logging for capacity calculations - development only
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Capacity calculation for ${type}:`, {
+            currentWorkload,
+            dailyCapacity,
+            utilizationPercentage: `${utilizationPercentage}%`,
+            remainingDaily: dailyCapacity - currentWorkload,
+            remainingWeekly: weeklyCapacity - currentWorkload,
+            remainingMonthly: monthlyCapacity - currentWorkload
+          });
+        }
       }
     });
 
-    console.log('Calculated work statistics:', stats.work_calculations);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Calculated work statistics:', stats.work_calculations);
+    }
     return stats;
   };
 

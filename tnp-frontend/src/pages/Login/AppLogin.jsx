@@ -73,6 +73,14 @@ const AppLogin = () => {
         localStorage.setItem("userData", JSON.stringify(data));
         localStorage.setItem("authToken", token);
 
+        // Remove any existing tokenExpiry to prevent token expiry issues
+        localStorage.removeItem("tokenExpiry");
+        
+        // Clean up any old token-related items that might cause issues
+        localStorage.removeItem("token"); // Remove any old 'token' key
+        
+        console.log("Login successful - Token expiry tracking disabled");
+
         navigate("/");
         setInputList({ username: "", password: "" });
       }

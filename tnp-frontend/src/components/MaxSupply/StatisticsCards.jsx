@@ -164,8 +164,9 @@ const StatisticsCards = ({
     </Card>
   );
 
-  const ProductionTypeCard = ({ type, count, workload, total, statistics, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
-    const percentage = total > 0 ? (count / total) * 100 : 0;
+  const ProductionTypeCard = ({ type, count, workload, total, totalWorkload, statistics, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
+    // Calculate percentage based on workload (pieces) instead of job count
+    const percentage = totalWorkload > 0 ? (workload / totalWorkload) * 100 : 0;
     
     // Production capacity data
     const dailyCapacity = statistics?.work_calculations?.capacity?.daily?.[type.key] || 0;
@@ -227,7 +228,7 @@ const StatisticsCards = ({
             )}
           </Box>
           
-          {!loading && total > 0 && (
+          {!loading && totalWorkload > 0 && (
             <Box sx={{ mb: 2 }}>
               <LinearProgress
                 variant="determinate"
@@ -243,7 +244,7 @@ const StatisticsCards = ({
                 }}
               />
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                {percentage.toFixed(1)}% ของงานทั้งหมด
+                {percentage.toFixed(1)}% ของชิ้นงานทั้งหมด
               </Typography>
             </Box>
           )}
@@ -257,11 +258,11 @@ const StatisticsCards = ({
               borderTopColor: 'divider',
             }}>
                              <Typography variant="caption" color="text.secondary" display="block">
-                 กำลังการผลิต/วัน: {dailyCapacity.toLocaleString()} งาน
+                 กำลังการผลิต/วัน: {dailyCapacity.toLocaleString()} ชิ้น
                </Typography>
                {periodDays > 1 && (
                  <Typography variant="caption" color="text.secondary" display="block">
-                   กำลังการผลิต{periodLabel}: {totalCapacity.toLocaleString()} งาน
+                   กำลังการผลิต{periodLabel}: {totalCapacity.toLocaleString()} ชิ้น
                  </Typography>
                )}
                <Typography variant="caption" color={getUtilizationColor(utilization)} display="block">
@@ -319,8 +320,9 @@ const StatisticsCards = ({
       </Box>
       <Grid container spacing={2}>
         {productionTypeData.map((type) => {
-          // Calculate total job count from work_calculations
+          // Calculate total job count and total workload from work_calculations
           const totalJobCount = productionTypeData.reduce((sum, item) => sum + item.count, 0);
+          const totalWorkload = productionTypeData.reduce((sum, item) => sum + item.workload, 0);
           
           return (
             <Grid item xs={12} sm={6} md={3} key={type.key}>
@@ -329,6 +331,7 @@ const StatisticsCards = ({
                 count={type.count}
                 workload={type.workload}
                 total={totalJobCount}
+                totalWorkload={totalWorkload}
                 statistics={{ work_calculations: workCalc }}
                 timePeriod={selectedTimePeriod}
                 periodLabel={getCapacityDisplayLabel(selectedTimePeriod)}

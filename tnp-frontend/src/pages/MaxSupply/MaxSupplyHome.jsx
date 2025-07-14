@@ -227,6 +227,7 @@ const MaxSupplyHome = () => {
           {/* Sidebar */}
           <Grid item xs={12} lg={3}>
             <DeadlineSection 
+              jobs={maxSupplies}
               getUpcomingDeadlines={getUpcomingDeadlines}
               loading={loading}
             />

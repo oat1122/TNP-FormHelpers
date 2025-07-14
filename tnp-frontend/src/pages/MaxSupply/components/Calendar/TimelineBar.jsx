@@ -36,8 +36,14 @@ const TimelineBar = ({
   const endWeek = Math.floor(endCol / daysPerWeek);
   const endDayInWeek = endCol % daysPerWeek;
   
-  // ใช้ความสูงจริงของ cell แทนค่าคงที่
-  const calendarRowHeight = parseInt(cellHeight) || (isMobile ? CALENDAR_CONFIG.MOBILE_CALENDAR_HEIGHT : CALENDAR_CONFIG.DESKTOP_CALENDAR_HEIGHT);
+  // ใช้ความสูงจริงของ cell แทนค่าคงที่ - รองรับทั้ง numeric และ string
+  const calendarRowHeight = typeof cellHeight === 'number' 
+    ? cellHeight 
+    : typeof cellHeight === 'string' && cellHeight.includes('px')
+      ? parseFloat(cellHeight)
+      : isMobile
+        ? CALENDAR_CONFIG.MOBILE_CALENDAR_HEIGHT
+        : CALENDAR_CONFIG.DESKTOP_CALENDAR_HEIGHT;
   const baseTimelineOffset = isMobile ? CALENDAR_CONFIG.MOBILE_TIMELINE_OFFSET : CALENDAR_CONFIG.DESKTOP_TIMELINE_OFFSET;
   const timelineRowSpacing = isMobile ? CALENDAR_CONFIG.MOBILE_TIMELINE_SPACING : CALENDAR_CONFIG.DESKTOP_TIMELINE_SPACING;
   

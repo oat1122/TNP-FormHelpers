@@ -84,3 +84,14 @@ export const DAY_NAMES = [
   "เสาร์",
   "อาทิตย์",
 ];
+
+// Day names abbreviations in Thai for mobile
+export const DAY_NAMES_SHORT = [
+  "จ.",
+  "อ.",
+  "พ.",
+  "พฤ.",
+  "ศ.",
+  "ส.",
+  "อา.",
+];

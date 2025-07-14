@@ -168,7 +168,7 @@ const WorksheetList = () => {
       title: worksheet.product_name || worksheet.work_name,
       customer_name: worksheet.customer_name || worksheet.cus_name,
       production_type: worksheet.screen_dft > 0 ? 'dtf' : 'screen',
-      due_date: worksheet.due_date,
+      due_date: worksheet.expected_completion_date || worksheet.due_date,
       shirt_type: worksheet.type_shirt === 'polo-shirt' ? 'polo' : 't-shirt',
       total_quantity: worksheet.total_quantity,
       sizes: sizes,
@@ -256,7 +256,7 @@ const WorksheetList = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <CalendarToday fontSize="small" color="error" />
           <Typography variant="body2" color="error">
-            ครบกำหนด: {format(new Date(worksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+            คาดว่าเสร็จ: {format(new Date(worksheet.expected_completion_date || worksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
           </Typography>
         </Box>
 
@@ -406,7 +406,7 @@ const WorksheetList = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
-                        <strong>วันครบกำหนด:</strong> {format(new Date(autoFillPreview.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+                        <strong>วันที่คาดว่าเสร็จ:</strong> {format(new Date(autoFillPreview.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -518,7 +518,7 @@ const WorksheetList = () => {
                 <Typography><strong>ลูกค้า:</strong> {selectedWorksheet.customer_name}</Typography>
                 <Typography><strong>สถานะ:</strong> {selectedWorksheet.status}</Typography>
                 <Typography><strong>วันที่สั่ง:</strong> {format(new Date(selectedWorksheet.created_at), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
-                <Typography><strong>วันครบกำหนด:</strong> {format(new Date(selectedWorksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography><strong>วันที่คาดว่าเสร็จ:</strong> {format(new Date(selectedWorksheet.expected_completion_date || selectedWorksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>

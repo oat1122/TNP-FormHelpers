@@ -3,10 +3,10 @@ import { Box, Typography, Chip, Tooltip } from '@mui/material';
 import { FaExclamationTriangle, FaClock, FaCheckCircle } from 'react-icons/fa';
 import { differenceInDays } from 'date-fns';
 
-const DeadlineIndicator = ({ dueDate, priority = 'normal', size = 'small' }) => {
-  if (!dueDate) return null;
+const DeadlineIndicator = ({ expectedDate, priority = 'normal', size = 'small' }) => {
+  if (!expectedDate) return null;
 
-  const daysUntilDeadline = differenceInDays(new Date(dueDate), new Date());
+  const daysUntilDeadline = differenceInDays(new Date(expectedDate), new Date());
   
   const getDeadlineStatus = () => {
     if (daysUntilDeadline < 0) return 'overdue';
@@ -59,7 +59,7 @@ const DeadlineIndicator = ({ dueDate, priority = 'normal', size = 'small' }) => 
   if (status === 'normal') return null;
 
   return (
-    <Tooltip title={`ครบกำหนด: ${new Date(dueDate).toLocaleDateString('th-TH')}`}>
+    <Tooltip title={`คาดว่าเสร็จ: ${new Date(expectedDate).toLocaleDateString('th-TH')}`}>
       <Chip
         icon={config.icon}
         label={config.label}

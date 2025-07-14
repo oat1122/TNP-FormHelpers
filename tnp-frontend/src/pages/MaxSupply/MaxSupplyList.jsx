@@ -85,6 +85,7 @@ import {
   priorityConfig,
 } from "./utils/constants";
 import { maxSupplyApi } from "../../services/maxSupplyApi";
+import MaxSupplyEditForm from "./MaxSupplyEditForm";
 
 const MaxSupplyList = () => {
   const theme = useTheme();
@@ -113,17 +114,19 @@ const MaxSupplyList = () => {
   });
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailDialog, setDetailDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [editItem, setEditItem] = useState(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
   // Helper functions for better date handling and status indicators
-  const getDaysUntilDeadline = (dueDate) => {
-    if (!dueDate) return null;
-    return differenceInDays(new Date(dueDate), new Date());
+  const getDaysUntilDeadline = (expectedDate) => {
+    if (!expectedDate) return null;
+    return differenceInDays(new Date(expectedDate), new Date());
   };
 
-  const getDeadlineStatus = (dueDate) => {
-    const days = getDaysUntilDeadline(dueDate);
+  const getDeadlineStatus = (expectedDate) => {
+    const days = getDaysUntilDeadline(expectedDate);
     if (days === null) return "none";
     if (days < 0) return "overdue";
     if (days <= 2) return "urgent";
@@ -282,6 +285,42 @@ const MaxSupplyList = () => {
     }
   };
 
+  // Handle edit
+  const handleEditClick = async (item) => {
+    try {
+      // Get latest data for edit
+      const response = await maxSupplyApi.getById(item.id);
+      if (response.status === "success") {
+        setEditItem(response.data);
+        setEditDialog(true);
+      }
+    } catch (error) {
+      console.error("Error loading item for edit:", error);
+      // Fallback to using the item from list
+      setEditItem(item);
+      setEditDialog(true);
+    }
+  };
+
+  // Handle save edit
+  const handleSaveEdit = async (updatedItem) => {
+    try {
+      await maxSupplyApi.update(updatedItem.id, updatedItem);
+      setEditDialog(false);
+      setEditItem(null);
+      loadData(); // Refresh the list
+    } catch (error) {
+      console.error("Error updating item:", error);
+      throw error; // Re-throw to be handled by the form
+    }
+  };
+
+  // Handle close edit dialog
+  const handleCloseEdit = () => {
+    setEditDialog(false);
+    setEditItem(null);
+  };
+
   useEffect(() => {
     loadData();
   }, [page, filters, sortBy, sortOrder]);
@@ -294,8 +333,8 @@ const MaxSupplyList = () => {
   const FilterBar = () => {
     const urgentCount = maxSupplies.filter(
       (item) =>
-        getDeadlineStatus(item.due_date) === "urgent" ||
-        getDeadlineStatus(item.due_date) === "overdue"
+        getDeadlineStatus(item.expected_completion_date) === "urgent" ||
+        getDeadlineStatus(item.expected_completion_date) === "overdue"
     ).length;
 
     return (
@@ -304,21 +343,23 @@ const MaxSupplyList = () => {
           {/* Quick Actions & Summary Row */}
           <Box sx={{ mb: 2 }}>
             {/* Header Title */}
-            <Box sx={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: 1, 
-              mb: isMobile ? 2 : 0,
-              flexWrap: "wrap"
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: isMobile ? 2 : 0,
+                flexWrap: "wrap",
+              }}
+            >
               <Typography
                 variant={isMobile ? "h6" : "h6"}
-                sx={{ 
-                  display: "flex", 
-                  alignItems: "center", 
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
                   gap: 1,
                   flexWrap: "wrap",
-                  lineHeight: 1.2
+                  lineHeight: 1.2,
                 }}
               >
                 <AssignmentIcon color="primary" />
@@ -343,22 +384,24 @@ const MaxSupplyList = () => {
             </Box>
 
             {/* Action Buttons */}
-            <Box sx={{ 
-              display: "flex", 
-              gap: 1, 
-              justifyContent: isMobile ? "center" : "flex-end",
-              flexWrap: "wrap"
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                justifyContent: isMobile ? "center" : "flex-end",
+                flexWrap: "wrap",
+              }}
+            >
               <Button
                 variant="outlined"
                 startIcon={<FaSync />}
                 onClick={handleRefresh}
                 disabled={loading}
                 size={isMobile ? "medium" : "small"}
-                sx={{ 
+                sx={{
                   minWidth: isMobile ? "120px" : "auto",
                   flex: isMobile ? "1 1 auto" : "none",
-                  maxWidth: isMobile ? "150px" : "none"
+                  maxWidth: isMobile ? "150px" : "none",
                 }}
               >
                 รีเฟรช
@@ -375,7 +418,7 @@ const MaxSupplyList = () => {
                   },
                   minWidth: isMobile ? "140px" : "auto",
                   flex: isMobile ? "1 1 auto" : "none",
-                  maxWidth: isMobile ? "180px" : "none"
+                  maxWidth: isMobile ? "180px" : "none",
                 }}
               >
                 สร้างงานใหม่
@@ -446,9 +489,9 @@ const MaxSupplyList = () => {
                 startIcon={<FilterListIcon />}
                 onClick={() => setFilterExpanded(!filterExpanded)}
                 size="small"
-                sx={{ 
+                sx={{
                   mt: isMobile ? 1 : 0,
-                  minHeight: "40px"
+                  minHeight: "40px",
                 }}
               >
                 ตัวกรองเพิ่มเติม
@@ -548,117 +591,202 @@ const MaxSupplyList = () => {
   const MobileCardView = () => (
     <Grid container spacing={2}>
       {maxSupplies.map((item) => {
-        const deadlineStatus = getDeadlineStatus(item.due_date);
-        const daysUntilDeadline = getDaysUntilDeadline(item.due_date);
+        const deadlineStatus = getDeadlineStatus(item.expected_completion_date);
+        const daysUntilDeadline = getDaysUntilDeadline(
+          item.expected_completion_date
+        );
         const progressPercentage = item.progress_percentage || 0;
 
         return (
           <Grid item xs={12} key={item.id}>
-            <Card 
-              sx={{ 
-                position: 'relative',
-                border: deadlineStatus === 'overdue' ? '2px solid #dc2626' : 
-                       deadlineStatus === 'urgent' ? '2px solid #f59e0b' : 'none',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
+            <Card
+              sx={{
+                position: "relative",
+                border:
+                  deadlineStatus === "overdue"
+                    ? "2px solid #dc2626"
+                    : deadlineStatus === "urgent"
+                    ? "2px solid #f59e0b"
+                    : "none",
+                "&:hover": {
+                  transform: "translateY(-2px)",
                   boxShadow: theme.shadows[4],
                 },
-                transition: 'all 0.2s ease-in-out',
+                transition: "all 0.2s ease-in-out",
               }}
             >
               {/* Priority and Status Indicators */}
-              <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, flexDirection: 'column' }}>
-                {deadlineStatus === 'overdue' && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  display: "flex",
+                  gap: 1,
+                  flexDirection: "column",
+                }}
+              >
+                {deadlineStatus === "overdue" && (
                   <Chip
                     icon={<FaExclamationTriangle />}
                     label="เลยกำหนด"
                     color="error"
                     size="small"
-                    sx={{ fontSize: '0.7rem' }}
+                    sx={{ fontSize: "0.7rem" }}
                   />
                 )}
-                {deadlineStatus === 'urgent' && (
+                {deadlineStatus === "urgent" && (
                   <Chip
                     icon={<FaClock />}
                     label={`เหลือ ${daysUntilDeadline} วัน`}
                     color="warning"
                     size="small"
-                    sx={{ fontSize: '0.7rem' }}
+                    sx={{ fontSize: "0.7rem" }}
                   />
                 )}
-                {item.priority === 'urgent' && (
+                {item.priority === "urgent" && (
                   <Chip
                     label="ด่วน"
                     color="error"
                     size="small"
-                    sx={{ fontSize: '0.7rem' }}
+                    sx={{ fontSize: "0.7rem" }}
                   />
                 )}
               </Box>
 
               <CardContent sx={{ pb: 1 }}>
                 {/* Header Section */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, pr: 6 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 2,
+                    pr: 6,
+                  }}
+                >
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
                       {item.code}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
                       {item.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FaUser style={{ fontSize: '0.8rem' }} />
-                      {item.customer_name || 'ไม่ระบุลูกค้า'}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FaUser style={{ fontSize: "0.8rem" }} />
+                      {item.customer_name || "ไม่ระบุลูกค้า"}
                     </Typography>
                   </Box>
                 </Box>
 
                 {/* Status and Production Type Row */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 2,
+                    flexWrap: "wrap",
+                  }}
+                >
                   <Chip
                     label={statusLabelsWithEmoji[item.status]}
                     sx={{
                       bgcolor: statusColors[item.status],
-                      color: 'white',
-                      fontWeight: 'bold',
+                      color: "white",
+                      fontWeight: "bold",
                     }}
                   />
                   <Chip
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
                         {getProductionTypeIcon(item.production_type)}
-                        {productionTypeConfig[item.production_type]?.label || item.production_type}
+                        {productionTypeConfig[item.production_type]?.label ||
+                          item.production_type}
                       </Box>
                     }
                     sx={{
                       bgcolor: productionColors[item.production_type],
-                      color: 'white',
+                      color: "white",
                     }}
                   />
                 </Box>
 
                 {/* Dates Section */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <FaCalendarAlt style={{ fontSize: '0.8rem', color: theme.palette.primary.main }} />
-                    เริ่ม: {item.start_date ? format(new Date(item.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  >
+                    <FaCalendarAlt
+                      style={{
+                        fontSize: "0.8rem",
+                        color: theme.palette.primary.main,
+                      }}
+                    />
+                    เริ่ม:{" "}
+                    {item.start_date
+                      ? format(new Date(item.start_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
+                      : "ไม่ระบุ"}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <ScheduleIcon style={{ fontSize: '0.8rem', color: theme.palette.success.main }} />
-                    คาดว่าเสร็จ: {item.expected_completion_date ? format(new Date(item.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                  >
+                    <ScheduleIcon
+                      style={{
+                        fontSize: "0.8rem",
+                        color: theme.palette.success.main,
+                      }}
+                    />
+                    คาดว่าเสร็จ:{" "}
+                    {item.expected_completion_date
+                      ? format(
+                          new Date(item.expected_completion_date),
+                          "dd/MM/yyyy",
+                          { locale: dateFnsLocales.th }
+                        )
+                      : "ไม่ระบุ"}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
                       gap: 0.5,
-                      color: deadlineStatus === 'overdue' ? 'error.main' : 
-                             deadlineStatus === 'urgent' ? 'warning.main' : 'text.secondary'
+                      color:
+                        deadlineStatus === "overdue"
+                          ? "error.main"
+                          : deadlineStatus === "urgent"
+                          ? "warning.main"
+                          : "text.secondary",
                     }}
                   >
-                    <FaExclamationTriangle style={{ fontSize: '0.8rem' }} />
-                    ครบกำหนด: {item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                    <FaExclamationTriangle style={{ fontSize: "0.8rem" }} />
+                    คาดว่าเสร็จ:{" "}
+                    {item.expected_completion_date
+                      ? format(
+                          new Date(item.expected_completion_date),
+                          "dd/MM/yyyy",
+                          { locale: dateFnsLocales.th }
+                        )
+                      : "ไม่ระบุ"}
                   </Typography>
                 </Box>
               </CardContent>
@@ -676,7 +804,7 @@ const MaxSupplyList = () => {
                 <Button
                   size="small"
                   startIcon={<EditIcon />}
-                  onClick={() => navigate(`/max-supply/edit/${item.id}`)}
+                  onClick={() => handleEditClick(item)}
                   variant="outlined"
                   color="primary"
                 >
@@ -686,7 +814,7 @@ const MaxSupplyList = () => {
                   size="small"
                   color="error"
                   onClick={() => handleDeleteClick(item)}
-                  sx={{ ml: 'auto' }}
+                  sx={{ ml: "auto" }}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -706,18 +834,18 @@ const MaxSupplyList = () => {
           <TableRow>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'code'}
-                direction={sortBy === 'code' ? sortOrder : 'asc'}
-                onClick={() => handleSort('code')}
+                active={sortBy === "code"}
+                direction={sortBy === "code" ? sortOrder : "asc"}
+                onClick={() => handleSort("code")}
               >
                 รหัส
               </TableSortLabel>
             </TableCell>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'title'}
-                direction={sortBy === 'title' ? sortOrder : 'asc'}
-                onClick={() => handleSort('title')}
+                active={sortBy === "title"}
+                direction={sortBy === "title" ? sortOrder : "asc"}
+                onClick={() => handleSort("title")}
               >
                 ชื่องาน / ลูกค้า
               </TableSortLabel>
@@ -725,9 +853,9 @@ const MaxSupplyList = () => {
             <TableCell>ประเภท</TableCell>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'status'}
-                direction={sortBy === 'status' ? sortOrder : 'asc'}
-                onClick={() => handleSort('status')}
+                active={sortBy === "status"}
+                direction={sortBy === "status" ? sortOrder : "asc"}
+                onClick={() => handleSort("status")}
               >
                 สถานะ
               </TableSortLabel>
@@ -735,20 +863,22 @@ const MaxSupplyList = () => {
             <TableCell>ความสำคัญ</TableCell>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'start_date'}
-                direction={sortBy === 'start_date' ? sortOrder : 'asc'}
-                onClick={() => handleSort('start_date')}
+                active={sortBy === "start_date"}
+                direction={sortBy === "start_date" ? sortOrder : "asc"}
+                onClick={() => handleSort("start_date")}
               >
                 วันที่เริ่ม
               </TableSortLabel>
             </TableCell>
             <TableCell>
               <TableSortLabel
-                active={sortBy === 'due_date'}
-                direction={sortBy === 'due_date' ? sortOrder : 'asc'}
-                onClick={() => handleSort('due_date')}
+                active={sortBy === "expected_completion_date"}
+                direction={
+                  sortBy === "expected_completion_date" ? sortOrder : "asc"
+                }
+                onClick={() => handleSort("expected_completion_date")}
               >
-                ครบกำหนด
+                คาดว่าเสร็จ
               </TableSortLabel>
             </TableCell>
             <TableCell align="center">จัดการ</TableCell>
@@ -756,40 +886,61 @@ const MaxSupplyList = () => {
         </TableHead>
         <TableBody>
           {maxSupplies.map((item) => {
-            const deadlineStatus = getDeadlineStatus(item.due_date);
-            const daysUntilDeadline = getDaysUntilDeadline(item.due_date);
+            const deadlineStatus = getDeadlineStatus(
+              item.expected_completion_date
+            );
+            const daysUntilDeadline = getDaysUntilDeadline(
+              item.expected_completion_date
+            );
             const progressPercentage = item.progress_percentage || 0;
 
             return (
-              <TableRow 
-                key={item.id} 
+              <TableRow
+                key={item.id}
                 hover
                 sx={{
-                  backgroundColor: deadlineStatus === 'overdue' ? '#fef2f2' : 
-                                 deadlineStatus === 'urgent' ? '#fffbeb' : 'inherit',
-                  borderLeft: deadlineStatus === 'overdue' ? '4px solid #dc2626' :
-                             deadlineStatus === 'urgent' ? '4px solid #f59e0b' : 'none',
+                  backgroundColor:
+                    deadlineStatus === "overdue"
+                      ? "#fef2f2"
+                      : deadlineStatus === "urgent"
+                      ? "#fffbeb"
+                      : "inherit",
+                  borderLeft:
+                    deadlineStatus === "overdue"
+                      ? "4px solid #dc2626"
+                      : deadlineStatus === "urgent"
+                      ? "4px solid #f59e0b"
+                      : "none",
                 }}
               >
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography variant="body2" fontWeight="bold">
                       {item.code}
                     </Typography>
-                    {item.priority === 'urgent' && (
-                      <Chip label="ด่วน" size="small" color="error" sx={{ fontSize: '0.7rem' }} />
+                    {item.priority === "urgent" && (
+                      <Chip
+                        label="ด่วน"
+                        size="small"
+                        color="error"
+                        sx={{ fontSize: "0.7rem" }}
+                      />
                     )}
                   </Box>
                 </TableCell>
-                
+
                 <TableCell>
                   <Box>
                     <Typography variant="body2" fontWeight="bold">
                       {item.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FaUser style={{ fontSize: '0.7rem' }} />
-                      {item.customer_name || 'ไม่ระบุลูกค้า'}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FaUser style={{ fontSize: "0.7rem" }} />
+                      {item.customer_name || "ไม่ระบุลูกค้า"}
                     </Typography>
                   </Box>
                 </TableCell>
@@ -797,37 +948,44 @@ const MaxSupplyList = () => {
                 <TableCell>
                   <Chip
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
                         {getProductionTypeIcon(item.production_type)}
-                        {productionTypeConfig[item.production_type]?.label || item.production_type}
+                        {productionTypeConfig[item.production_type]?.label ||
+                          item.production_type}
                       </Box>
                     }
                     size="small"
                     sx={{
                       bgcolor: productionColors[item.production_type],
-                      color: 'white',
+                      color: "white",
                     }}
                   />
                 </TableCell>
 
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Chip
                       label={statusLabels[item.status]}
                       size="small"
                       sx={{
                         bgcolor: statusColors[item.status],
-                        color: 'white',
+                        color: "white",
                       }}
                     />
-                    {deadlineStatus === 'overdue' && (
+                    {deadlineStatus === "overdue" && (
                       <Tooltip title="เลยกำหนดแล้ว">
-                        <FaExclamationTriangle style={{ color: '#dc2626', fontSize: '0.9rem' }} />
+                        <FaExclamationTriangle
+                          style={{ color: "#dc2626", fontSize: "0.9rem" }}
+                        />
                       </Tooltip>
                     )}
-                    {deadlineStatus === 'urgent' && (
+                    {deadlineStatus === "urgent" && (
                       <Tooltip title={`เหลือ ${daysUntilDeadline} วัน`}>
-                        <FaClock style={{ color: '#f59e0b', fontSize: '0.9rem' }} />
+                        <FaClock
+                          style={{ color: "#f59e0b", fontSize: "0.9rem" }}
+                        />
                       </Tooltip>
                     )}
                   </Box>
@@ -838,35 +996,49 @@ const MaxSupplyList = () => {
                     label={priorityLabels[item.priority] || item.priority}
                     size="small"
                     sx={{
-                      bgcolor: priorityColors[item.priority] || '#6b7280',
-                      color: 'white',
+                      bgcolor: priorityColors[item.priority] || "#6b7280",
+                      color: "white",
                     }}
                   />
                 </TableCell>
 
                 <TableCell>
                   <Typography variant="body2">
-                    {item.start_date ? format(new Date(item.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                    {item.start_date
+                      ? format(new Date(item.start_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
+                      : "ไม่ระบุ"}
                   </Typography>
                 </TableCell>
 
                 <TableCell>
                   <Box>
-                    <Typography 
+                    <Typography
                       variant="body2"
-                      sx={{ 
-                        color: deadlineStatus === 'overdue' ? 'error.main' : 
-                               deadlineStatus === 'urgent' ? 'warning.main' : 'text.primary'
+                      sx={{
+                        color:
+                          deadlineStatus === "overdue"
+                            ? "error.main"
+                            : deadlineStatus === "urgent"
+                            ? "warning.main"
+                            : "text.primary",
                       }}
                     >
-                      {item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                      {item.expected_completion_date
+                        ? format(
+                            new Date(item.expected_completion_date),
+                            "dd/MM/yyyy",
+                            { locale: dateFnsLocales.th }
+                          )
+                        : "ไม่ระบุ"}
                     </Typography>
-                    {deadlineStatus === 'urgent' && (
+                    {deadlineStatus === "urgent" && (
                       <Typography variant="caption" color="warning.main">
                         เหลือ {daysUntilDeadline} วัน
                       </Typography>
                     )}
-                    {deadlineStatus === 'overdue' && (
+                    {deadlineStatus === "overdue" && (
                       <Typography variant="caption" color="error.main">
                         เลย {Math.abs(daysUntilDeadline)} วัน
                       </Typography>
@@ -875,19 +1047,31 @@ const MaxSupplyList = () => {
                 </TableCell>
 
                 <TableCell align="center">
-                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                  <Box
+                    sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}
+                  >
                     <Tooltip title="ดูรายละเอียด">
-                      <IconButton size="small" onClick={() => handleViewDetail(item.id)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleViewDetail(item.id)}
+                      >
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="แก้ไข">
-                      <IconButton size="small" onClick={() => navigate(`/max-supply/edit/${item.id}`)}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditClick(item)}
+                      >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="ลบ">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(item)}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteClick(item)}
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -905,28 +1089,38 @@ const MaxSupplyList = () => {
   const DetailDialog = () => {
     if (!selectedItem) return null;
 
-    const deadlineStatus = getDeadlineStatus(selectedItem.due_date);
-    const daysUntilDeadline = getDaysUntilDeadline(selectedItem.due_date);
+    const deadlineStatus = getDeadlineStatus(
+      selectedItem.expected_completion_date
+    );
+    const daysUntilDeadline = getDaysUntilDeadline(
+      selectedItem.expected_completion_date
+    );
     const progressPercentage = selectedItem.progress_percentage || 0;
 
     return (
-      <Dialog 
-        open={detailDialog} 
-        onClose={() => setDetailDialog(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={detailDialog}
+        onClose={() => setDetailDialog(false)}
+        maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 2 }
+          sx: { borderRadius: 2 },
         }}
       >
         <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar 
-                sx={{ 
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Avatar
+                sx={{
                   bgcolor: productionColors[selectedItem.production_type],
                   width: 40,
-                  height: 40
+                  height: 40,
                 }}
               >
                 {getProductionTypeIcon(selectedItem.production_type)}
@@ -945,29 +1139,39 @@ const MaxSupplyList = () => {
             </IconButton>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent dividers>
           {/* Status and Progress Overview */}
-          <Box sx={{ mb: 3, p: 2, bgcolor: theme.palette.grey[50], borderRadius: 1 }}>
+          <Box
+            sx={{
+              mb: 3,
+              p: 2,
+              bgcolor: theme.palette.grey[50],
+              borderRadius: 1,
+            }}
+          >
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={3}>
                 <Chip
                   label={statusLabels[selectedItem.status]}
                   sx={{
                     bgcolor: statusColors[selectedItem.status],
-                    color: 'white',
-                    width: '100%',
-                    fontWeight: 'bold'
+                    color: "white",
+                    width: "100%",
+                    fontWeight: "bold",
                   }}
                 />
               </Grid>
               <Grid item xs={12} md={3}>
                 <Chip
-                  label={productionTypeConfig[selectedItem.production_type]?.label || selectedItem.production_type}
+                  label={
+                    productionTypeConfig[selectedItem.production_type]?.label ||
+                    selectedItem.production_type
+                  }
                   sx={{
                     bgcolor: productionColors[selectedItem.production_type],
-                    color: 'white',
-                    width: '100%'
+                    color: "white",
+                    width: "100%",
                   }}
                 />
               </Grid>
@@ -975,35 +1179,35 @@ const MaxSupplyList = () => {
                 <Chip
                   label={priorityLabels[selectedItem.priority]}
                   sx={{
-                    bgcolor: priorityColors[selectedItem.priority] || '#6b7280',
-                    color: 'white',
-                    width: '100%'
+                    bgcolor: priorityColors[selectedItem.priority] || "#6b7280",
+                    color: "white",
+                    width: "100%",
                   }}
                 />
               </Grid>
               <Grid item xs={12} md={3}>
-                {deadlineStatus === 'overdue' && (
+                {deadlineStatus === "overdue" && (
                   <Chip
                     icon={<FaExclamationTriangle />}
                     label="เลยกำหนด"
                     color="error"
-                    sx={{ width: '100%' }}
+                    sx={{ width: "100%" }}
                   />
                 )}
-                {deadlineStatus === 'urgent' && (
+                {deadlineStatus === "urgent" && (
                   <Chip
                     icon={<FaClock />}
                     label={`เหลือ ${daysUntilDeadline} วัน`}
                     color="warning"
-                    sx={{ width: '100%' }}
+                    sx={{ width: "100%" }}
                   />
                 )}
-                {deadlineStatus === 'normal' && (
+                {deadlineStatus === "normal" && (
                   <Chip
                     icon={<FaCheckCircle />}
                     label="ปกติ"
                     color="success"
-                    sx={{ width: '100%' }}
+                    sx={{ width: "100%" }}
                   />
                 )}
               </Grid>
@@ -1012,22 +1216,40 @@ const MaxSupplyList = () => {
 
           {/* Progress Section */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
               <TrendingUpIcon color="primary" />
               ความคืบหน้า
             </Typography>
-            <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="h4" fontWeight="bold" color={getProgressColor(progressPercentage)}>
+            <Box
+              sx={{ p: 2, border: 1, borderColor: "divider", borderRadius: 1 }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1,
+                }}
+              >
+                <Typography
+                  variant="h4"
+                  fontWeight="bold"
+                  color={getProgressColor(progressPercentage)}
+                >
                   {progressPercentage}%
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  {selectedItem.completed_quantity || 0} / {selectedItem.total_quantity || 0} ชิ้น
+                  {selectedItem.completed_quantity || 0} /{" "}
+                  {selectedItem.total_quantity || 0} ชิ้น
                 </Typography>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
-                value={progressPercentage} 
+              <LinearProgress
+                variant="determinate"
+                value={progressPercentage}
                 color={getProgressColor(progressPercentage)}
                 sx={{ height: 8, borderRadius: 4 }}
               />
@@ -1037,33 +1259,54 @@ const MaxSupplyList = () => {
           <Grid container spacing={3}>
             {/* Basic Information */}
             <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, height: '100%' }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Paper sx={{ p: 2, height: "100%" }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
                   <AssignmentIcon color="primary" />
                   ข้อมูลพื้นฐาน
                 </Typography>
                 <Stack spacing={1}>
                   <Box>
-                    <Typography variant="body2" color="text.secondary">รหัสงาน</Typography>
-                    <Typography variant="body1" fontWeight="bold">{selectedItem.code}</Typography>
-                  </Box>
-                  <Divider />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">ชื่องาน</Typography>
-                    <Typography variant="body1">{selectedItem.title}</Typography>
-                  </Box>
-                  <Divider />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">ลูกค้า</Typography>
-                    <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FaUser style={{ fontSize: '0.8rem' }} />
-                      {selectedItem.customer_name || 'ไม่ระบุลูกค้า'}
+                    <Typography variant="body2" color="text.secondary">
+                      รหัสงาน
+                    </Typography>
+                    <Typography variant="body1" fontWeight="bold">
+                      {selectedItem.code}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box>
-                    <Typography variant="body2" color="text.secondary">จำนวนทั้งหมด</Typography>
-                    <Typography variant="body1">{selectedItem.total_quantity || 0} ชิ้น</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      ชื่องาน
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedItem.title}
+                    </Typography>
+                  </Box>
+                  <Divider />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      ลูกค้า
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FaUser style={{ fontSize: "0.8rem" }} />
+                      {selectedItem.customer_name || "ไม่ระบุลูกค้า"}
+                    </Typography>
+                  </Box>
+                  <Divider />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      จำนวนทั้งหมด
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedItem.total_quantity || 0} ชิ้น
+                    </Typography>
                   </Box>
                 </Stack>
               </Paper>
@@ -1071,49 +1314,73 @@ const MaxSupplyList = () => {
 
             {/* Schedule Information */}
             <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, height: '100%' }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Paper sx={{ p: 2, height: "100%" }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
                   <ScheduleIcon color="primary" />
                   กำหนดการ
                 </Typography>
                 <Stack spacing={1}>
                   <Box>
-                    <Typography variant="body2" color="text.secondary">วันที่เริ่ม</Typography>
-                    <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <FaCalendarAlt style={{ fontSize: '0.8rem', color: theme.palette.primary.main }} />
-                      {selectedItem.start_date ? format(new Date(selectedItem.start_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                    <Typography variant="body2" color="text.secondary">
+                      วันที่เริ่ม
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <FaCalendarAlt
+                        style={{
+                          fontSize: "0.8rem",
+                          color: theme.palette.primary.main,
+                        }}
+                      />
+                      {selectedItem.start_date
+                        ? format(
+                            new Date(selectedItem.start_date),
+                            "dd/MM/yyyy",
+                            { locale: dateFnsLocales.th }
+                          )
+                        : "ไม่ระบุ"}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box>
-                    <Typography variant="body2" color="text.secondary">วันที่คาดว่าจะเสร็จ</Typography>
-                    <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <ScheduleIcon style={{ fontSize: '0.8rem', color: theme.palette.success.main }} />
-                      {selectedItem.expected_completion_date ? format(new Date(selectedItem.expected_completion_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                    <Typography variant="body2" color="text.secondary">
+                      วันที่คาดว่าจะเสร็จ
                     </Typography>
-                  </Box>
-                  <Divider />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">วันครบกำหนด</Typography>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
                         gap: 0.5,
-                        color: deadlineStatus === 'overdue' ? 'error.main' : 
-                               deadlineStatus === 'urgent' ? 'warning.main' : 'text.primary'
+                        color:
+                          deadlineStatus === "overdue"
+                            ? "error.main"
+                            : deadlineStatus === "urgent"
+                            ? "warning.main"
+                            : "text.primary",
                       }}
                     >
-                      <FaExclamationTriangle style={{ fontSize: '0.8rem' }} />
-                      {selectedItem.due_date ? format(new Date(selectedItem.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th }) : 'ไม่ระบุ'}
+                      <ScheduleIcon style={{ fontSize: "0.8rem" }} />
+                      {selectedItem.expected_completion_date
+                        ? format(
+                            new Date(selectedItem.expected_completion_date),
+                            "dd/MM/yyyy",
+                            { locale: dateFnsLocales.th }
+                          )
+                        : "ไม่ระบุ"}
                     </Typography>
-                    {deadlineStatus === 'urgent' && (
+                    {deadlineStatus === "urgent" && (
                       <Typography variant="caption" color="warning.main">
                         เหลือ {daysUntilDeadline} วัน
                       </Typography>
                     )}
-                    {deadlineStatus === 'overdue' && (
+                    {deadlineStatus === "overdue" && (
                       <Typography variant="caption" color="error.main">
                         เลย {Math.abs(daysUntilDeadline)} วัน
                       </Typography>
@@ -1131,7 +1398,7 @@ const MaxSupplyList = () => {
                 <Typography variant="h6" gutterBottom>
                   หมายเหตุ
                 </Typography>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
                   {selectedItem.notes}
                 </Typography>
               </Paper>
@@ -1148,13 +1415,13 @@ const MaxSupplyList = () => {
             startIcon={<EditIcon />}
             onClick={() => {
               setDetailDialog(false);
-              navigate(`/max-supply/edit/${selectedItem.id}`);
+              handleEditClick(selectedItem);
             }}
-            sx={{ 
-              background: 'linear-gradient(45deg, #B20000, #E36264)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #900F0F, #B20000)',
-              }
+            sx={{
+              background: "linear-gradient(45deg, #B20000, #E36264)",
+              "&:hover": {
+                background: "linear-gradient(45deg, #900F0F, #B20000)",
+              },
             }}
           >
             แก้ไข
@@ -1172,7 +1439,7 @@ const MaxSupplyList = () => {
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <WarningIcon color="error" />
         ยืนยันการลบ
       </DialogTitle>
@@ -1185,7 +1452,10 @@ const MaxSupplyList = () => {
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setDeleteConfirmDialog(false)} variant="outlined">
+        <Button
+          onClick={() => setDeleteConfirmDialog(false)}
+          variant="outlined"
+        >
           ยกเลิก
         </Button>
         <Button
@@ -1207,7 +1477,14 @@ const MaxSupplyList = () => {
         <Grid item xs={12} key={index}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  mb: 2,
+                }}
+              >
                 <Box sx={{ flex: 1 }}>
                   <Skeleton variant="text" width="40%" height={32} />
                   <Skeleton variant="text" width="60%" height={24} />
@@ -1215,12 +1492,17 @@ const MaxSupplyList = () => {
                 </Box>
                 <Skeleton variant="rounded" width={80} height={28} />
               </Box>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
                 <Skeleton variant="rounded" width={100} height={28} />
                 <Skeleton variant="rounded" width={120} height={28} />
               </Box>
-              <Skeleton variant="rectangular" width="100%" height={6} sx={{ mb: 1 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Skeleton
+                variant="rectangular"
+                width="100%"
+                height={6}
+                sx={{ mb: 1 }}
+              />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                 <Skeleton variant="text" width="70%" />
                 <Skeleton variant="text" width="65%" />
                 <Skeleton variant="text" width="60%" />
@@ -1241,20 +1523,20 @@ const MaxSupplyList = () => {
   const EmptyState = () => (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         py: 8,
-        textAlign: 'center',
+        textAlign: "center",
       }}
     >
-      <AssignmentIcon 
-        sx={{ 
-          fontSize: 80, 
+      <AssignmentIcon
+        sx={{
+          fontSize: 80,
           color: theme.palette.grey[400],
-          mb: 2 
-        }} 
+          mb: 2,
+        }}
       />
       <Typography variant="h5" color="text.secondary" gutterBottom>
         ไม่พบงานที่ตรงกับเงื่อนไข
@@ -1265,12 +1547,12 @@ const MaxSupplyList = () => {
       <Button
         variant="contained"
         startIcon={<FaPlus />}
-        onClick={() => navigate('/max-supply/create')}
-        sx={{ 
-          background: 'linear-gradient(45deg, #B20000, #E36264)',
-          '&:hover': {
-            background: 'linear-gradient(45deg, #900F0F, #B20000)',
-          }
+        onClick={() => navigate("/max-supply/create")}
+        sx={{
+          background: "linear-gradient(45deg, #B20000, #E36264)",
+          "&:hover": {
+            background: "linear-gradient(45deg, #900F0F, #B20000)",
+          },
         }}
       >
         สร้างงานใหม่
@@ -1282,49 +1564,71 @@ const MaxSupplyList = () => {
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header with enhanced styling */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography 
-            variant="h4" 
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <Typography
+            variant="h4"
             fontWeight="bold"
             sx={{
-              background: 'linear-gradient(45deg, #B20000, #E36264)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              background: "linear-gradient(45deg, #B20000, #E36264)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
             }}
           >
             รายการงานผลิต MaxSupply
           </Typography>
           {!isMobile && (
-            <Chip 
+            <Chip
               label={`ทั้งหมด ${totalItems} งาน`}
               variant="outlined"
               color="primary"
-              sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}
+              sx={{ fontSize: "0.9rem", fontWeight: "bold" }}
             />
           )}
         </Box>
-        
+
         {/* Statistics Summary */}
         {totalItems > 0 && (
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-            <Chip 
-              label={`รอเริ่ม: ${maxSupplies.filter(item => item.status === 'pending').length}`}
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
+            <Chip
+              label={`รอเริ่ม: ${
+                maxSupplies.filter((item) => item.status === "pending").length
+              }`}
               color="warning"
               size="small"
             />
-            <Chip 
-              label={`กำลังผลิต: ${maxSupplies.filter(item => item.status === 'in_progress').length}`}
+            <Chip
+              label={`กำลังผลิต: ${
+                maxSupplies.filter((item) => item.status === "in_progress")
+                  .length
+              }`}
               color="primary"
               size="small"
             />
-            <Chip 
-              label={`เสร็จสิ้น: ${maxSupplies.filter(item => item.status === 'completed').length}`}
+            <Chip
+              label={`เสร็จสิ้น: ${
+                maxSupplies.filter((item) => item.status === "completed").length
+              }`}
               color="success"
               size="small"
             />
-            <Chip 
-              label={`ใกล้ครบกำหนด: ${maxSupplies.filter(item => getDeadlineStatus(item.due_date) === 'urgent' || getDeadlineStatus(item.due_date) === 'overdue').length}`}
+            <Chip
+              label={`ใกล้ครบกำหนด: ${
+                maxSupplies.filter(
+                  (item) =>
+                    getDeadlineStatus(item.expected_completion_date) ===
+                      "urgent" ||
+                    getDeadlineStatus(item.expected_completion_date) ===
+                      "overdue"
+                ).length
+              }`}
               color="error"
               size="small"
             />
@@ -1343,19 +1647,19 @@ const MaxSupplyList = () => {
         <>
           {/* View Toggle for Tablet/Desktop */}
           {!isMobile && (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
               <Stack direction="row" spacing={1}>
                 <Button
-                  variant={viewMode === 'table' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('table')}
+                  variant={viewMode === "table" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("table")}
                   size="small"
                   startIcon={<FaSortAmountDown />}
                 >
                   ตารางข้อมูล
                 </Button>
                 <Button
-                  variant={viewMode === 'card' ? 'contained' : 'outlined'}
-                  onClick={() => setViewMode('card')}
+                  variant={viewMode === "card" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("card")}
                   size="small"
                   startIcon={<FaChartLine />}
                 >
@@ -1366,17 +1670,17 @@ const MaxSupplyList = () => {
           )}
 
           {/* Data Display */}
-          {viewMode === 'card' ? <MobileCardView /> : <DesktopTableView />}
-          
+          {viewMode === "card" ? <MobileCardView /> : <DesktopTableView />}
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <Pagination
                 count={totalPages}
                 page={page}
                 onChange={handlePageChange}
                 color="primary"
-                size={isMobile ? 'small' : 'medium'}
+                size={isMobile ? "small" : "medium"}
                 showFirstButton
                 showLastButton
               />
@@ -1390,15 +1694,15 @@ const MaxSupplyList = () => {
         <Fab
           color="primary"
           aria-label="สร้างงานใหม่"
-          onClick={() => navigate('/max-supply/create')}
+          onClick={() => navigate("/max-supply/create")}
           sx={{
-            position: 'fixed',
+            position: "fixed",
             bottom: 16,
             right: 16,
-            background: 'linear-gradient(45deg, #B20000, #E36264)',
-            '&:hover': {
-              background: 'linear-gradient(45deg, #900F0F, #B20000)',
-            }
+            background: "linear-gradient(45deg, #B20000, #E36264)",
+            "&:hover": {
+              background: "linear-gradient(45deg, #900F0F, #B20000)",
+            },
           }}
         >
           <FaPlus />
@@ -1407,6 +1711,15 @@ const MaxSupplyList = () => {
 
       <DetailDialog />
       <DeleteConfirmDialog />
+      
+      {/* Edit Form Dialog */}
+      <MaxSupplyEditForm
+        open={editDialog}
+        onClose={handleCloseEdit}
+        item={editItem}
+        onSave={handleSaveEdit}
+        loading={loading}
+      />
     </Container>
   );
 };

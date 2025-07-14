@@ -297,11 +297,12 @@ export const useFallbackData = () => {
 
     return fallbackData
       .filter(item => {
-        if (!item.due_date) return false;
-        const dueDate = new Date(item.due_date);
-        return dueDate >= now && dueDate <= futureDate;
+        // Use expected_completion_date instead of due_date
+        if (!item.expected_completion_date) return false;
+        const expectedDate = new Date(item.expected_completion_date);
+        return expectedDate >= now && expectedDate <= futureDate;
       })
-      .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+      .sort((a, b) => new Date(a.expected_completion_date) - new Date(b.expected_completion_date));
   };
 
   return {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { 
   Refresh as RefreshIcon,
@@ -7,7 +7,7 @@ import {
 } from '@mui/icons-material';
 import { format, isToday, isSameMonth, parseISO } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { DAY_NAMES, productionTypeConfig, priorityConfig } from '../../utils/constants';
+import { DAY_NAMES, DAY_NAMES_SHORT, productionTypeConfig, priorityConfig } from '../../utils/constants';
 import { getEventsForDate } from '../../utils/calendarUtils';
 import TimelineBar from './TimelineBar';
 import ProductionTypeIcon from '../ProductionTypeIcon';
@@ -28,16 +28,39 @@ const CalendarGrid = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // คำนวณจำนวนแถวของปฏิทิน
-  const numRows = Math.ceil(calendarDays.length / 7);
-  const cellHeight = isMobile ? '160px' : '200px';
+  // State สำหรับ dynamic window height
+  const [windowHeight, setWindowHeight] = useState(
+    typeof window !== 'undefined' ? window.innerHeight : 800
+  );
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setWindowHeight(window.innerHeight);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  // คำนวณจำนวนแถวของปฏิทิน - บังคับใช้ 6 แถวเสมอ
+  const numRows = 6;
+  // ใช้ responsive cellHeight และส่ง numeric value ให้ TimelineBar
+  const cellHeight = isMobile ? `${Math.floor(windowHeight / 5.5)}px` : '200px';
+  const numericCellHeight = isMobile ? Math.floor(windowHeight / 5.5) : 200;
 
   return (
     <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
       {/* Day Headers */}
       <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(7, 1fr)',
+        display: { xs: 'flex', md: 'grid' },
+        flexWrap: { xs: 'wrap', md: 'nowrap' },
+        justifyContent: 'space-between',
+        gridTemplateColumns: { md: 'repeat(7, 1fr)' },
         bgcolor: 'grey.100',
         borderBottom: 2,
         borderColor: 'divider',
@@ -45,10 +68,25 @@ const CalendarGrid = ({
         top: 0,
         zIndex: 100,
       }}>
-        {DAY_NAMES.map((day) => (
-          <Box key={day} sx={{ p: 2, textAlign: 'center', borderRight: 1, borderColor: 'divider' }}>
-            <Typography variant="subtitle2" fontWeight="bold" color="primary">
-              {day}
+        {DAY_NAMES.map((day, index) => (
+          <Box 
+            key={day} 
+            sx={{ 
+              p: { xs: 1, md: 2 }, 
+              textAlign: 'center', 
+              borderRight: { md: 1 }, 
+              borderColor: 'divider',
+              flex: { xs: '1 1 14.28%', md: 'none' }, // ให้แต่ละช่องกว้างเท่ากันบนมือถือ
+              minWidth: { xs: '14.28%', md: 'auto' }, // 100% / 7 = 14.28%
+            }}
+          >
+            <Typography 
+              variant="subtitle2" 
+              fontWeight="bold" 
+              color="primary"
+              sx={{ fontSize: { xs: '0.65rem', md: '0.875rem' } }}
+            >
+              {isMobile ? DAY_NAMES_SHORT[index] : day}
             </Typography>
           </Box>
         ))}
@@ -58,7 +96,7 @@ const CalendarGrid = ({
       <Box sx={{ 
         position: 'relative', 
         height: `calc(${numRows} * ${cellHeight})`, // คำนวณความสูงตามจำนวนแถวจริง
-        minHeight: isMobile ? '480px' : '600px', // ความสูงขั้นต่ำ
+        minHeight: isMobile ? `${Math.floor(windowHeight / 1.8)}px` : '600px', // ความสูงขั้นต่ำแบบ responsive
         bgcolor: 'grey.50' 
       }}>
         {/* Days Grid */}
@@ -383,7 +421,7 @@ const CalendarGrid = ({
                         hoveredTimeline={hoveredTimeline}
                         setHoveredTimeline={setHoveredTimeline}
                         onTimelineClick={onTimelineClick}
-                        cellHeight={cellHeight}
+                        cellHeight={numericCellHeight}
                       />
                     </Box>
                   ))}

@@ -29,6 +29,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import toast from 'react-hot-toast';
+import { useGetWorksheetQuery } from '../../features/Worksheet/worksheetApi';
 
 const MaxSupplyEditForm = ({ 
   open, 
@@ -50,6 +51,12 @@ const MaxSupplyEditForm = ({
   });
 
   const [errors, setErrors] = useState({});
+  
+  // Fetch worksheet data if available
+  const { data: worksheetData } = useGetWorksheetQuery(
+    item?.worksheet_id, 
+    { skip: !item?.worksheet_id }
+  );
 
   // ประเภทการพิมพ์
   const productionTypes = [
@@ -94,6 +101,30 @@ const MaxSupplyEditForm = ({
     }
   }, [item]);
 
+  // Update customer_name from worksheet data when available
+  useEffect(() => {
+    if (worksheetData?.data?.customer_name) {
+      setFormData(prev => ({
+        ...prev,
+        customer_name: worksheetData.data.customer_name,
+      }));
+    }
+  }, [worksheetData]);
+
+  // Fallback function to ensure customer_name is available
+  const getCustomerName = () => {
+    if (formData.customer_name?.trim()) {
+      return formData.customer_name;
+    }
+    if (worksheetData?.data?.customer_name?.trim()) {
+      return worksheetData.data.customer_name;
+    }
+    if (item?.customer_name?.trim()) {
+      return item.customer_name;
+    }
+    return '';
+  };
+
   // Form validation
   const validateForm = () => {
     const newErrors = {};
@@ -102,7 +133,8 @@ const MaxSupplyEditForm = ({
       newErrors.title = 'กรุณากรอกชื่องาน';
     }
 
-    if (!formData.customer_name.trim()) {
+    const customerName = getCustomerName();
+    if (!customerName.trim()) {
       newErrors.customer_name = 'กรุณากรอกชื่อลูกค้า';
     }
 
@@ -148,6 +180,12 @@ const MaxSupplyEditForm = ({
         updatedData.title = formData.title.trim();
       }
       
+      // Always send customer_name using fallback
+      const customerName = getCustomerName();
+      if (customerName && customerName.trim()) {
+        updatedData.customer_name = customerName.trim();
+      }
+      
       if (formData.production_type) {
         updatedData.production_type = formData.production_type;
       }
@@ -189,9 +227,13 @@ const MaxSupplyEditForm = ({
   // Handle form reset
   const handleReset = () => {
     if (item) {
+      const resetCustomerName = item.customer_name || 
+                               worksheetData?.data?.customer_name || 
+                               '';
+      
       setFormData({
         title: item.title || '',
-        customer_name: item.customer_name || '',
+        customer_name: resetCustomerName,
         start_date: item.start_date ? dayjs(item.start_date) : null,
         expected_completion_date: item.expected_completion_date ? dayjs(item.expected_completion_date) : null,
         production_type: item.production_type || '',
@@ -266,11 +308,12 @@ const MaxSupplyEditForm = ({
               <TextField
                 fullWidth
                 label="ชื่อลูกค้า"
-                value={formData.customer_name}
+                value={getCustomerName()}
                 onChange={(e) => setFormData(prev => ({ ...prev, customer_name: e.target.value }))}
                 error={!!errors.customer_name}
-                helperText={errors.customer_name}
+                helperText={errors.customer_name || 'สามารถแก้ไขได้อย่างอิสระ หากไม่มีข้อมูลจาก worksheet'}
                 required
+                placeholder="กรอกชื่อลูกค้า"
               />
             </Grid>
 
@@ -455,10 +498,26 @@ const MaxSupplyEditForm = ({
 
             {/* Preview Section */}
             <Grid item xs={12}>
-              <Alert severity="info" sx={{ mt: 2 }}>
+              {item?.worksheet_id && (
+                <Alert 
+                  severity={worksheetData ? "success" : "info"} 
+                  sx={{ mb: 2 }}
+                >
+                  <Typography variant="body2">
+                    {worksheetData 
+                      ? `✅ ข้อมูลลูกค้าได้รับการอัปเดตจาก Worksheet ID: ${item.worksheet_id}`
+                      : `🔄 กำลังโหลดข้อมูลลูกค้าจาก Worksheet ID: ${item.worksheet_id}...`
+                    }
+                  </Typography>
+                </Alert>
+              )}
+              
+              <Alert severity="info">
                 <Typography variant="body2">
                   <strong>หมายเหตุ:</strong> คุณสามารถแก้ไขได้เฉพาะข้อมูลที่แสดงในฟอร์มนี้เท่านั้น 
                   ข้อมูลอื่นๆ เช่น จำนวนสินค้า, การคำนวณงาน, และสถานะจะไม่สามารถแก้ไขได้
+                  <br />
+                  <strong>ชื่อลูกค้า:</strong> สามารถแก้ไขได้อย่างอิสระ ระบบจะอัปเดตจาก Worksheet หากมีข้อมูล
                 </Typography>
               </Alert>
             </Grid>

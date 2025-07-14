@@ -60,7 +60,7 @@ const WorksheetSelector = ({
               />
             )}
             renderOption={(props, option) => {
-              // Debug log to check pattern_sizes structure
+              // Debug log to check pattern_sizes structure (temporarily enabled for debugging)
               if (option.pattern_sizes) {
                 console.log(`Dropdown option ${option.label} pattern_sizes:`, option.pattern_sizes);
               }

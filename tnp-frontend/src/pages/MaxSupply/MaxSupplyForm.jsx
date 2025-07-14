@@ -154,9 +154,21 @@ const MaxSupplyForm = () => {
       }
       
       // Generate unique IDs and labels for worksheets
-      return worksheetItems
-        .filter(ws => ws && (ws.worksheet_id || ws.id || ws.work_id))
-        .filter(ws => ws.has_production !== true)
+      console.log('Total worksheets before filtering:', worksheetItems.length);
+      
+      const validWorksheets = worksheetItems.filter(ws => ws && (ws.worksheet_id || ws.id || ws.work_id));
+      console.log('Valid worksheets (with ID):', validWorksheets.length);
+      
+      const filteredWorksheets = validWorksheets.filter(ws => ws.has_production !== true);
+      console.log('Worksheets after production filter (has_production !== true):', filteredWorksheets.length);
+      
+      // Log some examples of filtered out worksheets
+      const productionWorksheets = validWorksheets.filter(ws => ws.has_production === true);
+      if (productionWorksheets.length > 0) {
+        console.log('Worksheets filtered out (has_production === true):', productionWorksheets.slice(0, 5));
+      }
+      
+      return filteredWorksheets
         .map((ws, index) => {
           // Create a unique ID for each worksheet
           const worksheetId = ws.worksheet_id || ws.id || ws.work_id || `ws-${index}`;

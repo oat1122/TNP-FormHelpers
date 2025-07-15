@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
 use App\Models\Worksheet\Worksheet;
 use App\Models\User\User;
 
 class MaxSupply extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'code',
         'worksheet_id',
@@ -30,6 +33,7 @@ class MaxSupply extends Model
         'screen_points',
         'dtf_points',
         'sublimation_points',
+        'embroidery_points',
         'notes',
         'special_instructions',
         'work_calculations',

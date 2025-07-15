@@ -1,7 +1,7 @@
-// Customer hooks exports
-export { useCustomerActions } from "./useCustomerActions";
+// Filter Hooks Index
+// Central export file for all filter-related hooks
 
-// Dialog hooks exports  
-export { useFormValidation } from "./useFormValidation";
-export { useLocationSelection } from "./useLocationSelection";
-export { useDialogApiData } from "./useDialogApiData"; 
+export { useFilterState } from "./useFilterState";
+export { useFilterActions } from "./useFilterActions";
+export { useDateRangeHelpers } from "./useDateRangeHelpers";
+export { useSelectionHelpers } from "./useSelectionHelpers"; 

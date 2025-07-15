@@ -1,4 +1,7 @@
 export {
   StyledDataGrid,
   StyledPagination
-} from './StyledComponents'; 
+} from './StyledComponents';
+
+// Dialog styled components exports
+export * from "./DialogStyledComponents"; 

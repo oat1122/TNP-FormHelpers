@@ -142,7 +142,8 @@ const BusinessDetailStepSimple = ({
     console.log("🔍 InputList changed:", {
       address: inputList.cus_address,
       zipCode: inputList.cus_zip_code,
-      tel: inputList.cus_tel_1,
+      tel1: inputList.cus_tel_1,
+      tel2: inputList.cus_tel_2,
       email: inputList.cus_email,
       hasFilledFromGps
     });
@@ -566,28 +567,52 @@ ${fullAddressDisplay}
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {/* เบอร์โทรและอีเมล */}
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-          <TextField
-            name="cus_tel_1"
-            label="เบอร์โทรหลัก"
-            value={inputList.cus_tel_1 || ""}
-            onChange={debugHandleInputChange}
-            required
-            error={!!errors.cus_tel_1}
-            helperText={errors.cus_tel_1}
-            disabled={mode === "view"}
-            placeholder="เช่น 02-123-4567, 081-234-5678"
-            size="small"
-            sx={{ flex: 1, minWidth: 200 }}
-            InputProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-            }}
-            InputLabelProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-              shrink: !!(inputList.cus_tel_1)
-            }}
-          />
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {/* เบอร์โทรหลักและสำรอง */}
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <TextField
+              name="cus_tel_1"
+              label="เบอร์โทรหลัก"
+              value={inputList.cus_tel_1 || ""}
+              onChange={debugHandleInputChange}
+              required
+              error={!!errors.cus_tel_1}
+              helperText={errors.cus_tel_1}
+              disabled={mode === "view"}
+              placeholder="เช่น 02-123-4567, 081-234-5678"
+              size="small"
+              sx={{ flex: 1, minWidth: 200 }}
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+                shrink: !!(inputList.cus_tel_1)
+              }}
+            />
+            
+            <TextField
+              name="cus_tel_2"
+              label="เบอร์โทรสำรอง (ไม่บังคับ)"
+              value={inputList.cus_tel_2 || ""}
+              onChange={debugHandleInputChange}
+              error={!!errors.cus_tel_2}
+              helperText={errors.cus_tel_2}
+              disabled={mode === "view"}
+              placeholder="เช่น 02-987-6543, 089-876-5432"
+              size="small"
+              sx={{ flex: 1, minWidth: 200 }}
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+                shrink: !!(inputList.cus_tel_2)
+              }}
+            />
+          </Box>
           
+          {/* อีเมล */}
           <TextField
             name="cus_email"
             label="อีเมล"
@@ -599,7 +624,7 @@ ${fullAddressDisplay}
             disabled={mode === "view"}
             placeholder="เช่น contact@company.com"
             size="small"
-            sx={{ flex: 1, minWidth: 200 }}
+            fullWidth
             InputProps={{
               style: { fontFamily: "Kanit", fontSize: 14 },
             }}

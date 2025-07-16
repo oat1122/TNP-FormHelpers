@@ -81,6 +81,11 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
             <Typography variant="body1" fontFamily="Kanit">
               <strong>เบอร์โทรหลัก:</strong> {inputList.cus_tel_1 || "-"}
             </Typography>
+            {inputList.cus_tel_2 && (
+              <Typography variant="body1" fontFamily="Kanit">
+                <strong>เบอร์โทรสำรอง:</strong> {inputList.cus_tel_2}
+              </Typography>
+            )}
             <Typography variant="body1" fontFamily="Kanit">
               <strong>อีเมล:</strong> {inputList.cus_email || "-"}
             </Typography>

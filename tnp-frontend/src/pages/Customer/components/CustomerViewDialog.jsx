@@ -35,6 +35,7 @@ import {
 } from "react-icons/md";
 import { styled } from "@mui/material/styles";
 import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
+import { parseFullAddress } from "./BusinessDetailStepSimple";
 
 // Styled components - ปรับสีตาม theme
 const ViewCard = styled(Card)(({ theme }) => ({
@@ -137,6 +138,15 @@ const CustomerViewDialog = ({
   
   // Check if recall is overdue
   const isOverdue = formattedRelativeTime <= 0;
+
+  // Parse address from combined string to separated components
+  const parsedAddress = customerData.cus_address ? parseFullAddress(customerData.cus_address) : {
+    address: '',
+    subdistrict: '',
+    district: '',
+    province: '',
+    zipCode: ''
+  };
 
   return (
     <Dialog
@@ -502,29 +512,47 @@ const CustomerViewDialog = ({
                     <InfoRow>
                       <InfoLabel>ที่อยู่:</InfoLabel>
                       <InfoValue sx={{ lineHeight: 1.6 }}>
-                        {customerData.cus_address || "-"}
+                        {parsedAddress.address || customerData.cus_address_detail || "-"}
                       </InfoValue>
                     </InfoRow>
                     
                     <InfoRow>
                       <InfoLabel>จังหวัด:</InfoLabel>
-                      <InfoValue>{customerData.province_name || "-"}</InfoValue>
+                      <InfoValue>{parsedAddress.province || customerData.cus_province_text || "-"}</InfoValue>
                     </InfoRow>
                     
                     <InfoRow>
                       <InfoLabel>อำเภอ:</InfoLabel>
-                      <InfoValue>{customerData.district_name || "-"}</InfoValue>
+                      <InfoValue>{parsedAddress.district || customerData.cus_district_text || "-"}</InfoValue>
                     </InfoRow>
                     
                     <InfoRow>
                       <InfoLabel>ตำบล:</InfoLabel>
-                      <InfoValue>{customerData.sub_district_name || "-"}</InfoValue>
+                      <InfoValue>{parsedAddress.subdistrict || customerData.cus_subdistrict_text || "-"}</InfoValue>
                     </InfoRow>
                     
                     <InfoRow>
                       <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
-                      <InfoValue>{customerData.cus_zip_code || "-"}</InfoValue>
+                      <InfoValue>{parsedAddress.zipCode || customerData.cus_zip_code || "-"}</InfoValue>
                     </InfoRow>
+                    
+                    {/* แสดงที่อยู่แบบรวมสำหรับอ้างอิง */}
+                    {customerData.cus_address && (
+                      <InfoRow>
+                        <InfoLabel>ที่อยู่แบบรวม:</InfoLabel>
+                        <InfoValue sx={{ 
+                          lineHeight: 1.6, 
+                          fontSize: '0.8rem', 
+                          color: '#666',
+                          fontStyle: 'italic',
+                          backgroundColor: '#f5f5f5',
+                          padding: '8px',
+                          borderRadius: '4px'
+                        }}>
+                          {customerData.cus_address}
+                        </InfoValue>
+                      </InfoRow>
+                    )}
                   </Stack>
                 </Collapse>
               </CardContent>

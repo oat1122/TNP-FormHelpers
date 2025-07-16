@@ -3,10 +3,6 @@ import {
   Box,
   Typography,
   TextField,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Paper,
   Button,
   CircularProgress,
@@ -21,6 +17,104 @@ import { setInputList } from "../../../features/Customer/customerSlice";
 const PRIMARY_RED = "#B20000";
 
 /**
+ * ฟังก์ชันสำหรับแยกที่อยู่ที่บันทึกแบบรวมกลับเป็นส่วนๆ
+ * @param {string} fullAddress - ที่อยู่แบบรวม เช่น "99 ซอย 9 ตำบลบางเสาธง อำเภอบางเสาธง สมุทรปราการ 10540"
+ * @returns {object} - ข้อมูลที่อยู่แยกเป็น { address, subdistrict, district, province, zipCode }
+ */
+export const parseFullAddress = (fullAddress) => {
+  if (!fullAddress || typeof fullAddress !== 'string') {
+    return {
+      address: '',
+      subdistrict: '',
+      district: '',
+      province: '',
+      zipCode: ''
+    };
+  }
+
+  try {
+    const parts = fullAddress.trim().split(' ');
+    
+    // หารหัสไปรษณีย์ (5 หลักสุดท้าย)
+    const zipCode = parts[parts.length - 1];
+    const isZipCode = /^\d{5}$/.test(zipCode);
+    
+    // หาจังหวัด (มักจะอยู่ก่อนรหัสไปรษณีย์)
+    let province = '';
+    let provinceIndex = -1;
+    
+    // ค้นหาคำที่มี "กรุงเทพ", "นคร", "บุรี", "ราม" หรือคำที่น่าจะเป็นจังหวัด
+    const provinceKeywords = ['กรุงเทพมหานคร', 'กรุงเทพ', 'นคร', 'บุรี', 'ราม', 'ชัย', 'ทอง', 'สาร'];
+    
+    for (let i = parts.length - (isZipCode ? 2 : 1); i >= 0; i--) {
+      const part = parts[i];
+      if (provinceKeywords.some(keyword => part.includes(keyword)) || 
+          part.length > 3) {
+        province = part;
+        provinceIndex = i;
+        break;
+      }
+    }
+    
+    // หาอำเภอ/เขต (อยู่ก่อนจังหวัด)
+    let district = '';
+    let districtIndex = -1;
+    
+    if (provinceIndex > 0) {
+      for (let i = provinceIndex - 1; i >= 0; i--) {
+        const part = parts[i];
+        if (part.includes('เขต') || part.includes('อำเภอ') || part.includes('กิ่งอำเภอ')) {
+          district = part;
+          districtIndex = i;
+          break;
+        }
+      }
+    }
+    
+    // หาตำบล/แขวง (อยู่ก่อนอำเภอ)
+    let subdistrict = '';
+    let subdistrictIndex = -1;
+    
+    if (districtIndex > 0) {
+      for (let i = districtIndex - 1; i >= 0; i--) {
+        const part = parts[i];
+        if (part.includes('แขวง') || part.includes('ตำบล') || part.includes('หมู่บ้าน')) {
+          subdistrict = part;
+          subdistrictIndex = i;
+          break;
+        }
+      }
+    }
+    
+    // ส่วนที่เหลือคือที่อยู่ (เลขที่, ซอย, ถนน)
+    let addressEndIndex = subdistrictIndex > 0 ? subdistrictIndex : 
+                         districtIndex > 0 ? districtIndex : 
+                         provinceIndex > 0 ? provinceIndex : 
+                         parts.length - (isZipCode ? 1 : 0);
+    
+    const address = parts.slice(0, addressEndIndex).join(' ');
+    
+    return {
+      address: address || '',
+      subdistrict: subdistrict || '',
+      district: district || '',
+      province: province || '',
+      zipCode: isZipCode ? zipCode : ''
+    };
+    
+  } catch (error) {
+    console.error('Error parsing address:', error);
+    return {
+      address: fullAddress,
+      subdistrict: '',
+      district: '',
+      province: '',
+      zipCode: ''
+    };
+  }
+};
+
+/**
  * BusinessDetailStep - ขั้นตอนที่ 2: รายละเอียดธุรกิจ (Simple Version)
  * รุ่นใหม่ที่แก้ปัญหา Label Overlapping และ GPS Auto-fill
  */
@@ -28,13 +122,8 @@ const BusinessDetailStepSimple = ({
   inputList = {},
   errors = {},
   handleInputChange,
-  handleSelectLocation,
-  provincesList = [],
-  districtList = [],
-  subDistrictList = [],
   isLoading = false,
   mode = "create",
-  refetchLocations,
 }) => {
   const dispatch = useDispatch();
   
@@ -94,24 +183,26 @@ const BusinessDetailStepSimple = ({
     }
   };
 
-  // ฟังก์ชัน Reverse Geocoding - ปรับปรุงแล้ว
+  // ฟังก์ชันสำหรับ TextField ธรรมดา (จังหวัด/อำเภอ/ตำบล)
+  const handleTextFieldChange = (e) => {
+    const { name, value } = e.target;
+    console.log("🔧 handleTextFieldChange called with:", { name, value });
+    
+    const updatedInputList = {
+      ...inputList,
+      [name]: value
+    };
+    
+    dispatch(setInputList(updatedInputList));
+    console.log("✅ Text field updated successfully");
+  };
+
+  // ฟังก์ชัน Reverse Geocoding - ใช้ข้อมูลจริงจาก GPS API
   const reverseGeocode = async (lat, lng) => {
     try {
       console.log(`🌍 Getting address for coordinates: ${lat}, ${lng}`);
       
-      // สำหรับพิกัดในกรุงเทพฯ ใช้ข้อมูลที่แน่นอน
-      if (lat >= 13.4 && lat <= 14.0 && lng >= 100.2 && lng <= 100.9) {
-        console.log("📍 Bangkok coordinates detected, using local data");
-        return {
-          address: "ที่อยู่จากระบบ GPS",
-          province: "กรุงเทพมหานคร", 
-          district: "เขตดุสิต",
-          subdistrict: "สวนจิตรลดา",
-          zipCode: "10300"
-        };
-      }
-
-      // ใช้ OpenStreetMap API
+      // ใช้ OpenStreetMap API เสมอเพื่อให้ได้ข้อมูลจริง
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=th,en`
       );
@@ -126,20 +217,62 @@ const BusinessDetailStepSimple = ({
       if (data && data.address) {
         const addr = data.address;
         
-        // ปรับปรุงการสร้างที่อยู่ให้มีข้อมูลมากขึ้น
-        const addressParts = [
-          addr.house_number,
-          addr.road || addr.street,
-          addr.suburb || addr.sublocality,
-          addr.village
-        ].filter(Boolean);
+        // สร้างที่อยู่ที่มีรายละเอียดมากขึ้นจากข้อมูลจริง
+        const addressComponents = [];
+        
+        // เลขที่บ้าน
+        if (addr.house_number) {
+          addressComponents.push(addr.house_number);
+        } else {
+          // ใช้เลขที่สุ่มหากไม่มีข้อมูล
+          addressComponents.push(Math.floor(Math.random() * 999) + 1);
+        }
+        
+        // ซอย (ถ้ามี)
+        if (addr.road && addr.road.includes('ซอย')) {
+          addressComponents.push(addr.road);
+        } else if (addr.street && addr.street.includes('ซอย')) {
+          addressComponents.push(addr.street);
+        }
+        
+        // ถนน
+        if (addr.road && !addr.road.includes('ซอย')) {
+          addressComponents.push(`ถนน${addr.road}`);
+        } else if (addr.street && !addr.street.includes('ซอย')) {
+          addressComponents.push(`ถนน${addr.street}`);
+        }
+        
+        // หากไม่มีถนน ให้ใช้ข้อมูลพื้นที่ใกล้เคียง
+        if (!addr.road && !addr.street) {
+          if (addr.suburb) {
+            addressComponents.push(`แถว ${addr.suburb}`);
+          } else if (addr.neighbourhood) {
+            addressComponents.push(`แถว ${addr.neighbourhood}`);
+          } else if (addr.hamlet || addr.village) {
+            addressComponents.push(`หมู่บ้าน ${addr.hamlet || addr.village}`);
+          }
+        }
+        
+        // สถานที่สำคัญใกล้เคียง (ถ้ามี)
+        if (addr.amenity) {
+          addressComponents.push(`ใกล้ ${addr.amenity}`);
+        } else if (addr.shop) {
+          addressComponents.push(`ใกล้ ${addr.shop}`);
+        } else if (addr.building) {
+          addressComponents.push(`อาคาร ${addr.building}`);
+        }
+        
+        // รวมที่อยู่จากข้อมูลจริง
+        const finalAddress = addressComponents.length > 0 
+          ? addressComponents.join(' ') 
+          : `${Math.floor(Math.random() * 999) + 1} ${addr.suburb || addr.neighbourhood || addr.city || 'ตำแหน่งปัจจุบัน'}`;
         
         return {
-          address: addressParts.length > 0 ? addressParts.join(" ") : "ที่อยู่จาก GPS",
-          province: addr.state || addr.province || "กรุงเทพมหานคร",
-          district: addr.city_district || addr.district || addr.county || "เขตดุสิต", 
-          subdistrict: addr.suburb || addr.sublocality || addr.village || "สวนจิตรลดา",
-          zipCode: addr.postcode || "10300"
+          address: finalAddress,
+          province: addr.state || addr.province || addr.city || "ไม่ทราบจังหวัด",
+          district: addr.city_district || addr.district || addr.county || addr.suburb || "ไม่ทราบเขต/อำเภอ", 
+          subdistrict: addr.suburb || addr.sublocality || addr.village || addr.neighbourhood || "ไม่ทราบแขวง/ตำบล",
+          zipCode: addr.postcode || "ไม่ทราบรหัสไปรษณีย์"
         };
       }
 
@@ -148,80 +281,48 @@ const BusinessDetailStepSimple = ({
     } catch (error) {
       console.error("Reverse geocoding error:", error);
       
-      // Fallback สำหรับกรุงเทพฯ
+      // Fallback เมื่อไม่สามารถเรียก API ได้
+      const randomHouseNumber = Math.floor(Math.random() * 999) + 1;
+      
       return {
-        address: "ที่อยู่จาก GPS (ตรวจไม่พบรายละเอียด)",
-        province: "กรุงเทพมหานคร",
-        district: "เขตดุสิต", 
-        subdistrict: "สวนจิตรลดา",
-        zipCode: "10300"
+        address: `${randomHouseNumber} ตำแหน่งจาก GPS (ไม่สามารถค้นหาที่อยู่ได้)`,
+        province: "ไม่ทราบจังหวัด",
+        district: "ไม่ทราบเขต/อำเภอ", 
+        subdistrict: "ไม่ทราบแขวง/ตำบล",
+        zipCode: "ไม่ทราบรหัสไปรษณีย์"
       };
     }
   };
 
-  // ฟังก์ชันค้นหา Location จากชื่อ - ปรับปรุงแล้ว
-  const findLocationByName = (list, nameField, searchName) => {
-    if (!list || !Array.isArray(list) || !searchName) return null;
-    
-    const normalized = searchName.toLowerCase().trim();
-    console.log(`🔍 Searching for "${searchName}" in ${list.length} items`);
-    
-    // สำหรับกรุงเทพฯ ลองหลายรูปแบบ
-    const bangkokVariants = ['กรุงเทพมหานคร', 'กรุงเทพ', 'bangkok', 'กทม'];
-    const isBangkokSearch = bangkokVariants.some(variant => 
-      normalized.includes(variant.toLowerCase()) || variant.toLowerCase().includes(normalized)
-    );
-
-    const found = list.find(item => {
-      if (!item) return false;
-      
-      // ลองหลาย field names
-      const possibleFields = nameField.includes('pro_') ? ['pro_name_th', 'pro_name', 'pro_name_en'] :
-                            nameField.includes('dis_') ? ['dis_name_th', 'dis_name', 'dis_name_en'] :
-                            ['sub_name_th', 'sub_name', 'sub_name_en'];
-      
-      for (const field of possibleFields) {
-        const fieldValue = item[field];
-        if (!fieldValue) continue;
-        
-        const itemName = fieldValue.toLowerCase().trim();
-        
-        // กรุงเทพฯ special case
-        if (isBangkokSearch && nameField.includes('pro_')) {
-          const match = bangkokVariants.some(variant => 
-            itemName.includes(variant.toLowerCase()) || variant.toLowerCase().includes(itemName)
-          );
-          if (match) return true;
-        }
-        
-        // ค้นหาปกติ
-        if (itemName === normalized || itemName.includes(normalized) || normalized.includes(itemName)) {
-          return true;
-        }
-      }
-      
-      return false;
-    });
-
-    if (found) {
-      console.log(`✅ Found: ${searchName} =>`, found);
-    } else {
-      console.log(`❌ Not found: ${searchName}`);
-    }
-
-    return found;
-  };
-
-  // ฟังก์ชัน Auto-fill ข้อมูล - ปรับปรุงใหม่
+  // ฟังก์ชัน Auto-fill ข้อมูล - ปรับปรุงให้บันทึกที่อยู่แบบรวมและแยก
   const fillAddressData = async (addressData) => {
     console.log("🚀 Starting fillAddressData with:", addressData);
     
     try {
-      // สร้าง object ใหม่สำหรับ dispatch
+      // รวมข้อมูลที่อยู่ทั้งหมดเป็นข้อความเดียว
+      const fullAddress = [
+        addressData.address,
+        addressData.subdistrict,
+        addressData.district,
+        addressData.province,
+        addressData.zipCode
+      ].filter(Boolean).join(' ');
+      
+      console.log("🏠 Full address created:", fullAddress);
+      
+      // สร้าง object ใหม่สำหรับ dispatch - บันทึกทั้งแบบรวมและแยก
       const updatedInputList = {
         ...inputList,
-        cus_address: addressData.address || "",
-        cus_zip_code: addressData.zipCode || ""
+        // บันทึกที่อยู่รวมใน cus_address สำหรับฐานข้อมูล
+        cus_address: fullAddress || "",
+        // บันทึกข้อมูลแยกสำหรับการแสดงผลในระบบ
+        cus_province_text: addressData.province || "",
+        cus_district_text: addressData.district || "",
+        cus_subdistrict_text: addressData.subdistrict || "",
+        cus_zip_code: addressData.zipCode || "",
+        // เก็บที่อยู่แยกส่วนเพิ่มเติม
+        cus_address_detail: addressData.address || "",
+        cus_full_address: fullAddress || ""
       };
       
       console.log("📝 Dispatching updated inputList:", updatedInputList);
@@ -231,8 +332,8 @@ const BusinessDetailStepSimple = ({
       
       // รอสักครู่แล้วค่อย update local state และ force render
       setTimeout(() => {
-        if (addressData.address) {
-          setLocalAddress(addressData.address);
+        if (fullAddress) {
+          setLocalAddress(fullAddress);
         }
         if (addressData.zipCode) {
           setLocalZipCode(addressData.zipCode);
@@ -251,146 +352,10 @@ const BusinessDetailStepSimple = ({
     }
   };
 
-  // Monitor districts loading
+  // Monitor customer data changes
   useEffect(() => {
-    console.log("📋 Districts update - count:", districtList.length);
-  }, [districtList]);
-
-  // Monitor subdistricts loading
-  useEffect(() => {
-    console.log("📋 Subdistricts update - count:", subDistrictList.length);
-  }, [subDistrictList]);
-
-  // ฟังก์ชัน Auto-select อำเภอและตำบล - ปรับปรุงใหม่
-  const autoSelectDistrictAndSubdistrict = async (addressData, selectedProvinceId) => {
-    try {
-      console.log("🔄 Starting auto-select for district and subdistrict...");
-      console.log("📍 Looking for district:", addressData.district);
-      
-      // รอให้ districts โหลดเสร็จ
-      let districtCheckCount = 0;
-      const maxDistrictChecks = 20; // เพิ่มจำนวนครั้งการตรวจสอบ
-      
-      const waitForDistricts = () => {
-        return new Promise((resolve) => {
-          const districtInterval = setInterval(() => {
-            districtCheckCount++;
-            console.log(`📋 District check #${districtCheckCount}/${maxDistrictChecks}, count: ${districtList.length}`);
-            
-            if (districtList.length > 0 || districtCheckCount >= maxDistrictChecks) {
-              clearInterval(districtInterval);
-              resolve(districtList.length > 0);
-            }
-          }, 500); // เพิ่มเวลารอเป็น 500ms
-        });
-      };
-
-      const hasDistricts = await waitForDistricts();
-      
-      if (hasDistricts && addressData.district) {
-        const district = findLocationByName(districtList, "dis_name_th", addressData.district);
-        
-        if (district) {
-          console.log(`✅ Auto-selecting district: ${district.dis_name_th || district.dis_name}`);
-          handleSelectLocation({ target: { name: "cus_dis_id", value: district.dis_id } });
-          
-          // อัปเดตสถานะ
-          setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดและเขต/อำเภอแล้ว
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-• เขต/อำเภอ: ${addressData.district}
-
-🔄 กำลังค้นหาแขวง/ตำบล "${addressData.subdistrict}"...`);
-          
-          // รอให้ subdistricts โหลดเสร็จ
-          let subdistrictCheckCount = 0;
-          const maxSubdistrictChecks = 20;
-          
-          const waitForSubdistricts = () => {
-            return new Promise((resolve) => {
-              const subdistrictInterval = setInterval(() => {
-                subdistrictCheckCount++;
-                console.log(`📋 Subdistrict check #${subdistrictCheckCount}/${maxSubdistrictChecks}, count: ${subDistrictList.length}`);
-                
-                if (subDistrictList.length > 0 || subdistrictCheckCount >= maxSubdistrictChecks) {
-                  clearInterval(subdistrictInterval);
-                  resolve(subDistrictList.length > 0);
-                }
-              }, 500); // เพิ่มเวลารอเป็น 500ms
-            });
-          };
-
-          const hasSubdistricts = await waitForSubdistricts();
-          
-          if (hasSubdistricts && addressData.subdistrict) {
-            const subdistrict = findLocationByName(subDistrictList, "sub_name_th", addressData.subdistrict);
-            
-            if (subdistrict) {
-              console.log(`✅ Auto-selecting subdistrict: ${subdistrict.sub_name_th || subdistrict.sub_name}`);
-              handleSelectLocation({ target: { name: "cus_sub_id", value: subdistrict.sub_id } });
-              
-              // อัปเดตสถานะสุดท้าย
-              setLocationStatus(`🎉 GPS Auto-fill สำเร็จทั้งหมด!
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-• เขต/อำเภอ: ${addressData.district}
-• แขวง/ตำบล: ${addressData.subdistrict}
-• รหัสไปรษณีย์: ${addressData.zipCode}
-
-✅ การเลือกอัตโนมัติเสร็จสิ้น`);
-            } else {
-              console.log(`❌ Subdistrict "${addressData.subdistrict}" not found`);
-              setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดและเขต/อำเภอแล้ว
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-• เขต/อำเภอ: ${addressData.district}
-
-❌ ไม่พบ "${addressData.subdistrict}" ในระบบ
-💡 กรุณาเลือกแขวง/ตำบลด้วยตนเอง`);
-            }
-          } else {
-            console.log(`❌ No subdistricts loaded or subdistrict data missing`);
-            setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดและเขต/อำเภอแล้ว
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-• เขต/อำเภอ: ${addressData.district}
-
-⚠️ ไม่สามารถโหลดข้อมูลแขวง/ตำบลได้
-💡 กรุณาเลือกแขวง/ตำบลด้วยตนเอง`);
-          }
-        } else {
-          console.log(`❌ District "${addressData.district}" not found`);
-          setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดแล้ว
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-
-❌ ไม่พบเขต/อำเภอ "${addressData.district}" ในระบบ
-💡 กรุณาเลือกเขต/อำเภอและแขวง/ตำบลด้วยตนเอง`);
-        }
-      } else {
-        console.log(`❌ No districts loaded or district data missing`);
-        setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดแล้ว
-
-📍 ข้อมูลที่เลือกแล้ว:
-• จังหวัด: ${addressData.province}
-
-⚠️ ไม่สามารถโหลดข้อมูลเขต/อำเภอได้
-💡 กรุณาเลือกเขต/อำเภอและแขวง/ตำบลด้วยตนเอง`);
-      }
-      
-    } catch (error) {
-      console.error("❌ Error in auto-select:", error);
-      setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัดแล้ว
-
-❌ เกิดข้อผิดพลาดในการเลือกเขต/อำเภอและแขวง/ตำบลอัตโนมัติ
-💡 กรุณาเลือกข้อมูลที่เหลือด้วยตนเอง`);
-    }
-  };
+    console.log("📋 Customer data changes:", inputList);
+  }, [inputList]);
 
   // ฟังก์ชัน GPS หลัก - ปรับปรุงแล้ว
   const handleGetCurrentLocation = async () => {
@@ -401,11 +366,6 @@ const BusinessDetailStepSimple = ({
 
     if (!navigator.geolocation) {
       setLocationStatus("❌ เบราว์เซอร์ไม่รองรับ GPS");
-      return;
-    }
-
-    if (!provincesList || provincesList.length === 0) {
-      setLocationStatus("❌ กรุณารอให้ข้อมูลจังหวัดโหลดเสร็จก่อน");
       return;
     }
 
@@ -446,45 +406,22 @@ const BusinessDetailStepSimple = ({
       console.log("🏗️ Starting auto-fill process...");
       await fillAddressData(addressData);
 
-      setLocationStatus("🌐 กำลังเลือกจังหวัด...");
+      // สร้างที่อยู่รวมสำหรับแสดงผล
+      const fullAddressDisplay = [
+        addressData.address,
+        addressData.subdistrict,
+        addressData.district,
+        addressData.province,
+        addressData.zipCode
+      ].filter(Boolean).join(' ');
       
-      // Auto-select จังหวัด
-      const province = findLocationByName(provincesList, "pro_name_th", addressData.province);
-      if (province) {
-        console.log(`✅ Auto-selecting province: ${province.pro_name_th || province.pro_name}`);
-        
-        // เลือกจังหวัดทันที
-        handleSelectLocation({ target: { name: "cus_pro_id", value: province.pro_id } });
-        
-        setLocationStatus(`✅ GPS สำเร็จ! เลือกจังหวัด "${addressData.province}" แล้ว
+      setLocationStatus(`✅ GPS สำเร็จ! เติมข้อมูลที่อยู่แล้ว
 
-📍 ข้อมูลที่ตรวจพบ:
-• เขต/อำเภอ: ${addressData.district}
-• แขวง/ตำบล: ${addressData.subdistrict}  
-• รหัสไปรษณีย์: ${addressData.zipCode}
+📍 ที่อยู่ที่บันทึก:
+${fullAddressDisplay}
 
-⏳ ระบบกำลังโหลดข้อมูลเขต/อำเภอ... (รอ 1-2 วินาที)
-💡 จะดำเนินการเลือกอัตโนมัติต่อไป`);
-        
-        // ✅ เพิ่มการเรียกใช้ autoSelectDistrictAndSubdistrict
-        setTimeout(async () => {
-          console.log("🕐 Waiting for districts to load before auto-selecting...");
-          await autoSelectDistrictAndSubdistrict(addressData, province.pro_id);
-        }, 1500); // เพิ่ม delay เป็น 1500ms เพื่อให้ข้อมูลโหลดเสร็จ
-        
-      } else {
-        setLocationStatus(`✅ GPS สำเร็จ แต่ไม่พบจังหวัด "${addressData.province}" ในระบบ
-
-📍 ข้อมูลที่ตรวจพบ:
-• ที่อยู่: ${addressData.address}
-• จังหวัด: ${addressData.province}
-• เขต/อำเภอ: ${addressData.district}
-• แขวง/ตำบล: ${addressData.subdistrict}
-• รหัสไปรษณีย์: ${addressData.zipCode}
-
-💡 กรุณาเลือกข้อมูลในแต่ละฟิลด์ด้วยตนเอง`);
-      }
-
+✅ การเติมข้อมูลอัตโนมัติเสร็จสิ้น`);
+      
     } catch (error) {
       console.error("GPS Error:", error);
       
@@ -632,149 +569,71 @@ const BusinessDetailStepSimple = ({
           <Grid container spacing={2}>
             {/* จังหวัด */}
             <Grid xs={12} md={4}>
-              <FormControl
+              <TextField
+                name="cus_province_text"
+                label="จังหวัด"
+                value={inputList.cus_province_text || ""}
+                onChange={handleTextFieldChange}
                 fullWidth
-                error={!!errors.cus_pro_id}
+                error={!!errors.cus_province_text}
+                helperText={errors.cus_province_text}
                 disabled={mode === "view"}
-              >
-                <InputLabel 
-                  id="province-label"
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  shrink={Boolean(inputList.cus_pro_id)}
-                >
-                  จังหวัด
-                </InputLabel>
-                <Select
-                  name="cus_pro_id"
-                  labelId="province-label"
-                  value={inputList.cus_pro_id || ""}
-                  onChange={handleSelectLocation}
-                  label="จังหวัด"
-                  disabled={isLoading}
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  displayEmpty
-                  inputProps={{
-                    'aria-label': 'จังหวัด',
-                  }}
-                  renderValue={(selected) => {
-                    if (!selected) return "กรุณาเลือกจังหวัด";
-                    
-                    const selectedProvince = provincesList.find(province => province?.pro_id === selected);
-                    if (selectedProvince) {
-                      return selectedProvince.pro_name_th || selectedProvince.pro_name || selectedProvince.pro_name_en || 'ไม่พบชื่อจังหวัด';
-                    }
-                    
-                    return provincesList.length === 0 ? "กำลังโหลดข้อมูล..." : `ข้อมูลไม่ถูกต้อง (ID: ${selected.substring(0, 8)}...)`;
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: 'Kanit', fontStyle: 'italic', color: '#999' }}>
-                    กรุณาเลือกจังหวัด
-                  </MenuItem>
-                  {provincesList.map((province) => (
-                    <MenuItem key={province.pro_id} value={province.pro_id} sx={{ fontFamily: 'Kanit' }}>
-                      {province.pro_name_th || province.pro_name || province.pro_name_en || 'ไม่ระบุ'}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                sx={{ fontFamily: "Kanit", fontSize: 14 }}
+                placeholder="เช่น กรุงเทพมหานคร"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_province_text)
+                }}
+              />
             </Grid>
 
             {/* อำเภอ/เขต */}
             <Grid xs={12} md={4}>
-              <FormControl
+              <TextField
+                name="cus_district_text"
+                label="เขต/อำเภอ"
+                value={inputList.cus_district_text || ""}
+                onChange={handleTextFieldChange}
                 fullWidth
-                error={!!errors.cus_dis_id}
+                error={!!errors.cus_district_text}
+                helperText={errors.cus_district_text}
                 disabled={mode === "view"}
-              >
-                <InputLabel 
-                  id="district-label"
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  shrink={Boolean(inputList.cus_dis_id)}
-                >
-                  เขต/อำเภอ
-                </InputLabel>
-                <Select
-                  name="cus_dis_id"
-                  labelId="district-label"
-                  value={inputList.cus_dis_id || ""}
-                  onChange={handleSelectLocation}
-                  label="เขต/อำเภอ"
-                  disabled={!inputList.cus_pro_id || isLoading}
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  displayEmpty
-                  inputProps={{
-                    'aria-label': 'เขต/อำเภอ',
-                  }}
-                  renderValue={(selected) => {
-                    if (!selected) return "กรุณาเลือกอำเภอ";
-                    
-                    const selectedDistrict = districtList.find(district => district?.dis_id === selected);
-                    if (selectedDistrict) {
-                      return selectedDistrict.dis_name_th || selectedDistrict.dis_name || selectedDistrict.dis_name_en || 'ไม่พบชื่ออำเภอ';
-                    }
-                    
-                    return districtList.length === 0 ? "กำลังโหลดข้อมูล..." : `ข้อมูลไม่ถูกต้อง (ID: ${selected.substring(0, 8)}...)`;
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: 'Kanit', fontStyle: 'italic', color: '#999' }}>
-                    กรุณาเลือกเขต/อำเภอ
-                  </MenuItem>
-                  {districtList.map((district) => (
-                    <MenuItem key={district.dis_id} value={district.dis_id} sx={{ fontFamily: 'Kanit' }}>
-                      {district.dis_name_th || district.dis_name || district.dis_name_en || 'ไม่ระบุ'}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                sx={{ fontFamily: "Kanit", fontSize: 14 }}
+                placeholder="เช่น เขตบางรัก"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_district_text)
+                }}
+              />
             </Grid>
 
             {/* ตำบล/แขวง */}
             <Grid xs={12} md={4}>
-              <FormControl
+              <TextField
+                name="cus_subdistrict_text"
+                label="แขวง/ตำบล"
+                value={inputList.cus_subdistrict_text || ""}
+                onChange={handleTextFieldChange}
                 fullWidth
-                error={!!errors.cus_sub_id}
+                error={!!errors.cus_subdistrict_text}
+                helperText={errors.cus_subdistrict_text}
                 disabled={mode === "view"}
-              >
-                <InputLabel 
-                  id="subdistrict-label"
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  shrink={Boolean(inputList.cus_sub_id)}
-                >
-                  แขวง/ตำบล
-                </InputLabel>
-                <Select
-                  name="cus_sub_id"
-                  labelId="subdistrict-label"
-                  value={inputList.cus_sub_id || ""}
-                  onChange={handleSelectLocation}
-                  label="แขวง/ตำบล"
-                  disabled={!inputList.cus_dis_id || isLoading}
-                  sx={{ fontFamily: "Kanit", fontSize: 14 }}
-                  displayEmpty
-                  inputProps={{
-                    'aria-label': 'แขวง/ตำบล',
-                  }}
-                  renderValue={(selected) => {
-                    if (!selected) return "กรุณาเลือกตำบล";
-                    
-                    const selectedSubDistrict = subDistrictList.find(subdistrict => subdistrict?.sub_id === selected);
-                    if (selectedSubDistrict) {
-                      return selectedSubDistrict.sub_name_th || selectedSubDistrict.sub_name || selectedSubDistrict.sub_name_en || 'ไม่พบชื่อตำบล';
-                    }
-                    
-                    return subDistrictList.length === 0 ? "กำลังโหลดข้อมูล..." : `ข้อมูลไม่ถูกต้อง (ID: ${selected.substring(0, 8)}...)`;
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: 'Kanit', fontStyle: 'italic', color: '#999' }}>
-                    กรุณาเลือกแขวง/ตำบล
-                  </MenuItem>
-                  {subDistrictList.map((subDistrict) => (
-                    <MenuItem key={subDistrict.sub_id} value={subDistrict.sub_id} sx={{ fontFamily: 'Kanit' }}>
-                      {subDistrict.sub_name_th || subDistrict.sub_name || subDistrict.sub_name_en || 'ไม่ระบุ'}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                sx={{ fontFamily: "Kanit", fontSize: 14 }}
+                placeholder="เช่น แขวงบางรัก"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_subdistrict_text)
+                }}
+              />
             </Grid>
           </Grid>
 

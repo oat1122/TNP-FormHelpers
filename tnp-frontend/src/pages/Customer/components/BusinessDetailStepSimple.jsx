@@ -197,6 +197,55 @@ const BusinessDetailStepSimple = ({
     console.log("✅ Text field updated successfully");
   };
 
+  // ฟังก์ชันตรวจสอบความพร้อมของ GPS
+  const checkGPSAvailability = async () => {
+    if (!navigator.geolocation) {
+      return { available: false, message: "❌ เบราว์เซอร์ไม่รองรับ GPS" };
+    }
+
+    // ตรวจสอบ permissions
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      
+      if (permission.state === 'denied') {
+        return { 
+          available: false, 
+          message: "❌ การเข้าถึงตำแหน่งถูกปฏิเสธ กรุณาอนุญาตในการตั้งค่าเบราว์เซอร์" 
+        };
+      } else if (permission.state === 'prompt') {
+        return { 
+          available: true, 
+          message: "📍 GPS พร้อมใช้งาน (จะขออนุญาตเมื่อใช้งาน)" 
+        };
+      } else {
+        return { 
+          available: true, 
+          message: "✅ GPS พร้อมใช้งานและได้รับอนุญาตแล้ว" 
+        };
+      }
+    } catch (error) {
+      // Fallback สำหรับเบราว์เซอร์ที่ไม่รองรับ permissions API
+      return { 
+        available: true, 
+        message: "📍 GPS พร้อมใช้งาน" 
+      };
+    }
+  };
+
+  // เช็คสถานะ GPS เมื่อ component โหลด
+  useEffect(() => {
+    const initGPS = async () => {
+      const gpsStatus = await checkGPSAvailability();
+      console.log("🎯 GPS Status:", gpsStatus);
+      
+      if (!gpsStatus.available) {
+        setLocationStatus(gpsStatus.message);
+      }
+    };
+    
+    initGPS();
+  }, []);
+
   // ฟังก์ชัน Reverse Geocoding - ใช้ข้อมูลจริงจาก GPS API
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -357,7 +406,39 @@ const BusinessDetailStepSimple = ({
     console.log("📋 Customer data changes:", inputList);
   }, [inputList]);
 
-  // ฟังก์ชัน GPS หลัก - ปรับปรุงแล้ว
+  // ฟังก์ชันสำหรับขอตำแหน่ง GPS แบบความแม่นยำสูง
+  const getHighAccuracyPosition = async (attempt = 1, maxAttempts = 3) => {
+    const options = {
+      enableHighAccuracy: true,
+      timeout: attempt === 1 ? 20000 : 15000, // ครั้งแรกรอนานกว่า
+      maximumAge: attempt === 1 ? 0 : 30000,   // ครั้งแรกไม่ใช้ cache
+    };
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const accuracy = position.coords.accuracy;
+          console.log(`🎯 GPS Attempt ${attempt}: Accuracy = ${accuracy}m`);
+          
+          // ถ้าความแม่นยำดีพอ (น้อยกว่า 100 เมตร) หรือเป็นความพยายามสุดท้าย
+          if (accuracy <= 100 || attempt >= maxAttempts) {
+            resolve(position);
+          } else {
+            console.log(`🔄 Accuracy too low (${accuracy}m), retrying...`);
+            setTimeout(() => {
+              getHighAccuracyPosition(attempt + 1, maxAttempts)
+                .then(resolve)
+                .catch(reject);
+            }, 2000);
+          }
+        },
+        reject,
+        options
+      );
+    });
+  };
+
+  // ฟังก์ชัน GPS หลัก - ปรับปรุงความแม่นยำ
   const handleGetCurrentLocation = async () => {
     if (isGettingLocation) {
       console.log("🚫 GPS already in progress");
@@ -370,24 +451,30 @@ const BusinessDetailStepSimple = ({
     }
 
     setIsGettingLocation(true);
-    setLocationStatus("🌍 กำลังค้นหาตำแหน่ง...");
+    setLocationStatus("� กำลังค้นหาตำแหน่งแบบความแม่นยำสูง...");
     setGpsResult(null);
     setHasFilledFromGps(false); // Reset state
 
     try {
-      // ขอตำแหน่ง GPS
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
-        });
-      });
+      // ขอตำแหน่ง GPS แบบความแม่นยำสูง
+      const position = await getHighAccuracyPosition();
 
-      const { latitude, longitude } = position.coords;
-      console.log(`🌍 GPS Coordinates: ${latitude}, ${longitude}`);
+      const { latitude, longitude, accuracy } = position.coords;
+      console.log(`🌍 GPS Coordinates: ${latitude}, ${longitude} (±${accuracy}m)`);
       
-      setLocationStatus("🗺️ กำลังแปลงตำแหน่งเป็นที่อยู่...");
+      // แสดงข้อมูลความแม่นยำ
+      let accuracyStatus = "";
+      if (accuracy <= 20) {
+        accuracyStatus = "🎯 ความแม่นยำสูงมาก";
+      } else if (accuracy <= 50) {
+        accuracyStatus = "🎯 ความแม่นยำสูง";
+      } else if (accuracy <= 100) {
+        accuracyStatus = "📍 ความแม่นยำปานกลาง";
+      } else {
+        accuracyStatus = "⚠️ ความแม่นยำต่ำ";
+      }
+      
+      setLocationStatus(`🗺️ กำลังแปลงตำแหน่งเป็นที่อยู่... (${accuracyStatus})`);
 
       // แปลงพิกัดเป็นที่อยู่
       const addressData = await reverseGeocode(latitude, longitude);
@@ -395,9 +482,10 @@ const BusinessDetailStepSimple = ({
 
       // แสดงผลลัพธ์
       setGpsResult({
-        coordinates: { latitude, longitude },
+        coordinates: { latitude, longitude, accuracy },
         address: addressData,
-        timestamp: new Date().toLocaleString('th-TH')
+        timestamp: new Date().toLocaleString('th-TH'),
+        accuracyLevel: accuracyStatus
       });
 
       setLocationStatus("🏗️ กำลัง auto-fill ข้อมูลที่อยู่...");
@@ -420,6 +508,9 @@ const BusinessDetailStepSimple = ({
 📍 ที่อยู่ที่บันทึก:
 ${fullAddressDisplay}
 
+🎯 ความแม่นยำ: ±${accuracy} เมตร (${accuracyStatus})
+🕐 เวลา: ${new Date().toLocaleString('th-TH')}
+
 ✅ การเติมข้อมูลอัตโนมัติเสร็จสิ้น`);
       
     } catch (error) {
@@ -428,11 +519,32 @@ ${fullAddressDisplay}
       let errorMessage = "❌ เกิดข้อผิดพลาดในการดึงตำแหน่ง";
       
       if (error.code === 1) {
-        errorMessage = "❌ การเข้าถึงตำแหน่งถูกปฏิเสธ กรุณาอนุญาตการเข้าถึงตำแหน่ง";
+        errorMessage = `❌ การเข้าถึงตำแหน่งถูกปฏิเสธ 
+
+🔧 วิธีแก้ไข:
+1. คลิกที่ไอคอน 🔒 หรือ 🌐 ในแถบที่อยู่
+2. เลือก "อนุญาต" สำหรับการเข้าถึงตำแหน่ง
+3. รีเฟรชหน้าเว็บและลองอีกครั้ง`;
       } else if (error.code === 2) {
-        errorMessage = "❌ ไม่สามารถระบุตำแหน่งได้ กรุณาตรวจสอบสัญญาณ GPS";
+        errorMessage = `❌ ไม่สามารถระบุตำแหน่งได้ 
+
+🔧 วิธีแก้ไข:
+• ตรวจสอบสัญญาณ GPS หรือ Wi-Fi
+• ย้ายไปยังพื้นที่โล่งแสง
+• ลองอีกครั้งในอีกสักครู่`;
       } else if (error.code === 3) {
-        errorMessage = "❌ หมดเวลาการค้นหาตำแหน่ง กรุณาลองอีกครั้ง";
+        errorMessage = `⏱️ หมดเวลาการค้นหาตำแหน่ง 
+
+🔧 วิธีแก้ไข:
+• ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
+• ลองอีกครั้งในพื้นที่ที่มีสัญญาณดี
+• รอสักครู่แล้วลองใหม่`;
+      } else if (error.message && error.message.includes('timeout')) {
+        errorMessage = `⏱️ การค้นหาตำแหน่งใช้เวลานานเกินไป
+
+🔧 แนะนำ:
+• กรุณาลองอีกครั้ง
+• ตรวจสอบให้แน่ใจว่าอุปกรณ์อยู่ในพื้นที่โล่งแสง`;
       }
       
       setLocationStatus(errorMessage);
@@ -504,7 +616,7 @@ ${fullAddressDisplay}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <MdLocationOn size={20} color={PRIMARY_RED} />
             <Typography variant="body2" sx={{ fontFamily: "Kanit", fontWeight: 500 }}>
-              ที่อยู่ของธุรกิจ
+              ที่อยู่ของธุรกิจ (ไม่บังคับ)
             </Typography>
             <Button
               variant="outlined"
@@ -520,18 +632,40 @@ ${fullAddressDisplay}
                 "&:hover": {
                   borderColor: PRIMARY_RED,
                   backgroundColor: `${PRIMARY_RED}10`
+                },
+                "&:disabled": {
+                  borderColor: "#ccc",
+                  color: "#999"
                 }
               }}
             >
-              {isGettingLocation ? "กำลังค้นหา..." : "ใช้ตำแหน่งปัจจุบัน"}
+              {isGettingLocation ? (
+                "🎯 กำลังค้นหาตำแหน่งแม่นยำ..."
+              ) : (
+                "📍 ใช้ตำแหน่งปัจจุบัน (ความแม่นยำสูง)"
+              )}
             </Button>
           </Box>
 
           {/* แสดงสถานะ GPS */}
           {locationStatus && (
             <Alert 
-              severity={locationStatus.startsWith("✅") ? "success" : locationStatus.startsWith("❌") ? "error" : "info"}
-              sx={{ mb: 2, fontFamily: "Kanit", fontSize: 14, whiteSpace: "pre-line" }}
+              severity={
+                locationStatus.startsWith("✅") ? "success" : 
+                locationStatus.startsWith("❌") || locationStatus.startsWith("⏱️") ? "error" : 
+                locationStatus.startsWith("⚠️") ? "warning" :
+                "info"
+              }
+              sx={{ 
+                mb: 2, 
+                fontFamily: "Kanit", 
+                fontSize: 14, 
+                whiteSpace: "pre-line",
+                "& .MuiAlert-message": {
+                  whiteSpace: "pre-line",
+                  lineHeight: 1.4
+                }
+              }}
             >
               {locationStatus}
             </Alert>
@@ -540,20 +674,19 @@ ${fullAddressDisplay}
           {/* ฟิลด์ที่อยู่ */}
           <TextField
             name="cus_address"
-            label="ที่อยู่"
+            label="ที่อยู่ (ไม่จำเป็น)"
             value={localAddress || inputList.cus_address || ""}
             onChange={(e) => {
               setLocalAddress(e.target.value);
               debugHandleInputChange(e);
             }}
             fullWidth
-            required
             multiline
             rows={2}
             error={!!errors.cus_address}
-            helperText={errors.cus_address || "บ้านเลขที่ ซอย ถนน"}
+            helperText={errors.cus_address || "บ้านเลขที่ ซอย ถนน (สามารถข้ามได้หากไม่ต้องการระบุ)"}
             disabled={mode === "view"}
-            placeholder="เช่น 123/45 ซอย ABC ถนน XYZ"
+            placeholder="เช่น 123/45 ซอย ABC ถนน XYZ หรือสามารถเว้นว่างได้"
             size="small"
             sx={{ mb: 2 }}
             InputProps={{
@@ -675,7 +808,10 @@ ${fullAddressDisplay}
               📍 Coordinates: {gpsResult.coordinates.latitude}, {gpsResult.coordinates.longitude}
             </Typography>
             <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              🏠 Address: {JSON.stringify(gpsResult.address, null, 2)}
+              � Accuracy: ±{gpsResult.coordinates.accuracy}m ({gpsResult.accuracyLevel})
+            </Typography>
+            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+              �🏠 Address: {JSON.stringify(gpsResult.address, null, 2)}
             </Typography>
             <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
               ⏰ Time: {gpsResult.timestamp}

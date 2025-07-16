@@ -16,6 +16,14 @@ import { formatCustomRelativeTime } from "../../../features/Customer/customerUti
 import { channelMap } from "../components/UtilityComponents";
 import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
 
+// Helper function to check if recall date is expired
+const isRecallExpired = (dateString) => {
+  if (!dateString) return false;
+  const recallDate = moment(dateString).startOf('day');
+  const today = moment().startOf('day');
+  return recallDate.diff(today, 'days') <= 0;
+};
+
 export const useColumnDefinitions = ({
   handleOpenDialog,
   handleDelete,
@@ -311,8 +319,12 @@ export const useColumnDefinitions = ({
         );
       },
       cellClassName: (params) => {
+        const expired = isRecallExpired(params.value);
         const daysLeft = formatCustomRelativeTime(params.value);
-        if (daysLeft <= 7) {
+        
+        if (expired) {
+          return "expired-days";
+        } else if (daysLeft <= 7) {
           return "danger-days";
         } else if (daysLeft <= 15) {
           return "warning-days";

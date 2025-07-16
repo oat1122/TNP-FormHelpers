@@ -28,6 +28,15 @@ import ScrollContext from "./ScrollContext";
 import ScrollTopButton from "./ScrollTopButton";
 import DialogForm from "./DialogForm";
 import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
+import moment from "moment";
+
+// Helper function to check if recall date is expired
+const isRecallExpired = (dateString) => {
+  if (!dateString) return false;
+  const recallDate = moment(dateString).startOf('day');
+  const today = moment().startOf('day');
+  return recallDate.diff(today, 'days') <= 0;
+};
 import { open_dialog_error } from "../../utils/import_lib";
 
 // Import separated components
@@ -449,8 +458,12 @@ function CustomerList() {
                   classes.push("odd-row");
                 }
 
+                const expired = isRecallExpired(params.row.cd_last_datetime);
                 const daysLeft = formatCustomRelativeTime(params.row.cd_last_datetime);
-                if (daysLeft <= 7) {
+                
+                if (expired) {
+                  classes.push("expired-row");
+                } else if (daysLeft <= 7) {
                   classes.push("high-priority-row");
                 } else if (daysLeft <= 15) {
                   classes.push("medium-priority-row");

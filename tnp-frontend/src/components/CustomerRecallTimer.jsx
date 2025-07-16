@@ -71,15 +71,21 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
     const { days, hours, minutes, seconds, expired } = timeRemaining;
     
     if (expired) {
-      // แสดงเวลาที่เกินกำหนดแล้ว
-      if (days > 0) {
-        return `เกิน ${days} วัน`;
-      } else if (hours > 0) {
-        return `เกิน ${hours} ชม`;
-      } else if (minutes > 0) {
-        return `เกิน ${minutes} นาที`;
+      // แสดงเวลาที่เกินกำหนดแล้ว - แยกประเภทตามระยะเวลา
+      if (days === 0) {
+        if (hours > 0) {
+          return "ครบกำหนดแล้ว";
+        } else {
+          return "ครบกำหนดแล้ว";
+        }
+      } else if (days >= 1 && days <= 3) {
+        return `เกิน ${days} วัน - เร่งด่วน`;
+      } else if (days >= 4 && days <= 7) {
+        return `เกิน ${days} วัน - มาก`;
+      } else if (days >= 8 && days <= 30) {
+        return `เกิน ${days} วัน - นาน`;
       } else {
-        return `เกิน ${seconds} วินาที`;
+        return `เกิน ${days} วัน - นานมาก`;
       }
     } else {
       // แสดงเวลาที่เหลือ
@@ -102,7 +108,7 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
     const { days, expired } = timeRemaining;
     
     if (expired) {
-      return "error.main"; // แดงเข้มเมื่อเกินเวลา
+      return "error.main"; // แดงเข้มเมื่อเกินเวลาทั้งหมด
     } else if (days <= urgentThreshold) {
       return "error.main"; // แดงเมื่อใกล้ครบกำหนด
     } else if (days <= 15) {
@@ -116,17 +122,17 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
   const getFontWeight = () => {
     if (!cd_last_datetime) return "normal";
     
-    const { days, expired } = timeRemaining;
-    return (expired || days <= urgentThreshold) ? "bold" : "normal";
+    const { expired } = timeRemaining;
+    return expired ? "bold" : "normal";
   };
 
   // Animation for urgent cases
   const getAnimation = () => {
     if (!cd_last_datetime) return "none";
     
-    const { days, expired } = timeRemaining;
-    return (expired || days <= urgentThreshold) 
-      ? "subtle-pulse 1.5s infinite ease-in-out" 
+    const { expired } = timeRemaining;
+    return expired 
+      ? "glow-border 2s ease-in-out infinite" 
       : "none";
   };
 
@@ -137,6 +143,18 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
+        // Add glow-border keyframes
+        "@keyframes glow-border": {
+          "0%": {
+            boxShadow: "0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)",
+          },
+          "50%": {
+            boxShadow: "0 0 20px rgba(244, 67, 54, 0.8), inset 0 0 10px rgba(244, 67, 54, 0.3)",
+          },
+          "100%": {
+            boxShadow: "0 0 5px rgba(244, 67, 54, 0.5), inset 0 0 5px rgba(244, 67, 54, 0.1)",
+          },
+        },
       }}
     >
       <Typography
@@ -148,6 +166,9 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
           alignItems: "center",
           gap: 0.5,
           animation: getAnimation(),
+          padding: "4px 8px",
+          borderRadius: "12px",
+          backgroundColor: timeRemaining.expired ? "rgba(244, 67, 54, 0.1)" : "transparent",
         }}
       >
         {showIcon && (timeRemaining.expired || timeRemaining.days <= urgentThreshold) && (

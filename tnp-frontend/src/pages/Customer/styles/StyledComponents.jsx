@@ -113,6 +113,14 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderRadius: "12px",
     backgroundColor: `${theme.palette.warning.light}22`,
   },
+
+  "& .expired-days": {
+    color: theme.vars.palette.error.main,
+    fontWeight: "bold",
+    padding: "4px 8px",
+    borderRadius: "12px",
+    backgroundColor: `${theme.palette.error.light}22`,
+  },
   
   "& .MuiDataGrid-toolbarContainer": {
     gap: 2,
@@ -162,6 +170,30 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 
   // Priority row styling based on recall days
+  "& .expired-row": {
+    backgroundColor: `${theme.palette.error.light}44`,
+    animation: "glow-border 2s ease-in-out infinite",
+    border: `2px solid ${theme.palette.error.main}`,
+    borderRadius: theme.shape.borderRadius,
+    position: "relative",
+    zIndex: 2,
+    "&:hover": {
+      backgroundColor: `${theme.palette.error.light}77`,
+      transform: "translateY(-3px)",
+      boxShadow: `0 6px 12px ${theme.palette.error.light}77`,
+    },
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: -8,
+      height: "100%",
+      width: "4px",
+      backgroundColor: theme.palette.error.main,
+      borderRadius: "2px",
+    },
+  },
+
   "& .high-priority-row": {
     backgroundColor: `${theme.palette.error.light}33`,
     animation: "glow-border 2s ease-in-out infinite",

@@ -14,6 +14,7 @@ import { PiClockClockwise, PiArrowFatLinesUpFill, PiArrowFatLinesDownFill } from
 import moment from "moment";
 import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
 import { channelMap } from "../components/UtilityComponents";
+import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
 
 export const useColumnDefinitions = ({
   handleOpenDialog,
@@ -297,46 +298,16 @@ export const useColumnDefinitions = ({
     {
       field: "cd_last_datetime",
       headerName: "RECALL",
-      width: 140,
+      width: 160,
       sortable: true,
       renderCell: (params) => {
-        const daysLeft = formatCustomRelativeTime(params.value);
         return (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: daysLeft <= 15 ? "bold" : "normal",
-                color:
-                  daysLeft <= 7
-                    ? "error.main"
-                    : daysLeft <= 15
-                    ? "warning.main"
-                    : "inherit",
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                animation:
-                  daysLeft <= 7
-                    ? "subtle-pulse 1.5s infinite ease-in-out"
-                    : "none",
-              }}
-            >
-              {daysLeft <= 7 && (
-                <Box component="span" sx={{ fontSize: "1.2rem" }}>
-                  ⚠️
-                </Box>
-              )}
-              {`${daysLeft} DAYS`}
-            </Typography>
-          </Box>
+          <CustomerRecallTimer 
+            cd_last_datetime={params.value}
+            showIcon={true}
+            size="body2"
+            urgentThreshold={7}
+          />
         );
       },
       cellClassName: (params) => {

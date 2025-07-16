@@ -45,6 +45,7 @@ class MasterCustomer extends Model
 {
 	protected $table = 'master_customers';
 	protected $primaryKey = 'cus_id';
+	protected $keyType = 'string';
 	public $incrementing = false;
 	public $timestamps = false;
 
@@ -177,7 +178,7 @@ class MasterCustomer extends Model
 	public function customerDetail()
     {
         return $this->hasOne(CustomerDetail::class, 'cd_cus_id', 'cus_id')
-			->select('cd_id', 'cd_cus_id', 'cd_last_datetime', 'cd_note', 'cd_remark');
+			->where('cd_is_use', true);
     }
 
 	public function cusManageBy()

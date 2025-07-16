@@ -102,7 +102,7 @@ function FilterPanel() {
 
   return (
     <Box sx={{ mb: 3 }}>
-      {/* Advanced filters */}
+      {/* Advanced filters with enhanced design */}
       <StyledAccordion
         expanded={expanded}
         onChange={handleAccordionChange}
@@ -121,79 +121,152 @@ function FilterPanel() {
               alignItems: "center",
               justifyContent: "space-between",
               width: "100%",
-              pr: 2,
+              pr: { xs: 1, sm: 2 },
+              gap: { xs: 1, sm: 2 },
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+            {/* Left side - Filter icon and title */}
+            <Box 
+              sx={{ 
+                display: "flex", 
+                alignItems: "center",
+                flex: 1,
+                minWidth: 0, // Allow text truncation if needed
+              }}
+            >
               <FilterIconBox>
                 <MdFilterList
                   style={{
                     fontSize: 24,
-                    color: expanded ? "#fff" : "#940c0c",
+                    color: "#ffffff",
                   }}
                 />
               </FilterIconBox>
-              <Box>
+              <Box sx={{ ml: { xs: 1.5, sm: 2 }, flex: 1, minWidth: 0 }}>
                 <FilterTitle
                   variant="subtitle1"
                   sx={{
-                    fontWeight: 700,
-                    fontSize: "1.15rem",
-                    color: expanded ? "#940c0c" : "text.primary",
-                    letterSpacing: "0.5px",
-                    textShadow: expanded
-                      ? "0 1px 1px rgba(148, 12, 12, 0.15)"
-                      : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 0.5,
                   }}
                 >
                   ตัวกรองขั้นสูง
+                  {/* Active filter count badge */}
+                  {activeFilterCount > 0 && (
+                    <StatusChip
+                      label={`${activeFilterCount} กรอง`}
+                      size="small"
+                      variant="active"
+                      sx={{ 
+                        fontSize: "0.75rem",
+                        height: "20px",
+                        display: { xs: "none", sm: "inline-flex" },
+                      }}
+                    />
+                  )}
                 </FilterTitle>
                 <Typography
                   variant="caption"
                   sx={{
-                    display: "block",
+                    display: { xs: "none", md: "block" },
                     color: "text.secondary",
-                    mt: 0.3,
+                    fontSize: "0.875rem",
+                    lineHeight: 1.2,
                   }}
                 >
                   ค้นหาลูกค้าด้วยเงื่อนไขที่หลากหลาย
                 </Typography>
+                {/* Mobile: Show active filters count */}
+                {activeFilterCount > 0 && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: { xs: "block", sm: "none" },
+                      color: "primary.main",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    มี {activeFilterCount} ตัวกรองที่เปิดใช้งาน
+                  </Typography>
+                )}
               </Box>
-              {activeFilterCount > 0 && (
-                <StatusChip
-                  label={`${activeFilterCount} กรอง`}
-                  size="small"
-                  variant="active"
-                  sx={{ ml: 2 }}
+            </Box>
+
+            {/* Right side - Results and status */}
+            <Box 
+              sx={{ 
+                display: "flex", 
+                alignItems: "center",
+                gap: { xs: 0.5, sm: 1 },
+                flexShrink: 0,
+              }}
+            >
+              {/* Loading indicator */}
+              {isFiltering && (
+                <CircularProgress 
+                  size={20} 
+                  sx={{ 
+                    color: "primary.main",
+                    mr: 1,
+                  }} 
                 />
               )}
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+              
+              {/* Results chip */}
               <StatusChip
                 label={
-                  filteredCount > 0
-                    ? `พบ ${filteredCount.toLocaleString("th-TH")} รายการ`
+                  isFiltering 
+                    ? "กำลังค้นหา..."
+                    : filteredCount > 0
+                    ? `${filteredCount.toLocaleString("th-TH")} รายการ`
                     : "ไม่พบข้อมูล"
                 }
                 size="small"
-                variant={filteredCount > 0 ? "success" : "default"}
+                variant={
+                  isFiltering 
+                    ? "info"
+                    : filteredCount > 0 
+                    ? "success" 
+                    : "default"
+                }
+                sx={{
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  height: { xs: "24px", sm: "28px" },
+                  "& .MuiChip-label": {
+                    px: { xs: 1, sm: 1.5 },
+                  },
+                }}
               />
             </Box>
           </Box>
         </StyledAccordionSummary>
+        
         <StyledAccordionDetails>
+          {/* Error message with enhanced styling */}
           {errorMessage && (
             <Alert
               severity="error"
               onClose={clearErrorMessage}
-              sx={{ mb: 2, borderRadius: 1.5 }}
+              sx={{ 
+                mb: 3, 
+                borderRadius: 2,
+                "& .MuiAlert-icon": {
+                  fontSize: "1.25rem",
+                },
+                "& .MuiAlert-action": {
+                  pt: 0,
+                },
+              }}
             >
               {errorMessage}
             </Alert>
           )}
           
-                    <Grid container spacing={3}>
-            {/* Filter Sections */}
+          {/* Filter sections with improved spacing */}
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
             <DateFilterSection
               draftFilters={draftFilters}
               dateHelpers={dateHelpers}
@@ -210,19 +283,28 @@ function FilterPanel() {
               selectionHelpers={selectionHelpers}
             />
 
-            {/* Control buttons */}
+            {/* Control buttons with responsive layout */}
             <Grid xs={12}>
               <Stack
-                direction="row"
+                direction={{ xs: "column", sm: "row" }}
                 spacing={2}
                 justifyContent="flex-end"
-                sx={{ mt: 3 }}
+                sx={{ 
+                  mt: { xs: 2, sm: 3 },
+                  pt: 3,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                }}
               >
                 <SecondaryActionButton
                   variant="outlined"
                   color="inherit"
                   startIcon={<RiRefreshLine style={{ fontSize: "1.3rem" }} />}
                   onClick={handleResetFiltersWithCollapse}
+                  fullWidth={{ xs: true, sm: false }}
+                  sx={{
+                    order: { xs: 2, sm: 1 },
+                  }}
                 >
                   รีเซ็ตตัวกรอง
                 </SecondaryActionButton>
@@ -238,6 +320,10 @@ function FilterPanel() {
                   }
                   onClick={handleApplyFiltersWithCollapse}
                   disabled={isFiltering}
+                  fullWidth={{ xs: true, sm: false }}
+                  sx={{
+                    order: { xs: 1, sm: 2 },
+                  }}
                 >
                   {isFiltering ? "กำลังกรอง..." : "ใช้งานตัวกรอง"}
                 </PrimaryActionButton>
@@ -246,6 +332,39 @@ function FilterPanel() {
           </Grid>
         </StyledAccordionDetails>
       </StyledAccordion>
+
+      {/* Quick status summary - Mobile friendly */}
+      {expanded && (activeFilterCount > 0 || filteredCount > 0) && (
+        <Box
+          sx={{
+            mt: 2,
+            p: 2,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            display: { xs: "block", md: "none" },
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            สรุปผลการกรอง:
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {activeFilterCount > 0 && (
+              <StatusChip
+                label={`${activeFilterCount} ตัวกรองที่ใช้`}
+                size="small"
+                variant="active"
+              />
+            )}
+            <StatusChip
+              label={`${filteredCount.toLocaleString("th-TH")} รายการ`}
+              size="small"
+              variant="success"
+            />
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }

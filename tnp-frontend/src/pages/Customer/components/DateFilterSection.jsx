@@ -111,13 +111,13 @@ const DateFilterSection = ({
   return (
     <Grid xs={12} md={6} lg={4}>
       <FilterSectionPaper elevation={3}>
-        <Stack spacing={2.5}>
-          {/* Header */}
+        <Stack spacing={{ xs: 2, sm: 2.5 }}>
+          {/* Header with enhanced mobile layout */}
           <FilterHeaderBox>
             <FilterIconBox>
               <MdDateRange style={{ fontSize: 20, color: "white" }} />
             </FilterIconBox>
-            <Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
               <FilterTitle variant="subtitle1">
                 วันที่สร้างลูกค้า
               </FilterTitle>
@@ -127,10 +127,16 @@ const DateFilterSection = ({
             </Box>
           </FilterHeaderBox>
 
-          {/* Date Picker Fields */}
+          {/* Date Picker Fields with responsive layout */}
           <FilterContentBox>
             <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box 
+                sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", md: "row" },
+                  gap: { xs: 2, md: 2 },
+                }}
+              >
                 <DatePicker
                   label="วันที่เริ่มต้น"
                   value={draftFilters.dateRange.startDate}
@@ -140,6 +146,8 @@ const DateFilterSection = ({
                     ...datePickerCommonProps.slotProps,
                     textField: {
                       ...datePickerCommonProps.slotProps.textField,
+                      fullWidth: true,
+                      size: "medium",
                       InputProps: {
                         ...datePickerCommonProps.slotProps.textField.InputProps,
                         startAdornment: (
@@ -157,7 +165,7 @@ const DateFilterSection = ({
                             {draftFilters.dateRange.startDate && (
                               <IconButton
                                 size="small"
-                                aria-label="clear date"
+                                aria-label="clear start date"
                                 onClick={clearStartDate}
                                 edge="end"
                                 sx={{
@@ -185,6 +193,8 @@ const DateFilterSection = ({
                     ...datePickerCommonProps.slotProps,
                     textField: {
                       ...datePickerCommonProps.slotProps.textField,
+                      fullWidth: true,
+                      size: "medium",
                       InputProps: {
                         ...datePickerCommonProps.slotProps.textField.InputProps,
                         startAdornment: (
@@ -202,7 +212,7 @@ const DateFilterSection = ({
                             {draftFilters.dateRange.endDate && (
                               <IconButton
                                 size="small"
-                                aria-label="clear date"
+                                aria-label="clear end date"
                                 onClick={clearEndDate}
                                 edge="end"
                                 sx={{
@@ -225,14 +235,15 @@ const DateFilterSection = ({
             </LocalizationProvider>
           </FilterContentBox>
 
-          {/* Quick Date Range Buttons */}
+          {/* Quick Date Range Buttons with responsive grid */}
           <Typography
             variant="subtitle2"
             sx={{
-              mt: 1,
-              mb: 0.5,
-              fontWeight: 500,
-              color: "text.secondary",
+              mt: { xs: 0.5, sm: 1 },
+              mb: { xs: 1, sm: 0.5 },
+              fontWeight: 600,
+              color: "text.primary",
+              fontSize: { xs: "0.875rem", sm: "0.9375rem" },
             }}
           >
             ช่วงเวลาที่ใช้บ่อย:
@@ -241,11 +252,17 @@ const DateFilterSection = ({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 1.5,
+              gridTemplateColumns: { 
+                xs: "repeat(2, 1fr)", 
+                sm: "repeat(3, 1fr)" 
+              },
+              gap: { xs: 1, sm: 1.5 },
               "& button": {
                 flexGrow: 1,
                 whiteSpace: "nowrap",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                minHeight: { xs: "32px", sm: "36px" },
+                padding: { xs: "6px 8px", sm: "8px 16px" },
               },
             }}
           >
@@ -255,11 +272,48 @@ const DateFilterSection = ({
                 size="small"
                 variant="outlined"
                 onClick={() => handleQuickDateRange(option.key)}
+                sx={{
+                  "&:hover": {
+                    transform: "translateY(-1px)",
+                    boxShadow: "0 4px 8px rgba(148, 12, 12, 0.2)",
+                  },
+                }}
               >
                 {option.label}
               </QuickButton>
             ))}
           </Box>
+
+          {/* Status indicator for selected range */}
+          {(draftFilters.dateRange.startDate || draftFilters.dateRange.endDate) && (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1.5,
+                borderRadius: 1.5,
+                backgroundColor: "rgba(148, 12, 12, 0.05)",
+                border: "1px solid rgba(148, 12, 12, 0.2)",
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "primary.main",
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                }}
+              >
+                🗓️ ช่วงที่เลือก:{" "}
+                {draftFilters.dateRange.startDate
+                  ? draftFilters.dateRange.startDate.format("DD/MM/YYYY")
+                  : "ไม่ระบุ"}{" "}
+                -{" "}
+                {draftFilters.dateRange.endDate
+                  ? draftFilters.dateRange.endDate.format("DD/MM/YYYY")
+                  : "ไม่ระบุ"}
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </FilterSectionPaper>
     </Grid>

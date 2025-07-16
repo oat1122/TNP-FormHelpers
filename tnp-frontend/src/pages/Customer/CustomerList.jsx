@@ -27,6 +27,7 @@ import FilterTags from "./FilterTags";
 import ScrollContext from "./ScrollContext";
 import ScrollTopButton from "./ScrollTopButton";
 import DialogForm from "./DialogForm";
+import CustomerViewDialog from "./components/CustomerViewDialog";
 import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
 import moment from "moment";
 
@@ -72,6 +73,8 @@ function CustomerList() {
   // Local state
   const [totalItems, setTotalItems] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [serverSortModel, setServerSortModel] = useState([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     cus_no: false,
@@ -182,6 +185,26 @@ function CustomerList() {
   const handleCloseDialogWithState = () => {
     setOpenDialog(false);
     handleCloseDialog();
+  };
+
+  // Handle view dialog actions
+  const handleOpenViewDialog = (customerId) => {
+    const customer = itemList.find(item => item.cus_id === customerId);
+    if (customer) {
+      setSelectedCustomer(customer);
+      setOpenViewDialog(true);
+    }
+  };
+
+  const handleCloseViewDialog = () => {
+    setOpenViewDialog(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleEditFromView = (customerId) => {
+    setOpenViewDialog(false);
+    setSelectedCustomer(null);
+    handleOpenDialogWithState("edit", customerId);
   };
 
   // Handle change group with refetch
@@ -365,6 +388,13 @@ function CustomerList() {
           handleRecall={handleRecall}
         />
 
+        <CustomerViewDialog
+          open={openViewDialog}
+          onClose={handleCloseViewDialog}
+          customerData={selectedCustomer}
+          onEdit={handleEditFromView}
+        />
+
         <TitleBar title="customer" />
         <Box
           ref={tableContainerRef}
@@ -471,7 +501,7 @@ function CustomerList() {
 
                 return classes.join(" ");
               }}
-              onRowClick={(params) => handleOpenDialogWithState("view", params.id)}
+              onRowClick={(params) => handleOpenViewDialog(params.id)}
             />
           </Box>
         </Box>

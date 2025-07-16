@@ -323,7 +323,6 @@ const SalesFilterSection = ({
                 salesList.length === 0 ||
                 draftFilters.salesName.length === salesList.length
               }
-              fullWidth={{ xs: true, sm: false }}
               sx={{
                 color: "#940c0c",
                 textTransform: "none",
@@ -332,6 +331,7 @@ const SalesFilterSection = ({
                 px: { xs: 2, sm: 2.5 },
                 py: { xs: 1, sm: 0.8 },
                 minHeight: { xs: "36px", sm: "auto" },
+                width: { xs: "100%", sm: "auto" },
                 "&:hover": {
                   bgcolor: "rgba(148, 12, 12, 0.08)",
                   transform: "translateY(-1px)",
@@ -356,13 +356,13 @@ const SalesFilterSection = ({
               variant="text"
               onClick={clearSalesSelection}
               disabled={draftFilters.salesName.length === 0}
-              fullWidth={{ xs: true, sm: false }}
               sx={{
                 color: "#940c0c",
                 textTransform: "none",
                 fontWeight: 600,
                 borderRadius: 2,
                 px: { xs: 2, sm: 2.5 },
+                width: { xs: "100%", sm: "auto" },
                 py: { xs: 1, sm: 0.8 },
                 minHeight: { xs: "36px", sm: "auto" },
                 "&:hover": {

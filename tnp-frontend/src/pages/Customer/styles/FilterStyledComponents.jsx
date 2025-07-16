@@ -481,7 +481,9 @@ export const StatusChip = styled(Chip)(({ theme, variant = "default" }) => {
 });
 
 // Custom Accordion - Modern card design
-export const StyledAccordion = styled(Accordion)(({ theme, expanded }) => ({
+export const StyledAccordion = styled(Accordion, {
+  shouldForwardProp: (prop) => prop !== 'expanded',
+})(({ theme, expanded }) => ({
   backgroundColor: filterColors.background.paper,
   boxShadow: expanded ? filterPanelConfig.shadows.heavy : filterPanelConfig.shadows.medium,
   borderRadius: `${filterPanelConfig.borderRadius.xlarge}px !important`,
@@ -514,7 +516,9 @@ export const StyledAccordion = styled(Accordion)(({ theme, expanded }) => ({
 }));
 
 // Custom Accordion Summary - Enhanced header design
-export const StyledAccordionSummary = styled(AccordionSummary)(({ theme, expanded }) => ({
+export const StyledAccordionSummary = styled(AccordionSummary, {
+  shouldForwardProp: (prop) => prop !== 'expanded',
+})(({ theme, expanded }) => ({
   backgroundColor: expanded 
     ? filterColors.background.elevated 
     : filterColors.background.paper,
@@ -565,7 +569,9 @@ export const StyledAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
 }));
 
 // Expand Icon Box - Improved interactive design
-export const ExpandIconBox = styled(Box)(({ theme, expanded }) => ({
+export const ExpandIconBox = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'expanded',
+})(({ theme, expanded }) => ({
   backgroundColor: expanded ? filterColors.primary : filterColors.background.elevated,
   borderRadius: "50%",
   width: 40,

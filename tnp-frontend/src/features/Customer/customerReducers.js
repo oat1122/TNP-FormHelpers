@@ -47,7 +47,7 @@ export default {
     state.inputList = {
       cus_mcg_id: "",
       cus_no: "",
-      cus_channel: "",
+      cus_channel: 1, // Default to Sales
       cus_bt_id: "", // Added business type ID to ensure it's always initialized
       cus_firstname: "",
       cus_lastname: "",

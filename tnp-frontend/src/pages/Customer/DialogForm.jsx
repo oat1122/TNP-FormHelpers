@@ -5,18 +5,18 @@ import {
   Box,
   Button,
   Dialog,
+  DialogTitle,
   DialogContent,
   DialogActions,
-  Tabs,
-  Tab,
+  IconButton,
+  Typography,
 } from "@mui/material";
 import {
-  MdPerson,
-  MdPhone,
-  MdLocationOn,
-  MdNotes,
   MdSave,
   MdCancel,
+  MdNavigateNext,
+  MdNavigateBefore,
+  MdClose,
 } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import { genCustomerNo } from "../../features/Customer/customerUtils";
@@ -34,19 +34,15 @@ import {
   open_dialog_loading,
 } from "../../utils/import_lib";
 
-// Import separated components and hooks
-import {
-  TabPanel,
-  DialogHeader,
-  BasicInfoTab,
-  ContactInfoTab,
-  AddressInfoTab,
-  NotesTab,
-} from "./components/DialogComponents";
-import { useFormValidation } from "./hooks/useFormValidation";
+// Import stepper components and hooks
+import CustomerStepper from "./components/CustomerStepper";
+import BusinessTypeStepSimple from "./components/BusinessTypeStepSimple";
+import BusinessDetailStepSimple from "./components/BusinessDetailStepSimple";
+import YourDetailsStepSimple from "./components/YourDetailsStepSimple";
+import VerificationStepSimple from "./components/VerificationStepSimple";
+import { useStepperValidation } from "./hooks/useStepperValidation";
 import { useLocationSelection } from "./hooks/useLocationSelection";
 import { useDialogApiData } from "./hooks/useDialogApiData";
-import { a11yProps } from "./constants/dialogConstants";
 
 // Main DialogForm component
 
@@ -62,7 +58,7 @@ function DialogForm(props) {
   // Local state
   const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
 
   // Refs
   const formRef = useRef(null);
@@ -71,7 +67,18 @@ function DialogForm(props) {
   const { scrollToTop } = useContext(ScrollContext);
 
   // Custom hooks
-  const { errors, setErrors, validateForm, clearFieldError, clearAllErrors } = useFormValidation();
+  const { 
+    errors, 
+    setErrors, 
+    validateCurrentStep, 
+    validateAllSteps, 
+    clearFieldError, 
+    clearAllErrors,
+    getStepStatuses,
+    canNavigateToStep,
+    getFirstErrorStep,
+    isStepComplete 
+  } = useStepperValidation();
   
   const {
     provincesList,
@@ -95,9 +102,28 @@ function DialogForm(props) {
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
 
-  // Handlers
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+  // Stepper handlers
+  const handleStepChange = (targetStep) => {
+    if (canNavigateToStep(targetStep, activeStep, inputList)) {
+      setActiveStep(targetStep);
+    } else {
+      // แจ้งเตือนหากยังไม่สามารถไปยังขั้นตอนนั้นได้
+      open_dialog_error("กรุณากรอกข้อมูลในขั้นตอนปัจจุบันให้ครบถ้วนก่อน");
+    }
+  };
+
+  const handleNextStep = () => {
+    if (validateCurrentStep(activeStep, inputList, formRef)) {
+      if (activeStep < 3) {
+        setActiveStep(activeStep + 1);
+      }
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
+    }
   };
 
   // Business type handlers
@@ -124,29 +150,38 @@ function DialogForm(props) {
   const handleInputChange = (e) => {
     let { name, value } = e.target;
 
+    // จัดการข้อมูลพิเศษ
     if (name === "cus_tax_id" || name === "cus_zip_code") {
       value = value.replace(/[^0-9]/g, "");
     } else if (name === "cus_manage_by") {
-      value = salesList.find((user) => user.user_id === value) || {
-        user_id: "",
-        username: "",
-      };
+      // รองรับทั้ง object (จาก YourDetailsStep) และ string (legacy)
+      if (typeof value === "object" && value !== null) {
+        // ใช้ object ที่ส่งมาจาก YourDetailsStep
+        value = value;
+      } else if (typeof value === "string") {
+        // แปลง user_id เป็น object (สำหรับ legacy support)
+        const selectedUser = salesList.find((user) => String(user.user_id) === String(value));
+        value = selectedUser ? {
+          user_id: selectedUser.user_id,
+          username: selectedUser.username || selectedUser.user_nickname || `User ${selectedUser.user_id}`
+        } : { user_id: "", username: "" };
+      }
     }
 
-    dispatch(
-      setInputList({
-        ...inputList,
-        [name]: value,
-      })
-    );
+    const newInputList = {
+      ...inputList,
+      [name]: value,
+    };
 
+    dispatch(setInputList(newInputList));
     clearFieldError(name);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (validateForm(formRef, inputList, setTabValue)) {
+    // ตรวจสอบข้อมูลทั้งหมดก่อนบันทึก
+    if (validateAllSteps(inputList, formRef)) {
       setSaveLoading(true);
 
       try {
@@ -157,7 +192,7 @@ function DialogForm(props) {
             ? await addCustomer(inputList)
             : await updateCustomer(inputList);
 
-        if (res.data.status === "success") {
+        if (res?.data?.status === "success") {
           props.handleCloseDialog();
 
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
@@ -167,14 +202,38 @@ function DialogForm(props) {
           });
         } else {
           setSaveLoading(false);
-          open_dialog_error(res.data.message);
-          console.error(res.data.message);
+          open_dialog_error(res?.data?.message || "เกิดข้อผิดพลาดในการบันทึก");
+          console.error(res?.data?.message || "Unknown error");
         }
       } catch (error) {
         setSaveLoading(false);
-        open_dialog_error(error.message, error);
-        console.error(error);
+        
+        // จัดการ error สำหรับ validation (422) และ error อื่นๆ
+        let errorMessage = "เกิดข้อผิดพลาดในการบันทึก";
+        
+        if (error?.error?.status === 422) {
+          // Validation error from backend
+          errorMessage = "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบข้อมูลที่กรอก";
+          
+          // ดึง validation errors จาก response (ถ้ามี)
+          if (error?.error?.data?.errors) {
+            const validationErrors = error.error.data.errors;
+            const errorMessages = Object.values(validationErrors).flat();
+            errorMessage += "\n" + errorMessages.join("\n");
+          }
+        } else if (error?.error?.data?.message) {
+          errorMessage = error.error.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        open_dialog_error(errorMessage);
+        console.error("Submit error:", error);
       }
+    } else {
+      // หากข้อมูลไม่ครบ ไปยังขั้นตอนแรกที่มีข้อผิดพลาด
+      const errorStep = getFirstErrorStep(inputList);
+      setActiveStep(errorStep);
     }
   };
 
@@ -230,113 +289,132 @@ function DialogForm(props) {
         aria-hidden={props.openDialog ? false : true}
       >
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
-          <DialogHeader
-            mode={mode}
-            inputList={inputList}
-            salesList={salesList}
-            businessTypesList={businessTypesList}
-            isAdmin={isAdmin}
-            errors={errors}
-            handleInputChange={handleInputChange}
-            handleOpenBusinessTypeManager={handleOpenBusinessTypeManager}
-            handleCloseDialog={handleCloseDialog}
-            businessTypesIsFetching={businessTypesIsFetching}
-            setBusinessTypesList={setBusinessTypesList}
-            businessTypesData={businessTypesData}
-          />
-                     <DialogContent dividers>
+          <DialogTitle
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: "#B20000",
+              color: "white",
+              py: 2,
+            }}
+          >
+            <Typography variant="h6" fontFamily="Kanit" fontWeight={600}>
+              {mode === "create" && "เพิ่มลูกค้าใหม่"}
+              {mode === "edit" && "แก้ไขข้อมูลลูกค้า"}
+              {mode === "view" && "ดูข้อมูลลูกค้า"}
+            </Typography>
+            <IconButton
+              onClick={handleCloseDialog}
+              sx={{ color: "white" }}
+            >
+              <MdClose />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
              <Box sx={{ width: "100%" }}>
-                             {/* Tabs */}
-              <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                <Tabs
-                  value={tabValue}
-                  onChange={handleTabChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  aria-label="customer info tabs"
-                >
-                  <Tab
-                    label="ข้อมูลพื้นฐาน"
-                    icon={<MdPerson />}
-                    iconPosition="start"
-                    {...a11yProps(0)}
-                  />
-                  <Tab
-                    label="ข้อมูลติดต่อ"
-                    icon={<MdPhone />}
-                    iconPosition="start"
-                    {...a11yProps(1)}
-                  />
-                  <Tab
-                    label="ที่อยู่"
-                    icon={<MdLocationOn />}
-                    iconPosition="start"
-                    {...a11yProps(2)}
-                  />
-                  <Tab
-                    label="บันทึกเพิ่มเติม"
-                    icon={<MdNotes />}
-                    iconPosition="start"
-                    {...a11yProps(3)}
-                  />
-                </Tabs>
-              </Box>
-              {/* Tab 1: Basic Information */}
-              <TabPanel value={tabValue} index={0}>
-                <BasicInfoTab
-                  inputList={inputList}
-                  errors={errors}
-                  handleInputChange={handleInputChange}
-                  mode={mode}
-                />
-              </TabPanel>
-              {/* Tab 2: Contact Information */}
-              <TabPanel value={tabValue} index={1}>
-                <ContactInfoTab
-                  inputList={inputList}
-                  errors={errors}
-                  handleInputChange={handleInputChange}
-                  mode={mode}
-                />
-              </TabPanel>
-              {/* Tab 3: Address Information */}
-              <TabPanel value={tabValue} index={2}>
-                <AddressInfoTab
-                  inputList={inputList}
-                  errors={errors}
-                  handleInputChange={handleInputChange}
-                  handleSelectLocation={handleSelectLocation}
-                  provincesList={provincesList}
-                  districtList={districtList}
-                  subDistrictList={subDistrictList}
-                  mode={mode}
-                  isLoading={isLoading}
-                />
-              </TabPanel>
-              {/* Tab 4: Additional Notes */}
-              <TabPanel value={tabValue} index={3}>
-                <NotesTab
-                  inputList={inputList}
-                  handleInputChange={handleInputChange}
-                  mode={mode}
-                />
-              </TabPanel>
+               {/* Stepper - แสดงเฉพาะ mode create และ edit */}
+               {mode !== "view" && (
+                 <CustomerStepper
+                   activeStep={activeStep}
+                   {...getStepStatuses(inputList)}
+                   onStepClick={handleStepChange}
+                 />
+               )}
+                             
+               {/* Step Content */}
+               <Box sx={{ minHeight: 400 }}>
+                 {/* Step 1: Business Type */}
+                 {activeStep === 0 && (
+                   <BusinessTypeStepSimple
+                     inputList={inputList}
+                     errors={errors}
+                     handleInputChange={handleInputChange}
+                     businessTypesList={businessTypesList}
+                     handleOpenBusinessTypeManager={handleOpenBusinessTypeManager}
+                     businessTypesIsFetching={businessTypesIsFetching}
+                     mode={mode}
+                   />
+                 )}
+                 
+                 {/* Step 2: Business Detail */}
+                 {activeStep === 1 && (
+                   <BusinessDetailStepSimple
+                     inputList={inputList}
+                     errors={errors}
+                     handleInputChange={handleInputChange}
+                     mode={mode}
+                   />
+                 )}
+                 
+                 {/* Step 3: Your Details */}
+                 {activeStep === 2 && (
+                   <YourDetailsStepSimple
+                     inputList={inputList}
+                     errors={errors}
+                     handleInputChange={handleInputChange}
+                     mode={mode}
+                                           salesList={salesList} // ส่ง salesList จาก dialogApiData
+                   />
+                 )}
+                 
+                 {/* Step 4: Verification */}
+                 {activeStep === 3 && (
+                   <VerificationStepSimple
+                     inputList={inputList}
+                     mode={mode}
+                   />
+                 )}
+               </Box>
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ p: 2 }}>
+          <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+            {/* Navigation Buttons */}
             {mode !== "view" && (
-              <Button
-                type="submit"
-                variant="contained"
-                color="error"
-                disabled={saveLoading}
-                startIcon={<MdSave />}
-                sx={{ mr: 1 }}
-              >
-                บันทึก
-              </Button>
+              <Box>
+                <Button
+                  variant="outlined"
+                  disabled={activeStep === 0 || saveLoading}
+                  onClick={handlePrevStep}
+                  startIcon={<MdNavigateBefore />}
+                  sx={{ mr: 1 }}
+                >
+                  ก่อนหน้า
+                </Button>
+                {activeStep < 3 ? (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={saveLoading}
+                    onClick={handleNextStep}
+                    endIcon={<MdNavigateNext />}
+                    sx={{ 
+                      backgroundColor: "#B20000",
+                      "&:hover": { backgroundColor: "#900F0F" }
+                    }}
+                  >
+                    ถัดไป
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="error"
+                    disabled={saveLoading}
+                    startIcon={<MdSave />}
+                    sx={{ 
+                      backgroundColor: "#B20000",
+                      "&:hover": { backgroundColor: "#900F0F" }
+                    }}
+                  >
+                    บันทึก
+                  </Button>
+                )}
+              </Box>
             )}
+            
+            {/* Close Button */}
             <Button
               variant="outlined"
               color="error"
@@ -344,7 +422,7 @@ function DialogForm(props) {
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
             >
-              ยกเลิก
+              {mode === "view" ? "ปิด" : "ยกเลิก"}
             </Button>
           </DialogActions>
         </form>

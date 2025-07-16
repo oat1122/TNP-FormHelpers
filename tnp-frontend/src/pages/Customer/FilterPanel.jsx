@@ -301,9 +301,9 @@ function FilterPanel() {
                   color="inherit"
                   startIcon={<RiRefreshLine style={{ fontSize: "1.3rem" }} />}
                   onClick={handleResetFiltersWithCollapse}
-                  fullWidth={{ xs: true, sm: false }}
                   sx={{
                     order: { xs: 2, sm: 1 },
+                    width: { xs: "100%", sm: "auto" },
                   }}
                 >
                   รีเซ็ตตัวกรอง
@@ -320,9 +320,9 @@ function FilterPanel() {
                   }
                   onClick={handleApplyFiltersWithCollapse}
                   disabled={isFiltering}
-                  fullWidth={{ xs: true, sm: false }}
                   sx={{
                     order: { xs: 1, sm: 2 },
+                    width: { xs: "100%", sm: "auto" },
                   }}
                 >
                   {isFiltering ? "กำลังกรอง..." : "ใช้งานตัวกรอง"}

@@ -201,10 +201,19 @@ function CustomerList() {
     setSelectedCustomer(null);
   };
 
+  // Handle edit from view action
   const handleEditFromView = (customerId) => {
     setOpenViewDialog(false);
     setSelectedCustomer(null);
     handleOpenDialogWithState("edit", customerId);
+  };
+
+  // Handle after save action - เปิด view dialog หลังจากบันทึกเสร็จ
+  const handleAfterSave = (savedCustomerId) => {
+    // รอให้ข้อมูลอัปเดตแล้วค่อยเปิด view dialog
+    setTimeout(() => {
+      handleOpenViewDialog(savedCustomerId);
+    }, 1000);
   };
 
   // Handle change group with refetch
@@ -386,6 +395,7 @@ function CustomerList() {
           openDialog={openDialog}
           handleCloseDialog={handleCloseDialogWithState}
           handleRecall={handleRecall}
+          onAfterSave={handleAfterSave}
         />
 
         <CustomerViewDialog

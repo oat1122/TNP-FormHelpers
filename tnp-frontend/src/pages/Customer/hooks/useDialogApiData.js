@@ -13,6 +13,13 @@ import Swal from "sweetalert2";
 export const useDialogApiData = (openDialog) => {
   const locationSearch = useSelector((state) => state.global.locationSearch);
   
+  // Debug logging สำหรับ locationSearch changes
+  useEffect(() => {
+    if (window.debugLocation) {
+      console.log("🌐 LocationSearch state changed:", locationSearch);
+    }
+  }, [locationSearch]);
+  
   // Local state for processed data
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
@@ -25,7 +32,21 @@ export const useDialogApiData = (openDialog) => {
     data: locations,
     error: locationError,
     isFetching: locationIsFetching,
+    refetch: refetchLocations,
   } = useGetAllLocationQuery(locationSearch, { skip: !openDialog });
+
+  // Debug logging สำหรับ API calls
+  useEffect(() => {
+    if (window.debugLocation) {
+      console.log("📡 API Call State:", {
+        openDialog,
+        locationSearch,
+        locationIsFetching,
+        hasLocationData: !!locations,
+        locationError: !!locationError
+      });
+    }
+  }, [openDialog, locationSearch, locationIsFetching, locations, locationError]);
 
   const {
     data: userRoleData,
@@ -42,9 +63,17 @@ export const useDialogApiData = (openDialog) => {
   // Process locations data
   useEffect(() => {
     if (locations) {
-      setProvincesList(locations.master_provinces);
-      setDistrictList(locations.master_district);
-      setSubDistrictList(locations.master_subdistrict);
+      if (window.debugLocation) {
+        console.log("📍 Processing location data:", {
+          provinces: locations.master_provinces?.length || 0,
+          districts: locations.master_district?.length || 0,
+          subdistricts: locations.master_subdistrict?.length || 0,
+          rawData: locations
+        });
+      }
+      setProvincesList(locations.master_provinces || []);
+      setDistrictList(locations.master_district || []);
+      setSubDistrictList(locations.master_subdistrict || []);
     }
   }, [locations]);
 
@@ -87,6 +116,9 @@ export const useDialogApiData = (openDialog) => {
     // API states
     isLoading,
     hasErrors,
+    
+    // API functions
+    refetchLocations,
     
     // Raw data (if needed)
     locations,

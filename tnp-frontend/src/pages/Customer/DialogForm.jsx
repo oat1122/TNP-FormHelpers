@@ -81,6 +81,7 @@ function DialogForm(props) {
   } = useStepperValidation();
   
   const {
+    // Processed data
     provincesList,
     districtList,
     subDistrictList,
@@ -90,12 +91,14 @@ function DialogForm(props) {
     isLoading,
     businessTypesData,
     businessTypesIsFetching,
+    refetchLocations,
   } = useDialogApiData(props.openDialog);
 
   const { handleSelectLocation } = useLocationSelection(
     provincesList,
     districtList,
-    subDistrictList
+    subDistrictList,
+    refetchLocations
   );
 
   // API hooks
@@ -195,10 +198,20 @@ function DialogForm(props) {
         if (res?.data?.status === "success") {
           props.handleCloseDialog();
 
+          // ดึง customer ID ที่เพิ่งบันทึก
+          const savedCustomerId = mode === "create" 
+            ? res?.data?.customer_id || res?.data?.data?.cus_id 
+            : inputList.cus_id;
+
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
             setSaveLoading(false);
             dispatch(resetInputList());
             scrollToTop();
+            
+            // เรียกใช้ callback เพื่อเปิด view dialog (หากมี)
+            if (props.onAfterSave && savedCustomerId) {
+              props.onAfterSave(savedCustomerId);
+            }
           });
         } else {
           setSaveLoading(false);
@@ -299,11 +312,11 @@ function DialogForm(props) {
               py: 2,
             }}
           >
-            <Typography variant="h6" fontFamily="Kanit" fontWeight={600}>
+            <span style={{ fontFamily: "Kanit", fontWeight: 600, fontSize: "1.1rem" }}>
               {mode === "create" && "เพิ่มลูกค้าใหม่"}
               {mode === "edit" && "แก้ไขข้อมูลลูกค้า"}
               {mode === "view" && "ดูข้อมูลลูกค้า"}
-            </Typography>
+            </span>
             <IconButton
               onClick={handleCloseDialog}
               sx={{ color: "white" }}
@@ -343,7 +356,13 @@ function DialogForm(props) {
                      inputList={inputList}
                      errors={errors}
                      handleInputChange={handleInputChange}
+                     handleSelectLocation={handleSelectLocation}
+                     provincesList={provincesList}
+                     districtList={districtList}
+                     subDistrictList={subDistrictList}
+                     isLoading={isLoading}
                      mode={mode}
+                     refetchLocations={refetchLocations}
                    />
                  )}
                  

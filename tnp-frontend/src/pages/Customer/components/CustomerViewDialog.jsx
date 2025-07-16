@@ -110,7 +110,9 @@ const CustomerViewDialog = ({
     basic: true,
     contact: true,
     address: true,
-    notes: false,
+    notes: true,
+    system: false,
+    statistics: false,
   });
 
   // Toggle section expansion
@@ -207,6 +209,63 @@ const CustomerViewDialog = ({
         <Grid container spacing={3}>
           {/* Left Column */}
           <Grid size={12} md={6}>
+            {/* Notes & Additional Info */}
+            {(customerData.cd_note || customerData.cd_remark) && (
+              <ViewCard>
+                <CardContent>
+                  <SectionHeader>
+                    <MdNotes color="#B20000" />
+                    <Typography variant="h6" sx={{ color: "#B20000" }}>
+                      บันทึกเพิ่มเติม
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleSection("notes")}
+                      sx={{ ml: "auto" }}
+                    >
+                      {expandedSections.notes ? <MdExpandLess /> : <MdExpandMore />}
+                    </IconButton>
+                  </SectionHeader>
+                  
+                  <Collapse in={expandedSections.notes}>
+                    <Stack spacing={2}>
+                      {customerData.cd_note && (
+                        <Box sx={{ 
+                          p: 2, 
+                          backgroundColor: "rgba(178, 0, 0, 0.1)", // ใช้สีแดงของ theme
+                          borderRadius: 1,
+                          borderLeft: "4px solid #B20000"
+                        }}>
+                          <Typography variant="subtitle2" sx={{ color: "#B20000", fontWeight: 600, mb: 1 }}>
+                            📝 หมายเหตุสำคัญ
+                          </Typography>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {customerData.cd_note}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {customerData.cd_remark && (
+                        <Box sx={{ 
+                          p: 2, 
+                          backgroundColor: "rgba(178, 0, 0, 0.05)", 
+                          borderRadius: 1,
+                          borderLeft: "4px solid #E36264" // สีแดงอ่อนของ theme
+                        }}>
+                          <Typography variant="subtitle2" sx={{ color: "#E36264", fontWeight: 600, mb: 1 }}>
+                            💡 ข้อมูลเพิ่มเติม
+                          </Typography>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {customerData.cd_remark}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Collapse>
+                </CardContent>
+              </ViewCard>
+            )}
+
             {/* Basic Information */}
             <ViewCard>
               <CardContent>
@@ -227,6 +286,28 @@ const CustomerViewDialog = ({
                 <Collapse in={expandedSections.basic}>
                   <Stack spacing={1}>
                     <InfoRow>
+                      <InfoLabel>รหัสลูกค้า:</InfoLabel>
+                      <InfoValue>
+                        <Chip 
+                          label={customerData.cus_no || "ไม่ระบุ"}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: "#B20000", 
+                            color: "white",
+                            fontWeight: 600
+                          }}
+                        />
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>ชื่อบริษัท:</InfoLabel>
+                      <InfoValue sx={{ fontWeight: 600, color: "#B20000" }}>
+                        {customerData.cus_company || "-"}
+                      </InfoValue>
+                    </InfoRow>
+                    
+                    <InfoRow>
                       <InfoLabel>ชื่อจริง:</InfoLabel>
                       <InfoValue>{customerData.cus_firstname || "-"}</InfoValue>
                     </InfoRow>
@@ -245,11 +326,49 @@ const CustomerViewDialog = ({
                       <InfoLabel>ตำแหน่ง:</InfoLabel>
                       <InfoValue>{customerData.cus_depart || "-"}</InfoValue>
                     </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>ช่องทางติดต่อ:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cus_channel === 1 && (
+                          <Chip label="Sales" size="small" sx={{ backgroundColor: "#4CAF50", color: "white" }} />
+                        )}
+                        {customerData.cus_channel === 2 && (
+                          <Chip label="Online" size="small" sx={{ backgroundColor: "#2196F3", color: "white" }} />
+                        )}
+                        {customerData.cus_channel === 3 && (
+                          <Chip label="Office" size="small" sx={{ backgroundColor: "#FF9800", color: "white" }} />
+                        )}
+                        {!customerData.cus_channel && (
+                          <Typography variant="body2">-</Typography>
+                        )}
+                      </InfoValue>
+                    </InfoRow>
                     
                     <InfoRow>
                       <InfoLabel>ประเภทธุรกิจ:</InfoLabel>
                       <InfoValue>
-                        {customerData.business_type || "-"}
+                        {customerData.business_type ? (
+                          <Chip 
+                            label={customerData.business_type}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: "#E36264", 
+                              color: "white"
+                            }}
+                          />
+                        ) : "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>เลขผู้เสียภาษี:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cus_tax_id ? (
+                          <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                            {customerData.cus_tax_id}
+                          </Typography>
+                        ) : "-"}
                       </InfoValue>
                     </InfoRow>
                   </Stack>
@@ -411,62 +530,123 @@ const CustomerViewDialog = ({
               </CardContent>
             </ViewCard>
 
-            {/* Notes & Additional Info */}
-            {(customerData.cd_note || customerData.cd_remark) && (
-              <ViewCard>
-                <CardContent>
-                  <SectionHeader>
-                    <MdNotes color="#B20000" />
-                    <Typography variant="h6" sx={{ color: "#B20000" }}>
-                      บันทึกเพิ่มเติม
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => toggleSection("notes")}
-                      sx={{ ml: "auto" }}
-                    >
-                      {expandedSections.notes ? <MdExpandLess /> : <MdExpandMore />}
-                    </IconButton>
-                  </SectionHeader>
-                  
-                  <Collapse in={expandedSections.notes}>
-                    <Stack spacing={2}>
-                      {customerData.cd_note && (
-                        <Box sx={{ 
-                          p: 2, 
-                          backgroundColor: "rgba(178, 0, 0, 0.1)", // ใช้สีแดงของ theme
-                          borderRadius: 1,
-                          borderLeft: "4px solid #B20000"
+            {/* Statistics & Activity */}
+            <ViewCard>
+              <CardContent>
+                <SectionHeader>
+                  <MdHistory color="#B20000" />
+                  <Typography variant="h6" sx={{ color: "#B20000" }}>
+                    สถิติและกิจกรรม
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => toggleSection("statistics")}
+                    sx={{ ml: "auto" }}
+                  >
+                    {expandedSections.statistics ? <MdExpandLess /> : <MdExpandMore />}
+                  </IconButton>
+                </SectionHeader>
+                
+                <Collapse in={expandedSections.statistics}>
+                  <Stack spacing={2}>
+                    <Box sx={{ 
+                      display: "grid", 
+                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+                      gap: 2,
+                      mt: 1 
+                    }}>
+                      {/* Days since creation */}
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: "#F5F5F5", 
+                        borderRadius: 2,
+                        textAlign: "center",
+                        border: "1px solid #E0E0E0"
+                      }}>
+                        <Typography variant="h4" sx={{ color: "#B20000", fontWeight: 700 }}>
+                          {customerData.cus_created_date ? 
+                            Math.floor((new Date() - new Date(customerData.cus_created_date)) / (1000 * 60 * 60 * 24)) : 0}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          วันที่เป็นลูกค้า
+                        </Typography>
+                      </Box>
+
+                      {/* Recall status */}
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: isOverdue ? "#FFEBEE" : "#E8F5E8", 
+                        borderRadius: 2,
+                        textAlign: "center",
+                        border: `1px solid ${isOverdue ? "#FFCDD2" : "#C8E6C9"}`
+                      }}>
+                        <Typography variant="h4" sx={{ 
+                          color: isOverdue ? "#F44336" : "#4CAF50", 
+                          fontWeight: 700 
                         }}>
-                          <Typography variant="subtitle2" sx={{ color: "#B20000", fontWeight: 600 }}>
-                            หมายเหตุสำคัญ
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.6 }}>
-                            {customerData.cd_note}
-                          </Typography>
+                          {Math.abs(formattedRelativeTime)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          วัน{isOverdue ? 'เกินกำหนด' : 'เหลือเวลา'}
+                        </Typography>
+                      </Box>
+
+                      {/* Channel info */}
+                      <Box sx={{ 
+                        p: 2, 
+                        backgroundColor: "#F5F5F5", 
+                        borderRadius: 2,
+                        textAlign: "center",
+                        border: "1px solid #E0E0E0"
+                      }}>
+                        <Typography variant="h6" sx={{ color: "#B20000", fontWeight: 600 }}>
+                          {customerData.cus_channel === 1 && "👤 Sales"}
+                          {customerData.cus_channel === 2 && "💻 Online"}
+                          {customerData.cus_channel === 3 && "🏢 Office"}
+                          {!customerData.cus_channel && "❓ ไม่ระบุ"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ช่องทางหลัก
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <InfoRow>
+                      <InfoLabel>สถานะล่าสุด:</InfoLabel>
+                      <InfoValue>
+                        <Chip 
+                          label={isOverdue ? "ต้องติดตาม" : "ปกติ"}
+                          size="small"
+                          sx={{
+                            backgroundColor: isOverdue ? "#FF5722" : "#4CAF50",
+                            color: "white",
+                            fontWeight: 600
+                          }}
+                        />
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>ความสำคัญ:</InfoLabel>
+                      <InfoValue>
+                        <Box display="flex" gap={0.5}>
+                          {isOverdue ? (
+                            <>
+                              <Chip label="🔥" size="small" sx={{ backgroundColor: "#FF5722", color: "white" }} />
+                              <Chip label="สูง" size="small" sx={{ backgroundColor: "#FF5722", color: "white" }} />
+                            </>
+                          ) : (
+                            <Chip label="ปกติ" size="small" sx={{ backgroundColor: "#4CAF50", color: "white" }} />
+                          )}
                         </Box>
-                      )}
-                      
-                      {customerData.cd_remark && (
-                        <Box sx={{ 
-                          p: 2, 
-                          backgroundColor: "rgba(178, 0, 0, 0.05)", 
-                          borderRadius: 1,
-                          borderLeft: "4px solid #E36264" // สีแดงอ่อนของ theme
-                        }}>
-                          <Typography variant="subtitle2" sx={{ color: "#E36264", fontWeight: 600 }}>
-                            ข้อมูลเพิ่มเติม
-                          </Typography>
-                          <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.6 }}>
-                            {customerData.cd_remark}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Collapse>
-                </CardContent>
-              </ViewCard>
-            )}
+                      </InfoValue>
+                    </InfoRow>
+                  </Stack>
+                </Collapse>
+              </CardContent>
+            </ViewCard>
 
             {/* System Information */}
             <ViewCard>
@@ -476,32 +656,123 @@ const CustomerViewDialog = ({
                   <Typography variant="h6" sx={{ color: "#B20000" }}>
                     ข้อมูลระบบ
                   </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => toggleSection("system")}
+                    sx={{ ml: "auto" }}
+                  >
+                    {expandedSections.system ? <MdExpandLess /> : <MdExpandMore />}
+                  </IconButton>
                 </SectionHeader>
                 
-                <Stack spacing={1}>
-                  <InfoRow>
-                    <InfoLabel>ผู้ดูแล:</InfoLabel>
-                    <InfoValue>
-                      {customerData.cus_manage_by?.username || customerData.manage_by_name || "-"}
-                    </InfoValue>
-                  </InfoRow>
-                  
-                  <InfoRow>
-                    <InfoLabel>วันที่สร้าง:</InfoLabel>
-                    <InfoValue>
-                      {customerData.cus_created_date ? 
-                        new Date(customerData.cus_created_date).toLocaleDateString('th-TH') : "-"}
-                    </InfoValue>
-                  </InfoRow>
-                  
-                  <InfoRow>
-                    <InfoLabel>ติดต่อครั้งล่าสุด:</InfoLabel>
-                    <InfoValue>
-                      {customerData.cd_last_datetime ? 
-                        new Date(customerData.cd_last_datetime).toLocaleDateString('th-TH') : "-"}
-                    </InfoValue>
-                  </InfoRow>
-                </Stack>
+                <Collapse in={expandedSections.system}>
+                  <Stack spacing={1}>
+                    <InfoRow>
+                      <InfoLabel>ผู้ดูแล:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cus_manage_by?.username || customerData.manage_by_name ? (
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Avatar sx={{ width: 24, height: 24, backgroundColor: "#B20000", fontSize: "0.75rem" }}>
+                              {(customerData.cus_manage_by?.username || customerData.manage_by_name)?.charAt(0)?.toUpperCase()}
+                            </Avatar>
+                            <Typography variant="body2">
+                              {customerData.cus_manage_by?.username || customerData.manage_by_name}
+                            </Typography>
+                          </Box>
+                        ) : "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>สถานะการใช้งาน:</InfoLabel>
+                      <InfoValue>
+                        <Chip 
+                          label={customerData.cus_is_use !== false ? "ใช้งาน" : "ไม่ใช้งาน"}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: customerData.cus_is_use !== false ? "#4CAF50" : "#F44336",
+                            color: "white"
+                          }}
+                        />
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>กลุ่มลูกค้า:</InfoLabel>
+                      <InfoValue>
+                        {customerData.customer_group_name || "ไม่ระบุกลุ่ม"}
+                      </InfoValue>
+                    </InfoRow>
+                    
+                    <InfoRow>
+                      <InfoLabel>วันที่สร้าง:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cus_created_date ? (
+                          <Box>
+                            <Typography variant="body2">
+                              {new Date(customerData.cus_created_date).toLocaleDateString('th-TH')}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(customerData.cus_created_date).toLocaleTimeString('th-TH')}
+                            </Typography>
+                          </Box>
+                        ) : "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>ผู้สร้าง:</InfoLabel>
+                      <InfoValue>
+                        {customerData.created_by_name || customerData.cus_created_by || "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>วันที่แก้ไขล่าสุด:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cus_updated_date ? (
+                          <Box>
+                            <Typography variant="body2">
+                              {new Date(customerData.cus_updated_date).toLocaleDateString('th-TH')}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(customerData.cus_updated_date).toLocaleTimeString('th-TH')}
+                            </Typography>
+                          </Box>
+                        ) : "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel>ผู้แก้ไขล่าสุด:</InfoLabel>
+                      <InfoValue>
+                        {customerData.updated_by_name || customerData.cus_updated_by || "-"}
+                      </InfoValue>
+                    </InfoRow>
+                    
+                    <InfoRow>
+                      <InfoLabel>ติดต่อครั้งล่าสุด:</InfoLabel>
+                      <InfoValue>
+                        {customerData.cd_last_datetime ? (
+                          <Box>
+                            <Typography variant="body2">
+                              {new Date(customerData.cd_last_datetime).toLocaleDateString('th-TH')}
+                            </Typography>
+                            <Chip 
+                              label={`${formattedRelativeTime} วัน${isOverdue ? ' (เกินกำหนด)' : ''}`}
+                              size="small"
+                              sx={{
+                                mt: 0.5,
+                                backgroundColor: isOverdue ? "#F44336" : "#4CAF50",
+                                color: "white"
+                              }}
+                            />
+                          </Box>
+                        ) : "-"}
+                      </InfoValue>
+                    </InfoRow>
+                  </Stack>
+                </Collapse>
               </CardContent>
             </ViewCard>
           </Grid>

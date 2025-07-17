@@ -9,6 +9,10 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import {
+  FirstPage,
+  LastPage,
+} from "@mui/icons-material";
+import {
   useGridApiContext,
   useGridSelector,
   gridPageCountSelector,
@@ -100,7 +104,7 @@ export const CustomPagination = ({
               slots={{ 
                 previous: FaChevronLeft, 
                 next: FaChevronRight,
-                ...(isXs ? {} : { first: "first_page", last: "last_page" })
+                ...(isXs ? {} : { first: FirstPage, last: LastPage })
               }}
               sx={{
                 fontSize: isXs ? "0.75rem" : "0.875rem",

@@ -353,13 +353,20 @@ function CustomerList() {
   };
 
   // Custom pagination component wrapper
-  const PaginationComponent = () => (
-    <CustomPagination
-      paginationModel={paginationModel}
-      totalItems={totalItems}
-      scrollToTop={scrollToTop}
-    />
-  );
+  const PaginationComponent = () => {
+    // ซ่อน pagination เมื่อข้อมูลน้อยกว่า 30 แถว
+    if (totalItems < 30) {
+      return null;
+    }
+    
+    return (
+      <CustomPagination
+        paginationModel={paginationModel}
+        totalItems={totalItems}
+        scrollToTop={scrollToTop}
+      />
+    );
+  };
 
   // Custom toolbar component wrapper
   const ToolbarComponent = () => (
@@ -599,6 +606,7 @@ function CustomerList() {
                 disableRowSelectionOnClick
                 paginationMode="server"
                 sortingMode="server"
+                hideFooter={totalItems < 30} // ซ่อน footer เมื่อข้อมูลน้อยกว่า 30 แถว
                 rows={validRows}
                 columns={columns}
                 columnVisibilityModel={columnVisibilityModel}

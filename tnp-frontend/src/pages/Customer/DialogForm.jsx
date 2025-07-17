@@ -322,6 +322,15 @@ function DialogForm(props) {
         maxWidth="md"
         disableEscapeKeyDown
         aria-hidden={props.openDialog ? false : true}
+        PaperProps={{
+          sx: {
+            width: { xs: "95vw", sm: "90vw", md: "80vw" },
+            maxWidth: { xs: "95vw", sm: "90vw", md: "900px" },
+            margin: { xs: "10px", sm: "20px" },
+            height: { xs: "95vh", sm: "auto" },
+            maxHeight: { xs: "95vh", sm: "90vh" }
+          }
+        }}
       >
         <form ref={formRef} noValidate onSubmit={handleSubmit}>
           <DialogTitle
@@ -331,25 +340,39 @@ function DialogForm(props) {
               alignItems: "center",
               backgroundColor: "#B20000",
               color: "white",
-              py: 2,
+              py: { xs: 1, sm: 2 },
+              px: { xs: 2, sm: 3 }
             }}
           >
             <span
               style={{
                 fontFamily: "Kanit",
                 fontWeight: 600,
-                fontSize: "1.1rem",
+                fontSize: { xs: "1rem", sm: "1.1rem" },
               }}
             >
               {mode === "create" && "เพิ่มลูกค้าใหม่"}
               {mode === "edit" && "แก้ไขข้อมูลลูกค้า"}
               {mode === "view" && "ดูข้อมูลลูกค้า"}
             </span>
-            <IconButton onClick={handleCloseDialog} sx={{ color: "white" }}>
-              <MdClose />
+            <IconButton 
+              onClick={handleCloseDialog} 
+              sx={{ 
+                color: "white",
+                p: { xs: 1, sm: 1.5 }
+              }}
+            >
+              <MdClose size={20} />
             </IconButton>
           </DialogTitle>
-          <DialogContent dividers>
+          <DialogContent 
+            dividers
+            sx={{
+              p: { xs: 1, sm: 2 },
+              height: { xs: "calc(95vh - 140px)", sm: "auto" },
+              overflowY: "auto"
+            }}
+          >
             <Box sx={{ width: "100%" }}>
               {/* Stepper - แสดงเฉพาะ mode create และ edit */}
               {mode !== "view" && (
@@ -361,7 +384,7 @@ function DialogForm(props) {
               )}
 
               {/* Step Content */}
-              <Box sx={{ minHeight: 400 }}>
+              <Box sx={{ minHeight: { xs: 300, sm: 400 } }}>
                 {/* Step 1: Business Type */}
                 {activeStep === 0 && (
                   <BusinessTypeStepSimple
@@ -412,18 +435,36 @@ function DialogForm(props) {
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+          <DialogActions sx={{ 
+            p: { xs: 1, sm: 2 }, 
+            justifyContent: "space-between",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: { xs: 1, sm: 0 }
+          }}>
             {/* Navigation Buttons */}
             {mode !== "view" && (
-              <Box>
+              <Box sx={{ 
+                display: "flex", 
+                gap: 1,
+                width: { xs: "100%", sm: "auto" },
+                order: { xs: 2, sm: 1 }
+              }}>
                 <Button
                   variant="outlined"
                   disabled={activeStep === 0 || saveLoading}
                   onClick={handlePrevStep}
                   startIcon={<MdNavigateBefore />}
-                  sx={{ mr: 1 }}
+                  sx={{ 
+                    flex: { xs: 1, sm: "none" },
+                    minWidth: { xs: "auto", sm: "120px" }
+                  }}
                 >
-                  ก่อนหน้า
+                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                    ก่อนหน้า
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                    ก่อนหน้า
+                  </Box>
                 </Button>
                 {activeStep < 3 ? (
                   <Button
@@ -433,11 +474,18 @@ function DialogForm(props) {
                     onClick={handleNextStep}
                     endIcon={<MdNavigateNext />}
                     sx={{
+                      flex: { xs: 1, sm: "none" },
+                      minWidth: { xs: "auto", sm: "120px" },
                       backgroundColor: "#B20000",
                       "&:hover": { backgroundColor: "#900F0F" },
                     }}
                   >
-                    ถัดไป
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                      ถัดไป
+                    </Box>
+                    <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                      ถัดไป
+                    </Box>
                   </Button>
                 ) : (
                   <Button
@@ -447,11 +495,18 @@ function DialogForm(props) {
                     onClick={handleNextStep}
                     endIcon={<MdNavigateNext />}
                     sx={{
+                      flex: { xs: 1, sm: "none" },
+                      minWidth: { xs: "auto", sm: "120px" },
                       backgroundColor: "#B20000",
                       "&:hover": { backgroundColor: "#900F0F" },
                     }}
                   >
-                    บันทึก
+                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                      บันทึก
+                    </Box>
+                    <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                      บันทึก
+                    </Box>
                   </Button>
                 )}
               </Box>
@@ -464,6 +519,11 @@ function DialogForm(props) {
               disabled={saveLoading}
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
+              sx={{
+                width: { xs: "100%", sm: "auto" },
+                minWidth: { xs: "auto", sm: "120px" },
+                order: { xs: 1, sm: 2 }
+              }}
             >
               {mode === "view" ? "ปิด" : "ยกเลิก"}
             </Button>

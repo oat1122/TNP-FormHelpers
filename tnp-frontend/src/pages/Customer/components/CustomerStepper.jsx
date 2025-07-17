@@ -108,13 +108,71 @@ const CustomerStepper = ({
 }) => {
   return (
     <Box sx={{ width: "100%", mb: 3 }}>
+      {/* Mobile Step Indicator */}
+      <Box sx={{ 
+        display: { xs: "block", sm: "none" }, 
+        mb: 2, 
+        p: 2, 
+        bgcolor: "background.paper",
+        borderRadius: 1,
+        border: `1px solid ${PRIMARY_RED}20`
+      }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{
+            backgroundColor: PRIMARY_RED,
+            color: "white",
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.8rem",
+            fontWeight: 600
+          }}>
+            {activeStep + 1}
+          </Box>
+          <Box>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontFamily: "Kanit",
+                fontWeight: 600,
+                color: PRIMARY_RED,
+                fontSize: "0.9rem"
+              }}
+            >
+              {stepLabels[activeStep]}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontFamily: "Kanit",
+                color: "text.secondary",
+                fontSize: "0.75rem"
+              }}
+            >
+              ขั้นตอน {activeStep + 1} จาก {stepLabels.length}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Desktop Stepper */}
       <Stepper 
         activeStep={activeStep} 
         connector={<StyledStepConnector />}
+        orientation="horizontal"
         sx={{
           "& .MuiStepLabel-root": {
             cursor: "pointer",
-          }
+          },
+          "& .MuiStep-root": {
+            paddingLeft: { xs: 0, sm: "8px" },
+            paddingRight: { xs: 0, sm: "8px" },
+          },
+          // ซ่อน stepper บนมือถือและแสดงแค่ขั้นตอนปัจจุบัน
+          display: { xs: "none", sm: "flex" }
         }}
       >
         {stepLabels.map((label, index) => {
@@ -160,7 +218,15 @@ const CustomerStepper = ({
                   },
                 }}
               >
-                <Typography variant="body2" component="div" sx={{ fontFamily: "Kanit" }}>
+                <Typography 
+                  variant="body2" 
+                  component="div" 
+                  sx={{ 
+                    fontFamily: "Kanit",
+                    fontSize: "0.9rem",
+                    lineHeight: 1.2
+                  }}
+                >
                   {label}
                 </Typography>
                 <Typography 
@@ -170,7 +236,8 @@ const CustomerStepper = ({
                     color: "text.secondary", 
                     fontFamily: "Kanit",
                     fontSize: "0.75rem",
-                    mt: 0.5
+                    mt: 0.5,
+                    lineHeight: 1.2
                   }}
                 >
                   {stepDescriptions[index]}

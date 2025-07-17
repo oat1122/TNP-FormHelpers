@@ -10,6 +10,7 @@ import {
   Paper,
   IconButton,
   Tooltip,
+  Grid2 as Grid,
 } from "@mui/material";
 import { MdBusiness, MdSettings } from "react-icons/md";
 
@@ -29,13 +30,13 @@ const BusinessTypeStepSimple = ({
   mode = "create",
 }) => {
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", py: 2 }}>
+    <Box sx={{ maxWidth: 800, mx: "auto", py: 2, px: { xs: 1, sm: 0 } }}>
       {/* Header */}
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          mb: 3,
+          p: { xs: 2, sm: 3 },
+          mb: { xs: 2, sm: 3 },
           border: `2px solid ${PRIMARY_RED}`,
           borderRadius: 2,
         }}
@@ -51,18 +52,28 @@ const BusinessTypeStepSimple = ({
             ประเภทธุรกิจ
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" fontFamily="Kanit">
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          fontFamily="Kanit"
+        >
           เลือกประเภทธุรกิจและกรอกข้อมูลพื้นฐานของบริษัท
         </Typography>
       </Paper>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {/* ประเภทธุรกิจ */}
-        <Box display="flex" gap={1} alignItems="flex-start">
+        <Box sx={{ 
+          display: "flex", 
+          gap: 1, 
+          alignItems: "flex-start",
+          flexDirection: { xs: "column", sm: "row" }
+        }}>
           <FormControl
             fullWidth
             error={!!errors.cus_bt_id}
             disabled={mode === "view"}
+            size="small"
           >
             <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>
               เลือกประเภทธุรกิจ *
@@ -73,14 +84,60 @@ const BusinessTypeStepSimple = ({
               onChange={handleInputChange}
               label="เลือกประเภทธุรกิจ *"
               disabled={businessTypesIsFetching || mode === "view"}
-              sx={{ fontFamily: "Kanit", fontSize: 14 }}
+              sx={{ 
+                fontFamily: "Kanit", 
+                fontSize: 14
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    maxHeight: { xs: 250, sm: 400 },
+                    width: { xs: "calc(100vw - 32px)", sm: "auto" },
+                    maxWidth: { xs: "calc(100vw - 32px)", sm: 500 },
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    "& .MuiMenuItem-root": {
+                      fontFamily: "Kanit",
+                      fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                      padding: { xs: "8px 12px", sm: "12px 16px" },
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
+                      lineHeight: 1.3,
+                      minHeight: { xs: "auto", sm: "48px" }
+                    },
+                    "& .MuiList-root": {
+                      padding: 0
+                    }
+                  }
+                },
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+                transformOrigin: {
+                  vertical: "top",
+                  horizontal: "left",
+                }
+              }}
             >
               <MenuItem value="" disabled>
                 <em>กรุณาเลือกประเภทธุรกิจ</em>
               </MenuItem>
               {businessTypesList.map((type) => (
                 <MenuItem key={type.bt_id} value={type.bt_id}>
-                  <Typography fontFamily="Kanit" fontSize={14}>
+                  <Typography 
+                    fontFamily="Kanit" 
+                    fontSize={{ xs: "0.8rem", sm: "0.875rem" }}
+                    sx={{ 
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
+                      lineHeight: 1.3,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical"
+                    }}
+                  >
                     {type.bt_name}
                   </Typography>
                 </MenuItem>
@@ -95,12 +152,24 @@ const BusinessTypeStepSimple = ({
                 sx={{
                   color: PRIMARY_RED,
                   border: `1px solid ${PRIMARY_RED}`,
+                  width: { xs: "100%", sm: "auto" },
+                  height: 40,
+                  mt: { xs: 1, sm: 0 },
+                  display: { xs: "none", sm: "flex" }, // ซ่อนในโหมดมือถือ
                   "&:hover": {
                     backgroundColor: `${PRIMARY_RED}10`,
                   },
                 }}
               >
                 <MdSettings />
+                <Typography sx={{ 
+                  ml: 1, 
+                  fontFamily: "Kanit", 
+                  fontSize: "0.8rem",
+                  display: { xs: "inline", sm: "none" }
+                }}>
+                  จัดการประเภทธุรกิจ
+                </Typography>
               </IconButton>
             </Tooltip>
           )}
@@ -118,6 +187,7 @@ const BusinessTypeStepSimple = ({
           helperText={errors.cus_company}
           disabled={mode === "view"}
           placeholder="เช่น บริษัท ABC จำกัด"
+          size="small"
           InputProps={{
             style: { fontFamily: "Kanit", fontSize: 14 },
           }}
@@ -137,6 +207,7 @@ const BusinessTypeStepSimple = ({
           helperText={errors.cus_tax_id || "เลข 13 หลัก (ไม่บังคับ)"}
           disabled={mode === "view"}
           placeholder="เช่น 1234567890123"
+          size="small"
           inputProps={{
             maxLength: 13,
             pattern: "[0-9]*",
@@ -150,7 +221,7 @@ const BusinessTypeStepSimple = ({
         />
 
         {/* ช่องทางการติดต่อ */}
-        <FormControl fullWidth disabled={mode === "view"}>
+        <FormControl fullWidth disabled={mode === "view"} size="small">
           <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>
             ช่องทางการติดต่อ *
           </InputLabel>
@@ -187,6 +258,52 @@ const BusinessTypeStepSimple = ({
           )}
         </FormControl>
 
+        {/* ชื่อ-นามสกุล */}
+        <Grid container spacing={2}>
+          <Grid xs={12} sm={6}>
+            <TextField
+              name="cus_firstname"
+              label="ชื่อจริงลูกค้า"
+              value={inputList.cus_firstname || ""}
+              onChange={handleInputChange}
+              fullWidth
+              required
+              error={!!errors.cus_firstname}
+              helperText={errors.cus_firstname}
+              disabled={mode === "view"}
+              placeholder="เช่น สมชาย"
+              size="small"
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+            />
+          </Grid>
+          <Grid xs={12} sm={6}>
+            <TextField
+              name="cus_lastname"
+              label="นามสกุลลูกค้า"
+              value={inputList.cus_lastname || ""}
+              onChange={handleInputChange}
+              fullWidth
+              required
+              error={!!errors.cus_lastname}
+              helperText={errors.cus_lastname}
+              disabled={mode === "view"}
+              placeholder="เช่น ใจดี"
+              size="small"
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+            />
+          </Grid>
+        </Grid>
+
         {/* ชื่อเล่น */}
         <TextField
           name="cus_name"
@@ -199,47 +316,8 @@ const BusinessTypeStepSimple = ({
           helperText={errors.cus_name}
           disabled={mode === "view"}
           placeholder="เช่น ABC, บริษัท ABC"
+          size="small"
           inputProps={{ maxLength: 50 }}
-          InputProps={{
-            style: { fontFamily: "Kanit", fontSize: 14 },
-          }}
-          InputLabelProps={{
-            style: { fontFamily: "Kanit", fontSize: 14 },
-          }}
-        />
-
-        {/* ชื่อจริงลูกค้า */}
-        <TextField
-          name="cus_firstname"
-          label="ชื่อจริงลูกค้า"
-          value={inputList.cus_firstname || ""}
-          onChange={handleInputChange}
-          fullWidth
-          required
-          error={!!errors.cus_firstname}
-          helperText={errors.cus_firstname}
-          disabled={mode === "view"}
-          placeholder="เช่น สมชาย"
-          InputProps={{
-            style: { fontFamily: "Kanit", fontSize: 14 },
-          }}
-          InputLabelProps={{
-            style: { fontFamily: "Kanit", fontSize: 14 },
-          }}
-        />
-
-        {/* นามสกุลลูกค้า */}
-        <TextField
-          name="cus_lastname"
-          label="นามสกุลลูกค้า"
-          value={inputList.cus_lastname || ""}
-          onChange={handleInputChange}
-          fullWidth
-          required
-          error={!!errors.cus_lastname}
-          helperText={errors.cus_lastname}
-          disabled={mode === "view"}
-          placeholder="เช่น ใจดี"
           InputProps={{
             style: { fontFamily: "Kanit", fontSize: 14 },
           }}

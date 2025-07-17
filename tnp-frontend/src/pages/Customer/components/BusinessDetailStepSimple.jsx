@@ -407,36 +407,57 @@ const BusinessDetailStepSimple = ({
     console.log("📋 Customer data changes:", inputList);
   }, [inputList]);
 
-  // ฟังก์ชันสำหรับขอตำแหน่ง GPS แบบความแม่นยำสูง
-  const getHighAccuracyPosition = async (attempt = 1, maxAttempts = 3) => {
+  // ฟังก์ชันติดตามตำแหน่งด้วย watchPosition เพื่อหาค่าที่แม่นยำที่สุดภายใน 30 วินาที
+  const watchHighAccuracyPosition = async () => {
     const options = {
       enableHighAccuracy: true,
-      timeout: attempt === 1 ? 20000 : 15000, // ครั้งแรกรอนานกว่า
-      maximumAge: attempt === 1 ? 0 : 30000,   // ครั้งแรกไม่ใช้ cache
+      timeout: 30000,
+      maximumAge: 0,
     };
 
     return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
+      const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const accuracy = position.coords.accuracy;
-          console.log(`🎯 GPS Attempt ${attempt}: Accuracy = ${accuracy}m`);
-          
-          // ถ้าความแม่นยำดีพอ (น้อยกว่า 100 เมตร) หรือเป็นความพยายามสุดท้าย
-          if (accuracy <= 100 || attempt >= maxAttempts) {
+          console.log(`📡 Watch accuracy: ${accuracy}m`);
+          if (accuracy <= 30) {
+            navigator.geolocation.clearWatch(watchId);
             resolve(position);
-          } else {
-            console.log(`🔄 Accuracy too low (${accuracy}m), retrying...`);
-            setTimeout(() => {
-              getHighAccuracyPosition(attempt + 1, maxAttempts)
-                .then(resolve)
-                .catch(reject);
-            }, 2000);
           }
         },
-        reject,
+        (err) => {
+          navigator.geolocation.clearWatch(watchId);
+          reject(err);
+        },
         options
       );
+
+      // failsafe เมื่อครบเวลาแล้วยังไม่ได้ความแม่นยำตามต้องการ
+      setTimeout(() => {
+        navigator.geolocation.clearWatch(watchId);
+        reject(new Error("timeout"));
+      }, options.timeout + 5000);
     });
+  };
+
+  // ฟังก์ชัน fallback หาตำแหน่งจาก IP กรณี GPS ล้มเหลว
+  const getLocationFromIp = async () => {
+    try {
+      const res = await fetch("https://ipapi.co/json/");
+      if (!res.ok) throw new Error("IP geolocation failed");
+      const data = await res.json();
+      return {
+        coords: {
+          latitude: parseFloat(data.latitude),
+          longitude: parseFloat(data.longitude),
+          accuracy: data.accuracy || 5000,
+        },
+        source: "ip",
+      };
+    } catch (err) {
+      console.error("IP location error:", err);
+      throw err;
+    }
   };
 
   // ฟังก์ชัน GPS หลัก - ปรับปรุงความแม่นยำ
@@ -452,24 +473,31 @@ const BusinessDetailStepSimple = ({
     }
 
     setIsGettingLocation(true);
-    setLocationStatus("� กำลังค้นหาตำแหน่งแบบความแม่นยำสูง...");
+    setLocationStatus("🌍 กำลังค้นหาตำแหน่งแบบความแม่นยำสูง...");
     setGpsResult(null);
     setHasFilledFromGps(false); // Reset state
 
     try {
-      // ขอตำแหน่ง GPS แบบความแม่นยำสูง
-      const position = await getHighAccuracyPosition();
+      // พยายามหาตำแหน่งแบบความแม่นยำสูงด้วย watchPosition
+      let position;
+      try {
+        position = await watchHighAccuracyPosition();
+      } catch (err) {
+        console.warn("⚠️ watchPosition failed, fallback to IP", err);
+        setLocationStatus("⚠️ ใช้ตำแหน่งจาก IP (ความแม่นยำต่ำ)");
+        position = await getLocationFromIp();
+      }
 
       const { latitude, longitude, accuracy } = position.coords;
       console.log(`🌍 GPS Coordinates: ${latitude}, ${longitude} (±${accuracy}m)`);
       
       // แสดงข้อมูลความแม่นยำ
       let accuracyStatus = "";
-      if (accuracy <= 20) {
+      if (accuracy <= 10) {
         accuracyStatus = "🎯 ความแม่นยำสูงมาก";
-      } else if (accuracy <= 50) {
+      } else if (accuracy <= 30) {
         accuracyStatus = "🎯 ความแม่นยำสูง";
-      } else if (accuracy <= 100) {
+      } else if (accuracy <= 60) {
         accuracyStatus = "📍 ความแม่นยำปานกลาง";
       } else {
         accuracyStatus = "⚠️ ความแม่นยำต่ำ";

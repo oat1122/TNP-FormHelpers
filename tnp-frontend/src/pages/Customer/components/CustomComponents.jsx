@@ -32,6 +32,7 @@ export const CustomPagination = ({
   const pageCount = useGridSelector(apiRef, gridPageCountSelector);
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMd = useMediaQuery(theme.breakpoints.down("md"));
 
   // Reset page เมื่อเปลี่ยน group
   useEffect(() => {
@@ -54,26 +55,31 @@ export const CustomPagination = ({
       sx={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: isXs ? "center" : "space-between",
+        flexDirection: isXs ? "column" : "row",
         flexWrap: "wrap",
-        gap: 2,
+        gap: isXs ? 1 : 2,
         width: "100%",
-        p: 1,
+        p: isXs ? 0.5 : 1,
       }}
     >
-      <PageSizeSelector
-        value={paginationModel.pageSize}
-        onChange={handlePageSizeChange}
-      />
+      {/* PageSizeSelector - ซ่อนบน mobile */}
+      {!isXs && (
+        <PageSizeSelector
+          value={paginationModel.pageSize}
+          onChange={handlePageSizeChange}
+        />
+      )}
 
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 2,
+          gap: 1,
           flexWrap: "wrap",
           justifyContent: "center",
           flex: 1,
+          order: isXs ? 2 : 0,
         }}
       >
         <StyledPagination
@@ -82,13 +88,32 @@ export const CustomPagination = ({
           shape="rounded"
           page={page + 1}
           count={pageCount}
-          siblingCount={isXs ? 0 : 1}
-          boundaryCount={1}
+          size={isXs ? "small" : "medium"}
+          siblingCount={isXs ? 0 : isMd ? 0 : 1}
+          boundaryCount={isXs ? 1 : 1}
+          showFirstButton={!isXs}
+          showLastButton={!isXs}
           renderItem={(props2) => (
             <PaginationItem
               {...props2}
               disableRipple
-              slots={{ previous: FaChevronLeft, next: FaChevronRight }}
+              slots={{ 
+                previous: FaChevronLeft, 
+                next: FaChevronRight,
+                ...(isXs ? {} : { first: "first_page", last: "last_page" })
+              }}
+              sx={{
+                fontSize: isXs ? "0.75rem" : "0.875rem",
+                minWidth: isXs ? "32px" : "auto",
+                height: isXs ? "32px" : "auto",
+                "&.Mui-selected": {
+                  backgroundColor: "#9e0000",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "#d32f2f",
+                  },
+                },
+              }}
             />
           )}
           onChange={(event, value) => {
@@ -98,18 +123,24 @@ export const CustomPagination = ({
         />
       </Box>
 
+      {/* Info text - ปรับให้เล็กลงใน mobile */}
       <Typography
-        variant="body2"
+        variant={isXs ? "caption" : "body2"}
         sx={{
           color: (theme) => theme.vars.palette.grey.dark,
-          minWidth: 120,
-          textAlign: "right",
+          minWidth: isXs ? "auto" : 120,
+          textAlign: isXs ? "center" : "right",
+          fontSize: isXs ? "0.7rem" : "0.875rem",
+          order: isXs ? 1 : 0,
         }}
       >
-        {`${page * paginationModel.pageSize + 1}-${Math.min(
-          (page + 1) * paginationModel.pageSize,
-          totalItems
-        )} of ${totalItems}`}
+        {isXs 
+          ? `${page + 1}/${pageCount}` 
+          : `${page * paginationModel.pageSize + 1}-${Math.min(
+              (page + 1) * paginationModel.pageSize,
+              totalItems
+            )} of ${totalItems}`
+        }
       </Typography>
     </Box>
   );

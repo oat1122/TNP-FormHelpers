@@ -16,6 +16,8 @@ import {
   Collapse,
   Stack,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   MdClose,
@@ -38,10 +40,16 @@ import { parseFullAddress } from "./BusinessDetailStepSimple";
 // Styled components - ปรับสีตาม theme
 const ViewCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(2),
-  boxShadow: "0 2px 8px rgba(178, 0, 0, 0.1)", // ใช้สีแดงของ theme
-  border: `1px solid #EBEBEB`, // สีเทาของ theme
+  boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)",
+  border: `1px solid #9e000022`,
+  maxWidth: "100%",
+  margin: "0 auto",
   "&:hover": {
-    boxShadow: "0 4px 16px rgba(178, 0, 0, 0.15)",
+    boxShadow: "0 4px 16px rgba(158, 0, 0, 0.15)",
+  },
+  [theme.breakpoints.down("sm")]: {
+    marginBottom: theme.spacing(1.5),
+    boxShadow: "0 1px 4px rgba(158, 0, 0, 0.1)",
   },
 }));
 
@@ -51,7 +59,7 @@ const SectionHeader = styled(Box)(({ theme }) => ({
   gap: theme.spacing(1),
   marginBottom: theme.spacing(2),
   padding: theme.spacing(1, 0),
-  borderBottom: `2px solid #B20000`, // สีแดงหลักของ theme
+  borderBottom: `2px solid #9e0000`,
 }));
 
 const InfoRow = styled(Box)(({ theme }) => ({
@@ -61,29 +69,45 @@ const InfoRow = styled(Box)(({ theme }) => ({
   padding: theme.spacing(1),
   borderRadius: theme.shape.borderRadius,
   "&:hover": {
-    backgroundColor: "rgba(178, 0, 0, 0.05)", // hover สีแดงอ่อน
+    backgroundColor: "rgba(158, 0, 0, 0.05)",
+  },
+  [theme.breakpoints.down("sm")]: {
+    marginBottom: theme.spacing(1),
+    padding: theme.spacing(0.5),
   },
 }));
 
 const InfoLabel = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
-  color: "#212429", // สีเทาเข้มของ theme
+  color: "#212429",
   minWidth: 120,
   fontSize: "0.875rem",
+  [theme.breakpoints.down("sm")]: {
+    fontSize: "0.8rem",
+    minWidth: 100,
+  },
 }));
 
 const InfoValue = styled(Typography)(({ theme }) => ({
-  color: "#212429", // สีเทาเข้มของ theme
+  color: "#212429",
   fontWeight: 400,
   wordBreak: "break-word",
+  [theme.breakpoints.down("sm")]: {
+    fontSize: "0.8rem",
+  },
 }));
 
 const CustomerAvatar = styled(Avatar)(({ theme }) => ({
   width: 64,
   height: 64,
-  backgroundColor: "#B20000", // สีแดงหลักของ theme
+  backgroundColor: "#9e0000", // ใช้สีแดงที่สอดคล้องกับ theme
   fontSize: "1.5rem",
   fontWeight: 600,
+  [theme.breakpoints.down("sm")]: {
+    width: 48,
+    height: 48,
+    fontSize: "1.2rem",
+  },
 }));
 
 /**
@@ -94,99 +118,141 @@ const CustomerAvatar = styled(Avatar)(({ theme }) => ({
  * @param {Object} props.customerData - ข้อมูลลูกค้า
  * @param {Function} props.onEdit - callback เมื่อกดปุ่มแก้ไข
  */
-const CustomerViewDialog = ({ 
-  open, 
-  onClose, 
-  customerData, 
-  onEdit 
-}) => {
-  // Early return if no customer data
+const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
+  // ✅ ย้าย hooks มาไว้ก่อน early return
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,
+    contact: false,
+    address: false,
+    notes: false,
+  });
+
+  // Early return หลังจาก hooks แล้ว
   if (!customerData || !open) {
     return null;
   }
 
-  const [expandedSections, setExpandedSections] = useState({
-    basic: true,
-    contact: true,
-    address: true,
-    notes: true,
-  });
-
   // Toggle section expansion
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
   // Generate customer initials - ป้องกัน null/undefined
   const getInitials = (firstName, lastName) => {
-    const first = (firstName && typeof firstName === 'string') ? firstName.charAt(0)?.toUpperCase() : "";
-    const last = (lastName && typeof lastName === 'string') ? lastName.charAt(0)?.toUpperCase() : "";
-    return (first + last) || "?";
+    const first =
+      firstName && typeof firstName === "string"
+        ? firstName.charAt(0)?.toUpperCase()
+        : "";
+    const last =
+      lastName && typeof lastName === "string"
+        ? lastName.charAt(0)?.toUpperCase()
+        : "";
+    return first + last || "?";
   };
 
   // Format relative time - ป้องกัน null/undefined
-  const formattedRelativeTime = customerData?.cd_last_datetime 
+  const formattedRelativeTime = customerData?.cd_last_datetime
     ? formatCustomRelativeTime(customerData.cd_last_datetime)
     : 0;
-  
+
   // Check if recall is overdue
   const isOverdue = formattedRelativeTime <= 0;
 
   // Parse address from combined string to separated components
-  const parsedAddress = customerData.cus_address ? parseFullAddress(customerData.cus_address) : {
-    address: '',
-    subdistrict: '',
-    district: '',
-    province: '',
-    zipCode: ''
-  };
+  const parsedAddress = customerData.cus_address
+    ? parseFullAddress(customerData.cus_address)
+    : {
+        address: "",
+        subdistrict: "",
+        district: "",
+        province: "",
+        zipCode: "",
+      };
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="lg"
+      maxWidth="md"
+      fullScreen={isMobile}
       PaperProps={{
-        sx: { borderRadius: 2, overflow: "hidden" }
+        sx: {
+          borderRadius: isMobile ? 0 : 2,
+          overflow: "hidden",
+          height: isMobile ? "100vh" : "auto",
+        },
       }}
     >
       {/* Dialog Header - ใช้สีตาม theme */}
       <DialogTitle
         component="div"
         sx={{
-          background: "linear-gradient(135deg, #B20000 0%, #900F0F 100%)", // สีแดงตาม theme
+          background: "linear-gradient(135deg, #9e0000 0%, #d32f2f 100%)", // ใช้สีแดงที่สอดคล้องกับ theme
           color: "white",
           pb: 2,
+          p: isMobile ? 2 : 3,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <CustomerAvatar>
-              {getInitials(customerData.cus_firstname, customerData.cus_lastname)}
+              {getInitials(
+                customerData.cus_firstname,
+                customerData.cus_lastname
+              )}
             </CustomerAvatar>
             <Box>
-              <Typography variant="h5" fontWeight={600}>
+              <Typography
+                variant={isMobile ? "h6" : "h5"}
+                fontWeight={600}
+                sx={{ fontSize: isMobile ? "1.1rem" : "1.5rem" }}
+              >
                 {customerData.cus_company || "ไม่ระบุบริษัท"}
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                {customerData.cus_name || `${customerData.cus_firstname || ""} ${customerData.cus_lastname || ""}`}
+              <Typography
+                variant="body1"
+                sx={{
+                  opacity: 0.9,
+                  fontSize: isMobile ? "0.9rem" : "1rem",
+                }}
+              >
+                {customerData.cus_name ||
+                  `${customerData.cus_firstname || ""} ${
+                    customerData.cus_lastname || ""
+                  }`}
               </Typography>
-              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+              <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
                 <Chip
                   label={`รหัส: ${customerData.cus_no || "N/A"}`}
                   size="small"
-                  sx={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white" }}
+                  sx={{
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    color: "white",
+                    fontSize: isMobile ? "0.6rem" : "0.75rem",
+                    px: isMobile ? 1 : 1.5
+                  }}
                 />
                 <Chip
                   label={`${formattedRelativeTime} วัน`}
                   size="small"
                   sx={{
-                    backgroundColor: isOverdue ? "#E36264" : "#2e7d32", // ใช้สีตาม theme
-                    color: "white"
+                    backgroundColor: isOverdue ? "#E36264" : "#2e7d32",
+                    color: "white",
+                    fontSize: isMobile ? "0.6rem" : "0.75rem",
+                    px: isMobile ? 1 : 1.5
                   }}
                   icon={<MdHistory />}
                 />
@@ -212,17 +278,27 @@ const CustomerViewDialog = ({
       </DialogTitle>
 
       {/* Dialog Content */}
-      <DialogContent sx={{ p: 3, backgroundColor: "#EBEBEB" }}>
-        <Grid container spacing={3}>
-          {/* Left Column */}
-          <Grid size={12} md={6}>
-            {/* Notes & Additional Info */}
-            {(customerData.cd_note || customerData.cd_remark) && (
+      <DialogContent
+        sx={{
+          p: isMobile ? 2 : 3,
+          backgroundColor: "#fffaf9",
+        }}
+      >
+        <Grid container spacing={2} direction="column">
+          {/* Notes & Additional Info */}
+          {(customerData.cd_note || customerData.cd_remark) && (
+            <Grid xs={12}>
               <ViewCard>
                 <CardContent>
                   <SectionHeader>
-                    <MdNotes color="#B20000" />
-                    <Typography variant="h6" sx={{ color: "#B20000" }}>
+                    <MdNotes color="#9e0000" />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        color: "#9e0000",
+                        fontSize: isMobile ? "1rem" : "1.25rem",
+                      }}
+                    >
                       บันทึกเพิ่มเติม
                     </Typography>
                     <IconButton
@@ -230,39 +306,77 @@ const CustomerViewDialog = ({
                       onClick={() => toggleSection("notes")}
                       sx={{ ml: "auto" }}
                     >
-                      {expandedSections.notes ? <MdExpandLess /> : <MdExpandMore />}
+                      {expandedSections.notes ? (
+                        <MdExpandLess />
+                      ) : (
+                        <MdExpandMore />
+                      )}
                     </IconButton>
                   </SectionHeader>
-                  
+
                   <Collapse in={expandedSections.notes}>
                     <Stack spacing={2}>
                       {customerData.cd_note && (
-                        <Box sx={{ 
-                          p: 2, 
-                          backgroundColor: "rgba(178, 0, 0, 0.1)", // ใช้สีแดงของ theme
-                          borderRadius: 1,
-                          borderLeft: "4px solid #B20000"
-                        }}>
-                          <Typography variant="subtitle2" sx={{ color: "#B20000", fontWeight: 600, mb: 1 }}>
+                        <Box
+                          sx={{
+                            p: isMobile ? 1.5 : 2,
+                            backgroundColor: "rgba(158, 0, 0, 0.1)",
+                            borderRadius: 1,
+                            borderLeft: "4px solid #9e0000",
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              color: "#9e0000",
+                              fontWeight: 600,
+                              mb: 1,
+                              fontSize: isMobile ? "0.8rem" : "0.875rem",
+                            }}
+                          >
                             📝 หมายเหตุสำคัญ
                           </Typography>
-                          <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              lineHeight: 1.6,
+                              whiteSpace: "pre-wrap",
+                              fontSize: isMobile ? "0.8rem" : "0.875rem",
+                            }}
+                          >
                             {customerData.cd_note}
                           </Typography>
                         </Box>
                       )}
-                      
+
                       {customerData.cd_remark && (
-                        <Box sx={{ 
-                          p: 2, 
-                          backgroundColor: "rgba(178, 0, 0, 0.05)", 
-                          borderRadius: 1,
-                          borderLeft: "4px solid #E36264" // สีแดงอ่อนของ theme
-                        }}>
-                          <Typography variant="subtitle2" sx={{ color: "#E36264", fontWeight: 600, mb: 1 }}>
+                        <Box
+                          sx={{
+                            p: isMobile ? 1.5 : 2,
+                            backgroundColor: "rgba(158, 0, 0, 0.05)",
+                            borderRadius: 1,
+                            borderLeft: "4px solid #d32f2f",
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              color: "#d32f2f",
+                              fontWeight: 600,
+                              mb: 1,
+                              fontSize: isMobile ? "0.8rem" : "0.875rem",
+                            }}
+                          >
                             💡 ข้อมูลเพิ่มเติม
                           </Typography>
-                          <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              lineHeight: 1.6,
+                              whiteSpace: "pre-wrap",
+                              fontSize: isMobile ? "0.8rem" : "0.875rem",
+                            }}
+                          >
                             {customerData.cd_remark}
                           </Typography>
                         </Box>
@@ -271,14 +385,22 @@ const CustomerViewDialog = ({
                   </Collapse>
                 </CardContent>
               </ViewCard>
-            )}
+            </Grid>
+          )}
 
-            {/* Basic Information */}
+          {/* Basic Information */}
+          <Grid xs={12}>
             <ViewCard>
               <CardContent>
                 <SectionHeader>
-                  <MdPerson color="#B20000" />
-                  <Typography variant="h6" sx={{ color: "#B20000" }}>
+                  <MdPerson color="#9e0000" />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#9e0000",
+                      fontSize: isMobile ? "1rem" : "1.25rem",
+                    }}
+                  >
                     ข้อมูลพื้นฐาน
                   </Typography>
                   <IconButton
@@ -286,22 +408,28 @@ const CustomerViewDialog = ({
                     onClick={() => toggleSection("basic")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.basic ? <MdExpandLess /> : <MdExpandMore />}
+                    {expandedSections.basic ? (
+                      <MdExpandLess />
+                    ) : (
+                      <MdExpandMore />
+                    )}
                   </IconButton>
                 </SectionHeader>
-                
+
                 <Collapse in={expandedSections.basic}>
                   <Stack spacing={1}>
                     <InfoRow>
                       <InfoLabel>รหัสลูกค้า:</InfoLabel>
                       <InfoValue>
-                        <Chip 
+                        <Chip
                           label={customerData.cus_no || "ไม่ระบุ"}
                           size="small"
-                          sx={{ 
-                            backgroundColor: "#B20000", 
+                          sx={{
+                            backgroundColor: "#9e0000",
                             color: "white",
-                            fontWeight: 600
+                            fontWeight: 600,
+                            fontSize: isMobile ? "0.6rem" : "0.75rem",
+                            px: isMobile ? 1 : 1.5
                           }}
                         />
                       </InfoValue>
@@ -309,26 +437,26 @@ const CustomerViewDialog = ({
 
                     <InfoRow>
                       <InfoLabel>ชื่อบริษัท:</InfoLabel>
-                      <InfoValue sx={{ fontWeight: 600, color: "#B20000" }}>
+                      <InfoValue sx={{ fontWeight: 600, color: "#9e0000" }}>
                         {customerData.cus_company || "-"}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>ชื่อจริง:</InfoLabel>
                       <InfoValue>{customerData.cus_firstname || "-"}</InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>นามสกุล:</InfoLabel>
                       <InfoValue>{customerData.cus_lastname || "-"}</InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>ชื่อเล่น:</InfoLabel>
                       <InfoValue>{customerData.cus_name || "-"}</InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>ตำแหน่ง:</InfoLabel>
                       <InfoValue>{customerData.cus_depart || "-"}</InfoValue>
@@ -338,33 +466,49 @@ const CustomerViewDialog = ({
                       <InfoLabel>ช่องทางติดต่อ:</InfoLabel>
                       <InfoValue>
                         {customerData.cus_channel === 1 && (
-                          <Chip label="Sales" size="small" sx={{ backgroundColor: "#4CAF50", color: "white" }} />
+                          <Chip
+                            label="Sales"
+                            size="small"
+                            sx={{ backgroundColor: "#4CAF50", color: "white" }}
+                          />
                         )}
                         {customerData.cus_channel === 2 && (
-                          <Chip label="Online" size="small" sx={{ backgroundColor: "#2196F3", color: "white" }} />
+                          <Chip
+                            label="Online"
+                            size="small"
+                            sx={{ backgroundColor: "#2196F3", color: "white" }}
+                          />
                         )}
                         {customerData.cus_channel === 3 && (
-                          <Chip label="Office" size="small" sx={{ backgroundColor: "#FF9800", color: "white" }} />
+                          <Chip
+                            label="Office"
+                            size="small"
+                            sx={{ backgroundColor: "#FF9800", color: "white" }}
+                          />
                         )}
                         {!customerData.cus_channel && (
                           <Typography variant="body2">-</Typography>
                         )}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>ประเภทธุรกิจ:</InfoLabel>
                       <InfoValue>
                         {customerData.business_type ? (
-                          <Chip 
+                          <Chip
                             label={customerData.business_type}
                             size="small"
-                            sx={{ 
-                              backgroundColor: "#E36264", 
-                              color: "white"
+                            sx={{
+                              backgroundColor: "#d32f2f",
+                              color: "white",
+                              fontSize: isMobile ? "0.6rem" : "0.75rem",
+                              px: isMobile ? 1 : 1.5
                             }}
                           />
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </InfoValue>
                     </InfoRow>
 
@@ -372,23 +516,36 @@ const CustomerViewDialog = ({
                       <InfoLabel>เลขผู้เสียภาษี:</InfoLabel>
                       <InfoValue>
                         {customerData.cus_tax_id ? (
-                          <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontFamily: "monospace", fontWeight: 600 }}
+                          >
                             {customerData.cus_tax_id}
                           </Typography>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </InfoValue>
                     </InfoRow>
                   </Stack>
                 </Collapse>
               </CardContent>
             </ViewCard>
+          </Grid>
 
-            {/* Contact Information */}
+          {/* Contact Information */}
+          <Grid xs={12}>
             <ViewCard>
               <CardContent>
                 <SectionHeader>
-                  <MdContactPhone color="#B20000" />
-                  <Typography variant="h6" sx={{ color: "#B20000" }}>
+                  <MdContactPhone color="#9e0000" />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#9e0000",
+                      fontSize: isMobile ? "1rem" : "1.25rem",
+                    }}
+                  >
                     ข้อมูลติดต่อ
                   </Typography>
                   <IconButton
@@ -396,10 +553,14 @@ const CustomerViewDialog = ({
                     onClick={() => toggleSection("contact")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.contact ? <MdExpandLess /> : <MdExpandMore />}
+                    {expandedSections.contact ? (
+                      <MdExpandLess />
+                    ) : (
+                      <MdExpandMore />
+                    )}
                   </IconButton>
                 </SectionHeader>
-                
+
                 <Collapse in={expandedSections.contact}>
                   <Stack spacing={1}>
                     <InfoRow>
@@ -408,72 +569,81 @@ const CustomerViewDialog = ({
                       <InfoValue>
                         {customerData.cus_tel_1 || "-"}
                         {customerData.cus_tel_1 && (
-                          <Chip 
-                            label="โทร" 
-                            size="small" 
+                          <Chip
+                            label="โทร"
+                            size="small"
                             sx={{
                               ml: 1,
                               cursor: "pointer",
-                              backgroundColor: "#B20000",
+                              backgroundColor: "#9e0000",
                               color: "white",
+                              fontSize: isMobile ? "0.7rem" : "0.75rem",
                               "&:hover": {
-                                backgroundColor: "#900F0F"
-                              }
+                                backgroundColor: "#d32f2f",
+                              },
                             }}
-                            onClick={() => window.open(`tel:${customerData.cus_tel_1}`)}
+                            onClick={() =>
+                              window.open(`tel:${customerData.cus_tel_1}`)
+                            }
                           />
                         )}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <MdPhone size={16} />
                       <InfoLabel>เบอร์สำรอง:</InfoLabel>
                       <InfoValue>
                         {customerData.cus_tel_2 || "-"}
                         {customerData.cus_tel_2 && (
-                          <Chip 
-                            label="โทร" 
-                            size="small" 
+                          <Chip
+                            label="โทร"
+                            size="small"
                             sx={{
                               ml: 1,
                               cursor: "pointer",
-                              backgroundColor: "#B20000",
+                              backgroundColor: "#9e0000",
                               color: "white",
+                              fontSize: isMobile ? "0.7rem" : "0.75rem",
                               "&:hover": {
-                                backgroundColor: "#900F0F"
-                              }
+                                backgroundColor: "#d32f2f",
+                              },
                             }}
-                            onClick={() => window.open(`tel:${customerData.cus_tel_2}`)}
+                            onClick={() =>
+                              window.open(`tel:${customerData.cus_tel_2}`)
+                            }
                           />
                         )}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <MdEmail size={16} />
                       <InfoLabel>อีเมล:</InfoLabel>
                       <InfoValue>
                         {customerData.cus_email || "-"}
                         {customerData.cus_email && (
-                          <Chip 
-                            label="ส่งเมล" 
-                            size="small" 
+                          <Chip
+                            label="ส่งเมล"
+                            size="small"
                             sx={{
                               ml: 1,
                               cursor: "pointer",
-                              backgroundColor: "#B20000",
+                              backgroundColor: "#9e0000",
                               color: "white",
+                              fontSize: isMobile ? "0.7rem" : "0.75rem",
                               "&:hover": {
-                                backgroundColor: "#900F0F"
-                              }
+                                backgroundColor: "#d32f2f",
+                              },
                             }}
-                            onClick={() => window.open(`mailto:${customerData.cus_email}`)}
+                            onClick={() =>
+                              window.open(`mailto:${customerData.cus_email}`)
+                            }
                           />
                         )}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <MdBusiness size={16} />
                       <InfoLabel>เลขผู้เสียภาษี:</InfoLabel>
@@ -485,14 +655,19 @@ const CustomerViewDialog = ({
             </ViewCard>
           </Grid>
 
-          {/* Right Column */}
-          <Grid size={12} md={6}>
-            {/* Address Information */}
+          {/* Address Information */}
+          <Grid xs={12}>
             <ViewCard>
               <CardContent>
                 <SectionHeader>
-                  <MdLocationOn color="#B20000" />
-                  <Typography variant="h6" sx={{ color: "#B20000" }}>
+                  <MdLocationOn color="#9e0000" />
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#9e0000",
+                      fontSize: isMobile ? "1rem" : "1.25rem",
+                    }}
+                  >
                     ที่อยู่
                   </Typography>
                   <IconButton
@@ -500,52 +675,76 @@ const CustomerViewDialog = ({
                     onClick={() => toggleSection("address")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.address ? <MdExpandLess /> : <MdExpandMore />}
+                    {expandedSections.address ? (
+                      <MdExpandLess />
+                    ) : (
+                      <MdExpandMore />
+                    )}
                   </IconButton>
                 </SectionHeader>
-                
+
                 <Collapse in={expandedSections.address}>
                   <Stack spacing={1}>
                     <InfoRow>
                       <InfoLabel>ที่อยู่:</InfoLabel>
                       <InfoValue sx={{ lineHeight: 1.6 }}>
-                        {parsedAddress.address || customerData.cus_address_detail || "-"}
+                        {parsedAddress.address ||
+                          customerData.cus_address_detail ||
+                          "-"}
                       </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>จังหวัด:</InfoLabel>
-                      <InfoValue>{parsedAddress.province || customerData.cus_province_text || "-"}</InfoValue>
+                      <InfoValue>
+                        {parsedAddress.province ||
+                          customerData.cus_province_text ||
+                          "-"}
+                      </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>อำเภอ:</InfoLabel>
-                      <InfoValue>{parsedAddress.district || customerData.cus_district_text || "-"}</InfoValue>
+                      <InfoValue>
+                        {parsedAddress.district ||
+                          customerData.cus_district_text ||
+                          "-"}
+                      </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>ตำบล:</InfoLabel>
-                      <InfoValue>{parsedAddress.subdistrict || customerData.cus_subdistrict_text || "-"}</InfoValue>
+                      <InfoValue>
+                        {parsedAddress.subdistrict ||
+                          customerData.cus_subdistrict_text ||
+                          "-"}
+                      </InfoValue>
                     </InfoRow>
-                    
+
                     <InfoRow>
                       <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
-                      <InfoValue>{parsedAddress.zipCode || customerData.cus_zip_code || "-"}</InfoValue>
+                      <InfoValue>
+                        {parsedAddress.zipCode ||
+                          customerData.cus_zip_code ||
+                          "-"}
+                      </InfoValue>
                     </InfoRow>
-                    
+
                     {/* แสดงที่อยู่แบบรวมสำหรับอ้างอิง */}
                     {customerData.cus_address && (
                       <InfoRow>
                         <InfoLabel>ที่อยู่แบบรวม:</InfoLabel>
-                        <InfoValue sx={{ 
-                          lineHeight: 1.6, 
-                          fontSize: '0.8rem', 
-                          color: '#666',
-                          fontStyle: 'italic',
-                          backgroundColor: '#f5f5f5',
-                          padding: '8px',
-                          borderRadius: '4px'
-                        }}>
+                        <InfoValue
+                          sx={{
+                            lineHeight: 1.6,
+                            fontSize: "0.8rem",
+                            color: "#666",
+                            fontStyle: "italic",
+                            backgroundColor: "#f5f5f5",
+                            padding: "8px",
+                            borderRadius: "4px",
+                          }}
+                        >
                           {customerData.cus_address}
                         </InfoValue>
                       </InfoRow>
@@ -559,18 +758,30 @@ const CustomerViewDialog = ({
       </DialogContent>
 
       {/* Dialog Actions */}
-      <DialogActions sx={{ p: 2, backgroundColor: "#EBEBEB" }}>
+      <DialogActions
+        sx={{
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center",
+          gap: isMobile ? 1.5 : 1,
+          p: isMobile ? 2 : 2,
+          backgroundColor: "#fffaf9",
+          justifyContent: isMobile ? "center" : "flex-end",
+        }}
+      >
         {onEdit && (
           <Button
             variant="contained"
             startIcon={<MdEdit />}
             onClick={() => onEdit(customerData.cus_id)}
-            sx={{ 
-              mr: 1,
-              backgroundColor: "#B20000",
+            fullWidth={isMobile}
+            sx={{
+              mr: isMobile ? 0 : 1,
+              mb: isMobile ? 1 : 0,
+              backgroundColor: "#9e0000",
+              fontSize: isMobile ? "0.9rem" : "0.875rem",
               "&:hover": {
-                backgroundColor: "#900F0F"
-              }
+                backgroundColor: "#d32f2f",
+              },
             }}
           >
             แก้ไขข้อมูล
@@ -580,13 +791,15 @@ const CustomerViewDialog = ({
           variant="outlined"
           onClick={onClose}
           startIcon={<MdClose />}
+          fullWidth={isMobile}
           sx={{
-            borderColor: "#B20000",
-            color: "#B20000",
+            borderColor: "#9e0000",
+            color: "#9e0000",
+            fontSize: isMobile ? "0.9rem" : "0.875rem",
             "&:hover": {
-              borderColor: "#900F0F",
-              backgroundColor: "rgba(178, 0, 0, 0.05)"
-            }
+              borderColor: "#d32f2f",
+              backgroundColor: "rgba(158, 0, 0, 0.05)",
+            },
           }}
         >
           ปิด
@@ -596,4 +809,4 @@ const CustomerViewDialog = ({
   );
 };
 
-export default CustomerViewDialog; 
+export default CustomerViewDialog;

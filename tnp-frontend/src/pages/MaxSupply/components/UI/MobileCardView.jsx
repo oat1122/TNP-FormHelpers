@@ -163,13 +163,8 @@ const MobileCardView = ({
                   />
                   <Chip
                     label={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                      >
-                        {getProductionTypeIcon(item.production_type)}
-                        {productionTypeConfig[item.production_type]?.label ||
-                          item.production_type}
-                      </Box>
+                      productionTypeConfig[item.production_type]?.label ||
+                      item.production_type
                     }
                     sx={{
                       bgcolor: productionColors[item.production_type],

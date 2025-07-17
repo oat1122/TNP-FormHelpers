@@ -67,10 +67,10 @@ const DayEventsDialog = ({
             <EventIcon />
           </Avatar>
           <Box>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ color: "white" }}>
               งานวันที่ {format(selectedDate, 'dd MMMM yyyy', { locale: th })}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, color: "white" }}>
               รวม {dayEvents.length} งาน
             </Typography>
           </Box>

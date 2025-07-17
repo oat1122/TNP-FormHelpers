@@ -218,13 +218,17 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
               <Typography
                 variant={isMobile ? "h6" : "h5"}
                 fontWeight={600}
-                sx={{ fontSize: isMobile ? "1.1rem" : "1.5rem" }}
+                sx={{ 
+                  color: "white",
+                  fontSize: isMobile ? "1.1rem" : "1.5rem" 
+                }}
               >
                 {customerData.cus_company || "ไม่ระบุบริษัท"}
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
+                  color: "white",
                   opacity: 0.9,
                   fontSize: isMobile ? "0.9rem" : "1rem",
                 }}
@@ -252,7 +256,10 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     backgroundColor: isOverdue ? "#E36264" : "#2e7d32",
                     color: "white",
                     fontSize: isMobile ? "0.6rem" : "0.75rem",
-                    px: isMobile ? 1 : 1.5
+                    px: isMobile ? 1 : 1.5,
+                    "& .MuiChip-icon": {
+                      color: "white"
+                    }
                   }}
                   icon={<MdHistory />}
                 />

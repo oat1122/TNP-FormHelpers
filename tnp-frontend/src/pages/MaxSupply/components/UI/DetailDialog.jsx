@@ -90,9 +90,12 @@ const DetailDialog = ({
                 bgcolor: productionColors[selectedItem.production_type],
                 width: 40,
                 height: 40,
+                fontSize: "1.2rem",
+                fontWeight: "bold",
               }}
             >
-              {getProductionTypeIcon(selectedItem.production_type)}
+              {productionTypeConfig[selectedItem.production_type]?.label?.charAt(0) || 
+               selectedItem.production_type?.charAt(0) || "?"}
             </Avatar>
             <Box>
               <Typography variant="h6" fontWeight="bold">
@@ -110,121 +113,6 @@ const DetailDialog = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        {/* Status and Progress Overview */}
-        <Box
-          sx={{
-            mb: 3,
-            p: 2,
-            bgcolor: theme.palette.grey[50],
-            borderRadius: 1,
-          }}
-        >
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <Chip
-                label={statusLabels[selectedItem.status]}
-                sx={{
-                  bgcolor: statusColors[selectedItem.status],
-                  color: "white",
-                  width: "100%",
-                  fontWeight: "bold",
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Chip
-                label={
-                  productionTypeConfig[selectedItem.production_type]?.label ||
-                  selectedItem.production_type
-                }
-                sx={{
-                  bgcolor: productionColors[selectedItem.production_type],
-                  color: "white",
-                  width: "100%",
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Chip
-                label={priorityLabels[selectedItem.priority]}
-                sx={{
-                  bgcolor: priorityColors[selectedItem.priority] || "#6b7280",
-                  color: "white",
-                  width: "100%",
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              {deadlineStatus === "overdue" && (
-                <Chip
-                  icon={<FaExclamationTriangle />}
-                  label="เลยกำหนด"
-                  color="error"
-                  sx={{ width: "100%" }}
-                />
-              )}
-              {deadlineStatus === "urgent" && (
-                <Chip
-                  icon={<FaClock />}
-                  label={`เหลือ ${daysUntilDeadline} วัน`}
-                  color="warning"
-                  sx={{ width: "100%" }}
-                />
-              )}
-              {deadlineStatus === "normal" && (
-                <Chip
-                  icon={<FaCheckCircle />}
-                  label="ปกติ"
-                  color="success"
-                  sx={{ width: "100%" }}
-                />
-              )}
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Progress Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="h6"
-            gutterBottom
-            sx={{ display: "flex", alignItems: "center", gap: 1 }}
-          >
-            <TrendingUpIcon color="primary" />
-            ความคืบหน้า
-          </Typography>
-          <Box
-            sx={{ p: 2, border: 1, borderColor: "divider", borderRadius: 1 }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 1,
-              }}
-            >
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-                color={getProgressColor(progressPercentage)}
-              >
-                {progressPercentage}%
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {selectedItem.completed_quantity || 0} /{" "}
-                {selectedItem.total_quantity || 0} ชิ้น
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={progressPercentage}
-              color={getProgressColor(progressPercentage)}
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-          </Box>
-        </Box>
-
         <Grid container spacing={3}>
           {/* Basic Information */}
           <Grid item xs={12} md={6}>

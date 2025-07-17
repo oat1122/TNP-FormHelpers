@@ -22,6 +22,10 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  Assignment as AssignmentIcon,
+  Schedule as ScheduleIcon,
+  Print as PrintIcon,
+  Notes as NotesIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -304,7 +308,7 @@ const MaxSupplyEditForm = ({
                   pb: 1,
                 }}
               >
-                📋 ข้อมูลพื้นฐาน
+                <AssignmentIcon /> ข้อมูลพื้นฐาน
               </Typography>
             </Grid>
 
@@ -359,7 +363,7 @@ const MaxSupplyEditForm = ({
                   mt: 2,
                 }}
               >
-                ⏰ กำหนดเวลา
+                <ScheduleIcon /> กำหนดเวลา
               </Typography>
             </Grid>
 
@@ -418,7 +422,7 @@ const MaxSupplyEditForm = ({
                   mt: 2,
                 }}
               >
-                🖨️ ประเภทการพิมพ์
+                <PrintIcon /> ประเภทการพิมพ์
               </Typography>
             </Grid>
 
@@ -540,7 +544,7 @@ const MaxSupplyEditForm = ({
                   mt: 2,
                 }}
               >
-                📝 หมายเหตุและข้อมูลเพิ่มเติม
+                <NotesIcon /> หมายเหตุและข้อมูลเพิ่มเติม
               </Typography>
             </Grid>
 

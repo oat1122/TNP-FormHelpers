@@ -156,6 +156,7 @@ const CustomerViewDialog = ({
     >
       {/* Dialog Header - ใช้สีตาม theme */}
       <DialogTitle
+        component="div"
         sx={{
           background: "linear-gradient(135deg, #B20000 0%, #900F0F 100%)", // สีแดงตาม theme
           color: "white",

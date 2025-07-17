@@ -324,6 +324,8 @@ function DialogForm(props) {
         aria-hidden={props.openDialog ? false : true}
         PaperProps={{
           sx: {
+            display: "flex",
+            flexDirection: "column", // ✅ ต้องให้ Dialog มี flex column
             width: { xs: "95vw", sm: "90vw", md: "80vw" },
             maxWidth: { xs: "95vw", sm: "90vw", md: "900px" },
             margin: { xs: "10px", sm: "20px" },
@@ -332,13 +334,13 @@ function DialogForm(props) {
           }
         }}
       >
-        <form ref={formRef} noValidate onSubmit={handleSubmit}>
+        <form ref={formRef} noValidate onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
           <DialogTitle
             sx={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              backgroundColor: "#B20000",
+              backgroundColor: "#9e0000",
               color: "white",
               py: { xs: 1, sm: 2 },
               px: { xs: 2, sm: 3 }
@@ -368,12 +370,12 @@ function DialogForm(props) {
           <DialogContent 
             dividers
             sx={{
-              p: { xs: 1, sm: 2 },
-              height: { xs: "calc(95vh - 140px)", sm: "auto" },
-              overflowY: "auto"
+              flex: 1, // ✅ ใช้ flex: 1 เพื่อให้ scroll ได้เฉพาะ content
+              overflowY: "auto",
+              p: 0,
             }}
           >
-            <Box sx={{ width: "100%" }}>
+            <Box sx={{ p: { xs: 1, sm: 2 } }}>
               {/* Stepper - แสดงเฉพาะ mode create และ edit */}
               {mode !== "view" && (
                 <CustomerStepper
@@ -435,29 +437,48 @@ function DialogForm(props) {
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ 
-            p: { xs: 1, sm: 2 }, 
-            justifyContent: "space-between",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: { xs: 1, sm: 0 }
-          }}>
+          {/* Action Button: อยู่นอก DialogContent เพื่อไม่โดน scroll */}
+          <DialogActions
+            sx={{
+              borderTop: "1px solid #e0e0e0",
+              backgroundColor: "#fff",
+              p: { xs: 1, sm: 2 },
+              flexDirection: { xs: "column-reverse", sm: "row" },
+              gap: { xs: 1, sm: 0 },
+            }}
+          >
+            {/* Close Button */}
+            <Button
+              variant="outlined"
+              color="error"
+              disabled={saveLoading}
+              onClick={handleCloseDialog}
+              startIcon={<MdCancel />}
+              fullWidth={mode === "view"}
+              sx={{ 
+                order: { xs: 2, sm: 1 },
+                minWidth: { xs: "auto", sm: "120px" },
+                width: mode === "view" ? "100%" : { xs: "100%", sm: "auto" }
+              }}
+            >
+              {mode === "view" ? "ปิด" : "ยกเลิก"}
+            </Button>
+
             {/* Navigation Buttons */}
             {mode !== "view" && (
               <Box sx={{ 
                 display: "flex", 
-                gap: 1,
-                width: { xs: "100%", sm: "auto" },
-                order: { xs: 2, sm: 1 }
+                gap: 1, 
+                width: "100%", 
+                order: { xs: 1, sm: 2 }
               }}>
                 <Button
                   variant="outlined"
-                  disabled={activeStep === 0 || saveLoading}
                   onClick={handlePrevStep}
+                  disabled={activeStep === 0 || saveLoading}
                   startIcon={<MdNavigateBefore />}
-                  sx={{ 
-                    flex: { xs: 1, sm: "none" },
-                    minWidth: { xs: "auto", sm: "120px" }
-                  }}
+                  fullWidth
+                  sx={{ minWidth: { xs: "auto", sm: "120px" } }}
                 >
                   <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
                     ก่อนหน้า
@@ -466,68 +487,30 @@ function DialogForm(props) {
                     ก่อนหน้า
                   </Box>
                 </Button>
-                {activeStep < 3 ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    disabled={saveLoading}
-                    onClick={handleNextStep}
-                    endIcon={<MdNavigateNext />}
-                    sx={{
-                      flex: { xs: 1, sm: "none" },
-                      minWidth: { xs: "auto", sm: "120px" },
-                      backgroundColor: "#B20000",
-                      "&:hover": { backgroundColor: "#900F0F" },
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                      ถัดไป
-                    </Box>
-                    <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                      ถัดไป
-                    </Box>
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    disabled={saveLoading}
-                    onClick={handleNextStep}
-                    endIcon={<MdNavigateNext />}
-                    sx={{
-                      flex: { xs: 1, sm: "none" },
-                      minWidth: { xs: "auto", sm: "120px" },
-                      backgroundColor: "#B20000",
-                      "&:hover": { backgroundColor: "#900F0F" },
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                      บันทึก
-                    </Box>
-                    <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                      บันทึก
-                    </Box>
-                  </Button>
-                )}
+                
+                <Button
+                  variant="contained"
+                  onClick={activeStep < 3 ? handleNextStep : handleSubmit}
+                  disabled={saveLoading}
+                  endIcon={<MdNavigateNext />}
+                  fullWidth
+                  sx={{ 
+                    backgroundColor: "#9e0000", 
+                    "&:hover": { backgroundColor: "#d32f2f" },
+                    minWidth: { xs: "auto", sm: "120px" }
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                    {activeStep < 3 ? "ถัดไป" : "บันทึก"}
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                    {activeStep < 3 ? "ถัดไป" : "บันทึก"}
+                  </Box>
+                </Button>
               </Box>
             )}
-
-            {/* Close Button */}
-            <Button
-              variant="outlined"
-              color="error"
-              disabled={saveLoading}
-              onClick={handleCloseDialog}
-              startIcon={<MdCancel />}
-              sx={{
-                width: { xs: "100%", sm: "auto" },
-                minWidth: { xs: "auto", sm: "120px" },
-                order: { xs: 1, sm: 2 }
-              }}
-            >
-              {mode === "view" ? "ปิด" : "ยกเลิก"}
-            </Button>
           </DialogActions>
+
         </form>
       </Dialog>
     </>

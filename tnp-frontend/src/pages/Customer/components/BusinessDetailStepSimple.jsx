@@ -8,13 +8,24 @@ import {
   CircularProgress,
   Alert,
   Grid2 as Grid,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Container,
+  useMediaQuery,
+  useTheme,
+  Stack,
 } from "@mui/material";
-import { MdAssignment, MdLocationOn, MdGpsFixed } from "react-icons/md";
+import { MdAssignment, MdLocationOn, MdGpsFixed, MdExpandMore, MdPhone, MdEmail, MdHome } from "react-icons/md";
+import { HiPhone, HiMail, HiLocationMarker } from "react-icons/hi";
 import { useDispatch } from "react-redux";
 import { setInputList } from "../../../features/Customer/customerSlice";
 
 // สี theme ของบริษัท
-const PRIMARY_RED = "#B20000";
+const PRIMARY_RED = "#9e0000"; // Updated to match the consistent theme
+const SECONDARY_RED = "#d32f2f";
+const BACKGROUND_COLOR = "#fffaf9";
+const DIVIDER_COLOR = "#9e000022";
 
 /**
  * ฟังก์ชันสำหรับแยกที่อยู่ที่บันทึกแบบรวมกลับเป็นส่วนๆ
@@ -126,6 +137,9 @@ const BusinessDetailStepSimple = ({
   mode = "create",
 }) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   
   // State สำหรับ GPS
   const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -584,394 +598,368 @@ ${fullAddressDisplay}
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* หัวข้อ */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-        <MdAssignment size={24} color={PRIMARY_RED} />
-        <Typography variant="h6" sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
-          รายละเอียดธุรกิจ
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {/* เบอร์โทรและอีเมล */}
-        <Box sx={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          gap: 2,
-          "@media (max-width:600px)": {
-            gap: 1.5
+    <Container maxWidth="lg" sx={{ py: 2 }}>
+      {/* Gradient Header with Step Progress */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${PRIMARY_RED} 0%, ${SECONDARY_RED} 100%)`,
+          borderRadius: 2,
+          p: 3,
+          mb: 3,
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(255,255,255,0.05)',
+            backdropFilter: 'blur(10px)',
           }
-        }}>
-          {/* เบอร์โทรหลักและสำรอง */}
-          <Box sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: 2,
-            "@media (max-width:600px)": {
-              gap: 1.5
-            }
-          }}>
-            <TextField
-              name="cus_tel_1"
-              label="เบอร์โทรหลัก"
-              value={inputList.cus_tel_1 || ""}
-              onChange={debugHandleInputChange}
-              required
-              error={!!errors.cus_tel_1}
-              helperText={errors.cus_tel_1}
-              disabled={mode === "view"}
-              placeholder="เช่น 02-123-4567, 081-234-5678"
-              size="small"
-              fullWidth
-              InputProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
+        }}
+      >
+        <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <MdAssignment size={isMobile ? 24 : 28} />
+            <Typography 
+              variant={isMobile ? "h6" : "h5"} 
+              sx={{ 
+                fontWeight: 600,
+                fontFamily: 'Kanit'
               }}
-              InputLabelProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-                shrink: !!(inputList.cus_tel_1)
-              }}
-              sx={{
-                flex: 1,
-                "@media (max-width:600px)": {
-                  "& .MuiInputBase-input": {
-                    fontSize: "14px",
-                    padding: "10px 12px"
-                  },
-                  "& .MuiInputLabel-root": {
-                    fontSize: "13px"
-                  }
-                }
-              }}
-            />
-            
-            <TextField
-              name="cus_tel_2"
-              label="เบอร์โทรสำรอง (ไม่บังคับ)"
-              value={inputList.cus_tel_2 || ""}
-              onChange={debugHandleInputChange}
-              error={!!errors.cus_tel_2}
-              helperText={errors.cus_tel_2}
-              disabled={mode === "view"}
-              placeholder="เช่น 02-987-6543, 089-876-5432"
-              size="small"
-              fullWidth
-              InputProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-              }}
-              InputLabelProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-                shrink: !!(inputList.cus_tel_2)
-              }}
-              sx={{
-                flex: 1,
-                "@media (max-width:600px)": {
-                  "& .MuiInputBase-input": {
-                    fontSize: "14px",
-                    padding: "10px 12px"
-                  },
-                  "& .MuiInputLabel-root": {
-                    fontSize: "13px"
-                  }
-                }
-              }}
-            />
+            >
+              รายละเอียดธุรกิจ
+            </Typography>
           </Box>
           
-          {/* อีเมล */}
-          <TextField
-            name="cus_email"
-            label="อีเมล"
-            type="email"
-            value={inputList.cus_email || ""}
-            onChange={debugHandleInputChange}
-            error={!!errors.cus_email}
-            helperText={errors.cus_email}
-            disabled={mode === "view"}
-            placeholder="เช่น contact@company.com"
-            size="small"
-            fullWidth
-            InputProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-            }}
-            InputLabelProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-              shrink: !!(inputList.cus_email)
-            }}
-            sx={{
-              "@media (max-width:600px)": {
-                "& .MuiInputBase-input": {
-                  fontSize: "14px",
-                  padding: "10px 12px"
-                },
-                "& .MuiInputLabel-root": {
-                  fontSize: "13px"
-                }
-              }
-            }}
-          />
-        </Box>
-
-        {/* ที่อยู่ธุรกิจ */}
-        <Box>
-          {/* หัวข้อ + ปุ่ม GPS */}
-          <Box sx={{ 
-            display: "flex", 
-            alignItems: { xs: "flex-start", sm: "center" },
-            flexDirection: { xs: "column", sm: "row" },
-            gap: { xs: 1, sm: 1 }, 
-            mb: 2
-          }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <MdLocationOn size={20} color={PRIMARY_RED} />
-              <Typography 
-                variant="body2" 
+          {/* Progress Indicator */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: 'Kanit' }}>
+              ขั้นตอนที่ 2 จาก 4
+            </Typography>
+            <Box 
+              sx={{ 
+                flex: 1, 
+                height: 4, 
+                bgcolor: 'rgba(255,255,255,0.3)', 
+                borderRadius: 2, 
+                overflow: 'hidden' 
+              }}
+            >
+              <Box 
                 sx={{ 
-                  fontFamily: "Kanit", 
-                  fontWeight: 500,
-                  fontSize: { xs: "0.875rem", sm: "0.875rem" }
-                }}
-              >
-                ที่อยู่ของธุรกิจ (ไม่บังคับ)
-              </Typography>
+                  height: '100%', 
+                  width: '50%', 
+                  bgcolor: 'white', 
+                  borderRadius: 2,
+                  transition: 'width 0.3s ease'
+                }} 
+              />
             </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={isGettingLocation ? <CircularProgress size={16} /> : <MdGpsFixed />}
-              onClick={handleGetCurrentLocation}
-              disabled={isGettingLocation || mode === "view"}
+          </Box>
+        </Stack>
+      </Box>
+
+      {/* Contact Information Section */}
+      <Accordion 
+        defaultExpanded={true}
+        sx={{ 
+          mb: 2,
+          boxShadow: isMobile ? 1 : 2,
+          borderRadius: 2,
+          '&:before': { display: 'none' },
+          border: `1px solid ${DIVIDER_COLOR}`,
+        }}
+      >
+        <AccordionSummary 
+          expandIcon={<MdExpandMore />}
+          sx={{
+            bgcolor: BACKGROUND_COLOR,
+            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: '8px 8px 0 0',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <HiPhone size={20} color={PRIMARY_RED} />
+            <Typography 
+              variant="subtitle1" 
               sx={{ 
-                fontFamily: "Kanit",
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                color: PRIMARY_RED,
-                borderColor: PRIMARY_RED,
-                whiteSpace: "nowrap",
-                minWidth: "auto",
-                px: { xs: 1.5, sm: 2 },
-                py: { xs: 0.5, sm: 1 },
-                height: { xs: "32px", sm: "auto" },
-                "& .MuiButton-startIcon": {
-                  marginRight: { xs: "4px", sm: "8px" }
-                },
-                "&:hover": {
-                  borderColor: PRIMARY_RED,
-                  backgroundColor: `${PRIMARY_RED}10`
-                },
-                "&:disabled": {
-                  borderColor: "#ccc",
-                  color: "#999"
-                }
+                fontWeight: 600,
+                fontFamily: 'Kanit',
+                color: PRIMARY_RED
               }}
             >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                {isGettingLocation ? (
-                  "🎯 กำลังค้นหาตำแหน่งแม่นยำ..."
-                ) : (
-                  "📍 ใช้ตำแหน่งปัจจุบัน"
-                )}
-              </Box>
-              <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                {isGettingLocation ? "ค้นหา..." : "GPS"}
-              </Box>
-            </Button>
+              ข้อมูลการติดต่อ
+            </Typography>
           </Box>
-
-          {/* แสดงสถานะ GPS */}
-          {locationStatus && (
-            <Alert 
-              severity={
-                locationStatus.startsWith("✅") ? "success" : 
-                locationStatus.startsWith("❌") || locationStatus.startsWith("⏱️") ? "error" : 
-                locationStatus.startsWith("⚠️") ? "warning" :
-                "info"
-              }
-              sx={{ 
-                mb: 2, 
-                fontFamily: "Kanit", 
-                fontSize: 14, 
-                whiteSpace: "pre-line",
-                "& .MuiAlert-message": {
-                  whiteSpace: "pre-line",
-                  lineHeight: 1.4
-                }
-              }}
-            >
-              {locationStatus}
-            </Alert>
-          )}
-
-          {/* ฟิลด์ที่อยู่ */}
-          <TextField
-            name="cus_address"
-            label="ที่อยู่ (ไม่จำเป็น)"
-            value={localAddress || inputList.cus_address || ""}
-            onChange={(e) => {
-              setLocalAddress(e.target.value);
-              debugHandleInputChange(e);
-            }}
-            fullWidth
-            multiline
-            rows={2}
-            error={!!errors.cus_address}
-            helperText={errors.cus_address || "บ้านเลขที่ ซอย ถนน (สามารถข้ามได้หากไม่ต้องการระบุ)"}
-            disabled={mode === "view"}
-            placeholder="เช่น 123/45 ซอย ABC ถนน XYZ หรือสามารถเว้นว่างได้"
-            size="small"
-            sx={{ 
-              mb: 2,
-              "& .MuiInputBase-root": {
-                fontFamily: "Kanit",
-                fontSize: 14,
-              },
-              "& .MuiInputLabel-root": {
-                fontFamily: "Kanit",
-                fontSize: 14,
-              },
-              "@media (max-width:600px)": {
-                "& .MuiInputBase-input": {
-                  fontSize: "13px",
-                  lineHeight: 1.5,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  padding: "10px 12px"
-                },
-                "& .MuiInputLabel-root": {
-                  fontSize: "13px"
-                },
-                "& .MuiFormHelperText-root": {
-                  fontSize: "11px"
-                }
-              }
-            }}
-            InputProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-            }}
-            InputLabelProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-              shrink: !!(localAddress || inputList.cus_address)
-            }}
-          />
-
-          {/* จังหวัด, อำเภอ, ตำบล */}
-          <Box sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: 2,
-            "@media (max-width:600px)": {
-              gap: 1.5
-            }
-          }}>
-            {/* จังหวัด */}
-            <TextField
-              name="cus_province_text"
-              label="จังหวัด"
-              value={inputList.cus_province_text || ""}
-              onChange={handleTextFieldChange}
-              fullWidth
-              size="small"
-              error={!!errors.cus_province_text}
-              helperText={errors.cus_province_text}
-              disabled={mode === "view"}
-              placeholder="เช่น กรุงเทพมหานคร"
-              InputProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-              }}
-              InputLabelProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-                shrink: !!(inputList.cus_province_text)
-              }}
-              sx={{
-                flex: 1,
-                "@media (max-width:600px)": {
-                  "& .MuiInputBase-input": {
-                    fontSize: "14px",
-                    padding: "10px 12px"
-                  },
-                  "& .MuiInputLabel-root": {
-                    fontSize: "13px"
-                  }
-                }
-              }}
-            />
-
-            {/* อำเภอ/เขต */}
-            <TextField
-              name="cus_district_text"
-              label="เขต/อำเภอ"
-              value={inputList.cus_district_text || ""}
-              onChange={handleTextFieldChange}
-              fullWidth
-              size="small"
-              error={!!errors.cus_district_text}
-              helperText={errors.cus_district_text}
-              disabled={mode === "view"}
-              placeholder="เช่น เขตบางรัก"
-              InputProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-              }}
-              InputLabelProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-                shrink: !!(inputList.cus_district_text)
-              }}
-              sx={{
-                flex: 1,
-                "@media (max-width:600px)": {
-                  "& .MuiInputBase-input": {
-                    fontSize: "14px",
-                    padding: "10px 12px"
-                  },
-                  "& .MuiInputLabel-root": {
-                    fontSize: "13px"
-                  }
-                }
-              }}
-            />
-
-            {/* ตำบล/แขวง */}
-            <TextField
-              name="cus_subdistrict_text"
-              label="แขวง/ตำบล"
-              value={inputList.cus_subdistrict_text || ""}
-              onChange={handleTextFieldChange}
-              fullWidth
-              size="small"
-              error={!!errors.cus_subdistrict_text}
-              helperText={errors.cus_subdistrict_text}
-              disabled={mode === "view"}
-              placeholder="เช่น แขวงบางรัก"
-              InputProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-              }}
-              InputLabelProps={{
-                style: { fontFamily: "Kanit", fontSize: 14 },
-                shrink: !!(inputList.cus_subdistrict_text)
-              }}
-              sx={{
-                flex: 1,
-                "@media (max-width:600px)": {
-                  "& .MuiInputBase-input": {
-                    fontSize: "14px",
-                    padding: "10px 12px"
-                  },
-                  "& .MuiInputLabel-root": {
-                    fontSize: "13px"
-                  }
-                }
-              }}
-            />
-          </Box>
-
-          {/* รหัสไปรษณีย์ */}
-          <Box sx={{ mt: 2 }}>
+        </AccordionSummary>
+        
+        <AccordionDetails sx={{ p: 3 }}>
+          <Stack spacing={3}>
+            {/* Phone Numbers Row */}
             <Box sx={{
               display: "flex",
               flexDirection: { xs: "column", sm: "row" },
               gap: 2,
-              "@media (max-width:600px)": {
-                gap: 1.5
-              }
             }}>
+              <TextField
+                name="cus_tel_1"
+                label="เบอร์โทรหลัก"
+                value={inputList.cus_tel_1 || ""}
+                onChange={debugHandleInputChange}
+                required
+                error={!!errors.cus_tel_1}
+                helperText={errors.cus_tel_1}
+                disabled={mode === "view"}
+                placeholder="เช่น 02-123-4567, 081-234-5678"
+                size="small"
+                fullWidth
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_tel_1)
+                }}
+                sx={{ flex: 1 }}
+              />
+              
+              <TextField
+                name="cus_tel_2"
+                label="เบอร์โทรสำรอง (ไม่บังคับ)"
+                value={inputList.cus_tel_2 || ""}
+                onChange={debugHandleInputChange}
+                error={!!errors.cus_tel_2}
+                helperText={errors.cus_tel_2}
+                disabled={mode === "view"}
+                placeholder="เช่น 02-987-6543, 089-876-5432"
+                size="small"
+                fullWidth
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_tel_2)
+                }}
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            
+            {/* Email */}
+            <TextField
+              name="cus_email"
+              label="อีเมล"
+              type="email"
+              value={inputList.cus_email || ""}
+              onChange={debugHandleInputChange}
+              error={!!errors.cus_email}
+              helperText={errors.cus_email}
+              disabled={mode === "view"}
+              placeholder="เช่น contact@company.com"
+              size="small"
+              fullWidth
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+                shrink: !!(inputList.cus_email)
+              }}
+            />
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Address Information Section */}
+      <Accordion 
+        defaultExpanded={false}
+        sx={{ 
+          mb: 2,
+          boxShadow: isMobile ? 1 : 2,
+          borderRadius: 2,
+          '&:before': { display: 'none' },
+          border: `1px solid ${DIVIDER_COLOR}`,
+        }}
+      >
+        <AccordionSummary 
+          expandIcon={<MdExpandMore />}
+          sx={{
+            bgcolor: BACKGROUND_COLOR,
+            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: '8px 8px 0 0',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <MdLocationOn size={20} color={PRIMARY_RED} />
+            <Typography 
+              variant="subtitle1" 
+              sx={{ 
+                fontWeight: 600,
+                fontFamily: 'Kanit',
+                color: PRIMARY_RED
+              }}
+            >
+              ที่อยู่ธุรกิจ (ไม่บังคับ)
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        
+        <AccordionDetails sx={{ p: 3 }}>
+          <Stack spacing={3}>
+            {/* GPS Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={isGettingLocation ? <CircularProgress size={16} /> : <MdGpsFixed />}
+                onClick={handleGetCurrentLocation}
+                disabled={isGettingLocation || mode === "view"}
+                sx={{ 
+                  fontFamily: "Kanit",
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  color: PRIMARY_RED,
+                  borderColor: PRIMARY_RED,
+                  whiteSpace: "nowrap",
+                  px: 2,
+                  "&:hover": {
+                    borderColor: PRIMARY_RED,
+                    backgroundColor: `${PRIMARY_RED}10`
+                  },
+                  "&:disabled": {
+                    borderColor: "#ccc",
+                    color: "#999"
+                  }
+                }}
+              >
+                {isGettingLocation ? "กำลังค้นหาตำแหน่ง..." : "ใช้ตำแหน่งปัจจุบัน"}
+              </Button>
+            </Box>
+
+            {/* GPS Status */}
+            {locationStatus && (
+              <Alert 
+                severity={
+                  locationStatus.startsWith("✅") ? "success" : 
+                  locationStatus.startsWith("❌") || locationStatus.startsWith("⏱️") ? "error" : 
+                  locationStatus.startsWith("⚠️") ? "warning" :
+                  "info"
+                }
+                sx={{ 
+                  fontFamily: "Kanit", 
+                  fontSize: 14, 
+                  whiteSpace: "pre-line",
+                  "& .MuiAlert-message": {
+                    whiteSpace: "pre-line",
+                    lineHeight: 1.4
+                  }
+                }}
+              >
+                {locationStatus}
+              </Alert>
+            )}
+
+            {/* Address Field */}
+            <TextField
+              name="cus_address"
+              label="ที่อยู่ (ไม่จำเป็น)"
+              value={localAddress || inputList.cus_address || ""}
+              onChange={(e) => {
+                setLocalAddress(e.target.value);
+                debugHandleInputChange(e);
+              }}
+              fullWidth
+              multiline
+              rows={2}
+              error={!!errors.cus_address}
+              helperText={errors.cus_address || "บ้านเลขที่ ซอย ถนน (สามารถข้ามได้หากไม่ต้องการระบุ)"}
+              disabled={mode === "view"}
+              placeholder="เช่น 123/45 ซอย ABC ถนน XYZ หรือสามารถเว้นว่างได้"
+              size="small"
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+              }}
+              InputLabelProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+                shrink: !!(localAddress || inputList.cus_address)
+              }}
+            />
+
+            {/* Province, District, Subdistrict */}
+            <Box sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              gap: 2,
+            }}>
+              <TextField
+                name="cus_province_text"
+                label="จังหวัด"
+                value={inputList.cus_province_text || ""}
+                onChange={handleTextFieldChange}
+                fullWidth
+                size="small"
+                error={!!errors.cus_province_text}
+                helperText={errors.cus_province_text}
+                disabled={mode === "view"}
+                placeholder="เช่น กรุงเทพมหานคร"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_province_text)
+                }}
+                sx={{ flex: 1 }}
+              />
+
+              <TextField
+                name="cus_district_text"
+                label="เขต/อำเภอ"
+                value={inputList.cus_district_text || ""}
+                onChange={handleTextFieldChange}
+                fullWidth
+                size="small"
+                error={!!errors.cus_district_text}
+                helperText={errors.cus_district_text}
+                disabled={mode === "view"}
+                placeholder="เช่น เขตบางรัก"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_district_text)
+                }}
+                sx={{ flex: 1 }}
+              />
+
+              <TextField
+                name="cus_subdistrict_text"
+                label="แขวง/ตำบล"
+                value={inputList.cus_subdistrict_text || ""}
+                onChange={handleTextFieldChange}
+                fullWidth
+                size="small"
+                error={!!errors.cus_subdistrict_text}
+                helperText={errors.cus_subdistrict_text}
+                disabled={mode === "view"}
+                placeholder="เช่น แขวงบังรัก"
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                  shrink: !!(inputList.cus_subdistrict_text)
+                }}
+                sx={{ flex: 1 }}
+              />
+            </Box>
+
+            {/* Postal Code */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
               <TextField
                 name="cus_zip_code"
                 label="รหัสไปรษณีย์"
@@ -980,7 +968,6 @@ ${fullAddressDisplay}
                   setLocalZipCode(e.target.value);
                   debugHandleInputChange(e);
                 }}
-                fullWidth
                 disabled={mode === "view"}
                 placeholder="เช่น 10330"
                 size="small"
@@ -995,48 +982,37 @@ ${fullAddressDisplay}
                   style: { fontFamily: "Kanit", fontSize: 14 },
                   shrink: !!(localZipCode || inputList.cus_zip_code)
                 }}
-                sx={{
-                  maxWidth: { xs: "100%", sm: "200px", md: "150px" },
-                  "@media (max-width:600px)": {
-                    "& .MuiInputBase-input": {
-                      fontSize: "14px",
-                      padding: "10px 12px"
-                    },
-                    "& .MuiInputLabel-root": {
-                      fontSize: "13px"
-                    }
-                  }
-                }}
+                sx={{ maxWidth: { xs: "100%", sm: "200px" } }}
               />
             </Box>
-          </Box>
-        </Box>
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
 
-        {/* แสดงผลลัพธ์ GPS (สำหรับ debug) */}
-        {gpsResult && process.env.NODE_ENV === 'development' && (
-          <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
-              🐛 GPS Debug Info:
-            </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              📍 Coordinates: {gpsResult.coordinates.latitude}, {gpsResult.coordinates.longitude}
-            </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              � Accuracy: ±{gpsResult.coordinates.accuracy}m ({gpsResult.accuracyLevel})
-            </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              �🏠 Address: {JSON.stringify(gpsResult.address, null, 2)}
-            </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              ⏰ Time: {gpsResult.timestamp}
-            </Typography>
-            <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
-              🔧 Debug: hasFilledFromGps={String(hasFilledFromGps)}, localAddress="{localAddress}", localZipCode="{localZipCode}"
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Box>
+      {/* Debug GPS Results (Development Only) */}
+      {gpsResult && process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
+            GPS Debug Info:
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+            Coordinates: {gpsResult.coordinates.latitude}, {gpsResult.coordinates.longitude}
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+            Accuracy: ±{gpsResult.coordinates.accuracy}m ({gpsResult.accuracyLevel})
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+            Address: {JSON.stringify(gpsResult.address, null, 2)}
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+            Time: {gpsResult.timestamp}
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "Kanit", display: 'block' }}>
+            Debug: hasFilledFromGps={String(hasFilledFromGps)}, localAddress="{localAddress}", localZipCode="{localZipCode}"
+          </Typography>
+        </Box>
+      )}
+    </Container>
   );
 };
 

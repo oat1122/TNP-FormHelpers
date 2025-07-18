@@ -141,7 +141,6 @@ const CalendarGrid = ({
                     variant="body2" 
                     fontWeight={isTodayDate ? 'bold' : 'normal'}
                     sx={{
-                      color: isTodayDate ? '#1a73e8' : isCurrentMonth ? 'text.primary' : 'text.secondary',
                       fontSize: isTodayDate ? (isMobile ? '0.875rem' : '1rem') : (isMobile ? '0.75rem' : '0.875rem'),
                       width: isMobile ? 20 : 24,
                       height: isMobile ? 20 : 24,
@@ -150,7 +149,7 @@ const CalendarGrid = ({
                       justifyContent: 'center',
                       borderRadius: '50%',
                       bgcolor: isTodayDate ? '#1a73e8' : 'transparent',
-                      color: isTodayDate ? 'white' : 'inherit',
+                      color: isTodayDate ? 'white' : isCurrentMonth ? 'text.primary' : 'text.secondary',
                     }}
                   >
                     {format(day, 'd')}

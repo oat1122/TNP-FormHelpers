@@ -59,7 +59,6 @@ export const useMaxSupplyData = (filters = {}) => {
     // Prevent concurrent requests
     if (isLoadingRef.current && !forceRefresh) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Request already in progress, skipping...');
       }
       return;
     }
@@ -68,7 +67,6 @@ export const useMaxSupplyData = (filters = {}) => {
     const now = Date.now();
     if (!forceRefresh && now - lastRequestTimeRef.current < 1000) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Request too soon, debouncing...');
       }
       return;
     }
@@ -94,7 +92,6 @@ export const useMaxSupplyData = (filters = {}) => {
       };
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Loading MaxSupply data with params:', params);
       }
 
       const response = await maxSupplyApi.getAll(params);
@@ -102,13 +99,11 @@ export const useMaxSupplyData = (filters = {}) => {
       // Check if request was aborted
       if (abortControllerRef.current?.signal.aborted) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('Request was aborted');
         }
         return;
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('MaxSupply API response received');
       }
 
       if (response.status === 'success' || response.data) {
@@ -117,20 +112,14 @@ export const useMaxSupplyData = (filters = {}) => {
         
         // Debug logging for work_calculations data - development only
         if (process.env.NODE_ENV === 'development') {
-          console.log('Raw items from API:', items);
           normalizedData.forEach((item, index) => {
-            console.log(`Item ${index} fields:`, Object.keys(item));
             if (item.work_calculations) {
-              console.log(`Item ${index} work_calculations:`, item.work_calculations);
-              console.log(`Item ${index} work_calculations type:`, typeof item.work_calculations);
             } else {
-              console.log(`Item ${index} has no work_calculations field`);
             }
           });
           
           // Log summary of work_calculations found
           const itemsWithWorkCalc = normalizedData.filter(item => item.work_calculations);
-          console.log(`Found ${itemsWithWorkCalc.length} items with work_calculations out of ${normalizedData.length} total items`);
         }
         
         setData(normalizedData);
@@ -140,8 +129,6 @@ export const useMaxSupplyData = (filters = {}) => {
         setStatistics(stats);
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('Loaded data:', normalizedData);
-          console.log('Calculated statistics:', stats);
         }
       } else {
         throw new Error(response.message || 'Failed to load data');
@@ -150,7 +137,6 @@ export const useMaxSupplyData = (filters = {}) => {
       // Don't set error if request was aborted
       if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('Request aborted');
         }
         return;
       }
@@ -354,21 +340,11 @@ export const useMaxSupplyData = (filters = {}) => {
         
         // Enhanced logging for capacity calculations - development only
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Capacity calculation for ${type}:`, {
-            currentWorkload,
-            dailyCapacity,
-            utilizationPercentage: `${utilizationPercentage}%`,
-            remainingDaily: dailyCapacity - currentWorkload,
-            remainingWeekly: weeklyCapacity - currentWorkload,
-            remainingMonthly: monthlyCapacity - currentWorkload
-          });
+          // Development logs removed for production
         }
       }
     });
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Calculated work statistics:', stats.work_calculations);
-    }
     return stats;
   };
 
@@ -464,14 +440,6 @@ export const useMaxSupplyData = (filters = {}) => {
     ];
 
     const result = calculateStatistics(exampleData);
-    console.log('=== Test Calculation Results ===');
-    console.log('Screen - Current Workload:', result.work_calculations.current_workload.screen);
-    console.log('Screen - Utilization:', result.work_calculations.utilization.screen + '%');
-    console.log('Screen - Remaining Daily:', result.work_calculations.remaining_capacity.daily.screen);
-    console.log('DTF - Current Workload:', result.work_calculations.current_workload.dtf);
-    console.log('DTF - Utilization:', result.work_calculations.utilization.dtf + '%');
-    console.log('DTF - Remaining Daily:', result.work_calculations.remaining_capacity.daily.dtf);
-    console.log('===============================');
     
     return result;
   };
@@ -632,16 +600,6 @@ export const testCalculationLogic = () => {
   ];
 
   const result = calculateStatistics(exampleData);
-  console.log('=== Test Calculation Results ===');
-  console.log('Screen - Job Count:', result.work_calculations.job_count.screen);
-  console.log('Screen - Current Workload:', result.work_calculations.current_workload.screen);
-  console.log('Screen - Utilization:', result.work_calculations.utilization.screen + '%');
-  console.log('Screen - Remaining Daily:', result.work_calculations.remaining_capacity.daily.screen);
-  console.log('DTF - Job Count:', result.work_calculations.job_count.dtf);
-  console.log('DTF - Current Workload:', result.work_calculations.current_workload.dtf);
-  console.log('DTF - Utilization:', result.work_calculations.utilization.dtf + '%');
-  console.log('DTF - Remaining Daily:', result.work_calculations.remaining_capacity.daily.dtf);
-  console.log('===============================');
   
   return result;
 };

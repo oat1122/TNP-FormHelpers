@@ -160,7 +160,7 @@ const EnhancedDashboard = ({
               fontWeight="bold"
               sx={{ mb: 2, display: "flex", alignItems: "center" }}
             >
-              💡 ข้อมูลเชิงลึก (Insights)
+              ข้อมูลเชิงลึก (Insights)
             </Typography>
             <Grid container spacing={2}>
               {insights.map((insight, index) => (

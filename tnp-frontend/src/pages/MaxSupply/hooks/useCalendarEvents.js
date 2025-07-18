@@ -143,16 +143,6 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
 
   // Auto-debug when data changes
   useEffect(() => {
-    console.log('=== CALENDAR EVENTS DEBUG ===');
-    console.log('Current date:', format(currentDate, 'yyyy-MM-dd'));
-    console.log('Calendar range:', format(calendarDays[0], 'yyyy-MM-dd'), 'to', format(calendarDays[calendarDays.length - 1], 'yyyy-MM-dd'));
-    console.log('Input maxSupplies:', maxSupplies.length);
-    console.log('Working data:', workingData.length);
-    console.log('Filtered events:', filteredEvents.length);
-    console.log('Event rows:', eventRowsData.rows.length);
-    console.log('Overflow timelines:', eventRowsData.overflowTimelines.length);
-    console.log('Total timelines:', eventRowsData.totalTimelines);
-    console.log('=== END CALENDAR EVENTS DEBUG ===');
   }, [currentDate, calendarDays, maxSupplies, workingData, filteredEvents, eventRowsData]);
 
   return {

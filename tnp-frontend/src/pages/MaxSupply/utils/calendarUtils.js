@@ -3,20 +3,7 @@ import { CALENDAR_CONFIG, PRIORITY_ORDER } from './constants';
 
 // Calculate event timeline position and width for multi-day spanning
 export const calculateEventTimeline = (event, calendarDays) => {
-  console.log('=== TIMELINE CALCULATION START ===');
-  console.log('Event data:', {
-    id: event.id,
-    title: event.title,
-    customer_name: event.customer_name,
-    start_date: event.start_date,
-    expected_completion_date: event.expected_completion_date,
-    due_date: event.due_date,
-    production_type: event.production_type,
-    status: event.status
-  });
-  
   if (!event.start_date) {
-    console.log('No start_date, returning null');
     return null;
   }
   
@@ -26,27 +13,18 @@ export const calculateEventTimeline = (event, calendarDays) => {
     // Use expected_completion_date, fallback to due_date if not available
     const endDateStr = event.expected_completion_date || event.due_date;
     if (!endDateStr) {
-      console.log('No end date found, returning null');
       return null;
     }
     
     const eventEnd = typeof endDateStr === 'string' ? parseISO(endDateStr) : endDateStr;
     
     if (!isValid(eventStart) || !isValid(eventEnd)) {
-      console.log('Invalid dates, returning null');
       return null;
     }
     
     // Convert to date strings for comparison
     const eventStartStr = format(eventStart, 'yyyy-MM-dd');
     const eventEndStr = format(eventEnd, 'yyyy-MM-dd');
-    
-    console.log('Parsed dates:', {
-      eventStart: eventStartStr,
-      eventEnd: eventEndStr,
-      eventStartObj: eventStart,
-      eventEndObj: eventEnd
-    });
     
     // Find start and end positions in calendar
     const startIndex = calendarDays.findIndex(day => 
@@ -61,22 +39,15 @@ export const calculateEventTimeline = (event, calendarDays) => {
     const calendarEnd = calendarDays[calendarDays.length - 1];
     
     // Enhanced debug logging
-    console.log('=== CALCULATING TIMELINE ===');
-    console.log('Event:', event.id, event.title || event.customer_name);
-    console.log('Event dates:', eventStartStr, 'to', eventEndStr);
-    console.log('Calendar range:', format(calendarStart, 'yyyy-MM-dd'), 'to', format(calendarEnd, 'yyyy-MM-dd'));
-    console.log('Start index:', startIndex, 'End index:', endIndex);
     
     // Handle events that span beyond the current calendar view
     let actualStart, actualEnd;
     
     // Check if event has any intersection with current calendar view
     const eventIntersectsCalendar = (eventStart <= calendarEnd && eventEnd >= calendarStart);
-    console.log('Event intersects calendar:', eventIntersectsCalendar);
     
     if (!eventIntersectsCalendar) {
       // Event is completely outside current calendar view
-      console.log('Event completely outside calendar view');
       return null;
     }
     
@@ -85,48 +56,29 @@ export const calculateEventTimeline = (event, calendarDays) => {
       if (eventStart <= calendarStart && eventEnd >= calendarEnd) {
         actualStart = 0;
         actualEnd = calendarDays.length - 1;
-        console.log('Event spans entire calendar view');
       } else {
-        console.log('Event outside calendar view (case 2)');
         return null;
       }
     } else if (startIndex === -1) {
       // Event starts before calendar view but ends within
       actualStart = 0;
       actualEnd = endIndex;
-      console.log('Event starts before calendar, ends within');
     } else if (endIndex === -1) {
       // Event starts within calendar view but ends after
       actualStart = startIndex;
       actualEnd = calendarDays.length - 1;
-      console.log('Event starts within calendar, ends after', { startIndex, actualStart, actualEnd });
     } else {
       // Event is completely within calendar view
       actualStart = startIndex;
       actualEnd = endIndex;
-      console.log('Event completely within calendar view', { startIndex, endIndex, actualStart, actualEnd });
     }
     
     const width = actualStart <= actualEnd ? actualEnd - actualStart + 1 : 0;
     if (width <= 0) {
-      console.log('Invalid width:', width);
       return null;
     }
     
     const duration = differenceInDays(eventEnd, eventStart) + 1;
-    
-    console.log('Final result:', {
-      actualStart,
-      actualEnd,
-      width,
-      duration,
-      leftPercent: (actualStart / calendarDays.length) * 100,
-      widthPercent: (width / calendarDays.length) * 100,
-      totalCalendarDays: calendarDays.length,
-      startIndex,
-      endIndex
-    });
-    console.log('=== END TIMELINE CALCULATION ===');
 
     return {
       startCol: actualStart,
@@ -167,9 +119,6 @@ export const organizeEventsInRows = (events, calendarDays) => {
       return b.width - a.width;
     });
   
-  console.log('=== ORGANIZING TIMELINE ROWS (LIMITED) ===');
-  console.log('Total timelines to organize:', timelines.length);
-  console.log('Maximum displayable timelines:', MAX_TOTAL_EVENTS);
   
   const rows = [];
   const displayedTimelines = [];
@@ -180,20 +129,9 @@ export const organizeEventsInRows = (events, calendarDays) => {
     const currentStart = timeline.startCol;
     const currentEnd = timeline.startCol + timeline.width - 1;
     
-    console.log(`\nProcessing timeline ${index + 1}:`, {
-      eventId: timeline.event.id,
-      title: timeline.event.title || timeline.event.customer_name,
-      priority: timeline.event.priority,
-      startCol: currentStart,
-      endCol: currentEnd,
-      width: timeline.width,
-      range: `${currentStart}-${currentEnd}`
-    });
-    
     // Check if we've reached the maximum total events
     if (displayedTimelines.length >= MAX_TOTAL_EVENTS) {
       overflowTimelines.push(timeline);
-      console.log(`  ⚠️ Added to overflow (total limit reached: ${MAX_TOTAL_EVENTS})`);
       return;
     }
     
@@ -205,7 +143,6 @@ export const organizeEventsInRows = (events, calendarDays) => {
       
       // Check if this row has reached its limit
       if (row.length >= MAX_EVENTS_PER_ROW) {
-        console.log(`  ✗ Row ${rowIndex} is full (${row.length}/${MAX_EVENTS_PER_ROW})`);
         continue;
       }
       
@@ -218,11 +155,7 @@ export const organizeEventsInRows = (events, calendarDays) => {
         const overlaps = !(existingEnd < currentStart || currentEnd < existingStart);
         
         if (overlaps) {
-          console.log(`  Overlap detected with existing timeline in row ${rowIndex}:`, {
-            existingId: existingTimeline.event.id,
-            existingRange: `${existingStart}-${existingEnd}`,
-            currentRange: `${currentStart}-${currentEnd}`
-          });
+          // Overlap detected - for development debugging
         }
         
         return overlaps;
@@ -232,10 +165,8 @@ export const organizeEventsInRows = (events, calendarDays) => {
         row.push(timeline);
         displayedTimelines.push(timeline);
         placed = true;
-        console.log(`  ✓ Placed in existing row ${rowIndex} (${row.length}/${MAX_EVENTS_PER_ROW})`);
         break;
       } else {
-        console.log(`  ✗ Cannot place in row ${rowIndex} (overlap detected)`);
       }
     }
     
@@ -243,38 +174,15 @@ export const organizeEventsInRows = (events, calendarDays) => {
     if (!placed && rows.length < MAX_ROWS) {
       rows.push([timeline]);
       displayedTimelines.push(timeline);
-      console.log(`  ✓ Created new row ${rows.length - 1} (1/${MAX_EVENTS_PER_ROW})`);
       placed = true;
     }
     
     // If still not placed, add to overflow
     if (!placed) {
       overflowTimelines.push(timeline);
-      console.log(`  ⚠️ Added to overflow (no available rows)`);
     }
   });
   
-  // Final debug output
-  console.log('\n=== FINAL ROW ORGANIZATION (LIMITED) ===');
-  console.log(`Displayed timelines: ${displayedTimelines.length}/${MAX_TOTAL_EVENTS}`);
-  console.log(`Overflow timelines: ${overflowTimelines.length}`);
-  
-  rows.forEach((row, rowIndex) => {
-    console.log(`Row ${rowIndex} (${row.length}/${MAX_EVENTS_PER_ROW} timelines):`);
-    row.forEach((timeline, timelineIndex) => {
-      console.log(`  ${timelineIndex + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.event.priority}) (${timeline.startCol}-${timeline.startCol + timeline.width - 1})`);
-    });
-  });
-  
-  if (overflowTimelines.length > 0) {
-    console.log(`\nOverflow (${overflowTimelines.length} timelines):`);
-    overflowTimelines.forEach((timeline, index) => {
-      console.log(`  ${index + 1}. ${timeline.event.title || timeline.event.customer_name} (${timeline.event.priority})`);
-    });
-  }
-  
-  console.log('=== END ROW ORGANIZATION ===\n');
-
   return {
     rows,
     displayedTimelines,

@@ -395,7 +395,7 @@ const StatisticsCards = ({
           fontWeight="bold"
           sx={{ mb: 2, display: "flex", alignItems: "center" }}
         >
-          🗂️ สถานะงานทั้งหมด
+          สถานะงานทั้งหมด
         </Typography>
         <Grid container spacing={2}>
           {statusData.map((item) => {

@@ -59,10 +59,6 @@ const DeadlineSection = ({ jobs = [], getUpcomingDeadlines, loading, daysAhead =
   });
 
   // Debug logging (remove in production)
-  console.log('DeadlineSection - Primary data:', primaryData);
-  console.log('DeadlineSection - Filtered deadlines:', upcomingDeadlines);
-  console.log('DeadlineSection - Today:', today);
-  console.log('DeadlineSection - Week ahead:', weekAhead);
   
   return (
     <Paper sx={{ p: 2, borderRadius: 2, mb: 2 }}>

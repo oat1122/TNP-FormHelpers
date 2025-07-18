@@ -112,26 +112,16 @@ const WorkCapacityCard = ({
           try {
             return (
               <>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                  <Box display="flex" alignItems="center">
-                    <Factory sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                    <Box>
-                      <Typography variant="h6" fontWeight="bold">
-                        กำลังการผลิตและการใช้งาน
-                      </Typography>
-                      {externalSelectedTimePeriod && (
-                        <Typography variant="caption" color="text.secondary">
-                          ควบคุมช่วงเวลาโดย Production Types ด้านบน
-                        </Typography>
-                      )}
-                    </Box>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Factory sx={{ color: theme.palette.primary.main, mr: 1 }} />
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold">
+                      กำลังการผลิตและการใช้งาน ({getCapacityDisplayLabel(selectedTimePeriod)})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      รายละเอียดการใช้กำลังผลิตแยกตามประเภท
+                    </Typography>
                   </Box>
-                  {!externalSelectedTimePeriod && (
-                    <TimePeriodSelector
-                      value={selectedTimePeriod}
-                      onChange={setSelectedTimePeriod}
-                    />
-                  )}
                 </Box>
 
                 <Grid container spacing={2}>

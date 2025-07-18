@@ -1,40 +1,40 @@
 // Production Type Configuration - Enhanced with Material-UI icons and consistent colors
 export const productionTypeConfig = {
   screen: {
-    color: "#B20000", // ใช้สีหลักของระบบ
-    bgColor: "#fef2f2",
+    color: "#1565C0", // น้ำเงิน - Screen Printing
+    bgColor: "#E3F2FD",
     iconComponent: "ScreenShare", // Material-UI icon
-    icon: "📺", // เก็บเป็น fallback
+    icon: "�️", // เก็บเป็น fallback
     label: "Screen Printing",
-    gradient: "linear-gradient(135deg, #B20000, #900F0F)",
-    lightColor: "#fef2f2",
+    gradient: "linear-gradient(135deg, #1565C0, #0D47A1)",
+    lightColor: "#E3F2FD",
   },
   dtf: {
-    color: "#E36264", // ใช้สี secondary ของระบบ
-    bgColor: "#fef2f2",
-    iconComponent: "PhoneAndroid", // Material-UI icon
-    icon: "📱", // เก็บเป็น fallback
+    color: "#FF8F00", // เหลือง - DTF
+    bgColor: "#FFF3E0",
+    iconComponent: "Print", // Material-UI icon
+    icon: "🧵", // เก็บเป็น fallback
     label: "DTF",
-    gradient: "linear-gradient(135deg, #E36264, #B20000)",
-    lightColor: "#fef2f2",
+    gradient: "linear-gradient(135deg, #FF8F00, #E65100)",
+    lightColor: "#FFF3E0",
   },
   sublimation: {
-    color: "#16a34a", // เก็บสีเขียวไว้เพื่อแยกประเภท
-    bgColor: "#f0fdf4",
-    iconComponent: "LocalPrintshop", // เปลี่ยนเป็นไอคอนที่เหมาะสมกว่า
+    color: "#7B1FA2", // ม่วง - Sublimation
+    bgColor: "#F3E5F5",
+    iconComponent: "LocalPrintshop", // Material-UI icon
     icon: "🖨️", // เก็บเป็น fallback
     label: "Sublimation",
-    gradient: "linear-gradient(135deg, #16a34a, #15803d)",
-    lightColor: "#f0fdf4",
+    gradient: "linear-gradient(135deg, #7B1FA2, #4A148C)",
+    lightColor: "#F3E5F5",
   },
   embroidery: {
-    color: "#0891b2", // ใช้สีฟ้าเพื่อแยกประเภท
-    bgColor: "#f0f9ff",
+    color: "#2E7D32", // เขียว - Embroidery
+    bgColor: "#E8F5E8",
     iconComponent: "ContentCut", // Material-UI icon
-    icon: "🧵", // เก็บเป็น fallback
+    icon: "✂️", // เก็บเป็น fallback
     label: "Embroidery",
-    gradient: "linear-gradient(135deg, #0891b2, #0e7490)",
-    lightColor: "#f0f9ff",
+    gradient: "linear-gradient(135deg, #2E7D32, #1B5E20)",
+    lightColor: "#E8F5E8",
   },
 };
 

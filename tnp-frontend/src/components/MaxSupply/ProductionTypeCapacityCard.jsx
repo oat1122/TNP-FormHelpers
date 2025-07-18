@@ -74,11 +74,18 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
           </Box>
           <Chip
             size="small"
-            label={`${utilization}%`}
+            label={utilization > 100 ? `${utilization}% (เกิน ${utilization - 100}%)` : `${utilization}%`}
             sx={{
               bgcolor: getUtilizationColor(utilization),
               color: 'white',
               fontWeight: 'bold',
+              fontSize: utilization > 100 ? '0.7rem' : '0.75rem',
+              height: utilization > 100 ? 'auto' : 24,
+              '& .MuiChip-label': {
+                px: utilization > 100 ? 1 : 1.5,
+                py: utilization > 100 ? 0.5 : 0.5,
+                whiteSpace: 'nowrap',
+              },
             }}
           />
         </Box>
@@ -104,7 +111,12 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            การใช้งาน: {getUtilizationLabel(utilization)}
+            การใช้งาน: {getUtilizationLabel(utilization)} 
+            {utilization > 100 && (
+              <span style={{ color: theme.palette.error.main, fontWeight: 'bold' }}>
+                {' '}(เกินกำลังผลิต {utilization - 100}%)
+              </span>
+            )}
           </Typography>
         </Box>
 
@@ -118,7 +130,7 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
               กำลังการผลิต/วัน:
             </Typography>
             <Typography variant="body2" fontWeight="bold">
-              {formatNumber(dailyCapacity)} งาน
+              {formatNumber(dailyCapacity)} ชิ้น
             </Typography>
           </Box>
           
@@ -127,7 +139,7 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
               กำลังการผลิต{periodLabel}:
             </Typography>
             <Typography variant="body2" fontWeight="bold" color={type.color}>
-              {formatNumber(totalCapacity)} งาน
+              {formatNumber(totalCapacity)} ชิ้น
             </Typography>
           </Box>
 
@@ -135,8 +147,15 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
             <Typography variant="body2" color="text.secondary">
               คงเหลือ{periodLabel}:
             </Typography>
-            <Typography variant="body2" fontWeight="bold" color={type.color}>
-              {formatNumber(remainingCapacity)} งาน
+            <Typography 
+              variant="body2" 
+              fontWeight="bold" 
+              color={remainingCapacity < 0 ? theme.palette.error.main : type.color}
+            >
+              {remainingCapacity < 0 ? 
+                `เกิน ${formatNumber(Math.abs(remainingCapacity))} ชิ้น` : 
+                `${formatNumber(remainingCapacity)} ชิ้น`
+              }
             </Typography>
           </Box>
 

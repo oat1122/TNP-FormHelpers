@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ScreenShare, 
-  PhoneAndroid, 
+  Print,
   LocalPrintshop, 
   ContentCut,
   Help as HelpIcon 
@@ -13,9 +13,9 @@ const ProductionTypeIcon = ({ type, size = 20, color = 'inherit', ...props }) =>
   
   const iconComponents = {
     ScreenShare,
-    PhoneAndroid,
-    LocalPrintshop, // เปลี่ยนจาก Sports เป็น LocalPrintshop สำหรับ sublimation
-    ContentCut,
+    Print, // เปลี่ยนจาก PhoneAndroid เป็น Print สำหรับ DTF
+    LocalPrintshop, // สำหรับ sublimation
+    ContentCut, // สำหรับ embroidery
   };
   
   const IconComponent = iconComponents[config.iconComponent] || HelpIcon;

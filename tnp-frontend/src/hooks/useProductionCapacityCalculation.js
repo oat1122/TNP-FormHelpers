@@ -93,28 +93,94 @@ export const useProductionCapacityCalculation = (allItems = [], externalSelected
   const getFilteredItems = useCallback((items, period) => {
     const dateRange = getDateRange(period);
     
-    return items.filter(item => {
-      // Only include items with 'in_progress' status
-      if (item.status !== 'in_progress') {
+    // Debug: Log all items with their status
+    console.log('🔍 All items:', items.map(item => ({
+      id: item.id,
+      status: item.status,
+      start_date: item.start_date,
+      expected_completion_date: item.expected_completion_date,
+      hasWorkCalc: !!item.work_calculations,
+      workCalcPreview: typeof item.work_calculations === 'string' ? 
+        item.work_calculations.substring(0, 100) + '...' : 
+        JSON.stringify(item.work_calculations).substring(0, 100) + '...'
+    })));
+    
+    console.log('📅 Date range filter:', {
+      start: dateRange.start,
+      end: dateRange.end,
+      period: period
+    });
+    
+    const filtered = items.filter(item => {
+      // Include items with 'in_progress', 'in-progress', 'working', 'started', or 'active' status
+      const validStatuses = ['in_progress', 'in-progress', 'working', 'started', 'active', 'pending'];
+      const statusMatch = validStatuses.includes(item.status?.toLowerCase());
+      
+      console.log(`🔍 Item ${item.id} status check:`, {
+        status: item.status,
+        statusMatch: statusMatch
+      });
+      
+      if (!statusMatch) {
+        console.log(`❌ Item ${item.id} excluded - invalid status: ${item.status}`);
         return false;
       }
 
-      // Check if item falls within the date range
+      // For in-progress items, use a more flexible date filtering:
+      // - If start_date exists, check if the work period intersects with selected period
+      // - If no dates, include all in-progress items (they're currently active)
       if (item.start_date) {
         const startDate = new Date(item.start_date);
-        const endDate = item.expected_completion_date ? 
-          new Date(item.expected_completion_date) : startDate;
         
-        // Check if item's date range overlaps with selected period
-        return (
-          startDate <= dateRange.end && 
-          endDate >= dateRange.start
-        );
+        // For in-progress items, check if they started before or during the selected period
+        // OR if they're expected to be worked on during the selected period
+        let includeItem = false;
+        
+        if (item.expected_completion_date) {
+          const endDate = new Date(item.expected_completion_date);
+          
+          // Include if:
+          // 1. Work started before/during period AND not completed yet (status = in_progress)
+          // 2. OR work period overlaps with selected period
+          includeItem = (
+            (startDate <= dateRange.end) || // Started before/during period
+            (startDate <= dateRange.end && endDate >= dateRange.start) // Period overlap
+          );
+        } else {
+          // No completion date - include if started before/during period
+          includeItem = startDate <= dateRange.end;
+        }
+        
+        console.log(`📅 Item ${item.id} date check:`, {
+          itemStart: startDate,
+          itemEnd: item.expected_completion_date ? new Date(item.expected_completion_date) : 'No end date',
+          filterStart: dateRange.start,
+          filterEnd: dateRange.end,
+          includeItem: includeItem,
+          reason: includeItem ? 'Work active during period' : 'Work not active during period'
+        });
+        
+        if (!includeItem) {
+          console.log(`❌ Item ${item.id} excluded - not active during selected period`);
+        }
+        
+        return includeItem;
       }
       
-      // If no date info, include all in-progress items
+      // If no date info, include all items with valid status (they're currently active)
+      console.log(`✅ Item ${item.id} included - no date info, valid status`);
       return true;
     });
+    
+    // Debug: Log filtered items
+    console.log('✅ Filtered items:', filtered.map(item => ({
+      id: item.id,
+      status: item.status,
+      hasWorkCalc: !!item.work_calculations,
+      workCalcType: typeof item.work_calculations
+    })));
+    
+    return filtered;
   }, [getDateRange]);
 
   // Calculate production capacity for selected time period
@@ -168,9 +234,13 @@ export const useProductionCapacityCalculation = (allItems = [], externalSelected
         try {
           let workCalc = item.work_calculations;
           
+          // Debug: Log original work_calculations
+          console.log(`📊 Processing work_calculations for item ${item.id}:`, workCalc);
+          
           // Parse if it's a string
           if (typeof workCalc === 'string') {
             workCalc = JSON.parse(workCalc);
+            console.log(`📝 Parsed work_calculations for item ${item.id}:`, workCalc);
           }
 
           // Count jobs and sum up workload for each production type
@@ -179,18 +249,24 @@ export const useProductionCapacityCalculation = (allItems = [], externalSelected
               const typeData = workCalc[type];
               const totalWork = typeData.total_work || 0;
               
+              console.log(`🎯 ${type} - totalWork: ${totalWork} for item ${item.id}`);
+              
               // Count jobs: increment job count for each production type that has work
               if (totalWork > 0) {
                 stats.work_calculations.job_count[type]++;
+                console.log(`📈 Incremented job count for ${type}: ${stats.work_calculations.job_count[type]}`);
               }
               
               // Sum up workload
               stats.work_calculations.current_workload[type] += totalWork;
+              console.log(`📊 Current workload for ${type}: ${stats.work_calculations.current_workload[type]}`);
             }
           });
         } catch (error) {
-          console.error('Error parsing work_calculations for item:', item.id, error);
+          console.error('❌ Error parsing work_calculations for item:', item.id, error);
         }
+      } else {
+        console.log(`⚠️ No work_calculations found for item ${item.id}`);
       }
     });
 
@@ -200,13 +276,12 @@ export const useProductionCapacityCalculation = (allItems = [], externalSelected
       const totalCapacity = stats.work_calculations.capacity.total[type];
       
       if (totalCapacity > 0) {
-        // Calculate utilization percentage based on period capacity
+        // Calculate utilization percentage based on period capacity (allow over 100%)
         const utilizationPercentage = Math.round((currentWorkload / totalCapacity) * 100);
-        stats.work_calculations.utilization[type] = Math.min(utilizationPercentage, 100);
+        stats.work_calculations.utilization[type] = utilizationPercentage;
         
-        // Calculate remaining capacity
-        stats.work_calculations.remaining_capacity[type] = 
-          Math.max(0, totalCapacity - currentWorkload);
+        // Calculate remaining capacity (can be negative for over-capacity)
+        stats.work_calculations.remaining_capacity[type] = totalCapacity - currentWorkload;
       }
     });
 

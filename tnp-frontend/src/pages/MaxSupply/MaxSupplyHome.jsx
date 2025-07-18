@@ -15,7 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import { useMaxSupplyData } from '../../hooks/useMaxSupplyData';
 import { useFallbackData } from '../../hooks/useFallbackData';
-import { StatisticsCards, WorkCapacityCard, KanbanBoard } from '../../components/MaxSupply';
+import { StatisticsCards, WorkCapacityCard, KanbanBoard, EnhancedDashboard } from '../../components/MaxSupply';
 import {
   NavigationTabs,
   DeadlineSection,
@@ -242,21 +242,13 @@ const MaxSupplyHome = () => {
       {/* Other tab content placeholders */}
       {currentTab === 0 && (
         <Box>
-          <StatisticsCards 
+          <EnhancedDashboard
             statistics={statistics} 
             loading={loading}
             allData={maxSupplies}
             selectedTimePeriod={selectedTimePeriod}
             setSelectedTimePeriod={setSelectedTimePeriod}
           />
-          <Box sx={{ mt: 3 }}>
-            <WorkCapacityCard 
-              statistics={statistics} 
-              allData={maxSupplies}
-              selectedTimePeriod={selectedTimePeriod}
-              setSelectedTimePeriod={setSelectedTimePeriod}
-            />
-          </Box>
         </Box>
       )}
 

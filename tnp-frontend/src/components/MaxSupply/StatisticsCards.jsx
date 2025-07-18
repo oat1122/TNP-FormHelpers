@@ -66,7 +66,7 @@ const StatisticsCards = ({
       key: "screen",
       label: "Screen Printing",
       icon: <ProductionTypeIcon type="screen" size={24} />,
-      color: "#1a73e8",
+      color: "#1565C0", // น้ำเงิน
       count: workCalc?.job_count?.screen || 0,
       workload: workCalc?.current_workload?.screen || 0,
     },
@@ -74,7 +74,7 @@ const StatisticsCards = ({
       key: "dtf",
       label: "DTF",
       icon: <ProductionTypeIcon type="dtf" size={24} />,
-      color: "#f9ab00",
+      color: "#FF8F00", // เหลือง
       count: workCalc?.job_count?.dtf || 0,
       workload: workCalc?.current_workload?.dtf || 0,
     },
@@ -82,7 +82,7 @@ const StatisticsCards = ({
       key: "sublimation",
       label: "Sublimation",
       icon: <ProductionTypeIcon type="sublimation" size={24} />,
-      color: "#9334e6",
+      color: "#7B1FA2", // ม่วง
       count: workCalc?.job_count?.sublimation || 0,
       workload: workCalc?.current_workload?.sublimation || 0,
     },
@@ -90,7 +90,7 @@ const StatisticsCards = ({
       key: "embroidery",
       label: "Embroidery",
       icon: <ProductionTypeIcon type="embroidery" size={24} />,
-      color: "#137333",
+      color: "#2E7D32", // เขียว
       count: workCalc?.job_count?.embroidery || 0,
       workload: workCalc?.current_workload?.embroidery || 0,
     },
@@ -99,14 +99,14 @@ const StatisticsCards = ({
   const statusData = [
     {
       key: "total",
-      label: "Total Jobs",
+      label: "งานทั้งหมด",
       icon: <Assignment />,
       color: "#6B7280",
       count: statistics.total || 0,
     },
     {
       key: "pending",
-      label: "กำลังรอ",
+      label: "รอเริ่มงาน",
       icon: <PendingActions />,
       color: "#F59E0B",
       count: statistics.pending || 0,
@@ -127,8 +127,19 @@ const StatisticsCards = ({
     },
   ];
 
-  const StatCard = ({ title, value, icon, color, percentage }) => (
-    <Card sx={{ height: "100%", position: "relative", overflow: "hidden" }}>
+  const StatusCard = ({ title, value, icon, color, percentage, total }) => (
+    <Card
+      sx={{
+        height: "100%",
+        position: "relative",
+        overflow: "hidden",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: 4,
+        },
+      }}
+    >
       <CardContent sx={{ pb: 2 }}>
         <Box
           sx={{
@@ -137,40 +148,57 @@ const StatisticsCards = ({
             justifyContent: "space-between",
           }}
         >
-          <Box>
+          <Box sx={{ flexGrow: 1 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {title}
             </Typography>
-            <Typography variant="h4" fontWeight="bold" color={color}>
+            <Typography
+              variant="h3"
+              fontWeight="bold"
+              color={color}
+              sx={{ mb: 1 }}
+            >
               {loading ? "-" : value}
             </Typography>
             {percentage !== undefined && (
               <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={percentage}
-                  sx={{
-                    width: 60,
-                    height: 4,
-                    borderRadius: 2,
-                    mr: 1,
-                    "& .MuiLinearProgress-bar": {
-                      backgroundColor: color,
-                    },
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
+                <Box sx={{ flexGrow: 1, mr: 2 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={percentage}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: `${color}20`,
+                      "& .MuiLinearProgress-bar": {
+                        backgroundColor: color,
+                        borderRadius: 4,
+                      },
+                    }}
+                  />
+                </Box>
+                <Typography variant="h6" fontWeight="bold" color={color}>
                   {percentage.toFixed(0)}%
                 </Typography>
               </Box>
+            )}
+            {total && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 1, display: "block" }}
+              >
+                จาก {total} งานทั้งหมด
+              </Typography>
             )}
           </Box>
           <Avatar
             sx={{
               bgcolor: `${color}20`,
               color: color,
-              width: 56,
-              height: 56,
+              width: 64,
+              height: 64,
+              ml: 2,
             }}
           >
             {icon}
@@ -219,29 +247,45 @@ const StatisticsCards = ({
     };
 
     return (
-      <Card sx={{ height: "100%" }}>
+      <Card
+        sx={{
+          height: "100%",
+          border: `2px solid ${type.color}20`,
+          transition: "transform 0.2s, box-shadow 0.2s",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: 4,
+            borderColor: `${type.color}40`,
+          },
+        }}
+      >
         <CardContent sx={{ pb: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <Avatar
               sx={{
                 bgcolor: `${type.color}20`,
                 color: type.color,
-                width: 48,
-                height: 48,
+                width: 56,
+                height: 56,
                 mr: 2,
               }}
             >
               {type.icon}
             </Avatar>
             <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold">
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
                 {type.label}
               </Typography>
-              <Typography variant="h5" color={type.color} fontWeight="bold">
-                {loading ? "-" : count}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                งานทั้งหมด {loading ? "-" : workload} ชิ้น
+              <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+                <Typography variant="h4" color={type.color} fontWeight="bold">
+                  {loading ? "-" : count}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  งาน
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                {loading ? "-" : workload.toLocaleString()} ชิ้นงาน
               </Typography>
             </Box>
             {!loading && utilization > 0 && (
@@ -253,6 +297,7 @@ const StatisticsCards = ({
                   color: "white",
                   fontWeight: "bold",
                   minWidth: 50,
+                  fontSize: "0.875rem",
                 }}
               />
             )}
@@ -260,26 +305,38 @@ const StatisticsCards = ({
 
           {!loading && totalWorkload > 0 && (
             <Box sx={{ mb: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  สัดส่วนของงานทั้งหมด
+                </Typography>
+                <Typography
+                  variant="caption"
+                  fontWeight="bold"
+                  color={type.color}
+                >
+                  {percentage.toFixed(1)}%
+                </Typography>
+              </Box>
               <LinearProgress
                 variant="determinate"
                 value={percentage}
                 sx={{
-                  height: 6,
-                  borderRadius: 3,
+                  height: 8,
+                  borderRadius: 4,
                   backgroundColor: `${type.color}20`,
                   "& .MuiLinearProgress-bar": {
                     backgroundColor: type.color,
-                    borderRadius: 3,
+                    borderRadius: 4,
                   },
                 }}
               />
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.5, display: "block" }}
-              >
-                {percentage.toFixed(1)}% ของชิ้นงานทั้งหมด
-              </Typography>
             </Box>
           )}
 
@@ -287,8 +344,8 @@ const StatisticsCards = ({
           {!loading && dailyCapacity > 0 && (
             <Box
               sx={{
-                mt: 1,
-                pt: 1,
+                mt: 2,
+                pt: 2,
                 borderTop: "1px solid",
                 borderTopColor: "divider",
               }}
@@ -297,25 +354,29 @@ const StatisticsCards = ({
                 variant="caption"
                 color="text.secondary"
                 display="block"
+                sx={{ mb: 0.5 }}
               >
-                กำลังการผลิต/วัน: {dailyCapacity.toLocaleString()} ชิ้น
+                🎯 กำลังการผลิต/วัน:{" "}
+                <strong>{dailyCapacity.toLocaleString()}</strong> ชิ้น
               </Typography>
               {periodDays > 1 && (
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   display="block"
+                  sx={{ mb: 0.5 }}
                 >
-                  กำลังการผลิต{periodLabel}: {totalCapacity.toLocaleString()}{" "}
-                  ชิ้น
+                  📈 กำลังการผลิต{periodLabel}:{" "}
+                  <strong>{totalCapacity.toLocaleString()}</strong> ชิ้น
                 </Typography>
               )}
               <Typography
                 variant="caption"
                 color={getUtilizationColor(utilization)}
                 display="block"
+                fontWeight="bold"
               >
-                การใช้งาน{periodLabel}: {getUtilizationLabel(utilization)} (
+                📊 การใช้งาน{periodLabel}: {getUtilizationLabel(utilization)} (
                 {utilization}%)
               </Typography>
             </Box>
@@ -328,62 +389,49 @@ const StatisticsCards = ({
   return (
     <Box>
       {/* Status Statistics */}
-      <Typography variant="h5" fontWeight="bold" gutterBottom>
-        Job Overview - สถานะงานทั้งหมด
-      </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        gutterBottom
-        sx={{ mb: 2 }}
-      >
-        แสดงจำนวนงานทั้งหมดในระบบ จำแนกตามสถานะ
-      </Typography>
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        {statusData.map((item) => {
-          const percentage =
-            statistics.total > 0 ? (item.count / statistics.total) * 100 : 0;
-          return (
-            <Grid item xs={12} sm={6} md={3} key={item.key}>
-              <StatCard
-                title={item.label}
-                value={item.count}
-                icon={item.icon}
-                color={item.color}
-                percentage={item.key !== "total" ? percentage : undefined}
-              />
-            </Grid>
-          );
-        })}
-      </Grid>
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          sx={{ mb: 2, display: "flex", alignItems: "center" }}
+        >
+          🗂️ สถานะงานทั้งหมด
+        </Typography>
+        <Grid container spacing={2}>
+          {statusData.map((item) => {
+            const percentage =
+              statistics.total > 0 ? (item.count / statistics.total) * 100 : 0;
+            return (
+              <Grid item xs={12} sm={6} md={3} key={item.key}>
+                <StatusCard
+                  title={item.label}
+                  value={item.count}
+                  icon={item.icon}
+                  color={item.color}
+                  percentage={item.key !== "total" ? percentage : undefined}
+                  total={item.key !== "total" ? statistics.total : undefined}
+                />
+              </Grid>
+            );
+          })}
+        </Grid>
+      </Box>
 
       {/* Production Type Statistics */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 2,
-        }}
-      >
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
-            Production Types - งานที่กำลังดำเนินการ (
-            {getCapacityDisplayLabel(selectedTimePeriod)})
-          </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            แสดงเฉพาะงานที่มีสถานะ "กำลังดำเนินการ" ในช่วงเวลา
-            {getCapacityDisplayLabel(selectedTimePeriod)}
-          </Typography>
-        </Box>
-        <Box sx={{ minWidth: 300, ml: 2 }}>
-          <TimePeriodSelector
-            value={selectedTimePeriod}
-            onChange={setSelectedTimePeriod}
-          />
-        </Box>
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          sx={{ mb: 1, display: "flex", alignItems: "center" }}
+        >
+          กำลังผลิตแยกตามประเภท ({getCapacityDisplayLabel(selectedTimePeriod)})
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          แสดงเฉพาะงานที่มีสถานะ "กำลังดำเนินการ" ในช่วงเวลา
+          {getCapacityDisplayLabel(selectedTimePeriod)}
+        </Typography>
       </Box>
-      <Grid container spacing={2}>
+      <Grid container spacing={3}>
         {productionTypeData.map((type) => {
           // Calculate total job count and total workload from work_calculations
           const totalJobCount = productionTypeData.reduce(
@@ -396,7 +444,7 @@ const StatisticsCards = ({
           );
 
           return (
-            <Grid item xs={12} sm={6} md={3} key={type.key}>
+            <Grid item xs={12} sm={6} md={6} lg={3} key={type.key}>
               <ProductionTypeCard
                 type={type}
                 count={type.count}

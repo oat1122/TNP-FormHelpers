@@ -27,7 +27,6 @@ import {
 import StatisticsCards from "./StatisticsCards";
 import CapacitySummary from "./CapacitySummary";
 import WorkCapacityCard from "./WorkCapacityCard";
-import TimePeriodSelector from "./TimePeriodSelector";
 import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
 
 const EnhancedDashboard = ({
@@ -131,16 +130,6 @@ const EnhancedDashboard = ({
 
   return (
     <Box>
-      {/* Time Period Selector at the top */}
-      <Fade in={true} timeout={300}>
-        <Box sx={{ mb: 4, display: "flex", justifyContent: "center" }}>
-          <TimePeriodSelector
-            value={selectedTimePeriod}
-            onChange={setSelectedTimePeriod}
-            label="เลือกช่วงเวลาการคำนวณ"
-          />
-        </Box>
-      </Fade>
       {/* Main Summary Section */}
       <Fade in={true} timeout={500}>
         <Box sx={{ mb: 4 }}>
@@ -149,6 +138,9 @@ const EnhancedDashboard = ({
               workCalc={workCalc}
               timePeriod={selectedTimePeriod}
               periodLabel={getCapacityDisplayLabel(selectedTimePeriod)}
+              selectedTimePeriod={selectedTimePeriod}
+              setSelectedTimePeriod={setSelectedTimePeriod}
+              getCapacityDisplayLabel={getCapacityDisplayLabel}
             />
           ) : (
             <Alert severity="info">

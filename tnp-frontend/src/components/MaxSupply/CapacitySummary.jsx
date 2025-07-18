@@ -16,8 +16,16 @@ import {
   TrendingUp,
   Info,
 } from '@mui/icons-material';
+import TimePeriodSelector from './TimePeriodSelector';
 
-const CapacitySummary = ({ workCalc, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
+const CapacitySummary = ({ 
+  workCalc, 
+  timePeriod = 'today', 
+  periodLabel = 'วันนี้',
+  selectedTimePeriod,
+  setSelectedTimePeriod,
+  getCapacityDisplayLabel
+}) => {
   const formatNumber = (number) => {
     return new Intl.NumberFormat('th-TH').format(number);
   };
@@ -75,13 +83,26 @@ const CapacitySummary = ({ workCalc, timePeriod = 'today', periodLabel = 'วั
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mr: 1 }}>
-          📊 สรุปงานและกำลังการผลิต
-        </Typography>
-        <Tooltip title={`แสดงงานที่ "กำลังผลิต" เฉพาะช่วงเวลา: ${periodLabel}`}>
-          <Info color="action" sx={{ fontSize: 20 }} />
-        </Tooltip>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h5" fontWeight="bold" sx={{ mr: 1 }}>
+            📊 สรุปงานและกำลังการผลิต
+          </Typography>
+          <Tooltip title={`แสดงงานที่ "กำลังผลิต" เฉพาะช่วงเวลา: ${periodLabel}`}>
+            <Info color="action" sx={{ fontSize: 20 }} />
+          </Tooltip>
+        </Box>
+        
+        {selectedTimePeriod && setSelectedTimePeriod && (
+          <Box sx={{ textAlign: 'right' }}>
+            <TimePeriodSelector
+              value={selectedTimePeriod}
+              onChange={setSelectedTimePeriod}
+              label="เลือกช่วงเวลาการคำนวณ"
+              size="small"
+            />
+          </Box>
+        )}
       </Box>
 
       <Grid container spacing={2}>

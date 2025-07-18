@@ -22,6 +22,7 @@ const TimePeriodSelector = ({
   value,
   onChange,
   label = "เลือกช่วงเวลาการคำนวณ",
+  size = "medium",
 }) => {
   const timePeriods = [
     {
@@ -73,8 +74,8 @@ const TimePeriodSelector = ({
   const selectedPeriod = timePeriods.find((period) => period.value === value);
 
   return (
-    <Box sx={{ minWidth: 350, maxWidth: 450 }}>
-      <FormControl fullWidth size="medium">
+    <Box sx={{ minWidth: size === "small" ? 280 : 350, maxWidth: size === "small" ? 380 : 450 }}>
+      <FormControl fullWidth size={size}>
         <InputLabel sx={{ fontWeight: "bold" }}>{label}</InputLabel>
         <Select
           value={value}

@@ -95,8 +95,8 @@ export const useProductionCapacityCalculation = (allItems = [], externalSelected
     
     // Filter items based on status and date range
     const filtered = items.filter(item => {
-      // Include items with 'in_progress', 'in-progress', 'working', 'started', or 'active' status
-      const validStatuses = ['in_progress', 'in-progress', 'working', 'started', 'active', 'pending'];
+      // Include only items with 'in_progress' status for capacity calculation
+      const validStatuses = ['in_progress', 'in-progress'];
       const statusMatch = validStatuses.includes(item.status?.toLowerCase());
       
       if (!statusMatch) {

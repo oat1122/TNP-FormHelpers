@@ -403,9 +403,11 @@ export const useGpsHelper = (inputList) => {
     try {
       const fullAddress = [
         addressData.address,
-        addressData.subdistrict,
-        addressData.district,
-        addressData.province,
+        addressData.subdistrict
+          ? `ต.${addressData.subdistrict}`
+          : "",
+        addressData.district ? `อ.${addressData.district}` : "",
+        addressData.province ? `จ.${addressData.province}` : "",
         addressData.zipCode,
       ]
         .filter(Boolean)

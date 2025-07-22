@@ -692,79 +692,40 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
 
                 <Collapse in={expandedSections.address}>
                   <Stack spacing={1}>
-                    {/* แสดงที่อยู่เต็มจาก cus_address เป็นหลัก */}
                     <InfoRow>
-                      <InfoLabel>ที่อยู่เต็ม:</InfoLabel>
+                      <InfoLabel>ที่อยู่:</InfoLabel>
                       <InfoValue sx={{ lineHeight: 1.6 }}>
-                        {customerData.cus_address || "-"}
+                        {parsedAddress.address || "-"}
                       </InfoValue>
                     </InfoRow>
 
-                    {/* แสดงรายละเอียดแยกส่วน (ถ้ามี) */}
-                    {(customerData.cus_address_detail ||
-                      customerData.cus_subdistrict_text ||
-                      customerData.cus_district_text ||
-                      customerData.cus_province_text ||
-                      customerData.cus_zip_code) && (
-                      <>
-                        <InfoRow>
-                          <InfoLabel
-                            colSpan={2}
-                            sx={{
-                              mt: 2,
-                              mb: 1,
-                              fontWeight: 700,
-                              color: "#9e0000",
-                            }}
-                          >
-                            รายละเอียดแยกส่วน:
-                          </InfoLabel>
-                        </InfoRow>
+                    <InfoRow>
+                      <InfoLabel>จังหวัด:</InfoLabel>
+                      <InfoValue>
+                        {parsedAddress.province || "-"}
+                      </InfoValue>
+                    </InfoRow>
 
-                        {customerData.cus_address_detail && (
-                          <InfoRow>
-                            <InfoLabel>บ้านเลขที่/หมู่บ้าน/ถนน:</InfoLabel>
-                            <InfoValue>
-                              {customerData.cus_address_detail}
-                            </InfoValue>
-                          </InfoRow>
-                        )}
+                    <InfoRow>
+                      <InfoLabel>อำเภอ:</InfoLabel>
+                      <InfoValue>
+                        {parsedAddress.district || "-"}
+                      </InfoValue>
+                    </InfoRow>
 
-                        {customerData.cus_subdistrict_text && (
-                          <InfoRow>
-                            <InfoLabel>ตำบล:</InfoLabel>
-                            <InfoValue>
-                              {customerData.cus_subdistrict_text}
-                            </InfoValue>
-                          </InfoRow>
-                        )}
+                    <InfoRow>
+                      <InfoLabel>ตำบล:</InfoLabel>
+                      <InfoValue>
+                        {parsedAddress.subdistrict || "-"}
+                      </InfoValue>
+                    </InfoRow>
 
-                        {customerData.cus_district_text && (
-                          <InfoRow>
-                            <InfoLabel>อำเภอ:</InfoLabel>
-                            <InfoValue>
-                              {customerData.cus_district_text}
-                            </InfoValue>
-                          </InfoRow>
-                        )}
-
-                        {customerData.cus_province_text && (
-                          <InfoRow>
-                            <InfoLabel>จังหวัด:</InfoLabel>
-                            <InfoValue>
-                              {customerData.cus_province_text}
-                            </InfoValue>
-                          </InfoRow>
-                        )}
-
-                        {customerData.cus_zip_code && (
-                          <InfoRow>
-                            <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
-                            <InfoValue>{customerData.cus_zip_code}</InfoValue>
-                          </InfoRow>
-                        )}
-                      </>
-                    )}
+                    <InfoRow>
+                      <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
+                      <InfoValue>
+                        {parsedAddress.zipCode || "-"}
+                      </InfoValue>
+                    </InfoRow>
                   </Stack>
                 </Collapse>
               </CardContent>

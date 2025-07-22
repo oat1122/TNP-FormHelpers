@@ -707,14 +707,14 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     </InfoRow>
 
                     <InfoRow>
-                      <InfoLabel>อำเภอ:</InfoLabel>
+                      <InfoLabel>เขต/อำเภอ:</InfoLabel>
                       <InfoValue>
                         {parsedAddress.district || "-"}
                       </InfoValue>
                     </InfoRow>
 
                     <InfoRow>
-                      <InfoLabel>ตำบล:</InfoLabel>
+                      <InfoLabel>แขวง/ตำบล:</InfoLabel>
                       <InfoValue>
                         {parsedAddress.subdistrict || "-"}
                       </InfoValue>
@@ -724,6 +724,19 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                       <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
                       <InfoValue>
                         {parsedAddress.zipCode || "-"}
+                      </InfoValue>
+                    </InfoRow>
+
+                    <InfoRow>
+                      <InfoLabel sx={{ fontSize: "0.8rem", color: "#666" }}>ที่อยู่ทั้งหมด:</InfoLabel>
+                      <InfoValue sx={{ 
+                        lineHeight: 1.6, 
+                        fontSize: "0.8rem", 
+                        color: "#666",
+                        fontStyle: "italic",
+                        opacity: 0.8
+                      }}>
+                        {customerData.cus_address || "-"}
                       </InfoValue>
                     </InfoRow>
                   </Stack>

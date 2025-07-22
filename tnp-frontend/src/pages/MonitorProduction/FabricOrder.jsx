@@ -12,8 +12,8 @@ import ProductionNote from "./Note/ProductionNote";
 import { useGetAllSheetsQuery, useGetNotesQuery } from "../../api/slice";
 import axios from "../../api/axios";
 import moment from "moment";
-import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
+import { open_dialog_ok_timer, open_dialog_error } from "../../utils/dialog_swal2/alart_one_line";
 
 const NoteIcon = styled(MdNotes)({ 
   fontSize: "1.25rem",
@@ -79,29 +79,25 @@ function FabricOrder({ data }) {
         });
 
         if (response.data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Order date updated",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-
+          // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
+          setShowOrderDate(false);
+          
+          // แสดง toast แทน Swal
+          await open_dialog_ok_timer("Order date updated");
+          
           refetch();
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: response.data.error,
-          });
+          // ปิด modal ก่อนแสดง error toast
+          setShowOrderDate(false);
+          
+          open_dialog_error("Error", response.data.error);
         }
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: error.response.data.error,
-        });
+        // ปิด modal ก่อนแสดง error toast
+        setShowOrderDate(false);
+        
+        open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
-      setShowOrderDate(false);
     };
 
     const handleSubmitReceive = async (event) => {
@@ -116,29 +112,25 @@ function FabricOrder({ data }) {
         });
 
         if (response.data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Order date updated",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-
+          // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
+          setShowReceiveDate(false);
+          
+          // แสดง toast แทน Swal
+          await open_dialog_ok_timer("Order date updated");
+          
           refetch();
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: response.data.error,
-          });
+          // ปิด modal ก่อนแสดง error toast
+          setShowReceiveDate(false);
+          
+          open_dialog_error("Error", response.data.error);
         }
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: error.response.data.error,
-        });
+        // ปิด modal ก่อนแสดง error toast
+        setShowReceiveDate(false);
+        
+        open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
-      setShowOrderDate(false);
     };
 
     return (

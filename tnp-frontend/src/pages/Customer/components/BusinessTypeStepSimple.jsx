@@ -19,6 +19,7 @@ import {
   useTheme,
   Chip,
   Stack,
+  Autocomplete,
 } from "@mui/material";
 import { MdBusiness, MdSettings, MdExpandMore } from "react-icons/md";
 import { HiOfficeBuilding, HiUser, HiPhone, HiIdentification } from "react-icons/hi";
@@ -146,68 +147,84 @@ const BusinessTypeStepSimple = ({
                   alignItems: "flex-start",
                   flexDirection: { xs: "column", sm: "row" }
                 }}>
-                  <FormControl
+                  <Autocomplete
                     fullWidth
-                    error={!!errors.cus_bt_id}
+                    loading={businessTypesIsFetching}
                     disabled={mode === "view"}
-                    size="small"
-                  >
-                    <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>
-                      เลือกประเภทธุรกิจ *
-                    </InputLabel>
-                    <Select
-                      name="cus_bt_id"
-                      value={inputList.cus_bt_id || ""}
-                      onChange={handleInputChange}
-                      label="เลือกประเภทธุรกิจ *"
-                      disabled={businessTypesIsFetching || mode === "view"}
-                      sx={{ 
-                        fontFamily: "Kanit", 
-                        fontSize: 14,
-                        bgcolor: "white"
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            maxHeight: { xs: 280, sm: 400 },
-                            width: { xs: "calc(100vw - 32px)", sm: "auto" },
-                            maxWidth: { xs: "calc(100vw - 32px)", sm: 500 },
-                            "& .MuiMenuItem-root": {
-                              fontFamily: "Kanit",
-                              fontSize: { xs: "0.85rem", sm: "0.875rem" },
-                              padding: { xs: "12px 16px", sm: "12px 16px" },
-                              whiteSpace: "normal",
-                              wordWrap: "break-word",
-                              lineHeight: 1.4,
-                              minHeight: "auto",
-                              "&:hover": {
-                                bgcolor: `${PRIMARY_RED}08`
-                              }
-                            }
-                          }
+                    options={businessTypesList}
+                    getOptionLabel={(option) => option.bt_name || ""}
+                    value={businessTypesList.find((type) => type.bt_id === inputList.cus_bt_id) || null}
+                    onChange={(event, newValue) => {
+                      const syntheticEvent = {
+                        target: {
+                          name: "cus_bt_id",
+                          value: newValue ? newValue.bt_id : ""
                         }
-                      }}
-                    >
-                      <MenuItem value="" disabled>
-                        <em style={{ color: "#999" }}>กรุณาเลือกประเภทธุรกิจ</em>
-                      </MenuItem>
-                      {businessTypesList.map((type) => (
-                        <MenuItem key={type.bt_id} value={type.bt_id}>
-                          <Typography 
-                            fontFamily="Kanit" 
-                            fontSize={{ xs: "0.85rem", sm: "0.875rem" }}
-                            sx={{ 
-                              whiteSpace: "normal",
-                              wordWrap: "break-word",
-                              lineHeight: 1.4
-                            }}
-                          >
-                            {type.bt_name}
-                          </Typography>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      };
+                      handleInputChange(syntheticEvent);
+                    }}
+                    isOptionEqualToValue={(option, value) => option.bt_id === value.bt_id}
+                    renderOption={(props, option) => (
+                      <Box
+                        component="li"
+                        {...props}
+                        sx={{
+                          fontFamily: "Kanit",
+                          fontSize: { xs: "0.85rem", sm: "0.875rem" },
+                          padding: { xs: "12px 16px", sm: "12px 16px" },
+                          whiteSpace: "normal",
+                          wordWrap: "break-word",
+                          lineHeight: 1.4,
+                          minHeight: "auto",
+                          "&:hover": {
+                            bgcolor: `${PRIMARY_RED}08`
+                          }
+                        }}
+                      >
+                        {option.bt_name}
+                      </Box>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="เลือกประเภทธุรกิจ *"
+                        placeholder="ค้นหาและเลือกประเภทธุรกิจ..."
+                        error={!!errors.cus_bt_id}
+                        helperText={errors.cus_bt_id}
+                        size="small"
+                        sx={{ 
+                          bgcolor: "white",
+                          "& .MuiInputBase-input": {
+                            fontFamily: "Kanit", 
+                            fontSize: 14
+                          },
+                          "& .MuiInputLabel-root": {
+                            fontFamily: "Kanit", 
+                            fontSize: 14
+                          }
+                        }}
+                      />
+                    )}
+                    ListboxProps={{
+                      sx: {
+                        maxHeight: { xs: 280, sm: 400 },
+                        "& .MuiAutocomplete-option": {
+                          fontFamily: "Kanit"
+                        }
+                      }
+                    }}
+                    PaperComponent={({ children, ...other }) => (
+                      <Paper
+                        {...other}
+                        sx={{
+                          width: { xs: "calc(100vw - 32px)", sm: "auto" },
+                          maxWidth: { xs: "calc(100vw - 32px)", sm: 500 },
+                        }}
+                      >
+                        {children}
+                      </Paper>
+                    )}
+                  />
 
                   {mode !== "view" && !isMobile && (
                     <Tooltip title="จัดการประเภทธุรกิจ" arrow>

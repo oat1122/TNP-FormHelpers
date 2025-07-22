@@ -78,7 +78,7 @@ export const parseFullAddress = (fullAddress) => {
   }
 
   try {
-    // ใช้วิธีง่ายๆ แยกที่อยู่
+    // แยกส่วนตามรูปแบบ "39/3 หมู่ 3 ต.บ่อโพง อ.นครหลวง จ.พระนครศรีอยุธยา 13260"
     const parts = fullAddress.trim().split(" ");
 
     // หารหัสไปรษณีย์ (5 หลักสุดท้าย)
@@ -87,10 +87,40 @@ export const parseFullAddress = (fullAddress) => {
 
     if (isZipCode) {
       const addressParts = parts.slice(0, -1);
-      const province = addressParts[addressParts.length - 1] || "";
-      const district = addressParts[addressParts.length - 2] || "";
-      const subdistrict = addressParts[addressParts.length - 3] || "";
-      const address = addressParts.slice(0, -3).join(" ") || "";
+
+      // หาจังหวัด (ขึ้นต้นด้วย "จ.")
+      const provinceIndex = addressParts.findIndex((part) =>
+        part.startsWith("จ.")
+      );
+      const province =
+        provinceIndex >= 0 ? addressParts[provinceIndex].replace("จ.", "") : "";
+
+      // หาอำเภอ (ขึ้นต้นด้วย "อ.")
+      const districtIndex = addressParts.findIndex((part) =>
+        part.startsWith("อ.")
+      );
+      const district =
+        districtIndex >= 0 ? addressParts[districtIndex].replace("อ.", "") : "";
+
+      // หาตำบล (ขึ้นต้นด้วย "ต.")
+      const subdistrictIndex = addressParts.findIndex((part) =>
+        part.startsWith("ต.")
+      );
+      const subdistrict =
+        subdistrictIndex >= 0
+          ? addressParts[subdistrictIndex].replace("ต.", "")
+          : "";
+
+      // ที่อยู่คือส่วนที่เหลือก่อนตำบล (ถ้ามี)
+      const addressEndIndex =
+        subdistrictIndex >= 0
+          ? subdistrictIndex
+          : districtIndex >= 0
+          ? districtIndex
+          : provinceIndex >= 0
+          ? provinceIndex
+          : addressParts.length;
+      const address = addressParts.slice(0, addressEndIndex).join(" ") || "";
 
       return {
         address: address.trim(),

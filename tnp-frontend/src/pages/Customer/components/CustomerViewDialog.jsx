@@ -218,9 +218,9 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
               <Typography
                 variant={isMobile ? "h6" : "h5"}
                 fontWeight={600}
-                sx={{ 
+                sx={{
                   color: "white",
-                  fontSize: isMobile ? "1.1rem" : "1.5rem" 
+                  fontSize: isMobile ? "1.1rem" : "1.5rem",
                 }}
               >
                 {customerData.cus_company || "ไม่ระบุบริษัท"}
@@ -246,7 +246,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     backgroundColor: "rgba(255,255,255,0.2)",
                     color: "white",
                     fontSize: isMobile ? "0.6rem" : "0.75rem",
-                    px: isMobile ? 1 : 1.5
+                    px: isMobile ? 1 : 1.5,
                   }}
                 />
                 <Chip
@@ -258,8 +258,8 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     fontSize: isMobile ? "0.6rem" : "0.75rem",
                     px: isMobile ? 1 : 1.5,
                     "& .MuiChip-icon": {
-                      color: "white"
-                    }
+                      color: "white",
+                    },
                   }}
                   icon={<MdHistory />}
                 />
@@ -436,7 +436,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                             color: "white",
                             fontWeight: 600,
                             fontSize: isMobile ? "0.6rem" : "0.75rem",
-                            px: isMobile ? 1 : 1.5
+                            px: isMobile ? 1 : 1.5,
                           }}
                         />
                       </InfoValue>
@@ -510,7 +510,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                               backgroundColor: "#d32f2f",
                               color: "white",
                               fontSize: isMobile ? "0.6rem" : "0.75rem",
-                              px: isMobile ? 1 : 1.5
+                              px: isMobile ? 1 : 1.5,
                             }}
                           />
                         ) : (
@@ -692,69 +692,78 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
 
                 <Collapse in={expandedSections.address}>
                   <Stack spacing={1}>
+                    {/* แสดงที่อยู่เต็มจาก cus_address เป็นหลัก */}
                     <InfoRow>
-                      <InfoLabel>ที่อยู่:</InfoLabel>
+                      <InfoLabel>ที่อยู่เต็ม:</InfoLabel>
                       <InfoValue sx={{ lineHeight: 1.6 }}>
-                        {parsedAddress.address ||
-                          customerData.cus_address_detail ||
-                          "-"}
+                        {customerData.cus_address || "-"}
                       </InfoValue>
                     </InfoRow>
 
-                    <InfoRow>
-                      <InfoLabel>จังหวัด:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.province ||
-                          customerData.cus_province_text ||
-                          "-"}
-                      </InfoValue>
-                    </InfoRow>
+                    {/* แสดงรายละเอียดแยกส่วน (ถ้ามี) */}
+                    {(customerData.cus_address_detail ||
+                      customerData.cus_subdistrict_text ||
+                      customerData.cus_district_text ||
+                      customerData.cus_province_text ||
+                      customerData.cus_zip_code) && (
+                      <>
+                        <InfoRow>
+                          <InfoLabel
+                            colSpan={2}
+                            sx={{
+                              mt: 2,
+                              mb: 1,
+                              fontWeight: 700,
+                              color: "#9e0000",
+                            }}
+                          >
+                            รายละเอียดแยกส่วน:
+                          </InfoLabel>
+                        </InfoRow>
 
-                    <InfoRow>
-                      <InfoLabel>อำเภอ:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.district ||
-                          customerData.cus_district_text ||
-                          "-"}
-                      </InfoValue>
-                    </InfoRow>
+                        {customerData.cus_address_detail && (
+                          <InfoRow>
+                            <InfoLabel>บ้านเลขที่/หมู่บ้าน/ถนน:</InfoLabel>
+                            <InfoValue>
+                              {customerData.cus_address_detail}
+                            </InfoValue>
+                          </InfoRow>
+                        )}
 
-                    <InfoRow>
-                      <InfoLabel>ตำบล:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.subdistrict ||
-                          customerData.cus_subdistrict_text ||
-                          "-"}
-                      </InfoValue>
-                    </InfoRow>
+                        {customerData.cus_subdistrict_text && (
+                          <InfoRow>
+                            <InfoLabel>ตำบล:</InfoLabel>
+                            <InfoValue>
+                              {customerData.cus_subdistrict_text}
+                            </InfoValue>
+                          </InfoRow>
+                        )}
 
-                    <InfoRow>
-                      <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.zipCode ||
-                          customerData.cus_zip_code ||
-                          "-"}
-                      </InfoValue>
-                    </InfoRow>
+                        {customerData.cus_district_text && (
+                          <InfoRow>
+                            <InfoLabel>อำเภอ:</InfoLabel>
+                            <InfoValue>
+                              {customerData.cus_district_text}
+                            </InfoValue>
+                          </InfoRow>
+                        )}
 
-                    {/* แสดงที่อยู่แบบรวมสำหรับอ้างอิง */}
-                    {customerData.cus_address && (
-                      <InfoRow>
-                        <InfoLabel>ที่อยู่แบบรวม:</InfoLabel>
-                        <InfoValue
-                          sx={{
-                            lineHeight: 1.6,
-                            fontSize: "0.8rem",
-                            color: "#666",
-                            fontStyle: "italic",
-                            backgroundColor: "#f5f5f5",
-                            padding: "8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          {customerData.cus_address}
-                        </InfoValue>
-                      </InfoRow>
+                        {customerData.cus_province_text && (
+                          <InfoRow>
+                            <InfoLabel>จังหวัด:</InfoLabel>
+                            <InfoValue>
+                              {customerData.cus_province_text}
+                            </InfoValue>
+                          </InfoRow>
+                        )}
+
+                        {customerData.cus_zip_code && (
+                          <InfoRow>
+                            <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
+                            <InfoValue>{customerData.cus_zip_code}</InfoValue>
+                          </InfoRow>
+                        )}
+                      </>
                     )}
                   </Stack>
                 </Collapse>

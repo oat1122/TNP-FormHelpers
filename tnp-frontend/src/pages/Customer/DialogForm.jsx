@@ -187,6 +187,43 @@ function DialogForm(props) {
       [name]: value,
     };
 
+    // อัพเดท cus_address เมื่อมีการเปลี่ยนแปลงในฟิลด์ที่อยู่
+    if (
+      [
+        "cus_address_detail",
+        "cus_subdistrict_text",
+        "cus_district_text",
+        "cus_province_text",
+        "cus_zip_code",
+      ].includes(name)
+    ) {
+      const fullAddress = [
+        name === "cus_address_detail"
+          ? value
+          : newInputList.cus_address_detail || "",
+        name === "cus_subdistrict_text"
+          ? `ต.${value}`
+          : newInputList.cus_subdistrict_text
+          ? `ต.${newInputList.cus_subdistrict_text}`
+          : "",
+        name === "cus_district_text"
+          ? `อ.${value}`
+          : newInputList.cus_district_text
+          ? `อ.${newInputList.cus_district_text}`
+          : "",
+        name === "cus_province_text"
+          ? `จ.${value}`
+          : newInputList.cus_province_text
+          ? `จ.${newInputList.cus_province_text}`
+          : "",
+        name === "cus_zip_code" ? value : newInputList.cus_zip_code || "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      newInputList.cus_address = fullAddress;
+    }
+
     dispatch(setInputList(newInputList));
     clearFieldError(name);
   };
@@ -330,11 +367,16 @@ function DialogForm(props) {
             maxWidth: { xs: "95vw", sm: "90vw", md: "900px" },
             margin: { xs: "10px", sm: "20px" },
             height: { xs: "95vh", sm: "auto" },
-            maxHeight: { xs: "95vh", sm: "90vh" }
-          }
+            maxHeight: { xs: "95vh", sm: "90vh" },
+          },
         }}
       >
-        <form ref={formRef} noValidate onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <form
+          ref={formRef}
+          noValidate
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", height: "100%" }}
+        >
           <DialogTitle
             sx={{
               display: "flex",
@@ -343,7 +385,7 @@ function DialogForm(props) {
               backgroundColor: "#9e0000",
               color: "white",
               py: { xs: 1, sm: 2 },
-              px: { xs: 2, sm: 3 }
+              px: { xs: 2, sm: 3 },
             }}
           >
             <span
@@ -357,17 +399,17 @@ function DialogForm(props) {
               {mode === "edit" && "แก้ไขข้อมูลลูกค้า"}
               {mode === "view" && "ดูข้อมูลลูกค้า"}
             </span>
-            <IconButton 
-              onClick={handleCloseDialog} 
-              sx={{ 
+            <IconButton
+              onClick={handleCloseDialog}
+              sx={{
                 color: "white",
-                p: { xs: 1, sm: 1.5 }
+                p: { xs: 1, sm: 1.5 },
               }}
             >
               <MdClose size={20} />
             </IconButton>
           </DialogTitle>
-          <DialogContent 
+          <DialogContent
             dividers
             sx={{
               flex: 1, // ✅ ใช้ flex: 1 เพื่อให้ scroll ได้เฉพาะ content
@@ -455,10 +497,10 @@ function DialogForm(props) {
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
               fullWidth={mode === "view"}
-              sx={{ 
+              sx={{
                 order: { xs: 2, sm: 1 },
                 minWidth: { xs: "auto", sm: "120px" },
-                width: mode === "view" ? "100%" : { xs: "100%", sm: "auto" }
+                width: mode === "view" ? "100%" : { xs: "100%", sm: "auto" },
               }}
             >
               {mode === "view" ? "ปิด" : "ยกเลิก"}
@@ -466,12 +508,14 @@ function DialogForm(props) {
 
             {/* Navigation Buttons */}
             {mode !== "view" && (
-              <Box sx={{ 
-                display: "flex", 
-                gap: 1, 
-                width: "100%", 
-                order: { xs: 1, sm: 2 }
-              }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  width: "100%",
+                  order: { xs: 1, sm: 2 },
+                }}
+              >
                 <Button
                   variant="outlined"
                   onClick={handlePrevStep}
@@ -480,37 +524,48 @@ function DialogForm(props) {
                   fullWidth
                   sx={{ minWidth: { xs: "auto", sm: "120px" } }}
                 >
-                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "none", sm: "inline" } }}
+                  >
                     ก่อนหน้า
                   </Box>
-                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "inline", sm: "none" } }}
+                  >
                     ก่อนหน้า
                   </Box>
                 </Button>
-                
+
                 <Button
                   variant="contained"
                   onClick={activeStep < 3 ? handleNextStep : handleSubmit}
                   disabled={saveLoading}
                   endIcon={<MdNavigateNext />}
                   fullWidth
-                  sx={{ 
-                    backgroundColor: "#9e0000", 
+                  sx={{
+                    backgroundColor: "#9e0000",
                     "&:hover": { backgroundColor: "#d32f2f" },
-                    minWidth: { xs: "auto", sm: "120px" }
+                    minWidth: { xs: "auto", sm: "120px" },
                   }}
                 >
-                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "none", sm: "inline" } }}
+                  >
                     {activeStep < 3 ? "ถัดไป" : "บันทึก"}
                   </Box>
-                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "inline", sm: "none" } }}
+                  >
                     {activeStep < 3 ? "ถัดไป" : "บันทึก"}
                   </Box>
                 </Button>
               </Box>
             )}
           </DialogActions>
-
         </form>
       </Dialog>
     </>

@@ -249,7 +249,9 @@ export const useGpsHelper = (inputList) => {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Alternative geocoding failed`);
+        throw new Error(
+          `HTTP ${response.status}: Alternative geocoding failed`
+        );
       }
 
       const data = await response.json();
@@ -290,14 +292,14 @@ export const useGpsHelper = (inputList) => {
   const reverseGeocode = async (lat, lng) => {
     try {
       console.log(`🌍 Getting address for coordinates: ${lat}, ${lng}`);
-      
+
       if (!isValidThaiCoordinates(lat, lng)) {
         throw new Error("Invalid coordinates for Thailand");
       }
-      
+
       try {
         addDebugLog("🗺️ Trying primary geocoding service (nominatim)");
-        
+
         const response = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=th,en&zoom=18&extratags=1`,
           {
@@ -316,15 +318,15 @@ export const useGpsHelper = (inputList) => {
 
         if (data && data.address) {
           const addr = data.address;
-          
+
           const addressComponents = [];
-          
+
           if (addr.house_number) {
             addressComponents.push(addr.house_number);
           } else {
             addressComponents.push(Math.floor(Math.random() * 899) + 100);
           }
-          
+
           if (addr.road) {
             if (addr.road.includes("ซอย")) {
               addressComponents.push(addr.road);
@@ -332,19 +334,28 @@ export const useGpsHelper = (inputList) => {
               addressComponents.push(`ถนน${addr.road}`);
             }
           }
-          
+
           if (addr.suburb) {
             addressComponents.push(`แถว ${addr.suburb}`);
           } else if (addr.neighbourhood) {
             addressComponents.push(`แถว ${addr.neighbourhood}`);
           }
-          
+
           const finalAddress = addressComponents.join(" ");
-          const province = addr.state || addr.province || addr.city || "ไม่ทราบจังหวัด";
-          const district = addr.city_district || addr.district || addr.county || "ไม่ทราบเขต/อำเภอ";
-          const subdistrict = addr.suburb || addr.village || addr.neighbourhood || "ไม่ทราบแขวง/ตำบล";
+          const province =
+            addr.state || addr.province || addr.city || "ไม่ทราบจังหวัด";
+          const district =
+            addr.city_district ||
+            addr.district ||
+            addr.county ||
+            "ไม่ทราบเขต/อำเภอ";
+          const subdistrict =
+            addr.suburb ||
+            addr.village ||
+            addr.neighbourhood ||
+            "ไม่ทราบแขวง/ตำบล";
           const zipCode = addr.postcode || "ไม่ทราบรหัสไปรษณีย์";
-          
+
           console.log("✅ Primary address parsed successfully:", {
             address: finalAddress,
             province,
@@ -352,7 +363,7 @@ export const useGpsHelper = (inputList) => {
             subdistrict,
             zipCode,
           });
-          
+
           return {
             address: finalAddress,
             province,
@@ -360,39 +371,47 @@ export const useGpsHelper = (inputList) => {
             subdistrict,
             zipCode,
             rawData: data,
-            source: "nominatim"
+            source: "nominatim",
           };
         }
 
         throw new Error("No address data found in primary response");
       } catch (primaryError) {
-        addDebugLog(`⚠️ Primary geocoding failed: ${primaryError.message}, trying alternative...`);
+        addDebugLog(
+          `⚠️ Primary geocoding failed: ${primaryError.message}, trying alternative...`
+        );
         console.warn("⚠️ Primary geocoding failed:", primaryError.message);
-        
+
         try {
           const alternativeResult = await reverseGeocodeAlternative(lat, lng);
           addDebugLog("✅ Alternative geocoding successful");
           return alternativeResult;
         } catch (alternativeError) {
-          addDebugLog(`❌ Alternative geocoding also failed: ${alternativeError.message}`);
-          throw new Error(`Both geocoding services failed. Primary: ${primaryError.message}, Alternative: ${alternativeError.message}`);
+          addDebugLog(
+            `❌ Alternative geocoding also failed: ${alternativeError.message}`
+          );
+          throw new Error(
+            `Both geocoding services failed. Primary: ${primaryError.message}, Alternative: ${alternativeError.message}`
+          );
         }
       }
     } catch (error) {
       console.error("❌ All reverse geocoding attempts failed:", error);
       addDebugLog(`❌ All geocoding failed: ${error.message}`);
-      
+
       const randomHouseNumber = Math.floor(Math.random() * 899) + 100;
-      
+
       return {
-        address: `${randomHouseNumber} ตำแหน่งจาก GPS (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
+        address: `${randomHouseNumber} ตำแหน่งจาก GPS (${lat.toFixed(
+          6
+        )}, ${lng.toFixed(6)})`,
         province: "ไม่ทราบจังหวัด",
-        district: "ไม่ทราบเขต/อำเภอ", 
+        district: "ไม่ทราบเขต/อำเภอ",
         subdistrict: "ไม่ทราบแขวง/ตำบล",
         zipCode: "ไม่ทราบรหัสไปรษณีย์",
         error: error.message,
         fallback: true,
-        source: "fallback"
+        source: "fallback",
       };
     }
   };
@@ -401,11 +420,12 @@ export const useGpsHelper = (inputList) => {
     console.log("🚀 Starting fillAddressData with:", addressData);
 
     try {
+      // สร้างที่อยู่เต็มตามรูปแบบที่ร้องขอ: "39/3 หมู่ 3 ต.บ่อโพง อ.นครหลวง จ.พระนครศรีอยุธยา 13260"
       const fullAddress = [
         addressData.address,
-        addressData.subdistrict,
-        addressData.district,
-        addressData.province,
+        addressData.subdistrict ? `ต.${addressData.subdistrict}` : "",
+        addressData.district ? `อ.${addressData.district}` : "",
+        addressData.province ? `จ.${addressData.province}` : "",
         addressData.zipCode,
       ]
         .filter(Boolean)
@@ -421,7 +441,6 @@ export const useGpsHelper = (inputList) => {
         cus_subdistrict_text: addressData.subdistrict || "",
         cus_zip_code: addressData.zipCode || "",
         cus_address_detail: addressData.address || "",
-        cus_full_address: fullAddress || "",
       };
 
       console.log("📝 Dispatching updated inputList:", updatedInputList);
@@ -596,7 +615,7 @@ export const useGpsHelper = (inputList) => {
     hasFilledFromGps,
     watchLonger,
     gpsDebugLogs,
-    
+
     // Actions
     setWatchLonger,
     handleGetCurrentLocation,

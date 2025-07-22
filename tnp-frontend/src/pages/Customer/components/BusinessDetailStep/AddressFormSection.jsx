@@ -40,11 +40,7 @@ const AddressFormSection = ({
       >
         <MdHome size={24} color={PRIMARY_RED} />
         <Box>
-          <Typography
-            fontWeight={600}
-            fontFamily="Kanit"
-            color={PRIMARY_RED}
-          >
+          <Typography fontWeight={600} fontFamily="Kanit" color={PRIMARY_RED}>
             ที่อยู่ติดต่อ (ไม่บังคับ)
           </Typography>
           <Typography
@@ -58,34 +54,29 @@ const AddressFormSection = ({
       </AccordionSummary>
       <AccordionDetails sx={{ bgcolor: BACKGROUND_COLOR }}>
         <Stack spacing={3}>
-          {/* Full Address */}
-          <TextField
-            name="cus_address"
-            label="ที่อยู่เต็ม (ไม่บังคับ)"
-            value={inputList.cus_address || ""}
-            onChange={handleInputChange}
-            fullWidth
-            multiline
-            rows={3}
-            error={!!errors.cus_address}
-            helperText={
-              errors.cus_address ||
-              "ที่อยู่ตามบัตรประชาชนหรือที่อยู่ที่สามารถติดต่อได้ (สามารถใช้ GPS ช่วยเติมได้)"
-            }
-            disabled={mode === "view"}
-            placeholder="เช่น 123 ซอยสุขุมวิท 21 ถนนสุขุมวิท แขวงคลองเตยเหนือ เขตวัฒนา กรุงเทพมหานคร 10110"
-            size="small"
-            sx={{ bgcolor: "white" }}
-            InputProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-            }}
-            InputLabelProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-            }}
-          />
-
           {/* Address Components Row */}
           <Grid container spacing={2}>
+            <Grid xs={12}>
+              <TextField
+                name="cus_address_detail"
+                label="บ้านเลขที่/หมู่บ้าน/ถนน"
+                value={inputList.cus_address_detail || ""}
+                onChange={handleInputChange}
+                fullWidth
+                error={!!errors.cus_address_detail}
+                helperText={errors.cus_address_detail}
+                disabled={mode === "view"}
+                placeholder="เช่น 39/3 หมู่ 3 ถนนสุโขทัย"
+                size="small"
+                sx={{ bgcolor: "white" }}
+                InputProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+                InputLabelProps={{
+                  style: { fontFamily: "Kanit", fontSize: 14 },
+                }}
+              />
+            </Grid>
             <Grid xs={12} sm={6}>
               <TextField
                 name="cus_province_text"
@@ -96,7 +87,7 @@ const AddressFormSection = ({
                 error={!!errors.cus_province_text}
                 helperText={errors.cus_province_text}
                 disabled={mode === "view"}
-                placeholder="เช่น กรุงเทพมหานคร"
+                placeholder="เช่น พระนครศรีอยุธยา"
                 size="small"
                 sx={{ bgcolor: "white" }}
                 InputProps={{
@@ -117,7 +108,7 @@ const AddressFormSection = ({
                 error={!!errors.cus_district_text}
                 helperText={errors.cus_district_text}
                 disabled={mode === "view"}
-                placeholder="เช่น วัฒนา"
+                placeholder="เช่น นครหลวง"
                 size="small"
                 sx={{ bgcolor: "white" }}
                 InputProps={{
@@ -138,7 +129,7 @@ const AddressFormSection = ({
                 error={!!errors.cus_subdistrict_text}
                 helperText={errors.cus_subdistrict_text}
                 disabled={mode === "view"}
-                placeholder="เช่น คลองเตยเหนือ"
+                placeholder="เช่น บ่อโพง"
                 size="small"
                 sx={{ bgcolor: "white" }}
                 InputProps={{
@@ -159,7 +150,7 @@ const AddressFormSection = ({
                 error={!!errors.cus_zip_code}
                 helperText={errors.cus_zip_code}
                 disabled={mode === "view"}
-                placeholder="เช่น 10110"
+                placeholder="เช่น 13260"
                 size="small"
                 sx={{ bgcolor: "white" }}
                 inputProps={{

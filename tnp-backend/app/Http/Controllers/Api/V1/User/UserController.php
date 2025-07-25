@@ -264,7 +264,7 @@ class UserController extends Controller
 
     public function get_users_by_role(Request $request)
     {
-        $roles = ['graphic', 'manager', 'production', 'sale', 'technician'];
+        $roles = ['graphic', 'manager', 'account', 'production', 'sale', 'technician'];
         $result = [];
 
         if ($request->has('role')) {

@@ -76,8 +76,8 @@ class PricingController extends Controller
                 $prepared_statement->where('pr_status_id', $request->status);
             }
 
-            // query with user_id, if role is not admin, manager, production
-            if (!in_array($user_q->role, ['admin', 'manager', 'production'])) {
+            // query with user_id, if role is not admin, manager, account, production
+            if (!in_array($user_q->role, ['admin', 'manager', 'account', 'production'])) {
                 $prepared_statement->where('pr_created_by', $user_q->user_uuid);
                 $total_query->where('pr_created_by', $user_q->user_uuid);
             };

@@ -67,7 +67,7 @@ class User extends Model implements Authenticatable
 		'user_uuid',
 		'username',
 		'password',
-		'role',		// ['admin','manager','production','graphic','sale','technician']
+		'role',		// ['admin','manager','account','production','graphic','sale','technician']
 		'user_emp_no',
 		'user_firstname',
 		'user_lastname',

@@ -74,6 +74,18 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user is from account.
+     */
+    public function account(): self
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'role' => 'account',
+            ];
+        });
+    }
+
+    /**
      * Indicate that the user is a sales.
      */
     public function sales(): self

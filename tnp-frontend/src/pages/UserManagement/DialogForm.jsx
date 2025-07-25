@@ -76,6 +76,7 @@ function DialogForm(props) {
   const roleList = [
     "admin",
     "manager",
+    "account",
     "production",
     "graphic",
     "sale",

@@ -19,6 +19,10 @@ use App\Http\Controllers\Api\V1\GlobalController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
+use App\Http\Controllers\Api\V1\Accounting\QuotationController;
+use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
+use App\Http\Controllers\Api\V1\Accounting\ReceiptController;
+use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -156,6 +160,60 @@ Route::prefix('v1')->group(function() {
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {
         Route::put('/pricing-update-status', 'update_status');
+    });
+
+    //---------- Accounting ----------
+    // Quotations
+    Route::prefix('quotations')->group(function () {
+        Route::get('/', [QuotationController::class, 'index']);
+        Route::post('/', [QuotationController::class, 'store']);
+        Route::get('/{id}', [QuotationController::class, 'show']);
+        Route::put('/{id}', [QuotationController::class, 'update']);
+        Route::delete('/{id}', [QuotationController::class, 'destroy']);
+        Route::patch('/{id}/status', [QuotationController::class, 'changeStatus']);
+        Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
+        Route::get('/{id}/history', [QuotationController::class, 'getHistory']);
+    });
+
+    // Invoices
+    Route::prefix('invoices')->group(function () {
+        Route::get('/', [InvoiceController::class, 'index']);
+        Route::post('/', [InvoiceController::class, 'store']);
+        Route::get('/overdue', [InvoiceController::class, 'getOverdue']);
+        Route::get('/{id}', [InvoiceController::class, 'show']);
+        Route::put('/{id}', [InvoiceController::class, 'update']);
+        Route::delete('/{id}', [InvoiceController::class, 'destroy']);
+        Route::patch('/{id}/status', [InvoiceController::class, 'changeStatus']);
+        Route::post('/{id}/payment', [InvoiceController::class, 'recordPayment']);
+        Route::get('/{id}/pdf', [InvoiceController::class, 'generatePdf']);
+        Route::get('/{id}/history', [InvoiceController::class, 'getHistory']);
+    });
+
+    // Receipts
+    Route::prefix('receipts')->group(function () {
+        Route::get('/', [ReceiptController::class, 'index']);
+        Route::post('/', [ReceiptController::class, 'store']);
+        Route::get('/{id}', [ReceiptController::class, 'show']);
+        Route::put('/{id}', [ReceiptController::class, 'update']);
+        Route::delete('/{id}', [ReceiptController::class, 'destroy']);
+        Route::patch('/{id}/status', [ReceiptController::class, 'changeStatus']);
+        Route::get('/{id}/pdf', [ReceiptController::class, 'generatePdf']);
+        Route::get('/{id}/history', [ReceiptController::class, 'getHistory']);
+    });
+
+    // Delivery Notes
+    Route::prefix('delivery-notes')->group(function () {
+        Route::get('/', [DeliveryNoteController::class, 'index']);
+        Route::post('/', [DeliveryNoteController::class, 'store']);
+        Route::post('/partial', [DeliveryNoteController::class, 'storePartial']);
+        Route::get('/pending', [DeliveryNoteController::class, 'getPending']);
+        Route::get('/customer/{customerId}/summary', [DeliveryNoteController::class, 'getCustomerSummary']);
+        Route::get('/{id}', [DeliveryNoteController::class, 'show']);
+        Route::put('/{id}', [DeliveryNoteController::class, 'update']);
+        Route::delete('/{id}', [DeliveryNoteController::class, 'destroy']);
+        Route::patch('/{id}/status', [DeliveryNoteController::class, 'changeStatus']);
+        Route::get('/{id}/pdf', [DeliveryNoteController::class, 'generatePdf']);
+        Route::get('/{id}/history', [DeliveryNoteController::class, 'getHistory']);
     });
 
     //---------- Calendar ----------

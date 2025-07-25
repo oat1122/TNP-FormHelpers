@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\ReceiptController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
+use App\Http\Controllers\Api\V1\Accounting\PricingIntegrationController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -163,6 +164,14 @@ Route::prefix('v1')->group(function() {
     });
 
     //---------- Accounting ----------
+    // Pricing Integration
+    Route::prefix('pricing-integration')->group(function () {
+        Route::get('/completed-requests', [PricingIntegrationController::class, 'getCompletedPricingRequests']);
+        Route::get('/requests/{id}', [PricingIntegrationController::class, 'getPricingRequestDetails']);
+        Route::get('/requests/{id}/summary', [PricingIntegrationController::class, 'getPricingRequestSummary']);
+        Route::post('/create-quotation', [PricingIntegrationController::class, 'createQuotationFromPricing']);
+    });
+
     // Quotations
     Route::prefix('quotations')->group(function () {
         Route::get('/', [QuotationController::class, 'index']);

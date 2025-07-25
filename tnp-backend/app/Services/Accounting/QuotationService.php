@@ -67,6 +67,9 @@ class QuotationService
                         'item_order' => $index + 1
                     ]);
                 }
+            } else {
+                // Auto-generate items from pricing request if no items provided
+                $this->createQuotationItemsFromPricingRequest($quotation, $pricingRequest);
             }
 
             // Calculate totals
@@ -79,12 +82,102 @@ class QuotationService
                 null,
                 Quotation::STATUS_DRAFT,
                 DocumentStatusHistory::ACTION_TYPE_CREATE,
-                'สร้างใบเสนอราคาใหม่',
+                'สร้างใบเสนอราคาใหม่จากระบบ Pricing: ' . $pricingRequest->pr_no,
                 $data['created_by']
             );
 
             return $quotation->load(['items', 'customer', 'pricingRequest']);
         });
+    }
+
+    /**
+     * Create quotation items from pricing request data
+     */
+    private function createQuotationItemsFromPricingRequest(Quotation $quotation, PricingRequest $pricingRequest)
+    {
+        $itemOrder = 1;
+        
+        // Main item from pricing request
+        QuotationItem::create([
+            'id' => Str::uuid(),
+            'quotation_id' => $quotation->id,
+            'item_name' => $pricingRequest->pr_work_name ?? 'สินค้าตามใบขอราคา',
+            'item_description' => $this->buildItemDescription($pricingRequest),
+            'quantity' => $pricingRequest->pr_quantity ?? 1,
+            'unit' => 'ชิ้น',
+            'unit_price' => 0, // Will be updated later
+            'item_order' => $itemOrder++
+        ]);
+
+        // Additional items based on pricing request details
+        if (!empty($pricingRequest->pr_embroider)) {
+            QuotationItem::create([
+                'id' => Str::uuid(),
+                'quotation_id' => $quotation->id,
+                'item_name' => 'งานปัก',
+                'item_description' => $pricingRequest->pr_embroider,
+                'quantity' => $pricingRequest->pr_quantity ?? 1,
+                'unit' => 'จุด',
+                'unit_price' => 0,
+                'item_order' => $itemOrder++
+            ]);
+        }
+
+        if (!empty($pricingRequest->pr_silk)) {
+            QuotationItem::create([
+                'id' => Str::uuid(),
+                'quotation_id' => $quotation->id,
+                'item_name' => 'งานสกรีน',
+                'item_description' => $pricingRequest->pr_silk,
+                'quantity' => $pricingRequest->pr_quantity ?? 1,
+                'unit' => 'หน้า',
+                'unit_price' => 0,
+                'item_order' => $itemOrder++
+            ]);
+        }
+
+        if (!empty($pricingRequest->pr_dft)) {
+            QuotationItem::create([
+                'id' => Str::uuid(),
+                'quotation_id' => $quotation->id,
+                'item_name' => 'งาน DTF',
+                'item_description' => $pricingRequest->pr_dft,
+                'quantity' => $pricingRequest->pr_quantity ?? 1,
+                'unit' => 'แผ่น',
+                'unit_price' => 0,
+                'item_order' => $itemOrder++
+            ]);
+        }
+    }
+
+    /**
+     * Build item description from pricing request
+     */
+    private function buildItemDescription(PricingRequest $pricingRequest): string
+    {
+        $description = [];
+
+        if ($pricingRequest->pr_pattern) {
+            $description[] = "แพทเทิร์น: " . $pricingRequest->pr_pattern;
+        }
+
+        if ($pricingRequest->pr_fabric_type) {
+            $description[] = "ผ้า: " . $pricingRequest->pr_fabric_type;
+        }
+
+        if ($pricingRequest->pr_color) {
+            $description[] = "สี: " . $pricingRequest->pr_color;
+        }
+
+        if ($pricingRequest->pr_sizes) {
+            $description[] = "ไซส์: " . $pricingRequest->pr_sizes;
+        }
+
+        if ($pricingRequest->pr_sub) {
+            $description[] = "หมายเหตุ: " . $pricingRequest->pr_sub;
+        }
+
+        return implode(', ', $description);
     }
 
     /**
@@ -212,19 +305,27 @@ class QuotationService
     }
 
     /**
-     * Get quotation with all relationships
+     * Get quotation with all relationships including detailed customer data
      */
     public function getQuotationWithRelations(string $quotationId): ?Quotation
     {
         return Quotation::with([
-            'items',
-            'customer',
-            'pricingRequest',
+            'items' => function ($query) {
+                $query->orderBy('item_order');
+            },
+            'customer' => function ($query) {
+                $query->with(['customerDetail', 'customerGroup']);
+            },
+            'pricingRequest' => function ($query) {
+                $query->with(['pricingNote', 'pricingStatus']);
+            },
             'creator',
             'updater',
             'approver',
             'rejecter',
-            'statusHistory.user',
+            'statusHistory' => function ($query) {
+                $query->with('user')->orderBy('changed_at', 'desc');
+            },
             'attachments.uploader',
             'invoices'
         ])->find($quotationId);

@@ -101,4 +101,12 @@ class PricingRequest extends Model
 			->orderBy('prn_created_date', 'desc')
 			->select('prn_id', 'prn_pr_id', 'prn_text', 'prn_note_type', 'prn_is_deleted', 'prn_created_date', 'prn_created_by');
     }
+
+    /**
+     * Relationship with Quotations
+     */
+    public function quotations()
+    {
+        return $this->hasMany(\App\Models\Accounting\Quotation::class, 'pricing_request_id', 'pr_id');
+    }
 }

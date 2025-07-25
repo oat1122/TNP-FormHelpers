@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Pricing Integration API Examples",
+    "description": "ตัวอย่าง JSON สำหรับทดสอบการเชื่อมต่อระบบ Pricing กับ Accounting",
+    "version": "1.0.0"
+  },
+  "base_url": "http://localhost:8000/api/v1",
+  "auth": {
+    "type": "Bearer Token",
+    "note": "ต้องใส่ Bearer Token ใน Headers: Authorization: Bearer YOUR_TOKEN"
+  },
+  "endpoints": {
+    "1. GET /pricing-integration/completed-requests - ดึงงานที่เสร็จแล้ว": {
+      "method": "GET",
+      "url": "{{base_url}}/pricing-integration/completed-requests",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "query_parameters": {
+        "customer_id": "customer-uuid-here",
+        "search": "ค้นหาตามเลขที่เอกสาร หรือชื่องาน",
+        "date_from": "2025-01-01",
+        "date_to": "2025-12-31",
+        "per_page": "15"
+      },
+      "example_response": {
+        "status": "success",
+        "message": "Completed pricing requests retrieved successfully",
+        "data": {
+          "current_page": 1,
+          "data": [
+            {
+              "pr_id": "01234567-89ab-cdef-0123-456789abcdef",
+              "pr_no": "P2025-07-0001",
+              "pr_work_name": "เสื้อโปโลสีขาว",
+              "pr_quantity": "100",
+              "pr_status_id": "20db8be1-092b-11f0-b223-38ca84abdf0a",
+              "status": "ได้ราคาแล้ว",
+              "pr_created_date": "2025-07-20T10:00:00.000000Z",
+              "pricingCustomer": {
+                "cus_id": "customer-uuid",
+                "cus_name": "บริษัท ตัวอย่าง จำกัด",
+                "cus_company": "Example Company Ltd.",
+                "cus_email": "contact@example.com",
+                "cus_tel_1": "02-123-4567"
+              },
+              "note_price": [
+                {
+                  "prn_text": "ราคา 150 บาทต่อตัว รวม 15,000 บาท",
+                  "prn_created_date": "2025-07-25T10:00:00.000000Z",
+                  "created_name": "Manager"
+                }
+              ]
+            }
+          ],
+          "total": 1,
+          "per_page": 15
+        }
+      }
+    },
+    "2. GET /pricing-integration/requests/{id} - ดูรายละเอียดงาน": {
+      "method": "GET",
+      "url": "{{base_url}}/pricing-integration/requests/01234567-89ab-cdef-0123-456789abcdef",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "example_response": {
+        "status": "success",
+        "message": "Pricing request details retrieved successfully",
+        "data": {
+          "pricing_request": {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "no": "P2025-07-0001",
+            "work_name": "เสื้อโปโลสีขาว",
+            "pattern": "Basic Polo",
+            "fabric_type": "Cotton 100%",
+            "color": "ขาว",
+            "sizes": "M,L,XL",
+            "quantity": "100",
+            "due_date": "2025-08-15T00:00:00.000000Z",
+            "silk_work": "สกรีนโลโก้หน้าอก",
+            "dft_work": null,
+            "embroider_work": "ปักโลโก้หน้าอก",
+            "sub_work": "งานเพิ่มเติม: ตีนตุ๊กแก",
+            "other_screen": null,
+            "image_url": "http://localhost:8000/storage/images/pricing_req/example.jpg",
+            "created_date": "2025-07-20T10:00:00.000000Z",
+            "latest_price": 15000.00,
+            "status_id": "20db8be1-092b-11f0-b223-38ca84abdf0a",
+            "status_name": "ได้ราคาแล้ว"
+          },
+          "customer": {
+            "id": "customer-uuid",
+            "customer_no": "C2025-001",
+            "name": "บริษัท ตัวอย่าง จำกัด",
+            "firstname": "สมชาย",
+            "lastname": "ตัวอย่าง",
+            "full_name": "สมชาย ตัวอย่าง",
+            "department": "ฝ่ายจัดซื้อ",
+            "company": "Example Company Ltd.",
+            "email": "contact@example.com",
+            "phone_1": "02-123-4567",
+            "phone_2": "02-765-4321",
+            "tax_id": "0123456789012",
+            "address": "123 ถนนตัวอย่าง แขวงตัวอย่าง เขตตัวอย่าง กรุงเทพฯ",
+            "province_id": "10",
+            "district_id": "1001",
+            "sub_district_id": "100101",
+            "zip_code": "10100",
+            "channel": 1,
+            "business_type_id": "bt-uuid",
+            "manage_by": 1,
+            "created_date": "2025-01-01T00:00:00.000000Z",
+            "is_active": true,
+            "customer_group": {
+              "id": "group-uuid",
+              "name": "A"
+            },
+            "customer_detail": {
+              "note": "ลูกค้าประจำ ซื้อเสื้อโปโลทุกเดือน",
+              "last_contact": "2025-07-20T10:00:00.000000Z"
+            }
+          },
+          "items": [
+            {
+              "item_name": "เสื้อโปโลสีขาว",
+              "item_description": "แพทเทิร์น: Basic Polo, ผ้า: Cotton 100%, สี: ขาว, ไซส์: M,L,XL",
+              "quantity": 100,
+              "unit": "ชิ้น",
+              "unit_price": 150.00
+            },
+            {
+              "item_name": "งานปัก",
+              "item_description": "ปัก Logo หน้าอก",
+              "quantity": 100,
+              "unit": "จุด",
+              "unit_price": 0
+            }
+          ],
+          "notes": [
+            {
+              "type": 1,
+              "text": "ลูกค้าต้องการเสื้อโปโลสำหรับพนักงาน",
+              "created_date": "2025-07-20T10:00:00.000000Z",
+              "created_by": "Sales"
+            },
+            {
+              "type": 2,
+              "text": "ราคา 150 บาทต่อตัว รวม 15,000 บาท",
+              "created_date": "2025-07-25T10:00:00.000000Z",
+              "created_by": "Manager"
+            }
+          ]
+        }
+      }
+    },
+    "3. POST /pricing-integration/create-quotation - สร้างใบเสนอราคา": {
+      "method": "POST",
+      "url": "{{base_url}}/pricing-integration/create-quotation",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body_option_1_auto_items": {
+        "pricing_request_id": "01234567-89ab-cdef-0123-456789abcdef",
+        "valid_until": "2025-08-25",
+        "deposit_amount": 7500.00,
+        "payment_terms": "มัดจำ 50% เริ่มงาน เก็บเงินส่วนที่เหลือเมื่อส่งของ",
+        "remarks": "สร้างจากระบบ Pricing โดยอัตโนมัติ"
+      },
+      "body_option_2_custom_items": {
+        "pricing_request_id": "01234567-89ab-cdef-0123-456789abcdef",
+        "valid_until": "2025-08-25",
+        "deposit_amount": 7500.00,
+        "payment_terms": "มัดจำ 50% เริ่มงาน เก็บเงินส่วนที่เหลือเมื่อส่งของ",
+        "remarks": "ใบเสนอราคาที่ปรับแต่งแล้ว",
+        "items": [
+          {
+            "item_name": "เสื้อโปโลสีขาว",
+            "item_description": "แพทเทิร์น: Basic Polo, ผ้า: Cotton 100%, สี: ขาว, ไซส์: M,L,XL",
+            "quantity": 100,
+            "unit": "ตัว",
+            "unit_price": 150.00
+          },
+          {
+            "item_name": "งานปัก Logo",
+            "item_description": "ปัก Logo หน้าอก ขนาด 8x8 ซม.",
+            "quantity": 100,
+            "unit": "จุด",
+            "unit_price": 0.00
+          }
+        ]
+      },
+      "example_response": {
+        "status": "success",
+        "message": "Quotation created successfully from pricing request",
+        "data": {
+          "id": "quotation-uuid",
+          "quotation_no": "QT202507-0001",
+          "pricing_request_id": "01234567-89ab-cdef-0123-456789abcdef",
+          "customer_id": "customer-uuid",
+          "status": "draft",
+          "subtotal": 15000.00,
+          "tax_rate": 7.00,
+          "tax_amount": 1050.00,
+          "total_amount": 16050.00,
+          "deposit_amount": 7500.00,
+          "remaining_amount": 8550.00,
+          "payment_terms": "มัดจำ 50% เริ่มงาน เก็บเงินส่วนที่เหลือเมื่อส่งของ",
+          "valid_until": "2025-08-25",
+          "remarks": "สร้างจากระบบ Pricing โดยอัตโนมัติ",
+          "created_at": "2025-07-25T15:00:00.000000Z",
+          "items": [
+            {
+              "id": "item-uuid-1",
+              "item_name": "เสื้อโปโลสีขาว",
+              "item_description": "แพทเทิร์น: Basic Polo, ผ้า: Cotton 100%, สี: ขาว, ไซส์: M,L,XL",
+              "quantity": 100,
+              "unit": "ชิ้น",
+              "unit_price": 150.00,
+              "total_price": 15000.00,
+              "item_order": 1
+            }
+          ],
+          "customer": {
+            "cus_id": "customer-uuid",
+            "cus_name": "บริษัท ตัวอย่าง จำกัด",
+            "cus_company": "Example Company Ltd."
+          },
+          "pricingRequest": {
+            "pr_id": "01234567-89ab-cdef-0123-456789abcdef",
+            "pr_no": "P2025-07-0001",
+            "pr_work_name": "เสื้อโปโลสีขาว"
+          }
+        }
+      }
+    },
+    "4. GET /pricing-integration/requests/{id}/summary - สรุปข้อมูลงาน": {
+      "method": "GET",
+      "url": "{{base_url}}/pricing-integration/requests/01234567-89ab-cdef-0123-456789abcdef/summary",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "example_response": {
+        "status": "success",
+        "message": "Pricing request summary retrieved successfully",
+        "data": {
+          "pricing_request": {
+            "id": "01234567-89ab-cdef-0123-456789abcdef",
+            "no": "P2025-07-0001",
+            "work_name": "เสื้อโปโลสีขาว",
+            "quantity": "100",
+            "due_date": "2025-08-15T00:00:00.000000Z",
+            "created_date": "2025-07-20T10:00:00.000000Z",
+            "latest_price": 15000.00
+          },
+          "customer": {
+            "id": "customer-uuid",
+            "customer_no": "C2025-001",
+            "name": "บริษัท ตัวอย่าง จำกัด",
+            "firstname": "สมชาย",
+            "lastname": "ตัวอย่าง",
+            "full_name": "สมชาย ตัวอย่าง",
+            "department": "ฝ่ายจัดซื้อ",
+            "company": "Example Company Ltd.",
+            "email": "contact@example.com",
+            "phone_1": "02-123-4567",
+            "phone_2": "02-765-4321",
+            "tax_id": "0123456789012",
+            "address": "123 ถนนตัวอย่าง แขวงตัวอย่าง เขตตัวอย่าง กรุงเทพฯ",
+            "province_id": "10",
+            "district_id": "1001",
+            "sub_district_id": "100101",
+            "zip_code": "10100",
+            "channel": 1,
+            "business_type_id": "bt-uuid",
+            "manage_by": 1,
+            "created_date": "2025-01-01T00:00:00.000000Z",
+            "is_active": true,
+            "customer_group": {
+              "id": "group-uuid",
+              "name": "A"
+            },
+            "customer_detail": {
+              "note": "ลูกค้าประจำ ซื้อเสื้อโปโลทุกเดือน",
+              "last_contact": "2025-07-20T10:00:00.000000Z"
+            }
+          },
+          "items": [
+            {
+              "item_name": "เสื้อโปโลสีขาว",
+              "item_description": "แพทเทิร์น: Basic Polo, ผ้า: Cotton 100%, สี: ขาว, ไซส์: M,L,XL, กำหนดส่ง: 15/08/2025",
+              "quantity": 100,
+              "unit": "ชิ้น",
+              "unit_price": 150.00
+            }
+          ],
+          "notes": [
+            {
+              "type": 1,
+              "text": "ลูกค้าต้องการเสื้อโปโลสำหรับพนักงาน",
+              "created_date": "2025-07-20T10:00:00.000000Z",
+              "created_by": "Sales"
+            },
+            {
+              "type": 2,
+              "text": "ราคา 150 บาทต่อตัว รวม 15,000 บาท",
+              "created_date": "2025-07-25T10:00:00.000000Z",
+              "created_by": "Manager"
+            }
+          ],
+          "can_create_quotation": true
+        }
+      }
+    }
+  },
+  "error_responses": {
+    "401_unauthorized": {
+      "status": "error",
+      "message": "Unauthenticated."
+    },
+    "403_forbidden": {
+      "status": "error",
+      "message": "This pricing request cannot be converted to quotation"
+    },
+    "404_not_found": {
+      "status": "error",
+      "message": "Pricing request not found"
+    },
+    "422_validation_error": {
+      "status": "error",
+      "message": "Validation failed",
+      "errors": {
+        "pricing_request_id": ["The pricing request id field is required."],
+        "valid_until": ["The valid until must be a date after today."]
+      }
+    },
+    "500_server_error": {
+      "status": "error",
+      "message": "Failed to create quotation from pricing request: Database connection error"
+    }
+  },
+  "status_codes": {
+    "pricing_request_statuses": {
+      "20db8be1-092b-11f0-b223-38ca84abdf0a": "ได้ราคาแล้ว",
+      "20db8c1d-092b-11f0-b223-38ca84abdf0a": "Complete"
+    },
+    "note_types": {
+      "1": "Sales Note (หมายเหตุจากฝ่ายขาย)",
+      "2": "Price Note (หมายเหตุราคา)",
+      "3": "Manager Note (หมายเหตุจากผู้จัดการ)"
+    }
+  },
+  "notes": {
+    "authentication": "ต้องมี Bearer Token ใน Authorization header",
+    "pricing_extraction": "ระบบจะดึงราคาจาก note_type=2 โดยอัตโนมัติ",
+    "auto_items": "หากไม่ส่ง items มา ระบบจะสร้างรายการอัตโนมัติจาก pricing request",
+    "status_validation": "เฉพาะงานที่สถานะ 'ได้ราคาแล้ว' หรือ 'Complete' เท่านั้นที่สร้างใบเสนอราคาได้",
+    "duplicate_prevention": "ไม่สามารถสร้างใบเสนอราคาซ้ำจากงานเดียวกันได้",
+    "customer_validation": "ข้อมูลลูกค้าต้องมีอยู่และใช้งานได้"
+  }
+}

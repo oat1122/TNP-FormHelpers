@@ -24,6 +24,10 @@ use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\ReceiptController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use App\Http\Controllers\Api\V1\Accounting\PricingIntegrationController;
+use App\Http\Controllers\Api\V1\Accounting\CustomerController as AccountingCustomerController;
+use App\Http\Controllers\Api\V1\Accounting\ProductController as AccountingProductController;
+use App\Http\Controllers\Api\V1\Accounting\DocumentAttachmentController;
+use App\Http\Controllers\Api\V1\Accounting\DashboardController as AccountingDashboardController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -164,6 +168,45 @@ Route::prefix('v1')->group(function() {
     });
 
     //---------- Accounting ----------
+    // Dashboard
+    Route::prefix('accounting/dashboard')->group(function () {
+        Route::get('/summary', [AccountingDashboardController::class, 'getSummary']);
+        Route::get('/revenue-chart', [AccountingDashboardController::class, 'getRevenueChart']);
+    });
+
+    // Customers
+    Route::prefix('accounting/customers')->group(function () {
+        Route::get('/', [AccountingCustomerController::class, 'index']);
+        Route::post('/', [AccountingCustomerController::class, 'store']);
+        Route::get('/{id}', [AccountingCustomerController::class, 'show']);
+        Route::put('/{id}', [AccountingCustomerController::class, 'update']);
+        Route::delete('/{id}', [AccountingCustomerController::class, 'destroy']);
+        Route::get('/{id}/summary', [AccountingCustomerController::class, 'getSummary']);
+    });
+
+    // Products
+    Route::prefix('accounting/products')->group(function () {
+        Route::get('/', [AccountingProductController::class, 'index']);
+        Route::post('/', [AccountingProductController::class, 'store']);
+        Route::get('/categories', [AccountingProductController::class, 'getCategories']);
+        Route::get('/low-stock', [AccountingProductController::class, 'getLowStock']);
+        Route::get('/{id}', [AccountingProductController::class, 'show']);
+        Route::put('/{id}', [AccountingProductController::class, 'update']);
+        Route::delete('/{id}', [AccountingProductController::class, 'destroy']);
+        Route::patch('/{id}/stock', [AccountingProductController::class, 'updateStock']);
+    });
+
+    // Document Attachments
+    Route::prefix('accounting/attachments')->name('api.v1.accounting.attachments.')->group(function () {
+        Route::post('/upload', [DocumentAttachmentController::class, 'upload']);
+        Route::get('/document', [DocumentAttachmentController::class, 'getDocumentAttachments']);
+        Route::get('/stats', [DocumentAttachmentController::class, 'getStorageStats']);
+        Route::get('/{id}', [DocumentAttachmentController::class, 'show']);
+        Route::get('/{id}/download', [DocumentAttachmentController::class, 'download'])->name('download');
+        Route::put('/{id}/description', [DocumentAttachmentController::class, 'updateDescription']);
+        Route::delete('/{id}', [DocumentAttachmentController::class, 'destroy']);
+    });
+
     // Pricing Integration
     Route::prefix('pricing-integration')->group(function () {
         Route::get('/completed-requests', [PricingIntegrationController::class, 'getCompletedPricingRequests']);

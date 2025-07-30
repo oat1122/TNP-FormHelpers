@@ -21,6 +21,7 @@ import {
   FaCalendarAlt,
   FaPlus,
   FaList,
+  FaCogs,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -368,24 +369,38 @@ function ControlPanel() {
         <h3>SPECIFIC ACCOUNT TOOLS</h3>
         <hr />
         <div className="row col-11">
-          <div className="col-md-12 col-lg-6 ms-md-1 ms-lg-2 col-basic">
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
+          <div className="col-md-12 col-lg-12 ms-md-1 ms-lg-2 col-basic">
+            {/* Accounting Dashboard */}
+            <a className="btn btn-outline-danger pt-3" href="/accounting">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaCogs />
+              </IconContext.Provider>
+              <label>DASHBOARD</label>
+            </a>
+            <div className="vr vr-home"></div>
+            
+            {/* Quotations */}
+            <a className="btn btn-outline-danger pt-3" href="/accounting/quotations">
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
                 <FaFileInvoice />
               </IconContext.Provider>
               <label>QUOTATION</label>
             </a>
             <div className="vr vr-home"></div>
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
+            
+            {/* Invoices */}
+            <a className="btn btn-outline-danger pt-3" href="/accounting/invoices">
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
                 <FaFileInvoiceDollar />
               </IconContext.Provider>
               <label>INVOICE</label>
             </a>
             <div className="vr vr-home"></div>
+            
+            {/* Receipts/Tax Invoice */}
             <a
-              className="btn btn-outline-danger disable-link pt-3"
-              href="#"
+              className="btn btn-outline-danger pt-3"
+              href="/accounting/receipts"
               style={{ width: "5.7rem" }}
             >
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
@@ -394,23 +409,35 @@ function ControlPanel() {
               <label>TAX-INVOICE</label>
             </a>
             <div className="vr vr-home d-none d-sm-inline-block"></div>
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
-              <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaFileAlt />
-              </IconContext.Provider>
-              <br />
-              <label>BILL</label>
-            </a>
-            <div className="vr vr-home"></div>
+            
+            {/* Delivery Notes */}
             <a
-              className="btn btn-outline-danger disable-link pt-3"
-              href="#"
+              className="btn btn-outline-danger pt-3"
+              href="/accounting/delivery-notes"
               style={{ width: "6.5rem" }}
             >
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
                 <FaTruck />
               </IconContext.Provider>
               <label>DELIVERY NOTE</label>
+            </a>
+            <div className="vr vr-home"></div>
+            
+            {/* Customers */}
+            <a className="btn btn-outline-danger pt-3" href="/accounting/customers">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaAddressBook />
+              </IconContext.Provider>
+              <label>CUSTOMERS</label>
+            </a>
+            <div className="vr vr-home"></div>
+            
+            {/* Reports */}
+            <a className="btn btn-outline-danger pt-3" href="/accounting/reports">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaChartBar />
+              </IconContext.Provider>
+              <label>REPORTS</label>
             </a>
           </div>
         </div>

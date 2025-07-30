@@ -30,6 +30,11 @@ const MaxSupplyForm = lazy(() => import("./pages/MaxSupply/MaxSupplyForm"));
 
 const WorksheetListForMaxSupply = lazy(() => import("./pages/MaxSupply/WorksheetList"));
 
+// Accounting components
+const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"));
+const AccountingDashboard = lazy(() => import("./pages/Accounting/Dashboard/AccountingDashboard"));
+const QuotationListPage = lazy(() => import("./pages/Accounting/Quotations/QuotationListPage"));
+
 function App() {
   return (
     <AppTheme>
@@ -72,6 +77,18 @@ function App() {
             <Route path="/worksheets" element={<WorksheetListForMaxSupply />} />
 
             <Route path="/test" element={<Testing />} />
+
+            {/* Accounting Routes */}
+            <Route path="/accounting/*" element={<AccountingLayout />}>
+              <Route index element={<AccountingDashboard />} />
+              <Route path="quotations" element={<QuotationListPage />} />
+              <Route path="invoices" element={<div>Invoice List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="receipts" element={<div>Receipt List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="delivery-notes" element={<div>Delivery Note List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="customers" element={<div>Customer List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="products" element={<div>Product List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="reports" element={<div>Reports Page (ยังไม่ได้สร้าง)</div>} />
+            </Route>
           </Route>
           <Route element={<GuestLayout />}>
             <Route path="/login" element={<AppLogin />} />

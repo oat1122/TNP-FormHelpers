@@ -28,7 +28,8 @@ import {
   Select,
   Pagination,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Snackbar
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -303,6 +304,7 @@ const QuotationListPage = () => {
   const [quotations, setQuotations] = useState(mockQuotations);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(5);
   
@@ -323,15 +325,60 @@ const QuotationListPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // const response = await quotationService.fetchQuotations({
-      //   page,
-      //   per_page: 10,
-      //   ...filters
-      // });
-      // setQuotations(response.data.data);
-      // setTotalPages(response.data.last_page);
+      // สร้าง params สำหรับ API
+      const params = {
+        page,
+        per_page: 10,
+        ...(filters.status !== 'all' && { status: filters.status }),
+        ...(filters.search && { search: filters.search }),
+        ...(filters.customer && { customer_id: filters.customer.id }),
+        ...(filters.dateFrom && { date_from: filters.dateFrom.format('YYYY-MM-DD') }),
+        ...(filters.dateTo && { date_to: filters.dateTo.format('YYYY-MM-DD') })
+      };
+
+      const response = await quotationService.fetchQuotations(params);
       
-      // For now, use mock data with filtering
+      // ตรวจสอบ response structure
+      if (response.data && response.data.data) {
+        setQuotations(response.data.data);
+        setTotalPages(response.data.last_page || 1);
+      } else {
+        // Fallback to mock data if API response is not in expected format
+        console.warn('API response format unexpected, using mock data');
+        let filteredData = mockQuotations;
+        
+        if (filters.status !== 'all') {
+          filteredData = filteredData.filter(q => q.status === filters.status);
+        }
+        
+        if (filters.search) {
+          filteredData = filteredData.filter(q => 
+            q.quotation_number.toLowerCase().includes(filters.search.toLowerCase()) ||
+            q.customer.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+            q.customer.company_name?.toLowerCase().includes(filters.search.toLowerCase())
+          );
+        }
+        
+        setQuotations(filteredData);
+        setTotalPages(1);
+      }
+      
+    } catch (err) {
+      console.error('Error loading quotations:', err);
+      
+      // ถ้า API error ให้ใช้ mock data และแสดง warning
+      if (err.response) {
+        // API returned error response
+        setError(`เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: ${err.response.status} ${err.response.statusText}`);
+      } else if (err.request) {
+        // Network error
+        setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+      } else {
+        // Other error
+        setError(`เกิดข้อผิดพลาด: ${err.message}`);
+      }
+      
+      // Use mock data as fallback
       let filteredData = mockQuotations;
       
       if (filters.status !== 'all') {
@@ -346,13 +393,9 @@ const QuotationListPage = () => {
         );
       }
       
-      setTimeout(() => {
-        setQuotations(filteredData);
-        setLoading(false);
-      }, 800);
-      
-    } catch (err) {
-      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+      setQuotations(filteredData);
+      setTotalPages(1);
+    } finally {
       setLoading(false);
     }
   };
@@ -370,35 +413,104 @@ const QuotationListPage = () => {
   // Handle quotation actions
   const handleQuotationAction = async (action, quotation) => {
     try {
+      setLoading(true);
+      
       switch (action) {
         case 'view':
           navigate(`/accounting/quotations/${quotation.id}`);
           break;
+          
         case 'edit':
           navigate(`/accounting/quotations/${quotation.id}/edit`);
           break;
+          
         case 'approve':
-          await quotationService.changeQuotationStatus(quotation.id, 'approved', 'อนุมัติโดยระบบ');
-          loadQuotations();
+          try {
+            await quotationService.changeQuotationStatus(quotation.id, 'approved', 'อนุมัติโดยระบบ');
+            setError(null);
+            setSuccessMessage('อนุมัติใบเสนอราคาเรียบร้อยแล้ว');
+            await loadQuotations(); // Reload data
+          } catch (apiError) {
+            console.error('Error approving quotation:', apiError);
+            setError('ไม่สามารถอนุมัติใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง');
+          }
           break;
+          
         case 'reject':
-          await quotationService.changeQuotationStatus(quotation.id, 'rejected', 'ปฏิเสธโดยระบบ');
-          loadQuotations();
+          try {
+            await quotationService.changeQuotationStatus(quotation.id, 'rejected', 'ปฏิเสธโดยระบบ');
+            setError(null);
+            setSuccessMessage('ปฏิเสธใบเสนอราคาเรียบร้อยแล้ว');
+            await loadQuotations(); // Reload data
+          } catch (apiError) {
+            console.error('Error rejecting quotation:', apiError);
+            setError('ไม่สามารถปฏิเสธใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง');
+          }
           break;
+          
         case 'download':
-          const pdfBlob = await quotationService.downloadQuotationPDF(quotation.id);
-          const url = window.URL.createObjectURL(pdfBlob.data);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${quotation.quotation_number}.pdf`;
-          a.click();
-          window.URL.revokeObjectURL(url);
+          try {
+            const pdfBlob = await quotationService.downloadQuotationPDF(quotation.id);
+            const url = window.URL.createObjectURL(pdfBlob.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${quotation.quotation_number}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            setSuccessMessage('ดาวน์โหลด PDF เรียบร้อยแล้ว');
+          } catch (apiError) {
+            console.error('Error downloading PDF:', apiError);
+            setError('ไม่สามารถดาวน์โหลด PDF ได้ กรุณาลองใหม่อีกครั้ง');
+          }
           break;
+          
+        case 'delete':
+          if (window.confirm('คุณต้องการลบใบเสนอราคานี้หรือไม่?')) {
+            try {
+              await quotationService.deleteQuotation(quotation.id);
+              setError(null);
+              setSuccessMessage('ลบใบเสนอราคาเรียบร้อยแล้ว');
+              await loadQuotations(); // Reload data
+            } catch (apiError) {
+              console.error('Error deleting quotation:', apiError);
+              setError('ไม่สามารถลบใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง');
+            }
+          }
+          break;
+          
+        case 'history':
+          try {
+            const historyResponse = await quotationService.getQuotationHistory(quotation.id);
+            console.log('Quotation history:', historyResponse.data);
+            // TODO: Implement history modal/page
+            setError('ฟีเจอร์ประวัติการแก้ไขยังไม่พร้อมใช้งาน');
+          } catch (apiError) {
+            console.error('Error getting quotation history:', apiError);
+            setError('ไม่สามารถโหลดประวัติการแก้ไขได้');
+          }
+          break;
+          
+        case 'duplicate':
+          // TODO: Implement duplication logic
+          setError('ฟีเจอร์คัดลอกใบเสนอราคายังไม่พร้อมใช้งาน');
+          break;
+          
+        case 'email':
+          // TODO: Implement email functionality
+          setError('ฟีเจอร์ส่งอีเมลยังไม่พร้อมใช้งาน');
+          break;
+          
         default:
           console.log(`Action ${action} not implemented yet`);
+          setError(`การดำเนินการ ${action} ยังไม่พร้อมใช้งาน`);
       }
     } catch (err) {
-      setError(`ไม่สามารถ${action === 'approve' ? 'อนุมัติ' : action === 'reject' ? 'ปฏิเสธ' : 'ดำเนินการ'}ได้: ${err.message}`);
+      console.error('Error in handleQuotationAction:', err);
+      setError(`เกิดข้อผิดพลาดในการดำเนินการ: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -432,6 +544,12 @@ const QuotationListPage = () => {
         {error && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
             {error}
+          </Alert>
+        )}
+
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+            {successMessage}
           </Alert>
         )}
 
@@ -579,6 +697,22 @@ const QuotationListPage = () => {
             <AddIcon />
           </Fab>
         )}
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={!!successMessage}
+          autoHideDuration={4000}
+          onClose={() => setSuccessMessage(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={() => setSuccessMessage(null)} 
+            severity="success" 
+            sx={{ width: '100%' }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </LocalizationProvider>
   );

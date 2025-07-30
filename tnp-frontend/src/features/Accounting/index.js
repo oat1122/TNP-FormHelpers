@@ -9,6 +9,7 @@ export { default as customerService } from './customerService';
 export { default as productService } from './productService';
 export { default as dashboardService } from './dashboardService';
 export { default as attachmentService } from './attachmentService';
+export { default as pricingIntegrationService } from './pricingIntegrationService';
 
 // Re-export individual functions for convenience
 export * from './quotationService';
@@ -18,4 +19,5 @@ export * from './deliveryNoteService';
 export * from './customerService';
 export * from './productService';
 export * from './dashboardService';
-export * from './attachmentService'; 
+export * from './attachmentService';
+export * from './pricingIntegrationService'; 

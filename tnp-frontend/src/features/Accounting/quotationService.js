@@ -1,4 +1,4 @@
-import axios from '@/api/axios';
+import axios from '../../api/axios';
 
 // Quotation API Service
 // Based on endpoints from README.md

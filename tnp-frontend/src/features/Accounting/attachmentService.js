@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with uploaded attachment info
  */
 export const uploadAttachment = (formData) => {
-  return axios.post('/api/v1/accounting/attachments/upload', formData, {
+  return axios.post('/accounting/attachments/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -22,7 +22,7 @@ export const uploadAttachment = (formData) => {
  * @returns {Promise} API response with attachments list
  */
 export const getDocumentAttachments = (params) => {
-  return axios.get('/api/v1/accounting/attachments/document', { params });
+  return axios.get('/accounting/attachments/document', { params });
 };
 
 /**
@@ -31,7 +31,7 @@ export const getDocumentAttachments = (params) => {
  * @returns {Promise} API response with attachment statistics
  */
 export const getAttachmentStats = (params = {}) => {
-  return axios.get('/api/v1/accounting/attachments/stats', { params });
+  return axios.get('/accounting/attachments/stats', { params });
 };
 
 /**
@@ -40,7 +40,7 @@ export const getAttachmentStats = (params = {}) => {
  * @returns {Promise} API response with attachment data
  */
 export const getAttachment = (id) => {
-  return axios.get(`/api/v1/accounting/attachments/${id}`);
+  return axios.get(`/accounting/attachments/${id}`);
 };
 
 /**
@@ -49,7 +49,7 @@ export const getAttachment = (id) => {
  * @returns {Promise} File blob response
  */
 export const downloadAttachment = (id) => {
-  return axios.get(`/api/v1/accounting/attachments/${id}/download`, {
+  return axios.get(`/accounting/attachments/${id}/download`, {
     responseType: 'blob'
   });
 };
@@ -61,7 +61,7 @@ export const downloadAttachment = (id) => {
  * @returns {Promise} API response
  */
 export const updateAttachmentDescription = (id, data) => {
-  return axios.put(`/api/v1/accounting/attachments/${id}/description`, data);
+  return axios.put(`/accounting/attachments/${id}/description`, data);
 };
 
 /**
@@ -70,7 +70,7 @@ export const updateAttachmentDescription = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteAttachment = (id) => {
-  return axios.delete(`/api/v1/accounting/attachments/${id}`);
+  return axios.delete(`/accounting/attachments/${id}`);
 };
 
 /**

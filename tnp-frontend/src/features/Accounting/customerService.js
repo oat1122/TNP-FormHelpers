@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with customers list
  */
 export const fetchCustomers = (params = {}) => {
-  return axios.get('/api/v1/accounting/customers', { params });
+  return axios.get('/accounting/customers', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchCustomers = (params = {}) => {
  * @returns {Promise} API response with customer data
  */
 export const getCustomer = (id) => {
-  return axios.get(`/api/v1/accounting/customers/${id}`);
+  return axios.get(`/accounting/customers/${id}`);
 };
 
 /**
@@ -27,7 +27,7 @@ export const getCustomer = (id) => {
  * @returns {Promise} API response with customer summary
  */
 export const getCustomerSummary = (id) => {
-  return axios.get(`/api/v1/accounting/customers/${id}/summary`);
+  return axios.get(`/accounting/customers/${id}/summary`);
 };
 
 /**
@@ -36,7 +36,7 @@ export const getCustomerSummary = (id) => {
  * @returns {Promise} API response with created customer
  */
 export const createCustomer = (data) => {
-  return axios.post('/api/v1/accounting/customers', data);
+  return axios.post('/accounting/customers', data);
 };
 
 /**
@@ -46,7 +46,7 @@ export const createCustomer = (data) => {
  * @returns {Promise} API response with updated customer
  */
 export const updateCustomer = (id, data) => {
-  return axios.put(`/api/v1/accounting/customers/${id}`, data);
+  return axios.put(`/accounting/customers/${id}`, data);
 };
 
 /**
@@ -55,7 +55,7 @@ export const updateCustomer = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteCustomer = (id) => {
-  return axios.delete(`/api/v1/accounting/customers/${id}`);
+  return axios.delete(`/accounting/customers/${id}`);
 };
 
 /**
@@ -65,7 +65,7 @@ export const deleteCustomer = (id) => {
  * @returns {Promise} API response with matching customers
  */
 export const searchCustomers = (query, limit = 10) => {
-  return axios.get('/api/v1/accounting/customers', {
+  return axios.get('/accounting/customers', {
     params: {
       search: query,
       per_page: limit,

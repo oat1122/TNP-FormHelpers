@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with invoices list
  */
 export const fetchInvoices = (params = {}) => {
-  return axios.get('/api/v1/invoices', { params });
+  return axios.get('/invoices', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchInvoices = (params = {}) => {
  * @returns {Promise} API response with overdue invoices
  */
 export const getOverdueInvoices = (params = {}) => {
-  return axios.get('/api/v1/invoices/overdue', { params });
+  return axios.get('/invoices/overdue', { params });
 };
 
 /**
@@ -27,7 +27,7 @@ export const getOverdueInvoices = (params = {}) => {
  * @returns {Promise} API response with invoice data
  */
 export const getInvoice = (id) => {
-  return axios.get(`/api/v1/invoices/${id}`);
+  return axios.get(`/invoices/${id}`);
 };
 
 /**
@@ -36,7 +36,7 @@ export const getInvoice = (id) => {
  * @returns {Promise} API response with created invoice
  */
 export const createInvoice = (data) => {
-  return axios.post('/api/v1/invoices', data);
+  return axios.post('/invoices', data);
 };
 
 /**
@@ -46,7 +46,7 @@ export const createInvoice = (data) => {
  * @returns {Promise} API response with created invoice
  */
 export const createInvoiceFromQuotation = (quotationId, data = {}) => {
-  return axios.post('/api/v1/invoices', {
+  return axios.post('/invoices', {
     ...data,
     quotation_id: quotationId
   });
@@ -59,7 +59,7 @@ export const createInvoiceFromQuotation = (quotationId, data = {}) => {
  * @returns {Promise} API response with updated invoice
  */
 export const updateInvoice = (id, data) => {
-  return axios.put(`/api/v1/invoices/${id}`, data);
+  return axios.put(`/invoices/${id}`, data);
 };
 
 /**
@@ -68,7 +68,7 @@ export const updateInvoice = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteInvoice = (id) => {
-  return axios.delete(`/api/v1/invoices/${id}`);
+  return axios.delete(`/invoices/${id}`);
 };
 
 /**
@@ -79,7 +79,7 @@ export const deleteInvoice = (id) => {
  * @returns {Promise} API response
  */
 export const changeInvoiceStatus = (id, status, notes = '') => {
-  return axios.patch(`/api/v1/invoices/${id}/status`, { 
+  return axios.patch(`/invoices/${id}/status`, { 
     status, 
     notes 
   });
@@ -92,7 +92,7 @@ export const changeInvoiceStatus = (id, status, notes = '') => {
  * @returns {Promise} API response
  */
 export const recordPayment = (id, paymentData) => {
-  return axios.post(`/api/v1/invoices/${id}/payment`, paymentData);
+  return axios.post(`/invoices/${id}/payment`, paymentData);
 };
 
 /**
@@ -101,7 +101,7 @@ export const recordPayment = (id, paymentData) => {
  * @returns {Promise} PDF blob response
  */
 export const downloadInvoicePDF = (id) => {
-  return axios.get(`/api/v1/invoices/${id}/pdf`, { 
+  return axios.get(`/invoices/${id}/pdf`, { 
     responseType: 'blob',
     headers: {
       'Accept': 'application/pdf'
@@ -115,7 +115,7 @@ export const downloadInvoicePDF = (id) => {
  * @returns {Promise} API response with history data
  */
 export const getInvoiceHistory = (id) => {
-  return axios.get(`/api/v1/invoices/${id}/history`);
+  return axios.get(`/invoices/${id}/history`);
 };
 
 // Export all functions as default object for easier importing

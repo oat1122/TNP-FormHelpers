@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with quotations list
  */
 export const fetchQuotations = (params = {}) => {
-  return axios.get('/api/v1/quotations', { params });
+  return axios.get('/quotations', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchQuotations = (params = {}) => {
  * @returns {Promise} API response with quotation data
  */
 export const getQuotation = (id) => {
-  return axios.get(`/api/v1/quotations/${id}`);
+  return axios.get(`/quotations/${id}`);
 };
 
 /**
@@ -27,7 +27,7 @@ export const getQuotation = (id) => {
  * @returns {Promise} API response with created quotation
  */
 export const createQuotation = (data) => {
-  return axios.post('/api/v1/quotations', data);
+  return axios.post('/quotations', data);
 };
 
 /**
@@ -37,7 +37,7 @@ export const createQuotation = (data) => {
  * @returns {Promise} API response with updated quotation
  */
 export const updateQuotation = (id, data) => {
-  return axios.put(`/api/v1/quotations/${id}`, data);
+  return axios.put(`/quotations/${id}`, data);
 };
 
 /**
@@ -46,7 +46,7 @@ export const updateQuotation = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteQuotation = (id) => {
-  return axios.delete(`/api/v1/quotations/${id}`);
+  return axios.delete(`/quotations/${id}`);
 };
 
 /**
@@ -57,7 +57,7 @@ export const deleteQuotation = (id) => {
  * @returns {Promise} API response
  */
 export const changeQuotationStatus = (id, status, notes = '') => {
-  return axios.patch(`/api/v1/quotations/${id}/status`, { 
+  return axios.patch(`/quotations/${id}/status`, { 
     status, 
     notes 
   });
@@ -69,7 +69,7 @@ export const changeQuotationStatus = (id, status, notes = '') => {
  * @returns {Promise} PDF blob response
  */
 export const downloadQuotationPDF = (id) => {
-  return axios.get(`/api/v1/quotations/${id}/pdf`, { 
+  return axios.get(`/quotations/${id}/pdf`, { 
     responseType: 'blob',
     headers: {
       'Accept': 'application/pdf'
@@ -83,7 +83,7 @@ export const downloadQuotationPDF = (id) => {
  * @returns {Promise} API response with history data
  */
 export const getQuotationHistory = (id) => {
-  return axios.get(`/api/v1/quotations/${id}/history`);
+  return axios.get(`/quotations/${id}/history`);
 };
 
 // Export all functions as default object for easier importing

@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with receipts list
  */
 export const fetchReceipts = (params = {}) => {
-  return axios.get('/api/v1/receipts', { params });
+  return axios.get('/receipts', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchReceipts = (params = {}) => {
  * @returns {Promise} API response with receipt data
  */
 export const getReceipt = (id) => {
-  return axios.get(`/api/v1/receipts/${id}`);
+  return axios.get(`/receipts/${id}`);
 };
 
 /**
@@ -27,7 +27,7 @@ export const getReceipt = (id) => {
  * @returns {Promise} API response with created receipt
  */
 export const createReceipt = (data) => {
-  return axios.post('/api/v1/receipts', data);
+  return axios.post('/receipts', data);
 };
 
 /**
@@ -37,7 +37,7 @@ export const createReceipt = (data) => {
  * @returns {Promise} API response with created receipt
  */
 export const createReceiptFromInvoice = (invoiceId, data = {}) => {
-  return axios.post('/api/v1/receipts', {
+  return axios.post('/receipts', {
     ...data,
     invoice_id: invoiceId
   });
@@ -50,7 +50,7 @@ export const createReceiptFromInvoice = (invoiceId, data = {}) => {
  * @returns {Promise} API response with updated receipt
  */
 export const updateReceipt = (id, data) => {
-  return axios.put(`/api/v1/receipts/${id}`, data);
+  return axios.put(`/receipts/${id}`, data);
 };
 
 /**
@@ -59,7 +59,7 @@ export const updateReceipt = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteReceipt = (id) => {
-  return axios.delete(`/api/v1/receipts/${id}`);
+  return axios.delete(`/receipts/${id}`);
 };
 
 /**
@@ -70,7 +70,7 @@ export const deleteReceipt = (id) => {
  * @returns {Promise} API response
  */
 export const changeReceiptStatus = (id, status, notes = '') => {
-  return axios.patch(`/api/v1/receipts/${id}/status`, { 
+  return axios.patch(`/receipts/${id}/status`, { 
     status, 
     notes 
   });
@@ -82,7 +82,7 @@ export const changeReceiptStatus = (id, status, notes = '') => {
  * @returns {Promise} PDF blob response
  */
 export const downloadReceiptPDF = (id) => {
-  return axios.get(`/api/v1/receipts/${id}/pdf`, { 
+  return axios.get(`/receipts/${id}/pdf`, { 
     responseType: 'blob',
     headers: {
       'Accept': 'application/pdf'
@@ -96,7 +96,7 @@ export const downloadReceiptPDF = (id) => {
  * @returns {Promise} API response with history data
  */
 export const getReceiptHistory = (id) => {
-  return axios.get(`/api/v1/receipts/${id}/history`);
+  return axios.get(`/receipts/${id}/history`);
 };
 
 // Export all functions as default object for easier importing

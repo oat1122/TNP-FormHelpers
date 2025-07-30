@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with delivery notes list
  */
 export const fetchDeliveryNotes = (params = {}) => {
-  return axios.get('/api/v1/delivery-notes', { params });
+  return axios.get('/delivery-notes', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchDeliveryNotes = (params = {}) => {
  * @returns {Promise} API response with created delivery note
  */
 export const createPartialDeliveryNote = (data) => {
-  return axios.post('/api/v1/delivery-notes/partial', data);
+  return axios.post('/delivery-notes/partial', data);
 };
 
 /**
@@ -27,7 +27,7 @@ export const createPartialDeliveryNote = (data) => {
  * @returns {Promise} API response with pending delivery notes
  */
 export const getPendingDeliveryNotes = (params = {}) => {
-  return axios.get('/api/v1/delivery-notes/pending', { params });
+  return axios.get('/delivery-notes/pending', { params });
 };
 
 /**
@@ -37,7 +37,7 @@ export const getPendingDeliveryNotes = (params = {}) => {
  * @returns {Promise} API response with customer delivery summary
  */
 export const getCustomerDeliverySummary = (customerId, params = {}) => {
-  return axios.get(`/api/v1/delivery-notes/customer/${customerId}/summary`, { params });
+  return axios.get(`/delivery-notes/customer/${customerId}/summary`, { params });
 };
 
 /**
@@ -46,7 +46,7 @@ export const getCustomerDeliverySummary = (customerId, params = {}) => {
  * @returns {Promise} API response with delivery note data
  */
 export const getDeliveryNote = (id) => {
-  return axios.get(`/api/v1/delivery-notes/${id}`);
+  return axios.get(`/delivery-notes/${id}`);
 };
 
 /**
@@ -55,7 +55,7 @@ export const getDeliveryNote = (id) => {
  * @returns {Promise} API response with created delivery note
  */
 export const createDeliveryNote = (data) => {
-  return axios.post('/api/v1/delivery-notes', data);
+  return axios.post('/delivery-notes', data);
 };
 
 /**
@@ -65,7 +65,7 @@ export const createDeliveryNote = (data) => {
  * @returns {Promise} API response with created delivery note
  */
 export const createDeliveryNoteFromReceipt = (receiptId, data = {}) => {
-  return axios.post('/api/v1/delivery-notes', {
+  return axios.post('/delivery-notes', {
     ...data,
     receipt_id: receiptId
   });
@@ -78,7 +78,7 @@ export const createDeliveryNoteFromReceipt = (receiptId, data = {}) => {
  * @returns {Promise} API response with updated delivery note
  */
 export const updateDeliveryNote = (id, data) => {
-  return axios.put(`/api/v1/delivery-notes/${id}`, data);
+  return axios.put(`/delivery-notes/${id}`, data);
 };
 
 /**
@@ -87,7 +87,7 @@ export const updateDeliveryNote = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteDeliveryNote = (id) => {
-  return axios.delete(`/api/v1/delivery-notes/${id}`);
+  return axios.delete(`/delivery-notes/${id}`);
 };
 
 /**
@@ -98,7 +98,7 @@ export const deleteDeliveryNote = (id) => {
  * @returns {Promise} API response
  */
 export const changeDeliveryNoteStatus = (id, status, notes = '') => {
-  return axios.patch(`/api/v1/delivery-notes/${id}/status`, { 
+  return axios.patch(`/delivery-notes/${id}/status`, { 
     status, 
     notes 
   });
@@ -110,7 +110,7 @@ export const changeDeliveryNoteStatus = (id, status, notes = '') => {
  * @returns {Promise} PDF blob response
  */
 export const downloadDeliveryNotePDF = (id) => {
-  return axios.get(`/api/v1/delivery-notes/${id}/pdf`, { 
+  return axios.get(`/delivery-notes/${id}/pdf`, { 
     responseType: 'blob',
     headers: {
       'Accept': 'application/pdf'
@@ -124,7 +124,7 @@ export const downloadDeliveryNotePDF = (id) => {
  * @returns {Promise} API response with history data
  */
 export const getDeliveryNoteHistory = (id) => {
-  return axios.get(`/api/v1/delivery-notes/${id}/history`);
+  return axios.get(`/delivery-notes/${id}/history`);
 };
 
 // Export all functions as default object for easier importing

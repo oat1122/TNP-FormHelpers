@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with products list
  */
 export const fetchProducts = (params = {}) => {
-  return axios.get('/api/v1/accounting/products', { params });
+  return axios.get('/accounting/products', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const fetchProducts = (params = {}) => {
  * @returns {Promise} API response with product categories
  */
 export const getProductCategories = (params = {}) => {
-  return axios.get('/api/v1/accounting/products/categories', { params });
+  return axios.get('/accounting/products/categories', { params });
 };
 
 /**
@@ -27,7 +27,7 @@ export const getProductCategories = (params = {}) => {
  * @returns {Promise} API response with low stock products
  */
 export const getLowStockProducts = (params = {}) => {
-  return axios.get('/api/v1/accounting/products/low-stock', { params });
+  return axios.get('/accounting/products/low-stock', { params });
 };
 
 /**
@@ -36,7 +36,7 @@ export const getLowStockProducts = (params = {}) => {
  * @returns {Promise} API response with product data
  */
 export const getProduct = (id) => {
-  return axios.get(`/api/v1/accounting/products/${id}`);
+  return axios.get(`/accounting/products/${id}`);
 };
 
 /**
@@ -45,7 +45,7 @@ export const getProduct = (id) => {
  * @returns {Promise} API response with created product
  */
 export const createProduct = (data) => {
-  return axios.post('/api/v1/accounting/products', data);
+  return axios.post('/accounting/products', data);
 };
 
 /**
@@ -55,7 +55,7 @@ export const createProduct = (data) => {
  * @returns {Promise} API response with updated product
  */
 export const updateProduct = (id, data) => {
-  return axios.put(`/api/v1/accounting/products/${id}`, data);
+  return axios.put(`/accounting/products/${id}`, data);
 };
 
 /**
@@ -64,7 +64,7 @@ export const updateProduct = (id, data) => {
  * @returns {Promise} API response
  */
 export const deleteProduct = (id) => {
-  return axios.delete(`/api/v1/accounting/products/${id}`);
+  return axios.delete(`/accounting/products/${id}`);
 };
 
 /**
@@ -74,7 +74,7 @@ export const deleteProduct = (id) => {
  * @returns {Promise} API response
  */
 export const updateProductStock = (id, stockData) => {
-  return axios.patch(`/api/v1/accounting/products/${id}/stock`, stockData);
+  return axios.patch(`/accounting/products/${id}/stock`, stockData);
 };
 
 /**
@@ -84,7 +84,7 @@ export const updateProductStock = (id, stockData) => {
  * @returns {Promise} API response with matching products
  */
 export const searchProducts = (query, limit = 10) => {
-  return axios.get('/api/v1/accounting/products', {
+  return axios.get('/accounting/products', {
     params: {
       search: query,
       per_page: limit,

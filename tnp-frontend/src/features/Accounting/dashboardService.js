@@ -9,7 +9,7 @@ import axios from '@/api/axios';
  * @returns {Promise} API response with summary data
  */
 export const getDashboardSummary = (params = {}) => {
-  return axios.get('/api/v1/accounting/dashboard/summary', { params });
+  return axios.get('/accounting/dashboard/summary', { params });
 };
 
 /**
@@ -18,7 +18,7 @@ export const getDashboardSummary = (params = {}) => {
  * @returns {Promise} API response with revenue chart data
  */
 export const getRevenueChart = (params = {}) => {
-  return axios.get('/api/v1/accounting/dashboard/revenue-chart', { params });
+  return axios.get('/accounting/dashboard/revenue-chart', { params });
 };
 
 /**
@@ -28,7 +28,7 @@ export const getRevenueChart = (params = {}) => {
  * @returns {Promise} API response with document statistics
  */
 export const getDocumentStats = (documentType, params = {}) => {
-  return axios.get(`/api/v1/accounting/dashboard/${documentType}/stats`, { params });
+  return axios.get(`/accounting/dashboard/${documentType}/stats`, { params });
 };
 
 /**
@@ -37,7 +37,7 @@ export const getDocumentStats = (documentType, params = {}) => {
  * @returns {Promise} API response with pending approvals data
  */
 export const getPendingApprovals = (params = {}) => {
-  return axios.get('/api/v1/accounting/dashboard/pending-approvals', { params });
+  return axios.get('/accounting/dashboard/pending-approvals', { params });
 };
 
 /**
@@ -46,7 +46,7 @@ export const getPendingApprovals = (params = {}) => {
  * @returns {Promise} API response with overdue invoices summary
  */
 export const getOverdueSummary = (params = {}) => {
-  return axios.get('/api/v1/accounting/dashboard/overdue-summary', { params });
+  return axios.get('/accounting/dashboard/overdue-summary', { params });
 };
 
 // Export all functions as default object for easier importing

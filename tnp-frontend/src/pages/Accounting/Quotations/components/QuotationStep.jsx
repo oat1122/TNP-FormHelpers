@@ -6,46 +6,12 @@ import {
   Typography,
   TextField,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  InputAdornment,
-  IconButton,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
-  Divider,
-  Stack,
-  Chip,
-  AlertTitle,
   Snackbar
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Calculate as CalculateIcon,
-  Receipt as ReceiptIcon,
-  CalendarToday as CalendarIcon,
-  AttachMoney as MoneyIcon,
-  Description as DescriptionIcon,
-  Percent as PercentIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs from 'dayjs';
@@ -54,30 +20,22 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { productService } from '../../../../features/Accounting';
 
+// Import split components
+import ItemDialog from './ItemDialog';
+import ItemTable from './ItemTable';
+import PaymentTermsSection from './PaymentTermsSection';
+import TotalsSummary from './TotalsSummary';
+import ValidationAlert from './ValidationAlert';
+import QuotationInfoCard from './QuotationInfoCard';
+
+// Define payment terms for auto-calculating deposits
 const PAYMENT_TERMS = [
   { value: 'Cash on Delivery', label: 'เงินสดเมื่อจัดส่ง', deposit_percent: 0 },
-  { value: 'Net 7', label: '7 วัน', deposit_percent: 0 },
-  { value: 'Net 15', label: '15 วัน', deposit_percent: 0 },
-  { value: 'Net 30', label: '30 วัน', deposit_percent: 0 },
-  { value: 'Net 45', label: '45 วัน', deposit_percent: 0 },
-  { value: 'Net 60', label: '60 วัน', deposit_percent: 0 },
-  { value: 'Advance Payment', label: 'จ่ายล่วงหน้า 100%', deposit_percent: 100 },
-  { value: '50% Advance', label: 'จ่ายล่วงหน้า 50%', deposit_percent: 50 }
+  { value: 'Advance Payment', label: 'เงินสดล่วงหน้า 100%', deposit_percent: 100 },
+  { value: '50% Advance', label: 'มัดจำ 50% ชำระที่เหลือเมื่อจัดส่ง', deposit_percent: 50 }
 ];
 
-const DEFAULT_ITEM = {
-  product_id: '', // Maps to mpc_id in master_product_categories
-  item_name: '', // Maps to mpc_name or custom product name
-  item_description: '', // Maps to mpc_remark or custom description
-  quantity: 1,
-  unit: 'ชิ้น',
-  unit_price: 0,
-  discount_amount: 0,
-  discount_percent: 0,
-  total_amount: 0,
-  quantity_remaining: 0, // For partial delivery tracking
-  vat_type: 'included' // 'included', 'excluded', 'exempt'
-};
+// Moved to the QuotationStep component function
 
 // Validation Schema
 const quotationSchema = yup.object().shape({
@@ -131,6 +89,21 @@ const itemSchema = yup.object().shape({
 });
 
 const QuotationStep = ({ data, onChange, loading }) => {
+  // Define DEFAULT_ITEM for use with dialog
+  const DEFAULT_ITEM = {
+    product_id: '', 
+    item_name: '', 
+    item_description: '', 
+    quantity: 1,
+    unit: 'ชิ้น',
+    unit_price: 0,
+    discount_amount: 0,
+    discount_percent: 0,
+    total_amount: 0,
+    quantity_remaining: 1,
+    vat_type: 'included'
+  };
+  
   const [itemDialog, setItemDialog] = useState({
     open: false,
     item: { ...DEFAULT_ITEM },
@@ -219,6 +192,9 @@ const QuotationStep = ({ data, onChange, loading }) => {
 
   // Backend Schema Mapping Function
   const mapToBackendSchema = (formData) => {
+    // Always set tax_rate to 7% as shown in the UI
+    const tax_rate = 7;
+    
     return {
       // Map to backend quotation fields based on DATABASE_SCHEMA_ALIGNMENT.md
       customer_id: data.customer?.cus_id || data.customer?.id, // Maps to cus_id in master_customers
@@ -228,30 +204,30 @@ const QuotationStep = ({ data, onChange, loading }) => {
       payment_terms: formData.payment_terms,
       deposit_amount: formData.deposit_amount || 0,
       deposit_percent: formData.deposit_percent || 0,
-      tax_rate: formData.tax_rate || 7,
+      tax_rate: tax_rate,
       wht_rate: formData.wht_rate || 0,
       remarks: formData.remarks || '',
       status: 'draft',
       items: formData.items.map(item => ({
         product_id: item.product_id || null, // Maps to mpc_id if selected from catalog
         item_name: item.item_name,
-        item_description: item.item_description,
+        item_description: item.item_description || '',
         quantity: item.quantity,
         unit: item.unit,
         unit_price: item.unit_price,
-        discount_amount: item.discount_amount || 0,
-        discount_percent: item.discount_percent || 0,
-        total_amount: item.total_amount,
-        quantity_remaining: item.quantity_remaining || item.quantity,
-        vat_type: item.vat_type || 'included'
+        discount_amount: 0, // We're removing discounts from the UI
+        discount_percent: 0, // We're removing discounts from the UI
+        total_amount: item.quantity * item.unit_price,
+        quantity_remaining: item.quantity,
+        vat_type: 'included' // Always included as per UI
       })),
       // Calculated totals for backend verification
       subtotal: totals.subtotal,
-      total_discount: totals.discount,
+      total_discount: 0, // No discounts in the new UI
       tax_amount: totals.taxAmount,
-      wht_amount: totals.whtAmount,
+      wht_amount: 0, // No WHT in the new UI
       total_amount: totals.total,
-      net_amount: totals.netTotal
+      net_amount: totals.total // Same as total since no WHT
     };
   };
 
@@ -269,35 +245,19 @@ const QuotationStep = ({ data, onChange, loading }) => {
   const calculateTotals = () => {
     const items = watchedItems || [];
     
-    // Calculate item totals first
+    // Calculate item totals - no discounts in the simplified UI
     const itemTotals = items.map(item => {
-      const baseAmount = item.quantity * item.unit_price;
-      const discountAmount = item.discount_percent > 0 
-        ? (baseAmount * item.discount_percent) / 100
-        : item.discount_amount || 0;
-      return baseAmount - discountAmount;
+      return item.quantity * item.unit_price;
     });
 
     const subtotal = itemTotals.reduce((sum, total) => sum + total, 0);
-    const discount = items.reduce((sum, item) => {
-      const baseAmount = item.quantity * item.unit_price;
-      const discountAmount = item.discount_percent > 0 
-        ? (baseAmount * item.discount_percent) / 100
-        : item.discount_amount || 0;
-      return sum + discountAmount;
-    }, 0);
 
-    // Calculate VAT on subtotal (after discount)
-    const taxAmount = (subtotal * (watchedTaxRate || 0)) / 100;
-    
-    // Calculate WHT on subtotal (before VAT)
-    const whtAmount = (subtotal * (watchedWhtRate || 0)) / 100;
+    // Always use 7% VAT as per UI
+    const taxRate = 7;
+    const taxAmount = (subtotal * taxRate) / 100;
     
     // Total = Subtotal + VAT
     const total = subtotal + taxAmount;
-    
-    // Net Total = Total - WHT
-    const netTotal = total - whtAmount;
     
     // Calculate deposit amount
     let depositAmount = watchedDepositAmount || 0;
@@ -306,15 +266,15 @@ const QuotationStep = ({ data, onChange, loading }) => {
     }
     
     // Remaining amount after deposit
-    const remainingAmount = netTotal - depositAmount;
+    const remainingAmount = total - depositAmount;
 
     setTotals({
       subtotal,
-      discount,
+      discount: 0, // No discounts in the simplified UI
       taxAmount,
-      whtAmount,
+      whtAmount: 0, // No WHT in the simplified UI
       total,
-      netTotal,
+      netTotal: total, // Same as total since no WHT
       depositAmount,
       remainingAmount
     });
@@ -394,28 +354,23 @@ const QuotationStep = ({ data, onChange, loading }) => {
   const handleSaveItem = async () => {
     const { item, editIndex } = itemDialog;
     
-    // Validate item using yup schema
-    try {
-      await itemSchema.validate(item, { abortEarly: false });
-    } catch (validationError) {
-      const errorMessages = validationError.inner.map(err => err.message);
-      showAlert(errorMessages.join(', '), 'error');
+    // Basic validation
+    if (!item.item_name || item.quantity <= 0 || item.unit_price < 0) {
+      showAlert('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
       return;
     }
     
-    // Calculate item total
-    const baseAmount = item.quantity * item.unit_price;
-    const discountAmount = item.discount_percent > 0 
-      ? (baseAmount * item.discount_percent) / 100
-      : item.discount_amount || 0;
-    const itemTotal = baseAmount - discountAmount;
+    // Calculate item total - no discounts in the simplified UI
+    const itemTotal = item.quantity * item.unit_price;
     
     // Set quantity_remaining to quantity for new items
     const itemWithTotal = { 
       ...item, 
       total_amount: itemTotal,
-      quantity_remaining: item.quantity_remaining || item.quantity,
-      discount_amount: discountAmount // Ensure consistent discount calculation
+      quantity_remaining: item.quantity,
+      discount_amount: 0,
+      discount_percent: 0,
+      vat_type: 'included'
     };
 
     const currentItems = getValues('items') || [];
@@ -487,134 +442,36 @@ const QuotationStep = ({ data, onChange, loading }) => {
       : item.discount_amount || 0;
     return baseAmount - discountAmount;
   };
+  
+  // Helper function to update an item field in the items array
+  const handleItemFieldChange = (index, field, value) => {
+    const updatedItems = [...watchedItems];
+    const item = { ...updatedItems[index] };
+    
+    item[field] = value;
+    
+    // Recalculate totals if quantity or price changes
+    if (field === 'quantity' || field === 'unit_price') {
+      const baseAmount = (field === 'quantity' ? value : item.quantity) * 
+                         (field === 'unit_price' ? value : item.unit_price);
+      item.total_amount = baseAmount;
+      if (field === 'quantity') {
+        item.quantity_remaining = value;
+      }
+    }
+    
+    updatedItems[index] = item;
+    setValue('items', updatedItems);
+  };
 
-  const ItemDialog = () => (
-    <Dialog open={itemDialog.open} onClose={() => setItemDialog({ open: false, item: { ...DEFAULT_ITEM }, editIndex: -1 })} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {itemDialog.editIndex >= 0 ? 'แก้ไขรายการ' : 'เพิ่มรายการใหม่'}
-      </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={3} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="ชื่อสินค้า/บริการ"
-              value={itemDialog.item.item_name}
-              onChange={(e) => handleItemChange('item_name', e.target.value)}
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="รายละเอียด"
-              multiline
-              rows={3}
-              value={itemDialog.item.item_description}
-              onChange={(e) => handleItemChange('item_description', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <TextField
-              fullWidth
-              label="จำนวน"
-              type="number"
-              value={itemDialog.item.quantity}
-              onChange={(e) => handleItemChange('quantity', parseFloat(e.target.value) || 0)}
-              inputProps={{ min: 0, step: 0.01 }}
-              required
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <TextField
-              fullWidth
-              label="หน่วย"
-              value={itemDialog.item.unit}
-              onChange={(e) => handleItemChange('unit', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <TextField
-              fullWidth
-              label="ราคาต่อหน่วย"
-              type="number"
-              value={itemDialog.item.unit_price}
-              onChange={(e) => handleItemChange('unit_price', parseFloat(e.target.value) || 0)}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">฿</InputAdornment>,
-              }}
-              inputProps={{ min: 0, step: 0.01 }}
-              required
-            />
-          </Grid>
-          <Grid item xs={6} md={2}>
-            <TextField
-              fullWidth
-              label="ส่วนลด (%)"
-              type="number"
-              value={itemDialog.item.discount_percent}
-              onChange={(e) => handleItemChange('discount_percent', parseFloat(e.target.value) || 0)}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              }}
-              inputProps={{ min: 0, max: 100, step: 0.01 }}
-            />
-          </Grid>
-          <Grid item xs={6} md={2}>
-            <TextField
-              fullWidth
-              label="ส่วนลด (฿)"
-              type="number"
-              value={itemDialog.item.discount_amount}
-              onChange={(e) => handleItemChange('discount_amount', parseFloat(e.target.value) || 0)}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">฿</InputAdornment>,
-              }}
-              inputProps={{ min: 0, step: 0.01 }}
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>ประเภท VAT</InputLabel>
-              <Select
-                value={itemDialog.item.vat_type}
-                label="ประเภท VAT"
-                onChange={(e) => handleItemChange('vat_type', e.target.value)}
-              >
-                <MenuItem value="included">รวม VAT</MenuItem>
-                <MenuItem value="excluded">แยก VAT</MenuItem>
-                <MenuItem value="exempt">ยกเว้น VAT</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <Alert severity="info">
-              <Typography variant="subtitle2">
-                ยอดรวมรายการ: ฿{getItemSubtotal(itemDialog.item).toLocaleString()}
-              </Typography>
-              {itemDialog.item.discount_percent > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  ส่วนลด {itemDialog.item.discount_percent.toFixed(2)}% = ฿{((itemDialog.item.quantity * itemDialog.item.unit_price * itemDialog.item.discount_percent) / 100).toLocaleString()}
-                </Typography>
-              )}
-            </Alert>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setItemDialog({ open: false, item: { ...DEFAULT_ITEM }, editIndex: -1 })}>
-          ยกเลิก
-        </Button>
-        <Button
-          onClick={handleSaveItem}
-          variant="contained"
-          disabled={!itemDialog.item.item_name || itemDialog.item.quantity <= 0 || itemDialog.item.unit_price <= 0}
-        >
-          {itemDialog.editIndex >= 0 ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+  // Handle closing dialog
+  const handleCloseDialog = () => {
+    setItemDialog({
+      open: false,
+      item: { ...DEFAULT_ITEM },
+      editIndex: -1
+    });
+  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -627,33 +484,10 @@ const QuotationStep = ({ data, onChange, loading }) => {
         </Typography>
 
         {/* Summary from previous steps */}
-        {(data.pricingDetails || data.customer) && (
-          <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                สรุปข้อมูล
-              </Typography>
-              <Grid container spacing={2}>
-                {data.pricingDetails && (
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2">จากการขอราคา:</Typography>
-                    <Typography variant="body2">
-                      {data.pricingDetails.pr_no} - {data.pricingDetails.pr_work_name}
-                    </Typography>
-                  </Grid>
-                )}
-                {data.customer && (
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2">ลูกค้า:</Typography>
-                    <Typography variant="body2">
-                      {data.customer.company_name || data.customer.name}
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </CardContent>
-          </Card>
-        )}
+        <QuotationInfoCard 
+          pricingDetails={data.pricingDetails} 
+          customer={data.customer} 
+        />
 
         {/* Basic Quotation Information */}
         <Card sx={{ mb: 3 }}>
@@ -662,166 +496,56 @@ const QuotationStep = ({ data, onChange, loading }) => {
               <ReceiptIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
               ข้อมูลพื้นฐาน
             </Typography>
-            {/* Validation Errors Display */}
-            {validationErrors.length > 0 && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                <AlertTitle>ข้อผิดพลาดในการกรอกข้อมูล</AlertTitle>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </Alert>
-            )}
+            
+            <ValidationAlert 
+              validationErrors={validationErrors}
+              isValid={isValid}
+              errors={errors}
+            />
 
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Controller
-                  name="valid_until"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <DatePicker
-                      label="วันที่ใช้ได้ถึง *"
-                      value={field.value}
-                      onChange={field.onChange}
-                      minDate={dayjs().add(1, 'day')}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          fullWidth 
-                          required 
-                          error={!!error}
-                          helperText={error?.message}
-                        />
-                      )}
-                    />
-                  )}
-                />
+                <Typography variant="subtitle2" gutterBottom>
+                  สรุปยอดเงิน
+                </Typography>
+                <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ยอดรวม
+                  </Typography>
+                  <Typography variant="body2">
+                    ฿{totals.subtotal.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ภาษีมูลค่าเพิ่ม 7%
+                  </Typography>
+                  <Typography variant="body2">
+                    ฿{totals.taxAmount.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="body1" fontWeight="bold">
+                    ยอดรวมทั้งสิ้น
+                  </Typography>
+                  <Typography variant="body1" fontWeight="bold">
+                    ฿{totals.total.toLocaleString()}
+                  </Typography>
+                </Box>
               </Grid>
+              
               <Grid item xs={12} md={6}>
-                <Controller
-                  name="payment_terms"
+                <PaymentTermsSection 
                   control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <FormControl fullWidth error={!!error}>
-                      <InputLabel>เงื่อนไขการชำระเงิน *</InputLabel>
-                      <Select
-                        {...field}
-                        label="เงื่อนไขการชำระเงิน"
-                      >
-                        {PAYMENT_TERMS.map((term) => (
-                          <MenuItem key={term.value} value={term.value}>
-                            {term.label}
-                            {term.deposit_percent > 0 && (
-                              <Chip 
-                                size="small" 
-                                label={`มัดจำ ${term.deposit_percent}%`} 
-                                sx={{ ml: 1 }}
-                              />
-                            )}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {error && <Typography variant="caption" color="error">{error.message}</Typography>}
-                    </FormControl>
-                  )}
+                  setValue={setValue}
+                  totals={totals}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
-                <Controller
-                  name="deposit_amount"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="มัดจำ (จำนวนเงิน)"
-                      type="number"
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start">฿</InputAdornment>,
-                      }}
-                      inputProps={{ min: 0, step: 0.01 }}
-                      error={!!error}
-                      helperText={error?.message || `สูงสุด: ฿${totals.total.toLocaleString()}`}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        field.onChange(value);
-                        // Auto-calculate percentage
-                        if (totals.total > 0) {
-                          setValue('deposit_percent', (value / totals.total) * 100);
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <Controller
-                  name="deposit_percent"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="มัดจำ (%)"
-                      type="number"
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      }}
-                      inputProps={{ min: 0, max: 100, step: 0.01 }}
-                      error={!!error}
-                      helperText={error?.message}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        field.onChange(value);
-                        // Auto-calculate amount
-                        setValue('deposit_amount', (totals.total * value) / 100);
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Controller
-                  name="tax_rate"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="อัตราภาษี VAT"
-                      type="number"
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      }}
-                      inputProps={{ min: 0, max: 100, step: 0.01 }}
-                      error={!!error}
-                      helperText={error?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Controller
-                  name="wht_rate"
-                  control={control}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="อัตราหัก ณ ที่จ่าย"
-                      type="number"
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                      }}
-                      inputProps={{ min: 0, max: 100, step: 0.01 }}
-                      error={!!error}
-                      helperText={error?.message}
-                    />
-                  )}
-                />
-              </Grid>
+              
               <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom>
+                  หมายเหตุการขาย
+                </Typography>
                 <Controller
                   name="remarks"
                   control={control}
@@ -829,13 +553,34 @@ const QuotationStep = ({ data, onChange, loading }) => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="หมายเหตุ"
+                      size="small"
                       multiline
                       rows={3}
-                      placeholder="หมายเหตุเพิ่มเติม เงื่อนไขพิเศษ หรือข้อควรระวัง"
+                      placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
                       error={!!error}
                       helperText={error?.message}
                     />
+                  )}
+                />
+              </Grid>
+              
+              {/* Keep tax rate but make it hidden since it's fixed at 7% in the UI */}
+              <input type="hidden" name="tax_rate" value="7" />
+              
+              {/* Keep these fields hidden but available for the backend */}
+              <Grid item xs={12} sx={{ display: 'none' }}>
+                <Controller
+                  name="tax_rate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField {...field} type="hidden" />
+                  )}
+                />
+                <Controller
+                  name="wht_rate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField {...field} type="hidden" />
                   )}
                 />
               </Grid>
@@ -846,191 +591,36 @@ const QuotationStep = ({ data, onChange, loading }) => {
         {/* Items Section */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
-                <DescriptionIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                รายการสินค้า/บริการ
-              </Typography>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={handleAddItem}
-                variant="contained"
-              >
-                เพิ่มรายการ
-              </Button>
-            </Box>
-
-            {watchedItems && watchedItems.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>รายการ</TableCell>
-                      <TableCell align="center">จำนวน</TableCell>
-                      <TableCell align="center">หน่วย</TableCell>
-                      <TableCell align="right">ราคาต่อหน่วย</TableCell>
-                      <TableCell align="right">ส่วนลด</TableCell>
-                      <TableCell align="right">ยอดรวม</TableCell>
-                      <TableCell align="center" width={120}>จัดการ</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {watchedItems.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Typography variant="subtitle2">{item.item_name}</Typography>
-                          {item.item_description && (
-                            <Typography variant="body2" color="text.secondary">
-                              {item.item_description}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="center">{item.unit}</TableCell>
-                        <TableCell align="right">฿{item.unit_price.toLocaleString()}</TableCell>
-                        <TableCell align="right">
-                          {item.discount_amount > 0 ? `฿${item.discount_amount.toLocaleString()}` : '-'}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                          ฿{getItemSubtotal(item).toLocaleString()}
-                          {item.quantity_remaining !== item.quantity && (
-                            <Typography variant="caption" display="block" color="warning.main">
-                              คงเหลือ: {item.quantity_remaining}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton size="small" onClick={() => handleEditItem(index)} color="primary">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleDeleteItem(index)} color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Alert severity="warning">
-                <Typography variant="subtitle1" fontWeight="bold">
-                  ยังไม่มีรายการสินค้า
-                </Typography>
-                <Typography variant="body2">
-                  กรุณาเพิ่มรายการสินค้าหรือบริการอย่างน้อย 1 รายการ
-                </Typography>
-              </Alert>
-            )}
+            <ItemTable 
+              items={watchedItems || []}
+              onAddItem={handleAddItem}
+              onItemChange={handleItemFieldChange}
+              onDeleteItem={handleDeleteItem}
+              getItemSubtotal={getItemSubtotal}
+            />
           </CardContent>
         </Card>
 
         {/* Totals Summary */}
         {watchedItems && watchedItems.length > 0 && (
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                สรุปยอดเงิน
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>ยอดรวมก่อนภาษี:</Typography>
-                    <Typography fontWeight="bold">฿{totals.subtotal.toLocaleString()}</Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>ส่วนลดรวม:</Typography>
-                    <Typography color="error.main">-฿{totals.discount.toLocaleString()}</Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>ภาษี VAT ({watchedTaxRate}%):</Typography>
-                    <Typography>฿{totals.taxAmount.toLocaleString()}</Typography>
-                  </Box>
-                  {watchedWhtRate > 0 && (
-                    <Box display="flex" justifyContent="space-between" mb={1}>
-                      <Typography color="warning.main">หัก ณ ที่จ่าย ({watchedWhtRate}%):</Typography>
-                      <Typography color="warning.main">-฿{totals.whtAmount.toLocaleString()}</Typography>
-                    </Box>
-                  )}
-                  <Divider sx={{ my: 1 }} />
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="h6" fontWeight="bold">ยอดรวมทั้งสิ้น:</Typography>
-                    <Typography variant="h6" fontWeight="bold" color="primary.main">
-                      ฿{totals.total.toLocaleString()}
-                    </Typography>
-                  </Box>
-                  {watchedWhtRate > 0 && (
-                    <Box display="flex" justifyContent="space-between" mb={2}>
-                      <Typography variant="subtitle1" fontWeight="bold" color="success.main">ยอดสุทธิ (หลังหัก ณ ที่จ่าย):</Typography>
-                      <Typography variant="subtitle1" fontWeight="bold" color="success.main">
-                        ฿{totals.netTotal.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  )}
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  {(watchedDepositAmount > 0 || watchedDepositPercent > 0) && (
-                    <Alert severity="info">
-                      <Typography variant="subtitle2" fontWeight="bold">
-                        การชำระเงิน
-                      </Typography>
-                      <Typography variant="body2">
-                        มัดจำ: ฿{totals.depositAmount.toLocaleString()}
-                        {watchedDepositPercent > 0 && ` (${watchedDepositPercent.toFixed(2)}%)`}
-                      </Typography>
-                      <Typography variant="body2">
-                        คงเหลือ: ฿{totals.remainingAmount.toLocaleString()}
-                      </Typography>
-                      {totals.depositAmount > totals.netTotal && (
-                        <Typography variant="body2" color="error">
-                          ⚠️ มัดจำเกินยอดสุทธิ
-                        </Typography>
-                      )}
-                    </Alert>
-                  )}
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+          <TotalsSummary
+            subtotal={totals.subtotal}
+            taxAmount={totals.taxAmount}
+            taxRate={watchedTaxRate}
+            total={totals.total}
+          />
         )}
 
         {/* Item Dialog */}
-        <ItemDialog />
+        <ItemDialog 
+          open={itemDialog.open}
+          item={itemDialog.item}
+          onChange={handleItemChange}
+          onClose={handleCloseDialog}
+          onSave={handleSaveItem}
+          isEdit={itemDialog.editIndex >= 0}
+        />
         
-        {/* Validation Summary */}
-        {!isValid && watchedItems && watchedItems.length > 0 && (
-          <Card sx={{ mt: 2, bgcolor: 'warning.light' }}>
-            <CardContent>
-              <Typography variant="h6" color="warning.dark" gutterBottom>
-                <WarningIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                ตรวจสอบข้อมูลก่อนดำเนินการต่อ
-              </Typography>
-              <Stack spacing={1}>
-                {Object.keys(errors).map(field => (
-                  errors[field] && (
-                    <Typography key={field} variant="body2" color="text.secondary">
-                      • {errors[field]?.message}
-                    </Typography>
-                  )
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Success Validation */}
-        {isValid && watchedItems && watchedItems.length > 0 && (
-          <Card sx={{ mt: 2, bgcolor: 'success.light' }}>
-            <CardContent>
-              <Typography variant="h6" color="success.dark">
-                <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                ข้อมูลครบถ้วน พร้อมดำเนินการต่อ
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Alert Snackbar */}
         <Snackbar
           open={alerts.open}

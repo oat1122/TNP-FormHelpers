@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -53,7 +53,6 @@ const QuotationCreatePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [retryFunction, setRetryFunction] = useState(null);
   
   // Form data for each step
   const [formData, setFormData] = useState({
@@ -81,39 +80,18 @@ const QuotationCreatePage = () => {
     const urlParams = new URLSearchParams(location.search);
     const pricingRequestId = urlParams.get('pricing_request_id');
     
-    console.log('URL params:', { pricingRequestId });
-    
     if (pricingRequestId) {
       // Auto-load pricing request details
       loadPricingRequestDetails(pricingRequestId);
     }
   }, [location]);
 
-  // Test API connection on component mount
-  useEffect(() => {
-    const testAPIConnection = async () => {
-      try {
-        console.log('Testing API connection...');
-        const response = await pricingIntegrationService.getCompletedPricingRequests({ per_page: 1 });
-        console.log('API connection test successful:', response);
-      } catch (err) {
-        console.error('API connection test failed:', err);
-      }
-    };
-    
-    testAPIConnection();
-  }, []);
-
   const loadPricingRequestDetails = async (pricingRequestId) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Loading pricing request details for ID:', pricingRequestId);
-      
       const response = await pricingIntegrationService.getPricingRequestDetails(pricingRequestId);
-      
-      console.log('Pricing request response:', response);
       
       if (response.data && response.data.data) {
         const pricingData = response.data.data;
@@ -135,7 +113,6 @@ const QuotationCreatePage = () => {
         throw new Error('Invalid response format: missing data');
       }
     } catch (err) {
-      console.error('Error loading pricing request:', err);
       
       let errorMessage = 'ไม่สามารถโหลดข้อมูลการขอราคาได้';
       
@@ -144,11 +121,7 @@ const QuotationCreatePage = () => {
         const status = err.response.status;
         const responseData = err.response.data;
         
-        console.error('Server response error:', {
-          status,
-          data: responseData,
-          headers: err.response.headers
-        });
+
         
         switch (status) {
           case 404:
@@ -165,18 +138,13 @@ const QuotationCreatePage = () => {
         }
       } else if (err.request) {
         // Network error
-        console.error('Network error:', err.request);
         errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
       } else {
         // Other error
-        console.error('Unknown error:', err.message);
         errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
       }
       
       setError(errorMessage);
-      
-      // Set retry function for this specific operation
-      setRetryFunction(() => () => loadPricingRequestDetails(pricingRequestId));
       
       // Don't auto-advance to step 2 on error
     } finally {
@@ -184,17 +152,54 @@ const QuotationCreatePage = () => {
     }
   };
 
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    setError(null);
-  };
+  const validateCurrentStep = useCallback((showError = true) => {
+    let errorMessage = null;
+    
+    switch (activeStep) {
+      case 0:
+        if (!formData.pricingRequest) {
+          errorMessage = 'กรุณาเลือกหลักฐานการขอราคา';
+        }
+        break;
+        
+      case 1:
+        if (!formData.customer) {
+          errorMessage = 'กรุณาตรวจสอบข้อมูลลูกค้า';
+        }
+        break;
+        
+      case 2:
+        if (!formData.quotationData.valid_until) {
+          errorMessage = 'กรุณาระบุวันที่ใช้ได้ถึง';
+        } else if (!formData.quotationData.items || formData.quotationData.items.length === 0) {
+          errorMessage = 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    if (errorMessage && showError) {
+      setError(errorMessage);
+    }
+    
+    return !errorMessage;
+  }, [activeStep, formData]);
 
-  const handleBack = () => {
+  const handleNext = useCallback(() => {
+    if (validateCurrentStep()) {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      setError(null);
+    }
+  }, [validateCurrentStep]);
+
+  const handleBack = useCallback(() => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
     setError(null);
-  };
+  }, []);
 
-  const handleStepDataChange = (stepIndex, data) => {
+  const handleStepDataChange = useCallback((stepIndex, data) => {
     setFormData(prev => {
       const newData = { ...prev };
       
@@ -227,41 +232,7 @@ const QuotationCreatePage = () => {
       
       return newData;
     });
-  };
-
-  const validateCurrentStep = () => {
-    switch (activeStep) {
-      case 0:
-        if (!formData.pricingRequest) {
-          setError('กรุณาเลือกหลักฐานการขอราคา');
-          return false;
-        }
-        break;
-        
-      case 1:
-        if (!formData.customer) {
-          setError('กรุณาตรวจสอบข้อมูลลูกค้า');
-          return false;
-        }
-        break;
-        
-      case 2:
-        if (!formData.quotationData.valid_until) {
-          setError('กรุณาระบุวันที่ใช้ได้ถึง');
-          return false;
-        }
-        if (!formData.quotationData.items || formData.quotationData.items.length === 0) {
-          setError('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
-          return false;
-        }
-        break;
-        
-      default:
-        break;
-    }
-    
-    return true;
-  };
+  }, []);
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) {
@@ -287,11 +258,7 @@ const QuotationCreatePage = () => {
         })
       };
 
-      console.log('Submitting quotation data:', submitData);
-
       const response = await pricingIntegrationService.createQuotationFromPricing(submitData);
-      
-      console.log('Quotation creation response:', response);
       
       if (response.data && response.data.status === 'success') {
         setSuccessMessage('สร้างใบเสนอราคาเรียบร้อยแล้ว');
@@ -305,8 +272,6 @@ const QuotationCreatePage = () => {
       }
       
     } catch (err) {
-      console.error('Error creating quotation:', err);
-      
       let errorMessage = 'ไม่สามารถสร้างใบเสนอราคาได้';
       
       if (err.response) {
@@ -314,11 +279,7 @@ const QuotationCreatePage = () => {
         const status = err.response.status;
         const responseData = err.response.data;
         
-        console.error('Server response error:', {
-          status,
-          data: responseData,
-          headers: err.response.headers
-        });
+
         
         switch (status) {
           case 400:
@@ -347,11 +308,9 @@ const QuotationCreatePage = () => {
         }
       } else if (err.request) {
         // Network error
-        console.error('Network error:', err.request);
         errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
       } else {
         // Other error
-        console.error('Unknown error:', err.message);
         errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
       }
       
@@ -438,18 +397,7 @@ const QuotationCreatePage = () => {
             </Typography>
           </Stack>
 
-          {/* Debug Information (only in development) */}
-          {process.env.NODE_ENV === 'development' && (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body2">
-                <strong>Debug Info:</strong><br />
-                Current Step: {activeStep}<br />
-                Pricing Request: {formData.pricingRequest ? 'Selected' : 'Not Selected'}<br />
-                Customer: {formData.customer ? 'Available' : 'Not Available'}<br />
-                API Base URL: {window.axios?.defaults?.baseURL || 'Not configured'}
-              </Typography>
-            </Alert>
-          )}
+
 
           {/* Success Message */}
           {successMessage && (
@@ -467,26 +415,7 @@ const QuotationCreatePage = () => {
             <Alert 
               severity="error" 
               sx={{ mb: 3 }} 
-              onClose={() => {
-                setError(null);
-                setRetryFunction(null);
-              }}
-              action={
-                retryFunction && (
-                  <Button 
-                    color="inherit" 
-                    size="small" 
-                    onClick={() => {
-                      setError(null);
-                      setRetryFunction(null);
-                      retryFunction();
-                    }}
-                    disabled={loading}
-                  >
-                    ลองใหม่
-                  </Button>
-                )
-              }
+              onClose={() => setError(null)}
             >
               {error}
             </Alert>
@@ -533,7 +462,7 @@ const QuotationCreatePage = () => {
                 {activeStep === steps.length - 1 ? (
                   <Button
                     onClick={handleSubmit}
-                    disabled={loading || !validateCurrentStep()}
+                    disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                     variant="contained"
                     size="large"
@@ -543,11 +472,7 @@ const QuotationCreatePage = () => {
                   </Button>
                 ) : (
                   <Button
-                    onClick={() => {
-                      if (validateCurrentStep()) {
-                        handleNext();
-                      }
-                    }}
+                    onClick={handleNext}
                     endIcon={<ArrowForwardIcon />}
                     variant="contained"
                     size="large"

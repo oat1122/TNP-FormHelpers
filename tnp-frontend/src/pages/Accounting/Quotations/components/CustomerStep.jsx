@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -40,6 +40,10 @@ const CustomerStep = ({ data, onChange, loading }) => {
   const [customerOptions, setCustomerOptions] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   
+  // Ref to track if this is the initial render
+  const initialRender = useRef(true);
+  const previousData = useRef({});
+  
   useEffect(() => {
     setCustomer(data.customer || {});
     setCustomerOverrides(data.customerOverrides || {});
@@ -51,12 +55,26 @@ const CustomerStep = ({ data, onChange, loading }) => {
   }, [data]);
 
   useEffect(() => {
-    // Notify parent component when data changes
-    onChange({
+    // Only notify parent if data actually changed and not on initial render
+    const newData = {
       customer: customer,
       customerOverrides: enableOverrides ? customerOverrides : {}
-    });
-  }, [customer, customerOverrides, enableOverrides]);
+    };
+    
+    // Compare with previous data to avoid unnecessary calls
+    const dataChanged = (
+      JSON.stringify(newData.customer) !== JSON.stringify(previousData.current.customer) ||
+      JSON.stringify(newData.customerOverrides) !== JSON.stringify(previousData.current.customerOverrides)
+    );
+    
+    if (!initialRender.current && dataChanged) {
+      onChange(newData);
+    }
+    
+    // Update previous data reference
+    previousData.current = newData;
+    initialRender.current = false;
+  }, [customer, customerOverrides, enableOverrides, onChange]);
 
   const handleOverrideChange = (field, value) => {
     setCustomerOverrides(prev => ({
@@ -87,6 +105,12 @@ const CustomerStep = ({ data, onChange, loading }) => {
     // Clear overrides when changing customer
     setCustomerOverrides({});
     setEnableOverrides(false);
+    
+    // Manually notify parent of the change immediately
+    onChange({
+      customer: selectedCustomer,
+      customerOverrides: {}
+    });
   };
 
   const getDisplayValue = (field) => {
@@ -275,7 +299,7 @@ const CustomerStep = ({ data, onChange, loading }) => {
               <Typography variant="body2">
                 ข้อมูลที่แก้ไขจะใช้เฉพาะในใบเสนอราคานี้เท่านั้น และจะไม่มีผลต่อข้อมูลลูกค้าในระบบ
               </Typography>
-              <Box mt={1}>
+              <Box sx={{ mt: 1 }}>
                 {Object.entries(customerOverrides).map(([field, value]) => (
                   <Chip
                     key={field}

@@ -53,6 +53,7 @@ const QuotationCreatePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [retryFunction, setRetryFunction] = useState(null);
   
   // Form data for each step
   const [formData, setFormData] = useState({
@@ -80,16 +81,39 @@ const QuotationCreatePage = () => {
     const urlParams = new URLSearchParams(location.search);
     const pricingRequestId = urlParams.get('pricing_request_id');
     
+    console.log('URL params:', { pricingRequestId });
+    
     if (pricingRequestId) {
       // Auto-load pricing request details
       loadPricingRequestDetails(pricingRequestId);
     }
   }, [location]);
 
+  // Test API connection on component mount
+  useEffect(() => {
+    const testAPIConnection = async () => {
+      try {
+        console.log('Testing API connection...');
+        const response = await pricingIntegrationService.getCompletedPricingRequests({ per_page: 1 });
+        console.log('API connection test successful:', response);
+      } catch (err) {
+        console.error('API connection test failed:', err);
+      }
+    };
+    
+    testAPIConnection();
+  }, []);
+
   const loadPricingRequestDetails = async (pricingRequestId) => {
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('Loading pricing request details for ID:', pricingRequestId);
+      
       const response = await pricingIntegrationService.getPricingRequestDetails(pricingRequestId);
+      
+      console.log('Pricing request response:', response);
       
       if (response.data && response.data.data) {
         const pricingData = response.data.data;
@@ -107,10 +131,54 @@ const QuotationCreatePage = () => {
         
         // Skip to step 2 if pricing is pre-selected
         setActiveStep(1);
+      } else {
+        throw new Error('Invalid response format: missing data');
       }
     } catch (err) {
       console.error('Error loading pricing request:', err);
-      setError('ไม่สามารถโหลดข้อมูลการขอราคาได้ กรุณาลองใหม่อีกครั้ง');
+      
+      let errorMessage = 'ไม่สามารถโหลดข้อมูลการขอราคาได้';
+      
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const responseData = err.response.data;
+        
+        console.error('Server response error:', {
+          status,
+          data: responseData,
+          headers: err.response.headers
+        });
+        
+        switch (status) {
+          case 404:
+            errorMessage = 'ไม่พบข้อมูลการขอราคาที่ระบุ';
+            break;
+          case 403:
+            errorMessage = 'ไม่มีสิทธิ์เข้าถึงข้อมูลการขอราคานี้';
+            break;
+          case 500:
+            errorMessage = `เกิดข้อผิดพลาดในระบบเซิร์ฟเวอร์ (${responseData?.message || 'Internal Server Error'})`;
+            break;
+          default:
+            errorMessage = `เกิดข้อผิดพลาด (${status}): ${responseData?.message || err.message}`;
+        }
+      } else if (err.request) {
+        // Network error
+        console.error('Network error:', err.request);
+        errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+      } else {
+        // Other error
+        console.error('Unknown error:', err.message);
+        errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
+      }
+      
+      setError(errorMessage);
+      
+      // Set retry function for this specific operation
+      setRetryFunction(() => () => loadPricingRequestDetails(pricingRequestId));
+      
+      // Don't auto-advance to step 2 on error
     } finally {
       setLoading(false);
     }
@@ -219,7 +287,11 @@ const QuotationCreatePage = () => {
         })
       };
 
+      console.log('Submitting quotation data:', submitData);
+
       const response = await pricingIntegrationService.createQuotationFromPricing(submitData);
+      
+      console.log('Quotation creation response:', response);
       
       if (response.data && response.data.status === 'success') {
         setSuccessMessage('สร้างใบเสนอราคาเรียบร้อยแล้ว');
@@ -234,11 +306,56 @@ const QuotationCreatePage = () => {
       
     } catch (err) {
       console.error('Error creating quotation:', err);
-      if (err.response && err.response.data) {
-        setError(err.response.data.message || 'เกิดข้อผิดพลาดในการสร้างใบเสนอราคา');
+      
+      let errorMessage = 'ไม่สามารถสร้างใบเสนอราคาได้';
+      
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const responseData = err.response.data;
+        
+        console.error('Server response error:', {
+          status,
+          data: responseData,
+          headers: err.response.headers
+        });
+        
+        switch (status) {
+          case 400:
+            errorMessage = `ข้อมูลไม่ถูกต้อง: ${responseData?.message || 'Bad Request'}`;
+            break;
+          case 401:
+            errorMessage = 'ไม่มีสิทธิ์ในการสร้างใบเสนอราคา กรุณาเข้าสู่ระบบใหม่';
+            break;
+          case 403:
+            errorMessage = 'ไม่มีสิทธิ์ในการดำเนินการนี้';
+            break;
+          case 422:
+            // Validation errors
+            if (responseData?.errors) {
+              const errors = Object.values(responseData.errors).flat();
+              errorMessage = `ข้อมูลไม่ถูกต้อง: ${errors.join(', ')}`;
+            } else {
+              errorMessage = `ข้อมูลไม่ถูกต้อง: ${responseData?.message || 'Validation Error'}`;
+            }
+            break;
+          case 500:
+            errorMessage = `เกิดข้อผิดพลาดในระบบเซิร์ฟเวอร์: ${responseData?.message || 'Internal Server Error'}`;
+            break;
+          default:
+            errorMessage = `เกิดข้อผิดพลาด (${status}): ${responseData?.message || err.message}`;
+        }
+      } else if (err.request) {
+        // Network error
+        console.error('Network error:', err.request);
+        errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
       } else {
-        setError('ไม่สามารถสร้างใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง');
+        // Other error
+        console.error('Unknown error:', err.message);
+        errorMessage = `เกิดข้อผิดพลาด: ${err.message}`;
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -321,6 +438,19 @@ const QuotationCreatePage = () => {
             </Typography>
           </Stack>
 
+          {/* Debug Information (only in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Debug Info:</strong><br />
+                Current Step: {activeStep}<br />
+                Pricing Request: {formData.pricingRequest ? 'Selected' : 'Not Selected'}<br />
+                Customer: {formData.customer ? 'Available' : 'Not Available'}<br />
+                API Base URL: {window.axios?.defaults?.baseURL || 'Not configured'}
+              </Typography>
+            </Alert>
+          )}
+
           {/* Success Message */}
           {successMessage && (
             <Alert 
@@ -334,7 +464,30 @@ const QuotationCreatePage = () => {
 
           {/* Error Message */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3 }} 
+              onClose={() => {
+                setError(null);
+                setRetryFunction(null);
+              }}
+              action={
+                retryFunction && (
+                  <Button 
+                    color="inherit" 
+                    size="small" 
+                    onClick={() => {
+                      setError(null);
+                      setRetryFunction(null);
+                      retryFunction();
+                    }}
+                    disabled={loading}
+                  >
+                    ลองใหม่
+                  </Button>
+                )
+              }
+            >
               {error}
             </Alert>
           )}

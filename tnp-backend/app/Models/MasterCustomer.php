@@ -204,4 +204,10 @@ class MasterCustomer extends Model
 		return $this->belongsTo(MasterBusinessType::class, 'cus_bt_id', 'bt_id')
 			->select('bt_id', 'bt_name');
 	}
+
+	public function customerGroup()
+	{
+		return $this->belongsTo(MasterCustomerGroup::class, 'cus_mcg_id', 'mcg_id')
+			->select('mcg_id', 'mcg_name');
+	}
 }

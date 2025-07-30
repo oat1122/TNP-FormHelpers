@@ -60,23 +60,54 @@ class PricingIntegrationController extends Controller
     public function getPricingRequestDetails(string $id): JsonResponse
     {
         try {
+            \Log::info('PricingIntegrationController: getPricingRequestDetails called', ['id' => $id]);
+            
             $pricingRequest = $this->pricingIntegrationService->getPricingRequestForQuotation($id);
+            
+            \Log::info('PricingIntegrationController: Pricing request retrieved', [
+                'id' => $id,
+                'found' => $pricingRequest ? true : false,
+                'pricing_request_data' => $pricingRequest ? [
+                    'pr_id' => $pricingRequest->pr_id,
+                    'pr_no' => $pricingRequest->pr_no,
+                    'pr_work_name' => $pricingRequest->pr_work_name,
+                    'pr_status_id' => $pricingRequest->pr_status_id,
+                    'pr_is_deleted' => $pricingRequest->pr_is_deleted
+                ] : null
+            ]);
 
             if (!$pricingRequest) {
+                \Log::warning('PricingIntegrationController: Pricing request not found', ['id' => $id]);
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Pricing request not found'
                 ], 404);
             }
 
-            if (!$this->pricingIntegrationService->canCreateQuotationFromPricing($pricingRequest)) {
+            $canCreateQuotation = $this->pricingIntegrationService->canCreateQuotationFromPricing($pricingRequest);
+            \Log::info('PricingIntegrationController: Can create quotation check', [
+                'id' => $id,
+                'can_create' => $canCreateQuotation
+            ]);
+
+            if (!$canCreateQuotation) {
+                \Log::warning('PricingIntegrationController: Cannot create quotation from pricing', [
+                    'id' => $id,
+                    'reason' => 'canCreateQuotationFromPricing returned false'
+                ]);
                 return response()->json([
                     'status' => 'error',
                     'message' => 'This pricing request cannot be converted to quotation'
                 ], 403);
             }
 
+            \Log::info('PricingIntegrationController: Getting pricing request summary', ['id' => $id]);
             $summary = $this->pricingIntegrationService->getPricingRequestSummary($pricingRequest);
+            
+            \Log::info('PricingIntegrationController: Summary generated successfully', [
+                'id' => $id,
+                'summary_keys' => $summary ? array_keys($summary) : []
+            ]);
 
             return response()->json([
                 'status' => 'success',
@@ -85,6 +116,12 @@ class PricingIntegrationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('PricingIntegrationController: Error in getPricingRequestDetails', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve pricing request details: ' . $e->getMessage()

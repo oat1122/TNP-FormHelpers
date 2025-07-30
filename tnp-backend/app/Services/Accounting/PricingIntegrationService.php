@@ -57,17 +57,44 @@ class PricingIntegrationService
      */
     public function getPricingRequestForQuotation(string $pricingRequestId): ?PricingRequest
     {
-        return PricingRequest::with([
-            'pricingCustomer',
-            'pricingNote' => function ($query) {
-                $query->where('prn_is_deleted', false)
-                      ->orderBy('prn_created_date', 'desc');
-            },
-            'pricingStatus'
-        ])
-        ->where('pr_id', $pricingRequestId)
-        ->where('pr_is_deleted', false)
-        ->first();
+        try {
+            \Log::info('PricingIntegrationService: getPricingRequestForQuotation called', ['id' => $pricingRequestId]);
+            
+            $result = PricingRequest::with([
+                'pricingCustomer',
+                'pricingNote' => function ($query) {
+                    $query->where('prn_is_deleted', false)
+                          ->orderBy('prn_created_date', 'desc');
+                },
+                'pricingStatus'
+            ])
+            ->where('pr_id', $pricingRequestId)
+            ->where('pr_is_deleted', false)
+            ->first();
+            
+            \Log::info('PricingIntegrationService: Query result', [
+                'id' => $pricingRequestId,
+                'found' => $result ? true : false,
+                'result_data' => $result ? [
+                    'pr_id' => $result->pr_id,
+                    'pr_no' => $result->pr_no,
+                    'pr_status_id' => $result->pr_status_id,
+                    'customer_loaded' => $result->pricingCustomer ? true : false,
+                    'status_loaded' => $result->pricingStatus ? true : false,
+                    'notes_count' => $result->pricingNote ? $result->pricingNote->count() : 0
+                ] : null
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            \Log::error('PricingIntegrationService: Error in getPricingRequestForQuotation', [
+                'id' => $pricingRequestId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -287,50 +314,86 @@ class PricingIntegrationService
      */
     public function getPricingRequestSummary(PricingRequest $pricingRequest): array
     {
-        $latestPrice = $this->getLatestPriceFromNotes($pricingRequest);
-        $customerData = $this->getCustomerDataForQuotation($pricingRequest->pr_cus_id);
-        
-        return [
-            'pricing_request' => [
-                'id' => $pricingRequest->pr_id,
-                'no' => $pricingRequest->pr_no,
-                'work_name' => $pricingRequest->pr_work_name,
-                'pattern' => $pricingRequest->pr_pattern,
-                'fabric_type' => $pricingRequest->pr_fabric_type,
-                'color' => $pricingRequest->pr_color,
-                'sizes' => $pricingRequest->pr_sizes,
-                'quantity' => $pricingRequest->pr_quantity,
-                'due_date' => $pricingRequest->pr_due_date,
-                'silk_work' => $pricingRequest->pr_silk,
-                'dft_work' => $pricingRequest->pr_dft,
-                'embroider_work' => $pricingRequest->pr_embroider,
-                'sub_work' => $pricingRequest->pr_sub,
-                'other_screen' => $pricingRequest->pr_other_screen,
-                'image_url' => $pricingRequest->pr_image ? url('storage/images/pricing_req/' . $pricingRequest->pr_image) : null,
-                'created_date' => $pricingRequest->pr_created_date,
-                'latest_price' => $latestPrice,
-                'status_id' => $pricingRequest->pr_status_id,
-                'status_name' => $pricingRequest->pricingStatus->status_name ?? null
-            ],
-            'customer' => $customerData ?: [
-                'id' => $pricingRequest->pricingCustomer->cus_id ?? null,
-                'name' => $pricingRequest->pricingCustomer->cus_name ?? null,
-                'company' => $pricingRequest->pricingCustomer->cus_company ?? null,
-                'email' => $pricingRequest->pricingCustomer->cus_email ?? null,
-                'phone_1' => $pricingRequest->pricingCustomer->cus_tel_1 ?? null
-            ],
-            'items' => $this->createQuotationItemsWithPricing($pricingRequest),
-            'notes' => $pricingRequest->pricingNote->map(function ($note) {
-                return [
-                    'id' => $note->prn_id,
-                    'type' => $note->prn_note_type,
-                    'type_name' => $this->getNoteTypeName($note->prn_note_type),
-                    'text' => $note->prn_text,
-                    'created_date' => $note->prn_created_date,
-                    'created_by' => $note->prnCreatedBy->user_nickname ?? 'Unknown'
-                ];
-            })
-        ];
+        try {
+            \Log::info('PricingIntegrationService: getPricingRequestSummary called', [
+                'pr_id' => $pricingRequest->pr_id
+            ]);
+            
+            $latestPrice = $this->getLatestPriceFromNotes($pricingRequest);
+            \Log::info('PricingIntegrationService: Latest price extracted', [
+                'pr_id' => $pricingRequest->pr_id,
+                'latest_price' => $latestPrice
+            ]);
+            
+            $customerData = $this->getCustomerDataForQuotation($pricingRequest->pr_cus_id);
+            \Log::info('PricingIntegrationService: Customer data retrieved', [
+                'pr_id' => $pricingRequest->pr_id,
+                'customer_id' => $pricingRequest->pr_cus_id,
+                'customer_found' => $customerData ? true : false
+            ]);
+            
+            $quotationItems = $this->createQuotationItemsWithPricing($pricingRequest);
+            \Log::info('PricingIntegrationService: Quotation items created', [
+                'pr_id' => $pricingRequest->pr_id,
+                'items_count' => count($quotationItems)
+            ]);
+            
+            $result = [
+                'pricing_request' => [
+                    'id' => $pricingRequest->pr_id,
+                    'no' => $pricingRequest->pr_no,
+                    'work_name' => $pricingRequest->pr_work_name,
+                    'pattern' => $pricingRequest->pr_pattern,
+                    'fabric_type' => $pricingRequest->pr_fabric_type,
+                    'color' => $pricingRequest->pr_color,
+                    'sizes' => $pricingRequest->pr_sizes,
+                    'quantity' => $pricingRequest->pr_quantity,
+                    'due_date' => $pricingRequest->pr_due_date,
+                    'silk_work' => $pricingRequest->pr_silk,
+                    'dft_work' => $pricingRequest->pr_dft,
+                    'embroider_work' => $pricingRequest->pr_embroider,
+                    'sub_work' => $pricingRequest->pr_sub,
+                    'other_screen' => $pricingRequest->pr_other_screen,
+                    'image_url' => $pricingRequest->pr_image ? url('storage/images/pricing_req/' . $pricingRequest->pr_image) : null,
+                    'created_date' => $pricingRequest->pr_created_date,
+                    'latest_price' => $latestPrice,
+                    'status_id' => $pricingRequest->pr_status_id,
+                    'status_name' => $pricingRequest->pricingStatus->status_name ?? null
+                ],
+                'customer' => $customerData ?: [
+                    'id' => $pricingRequest->pricingCustomer->cus_id ?? null,
+                    'name' => $pricingRequest->pricingCustomer->cus_name ?? null,
+                    'company' => $pricingRequest->pricingCustomer->cus_company ?? null,
+                    'email' => $pricingRequest->pricingCustomer->cus_email ?? null,
+                    'phone_1' => $pricingRequest->pricingCustomer->cus_tel_1 ?? null
+                ],
+                'items' => $quotationItems,
+                'notes' => $pricingRequest->pricingNote->map(function ($note) {
+                    return [
+                        'id' => $note->prn_id,
+                        'type' => $note->prn_note_type,
+                        'type_name' => $this->getNoteTypeName($note->prn_note_type),
+                        'text' => $note->prn_text,
+                        'created_date' => $note->prn_created_date,
+                        'created_by' => $note->prnCreatedBy->user_nickname ?? 'Unknown'
+                    ];
+                })
+            ];
+            
+            \Log::info('PricingIntegrationService: Summary created successfully', [
+                'pr_id' => $pricingRequest->pr_id
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            \Log::error('PricingIntegrationService: Error in getPricingRequestSummary', [
+                'pr_id' => $pricingRequest->pr_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**

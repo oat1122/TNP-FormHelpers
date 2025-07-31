@@ -35,6 +35,7 @@ const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"
 const AccountingDashboard = lazy(() => import("./pages/Accounting/Dashboard/AccountingDashboard"));
 const QuotationListPage = lazy(() => import("./pages/Accounting/Quotations/QuotationListPage"));
 const QuotationCreatePage = lazy(() => import("./pages/Accounting/Quotations/QuotationCreatePage"));
+const QuotationFormPage = lazy(() => import("./pages/Accounting/Quotations/QuotationFormPage"));
 const InvoiceListPage = lazy(() => import("./pages/Accounting/Invoices/InvoiceListPage"));
 const ReceiptListPage = lazy(() => import("./pages/Accounting/Receipts/ReceiptListPage"));
 const DeliveryNoteListPage = lazy(() => import("./pages/Accounting/DeliveryNotes/DeliveryNoteListPage"));
@@ -87,6 +88,8 @@ function App() {
               <Route index element={<AccountingDashboard />} />
               <Route path="quotations" element={<QuotationListPage />} />
               <Route path="quotations/new" element={<QuotationCreatePage />} />
+              <Route path="quotations/:id" element={<QuotationFormPage />} />
+              <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
               <Route path="invoices" element={<InvoiceListPage />} />
               <Route path="receipts" element={<ReceiptListPage />} />
               <Route path="delivery-notes" element={<DeliveryNoteListPage />} />

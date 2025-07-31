@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { dashboardService } from '../../features/Accounting';
 import {
   Box,
   Drawer,
@@ -20,7 +21,10 @@ import {
   useMediaQuery,
   Tabs,
   Tab,
-  Container
+  Container,
+  Tooltip,
+  Skeleton,
+  Alert
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -33,6 +37,8 @@ import {
   Inventory as ProductsIcon,
   Analytics as AnalyticsIcon,
   ChevronLeft as ChevronLeftIcon,
+  Notifications as NotificationsIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -116,11 +122,52 @@ const AccountingLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Mock badge counts (จะต้องดึงจาก API จริง)
-  const badgeCounts = {
-    pending_count: 5,
-    overdue_count: 2
-  };
+  // State for managing badge counts and loading state
+  const [badgeCounts, setBadgeCounts] = useState({
+    pending_count: 0,
+    overdue_count: 0
+  });
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch badge counts from API
+  const fetchBadgeCounts = useCallback(async () => {
+    try {
+      setIsLoadingCounts(true);
+      setError(null);
+      
+      // Use real API endpoints from dashboardService
+      const [pendingData, overdueData] = await Promise.all([
+        dashboardService.getPendingApprovals().catch(() => ({ data: { count: 0 } })),
+        dashboardService.getOverdueSummary().catch(() => ({ data: { count: 0 } }))
+      ]);
+      
+      setBadgeCounts({
+        pending_count: pendingData.data?.count || 0,
+        overdue_count: overdueData.data?.count || 0
+      });
+    } catch (err) {
+      console.error('Error fetching badge counts:', err);
+      setError('ไม่สามารถโหลดข้อมูลได้');
+      // Fallback to mock data in case of error
+      setBadgeCounts({
+        pending_count: 3,
+        overdue_count: 1
+      });
+    } finally {
+      setIsLoadingCounts(false);
+    }
+  }, []);
+
+  // Load badge counts on component mount
+  useEffect(() => {
+    fetchBadgeCounts();
+    
+    // Set up polling for real-time updates (every 5 minutes)
+    const interval = setInterval(fetchBadgeCounts, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [fetchBadgeCounts]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -146,10 +193,20 @@ const AccountingLayout = () => {
     return null;
   };
 
+  // Enhanced drawer component with loading states and tooltips
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            color: 'error.main', 
+            fontWeight: 'bold',
+            fontFamily: 'KanitSemiBold'
+          }}
+        >
           ระบบบัญชี
         </Typography>
         {isMobile && (
@@ -159,40 +216,126 @@ const AccountingLayout = () => {
         )}
       </Toolbar>
       <Divider />
+      
+      {error && (
+        <Box sx={{ p: 2 }}>
+          <Alert 
+            severity="warning" 
+            size="small"
+            action={
+              <IconButton 
+                size="small" 
+                onClick={fetchBadgeCounts}
+                disabled={isLoadingCounts}
+              >
+                <NotificationsIcon fontSize="small" />
+              </IconButton>
+            }
+          >
+            {error}
+          </Alert>
+        </Box>
+      )}
+      
       <List>
-        {navigationItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
+        {navigationItems.map((item) => {
+          const isSelected = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+          const badgeCount = item.badge ? badgeCounts[item.badge] : 0;
+          
+          return (
+            <ListItem key={item.path} disablePadding>
+              <Tooltip title={item.title} placement="right" arrow>
+                <ListItemButton
+                  selected={isSelected}
+                  onClick={() => handleNavigate(item.path)}
+                  sx={{
+                    '&.Mui-selected': {
+                      backgroundColor: 'error.light',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'error.main',
+                      },
+                    },
+                    '&:hover': {
+                      backgroundColor: 'error.light',
+                      color: 'white',
+                    },
+                    borderRadius: 1,
+                    mx: 1,
+                    my: 0.5
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                    {item.badge && badgeCount > 0 ? (
+                      isLoadingCounts ? (
+                        <Skeleton variant="circular" width={24} height={24} />
+                      ) : (
+                        <Badge 
+                          badgeContent={badgeCount} 
+                          color="warning"
+                          sx={{
+                            '& .MuiBadge-badge': {
+                              backgroundColor: '#ff9800',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '0.7rem'
+                            }
+                          }}
+                        >
+                          {item.icon}
+                        </Badge>
+                      )
+                    ) : (
+                      item.icon
+                    )}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.title}
+                    primaryTypographyProps={{
+                      fontSize: '0.875rem',
+                      fontWeight: isSelected ? 'bold' : 'normal',
+                      fontFamily: 'Kanit'
+                    }}
+                  />
+                  {isLoadingCounts && item.badge && (
+                    <Skeleton variant="rectangular" width={20} height={12} />
+                  )}
+                </ListItemButton>
+              </Tooltip>
+            </ListItem>
+          );
+        })}
+      </List>
+      
+      <Divider sx={{ my: 2 }} />
+      
+      {/* Additional Actions */}
+      <List>
+        <ListItem disablePadding>
+          <Tooltip title="ตั้งค่า" placement="right" arrow>
             <ListItemButton
-              selected={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
-              onClick={() => handleNavigate(item.path)}
               sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
-                  '&:hover': {
-                    backgroundColor: 'primary.light',
-                  },
-                },
+                borderRadius: 1,
+                mx: 1,
+                my: 0.5,
+                '&:hover': {
+                  backgroundColor: 'grey.100'
+                }
               }}
             >
-              <ListItemIcon sx={{ color: 'inherit' }}>
-                {item.badge && badgeCounts[item.badge] ? (
-                  <Badge badgeContent={badgeCounts[item.badge]} color="error">
-                    {item.icon}
-                  </Badge>
-                ) : (
-                  item.icon
-                )}
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                <SettingsIcon />
               </ListItemIcon>
               <ListItemText 
-                primary={item.title}
+                primary="ตั้งค่า"
                 primaryTypographyProps={{
-                  fontSize: '0.9rem',
-                  fontWeight: location.pathname.startsWith(item.path) ? 'bold' : 'normal'
+                  fontSize: '0.875rem',
+                  fontFamily: 'Kanit'
                 }}
               />
             </ListItemButton>
-          </ListItem>
-        ))}
+          </Tooltip>
+        </ListItem>
       </List>
     </div>
   );
@@ -230,9 +373,14 @@ const AccountingLayout = () => {
           {/* User info or actions can go here */}
         </Toolbar>
         
-        {/* Status tabs for document pages */}
+        {/* Enhanced Status tabs for document pages */}
         {isDocumentPage() && (
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Box sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider', 
+            bgcolor: 'background.paper',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
             <Container maxWidth="xl">
               <Tabs
                 value={new URLSearchParams(location.search).get('status') || 'all'}
@@ -247,15 +395,55 @@ const AccountingLayout = () => {
                 }}
                 variant="scrollable"
                 scrollButtons="auto"
+                sx={{
+                  '& .MuiTab-root': {
+                    minWidth: 'auto',
+                    fontSize: '0.875rem',
+                    fontFamily: 'Kanit',
+                    textTransform: 'none',
+                    '&.Mui-selected': {
+                      color: 'error.main',
+                      fontWeight: 'bold'
+                    }
+                  },
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: 'error.main',
+                    height: 3
+                  }
+                }}
               >
-                {getStatusTabs(getDocumentType()).map((tab) => (
-                  <Tab 
-                    key={tab.value}
-                    label={tab.label} 
-                    value={tab.value}
-                    sx={{ minWidth: 'auto', fontSize: '0.875rem' }}
-                  />
-                ))}
+                {getStatusTabs(getDocumentType()).map((tab) => {
+                  // Add badge for specific status tabs
+                  const tabBadge = tab.value === 'pending_review' ? badgeCounts.pending_count :
+                                   tab.value === 'overdue' ? badgeCounts.overdue_count : 0;
+                  
+                  return (
+                    <Tab 
+                      key={tab.value}
+                      label={
+                        tabBadge > 0 ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {tab.label}
+                            <Chip 
+                              label={tabBadge} 
+                              size="small" 
+                              color="error" 
+                              sx={{ 
+                                height: 16, 
+                                minWidth: 16,
+                                '& .MuiChip-label': {
+                                  fontSize: '0.7rem',
+                                  px: 0.5
+                                }
+                              }} 
+                            />
+                          </Box>
+                        ) : tab.label
+                      }
+                      value={tab.value}
+                    />
+                  );
+                })}
               </Tabs>
             </Container>
           </Box>
@@ -291,17 +479,45 @@ const AccountingLayout = () => {
         </Drawer>
       </Box>
 
-      {/* Main content */}
+      {/* Enhanced Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: isDocumentPage() ? '128px' : '64px', // Account for status tabs
-          minHeight: 'calc(100vh - 64px)'
+          minHeight: 'calc(100vh - 64px)',
+          backgroundColor: 'grey.50'
         }}
       >
         <Container maxWidth="xl" sx={{ py: 3 }}>
+          {/* Breadcrumb or page context can be added here */}
+          <Box sx={{ 
+            mb: 2,
+            p: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontFamily: 'KanitSemiBold',
+                color: 'text.primary',
+                mb: 1
+              }}
+            >
+              {navigationItems.find(item => location.pathname.startsWith(item.path))?.title || 'ระบบบัญชี'}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontFamily: 'Kanit' }}
+            >
+              จัดการข้อมูลด้านบัญชีและการเงิน
+            </Typography>
+          </Box>
+          
           <Outlet />
         </Container>
       </Box>

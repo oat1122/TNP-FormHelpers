@@ -3,8 +3,9 @@
 namespace App\Http\Requests\Accounting;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Accounting\Quotation;
 
-class CreateQuotationRequest extends FormRequest
+class UpdateQuotationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,8 +23,7 @@ class CreateQuotationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pricing_request_id' => 'nullable|string',
-            'customer_id' => 'required|string|exists:master_customers,cus_id',
+            'customer_id' => 'sometimes|string|exists:master_customers,cus_id',
             'payment_terms' => 'nullable|string|max:255',
             'deposit_amount' => 'nullable|numeric|min:0',
             'valid_until' => 'nullable|date|after:today',
@@ -31,13 +31,13 @@ class CreateQuotationRequest extends FormRequest
             'tax_rate' => 'nullable|numeric|min:0|max:100',
             
             // Items validation
-            'items' => 'required|array|min:1',
+            'items' => 'sometimes|array|min:1',
             'items.*.product_id' => 'nullable|exists:master_product_categories,mpc_id',
-            'items.*.item_name' => 'required|string|max:255',
+            'items.*.item_name' => 'required_with:items|string|max:255',
             'items.*.item_description' => 'nullable|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => 'required_with:items|numeric|min:0.01',
             'items.*.unit' => 'nullable|string|max:50',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.unit_price' => 'required_with:items|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
             'items.*.discount_amount' => 'nullable|numeric|min:0',
             'items.*.notes' => 'nullable|string'
@@ -50,14 +50,12 @@ class CreateQuotationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'customer_id.required' => 'Customer is required',
             'customer_id.exists' => 'Selected customer does not exist',
-            'items.required' => 'At least one item is required',
-            'items.min' => 'At least one item is required',
-            'items.*.item_name.required' => 'Item name is required for all items',
-            'items.*.quantity.required' => 'Quantity is required for all items',
+            'items.min' => 'At least one item is required when updating items',
+            'items.*.item_name.required_with' => 'Item name is required for all items',
+            'items.*.quantity.required_with' => 'Quantity is required for all items',
             'items.*.quantity.min' => 'Quantity must be greater than 0',
-            'items.*.unit_price.required' => 'Unit price is required for all items',
+            'items.*.unit_price.required_with' => 'Unit price is required for all items',
             'items.*.unit_price.min' => 'Unit price must be 0 or greater',
             'valid_until.after' => 'Valid until date must be in the future',
             'tax_rate.max' => 'Tax rate cannot exceed 100%',
@@ -70,21 +68,7 @@ class CreateQuotationRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Set default tax rate if not provided
-        if (!$this->has('tax_rate')) {
-            $this->merge([
-                'tax_rate' => config('accounting.default_vat_rate', 7)
-            ]);
-        }
-
-        // Set default valid until date if not provided
-        if (!$this->has('valid_until')) {
-            $this->merge([
-                'valid_until' => now()->addDays(30)->format('Y-m-d')
-            ]);
-        }
-
-        // Clean up items data
+        // Clean up items data if provided
         if ($this->has('items')) {
             $items = collect($this->input('items'))->map(function ($item) {
                 // Set default unit if not provided
@@ -112,7 +96,6 @@ class CreateQuotationRequest extends FormRequest
     {
         return [
             'customer_id' => 'customer',
-            'pricing_request_id' => 'pricing request',
             'payment_terms' => 'payment terms',
             'deposit_amount' => 'deposit amount',
             'valid_until' => 'valid until date',

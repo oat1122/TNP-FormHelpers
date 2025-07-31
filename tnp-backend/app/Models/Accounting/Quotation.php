@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\MasterCustomer;
 use App\Models\User;
 use App\Models\PricingRequest;
 
@@ -70,7 +69,7 @@ class Quotation extends Model
      */
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(MasterCustomer::class, 'customer_id', 'cus_id');
+        return $this->belongsTo(Customer::class, 'customer_id', 'cus_id');
     }
 
     /**
@@ -191,5 +190,128 @@ class Quotation extends Model
         $this->tax_amount = $this->subtotal * ($this->tax_rate / 100);
         $this->total_amount = $this->subtotal + $this->tax_amount;
         $this->remaining_amount = $this->total_amount - $this->deposit_amount;
+    }
+
+    /**
+     * Check if quotation is expired
+     */
+    public function isExpired(): bool
+    {
+        return $this->valid_until && $this->valid_until->isPast();
+    }
+
+    /**
+     * Get days until expiry
+     */
+    public function getDaysUntilExpiry(): ?int
+    {
+        if (!$this->valid_until) {
+            return null;
+        }
+
+        return max(0, now()->diffInDays($this->valid_until, false));
+    }
+
+    /**
+     * Get status label in Thai
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        $labels = [
+            self::STATUS_DRAFT => 'ฉบับร่าง',
+            self::STATUS_PENDING_REVIEW => 'รอตรวจสอบ',
+            self::STATUS_APPROVED => 'อนุมัติแล้ว',
+            self::STATUS_REJECTED => 'ไม่อนุมัติ',
+            self::STATUS_COMPLETED => 'เสร็จสิ้น'
+        ];
+
+        return $labels[$this->status] ?? $this->status;
+    }
+
+    /**
+     * Scope: Filter by date range
+     */
+    public function scopeDateRange($query, $from, $to)
+    {
+        if ($from) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        
+        if ($to) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope: Search by keywords
+     */
+    public function scopeSearch($query, $search)
+    {
+        if (empty($search)) {
+            return $query;
+        }
+
+        $search = '%' . $search . '%';
+        
+        return $query->where(function ($q) use ($search) {
+            $q->where('quotation_no', 'like', $search)
+              ->orWhere('remarks', 'like', $search)
+              ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                  $customerQuery->where('cus_firstname', 'like', $search)
+                               ->orWhere('cus_lastname', 'like', $search)
+                               ->orWhere('cus_company', 'like', $search);
+              });
+        });
+    }
+
+    /**
+     * Scope: Filter by approved status
+     */
+    public function scopeApproved($query)
+    {
+        return $query->where('status', self::STATUS_APPROVED);
+    }
+
+    /**
+     * Scope: Filter by pending review
+     */
+    public function scopePendingReview($query)
+    {
+        return $query->where('status', self::STATUS_PENDING_REVIEW);
+    }
+
+    /**
+     * Scope: Filter expired quotations
+     */
+    public function scopeExpired($query)
+    {
+        return $query->where('valid_until', '<', now());
+    }
+
+    /**
+     * Scope: Filter valid quotations
+     */
+    public function scopeValid($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('valid_until')
+              ->orWhere('valid_until', '>=', now());
+        });
+    }
+
+    /**
+     * Get all available statuses
+     */
+    public static function getStatuses(): array
+    {
+        return [
+            self::STATUS_DRAFT => 'ฉบับร่าง',
+            self::STATUS_PENDING_REVIEW => 'รอตรวจสอบ',
+            self::STATUS_APPROVED => 'อนุมัติแล้ว',
+            self::STATUS_REJECTED => 'ไม่อนุมัติ',
+            self::STATUS_COMPLETED => 'เสร็จสิ้น'
+        ];
     }
 }

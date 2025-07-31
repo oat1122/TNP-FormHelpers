@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Accounting;
+namespace App\Http\Resources\V1\Accounting;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\V1\CustomerResource;
+use App\Http\Resources\V1\UserResource;
 
 class QuotationResource extends JsonResource
 {
@@ -19,7 +21,7 @@ class QuotationResource extends JsonResource
             'quotation_no' => $this->quotation_no,
             'pricing_request_id' => $this->pricing_request_id,
             'customer_id' => $this->customer_id,
-            'customer' => new CustomerResource($this->whenLoaded('customer')),
+            'customer' => $this->whenLoaded('customer'),
             'pricing_request' => $this->whenLoaded('pricingRequest'),
             
             // Financial information
@@ -49,15 +51,15 @@ class QuotationResource extends JsonResource
             'rejection_reason' => $this->rejection_reason,
             
             // Related data
-            'items' => QuotationItemResource::collection($this->whenLoaded('items')),
-            'invoices' => InvoiceResource::collection($this->whenLoaded('invoices')),
-            'attachments' => DocumentAttachmentResource::collection($this->whenLoaded('attachments')),
-            'status_history' => DocumentStatusHistoryResource::collection($this->whenLoaded('statusHistory')),
+            'items' => $this->whenLoaded('items'),
+            'invoices' => $this->whenLoaded('invoices'),
+            'attachments' => $this->whenLoaded('attachments'),
+            'status_history' => $this->whenLoaded('statusHistory'),
             
             // User information
-            'creator' => new UserResource($this->whenLoaded('creator')),
-            'approver' => new UserResource($this->whenLoaded('approver')),
-            'rejecter' => new UserResource($this->whenLoaded('rejecter')),
+            'creator' => $this->whenLoaded('creator'),
+            'approver' => $this->whenLoaded('approver'),
+            'rejecter' => $this->whenLoaded('rejecter'),
             
             // Timestamps
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

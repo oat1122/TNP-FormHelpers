@@ -7,12 +7,15 @@ use App\Services\Accounting\QuotationService;
 use App\Models\Accounting\Quotation;
 use App\Models\PricingRequest;
 use App\Http\Requests\Accounting\CreateQuotationRequest;
+use App\Http\Requests\Accounting\UpdateQuotationRequest;
 use App\Http\Requests\Accounting\UpdateQuotationStatusRequest;
-use App\Http\Resources\Accounting\QuotationResource;
+use App\Http\Resources\V1\Accounting\QuotationResource;
+use App\Http\Resources\V1\Accounting\QuotationCollection;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class QuotationController extends Controller
 {
@@ -24,18 +27,40 @@ class QuotationController extends Controller
     }
 
     /**
-     * Display a listing of quotations
+     * Display a listing of quotations with filters and pagination
      */
     public function index(Request $request): JsonResponse
     {
         try {
+            // Validate request parameters
+            $validator = Validator::make($request->all(), [
+                'status' => 'nullable|in:draft,pending_review,approved,rejected,completed',
+                'customer_id' => 'nullable|string|exists:master_customers,cus_id',
+                'search' => 'nullable|string|max:255',
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date|after_or_equal:date_from',
+                'per_page' => 'nullable|integer|min:1|max:100',
+                'sort_by' => 'nullable|in:quotation_no,created_at,total_amount,status,customer_name,valid_until',
+                'sort_order' => 'nullable|in:asc,desc'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid filter parameters',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $filters = [
                 'status' => $request->get('status'),
                 'customer_id' => $request->get('customer_id'),
                 'search' => $request->get('search'),
                 'date_from' => $request->get('date_from'),
                 'date_to' => $request->get('date_to'),
-                'per_page' => $request->get('per_page', 15)
+                'per_page' => $request->get('per_page', 15),
+                'sort_by' => $request->get('sort_by', 'created_at'),
+                'sort_order' => $request->get('sort_order', 'desc')
             ];
 
             $quotations = $this->quotationService->getQuotationsList($filters);
@@ -43,13 +68,28 @@ class QuotationController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Quotations retrieved successfully',
-                'data' => $quotations
+                'data' => new QuotationCollection($quotations),
+                'meta' => [
+                    'total' => $quotations->total(),
+                    'per_page' => $quotations->perPage(),
+                    'current_page' => $quotations->currentPage(),
+                    'last_page' => $quotations->lastPage(),
+                    'from' => $quotations->firstItem(),
+                    'to' => $quotations->lastItem()
+                ]
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Failed to retrieve quotations: ' . $e->getMessage(), [
+                'filters' => $request->all(),
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to retrieve quotations: ' . $e->getMessage()
+                'message' => 'Failed to retrieve quotations',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -57,56 +97,43 @@ class QuotationController extends Controller
     /**
      * Store a newly created quotation
      */
-    public function store(Request $request): JsonResponse
+    public function store(CreateQuotationRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'pricing_request_id' => 'required|uuid|exists:pricing_requests,pr_id',
-                'subtotal' => 'required|numeric|min:0',
-                'tax_rate' => 'required|numeric|min:0|max:100',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:255',
-                'valid_until' => 'nullable|date|after:today',
-                'remarks' => 'nullable|string',
-                'items' => 'required|array|min:1',
-                'items.*.item_name' => 'required|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.quantity' => 'required|numeric|min:0.01',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.unit_price' => 'required|numeric|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $pricingRequest = PricingRequest::findOrFail($request->pricing_request_id);
-            
-            $data = $request->all();
+            $data = $request->validated();
             $data['created_by'] = Auth::user()->user_uuid;
 
-            $quotation = $this->quotationService->createFromPricingRequest($pricingRequest, $data);
+            // Check if creating from pricing request or directly
+            if (!empty($data['pricing_request_id'])) {
+                $pricingRequest = PricingRequest::findOrFail($data['pricing_request_id']);
+                $quotation = $this->quotationService->createFromPricingRequest($pricingRequest, $data);
+            } else {
+                $quotation = $this->quotationService->createQuotation($data);
+            }
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Quotation created successfully',
-                'data' => $quotation
+                'data' => new QuotationResource($quotation)
             ], 201);
 
         } catch (\Exception $e) {
+            Log::error('Failed to create quotation: ' . $e->getMessage(), [
+                'request_data' => $request->validated(),
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to create quotation: ' . $e->getMessage()
+                'message' => 'Failed to create quotation',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
 
     /**
-     * Display the specified quotation
+     * Display the specified quotation with all relationships
      */
     public function show(string $id): JsonResponse
     {
@@ -123,13 +150,20 @@ class QuotationController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Quotation retrieved successfully',
-                'data' => $quotation
+                'data' => new QuotationResource($quotation)
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Failed to retrieve quotation: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to retrieve quotation: ' . $e->getMessage()
+                'message' => 'Failed to retrieve quotation',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -137,7 +171,7 @@ class QuotationController extends Controller
     /**
      * Update the specified quotation
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateQuotationRequest $request, string $id): JsonResponse
     {
         try {
             $quotation = Quotation::findOrFail($id);
@@ -145,34 +179,12 @@ class QuotationController extends Controller
             if (!$quotation->canEdit()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Quotation cannot be edited in current status'
+                    'message' => 'Quotation cannot be edited in current status',
+                    'current_status' => $quotation->status
                 ], 403);
             }
 
-            $validator = Validator::make($request->all(), [
-                'subtotal' => 'nullable|numeric|min:0',
-                'tax_rate' => 'nullable|numeric|min:0|max:100',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:255',
-                'valid_until' => 'nullable|date|after:today',
-                'remarks' => 'nullable|string',
-                'items' => 'nullable|array|min:1',
-                'items.*.item_name' => 'required_with:items|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:0.01',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $request->all();
+            $data = $request->validated();
             $data['updated_by'] = Auth::user()->user_uuid;
 
             $quotation = $this->quotationService->updateQuotation($quotation, $data);
@@ -180,13 +192,21 @@ class QuotationController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Quotation updated successfully',
-                'data' => $quotation
+                'data' => new QuotationResource($quotation)
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Failed to update quotation: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'request_data' => $request->validated(),
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update quotation: ' . $e->getMessage()
+                'message' => 'Failed to update quotation',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -270,9 +290,137 @@ class QuotationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Failed to update quotation status: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'new_status' => $request->status ?? 'unknown',
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update quotation status: ' . $e->getMessage()
+                'message' => 'Failed to update quotation status',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve quotation
+     */
+    public function approve(Request $request, string $id): JsonResponse
+    {
+        try {
+            $quotation = Quotation::findOrFail($id);
+
+            if (!$quotation->canApprove()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Quotation cannot be approved in current status',
+                    'current_status' => $quotation->status
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'remarks' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $quotation = $this->quotationService->changeStatus(
+                $quotation,
+                Quotation::STATUS_APPROVED,
+                Auth::user()->user_uuid,
+                $request->get('remarks', 'อนุมัติใบเสนอราคา')
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Quotation approved successfully',
+                'data' => new QuotationResource($quotation)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to approve quotation: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to approve quotation',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject quotation
+     */
+    public function reject(Request $request, string $id): JsonResponse
+    {
+        try {
+            $quotation = Quotation::findOrFail($id);
+
+            if ($quotation->status === Quotation::STATUS_APPROVED) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Approved quotation cannot be rejected',
+                    'current_status' => $quotation->status
+                ], 403);
+            }
+
+            if ($quotation->status === Quotation::STATUS_REJECTED) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Quotation is already rejected',
+                    'current_status' => $quotation->status
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:1000|min:10'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $quotation = $this->quotationService->changeStatus(
+                $quotation,
+                Quotation::STATUS_REJECTED,
+                Auth::user()->user_uuid,
+                $request->get('reason')
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Quotation rejected successfully',
+                'data' => new QuotationResource($quotation)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to reject quotation: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to reject quotation',
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

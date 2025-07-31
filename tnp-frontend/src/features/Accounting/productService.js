@@ -17,9 +17,12 @@ export const fetchProducts = (params = {}) => {
  * @param {Object} params - Query parameters
  * @returns {Promise} API response with product categories
  */
-export const getProductCategories = (params = {}) => {
+export const fetchProductCategories = (params = {}) => {
   return axios.get('/accounting/products/categories', { params });
 };
+
+// Alias for backward compatibility
+export const getProductCategories = fetchProductCategories;
 
 /**
  * Get low stock products
@@ -96,6 +99,7 @@ export const searchProducts = (query, limit = 10) => {
 // Export all functions as default object for easier importing
 export default {
   fetchProducts,
+  fetchProductCategories,
   getProductCategories,
   getLowStockProducts,
   getProduct,

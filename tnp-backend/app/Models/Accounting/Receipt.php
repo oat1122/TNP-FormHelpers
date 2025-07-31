@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\MasterCustomer;
 use App\Models\User;
 
 class Receipt extends Model
@@ -73,7 +72,7 @@ class Receipt extends Model
      */
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(MasterCustomer::class, 'customer_id', 'cus_id');
+        return $this->belongsTo(Customer::class, 'customer_id', 'cus_id');
     }
 
     /**

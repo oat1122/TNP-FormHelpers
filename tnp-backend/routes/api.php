@@ -223,6 +223,8 @@ Route::prefix('v1')->group(function() {
         Route::put('/{id}', [QuotationController::class, 'update']);
         Route::delete('/{id}', [QuotationController::class, 'destroy']);
         Route::patch('/{id}/status', [QuotationController::class, 'changeStatus']);
+        Route::post('/{id}/approve', [QuotationController::class, 'approve']);
+        Route::post('/{id}/reject', [QuotationController::class, 'reject']);
         Route::get('/{id}/pdf', [QuotationController::class, 'generatePdf']);
         Route::get('/{id}/history', [QuotationController::class, 'getHistory']);
     });

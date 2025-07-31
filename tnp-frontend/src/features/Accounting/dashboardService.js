@@ -1,4 +1,4 @@
-import axios from '@/api/axios';
+import axios from '../../api/axios';
 
 // Dashboard API Service for Accounting
 // Based on endpoints from README.md

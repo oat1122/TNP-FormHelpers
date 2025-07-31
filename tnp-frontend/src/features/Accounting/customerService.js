@@ -59,16 +59,28 @@ export const deleteCustomer = (id) => {
 };
 
 /**
- * Search customers for autocomplete
- * @param {string} query - Search query
- * @param {number} limit - Maximum results
+ * Search customers for autocomplete (enhanced version)
+ * @param {Object} params - Search parameters
+ * @param {string} params.search - Search query
+ * @param {Array} params.types - Customer types ['individual', 'company']
+ * @param {number} params.per_page - Maximum results
+ * @param {Array} params.exclude_ids - Customer IDs to exclude
  * @returns {Promise} API response with matching customers
  */
-export const searchCustomers = (query, limit = 10) => {
+export const searchCustomers = (params = {}) => {
+  const {
+    search,
+    types = ['individual', 'company'],
+    per_page = 20,
+    exclude_ids = []
+  } = params;
+
   return axios.get('/accounting/customers', {
     params: {
-      search: query,
-      per_page: limit,
+      search,
+      types: types.join(','),
+      per_page,
+      exclude_ids: exclude_ids.join(','),
       autocomplete: true
     }
   });

@@ -52,15 +52,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import { quotationService, customerService } from '../../../features/Accounting';
-
-// Status configuration ตาม doce.md
-const STATUS_CONFIG = {
-  draft: { label: 'ร่าง', color: 'default', bgColor: '#f5f5f5' },
-  pending_review: { label: 'รอตรวจ', color: 'warning', bgColor: '#fff3e0' },
-  approved: { label: 'อนุมัติแล้ว', color: 'success', bgColor: '#e8f5e8' },
-  rejected: { label: 'ปฏิเสธ', color: 'error', bgColor: '#ffebee' },
-  completed: { label: 'เสร็จสิ้น', color: 'info', bgColor: '#e3f2fd' }
-};
+import DocumentStatusBadge from '../components/DocumentStatusBadge';
 
 // Mock data - จะต้องเปลี่ยนเป็นข้อมูลจริงจาก API
 const mockQuotations = [
@@ -101,8 +93,6 @@ const QuotationCard = ({ quotation, onAction }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   
-  const statusConfig = STATUS_CONFIG[quotation.status];
-  
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -137,8 +127,7 @@ const QuotationCard = ({ quotation, onAction }) => {
           boxShadow: theme.shadows[4],
           transform: 'translateY(-2px)',
           transition: 'all 0.2s ease-in-out'
-        },
-        borderLeft: `4px solid ${statusConfig.bgColor}`
+        }
       }}
     >
       <CardContent>
@@ -153,10 +142,10 @@ const QuotationCard = ({ quotation, onAction }) => {
           </Box>
           
           <Box display="flex" alignItems="center" gap={1}>
-            <Chip 
-              label={statusConfig.label}
-              color={statusConfig.color}
+            <DocumentStatusBadge 
+              status={quotation.status}
               size="small"
+              showTooltip
             />
             <IconButton size="small" onClick={handleMenuOpen}>
               <MoreVertIcon />

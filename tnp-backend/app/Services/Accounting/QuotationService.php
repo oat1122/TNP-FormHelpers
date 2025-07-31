@@ -32,6 +32,63 @@ class QuotationService
     }
 
     /**
+     * Create quotation directly (not from pricing request)
+     */
+    public function createQuotation(array $data): Quotation
+    {
+        return DB::transaction(function () use ($data) {
+            // Create quotation
+            $quotation = Quotation::create([
+                'id' => Str::uuid(),
+                'quotation_no' => $this->generateQuotationNo(),
+                'pricing_request_id' => null,
+                'customer_id' => $data['customer_id'],
+                'status' => Quotation::STATUS_DRAFT,
+                'subtotal' => 0, // Will be calculated from items
+                'tax_rate' => $data['tax_rate'] ?? config('accounting.default_vat_rate', 7.0),
+                'deposit_amount' => $data['deposit_amount'] ?? 0,
+                'payment_terms' => $data['payment_terms'] ?? null,
+                'valid_until' => $data['valid_until'] ?? null,
+                'remarks' => $data['remarks'] ?? null,
+                'created_by' => $data['created_by'],
+                'version_no' => 1
+            ]);
+
+            // Create quotation items
+            if (!empty($data['items'])) {
+                foreach ($data['items'] as $index => $item) {
+                    QuotationItem::create([
+                        'id' => Str::uuid(),
+                        'quotation_id' => $quotation->id,
+                        'item_name' => $item['item_name'],
+                        'item_description' => $item['item_description'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'unit_price' => $item['unit_price'],
+                        'item_order' => $index + 1
+                    ]);
+                }
+            }
+
+            // Calculate totals
+            $quotation->calculateTotals();
+            $quotation->save();
+
+            // Record status history
+            $this->recordStatusHistory(
+                $quotation->id,
+                null,
+                Quotation::STATUS_DRAFT,
+                DocumentStatusHistory::ACTION_TYPE_CREATE,
+                'สร้างใบเสนอราคาใหม่',
+                $data['created_by']
+            );
+
+            return $quotation->load(['items', 'customer']);
+        });
+    }
+
+    /**
      * Create quotation from pricing request
      */
     public function createFromPricingRequest(PricingRequest $pricingRequest, array $data): Quotation
@@ -307,12 +364,12 @@ class QuotationService
     }
 
     /**
-     * Get quotations for listing with filters
+     * Get quotations for listing with filters and sorting
      */
     public function getQuotationsList(array $filters = [])
     {
         $query = Quotation::with(['customer', 'creator'])
-            ->orderBy('created_at', 'desc');
+            ->withCount('items');
 
         // Apply filters
         if (!empty($filters['status'])) {
@@ -342,6 +399,39 @@ class QuotationService
 
         if (!empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        // Apply sorting
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+
+        switch ($sortBy) {
+            case 'quotation_no':
+                $query->orderBy('quotation_no', $sortOrder);
+                break;
+            case 'total_amount':
+                $query->orderBy('total_amount', $sortOrder);
+                break;
+            case 'status':
+                $query->orderBy('status', $sortOrder);
+                break;
+            case 'valid_until':
+                $query->orderBy('valid_until', $sortOrder);
+                break;
+            case 'customer_name':
+                $query->join('master_customers', 'quotations.customer_id', '=', 'master_customers.cus_id')
+                      ->orderBy('master_customers.cus_firstname', $sortOrder)
+                      ->orderBy('master_customers.cus_lastname', $sortOrder)
+                      ->select('quotations.*');
+                break;
+            default:
+                $query->orderBy('created_at', $sortOrder);
+                break;
+        }
+
+        // Add secondary sort for consistency
+        if ($sortBy !== 'created_at') {
+            $query->orderBy('created_at', 'desc');
         }
 
         // Pagination

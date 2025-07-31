@@ -35,7 +35,8 @@ class PricingIntegrationService
                 $q->where('pr_no', 'like', $search)
                   ->orWhere('pr_work_name', 'like', $search)
                   ->orWhereHas('pricingCustomer', function ($customerQuery) use ($search) {
-                      $customerQuery->where('cus_name', 'like', $search)
+                      $customerQuery->where('cus_firstname', 'like', $search)
+                                   ->orWhere('cus_lastname', 'like', $search)
                                    ->orWhere('cus_company', 'like', $search);
                   });
             });
@@ -362,7 +363,8 @@ class PricingIntegrationService
                 ],
                 'customer' => $customerData ?: [
                     'id' => $pricingRequest->pricingCustomer->cus_id ?? null,
-                    'name' => $pricingRequest->pricingCustomer->cus_name ?? null,
+                    'firstname' => $pricingRequest->pricingCustomer->cus_firstname ?? null,
+                    'lastname' => $pricingRequest->pricingCustomer->cus_lastname ?? null,
                     'company' => $pricingRequest->pricingCustomer->cus_company ?? null,
                     'email' => $pricingRequest->pricingCustomer->cus_email ?? null,
                     'phone_1' => $pricingRequest->pricingCustomer->cus_tel_1 ?? null

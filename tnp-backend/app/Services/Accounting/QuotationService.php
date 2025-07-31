@@ -12,22 +12,23 @@ use DateTime;
 
 class QuotationService
 {
+    protected $documentNumberService;
+    protected $documentWorkflowService;
+
+    public function __construct(
+        DocumentNumberService $documentNumberService,
+        DocumentWorkflowService $documentWorkflowService
+    ) {
+        $this->documentNumberService = $documentNumberService;
+        $this->documentWorkflowService = $documentWorkflowService;
+    }
+
     /**
      * Generate quotation number
      */
     public function generateQuotationNo(): string
     {
-        $date = new DateTime();
-        $year = $date->format('Y');
-        $month = $date->format('m');
-        $prefix = 'QT' . $year . $month;
-
-        $maxId = Quotation::where('quotation_no', 'LIKE', $prefix . '%')
-            ->orderBy('created_at', 'desc')
-            ->max(DB::raw('CAST(SUBSTRING(quotation_no, -4) AS UNSIGNED)'));
-
-        $nextId = $maxId ? $maxId + 1 : 1;
-        return $prefix . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+        return $this->documentNumberService->generateNumber('quotation');
     }
 
     /**
@@ -243,65 +244,31 @@ class QuotationService
      */
     public function changeStatus(Quotation $quotation, string $newStatus, string $userId, string $remarks = null): Quotation
     {
-        return DB::transaction(function () use ($quotation, $newStatus, $userId, $remarks) {
-            $oldStatus = $quotation->status;
-
-            $updateData = [
-                'status' => $newStatus,
-                'updated_by' => $userId,
-                'version_no' => $quotation->version_no + 1
-            ];
-
-            $actionType = DocumentStatusHistory::ACTION_TYPE_UPDATE;
-
-            // Handle specific status changes
-            switch ($newStatus) {
-                case Quotation::STATUS_APPROVED:
-                    $updateData['approved_by'] = $userId;
-                    $updateData['approved_at'] = now();
-                    $actionType = DocumentStatusHistory::ACTION_TYPE_APPROVE;
-                    break;
-
-                case Quotation::STATUS_REJECTED:
-                    $updateData['rejected_by'] = $userId;
-                    $updateData['rejected_at'] = now();
-                    $updateData['rejection_reason'] = $remarks;
-                    $actionType = DocumentStatusHistory::ACTION_TYPE_REJECT;
-                    break;
-            }
-
-            $quotation->update($updateData);
-
-            // Record status history
-            $this->recordStatusHistory(
-                $quotation->id,
-                $oldStatus,
-                $newStatus,
-                $actionType,
-                $remarks ?? "เปลี่ยนสถานะจาก {$oldStatus} เป็น {$newStatus}",
-                $userId
-            );
-
-            return $quotation->load(['items', 'customer', 'pricingRequest']);
-        });
+        return $this->documentWorkflowService->changeStatus(
+            $quotation,
+            $newStatus,
+            $userId,
+            $remarks,
+            'update'
+        );
     }
 
     /**
      * Record status history
+     * 
+     * This method is a proxy to the DocumentWorkflowService method for backward compatibility
      */
     private function recordStatusHistory(string $documentId, ?string $statusFrom, string $statusTo, string $actionType, string $remarks, string $userId): void
     {
-        DocumentStatusHistory::create([
-            'id' => Str::uuid(),
-            'document_id' => $documentId,
-            'document_type' => DocumentStatusHistory::DOCUMENT_TYPE_QUOTATION,
-            'status_from' => $statusFrom,
-            'status_to' => $statusTo,
-            'action_type' => $actionType,
-            'remarks' => $remarks,
-            'changed_by' => $userId,
-            'changed_at' => now()
-        ]);
+        $this->documentWorkflowService->recordStatusHistory(
+            $documentId,
+            'quotation',
+            $statusFrom,
+            $statusTo,
+            $actionType,
+            $remarks,
+            $userId
+        );
     }
 
     /**
@@ -362,7 +329,8 @@ class QuotationService
                 $q->where('quotation_no', 'like', $search)
                   ->orWhere('remarks', 'like', $search)
                   ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                      $customerQuery->where('cus_name', 'like', $search)
+                      $customerQuery->where('cus_firstname', 'like', $search)
+                                   ->orWhere('cus_lastname', 'like', $search)
                                    ->orWhere('cus_company', 'like', $search);
                   });
             });

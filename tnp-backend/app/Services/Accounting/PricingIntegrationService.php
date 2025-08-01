@@ -108,6 +108,50 @@ class PricingIntegrationService
     }
 
     /**
+     * Get pricing request notes by type (1=sales, 2=price)
+     */
+    public function getPricingRequestNotes(string $pricingRequestId): array
+    {
+        try {
+            \Log::info('PricingIntegrationService: getPricingRequestNotes called', ['pr_id' => $pricingRequestId]);
+            
+            $notes = PricingRequestNote::where('prn_pr_id', $pricingRequestId)
+                ->whereIn('prn_note_type', [1, 2]) // 1=sales, 2=price
+                ->where('prn_is_deleted', false)
+                ->orderBy('prn_created_date', 'desc')
+                ->get()
+                ->map(function ($note) {
+                    return [
+                        'id' => $note->prn_id,
+                        'text' => $note->prn_text,
+                        'type' => $note->prn_note_type, // 1=sales, 2=price
+                        'type_name' => $note->prn_note_type == 1 ? 'Sales' : 'Price',
+                        'created_date' => $note->prn_created_date ? $note->prn_created_date->format('Y-m-d H:i:s') : null,
+                        'created_by' => $note->prn_created_by,
+                        'updated_date' => $note->prn_updated_date ? $note->prn_updated_date->format('Y-m-d H:i:s') : null,
+                        'updated_by' => $note->prn_updated_by
+                    ];
+                })
+                ->toArray();
+            
+            \Log::info('PricingIntegrationService: Notes found', [
+                'pr_id' => $pricingRequestId,
+                'notes_count' => count($notes)
+            ]);
+            
+            return $notes;
+            
+        } catch (\Exception $e) {
+            \Log::error('PricingIntegrationService: Error in getPricingRequestNotes', [
+                'pr_id' => $pricingRequestId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Get latest price from pricing request notes
      */
     public function getLatestPriceFromNotes(PricingRequest $pricingRequest): ?float

@@ -22,6 +22,15 @@ export const getPricingRequestDetails = (id) => {
 };
 
 /**
+ * ดึง notes ของ pricing request (type 1=sales, 2=price)
+ * @param {string} id - Pricing request ID
+ * @returns {Promise} API response with pricing request notes
+ */
+export const getPricingRequestNotes = (id) => {
+  return axios.get(`/pricing-integration/requests/${id}/notes`);
+};
+
+/**
  * ดึงสรุปข้อมูล pricing request
  * @param {string} id - Pricing request ID
  * @returns {Promise} API response with pricing request summary
@@ -43,6 +52,7 @@ export const createQuotationFromPricing = (data) => {
 export default {
   getCompletedPricingRequests,
   getPricingRequestDetails,
+  getPricingRequestNotes,
   getPricingRequestSummary,
   createQuotationFromPricing
 }; 

@@ -199,6 +199,47 @@ class PricingIntegrationController extends Controller
     }
 
     /**
+     * Get pricing request notes (type 1=sales, 2=price)
+     */
+    public function getPricingRequestNotes(string $id): JsonResponse
+    {
+        try {
+            \Log::info('PricingIntegrationController: getPricingRequestNotes called', ['pr_id' => $id]);
+            
+            // Verify pricing request exists
+            $pricingRequest = PricingRequest::where('pr_id', $id)
+                ->where('pr_is_deleted', false)
+                ->first();
+                
+            if (!$pricingRequest) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pricing request not found'
+                ], 404);
+            }
+            
+            $notes = $this->pricingIntegrationService->getPricingRequestNotes($id);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pricing request notes retrieved successfully',
+                'data' => $notes
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('PricingIntegrationController: Error in getPricingRequestNotes', [
+                'pr_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve pricing request notes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get pricing request summary with customer data
      */
     public function getPricingRequestSummary(string $id): JsonResponse

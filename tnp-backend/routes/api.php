@@ -212,6 +212,7 @@ Route::prefix('v1')->group(function() {
         Route::get('/completed-requests', [PricingIntegrationController::class, 'getCompletedPricingRequests']);
         Route::get('/requests/{id}', [PricingIntegrationController::class, 'getPricingRequestDetails']);
         Route::get('/requests/{id}/summary', [PricingIntegrationController::class, 'getPricingRequestSummary']);
+        Route::get('/requests/{id}/notes', [PricingIntegrationController::class, 'getPricingRequestNotes']);
         Route::post('/create-quotation', [PricingIntegrationController::class, 'createQuotationFromPricing']);
     });
 

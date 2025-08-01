@@ -37,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import DocumentStatusBadge from '../components/DocumentStatusBadge';
-import { customerService } from '../../../features/Accounting';
+import { customerService, pricingIntegrationService } from '../../../features/Accounting';
 
 // Constants for pricing request status
 const PRICING_REQUEST_STATUS = {
@@ -55,16 +55,50 @@ const QuotationFromPricingDialog = ({
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [quotationNote, setQuotationNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pricingNotes, setPricingNotes] = useState({});
 
   useEffect(() => {
     if (open && pricingRequests.length > 0) {
       // Auto-select all pricing requests that have received pricing
       const autoSelected = pricingRequests
-        .filter(request => request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED)
-        .map(request => request.id);
+        .filter(request => 
+          request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED || 
+          request.pr_status_id === PRICING_REQUEST_STATUS.PRICING_RECEIVED
+        )
+        .map(request => request.id || request.pr_id);
       setSelectedRequests(autoSelected);
+      
+      // Load notes for all pricing requests
+      loadPricingNotes();
     }
   }, [open, pricingRequests]);
+
+  const loadPricingNotes = async () => {
+    try {
+      const notesData = {};
+      
+      // Load notes for each pricing request using the dedicated notes endpoint
+      for (const request of pricingRequests) {
+        try {
+          const requestId = request.id || request.pr_id;
+          const response = await pricingIntegrationService.getPricingRequestNotes(requestId);
+          
+          if (response.data && response.data.status === 'success') {
+            notesData[requestId] = response.data.data;
+          } else {
+            notesData[requestId] = [];
+          }
+        } catch (err) {
+          console.error(`Error loading notes for request ${request.id || request.pr_id}:`, err);
+          notesData[request.id || request.pr_id] = [];
+        }
+      }
+      
+      setPricingNotes(notesData);
+    } catch (error) {
+      console.error('Error loading pricing notes:', error);
+    }
+  };
 
   const handleToggleRequest = (requestId) => {
     setSelectedRequests(prev => 
@@ -76,8 +110,11 @@ const QuotationFromPricingDialog = ({
 
   const handleSelectAll = () => {
     const availableRequests = pricingRequests
-      .filter(request => request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED)
-      .map(request => request.id);
+      .filter(request => 
+        request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED ||
+        request.pr_status_id === PRICING_REQUEST_STATUS.PRICING_RECEIVED
+      )
+      .map(request => request.id || request.pr_id);
     
     if (selectedRequests.length === availableRequests.length) {
       setSelectedRequests([]);
@@ -95,7 +132,7 @@ const QuotationFromPricingDialog = ({
     setLoading(true);
     try {
       const selectedPricingRequests = pricingRequests.filter(request => 
-        selectedRequests.includes(request.id)
+        selectedRequests.includes(request.id || request.pr_id)
       );
 
       // Convert pricing requests to quotation items
@@ -160,15 +197,47 @@ const QuotationFromPricingDialog = ({
     }).format(amount);
   };
 
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getNoteTypeColor = (type) => {
+    switch (type) {
+      case 1: return 'primary'; // Sales
+      case 2: return 'success'; // Price
+      default: return 'default';
+    }
+  };
+
+  const getNoteTypeName = (type) => {
+    switch (type) {
+      case 1: return 'Sales';
+      case 2: return 'Price';
+      default: return 'Other';
+    }
+  };
+
   const calculateSelectedTotal = () => {
     const selectedPricingRequests = pricingRequests.filter(request => 
-      selectedRequests.includes(request.id)
+      selectedRequests.includes(request.id || request.pr_id)
     );
-    return selectedPricingRequests.reduce((sum, request) => sum + request.price, 0);
+    return selectedPricingRequests.reduce((sum, request) => {
+      const price = request.price || request.latest_price || 0;
+      const quantity = request.quantity || 1;
+      return sum + (price * quantity);
+    }, 0);
   };
 
   const availableRequests = pricingRequests.filter(request => 
-    request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED
+    request.status === PRICING_REQUEST_STATUS.PRICING_RECEIVED ||
+    request.pr_status_id === PRICING_REQUEST_STATUS.PRICING_RECEIVED
   );
 
   return (
@@ -261,6 +330,7 @@ const QuotationFromPricingDialog = ({
                     <TableCell>รหัส</TableCell>
                     <TableCell>สินค้า/บริการ</TableCell>
                     <TableCell>รายละเอียด</TableCell>
+                    <TableCell>Notes (Sales/Price)</TableCell>
                     <TableCell align="right">จำนวน</TableCell>
                     <TableCell align="right">ราคา</TableCell>
                     <TableCell>วันที่</TableCell>
@@ -270,35 +340,78 @@ const QuotationFromPricingDialog = ({
                 <TableBody>
                   {availableRequests.map((request) => (
                     <TableRow 
-                      key={request.id}
-                      selected={selectedRequests.includes(request.id)}
+                      key={request.id || request.pr_id}
+                      selected={selectedRequests.includes(request.id || request.pr_id)}
                       hover
                       sx={{ cursor: 'pointer' }}
-                      onClick={() => handleToggleRequest(request.id)}
+                      onClick={() => handleToggleRequest(request.id || request.pr_id)}
                     >
                       <TableCell padding="checkbox">
                         <Checkbox
-                          checked={selectedRequests.includes(request.id)}
-                          onChange={() => handleToggleRequest(request.id)}
+                          checked={selectedRequests.includes(request.id || request.pr_id)}
+                          onChange={() => handleToggleRequest(request.id || request.pr_id)}
                         />
                       </TableCell>
-                      <TableCell>{request.id}</TableCell>
+                      <TableCell>{request.id || request.pr_id}</TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {request.product_name}
+                          {request.product_name || request.pr_work_name}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
-                          {request.description}
+                          {request.description || request.pr_pattern || request.pr_fabric_type || '-'}
                         </Typography>
                       </TableCell>
+                      <TableCell>
+                        <Box sx={{ maxWidth: 300 }}>
+                          {pricingNotes[request.id || request.pr_id] && pricingNotes[request.id || request.pr_id].length > 0 ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              {pricingNotes[request.id || request.pr_id].slice(0, 2).map((note, index) => (
+                                <Box key={note.id} sx={{ mb: 0.5 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <Chip 
+                                      label={getNoteTypeName(note.type)}
+                                      size="small"
+                                      color={getNoteTypeColor(note.type)}
+                                    />
+                                    <Typography variant="caption" color="text.secondary">
+                                      {formatDateTime(note.created_date)}
+                                    </Typography>
+                                  </Box>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      lineHeight: 1.2
+                                    }}
+                                  >
+                                    {note.text}
+                                  </Typography>
+                                </Box>
+                              ))}
+                              {pricingNotes[request.id || request.pr_id].length > 2 && (
+                                <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                                  และอีก {pricingNotes[request.id || request.pr_id].length - 2} รายการ...
+                                </Typography>
+                              )}
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              ไม่มี notes
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
                       <TableCell align="right">
-                        {request.quantity.toLocaleString()} ชิ้น
+                        {parseInt(request.quantity || request.pr_quantity || 1).toLocaleString()} ชิ้น
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatCurrency(request.price)}
+                          {formatCurrency(request.price || request.latest_price || 0)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -350,6 +463,55 @@ const QuotationFromPricingDialog = ({
                       </Typography>
                     </Grid>
                   </Grid>
+
+                  {/* Selected Items Notes Summary */}
+                  {selectedRequests.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Notes สำหรับรายการที่เลือก
+                      </Typography>
+                      {selectedRequests.map(requestId => {
+                        const request = pricingRequests.find(r => (r.id || r.pr_id) === requestId);
+                        const notes = pricingNotes[requestId] || [];
+                        
+                        if (notes.length === 0) return null;
+                        
+                        return (
+                          <Card key={requestId} variant="outlined" sx={{ mb: 2 }}>
+                            <CardContent sx={{ py: 2 }}>
+                              <Typography variant="subtitle2" color="primary" gutterBottom>
+                                {request?.product_name || request?.pr_work_name} ({request?.id || request?.pr_id})
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {notes.map(note => (
+                                  <Box key={note.id} sx={{ 
+                                    p: 1, 
+                                    bgcolor: note.type === 1 ? 'primary.50' : 'success.50',
+                                    borderRadius: 1,
+                                    border: `1px solid ${note.type === 1 ? 'primary.200' : 'success.200'}`
+                                  }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                      <Chip 
+                                        label={getNoteTypeName(note.type)}
+                                        size="small"
+                                        color={getNoteTypeColor(note.type)}
+                                      />
+                                      <Typography variant="caption" color="text.secondary">
+                                        {formatDateTime(note.created_date)} • {note.created_by}
+                                      </Typography>
+                                    </Box>
+                                    <Typography variant="body2">
+                                      {note.text}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             )}

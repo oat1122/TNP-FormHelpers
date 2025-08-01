@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -13,7 +13,8 @@ import {
   Grid,
   Alert,
   Chip,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -22,6 +23,7 @@ import {
   Image as ImageIcon
 } from '@mui/icons-material';
 import DocumentStatusBadge from '../../components/DocumentStatusBadge';
+import { pricingIntegrationService } from '../../../../features/Accounting';
 
 const PricingRequestDetailsDialog = ({
   open,
@@ -39,8 +41,51 @@ const PricingRequestDetailsDialog = ({
   formatDateTime,
   onViewNotes
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [pricingRequestData, setPricingRequestData] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Fetch pricing request details when dialog opens
+  useEffect(() => {
+    if (!open || !selectedRequest) {
+      setPricingRequestData(null);
+      setError(null);
+      return;
+    }
+
+    const fetchPricingRequestDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const requestId = selectedRequest.id || selectedRequest.pr_id;
+        console.log('Fetching pricing request details for ID:', requestId);
+        
+        const response = await pricingIntegrationService.getPricingRequestDetails(requestId);
+        
+        if (response.data?.status === 'success') {
+          console.log('Pricing request details loaded:', response.data.data);
+          setPricingRequestData(response.data.data.pricing_request);
+        } else {
+          throw new Error(response.data?.message || 'Failed to load pricing request details');
+        }
+      } catch (err) {
+        console.error('Error fetching pricing request details:', err);
+        setError(err.message || 'ไม่สามารถโหลดข้อมูลได้');
+        // Fallback to selectedRequest data
+        setPricingRequestData(selectedRequest);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPricingRequestDetails();
+  }, [open, selectedRequest]);
+
   if (!selectedRequest) return null;
 
+  // Use fetched data if available, otherwise fallback to selectedRequest
+  const displayData = pricingRequestData || selectedRequest;
   const requestId = selectedRequest.id || selectedRequest.pr_id;
   const notes = pricingNotes[requestId] || [];
   const latestNote = getLatestNote(requestId);
@@ -62,8 +107,8 @@ const PricingRequestDetailsDialog = ({
             รายละเอียดการขอราคา
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {selectedRequest.pr_work_name || selectedRequest.product_name} 
-            ({selectedRequest.pr_no || selectedRequest.id || selectedRequest.pr_id})
+            {displayData.work_name || displayData.pr_work_name || displayData.product_name} 
+            ({displayData.no || displayData.pr_no || displayData.id || displayData.pr_id})
           </Typography>
         </Box>
         <IconButton onClick={onClose}>
@@ -72,7 +117,21 @@ const PricingRequestDetailsDialog = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        <Grid container spacing={3}>
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+            <CircularProgress />
+            <Typography variant="body2" sx={{ ml: 2 }}>กำลังโหลดข้อมูล...</Typography>
+          </Box>
+        )}
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            <Typography>{error}</Typography>
+          </Alert>
+        )}
+
+        {!loading && (
+          <Grid container spacing={3}>
           {/* Basic Information */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -83,35 +142,35 @@ const PricingRequestDetailsDialog = ({
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">เลขที่ใบขอราคา (pr_no)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  {selectedRequest.pr_no || selectedRequest.id || selectedRequest.pr_id || '-'}
+                  {displayData.no || displayData.pr_no || displayData.id || displayData.pr_id || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">ชื่องาน (pr_work_name)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {selectedRequest.pr_work_name || selectedRequest.product_name || '-'}
+                  {displayData.work_name || displayData.pr_work_name || displayData.product_name || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">รูปแบบงาน (pr_pattern)</Typography>
                 <Typography variant="body1">
-                  {selectedRequest.pr_pattern || '-'}
+                  {displayData.pattern || displayData.pr_pattern || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">จำนวน (pr_quantity)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {getQuantity(selectedRequest).toLocaleString()} ชิ้น
+                  {(displayData.quantity || displayData.pr_quantity || getQuantity(selectedRequest) || 0).toLocaleString()} ชิ้น
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">กำหนดส่ง (pr_due_date)</Typography>
                 <Typography variant="body1" color={
-                  selectedRequest.pr_due_date && new Date(selectedRequest.pr_due_date) < new Date() 
+                  (displayData.due_date || displayData.pr_due_date) && new Date(displayData.due_date || displayData.pr_due_date) < new Date() 
                     ? 'error.main' 
                     : 'text.primary'
                 } sx={{ fontWeight: 600 }}>
-                  {formatDueDate(selectedRequest.pr_due_date)}
+                  {formatDueDate(displayData.due_date || displayData.pr_due_date)}
                 </Typography>
               </Grid>
             </Grid>
@@ -128,19 +187,19 @@ const PricingRequestDetailsDialog = ({
               <Grid item xs={12} sm={4}>
                 <Typography variant="body2" color="text.secondary">ชนิดผ้า (pr_fabric_type)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_fabric_type || '-'}
+                  {displayData.fabric_type || displayData.pr_fabric_type || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="body2" color="text.secondary">สี (pr_color)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_color || '-'}
+                  {displayData.color || displayData.pr_color || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="body2" color="text.secondary">ไซส์ (pr_sizes)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_sizes || '-'}
+                  {displayData.sizes || displayData.pr_sizes || '-'}
                 </Typography>
               </Grid>
             </Grid>
@@ -157,31 +216,31 @@ const PricingRequestDetailsDialog = ({
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="body2" color="text.secondary">งานสกรีน (pr_silk)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_silk || '-'}
+                  {displayData.silk_work || displayData.pr_silk || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="body2" color="text.secondary">งาน DTF (pr_dft)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_dft || '-'}
+                  {displayData.dft_work || displayData.pr_dft || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="body2" color="text.secondary">งานปัก (pr_embroider)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_embroider || '-'}
+                  {displayData.embroider_work || displayData.pr_embroider || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="body2" color="text.secondary">งานซับ (pr_sub)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_sub || '-'}
+                  {displayData.sub_work || displayData.pr_sub || '-'}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body2" color="text.secondary">งานอื่นๆ (pr_other_screen)</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedRequest.pr_other_screen || '-'}
+                  {displayData.other_screen || displayData.pr_other_screen || '-'}
                 </Typography>
               </Grid>
             </Grid>
@@ -190,7 +249,7 @@ const PricingRequestDetailsDialog = ({
           <Divider sx={{ width: '100%', my: 2 }} />
 
           {/* Image Section */}
-          {selectedRequest.pr_image && (
+          {(displayData.image_url || displayData.pr_image) && (
             <>
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -201,7 +260,7 @@ const PricingRequestDetailsDialog = ({
                   <CardContent>
                     <Box sx={{ textAlign: 'center' }}>
                       <img
-                        src={selectedRequest.pr_image}
+                        src={displayData.image_url || displayData.pr_image}
                         alt="Pricing Request Image"
                         style={{
                           maxWidth: '100%',
@@ -238,19 +297,23 @@ const PricingRequestDetailsDialog = ({
               <Grid item xs={12} sm={3}>
                 <Typography variant="body2" color="text.secondary">ราคาต่อชิ้น</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  {formatCurrency(getEffectiveUnitPrice(selectedRequest))}
+                  {displayData.latest_price && displayData.quantity ? 
+                    formatCurrency(displayData.latest_price / displayData.quantity) : 
+                    formatCurrency(getEffectiveUnitPrice(selectedRequest))}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="body2" color="text.secondary">ราคารวม</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: 'success.main' }}>
-                  {formatCurrency(getEffectiveTotalPrice(selectedRequest))}
+                  {displayData.latest_price ? 
+                    formatCurrency(displayData.latest_price) : 
+                    formatCurrency(getEffectiveTotalPrice(selectedRequest))}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="body2" color="text.secondary">จำนวนรวม</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {getQuantity(selectedRequest).toLocaleString()} ชิ้น
+                  {(displayData.quantity || displayData.pr_quantity || getQuantity(selectedRequest) || 0).toLocaleString()} ชิ้น
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
@@ -278,22 +341,22 @@ const PricingRequestDetailsDialog = ({
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="caption" color="text.secondary">เลขที่:</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, ml: 1 }}>
-                        {selectedRequest.pr_no || '-'}
+                        {displayData.no || displayData.pr_no || '-'}
                       </Typography>
                     </Box>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="caption" color="text.secondary">งาน:</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, ml: 1 }}>
-                        {selectedRequest.pr_work_name || '-'}
+                        {displayData.work_name || displayData.pr_work_name || '-'}
                       </Typography>
                     </Box>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="caption" color="text.secondary">วัสดุ:</Typography>
                       <Typography variant="body2" sx={{ ml: 1 }}>
                         {[
-                          selectedRequest.pr_fabric_type && `ผ้า: ${selectedRequest.pr_fabric_type}`,
-                          selectedRequest.pr_color && `สี: ${selectedRequest.pr_color}`,
-                          selectedRequest.pr_sizes && `ไซส์: ${selectedRequest.pr_sizes}`
+                          (displayData.fabric_type || displayData.pr_fabric_type) && `ผ้า: ${displayData.fabric_type || displayData.pr_fabric_type}`,
+                          (displayData.color || displayData.pr_color) && `สี: ${displayData.color || displayData.pr_color}`,
+                          (displayData.sizes || displayData.pr_sizes) && `ไซส์: ${displayData.sizes || displayData.pr_sizes}`
                         ].filter(Boolean).join(', ') || '-'}
                       </Typography>
                     </Box>
@@ -302,13 +365,15 @@ const PricingRequestDetailsDialog = ({
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="caption" color="text.secondary">จำนวน:</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, ml: 1, color: 'primary.main' }}>
-                        {getQuantity(selectedRequest).toLocaleString()} ชิ้น
+                        {(displayData.quantity || displayData.pr_quantity || getQuantity(selectedRequest) || 0).toLocaleString()} ชิ้น
                       </Typography>
                     </Box>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="caption" color="text.secondary">ราคา:</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, ml: 1, color: 'success.main' }}>
-                        {formatCurrency(getEffectiveTotalPrice(selectedRequest))}
+                        {displayData.latest_price ? 
+                          formatCurrency(displayData.latest_price) : 
+                          formatCurrency(getEffectiveTotalPrice(selectedRequest))}
                       </Typography>
                     </Box>
                     <Box sx={{ mb: 2 }}>
@@ -316,28 +381,28 @@ const PricingRequestDetailsDialog = ({
                       <Typography variant="body2" sx={{ 
                         fontWeight: 600, 
                         ml: 1,
-                        color: selectedRequest.pr_due_date && new Date(selectedRequest.pr_due_date) < new Date() 
+                        color: (displayData.due_date || displayData.pr_due_date) && new Date(displayData.due_date || displayData.pr_due_date) < new Date() 
                           ? 'error.main' 
                           : 'text.primary'
                       }}>
-                        {formatDueDate(selectedRequest.pr_due_date)}
+                        {formatDueDate(displayData.due_date || displayData.pr_due_date)}
                       </Typography>
                     </Box>
                   </Grid>
                 </Grid>
                 
                 {/* Special Work Summary */}
-                {(selectedRequest.pr_silk || selectedRequest.pr_dft || selectedRequest.pr_embroider || 
-                  selectedRequest.pr_sub || selectedRequest.pr_other_screen) && (
+                {((displayData.silk_work || displayData.pr_silk) || (displayData.dft_work || displayData.pr_dft) || (displayData.embroider_work || displayData.pr_embroider) || 
+                  (displayData.sub_work || displayData.pr_sub) || (displayData.other_screen || displayData.pr_other_screen)) && (
                   <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                     <Typography variant="caption" color="text.secondary">งานพิเศษ:</Typography>
                     <Typography variant="body2" sx={{ mt: 0.5 }}>
                       {[
-                        selectedRequest.pr_silk && `สกรีน: ${selectedRequest.pr_silk}`,
-                        selectedRequest.pr_dft && `DTF: ${selectedRequest.pr_dft}`,
-                        selectedRequest.pr_embroider && `ปัก: ${selectedRequest.pr_embroider}`,
-                        selectedRequest.pr_sub && `ซับ: ${selectedRequest.pr_sub}`,
-                        selectedRequest.pr_other_screen && `อื่นๆ: ${selectedRequest.pr_other_screen}`
+                        (displayData.silk_work || displayData.pr_silk) && `สกรีน: ${displayData.silk_work || displayData.pr_silk}`,
+                        (displayData.dft_work || displayData.pr_dft) && `DTF: ${displayData.dft_work || displayData.pr_dft}`,
+                        (displayData.embroider_work || displayData.pr_embroider) && `ปัก: ${displayData.embroider_work || displayData.pr_embroider}`,
+                        (displayData.sub_work || displayData.pr_sub) && `ซับ: ${displayData.sub_work || displayData.pr_sub}`,
+                        (displayData.other_screen || displayData.pr_other_screen) && `อื่นๆ: ${displayData.other_screen || displayData.pr_other_screen}`
                       ].filter(Boolean).join(', ') || 'ไม่มี'}
                     </Typography>
                   </Box>
@@ -399,19 +464,20 @@ const PricingRequestDetailsDialog = ({
                 <Grid container spacing={1}>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="caption" color="text.secondary">
-                      Request ID: {selectedRequest.id || selectedRequest.pr_id}
+                      Request ID: {displayData.id || displayData.pr_id || selectedRequest.id || selectedRequest.pr_id}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="caption" color="text.secondary">
-                      Pattern: {selectedRequest.pr_pattern || 'ไม่ระบุ'}
+                      Pattern: {displayData.pattern || displayData.pr_pattern || 'ไม่ระบุ'}
                     </Typography>
                   </Grid>
                 </Grid>
               </CardContent>
             </Card>
           </Grid>
-        </Grid>
+          </Grid>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>

@@ -246,21 +246,12 @@ class CustomerController extends Controller
     }
 
     /**
-     * Get customer summary (total quotations, invoices, etc.)
+     * Get customer summary (total quotations, invoices, pricing requests, etc.)
      */
     public function getSummary(string $id): JsonResponse
     {
         try {
-            $customer = Customer::with([
-                'quotations' => function ($query) {
-                    $query->selectRaw('customer_id, count(*) as total_quotations, sum(total_amount) as total_quotation_amount')
-                          ->groupBy('customer_id');
-                },
-                'invoices' => function ($query) {
-                    $query->selectRaw('customer_id, count(*) as total_invoices, sum(total_amount) as total_invoice_amount, sum(remaining_amount) as outstanding_amount')
-                          ->groupBy('customer_id');
-                }
-            ])->find($id);
+            $customer = Customer::find($id);
 
             if (!$customer) {
                 return response()->json([
@@ -269,10 +260,47 @@ class CustomerController extends Controller
                 ], 404);
             }
 
+            // Get quotations count and total amount
+            $quotations = $customer->quotations()->selectRaw('count(*) as total_count, sum(total_amount) as total_amount')->first();
+            
+            // Get invoices count and total amount
+            $invoices = $customer->invoices()->selectRaw('count(*) as total_count, sum(total_amount) as total_amount, sum(remaining_amount) as outstanding_amount')->first();
+            
+            // Get pricing requests count (with user visibility filter)
+            $user = auth()->user();
+            $pricingRequestsQuery = \App\Models\PricingRequest::where('pr_cus_id', $id)
+                ->where('pr_is_deleted', false)
+                ->where('pr_status_id', '20db8be1-092b-11f0-b223-38ca84abdf0a'); // ได้ราคาแล้ว
+                
+            // Apply user visibility filter  
+            if ($user && !in_array($user->role ?? '', ['admin'])) {
+                $pricingRequestsQuery->where('pr_created_by', $user->user_uuid);
+            }
+            
+            $pricingRequestsCount = $pricingRequestsQuery->count();
+
+            $summary = [
+                'customer' => $customer,
+                'statistics' => [
+                    'quotations' => [
+                        'count' => $quotations->total_count ?? 0,
+                        'total_amount' => $quotations->total_amount ?? 0
+                    ],
+                    'invoices' => [
+                        'count' => $invoices->total_count ?? 0,
+                        'total_amount' => $invoices->total_amount ?? 0,
+                        'outstanding_amount' => $invoices->outstanding_amount ?? 0
+                    ],
+                    'pricing_requests' => [
+                        'count' => $pricingRequestsCount
+                    ]
+                ]
+            ];
+
             return response()->json([
                 'success' => true,
                 'message' => 'Customer summary retrieved successfully',
-                'data' => $customer
+                'data' => $summary
             ]);
         } catch (\Exception $e) {
             return response()->json([

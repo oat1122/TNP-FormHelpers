@@ -11,17 +11,70 @@ const theme = createTheme({
     colorSchemeSelector: "class",
   },
   palette: {
+    primary: {
+      main: "#1976d2", // Material Blue
+      dark: "#115293",
+      light: "#42a5f5",
+    },
+    secondary: {
+      main: "#dc004e", // TNP Brand Red
+      dark: "#9a0036",
+      light: "#e63946",
+    },
+    success: {
+      main: "#2e7d32", // Green
+      dark: "#1b5e20",
+      light: "#4caf50",
+    },
+    warning: {
+      main: "#ed6c02", // Orange
+      dark: "#e65100",
+      light: "#ff9800",
+    },
     error: {
-      main: "#B20000",
+      main: "#d32f2f", // Red
       dark: "#900F0F",
       light: "#E36264",
     },
+    info: {
+      main: "#0288d1", // Light Blue
+      dark: "#01579b",
+      light: "#03a9f4",
+    },
     grey: {
+      50: "#fafafa",
+      100: "#f5f5f5",
+      200: "#eeeeee",
+      300: "#e0e0e0",
+      400: "#bdbdbd",
+      500: "#9e9e9e",
+      600: "#757575",
+      700: "#616161",
+      800: "#424242",
+      900: "#212121",
       main: "#EBEBEB",
       dark: "#212429",
       light: "#d9d9d9",
       title: "rgba(102, 102, 102, 0.8)",
       outlinedInput: "rgba(235, 235, 235, 0.4)",
+    },
+    background: {
+      default: "#fafafa",
+      paper: "#ffffff",
+    },
+    text: {
+      primary: "rgba(0, 0, 0, 0.87)",
+      secondary: "rgba(0, 0, 0, 0.6)",
+    },
+    // Status colors for documents
+    status: {
+      draft: "#2196f3", // Blue
+      pending: "#ff9800", // Orange
+      approved: "#4caf50", // Green
+      rejected: "#f44336", // Red
+      completed: "#4caf50", // Green
+      overdue: "#d32f2f", // Dark Red
+      cancelled: "#9e9e9e", // Grey
     },
   },
   shape: {
@@ -29,16 +82,61 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: "'Kanit', sans-serif",
+    h1: {
+      fontFamily: "'KanitSemiBold', sans-serif",
+      fontSize: 32,
+      fontWeight: 'bold',
+    },
+    h2: {
+      fontFamily: "'KanitSemiBold', sans-serif",
+      fontSize: 24,
+      fontWeight: 600,
+    },
+    h3: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 20,
+      fontWeight: 500,
+    },
+    h4: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 18,
+      fontWeight: 500,
+    },
     h5: {
       fontFamily: "'KanitLight', sans-serif",
-      fontSize: 20,
+      fontSize: 16,
     },
-    
+    h6: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 14,
+      fontWeight: 500,
+    },
     body1: {
-      fontFamily: "'KanitLight', sans-serif",
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 16,
+    },
+    body2: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 14,
     },
     subtitle1: {
+      fontFamily: "'Kanit', sans-serif",
       fontSize: 16,
+      fontWeight: 500,
+    },
+    subtitle2: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 14,
+      fontWeight: 500,
+    },
+    caption: {
+      fontFamily: "'Kanit', sans-serif",
+      fontSize: 12,
+    },
+    button: {
+      fontFamily: "'Kanit', sans-serif",
+      textTransform: 'none',
+      fontWeight: 500,
     },
   },
   components: {
@@ -145,99 +243,98 @@ const theme = createTheme({
         root: ({ theme }) => ({
           textTransform: "none",
           fontFamily: "'Kanit', sans-serif",
-          "& .MuiButton-icon": {
-            marginRight: 2,
+          fontWeight: 500,
+          borderRadius: 8,
+          padding: "8px 16px",
+          boxShadow: "none",
+          "&:hover": {
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           },
-          variants: [
-            {
-              props: { variant: "contained", color: "grey" },
-              style: {
-                backgroundColor: theme.vars.palette.grey[200],
-                color: theme.vars.palette.grey[700],
-                border: `1px solid ${theme.vars.palette.grey[400]}`,
-                boxShadow: "none",
-                borderRadius: 6,
-                padding: 4,
-                "&:hover": {
-                  boxShadow: "none",
-                  backgroundColor: theme.vars.palette.grey[300],
-                },
-                "&.Mui-disabled": {
-                  backgroundColor: theme.vars.palette.grey[50],
-                  color: theme.vars.palette.grey[400],
-                  border: `1px solid ${theme.vars.palette.grey[300]}`,
-                },
-              },
-            },
-            {
-              props: { variant: "contained", color: "error" },
-              style: {
-                backgroundColor: theme.vars.palette.error.main,
-                border: `1px solid ${(theme.vars || theme).palette.error.main}`,
-                boxShadow: "none",
-                borderRadius: 6,
-                padding: 4,
-                "&:hover": {
-                  boxShadow: "none",
-                  backgroundColor: red[800],
-                },
-
-                "&.Mui-disabled": {
-                  border: `1px solid ${theme.vars.palette.grey[300]}`,
-                },
-              },
-            },
-            {
-              props: { variant: "contained", color: "error-light" },
-              style: {
-                backgroundColor: theme.vars.palette.error.light,
-                border: `1px solid ${
-                  (theme.vars || theme).palette.error.light
-                }`,
-                color: "#fff",
-                boxShadow: "none",
-                borderRadius: theme.vars.shape.borderRadius,
-                width: 140,
-                height: 40,
-                "&:hover": {
-                  boxShadow: "none",
-                  backgroundColor: red[500],
-                },
-              },
-            },
-            {
-              props: { variant: "outlined", color: "error" },
-              style: {
-                boxShadow: "none",
-                borderRadius: 6,
-                padding: 4,
-              },
-            },
-            {
-              props: { variant: "icon-contained", color: "grey" },
-              style: {
-                backgroundColor: theme.vars.palette.grey[200],
-                color: theme.vars.palette.grey[700],
-                border: `1px solid ${theme.vars.palette.grey[200]}`,
-                boxShadow: "none",
-                borderRadius: theme.vars.shape.borderRadius,
-                minWidth: 40,
-                "&:hover": {
-                  boxShadow: "none",
-                  backgroundColor: theme.vars.palette.grey[300],
-                },
-                "&.Mui-disabled": {
-                  backgroundColor: theme.vars.palette.grey[50],
-                  color: theme.vars.palette.grey[400],
-                  border: `1px solid ${theme.vars.palette.grey[300]}`,
-                },
-                "& svg": {
-                  color: theme.vars.palette.grey.dark,
-                },
-              },
-            },
-          ],
+          "&.MuiButton-sizeSmall": {
+            padding: "4px 8px",
+            fontSize: "0.875rem",
+          },
+          "&.MuiButton-sizeLarge": {
+            padding: "12px 24px",
+            fontSize: "1rem",
+          },
         }),
+      },
+      variants: [
+        {
+          props: { variant: "contained", color: "primary" },
+          style: ({ theme }) => ({
+            background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+            "&:hover": {
+              background: `linear-gradient(45deg, ${theme.palette.primary.dark} 30%, ${theme.palette.primary.main} 90%)`,
+            },
+          }),
+        },
+        {
+          props: { variant: "contained", color: "secondary" },
+          style: ({ theme }) => ({
+            background: `linear-gradient(45deg, ${theme.palette.secondary.main} 30%, ${theme.palette.secondary.light} 90%)`,
+          }),
+        },
+        {
+          props: { variant: "outlined" },
+          style: ({ theme }) => ({
+            borderWidth: 2,
+            "&:hover": {
+              borderWidth: 2,
+              backgroundColor: `${theme.palette.primary.main}08`,
+            },
+          }),
+        },
+      ],
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: 12,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          border: `1px solid ${theme.palette.grey[200]}`,
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            transition: "all 0.2s ease-in-out",
+          },
+        }),
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          fontFamily: "'Kanit', sans-serif",
+          fontWeight: 500,
+          borderRadius: 16,
+        }),
+      },
+      variants: [
+        {
+          props: { variant: "status" },
+          style: ({ theme }) => ({
+            fontWeight: 600,
+            fontSize: "0.75rem",
+            height: 24,
+            "& .MuiChip-label": {
+              padding: "0 8px",
+            },
+          }),
+        },
+      ],
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundImage: "none",
+        }),
+        elevation1: {
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        },
+        elevation4: {
+          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+        },
       },
     },
     MuiRadio: {

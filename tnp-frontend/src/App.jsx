@@ -39,6 +39,8 @@ const QuotationFormPage = lazy(() => import("./pages/Accounting/Quotations/Quota
 const InvoiceListPage = lazy(() => import("./pages/Accounting/Invoices/InvoiceListPage"));
 const ReceiptListPage = lazy(() => import("./pages/Accounting/Receipts/ReceiptListPage"));
 const DeliveryNoteListPage = lazy(() => import("./pages/Accounting/DeliveryNotes/DeliveryNoteListPage"));
+const CustomersPage = lazy(() => import("./pages/Accounting/Customers/index"));
+const CustomerDetailPage = lazy(() => import("./pages/Accounting/Customers/CustomerDetail"));
 
 function App() {
   return (
@@ -88,12 +90,16 @@ function App() {
               <Route index element={<AccountingDashboard />} />
               <Route path="quotations" element={<QuotationListPage />} />
               <Route path="quotations/new" element={<QuotationCreatePage />} />
+              <Route path="quotations/create" element={<QuotationCreatePage />} />
               <Route path="quotations/:id" element={<QuotationFormPage />} />
               <Route path="quotations/:id/edit" element={<QuotationFormPage />} />
               <Route path="invoices" element={<InvoiceListPage />} />
               <Route path="receipts" element={<ReceiptListPage />} />
               <Route path="delivery-notes" element={<DeliveryNoteListPage />} />
-              <Route path="customers" element={<div>Customer List Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="customers/:id" element={<CustomerDetailPage />} />
+              <Route path="customers/create" element={<div>Customer Create Page (ยังไม่ได้สร้าง)</div>} />
+              <Route path="customers/:id/edit" element={<div>Customer Edit Page (ยังไม่ได้สร้าง)</div>} />
               <Route path="products" element={<div>Product List Page (ยังไม่ได้สร้าง)</div>} />
               <Route path="reports" element={<div>Reports Page (ยังไม่ได้สร้าง)</div>} />
             </Route>

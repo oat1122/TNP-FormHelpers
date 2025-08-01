@@ -24,6 +24,15 @@ class PricingIntegrationService
             ->whereDoesntHave('quotations') // ยังไม่ได้สร้างใบเสนอราคา
             ->orderBy('pr_updated_date', 'desc');
 
+        // Apply user visibility filter (only see own records unless admin)
+        if (!empty($filters['user_id']) && !empty($filters['user_role'])) {
+            if (!in_array($filters['user_role'], ['admin'])) {
+                // Non-admin users can only see their own pricing requests
+                $query->where('pr_created_by', $filters['user_id']);
+            }
+            // Admin can see all records - no additional filter needed
+        }
+
         // Apply filters
         if (!empty($filters['customer_id'])) {
             $query->where('pr_cus_id', $filters['customer_id']);

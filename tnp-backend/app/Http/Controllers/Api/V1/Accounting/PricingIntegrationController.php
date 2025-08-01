@@ -30,12 +30,16 @@ class PricingIntegrationController extends Controller
     public function getCompletedPricingRequests(Request $request): JsonResponse
     {
         try {
+            $user = Auth::user();
+            
             $filters = [
                 'customer_id' => $request->get('customer_id'),
                 'search' => $request->get('search'),
                 'date_from' => $request->get('date_from'),
                 'date_to' => $request->get('date_to'),
-                'per_page' => $request->get('per_page', 15)
+                'per_page' => $request->get('per_page', 15),
+                'user_id' => $user->user_uuid ?? null,
+                'user_role' => $user->role ?? null
             ];
 
             $pricingRequests = $this->pricingIntegrationService->getCompletedPricingRequests($filters);

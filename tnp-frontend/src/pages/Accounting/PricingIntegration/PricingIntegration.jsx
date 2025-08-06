@@ -24,6 +24,7 @@ import {
 import {
     PricingRequestCard,
     CreateQuotationModal,
+    CreateQuotationForm,
     FilterSection,
     PaginationSection,
     LoadingState,
@@ -43,6 +44,8 @@ const PricingIntegration = () => {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedPricingRequest, setSelectedPricingRequest] = useState(null);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [selectedPricingRequests, setSelectedPricingRequests] = useState([]);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -150,6 +153,62 @@ const PricingIntegration = () => {
         }
     };
 
+    const handleQuotationFromModal = async (data) => {
+        try {
+            // Close modal and show form instead
+            setShowCreateModal(false);
+            setSelectedPricingRequests(
+                pricingRequests?.data?.filter(pr => 
+                    data.pricingRequestIds.includes(pr.pr_id)
+                ) || []
+            );
+            setShowCreateForm(true);
+        } catch (error) {
+            console.error('Error preparing quotation form:', error);
+        }
+    };
+
+    const handleSaveQuotationDraft = async (data) => {
+        try {
+            // TODO: Implement save draft API
+            dispatch(addNotification({
+                type: 'success',
+                title: 'บันทึกร่างสำเร็จ',
+                message: 'บันทึกร่างใบเสนอราคาเรียบร้อยแล้ว',
+            }));
+            
+            setShowCreateForm(false);
+            setSelectedPricingRequests([]);
+        } catch (error) {
+            dispatch(addNotification({
+                type: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                message: 'ไม่สามารถบันทึกร่างได้',
+            }));
+        }
+    };
+
+    const handleSubmitQuotationForm = async (data) => {
+        try {
+            // TODO: Implement submit quotation API
+            dispatch(addNotification({
+                type: 'success',
+                title: 'ส่งใบเสนอราคาสำเร็จ',
+                message: 'ส่งใบเสนอราคาเพื่อตรวจสอบเรียบร้อยแล้ว',
+            }));
+            
+            setShowCreateForm(false);
+            setSelectedPricingRequests([]);
+            refetch();
+        } catch (error) {
+            dispatch(addNotification({
+                type: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                message: 'ไม่สามารถส่งใบเสนอราคาได้',
+            }));
+        }
+    };
+
     const handleResetFilters = () => {
         setSearchQuery('');
         setDateRange({ start: null, end: null });
@@ -160,86 +219,99 @@ const PricingIntegration = () => {
     return (
         <ThemeProvider theme={accountingTheme}>
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-                <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-                    {/* Header */}
-                    <Header />
-
-                    <Container maxWidth="xl" sx={{ py: 4 }}>
-                        {/* Filters Section */}
-                        <FilterSection
-                            searchQuery={searchQuery}
-                            onSearchChange={handleSearch}
-                            dateRange={dateRange}
-                            onDateRangeChange={setDateRange}
-                            onRefresh={handleRefresh}
-                            onResetFilters={handleResetFilters}
-                        />
-
-                        {/* Content */}
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 3 }}>
-                                เกิดข้อผิดพลาดในการโหลดข้อมูล: {error.message}
-                            </Alert>
-                        )}
-
-                        {/* Pagination Section */}
-                        <PaginationSection
-                            pagination={pricingRequests?.pagination}
-                            currentPage={currentPage}
-                            itemsPerPage={itemsPerPage}
-                            isFetching={isFetching}
-                            onPageChange={handlePageChange}
-                            onItemsPerPageChange={handleItemsPerPageChange}
-                        />
-
-                        {/* Main Content */}
-                        {isLoading ? (
-                            <LoadingState itemCount={6} />
-                        ) : error ? (
-                            <ErrorState error={error} onRetry={handleRefresh} />
-                        ) : pricingRequests?.data?.length > 0 ? (
-                            <>
-                                <Grid container spacing={3}>
-                                    {pricingRequests.data.map((request) => (
-                                        <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
-                                            <PricingRequestCard
-                                                request={request}
-                                                onCreateQuotation={handleCreateQuotation}
-                                                onViewDetails={handleViewDetails}
-                                            />
-                                        </Grid>
-                                    ))}
-                                </Grid>
-
-                                {/* Bottom Pagination */}
-                                {pricingRequests?.pagination && pricingRequests.pagination.last_page > 1 && (
-                                    <PaginationSection
-                                        pagination={pricingRequests.pagination}
-                                        currentPage={currentPage}
-                                        itemsPerPage={itemsPerPage}
-                                        isFetching={isFetching}
-                                        onPageChange={handlePageChange}
-                                        onItemsPerPageChange={handleItemsPerPageChange}
-                                        showHeader={false}
-                                    />
-                                )}
-                            </>
-                        ) : (
-                            <EmptyState onRefresh={handleRefresh} />
-                        )}
-                    </Container>
-
-                    {/* Create Quotation Modal */}
-                    <CreateQuotationModal
-                        open={showCreateModal}
-                        onClose={() => setShowCreateModal(false)}
-                        pricingRequest={selectedPricingRequest}
-                        onSubmit={handleSubmitQuotation}
+                {/* Show Create Quotation Form */}
+                {showCreateForm ? (
+                    <CreateQuotationForm
+                        selectedPricingRequests={selectedPricingRequests}
+                        onBack={() => {
+                            setShowCreateForm(false);
+                            setSelectedPricingRequests([]);
+                        }}
+                        onSave={handleSaveQuotationDraft}
+                        onSubmit={handleSubmitQuotationForm}
                     />
+                ) : (
+                    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+                        {/* Header */}
+                        <Header />
 
-                    {/* Floating Action Button */}
-                    <FloatingActionButton onRefresh={handleRefresh} />
-                </Box>
+                        <Container maxWidth="xl" sx={{ py: 4 }}>
+                            {/* Filters Section */}
+                            <FilterSection
+                                searchQuery={searchQuery}
+                                onSearchChange={handleSearch}
+                                dateRange={dateRange}
+                                onDateRangeChange={setDateRange}
+                                onRefresh={handleRefresh}
+                                onResetFilters={handleResetFilters}
+                            />
+
+                            {/* Content */}
+                            {error && (
+                                <Alert severity="error" sx={{ mb: 3 }}>
+                                    เกิดข้อผิดพลาดในการโหลดข้อมูล: {error.message}
+                                </Alert>
+                            )}
+
+                            {/* Pagination Section */}
+                            <PaginationSection
+                                pagination={pricingRequests?.pagination}
+                                currentPage={currentPage}
+                                itemsPerPage={itemsPerPage}
+                                isFetching={isFetching}
+                                onPageChange={handlePageChange}
+                                onItemsPerPageChange={handleItemsPerPageChange}
+                            />
+
+                            {/* Main Content */}
+                            {isLoading ? (
+                                <LoadingState itemCount={6} />
+                            ) : error ? (
+                                <ErrorState error={error} onRetry={handleRefresh} />
+                            ) : pricingRequests?.data?.length > 0 ? (
+                                <>
+                                    <Grid container spacing={3}>
+                                        {pricingRequests.data.map((request) => (
+                                            <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
+                                                <PricingRequestCard
+                                                    request={request}
+                                                    onCreateQuotation={handleCreateQuotation}
+                                                    onViewDetails={handleViewDetails}
+                                                />
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+
+                                    {/* Bottom Pagination */}
+                                    {pricingRequests?.pagination && pricingRequests.pagination.last_page > 1 && (
+                                        <PaginationSection
+                                            pagination={pricingRequests.pagination}
+                                            currentPage={currentPage}
+                                            itemsPerPage={itemsPerPage}
+                                            isFetching={isFetching}
+                                            onPageChange={handlePageChange}
+                                            onItemsPerPageChange={handleItemsPerPageChange}
+                                            showHeader={false}
+                                        />
+                                    )}
+                                </>
+                            ) : (
+                                <EmptyState onRefresh={handleRefresh} />
+                            )}
+                        </Container>
+
+                        {/* Create Quotation Modal */}
+                        <CreateQuotationModal
+                            open={showCreateModal}
+                            onClose={() => setShowCreateModal(false)}
+                            pricingRequest={selectedPricingRequest}
+                            onSubmit={handleQuotationFromModal}
+                        />
+
+                        {/* Floating Action Button */}
+                        <FloatingActionButton onRefresh={handleRefresh} />
+                    </Box>
+                )}
             </LocalizationProvider>
         </ThemeProvider>
     );

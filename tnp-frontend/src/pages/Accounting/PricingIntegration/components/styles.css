@@ -1,0 +1,190 @@
+/* Print Styles for Quotation Preview */
+@media print {
+  /* Hide everything except the quotation preview */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the quotation preview content */
+  .quotation-preview,
+  .quotation-preview * {
+    visibility: visible;
+  }
+  
+  /* Position the quotation preview */
+  .quotation-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  /* Remove margins and shadows for print */
+  .quotation-preview {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .quotation-preview {
+    page-break-inside: avoid;
+  }
+  
+  /* Adjust typography for print */
+  .quotation-preview h1,
+  .quotation-preview h2,
+  .quotation-preview h3,
+  .quotation-preview h4,
+  .quotation-preview h5,
+  .quotation-preview h6 {
+    color: #900F0F !important;
+  }
+  
+  /* Table styling for print */
+  .quotation-preview table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .quotation-preview table th,
+  .quotation-preview table td {
+    border: 1px solid #B20000 !important;
+    padding: 8px !important;
+  }
+  
+  /* Remove background colors that don't print well */
+  .quotation-preview .MuiPaper-root {
+    background: white !important;
+    box-shadow: none !important;
+  }
+  
+  /* Ensure proper font sizes */
+  .quotation-preview {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+  }
+}
+
+/* General responsive improvements */
+.quotation-preview {
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  line-height: 1.5;
+}
+
+/* Hover effects for interactive elements */
+.quotation-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(144, 15, 15, 0.3);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Form animations */
+.form-step-enter {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.form-step-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s ease-in-out;
+}
+
+.form-step-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.form-step-exit-active {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #B20000;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #900F0F;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Success animation */
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-checkmark {
+  animation: checkmark 0.5s ease-in-out;
+}
+
+/* Card hover effects */
+.pricing-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(144, 15, 15, 0.15);
+}
+
+/* Button ripple effect */
+.button-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.button-ripple:active::before {
+  width: 300px;
+  height: 300px;
+}

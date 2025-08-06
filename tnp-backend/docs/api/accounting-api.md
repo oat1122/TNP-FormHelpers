@@ -284,3 +284,205 @@ Based on user roles:
 - **Account**: Full access to accounting system
 - **Manager**: Can approve and manage all documents
 - **Admin**: Full system access
+
+---
+
+## Step 2: Invoice Flow APIs
+
+### 1. One-Click Conversion from Quotation
+**Endpoint:** `POST /api/v1/invoices/create-from-quotation`
+
+**Purpose:** แปลงใบเสนอราคาเป็นใบแจ้งหนี้แบบ One-Click
+
+**Request Body:**
+```json
+{
+  "quotation_id": "quot-uuid-123",
+  "type": "remaining",
+  "custom_amount": 25000.00,
+  "payment_terms": "30 วัน",
+  "notes": "หมายเหตุเพิ่มเติม"
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "inv-uuid-456",
+    "number": "INV202501-0123",
+    "quotation_id": "quot-uuid-123",
+    "type": "remaining",
+    "customer_company": "บริษัท ABC จำกัด",
+    "work_name": "งานพิมพ์โบรชัวร์ A4 4 สี",
+    "subtotal": 23364.49,
+    "tax_amount": 1635.51,
+    "total_amount": 25000.00,
+    "due_date": "2025-02-20",
+    "status": "draft"
+  },
+  "message": "Invoice created from quotation successfully"
+}
+```
+
+### 2. Record Payment
+**Endpoint:** `POST /api/v1/invoices/{id}/record-payment`
+
+**Purpose:** บันทึกการชำระเงิน
+
+**Request Body:**
+```json
+{
+  "amount": 15000.00,
+  "payment_method": "โอนเงิน",
+  "reference_number": "TXN123456",
+  "payment_date": "2025-01-20",
+  "notes": "ชำระผ่านธนาคาร XYZ"
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "inv-uuid-456",
+    "number": "INV202501-0123",
+    "total_amount": 25000.00,
+    "paid_amount": 15000.00,
+    "remaining_amount": 10000.00,
+    "status": "partial_paid",
+    "payment_history": [
+      {
+        "amount": 15000.00,
+        "payment_method": "โอนเงิน",
+        "reference_number": "TXN123456",
+        "recorded_at": "2025-01-20T10:30:00Z"
+      }
+    ]
+  },
+  "message": "Payment recorded successfully"
+}
+```
+
+### 3. Get Payment History
+**Endpoint:** `GET /api/v1/invoices/{id}/payment-history`
+
+**Purpose:** ดูประวัติการชำระเงิน
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "invoice_id": "inv-uuid-456",
+    "invoice_number": "INV202501-0123",
+    "total_amount": 25000.00,
+    "paid_amount": 15000.00,
+    "remaining_amount": 10000.00,
+    "payment_history": [
+      {
+        "id": "payment-1",
+        "amount": 15000.00,
+        "payment_method": "โอนเงิน",
+        "reference_number": "TXN123456",
+        "recorded_by": "user-123",
+        "recorded_at": "2025-01-20T10:30:00Z",
+        "notes": "ชำระผ่านธนาคาร XYZ"
+      }
+    ]
+  },
+  "message": "Payment history retrieved successfully"
+}
+```
+
+### 4. Send Payment Reminder
+**Endpoint:** `POST /api/v1/invoices/{id}/send-reminder`
+
+**Purpose:** ส่งการแจ้งเตือนการชำระเงิน
+
+**Request Body:**
+```json
+{
+  "reminder_type": "gentle",
+  "notes": "กรุณาชำระภายใน 7 วัน"
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "message": "Payment reminder sent successfully"
+}
+```
+
+### 5. Invoice Status Management
+**Submit for Approval:** `POST /api/v1/invoices/{id}/submit`
+**Approve Invoice:** `POST /api/v1/invoices/{id}/approve`
+**Reject Invoice:** `POST /api/v1/invoices/{id}/reject`
+**Send Back:** `POST /api/v1/invoices/{id}/send-back`
+**Send to Customer:** `POST /api/v1/invoices/{id}/send-to-customer`
+
+### 6. Invoice List with Filters
+**Endpoint:** `GET /api/v1/invoices`
+
+**Query Parameters:**
+- `search` - ค้นหาตามเลขที่, ชื่อบริษัท, หรือชื่องาน
+- `status` - กรองตามสถานะ (draft, pending_review, approved, sent, partial_paid, fully_paid, overdue)
+- `customer_id` - กรองตามลูกค้า
+- `date_from`, `date_to` - กรองตามวันที่สร้าง
+- `due_date_from`, `due_date_to` - กรองตามวันครบกำหนด
+- `overdue=true` - แสดงเฉพาะใบแจ้งหนี้ที่เกินกำหนด
+- `per_page` - จำนวนรายการต่อหน้า (max: 50)
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "data": [
+      {
+        "id": "inv-uuid-456",
+        "number": "INV202501-0123",
+        "customer_company": "บริษัท ABC จำกัด",
+        "work_name": "งานพิมพ์โบรชัวร์ A4 4 สี",
+        "total_amount": 25000.00,
+        "paid_amount": 15000.00,
+        "remaining_amount": 10000.00,
+        "status": "partial_paid",
+        "due_date": "2025-02-20",
+        "created_at": "2025-01-15T00:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 45,
+      "per_page": 20,
+      "current_page": 1,
+      "last_page": 3
+    }
+  },
+  "message": "Invoices retrieved successfully"
+}
+```
+
+---
+
+## Invoice Types
+
+### Type Values:
+- `full_amount` - เรียกเก็บเต็มจำนวน
+- `remaining` - เรียกเก็บส่วนที่เหลือหลังหักมัดจำ
+- `deposit` - เรียกเก็บเงินมัดจำ
+- `partial` - เรียกเก็บบางส่วน (ต้องระบุ custom_amount)
+
+### Status Values:
+- `draft` - ร่าง
+- `pending_review` - รออนุมัติ
+- `approved` - อนุมัติแล้ว
+- `sent` - ส่งให้ลูกค้าแล้ว
+- `partial_paid` - ชำระบางส่วน
+- `fully_paid` - ชำระครบแล้ว
+- `overdue` - เกินกำหนด (auto-detect)
+- `rejected` - ถูกปฏิเสธ

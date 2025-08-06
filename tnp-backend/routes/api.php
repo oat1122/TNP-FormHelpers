@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
 use App\Http\Controllers\Api\V1\Accounting\AutofillController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
+use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -219,5 +220,55 @@ Route::prefix('v1')->group(function() {
         
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
+    });
+
+    // Invoice APIs
+    Route::controller(InvoiceController::class)->group(function () {
+        Route::get('/invoices', 'index');
+        Route::post('/invoices', 'store');
+        Route::get('/invoices/{id}', 'show');
+        Route::put('/invoices/{id}', 'update');
+        Route::delete('/invoices/{id}', 'destroy');
+        
+        // Invoice Actions
+        Route::post('/invoices/{id}/submit', 'submit');
+        Route::post('/invoices/{id}/approve', 'approve');
+        Route::post('/invoices/{id}/reject', 'reject');
+        Route::post('/invoices/{id}/send-back', 'sendBack');
+        
+        // Step 2 Workflow APIs
+        Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
+        Route::post('/invoices/{id}/record-payment', 'recordPayment');
+        Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
+        Route::post('/invoices/{id}/send-reminder', 'sendReminder');
+        Route::get('/invoices/{id}/generate-pdf', 'generatePdf');
+        
+        // One-Click Conversion
+        Route::post('/invoices/create-from-quotation', 'createFromQuotation');
+    });
+
+    //---------- Receipt Controller (Step 3) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\Accounting\ReceiptController::class)->group(function () {
+        // Receipt CRUD
+        Route::get('/receipts', 'index');
+        Route::get('/receipts/{id}', 'show');
+        Route::post('/receipts', 'store');
+        Route::put('/receipts/{id}', 'update');
+        Route::delete('/receipts/{id}', 'destroy');
+        
+        // Receipt Actions
+        Route::post('/receipts/{id}/submit', 'submit');
+        Route::post('/receipts/{id}/approve', 'approve');
+        Route::post('/receipts/{id}/reject', 'reject');
+        
+        // Step 3 Workflow APIs
+        Route::post('/receipts/create-from-payment', 'createFromPayment');
+        Route::post('/receipts/{id}/upload-evidence', 'uploadEvidence');
+        Route::get('/receipts/{id}/generate-pdf', 'generatePdf');
+        
+        // Receipt Utilities
+        Route::get('/receipts/calculate-vat', 'calculateVat');
+        Route::get('/receipts/types', 'getReceiptTypes');
+        Route::get('/receipts/payment-methods', 'getPaymentMethods');
     });
 });

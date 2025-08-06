@@ -69,16 +69,25 @@ class Invoice extends Model
         'sizes',
         'quantity',
         'status',
+        'type',
         'subtotal',
         'tax_amount',
         'total_amount',
         'paid_amount',
         'due_date',
         'payment_method',
+        'payment_terms',
         'notes',
         'created_by',
+        'submitted_by',
         'approved_by',
-        'approved_at'
+        'rejected_by',
+        'sent_by',
+        'submitted_at',
+        'approved_at',
+        'rejected_at',
+        'sent_at',
+        'paid_at'
     ];
 
     protected $casts = [
@@ -87,7 +96,11 @@ class Invoice extends Model
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'due_date' => 'date',
+        'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'sent_at' => 'datetime',
+        'paid_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

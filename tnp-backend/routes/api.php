@@ -208,6 +208,15 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/{id}/reject', 'reject');
         Route::post('/quotations/{id}/convert-to-invoice', 'convertToInvoice');
         
+        // Step 1 Workflow APIs
+        Route::post('/quotations/{id}/send-back', 'sendBack');
+        Route::post('/quotations/{id}/revoke-approval', 'revokeApproval');
+        Route::get('/quotations/{id}/generate-pdf', 'generatePdf');
+        Route::post('/quotations/{id}/send-email', 'sendEmail');
+        Route::post('/quotations/{id}/upload-evidence', 'uploadEvidence');
+        Route::post('/quotations/{id}/mark-completed', 'markCompleted');
+        Route::post('/quotations/{id}/mark-sent', 'markSent');
+        
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
     });

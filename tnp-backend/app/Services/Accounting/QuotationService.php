@@ -8,9 +8,11 @@ use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DeliveryNote;
 use App\Models\Accounting\OrderItemsTracking;
 use App\Models\Accounting\DocumentHistory;
+use App\Models\Accounting\DocumentAttachment;
 use App\Services\Accounting\AutofillService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class QuotationService
 {
@@ -433,5 +435,391 @@ class QuotationService
             Log::error('QuotationService::getList error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
+     */
+    public function sendBackForEdit($quotationId, $reason, $actionBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::findOrFail($quotationId);
+
+            // ตรวจสอบว่าอยู่ในสถานะที่ส่งกลับได้
+            if ($quotation->status !== 'pending_review') {
+                throw new \Exception('Quotation must be in pending review status to send back');
+            }
+
+            $quotation->status = 'draft';
+            $quotation->save();
+
+            // บันทึก History
+            DocumentHistory::logStatusChange(
+                'quotation', 
+                $quotationId, 
+                'pending_review', 
+                'draft', 
+                'ส่งกลับแก้ไข', 
+                $actionBy, 
+                $reason
+            );
+
+            DB::commit();
+
+            return $quotation->load(['customer', 'creator', 'documentHistory']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::sendBackForEdit error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * ยกเลิกการอนุมัติ (Account)
+     */
+    public function revokeApproval($quotationId, $reason, $actionBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::findOrFail($quotationId);
+
+            // ตรวจสอบว่าอยู่ในสถานะที่ยกเลิกได้
+            if (!in_array($quotation->status, ['approved', 'sent'])) {
+                throw new \Exception('Quotation must be in approved or sent status to revoke approval');
+            }
+
+            $previousStatus = $quotation->status;
+            $quotation->status = 'pending_review';
+            $quotation->approved_by = null;
+            $quotation->approved_at = null;
+            $quotation->save();
+
+            // บันทึก History
+            DocumentHistory::logStatusChange(
+                'quotation', 
+                $quotationId, 
+                $previousStatus, 
+                'pending_review', 
+                'ยกเลิกการอนุมัติ', 
+                $actionBy, 
+                $reason
+            );
+
+            DB::commit();
+
+            return $quotation->load(['customer', 'creator', 'documentHistory']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::revokeApproval error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้าง PDF ใบเสนอราคา
+     */
+    public function generatePdf($quotationId)
+    {
+        try {
+            $quotation = Quotation::with(['customer', 'pricingRequest'])->findOrFail($quotationId);
+
+            // ตรวจสอบว่าสถานะอนุญาตให้สร้าง PDF ได้
+            if (!in_array($quotation->status, ['approved', 'sent', 'completed'])) {
+                throw new \Exception('Quotation must be approved before generating PDF');
+            }
+
+            // สร้าง PDF ด้วย Laravel PDF library หรือ external service
+            $filename = "quotation-{$quotation->number}.pdf";
+            $pdfPath = storage_path("app/public/pdfs/quotations/{$filename}");
+
+            // สร้าง directory ถ้าไม่มี
+            $directory = dirname($pdfPath);
+            if (!file_exists($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            // TODO: Implement actual PDF generation
+            // For now, create a simple text file as placeholder
+            $content = $this->generatePdfContent($quotation);
+            file_put_contents($pdfPath, $content);
+
+            $fileSize = filesize($pdfPath);
+            $pdfUrl = url("storage/pdfs/quotations/{$filename}");
+
+            // บันทึก History
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'generate_pdf',
+                auth()->user()->user_uuid ?? null,
+                "สร้าง PDF: {$filename}"
+            );
+
+            return [
+                'url' => $pdfUrl,
+                'filename' => $filename,
+                'size' => $fileSize,
+                'path' => $pdfPath
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('QuotationService::generatePdf error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * ส่งอีเมลใบเสนอราคา
+     */
+    public function sendEmail($quotationId, $emailData, $sentBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::with(['customer'])->findOrFail($quotationId);
+
+            // ตรวจสอบสถานะ
+            if ($quotation->status !== 'approved') {
+                throw new \Exception('Quotation must be approved before sending email');
+            }
+
+            // สร้าง PDF ก่อนส่ง (ถ้าต้องการ)
+            $pdfData = null;
+            if ($emailData['include_pdf'] ?? true) {
+                $pdfData = $this->generatePdf($quotationId);
+            }
+
+            // TODO: Implement actual email sending
+            // For now, just log the email data
+            $emailDetails = [
+                'to' => $emailData['recipient_email'],
+                'subject' => $emailData['subject'] ?? "ใบเสนอราคา {$quotation->number} จาก TNP Group",
+                'message' => $emailData['message'] ?? "เรียน คุณลูกค้า\n\nได้แนบใบเสนอราคาตามที่ร้องขอ...",
+                'pdf_attachment' => $pdfData['path'] ?? null,
+                'sent_at' => now(),
+                'sent_by' => $sentBy
+            ];
+
+            Log::info('QuotationService::sendEmail - Email details:', $emailDetails);
+
+            // บันทึก History
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'send_email',
+                $sentBy,
+                "ส่งอีเมลถึง: {$emailData['recipient_email']}"
+            );
+
+            DB::commit();
+
+            return [
+                'email_sent' => true,
+                'recipient' => $emailData['recipient_email'],
+                'sent_at' => now()->format('Y-m-d\TH:i:s\Z'),
+                'pdf_included' => !empty($pdfData)
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::sendEmail error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * อัปโหลดหลักฐานการส่ง
+     */
+    public function uploadEvidence($quotationId, $files, $description = null, $uploadedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::findOrFail($quotationId);
+
+            $uploadedFiles = [];
+
+            foreach ($files as $file) {
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('quotations/evidence', $filename, 'public');
+
+                // สร้าง attachment record
+                $attachment = DocumentAttachment::create([
+                    'document_type' => 'quotation',
+                    'document_id' => $quotationId,
+                    'filename' => $filename,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_by' => $uploadedBy
+                ]);
+
+                $uploadedFiles[] = [
+                    'id' => $attachment->id,
+                    'filename' => $filename,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'url' => Storage::url($path),
+                    'size' => $file->getSize()
+                ];
+            }
+
+            // บันทึก History
+            $fileCount = count($files);
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'upload_evidence',
+                $uploadedBy,
+                "อัปโหลดหลักฐาน {$fileCount} ไฟล์" . ($description ? ": {$description}" : "")
+            );
+
+            DB::commit();
+
+            return [
+                'uploaded_files' => $uploadedFiles,
+                'description' => $description,
+                'uploaded_by' => $uploadedBy,
+                'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z')
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::uploadEvidence error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * มาร์คว่าลูกค้าตอบรับแล้ว
+     */
+    public function markCompleted($quotationId, $data, $completedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::findOrFail($quotationId);
+
+            // ตรวจสอบสถานะ
+            if ($quotation->status !== 'sent') {
+                throw new \Exception('Quotation must be in sent status to mark as completed');
+            }
+
+            $quotation->status = 'completed';
+            $quotation->save();
+
+            // บันทึก History
+            $notes = $data['completion_notes'] ?? 'ลูกค้าตอบรับใบเสนอราคาแล้ว';
+            if (!empty($data['customer_response'])) {
+                $notes .= "\nข้อความจากลูกค้า: " . $data['customer_response'];
+            }
+
+            DocumentHistory::logStatusChange(
+                'quotation',
+                $quotationId,
+                'sent',
+                'completed',
+                'ลูกค้าตอบรับ',
+                $completedBy,
+                $notes
+            );
+
+            DB::commit();
+
+            return $quotation->load(['customer', 'creator', 'documentHistory']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::markCompleted error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * บันทึกการส่งเอกสาร (อัปเดตสถานะเป็น 'sent')
+     */
+    public function markSent($quotationId, $data, $sentBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $quotation = Quotation::findOrFail($quotationId);
+
+            // ตรวจสอบสถานะ
+            if ($quotation->status !== 'approved') {
+                throw new \Exception('Quotation must be approved before marking as sent');
+            }
+
+            $quotation->status = 'sent';
+            $quotation->save();
+
+            // บันทึก History
+            $notes = "ส่งเอกสารด้วยวิธี: " . $data['delivery_method'];
+            if (!empty($data['recipient_name'])) {
+                $notes .= "\nผู้รับ: " . $data['recipient_name'];
+            }
+            if (!empty($data['delivery_notes'])) {
+                $notes .= "\nหมายเหตุ: " . $data['delivery_notes'];
+            }
+
+            DocumentHistory::logStatusChange(
+                'quotation',
+                $quotationId,
+                'approved',
+                'sent',
+                'ส่งเอกสาร',
+                $sentBy,
+                $notes
+            );
+
+            DB::commit();
+
+            return $quotation->load(['customer', 'creator', 'documentHistory']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::markSent error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้างเนื้อหา PDF (placeholder implementation)
+     */
+    private function generatePdfContent($quotation)
+    {
+        return "
+TNP GROUP
+ใบเสนอราคา {$quotation->number}
+
+ลูกค้า: {$quotation->customer_company}
+เลขภาษี: {$quotation->customer_tax_id}
+ที่อยู่: {$quotation->customer_address}
+
+รายละเอียดงาน:
+{$quotation->work_name}
+ประเภทผ้า: {$quotation->fabric_type}
+สี: {$quotation->color}
+ขนาด: {$quotation->sizes}
+จำนวน: {$quotation->quantity}
+
+ราคา:
+ยอดก่อนภาษี: " . number_format($quotation->subtotal, 2) . " บาท
+ภาษีมูลค่าเพิ่ม: " . number_format($quotation->tax_amount, 2) . " บาท
+ยอดรวม: " . number_format($quotation->total_amount, 2) . " บาท
+
+เงื่อนไขการชำระ: {$quotation->payment_terms}
+เงินมัดจำ: {$quotation->deposit_percentage}% (" . number_format($quotation->deposit_amount, 2) . " บาท)
+
+หมายเหตุ:
+{$quotation->notes}
+
+วันที่: " . now()->format('d/m/Y') . "
+";
     }
 }

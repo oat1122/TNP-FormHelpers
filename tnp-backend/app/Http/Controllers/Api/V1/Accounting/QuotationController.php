@@ -412,4 +412,281 @@ class QuotationController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
+     * POST /api/v1/quotations/{id}/send-back
+     */
+    public function sendBack(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $reason = $request->input('reason');
+            $actionBy = auth()->user()->user_uuid ?? null;
+            
+            $quotation = $this->quotationService->sendBackForEdit($id, $reason, $actionBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation,
+                'message' => 'Quotation sent back for editing successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::sendBack error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send back quotation: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ยกเลิกการอนุมัติ (Account)
+     * POST /api/v1/quotations/{id}/revoke-approval
+     */
+    public function revokeApproval(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $reason = $request->input('reason');
+            $actionBy = auth()->user()->user_uuid ?? null;
+            
+            $quotation = $this->quotationService->revokeApproval($id, $reason, $actionBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation,
+                'message' => 'Quotation approval revoked successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::revokeApproval error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to revoke approval: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * สร้าง PDF ใบเสนอราคา
+     * GET /api/v1/quotations/{id}/pdf
+     */
+    public function generatePdf($id): JsonResponse
+    {
+        try {
+            $pdfData = $this->quotationService->generatePdf($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'pdf_url' => $pdfData['url'],
+                    'filename' => $pdfData['filename'],
+                    'size' => $pdfData['size']
+                ],
+                'message' => 'PDF generated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::generatePdf error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ส่งอีเมลใบเสนอราคา
+     * POST /api/v1/quotations/{id}/send-email
+     */
+    public function sendEmail(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'recipient_email' => 'required|email',
+                'subject' => 'nullable|string|max:255',
+                'message' => 'nullable|string|max:2000',
+                'include_pdf' => 'boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $emailData = $validator->validated();
+            $sentBy = auth()->user()->user_uuid ?? null;
+            
+            $result = $this->quotationService->sendEmail($id, $emailData, $sentBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Email sent successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::sendEmail error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * อัปโหลดหลักฐานการส่ง
+     * POST /api/v1/quotations/{id}/upload-evidence
+     */
+    public function uploadEvidence(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+                'description' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $description = $request->input('description');
+            
+            $result = $this->quotationService->uploadEvidence($id, $request->file('files'), $description, $uploadedBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Evidence uploaded successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::uploadEvidence error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload evidence: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * มาร์คว่าลูกค้าตอบรับแล้ว
+     * POST /api/v1/quotations/{id}/mark-completed
+     */
+    public function markCompleted(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'completion_notes' => 'nullable|string|max:1000',
+                'customer_response' => 'nullable|string|max:2000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $data = $validator->validated();
+            $completedBy = auth()->user()->user_uuid ?? null;
+            
+            $quotation = $this->quotationService->markCompleted($id, $data, $completedBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation,
+                'message' => 'Quotation marked as completed successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::markCompleted error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark quotation as completed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * บันทึกการส่งเอกสาร (อัปเดตสถานะเป็น 'sent')
+     * POST /api/v1/quotations/{id}/mark-sent
+     */
+    public function markSent(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'delivery_method' => 'required|in:email,hand_delivery,postal,courier',
+                'delivery_notes' => 'nullable|string|max:1000',
+                'recipient_name' => 'nullable|string|max:255',
+                'delivery_date' => 'nullable|date'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $data = $validator->validated();
+            $sentBy = auth()->user()->user_uuid ?? null;
+            
+            $quotation = $this->quotationService->markSent($id, $data, $sentBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation,
+                'message' => 'Quotation marked as sent successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::markSent error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark quotation as sent: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

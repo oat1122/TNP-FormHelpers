@@ -72,9 +72,9 @@ return new class extends Migration
             $table->index('created_at');
             $table->index('due_date');
             
-            // Foreign key constraints
-            $table->foreign('pricing_request_id')->references('pr_id')->on('pricing_requests')->onDelete('set null');
-            $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
+            // Foreign key constraints - temporarily disabled due to existing table structure
+            // $table->foreign('pricing_request_id')->references('pr_id')->on('pricing_requests')->onDelete('set null');
+            // $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
         });
     }
 

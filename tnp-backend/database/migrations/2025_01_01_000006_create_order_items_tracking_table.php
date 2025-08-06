@@ -46,9 +46,9 @@ return new class extends Migration
             $table->index('pricing_request_id');
             $table->index('remaining_quantity');
             
-            // Foreign key constraints
-            $table->foreign('quotation_id')->references('id')->on('quotations')->onDelete('cascade');
-            $table->foreign('pricing_request_id')->references('pr_id')->on('pricing_requests')->onDelete('set null');
+            // Foreign key constraints - temporarily disabled due to existing table structure
+            // $table->foreign('quotation_id')->references('id')->on('quotations')->onDelete('cascade');
+            // $table->foreign('pricing_request_id')->references('pr_id')->on('pricing_requests')->onDelete('set null');
         });
     }
 

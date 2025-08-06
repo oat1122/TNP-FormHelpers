@@ -65,9 +65,9 @@ return new class extends Migration
             $table->index('due_date');
             $table->index('created_at');
             
-            // Foreign key constraints
-            $table->foreign('quotation_id')->references('id')->on('quotations')->onDelete('set null');
-            $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
+            // Foreign key constraints - temporarily disabled due to existing table structure
+            // $table->foreign('quotation_id')->references('id')->on('quotations')->onDelete('set null');
+            // $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
         });
     }
 

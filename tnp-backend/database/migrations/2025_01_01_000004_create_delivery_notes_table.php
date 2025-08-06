@@ -66,9 +66,9 @@ return new class extends Migration
             $table->index('delivery_date');
             $table->index('created_at');
             
-            // Foreign key constraints
-            $table->foreign('receipt_id')->references('id')->on('receipts')->onDelete('set null');
-            $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
+            // Foreign key constraints - temporarily disabled due to existing table structure
+            // $table->foreign('receipt_id')->references('id')->on('receipts')->onDelete('set null');
+            // $table->foreign('customer_id')->references('cus_id')->on('master_customers')->onDelete('set null');
         });
     }
 

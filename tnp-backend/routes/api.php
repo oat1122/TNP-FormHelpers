@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\V1\GlobalController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
+use App\Http\Controllers\Api\V1\Accounting\AutofillController;
+use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -171,5 +173,41 @@ Route::prefix('v1')->group(function() {
         Route::put('/business-types/{id}', 'update_business_type');
         Route::delete('/business-types/{id}', 'delete_business_type');
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
+    });
+
+    //---------- Accounting System ----------
+    
+    // Auto-fill APIs
+    Route::controller(AutofillController::class)->group(function () {
+        // Pricing Request Auto-fill
+        Route::get('/quotations/autofill/pricing-request/{id}', 'getPricingRequestAutofill');
+        Route::get('/pricing/completed-requests', 'getCompletedPricingRequests');
+        
+        // Customer Auto-fill
+        Route::get('/customers/search', 'searchCustomers');
+        Route::get('/customers/{id}/details', 'getCustomerDetails');
+        
+        // Cascade Auto-fill
+        Route::get('/invoices/autofill/quotation/{id}', 'getQuotationAutofillForInvoice');
+        Route::get('/receipts/autofill/invoice/{id}', 'getInvoiceAutofillForReceipt');
+        Route::get('/delivery-notes/autofill/receipt/{id}', 'getReceiptAutofillForDeliveryNote');
+    });
+
+    // Quotation APIs
+    Route::controller(QuotationController::class)->group(function () {
+        Route::get('/quotations', 'index');
+        Route::post('/quotations', 'store');
+        Route::get('/quotations/{id}', 'show');
+        Route::put('/quotations/{id}', 'update');
+        Route::delete('/quotations/{id}', 'destroy');
+        
+        // Quotation Actions
+        Route::post('/quotations/{id}/submit', 'submit');
+        Route::post('/quotations/{id}/approve', 'approve');
+        Route::post('/quotations/{id}/reject', 'reject');
+        Route::post('/quotations/{id}/convert-to-invoice', 'convertToInvoice');
+        
+        // Special Creation
+        Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
     });
 });

@@ -310,44 +310,137 @@ class AutofillService
     }
 
     /**
-     * ดึงรายการ Pricing Request ที่เสร็จแล้ว (สำหรับ Auto-fill)
+     * ดึงรายการ Pricing Request ที่เสร็จแล้ว (สำหรับ Step 0: Pricing Integration)
      */
-    public function getCompletedPricingRequests($limit = 20)
+    public function getCompletedPricingRequests($filters = [], $perPage = 20)
     {
         try {
-            // สถานะ 'complete' ใน Pricing Request คืออะไร? ต้องดูจาก master_status
-            // สำหรับตอนนี้ใช้เงื่อนไขว่าต้องไม่ลบ
-            return PricingRequest::with(['pricingCustomer', 'pricingStatus'])
-                ->where('pr_is_deleted', 0)
-                // เพิ่มเงื่อนไขสถานะ complete ตามระบบจริง
-                // ->where('pr_status_id', 'complete_status_id')
-                ->orderBy('pr_created_date', 'DESC')
-                ->limit($limit)
-                ->get()
-                ->map(function ($pr) {
-                    return [
-                        'pr_id' => $pr->pr_id,
-                        'pr_work_name' => $pr->pr_work_name,
-                        'pr_cus_id' => $pr->pr_cus_id,
-                        'pr_pattern' => $pr->pr_pattern,
-                        'pr_fabric_type' => $pr->pr_fabric_type,
-                        'pr_color' => $pr->pr_color,
-                        'pr_sizes' => $pr->pr_sizes,
-                        'pr_quantity' => $pr->pr_quantity,
-                        'pr_due_date' => $pr->pr_due_date,
-                        'pr_status' => $pr->pricingStatus->status_name ?? '',
-                        'pr_completed_at' => $pr->pr_updated_date,
-                        'customer' => [
-                            'cus_id' => $pr->pricingCustomer->cus_id ?? null,
-                            'cus_company' => $pr->pricingCustomer->cus_company ?? '',
-                            'cus_firstname' => $pr->pricingCustomer->cus_firstname ?? '',
-                            'cus_lastname' => $pr->pricingCustomer->cus_lastname ?? ''
-                        ]
-                    ];
+            $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
+                ->where('pr_is_deleted', 0);
+
+            // เพิ่มเงื่อนไขสถานะ Complete
+            // TODO: ต้องตรวจสอบ status_id ที่แสดงถึง "complete" ในระบบจริง
+            // $query->where('pr_status_id', 'COMPLETE_STATUS_ID');
+
+            // Apply filters
+            if (!empty($filters['search'])) {
+                $searchTerm = '%' . $filters['search'] . '%';
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('pr_work_name', 'like', $searchTerm)
+                      ->orWhere('pr_pattern', 'like', $searchTerm)
+                      ->orWhere('pr_fabric_type', 'like', $searchTerm)
+                      ->orWhereHas('pricingCustomer', function ($customerQuery) use ($searchTerm) {
+                          $customerQuery->where('cus_company', 'like', $searchTerm)
+                                      ->orWhere('cus_firstname', 'like', $searchTerm)
+                                      ->orWhere('cus_lastname', 'like', $searchTerm);
+                      });
                 });
+            }
+
+            if (!empty($filters['customer_id'])) {
+                $query->where('pr_cus_id', $filters['customer_id']);
+            }
+
+            if (!empty($filters['work_name'])) {
+                $query->where('pr_work_name', 'like', '%' . $filters['work_name'] . '%');
+            }
+
+            if (!empty($filters['date_from'])) {
+                $query->whereDate('pr_created_date', '>=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $query->whereDate('pr_created_date', '<=', $filters['date_to']);
+            }
+
+            // Order by latest
+            $query->orderBy('pr_updated_date', 'DESC');
+
+            // Paginate
+            $results = $query->paginate($perPage);
+
+            // Transform data ตาม DTO structure
+            $transformedData = $results->getCollection()->map(function ($pr) {
+                return [
+                    'pr_id' => $pr->pr_id,
+                    'pr_work_name' => $pr->pr_work_name,
+                    'pr_cus_id' => $pr->pr_cus_id,
+                    'pr_pattern' => $pr->pr_pattern,
+                    'pr_fabric_type' => $pr->pr_fabric_type,
+                    'pr_color' => $pr->pr_color,
+                    'pr_sizes' => $pr->pr_sizes,
+                    'pr_quantity' => $pr->pr_quantity,
+                    'pr_due_date' => $pr->pr_due_date ? $pr->pr_due_date->format('Y-m-d') : null,
+                    'pr_status' => $pr->pricingStatus->status_name ?? 'Unknown',
+                    'pr_completed_at' => $pr->pr_updated_date ? $pr->pr_updated_date->format('Y-m-d\TH:i:s\Z') : null,
+                    'customer' => [
+                        'cus_id' => $pr->pricingCustomer->cus_id ?? null,
+                        'cus_company' => $pr->pricingCustomer->cus_company ?? '',
+                        'cus_tax_id' => $pr->pricingCustomer->cus_tax_id ?? '',
+                        'cus_address' => $pr->pricingCustomer->cus_address ?? '',
+                        'cus_zip_code' => $pr->pricingCustomer->cus_zip_code ?? '',
+                        'cus_tel_1' => $pr->pricingCustomer->cus_tel_1 ?? '',
+                        'cus_email' => $pr->pricingCustomer->cus_email ?? '',
+                        'cus_firstname' => $pr->pricingCustomer->cus_firstname ?? '',
+                        'cus_lastname' => $pr->pricingCustomer->cus_lastname ?? ''
+                    ]
+                ];
+            });
+
+            return [
+                'data' => $transformedData,
+                'pagination' => [
+                    'total' => $results->total(),
+                    'per_page' => $results->perPage(),
+                    'current_page' => $results->currentPage(),
+                    'last_page' => $results->lastPage(),
+                    'from' => $results->firstItem(),
+                    'to' => $results->lastItem()
+                ]
+            ];
 
         } catch (\Exception $e) {
             Log::error('AutofillService::getCompletedPricingRequests error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
+     */
+    public function markPricingRequestAsUsed($pricingRequestId, $userId = null)
+    {
+        try {
+            $pricingRequest = PricingRequest::where('pr_id', $pricingRequestId)
+                ->where('pr_is_deleted', 0)
+                ->first();
+
+            if (!$pricingRequest) {
+                throw new \Exception('Pricing Request not found');
+            }
+
+            // อัพเดทสถานะว่าถูกใช้แล้ว (สามารถเพิ่มฟิลด์ pr_used_for_quotation หรือใช้ status แทน)
+            // สำหรับตอนนี้เพิ่ม comment ใน pricing request note
+            PricingRequestNote::create([
+                'prn_id' => \Illuminate\Support\Str::uuid(),
+                'prn_pr_id' => $pricingRequestId,
+                'prn_text' => 'ใช้สำหรับสร้างใบเสนอราคาแล้ว',
+                'prn_note_type' => 3, // manager note
+                'prn_is_deleted' => 0,
+                'prn_created_date' => now(),
+                'prn_created_by' => $userId,
+                'prn_updated_date' => now(),
+                'prn_updated_by' => $userId
+            ]);
+
+            return [
+                'pr_id' => $pricingRequestId,
+                'marked_at' => now()->format('Y-m-d\TH:i:s\Z'),
+                'marked_by' => $userId
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('AutofillService::markPricingRequestAsUsed error: ' . $e->getMessage());
             throw $e;
         }
     }

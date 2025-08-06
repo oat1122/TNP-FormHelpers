@@ -104,19 +104,28 @@ class AutofillController extends Controller
     }
 
     /**
-     * ดึงรายการ Pricing Request ที่เสร็จแล้ว
+     * ดึงรายการ Pricing Request ที่เสร็จแล้ว (Step 0: Pricing Integration)
      * GET /api/v1/pricing/completed-requests
      */
     public function getCompletedPricingRequests(Request $request): JsonResponse
     {
         try {
-            $limit = min($request->query('limit', 20), 100); // จำกัดไม่เกิน 100 รายการ
+            // รองรับ filters ตาม specification
+            $filters = [
+                'search' => $request->query('search'),
+                'customer_id' => $request->query('customer_id'),
+                'date_from' => $request->query('date_from'),
+                'date_to' => $request->query('date_to'),
+                'work_name' => $request->query('work_name')
+            ];
+
+            $perPage = min($request->query('per_page', 20), 50); // จำกัดไม่เกิน 50 รายการต่อหน้า
             
-            $pricingRequests = $this->autofillService->getCompletedPricingRequests($limit);
+            $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage);
             
             return response()->json([
                 'success' => true,
-                'data' => $pricingRequests,
+                'data' => $completedRequests,
                 'message' => 'Completed pricing requests retrieved successfully'
             ]);
 
@@ -125,7 +134,7 @@ class AutofillController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve pricing requests: ' . $e->getMessage()
+                'message' => 'Failed to retrieve completed pricing requests: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -201,6 +210,33 @@ class AutofillController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve auto-fill data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
+     * POST /api/v1/pricing/requests/{id}/mark-used
+     */
+    public function markPricingRequestAsUsed(Request $request, $pricingRequestId): JsonResponse
+    {
+        try {
+            $userId = auth()->user()->user_uuid ?? null;
+            
+            $result = $this->autofillService->markPricingRequestAsUsed($pricingRequestId, $userId);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Pricing request marked as used successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AutofillController::markPricingRequestAsUsed error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark pricing request as used: ' . $e->getMessage()
             ], 500);
         }
     }

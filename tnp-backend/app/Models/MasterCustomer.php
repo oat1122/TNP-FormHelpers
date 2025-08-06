@@ -204,4 +204,11 @@ class MasterCustomer extends Model
 		return $this->belongsTo(MasterBusinessType::class, 'cus_bt_id', 'bt_id')
 			->select('bt_id', 'bt_name');
 	}
+
+	public function pricingRequests()
+	{
+		return $this->hasMany(\App\Models\PricingRequest::class, 'pr_cus_id', 'cus_id')
+			->where('pr_is_deleted', 0)
+			->orderBy('pr_created_date', 'desc');
+	}
 }

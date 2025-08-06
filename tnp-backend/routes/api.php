@@ -182,6 +182,7 @@ Route::prefix('v1')->group(function() {
         // Pricing Request Auto-fill
         Route::get('/quotations/autofill/pricing-request/{id}', 'getPricingRequestAutofill');
         Route::get('/pricing/completed-requests', 'getCompletedPricingRequests');
+        Route::post('/pricing/requests/{id}/mark-used', 'markPricingRequestAsUsed');
         
         // Customer Auto-fill
         Route::get('/customers/search', 'searchCustomers');

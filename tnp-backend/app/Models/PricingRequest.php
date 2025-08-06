@@ -86,7 +86,9 @@ class PricingRequest extends Model
 	public function pricingCustomer()
     {
         return $this->belongsTo(MasterCustomer::class, 'pr_cus_id', 'cus_id')
-			->select('cus_id', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_company', 'cus_tel_1', 'cus_email');
+			->select('cus_id', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_company', 
+					'cus_tel_1', 'cus_tel_2', 'cus_email', 'cus_tax_id', 'cus_address', 
+					'cus_zip_code', 'cus_depart');
     }
 
 	public function pricingStatus()

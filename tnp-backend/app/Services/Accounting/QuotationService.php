@@ -100,6 +100,9 @@ class QuotationService
             // บันทึก History
             DocumentHistory::logCreation('quotation', $quotation->id, $createdBy, 'สร้างจาก Pricing Request: ' . $autofillData['pr_work_name']);
 
+            // มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
+            $this->autofillService->markPricingRequestAsUsed($pricingRequestId, $createdBy);
+
             DB::commit();
 
             return $quotation->load(['customer', 'pricingRequest', 'creator']);

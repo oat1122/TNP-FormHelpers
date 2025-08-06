@@ -1,5 +1,19 @@
-/* Print Styles for Quotation Preview */
+/* Print Styles for Quotation Preview - A4 Size Optimized */
 @media print {
+  /* Reset page margins for full A4 usage */
+  @page {
+    size: A4;
+    margin: 10mm 15mm 10mm 15mm; /* Top Right Bottom Left margins */
+  }
+
+  /* Reset body for print */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Hide everything except the quotation preview */
   body * {
     visibility: hidden;
@@ -11,58 +25,135 @@
     visibility: visible;
   }
   
-  /* Position the quotation preview */
+  /* Position and size the quotation preview for A4 */
   .quotation-preview {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-  }
-  
-  /* Remove margins and shadows for print */
-  .quotation-preview {
+    width: 210mm !important; /* A4 width */
+    max-width: 210mm !important;
+    min-height: 270mm !important; /* A4 height minus margins */
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 20px !important;
+    padding: 15mm 10mm !important; /* Internal padding */
+    box-sizing: border-box !important;
+    background: white !important;
+    transform: none !important;
   }
   
   /* Ensure proper page breaks */
   .quotation-preview {
     page-break-inside: avoid;
+    page-break-after: auto;
   }
   
-  /* Adjust typography for print */
+  /* Optimize font sizes for A4 printing */
+  .quotation-preview {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    color: #000 !important;
+  }
+
+  /* Header styling for print */
   .quotation-preview h1,
   .quotation-preview h2,
   .quotation-preview h3,
-  .quotation-preview h4,
+  .quotation-preview h4 {
+    font-size: 14pt !important;
+    color: #900F0F !important;
+    margin-bottom: 8pt !important;
+    page-break-after: avoid;
+  }
+
   .quotation-preview h5,
   .quotation-preview h6 {
+    font-size: 12pt !important;
     color: #900F0F !important;
+    margin-bottom: 6pt !important;
+    page-break-after: avoid;
   }
   
-  /* Table styling for print */
+  /* Table styling optimized for A4 */
   .quotation-preview table {
-    border-collapse: collapse;
-    width: 100%;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    font-size: 10pt !important;
+    margin: 8pt 0 !important;
+    page-break-inside: avoid;
   }
   
   .quotation-preview table th,
   .quotation-preview table td {
     border: 1px solid #B20000 !important;
-    padding: 8px !important;
+    padding: 6pt 8pt !important;
+    text-align: left !important;
+    vertical-align: top !important;
+  }
+
+  .quotation-preview table th {
+    background-color: rgba(144, 15, 15, 0.1) !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
   }
   
-  /* Remove background colors that don't print well */
-  .quotation-preview .MuiPaper-root {
-    background: white !important;
+  /* Remove all background colors except essential ones */
+  .quotation-preview .MuiPaper-root,
+  .quotation-preview .MuiCard-root,
+  .quotation-preview .MuiBox-root {
+    background: transparent !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
   }
-  
-  /* Ensure proper font sizes */
-  .quotation-preview {
-    font-size: 12pt !important;
-    line-height: 1.4 !important;
+
+  /* Company header print styling */
+  .quotation-preview .company-header {
+    background: linear-gradient(135deg, #900F0F 0%, #B20000 100%) !important;
+    color: white !important;
+    padding: 12pt !important;
+    margin-bottom: 12pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Preserve brand colors for essential elements */
+  .quotation-preview .brand-color {
+    color: #900F0F !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Summary box styling */
+  .quotation-preview .summary-box {
+    border: 2px solid #B20000 !important;
+    padding: 8pt !important;
+    margin-top: 12pt !important;
+    background: rgba(144, 15, 15, 0.05) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Adjust spacing for print */
+  .quotation-preview .MuiGrid-item {
+    padding: 4pt !important;
+  }
+
+  .quotation-preview .MuiDivider-root {
+    border-color: #B20000 !important;
+    margin: 8pt 0 !important;
+  }
+
+  /* Hide print buttons and non-essential elements */
+  .quotation-preview .print-hide,
+  .quotation-preview button,
+  .quotation-preview .MuiButton-root {
+    display: none !important;
+  }
+
+  /* Ensure text doesn't break awkwardly */
+  .quotation-preview p,
+  .quotation-preview div {
+    orphans: 3;
+    widows: 3;
   }
 }
 

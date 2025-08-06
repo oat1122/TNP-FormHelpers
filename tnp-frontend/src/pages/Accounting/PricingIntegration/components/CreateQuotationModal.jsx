@@ -17,10 +17,111 @@ import {
     Stack,
     Paper,
     Checkbox,
+    Avatar,
+    Fade,
+    Slide,
+    IconButton,
+    Tooltip,
+    Badge,
+    LinearProgress,
 } from '@mui/material';
 import {
     Assignment as AssignmentIcon,
+    Business as BusinessIcon,
+    Close as CloseIcon,
+    CheckCircleOutline as CheckCircleIcon,
+    RadioButtonUnchecked as UncheckIcon,
+    Info as InfoIcon,
+    Add as AddIcon,
+    Remove as RemoveIcon,
 } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+
+// Styled Components
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuiDialog-paper': {
+        borderRadius: '16px',
+        maxWidth: '1000px',
+        width: '90vw',
+        maxHeight: '90vh',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)',
+        boxShadow: '0 24px 48px rgba(144, 15, 15, 0.15)',
+    },
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
+    color: '#FFFFFF',
+    padding: '24px 32px',
+    position: 'relative',
+    '& .MuiTypography-root': {
+        fontSize: '1.5rem',
+        fontWeight: 600,
+    },
+}));
+
+const SelectionCard = styled(Card)(({ theme, selected }) => ({
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    border: selected ? '2px solid #900F0F' : '1px solid #E5E7EB',
+    backgroundColor: selected ? 'rgba(144, 15, 15, 0.02)' : '#FFFFFF',
+    transform: selected ? 'translateY(-2px)' : 'translateY(0)',
+    boxShadow: selected 
+        ? '0 8px 25px rgba(144, 15, 15, 0.15)' 
+        : '0 2px 8px rgba(0, 0, 0, 0.08)',
+    '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 32px rgba(144, 15, 15, 0.2)',
+        borderColor: selected ? '#900F0F' : '#B20000',
+    },
+}));
+
+const CustomerInfoCard = styled(Paper)(({ theme }) => ({
+    background: 'linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%)',
+    border: '1px solid #E36264',
+    borderRadius: '12px',
+    padding: '20px',
+    marginBottom: '24px',
+    position: 'relative',
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '4px',
+        background: 'linear-gradient(90deg, #900F0F 0%, #B20000 100%)',
+        borderRadius: '12px 12px 0 0',
+    },
+}));
+
+const PrimaryButton = styled(Button)(({ theme }) => ({
+    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
+    color: '#FFFFFF',
+    borderRadius: '12px',
+    padding: '12px 32px',
+    fontSize: '16px',
+    fontWeight: 600,
+    textTransform: 'none',
+    boxShadow: '0 4px 16px rgba(144, 15, 15, 0.3)',
+    minWidth: '200px',
+    '&:hover': {
+        background: 'linear-gradient(135deg, #B20000 0%, #E36264 100%)',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 8px 24px rgba(144, 15, 15, 0.4)',
+    },
+    '&:disabled': {
+        background: '#E5E7EB',
+        color: '#9CA3AF',
+        transform: 'none',
+        boxShadow: 'none',
+    },
+    transition: 'all 0.3s ease-in-out',
+}));
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+    return <Slide direction="up" ref={ref} {...props} />;
+});
 
 const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,39 +221,119 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
         .reduce((sum, item) => sum + (item.pr_quantity || 0), 0);
 
     return (
-        <Dialog
+        <StyledDialog
             open={open}
             onClose={onClose}
-            maxWidth="lg"
+            maxWidth={false}
             fullWidth
-            PaperProps={{
-                sx: { borderRadius: 3, maxHeight: '90vh' },
-            }}
+            TransitionComponent={Transition}
+            TransitionProps={{ timeout: 400 }}
         >
-            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', pb: 2 }}>
+            <StyledDialogTitle>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
-                    <Typography variant="h6">
-                        สร้างใบเสนอราคาสำหรับ {pricingRequest?.customer?.cus_company}
-                    </Typography>
-                    <Chip
-                        label={`เลือก ${selectedPricingItems.length} งาน`}
-                        sx={{ bgcolor: 'primary.light', color: 'white' }}
-                    />
+                    <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', color: '#FFFFFF' }}>
+                            <BusinessIcon />
+                        </Avatar>
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                สร้างใบเสนอราคา
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.9rem' }}>
+                                {pricingRequest?.customer?.cus_company}
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={2}>
+                        <Badge 
+                            badgeContent={selectedPricingItems.length} 
+                            color="secondary"
+                            sx={{
+                                '& .MuiBadge-badge': {
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#900F0F',
+                                    fontWeight: 'bold',
+                                }
+                            }}
+                        >
+                            <Chip
+                                icon={<AssignmentIcon />}
+                                label={`เลือกแล้ว ${selectedPricingItems.length} งาน`}
+                                sx={{ 
+                                    bgcolor: 'rgba(255, 255, 255, 0.15)', 
+                                    color: '#FFFFFF',
+                                    fontWeight: 600,
+                                    '& .MuiChip-icon': { color: '#FFFFFF' }
+                                }}
+                            />
+                        </Badge>
+                        <Tooltip title="ปิด">
+                            <IconButton 
+                                onClick={onClose} 
+                                sx={{ color: '#FFFFFF', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' } }}
+                            >
+                                <CloseIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 </Box>
-            </DialogTitle>
+            </StyledDialogTitle>
 
-            <DialogContent sx={{ p: 0 }}>
+            <DialogContent sx={{ p: 0, position: 'relative' }}>
+                {isLoadingCustomerData && (
+                    <LinearProgress 
+                        sx={{ 
+                            position: 'absolute', 
+                            top: 0, 
+                            left: 0, 
+                            right: 0,
+                            '& .MuiLinearProgress-bar': {
+                                backgroundColor: '#B20000'
+                            }
+                        }} 
+                    />
+                )}
+                
                 {pricingRequest && (
-                    <Box sx={{ p: 3 }}>
-                        <Alert severity="info" sx={{ mb: 3 }}>
-                            เลือกงานที่ต้องการสร้างใบเสนอราคา (สามารถเลือกได้หลายงาน)
-                        </Alert>
+                    <Box sx={{ p: 4 }}>
+                        <Fade in timeout={600}>
+                            <Alert 
+                                severity="info" 
+                                icon={<InfoIcon />}
+                                sx={{ 
+                                    mb: 3,
+                                    borderRadius: '12px',
+                                    backgroundColor: 'rgba(33, 150, 243, 0.05)',
+                                    border: '1px solid rgba(33, 150, 243, 0.2)',
+                                    '& .MuiAlert-icon': {
+                                        color: '#1976d2'
+                                    }
+                                }}
+                            >
+                                <Typography variant="body2">
+                                    เลือกงานที่ต้องการสร้างใบเสนอราคา คุณสามารถเลือกได้หลายงานเพื่อรวมในใบเสนอราคาเดียวกัน
+                                </Typography>
+                            </Alert>
+                        </Fade>
 
                         {/* ข้อมูลลูกค้า */}
-                        <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
-                            <Grid container spacing={2}>
+                        <CustomerInfoCard elevation={0}>
+                            <Box display="flex" alignItems="center" gap={2} mb={2}>
+                                <Avatar sx={{ bgcolor: '#900F0F', width: 40, height: 40 }}>
+                                    <BusinessIcon />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="h6" fontWeight={600} color="#900F0F">
+                                        ข้อมูลลูกค้า
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Customer Information
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Grid container spacing={3}>
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                         บริษัทลูกค้า
                                     </Typography>
                                     <Typography variant="body1" fontWeight={600}>
@@ -160,7 +341,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                         เลขประจำตัวผู้เสียภาษี
                                     </Typography>
                                     <Typography variant="body1">
@@ -168,7 +349,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                                         ที่อยู่
                                     </Typography>
                                     <Typography variant="body2">
@@ -176,103 +357,131 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                     </Typography>
                                 </Grid>
                             </Grid>
-                        </Paper>
+                        </CustomerInfoCard>
 
                         {/* รายการงานของลูกค้า */}
-                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <AssignmentIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            เลือกงานที่ต้องการสร้างใบเสนอราคา
-                            {selectedTotal > 0 && (
-                                <Chip
-                                    label={`รวม ${selectedTotal} ชิ้น`}
-                                    color="secondary"
-                                    size="small"
-                                    sx={{ ml: 2 }}
-                                />
-                            )}
-                        </Typography>
-
-                        {isLoadingCustomerData ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                                <Box sx={{ textAlign: 'center' }}>
-                                    <Skeleton variant="text" width={300} height={40} />
-                                    <Skeleton variant="rectangular" width="100%" height={100} sx={{ mt: 1 }} />
-                                    <Skeleton variant="rectangular" width="100%" height={100} sx={{ mt: 1 }} />
+                        <Box sx={{ mb: 3 }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                                <Box display="flex" alignItems="center" gap={2}>
+                                    <Avatar sx={{ bgcolor: '#B20000', width: 36, height: 36 }}>
+                                        <AssignmentIcon fontSize="small" />
+                                    </Avatar>
+                                    <Box>
+                                        <Typography variant="h6" fontWeight={600} color="#900F0F">
+                                            เลือกงานที่ต้องการสร้างใบเสนอราคา
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Select jobs to create quotation
+                                        </Typography>
+                                    </Box>
                                 </Box>
+                                {selectedTotal > 0 && (
+                                    <Chip
+                                        icon={<CheckCircleIcon />}
+                                        label={`รวม ${selectedTotal} ชิ้น`}
+                                        color="success"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600 }}
+                                    />
+                                )}
                             </Box>
-                        ) : (
-                            <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
-                                {customerPricingRequests.map((item, index) => (
-                                    <Card
-                                        key={item.pr_id}
-                                        sx={{
-                                            mb: 2,
-                                            border: selectedPricingItems.includes(item.pr_id) ? 2 : 1,
-                                            borderColor: selectedPricingItems.includes(item.pr_id) ? 'primary.main' : 'grey.300',
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                bgcolor: 'grey.50'
-                                            }
-                                        }}
-                                        onClick={() => handlePricingItemToggle(item.pr_id)}
-                                    >
-                                        <CardContent sx={{ pb: 2 }}>
-                                            <Box display="flex" alignItems="center" justifyContent="space-between">
-                                                <Box sx={{ flex: 1 }}>
-                                                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                                                        {item.pr_work_name}
-                                                    </Typography>
-                                                    <Grid container spacing={2}>
-                                                        <Grid item xs={6} md={3}>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                ลาย/แบบ
-                                                            </Typography>
-                                                            <Typography variant="body2">
-                                                                {item.pr_pattern || '-'}
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item xs={6} md={3}>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                วัสดุ
-                                                            </Typography>
-                                                            <Typography variant="body2">
-                                                                {item.pr_fabric_type || '-'}
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item xs={6} md={3}>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                จำนวน
-                                                            </Typography>
-                                                            <Typography variant="body2" fontWeight={600}>
-                                                                {item.pr_quantity} ชิ้น
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item xs={6} md={3}>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                กำหนดส่ง
-                                                            </Typography>
-                                                            <Typography variant="body2">
-                                                                {item.pr_due_date ? new Date(item.pr_due_date).toLocaleDateString('th-TH') : '-'}
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Box>
-                                                <Box sx={{ ml: 2 }}>
-                                                    <Checkbox
-                                                        checked={selectedPricingItems.includes(item.pr_id)}
-                                                        color="primary"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handlePricingItemToggle(item.pr_id);
-                                                        }}
-                                                    />
-                                                </Box>
-                                            </Box>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </Box>
-                        )}
+
+                            {isLoadingCustomerData ? (
+                                <Box sx={{ py: 4 }}>
+                                    {[1, 2, 3].map((item) => (
+                                        <Box key={item} sx={{ mb: 2 }}>
+                                            <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
+                                        </Box>
+                                    ))}
+                                </Box>
+                            ) : (
+                                <Box sx={{ maxHeight: 400, overflowY: 'auto', pr: 1 }}>
+                                    {customerPricingRequests.map((item, index) => (
+                                        <Fade in timeout={300 + index * 100} key={item.pr_id}>
+                                            <SelectionCard
+                                                selected={selectedPricingItems.includes(item.pr_id)}
+                                                sx={{ mb: 2 }}
+                                                onClick={() => handlePricingItemToggle(item.pr_id)}
+                                            >
+                                                <CardContent sx={{ p: 3 }}>
+                                                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                                                        <Box sx={{ flex: 1 }}>
+                                                            <Box display="flex" alignItems="center" gap={2} mb={2}>
+                                                                <Avatar 
+                                                                    sx={{ 
+                                                                        bgcolor: selectedPricingItems.includes(item.pr_id) ? '#900F0F' : '#E5E7EB',
+                                                                        color: selectedPricingItems.includes(item.pr_id) ? '#FFFFFF' : '#6B7280',
+                                                                        width: 32,
+                                                                        height: 32,
+                                                                        fontSize: '0.875rem'
+                                                                    }}
+                                                                >
+                                                                    {index + 1}
+                                                                </Avatar>
+                                                                <Typography variant="h6" fontWeight={600} color={selectedPricingItems.includes(item.pr_id) ? '#900F0F' : 'inherit'}>
+                                                                    {item.pr_work_name}
+                                                                </Typography>
+                                                            </Box>
+                                                            <Grid container spacing={2}>
+                                                                <Grid item xs={6} md={3}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                                                        ลาย/แบบ
+                                                                    </Typography>
+                                                                    <Typography variant="body2" fontWeight={500}>
+                                                                        {item.pr_pattern || '-'}
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item xs={6} md={3}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                                                        วัสดุ
+                                                                    </Typography>
+                                                                    <Typography variant="body2" fontWeight={500}>
+                                                                        {item.pr_fabric_type || '-'}
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item xs={6} md={3}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                                                        จำนวน
+                                                                    </Typography>
+                                                                    <Typography variant="body2" fontWeight={600} color="#900F0F">
+                                                                        {item.pr_quantity} ชิ้น
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item xs={6} md={3}>
+                                                                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                                                        กำหนดส่ง
+                                                                    </Typography>
+                                                                    <Typography variant="body2" fontWeight={500}>
+                                                                        {item.pr_due_date ? new Date(item.pr_due_date).toLocaleDateString('th-TH') : '-'}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Box>
+                                                        <Box sx={{ ml: 3 }}>
+                                                            <Tooltip title={selectedPricingItems.includes(item.pr_id) ? 'คลิกเพื่อยกเลิกการเลือก' : 'คลิกเพื่อเลือก'}>
+                                                                <IconButton 
+                                                                    sx={{ 
+                                                                        color: selectedPricingItems.includes(item.pr_id) ? '#900F0F' : '#9CA3AF',
+                                                                        transform: selectedPricingItems.includes(item.pr_id) ? 'scale(1.1)' : 'scale(1)',
+                                                                        transition: 'all 0.2s ease-in-out'
+                                                                    }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePricingItemToggle(item.pr_id);
+                                                                    }}
+                                                                >
+                                                                    {selectedPricingItems.includes(item.pr_id) ? <CheckCircleIcon /> : <UncheckIcon />}
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </Box>
+                                                    </Box>
+                                                </CardContent>
+                                            </SelectionCard>
+                                        </Fade>
+                                    ))}
+                                </Box>
+                            )}
+                        </Box>
 
                         <TextField
                             fullWidth
@@ -282,28 +491,64 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                             value={additionalNotes}
                             onChange={(e) => setAdditionalNotes(e.target.value)}
                             placeholder="หมายเหตุเพิ่มเติมสำหรับใบเสนอราคา..."
-                            sx={{ mt: 3 }}
+                            variant="outlined"
+                            sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '12px',
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#900F0F',
+                                    },
+                                },
+                                '& .MuiInputLabel-root.Mui-focused': {
+                                    color: '#900F0F',
+                                },
+                            }}
                         />
                     </Box>
                 )}
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, pt: 0, bgcolor: 'grey.50' }}>
-                <Button onClick={onClose} disabled={isSubmitting} size="large">
-                    ยกเลิก
-                </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || selectedPricingItems.length === 0}
-                    startIcon={isSubmitting ? null : <AssignmentIcon />}
-                    size="large"
-                    sx={{ minWidth: 180 }}
-                >
-                    {isSubmitting ? 'กำลังสร้าง...' : `สร้างใบเสนอราคา (${selectedPricingItems.length} งาน)`}
-                </Button>
+            <DialogActions sx={{ 
+                p: 4, 
+                pt: 2, 
+                background: 'linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%)',
+                borderTop: '1px solid #E5E7EB'
+            }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+                    <Box>
+                        {selectedPricingItems.length > 0 && (
+                            <Typography variant="body2" color="text.secondary">
+                                เลือกแล้ว {selectedPricingItems.length} งาน จากทั้งหมด {customerPricingRequests.length} งาน
+                            </Typography>
+                        )}
+                    </Box>
+                    <Box display="flex" gap={2}>
+                        <Button 
+                            onClick={onClose} 
+                            disabled={isSubmitting}
+                            size="large"
+                            sx={{ 
+                                borderRadius: '12px',
+                                padding: '12px 24px',
+                                color: '#6B7280',
+                                '&:hover': {
+                                    backgroundColor: '#F3F4F6',
+                                },
+                            }}
+                        >
+                            ยกเลิก
+                        </Button>
+                        <PrimaryButton
+                            onClick={handleSubmit}
+                            disabled={isSubmitting || selectedPricingItems.length === 0}
+                            startIcon={isSubmitting ? null : <AssignmentIcon />}
+                        >
+                            {isSubmitting ? 'กำลังสร้าง...' : `สร้างใบเสนอราคา (${selectedPricingItems.length} งาน)`}
+                        </PrimaryButton>
+                    </Box>
+                </Box>
             </DialogActions>
-        </Dialog>
+        </StyledDialog>
     );
 };
 

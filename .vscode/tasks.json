@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Test TNP Backend - Step 4 Delivery APIs",
+			"type": "shell",
+			"command": "cd c:\\worke\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes",
+			"group": "test",
+			"isBackground": false
+		}
+	]
+}

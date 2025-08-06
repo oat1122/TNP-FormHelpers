@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
 use App\Http\Controllers\Api\V1\Accounting\AutofillController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
+use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -270,5 +271,35 @@ Route::prefix('v1')->group(function() {
         Route::get('/receipts/calculate-vat', 'calculateVat');
         Route::get('/receipts/types', 'getReceiptTypes');
         Route::get('/receipts/payment-methods', 'getPaymentMethods');
+    });
+
+    //---------- DeliveryNote Controller (Step 4) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController::class)->group(function () {
+        // DeliveryNote CRUD
+        Route::get('/delivery-notes', 'index');
+        Route::get('/delivery-notes/{id}', 'show');
+        Route::post('/delivery-notes', 'store');
+        Route::put('/delivery-notes/{id}', 'update');
+        Route::delete('/delivery-notes/{id}', 'destroy');
+        
+        // Step 4 Workflow APIs - Create from Receipt
+        Route::post('/delivery-notes/create-from-receipt', 'createFromReceipt');
+        
+        // Step 4 Workflow APIs - Status Management
+        Route::post('/delivery-notes/{id}/start-shipping', 'startShipping');
+        Route::post('/delivery-notes/{id}/update-tracking', 'updateTracking');
+        Route::post('/delivery-notes/{id}/mark-delivered', 'markDelivered');
+        Route::post('/delivery-notes/{id}/mark-completed', 'markCompleted');
+        Route::post('/delivery-notes/{id}/mark-failed', 'markFailed');
+        
+        // Step 4 Workflow APIs - Evidence & Documents
+        Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence');
+        Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf');
+        Route::get('/delivery-notes/{id}/timeline', 'getTimeline');
+        
+        // DeliveryNote Utilities
+        Route::get('/delivery-notes/courier-companies', 'getCourierCompanies');
+        Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods');
+        Route::get('/delivery-notes/statuses', 'getDeliveryStatuses');
     });
 });

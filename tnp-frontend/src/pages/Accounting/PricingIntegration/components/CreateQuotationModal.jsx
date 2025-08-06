@@ -80,18 +80,36 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
             return;
         }
 
+        // เพิ่ม debug
+        console.log('🚀 Submitting from Modal:');
+        console.log('📋 Selected Pricing Items:', selectedPricingItems);
+        console.log('📊 Selected Count:', selectedPricingItems.length);
+        
+        const validSelections = customerPricingRequests.filter(item => 
+            selectedPricingItems.includes(item.pr_id)
+        );
+        console.log('✅ Valid Selections:', validSelections);
+        console.log('📋 Valid Selections Count:', validSelections.length);
+
         setIsSubmitting(true);
         try {
-            await onSubmit({
+            const submitData = {
                 pricingRequestIds: selectedPricingItems,
                 customerId: pricingRequest?.customer?.cus_id,
                 additional_notes: additionalNotes,
-            });
+                // เพิ่มข้อมูลสำรอง
+                selectedRequestsData: validSelections,
+            };
+
+            console.log('📤 Data being sent:', submitData);
+            await onSubmit(submitData);
+            
+            // Reset
             onClose();
             setAdditionalNotes('');
             setSelectedPricingItems([]);
         } catch (error) {
-            console.error('Error creating quotation:', error);
+            console.error('❌ Error creating quotation:', error);
         } finally {
             setIsSubmitting(false);
         }

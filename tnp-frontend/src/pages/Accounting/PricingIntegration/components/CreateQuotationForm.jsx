@@ -287,6 +287,30 @@ const CreateQuotationForm = ({
     return (
         <Box sx={{ bgcolor: '#F8F9FA', minHeight: '100vh', py: 3 }}>
             <Container maxWidth="lg">
+                {/* Debug Info (Development only) */}
+                {import.meta.env.MODE === 'development' && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        <Typography variant="h6">🐛 Debug Info</Typography>
+                        <Typography variant="body2">
+                            Selected Requests: {selectedPricingRequests?.length || 0}
+                        </Typography>
+                        <Typography variant="body2">
+                            Form Items: {formData.items?.length || 0}
+                        </Typography>
+                        <Typography variant="body2">
+                            Customer: {formData.customer?.cus_company || 'ไม่มีข้อมูล'}
+                        </Typography>
+                        {selectedPricingRequests?.length !== formData.items?.length && (
+                            <Typography variant="body2" color="error">
+                                ⚠️ Count mismatch! Expected: {selectedPricingRequests?.length}, Got: {formData.items?.length}
+                            </Typography>
+                        )}
+                        <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                            เปิด Console (F12) เพื่อดูข้อมูล debug เพิ่มเติม
+                        </Typography>
+                    </Alert>
+                )}
+                
                 {/* Header */}
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Tooltip title="กลับไปหน้าเดิม">

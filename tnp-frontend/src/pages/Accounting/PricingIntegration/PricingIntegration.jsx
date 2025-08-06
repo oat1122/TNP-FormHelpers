@@ -155,16 +155,59 @@ const PricingIntegration = () => {
 
     const handleQuotationFromModal = async (data) => {
         try {
-            // Close modal and show form instead
+            console.log('🔍 Debug - Data from Modal:', data);
+            console.log('📋 Selected Pricing IDs:', data.pricingRequestIds);
+            console.log('🗂️ All Pricing Requests Data:', pricingRequests?.data);
+
             setShowCreateModal(false);
-            setSelectedPricingRequests(
-                pricingRequests?.data?.filter(pr => 
-                    data.pricingRequestIds.includes(pr.pr_id)
-                ) || []
-            );
-            setShowCreateForm(true);
+            
+            // Filter with better error handling
+            const selectedRequests = [];
+            
+            if (data.pricingRequestIds && data.pricingRequestIds.length > 0) {
+                data.pricingRequestIds.forEach(prId => {
+                    const foundRequest = pricingRequests?.data?.find(pr => pr.pr_id === prId);
+                    if (foundRequest) {
+                        selectedRequests.push(foundRequest);
+                        console.log(`✅ Found PR ${prId}:`, foundRequest.pr_work_name);
+                    } else {
+                        console.error(`❌ Could not find PR with ID: ${prId}`);
+                    }
+                });
+            }
+
+            console.log('📊 Final Count - Expected:', data.pricingRequestIds?.length, 'Actual:', selectedRequests.length);
+
+            if (selectedRequests.length === 0) {
+                console.error('❌ No matching pricing requests found!');
+                dispatch(addNotification({
+                    type: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    message: 'ไม่พบข้อมูลงานที่เลือก กรุณาลองใหม่',
+                }));
+                return;
+            }
+
+            // ใช้ข้อมูลสำรองจาก modal หากมี
+            if (data.selectedRequestsData && data.selectedRequestsData.length > 0) {
+                console.log('🔄 Using backup data from modal:', data.selectedRequestsData);
+                setSelectedPricingRequests(data.selectedRequestsData);
+            } else {
+                setSelectedPricingRequests(selectedRequests);
+            }
+            
+            // Add delay to ensure state update
+            setTimeout(() => {
+                setShowCreateForm(true);
+            }, 100);
+
         } catch (error) {
-            console.error('Error preparing quotation form:', error);
+            console.error('❌ Error preparing quotation form:', error);
+            dispatch(addNotification({
+                type: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                message: 'เกิดข้อผิดพลาดในการเตรียมข้อมูล กรุณาลองใหม่',
+            }));
         }
     };
 

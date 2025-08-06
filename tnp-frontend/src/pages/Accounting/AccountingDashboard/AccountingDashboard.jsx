@@ -34,7 +34,7 @@ import {
     Warning as WarningIcon,
 } from '@mui/icons-material';
 import { ThemeProvider } from '@mui/material/styles';
-import accountingTheme from './theme/accountingTheme';
+import accountingTheme from '../theme/accountingTheme';
 import { useSelector, useDispatch } from 'react-redux';
 import {
     selectActiveStep,
@@ -42,8 +42,8 @@ import {
     selectUnreadNotifications,
     setActiveStep,
     addNotification
-} from '../../features/Accounting/accountingSlice';
-import { useGetDashboardStatsQuery } from '../../features/Accounting/accountingApi';
+} from '../../../features/Accounting/accountingSlice';
+import { useGetDashboardStatsQuery } from '../../../features/Accounting/accountingApi';
 
 // Custom Hook สำหรับ Dashboard Data
 const useDashboardData = () => {

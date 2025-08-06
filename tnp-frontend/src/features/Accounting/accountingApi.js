@@ -23,9 +23,16 @@ export const accountingApi = createApi({
         getCompletedPricingRequests: builder.query({
             query: (params = {}) => ({
                 url: '/pricing-requests',
-                params: { status: 'complete', ...params },
+                params: {
+                    status: 'complete',
+                    page: params.page || 1,
+                    per_page: params.per_page || 20,
+                    ...params
+                },
             }),
             providesTags: ['PricingRequest'],
+            // Keep previous data while fetching new data for better UX
+            keepUnusedDataFor: 60, // 1 minute
         }),
 
         getPricingRequestAutofill: builder.query({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Container,
@@ -26,6 +26,8 @@ import {
     Paper,
     Badge,
     Checkbox,
+    Pagination,
+    LinearProgress,
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -63,10 +65,13 @@ import {
 const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
-            case 'complete': return 'success';
-            case 'pending': return 'warning';
-            case 'in_progress': return 'info';
-            default: return 'default';
+            case 'complete':
+            case 'ได้ราคาแล้ว': return 'success';
+            case 'pending':
+            case 'รอทำราคา': return 'warning';
+            case 'in_progress':
+            case 'กำลังทำราคา': return 'info';
+            default: return 'primary';
         }
     };
 
@@ -91,18 +96,19 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                 flexDirection: 'column',
                 '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: 6,
+                    boxShadow: '0 12px 20px rgba(144, 15, 15, 0.15)',
                 },
                 transition: 'all 0.3s ease-in-out',
                 border: '1px solid',
                 borderColor: 'divider',
+                borderRadius: 2,
             }}
         >
             <CardContent sx={{ flexGrow: 1 }}>
                 {/* Header with Status */}
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                     <Typography variant="h6" component="div" color="primary" fontWeight={600}>
-                        {request.pr_number || 'PR-XXXX-XXX'}
+                        {request.pr_id?.slice(-8) || 'PR-XXXX'}
                     </Typography>
                     <Chip
                         label={request.pr_status || 'Complete'}
@@ -129,7 +135,10 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                             {request.customer?.cus_company || 'ไม่ระบุบริษัท'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {request.customer?.cus_firstname} {request.customer?.cus_lastname}
+                            {[
+                                request.customer?.cus_firstname,
+                                request.customer?.cus_lastname
+                            ].filter(Boolean).join(' ') || 'ไม่ระบุชื่อ'}
                         </Typography>
                     </Box>
                 </Box>
@@ -175,14 +184,12 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                         size="small"
                         color="primary"
                     />
-                    {request.pr_due_date && (
-                        <Box display="flex" alignItems="center">
-                            <CalendarIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
-                            <Typography variant="caption" color="text.secondary">
-                                {formatDate(request.pr_due_date)}
-                            </Typography>
-                        </Box>
-                    )}
+                    <Box display="flex" alignItems="center">
+                        <ScheduleIcon fontSize="small" color="success" sx={{ mr: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary">
+                            เสร็จเมื่อ: {request.pr_due_date ? formatDate(request.pr_due_date) : 'ไม่ระบุ'}
+                        </Typography>
+                    </Box>
                 </Box>
 
                 {/* Special Features */}
@@ -227,10 +234,14 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                     startIcon={<AssignmentIcon />}
                     onClick={() => onCreateQuotation(request)}
                     sx={{
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none',
                         '&:hover': {
-                            transform: 'scale(1.05)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 6px 12px rgba(144, 15, 15, 0.25)',
                         },
-                        transition: 'transform 0.2s ease-in-out',
+                        transition: 'all 0.2s ease-in-out',
                     }}
                 >
                     สร้างใบเสนอราคา
@@ -270,7 +281,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                 }
             );
             const data = await response.json();
-            
+
             if (data.success) {
                 setCustomerPricingRequests(data.data || []);
                 // เลือก Pricing Request ปัจจุบันเป็นค่าเริ่มต้น
@@ -286,8 +297,8 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
     };
 
     const handlePricingItemToggle = (prId) => {
-        setSelectedPricingItems(prev => 
-            prev.includes(prId) 
+        setSelectedPricingItems(prev =>
+            prev.includes(prId)
                 ? prev.filter(id => id !== prId)
                 : [...prev, prId]
         );
@@ -335,7 +346,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                     <Typography variant="h6">
                         สร้างใบเสนอราคาสำหรับ {pricingRequest?.customer?.cus_company}
                     </Typography>
-                    <Chip 
+                    <Chip
                         label={`เลือก ${selectedPricingItems.length} งาน`}
                         sx={{ bgcolor: 'primary.light', color: 'white' }}
                     />
@@ -384,10 +395,10 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                             <AssignmentIcon sx={{ mr: 1, color: 'primary.main' }} />
                             เลือกงานที่ต้องการสร้างใบเสนอราคา
                             {selectedTotal > 0 && (
-                                <Chip 
+                                <Chip
                                     label={`รวม ${selectedTotal} ชิ้น`}
-                                    color="secondary" 
-                                    size="small" 
+                                    color="secondary"
+                                    size="small"
                                     sx={{ ml: 2 }}
                                 />
                             )}
@@ -404,10 +415,10 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                         ) : (
                             <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
                                 {customerPricingRequests.map((item, index) => (
-                                    <Card 
-                                        key={item.pr_id} 
-                                        sx={{ 
-                                            mb: 2, 
+                                    <Card
+                                        key={item.pr_id}
+                                        sx={{
+                                            mb: 2,
                                             border: selectedPricingItems.includes(item.pr_id) ? 2 : 1,
                                             borderColor: selectedPricingItems.includes(item.pr_id) ? 'primary.main' : 'grey.300',
                                             cursor: 'pointer',
@@ -459,7 +470,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                                     </Grid>
                                                 </Box>
                                                 <Box sx={{ ml: 2 }}>
-                                                    <Checkbox 
+                                                    <Checkbox
                                                         checked={selectedPricingItems.includes(item.pr_id)}
                                                         color="primary"
                                                         onClick={(e) => {
@@ -519,48 +530,73 @@ const PricingIntegration = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedPricingRequest, setSelectedPricingRequest] = useState(null);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(20);
+
     // API Queries
     const {
         data: pricingRequests,
         isLoading,
         error,
         refetch,
+        isFetching,
     } = useGetCompletedPricingRequestsQuery({
         search: searchQuery,
         date_start: dateRange.start,
         date_end: dateRange.end,
         customer_id: selectedCustomer?.id,
+        page: currentPage,
+        per_page: itemsPerPage,
     });
 
     // Debug logs
     useEffect(() => {
         console.log('🔍 PricingIntegration Debug Info:', {
             isLoading,
+            isFetching,
             error,
+            currentPage,
+            itemsPerPage,
             pricingRequests,
-            dataLength: pricingRequests?.data?.length,
             apiUrl: `${import.meta.env.VITE_END_POINT_URL}/pricing-requests`,
-            dataStructure: pricingRequests ? Object.keys(pricingRequests) : 'No data',
+            responseStructure: pricingRequests ? Object.keys(pricingRequests) : 'No data',
+            dataArray: pricingRequests?.data || 'No data array',
+            dataLength: pricingRequests?.data?.length || 0,
+            pagination: pricingRequests?.pagination || 'No pagination',
+            totalPages: pricingRequests?.pagination ? Math.ceil(pricingRequests.pagination.total / itemsPerPage) : 0,
             sampleRecord: pricingRequests?.data?.[0] || 'No records'
         });
-    }, [isLoading, error, pricingRequests]);
+    }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage]);
 
     const [createQuotationFromMultiplePricing] = useCreateQuotationFromMultiplePricingMutation();
 
     // Event Handlers
-    const handleSearch = (query) => {
+    const handleSearch = useCallback((query) => {
         setSearchQuery(query);
+        setCurrentPage(1); // Reset to first page on search
         dispatch(setFilters({ searchQuery: query }));
-    };
+    }, [dispatch]);
 
-    const handleRefresh = () => {
+    const handlePageChange = useCallback((event, newPage) => {
+        setCurrentPage(newPage);
+        // Scroll to top when changing pages
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
+    const handleItemsPerPageChange = useCallback((newItemsPerPage) => {
+        setItemsPerPage(newItemsPerPage);
+        setCurrentPage(1); // Reset to first page
+    }, []);
+
+    const handleRefresh = useCallback(() => {
         refetch();
         dispatch(addNotification({
             type: 'success',
             title: 'รีเฟรชข้อมูล',
             message: 'ข้อมูลถูกอัปเดตแล้ว',
         }));
-    };
+    }, [refetch, dispatch]);
 
     const handleCreateQuotation = (pricingRequest) => {
         setSelectedPricingRequest(pricingRequest);
@@ -588,7 +624,7 @@ const PricingIntegration = () => {
 
             setShowCreateModal(false);
             setSelectedPricingRequest(null);
-            
+
             // Refresh data
             refetch();
         } catch (error) {
@@ -612,7 +648,12 @@ const PricingIntegration = () => {
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
                 <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
                     {/* Header */}
-                    <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 3 }}>
+                    <Box sx={{
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        py: 3,
+                        background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
+                    }}>
                         <Container maxWidth="xl">
                             <Typography variant="h4" component="h1" gutterBottom>
                                 📊 งานใหม่จากระบบ Pricing
@@ -699,12 +740,67 @@ const PricingIntegration = () => {
 
                         {/* Pricing Requests Grid */}
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="h6" gutterBottom color="primary">
-                                Pricing Request ที่พร้อมออกใบเสนอราคา
-                                {pricingRequests?.data && (
-                                    <Badge badgeContent={pricingRequests.data.length} color="secondary" sx={{ ml: 2 }} />
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" color="primary">
+                                    Pricing Request ที่พร้อมออกใบเสนอราคา
+                                    {pricingRequests?.pagination && (
+                                        <Badge
+                                            badgeContent={pricingRequests.pagination.total}
+                                            color="secondary"
+                                            sx={{ ml: 2 }}
+                                            max={999}
+                                        />
+                                    )}
+                                </Typography>
+
+                                {/* Items per page selector */}
+                                {pricingRequests?.pagination && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            แสดง:
+                                        </Typography>
+                                        <TextField
+                                            select
+                                            size="small"
+                                            value={itemsPerPage}
+                                            onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                                            SelectProps={{ native: true }}
+                                            sx={{ minWidth: 80 }}
+                                        >
+                                            <option value={20}>20</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                            <option value={200}>200</option>
+                                        </TextField>
+                                        <Typography variant="body2" color="text.secondary">
+                                            รายการ
+                                        </Typography>
+                                    </Box>
                                 )}
-                            </Typography>
+                            </Box>
+
+                            {/* Pagination info */}
+                            {pricingRequests?.pagination && (
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        แสดง {pricingRequests.pagination.from || 0} - {pricingRequests.pagination.to || 0} จาก {pricingRequests.pagination.total} รายการ
+                                        {isFetching && (
+                                            <Chip
+                                                label="กำลังโหลด..."
+                                                size="small"
+                                                color="primary"
+                                                sx={{ ml: 1 }}
+                                            />
+                                        )}
+                                    </Typography>
+                                    {isFetching && (
+                                        <LinearProgress
+                                            sx={{ mt: 1, borderRadius: 1 }}
+                                            color="primary"
+                                        />
+                                    )}
+                                </Box>
+                            )}
                         </Box>
 
                         {isLoading ? (
@@ -749,17 +845,51 @@ const PricingIntegration = () => {
                                 </Button>
                             </Paper>
                         ) : pricingRequests?.data?.length > 0 ? (
-                            <Grid container spacing={3}>
-                                {pricingRequests.data.map((request) => (
-                                    <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
-                                        <PricingRequestCard
-                                            request={request}
-                                            onCreateQuotation={handleCreateQuotation}
-                                            onViewDetails={handleViewDetails}
-                                        />
-                                    </Grid>
-                                ))}
-                            </Grid>
+                            <>
+                                <Grid container spacing={3}>
+                                    {pricingRequests.data.map((request) => (
+                                        <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
+                                            <PricingRequestCard
+                                                request={request}
+                                                onCreateQuotation={handleCreateQuotation}
+                                                onViewDetails={handleViewDetails}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                                {/* Pagination */}
+                                {pricingRequests?.pagination && pricingRequests.pagination.last_page > 1 && (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+                                        <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                หน้า {pricingRequests.pagination.current_page} จาก {pricingRequests.pagination.last_page}
+                                            </Typography>
+                                            <Pagination
+                                                count={pricingRequests.pagination.last_page}
+                                                page={pricingRequests.pagination.current_page}
+                                                onChange={handlePageChange}
+                                                color="primary"
+                                                size="medium"
+                                                showFirstButton
+                                                showLastButton
+                                                disabled={isFetching}
+                                                sx={{
+                                                    '& .MuiPaginationItem-root': {
+                                                        '&.Mui-selected': {
+                                                            backgroundColor: 'primary.main',
+                                                            color: 'white',
+                                                            '&:hover': {
+                                                                backgroundColor: 'primary.dark',
+                                                            },
+                                                        },
+                                                    },
+                                                }}
+                                            />
+                                        </Paper>
+                                    </Box>
+                                )}
+                            </>
                         ) : (
                             <Paper sx={{ p: 6, textAlign: 'center' }}>
                                 <AssignmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />

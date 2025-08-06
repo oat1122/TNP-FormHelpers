@@ -312,7 +312,7 @@ class AutofillService
     /**
      * ดึงรายการ Pricing Request ที่เสร็จแล้ว (สำหรับ Step 0: Pricing Integration)
      */
-    public function getCompletedPricingRequests($filters = [], $perPage = 20)
+    public function getCompletedPricingRequests($filters = [], $perPage = 20, $page = 1)
     {
         try {
             $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
@@ -357,8 +357,8 @@ class AutofillService
             // Order by latest
             $query->orderBy('pr_updated_date', 'DESC');
 
-            // Paginate
-            $results = $query->paginate($perPage);
+            // Paginate with explicit page parameter
+            $results = $query->paginate($perPage, ['*'], 'page', $page);
 
             // Transform data ตาม DTO structure
             $transformedData = $results->getCollection()->map(function ($pr) {

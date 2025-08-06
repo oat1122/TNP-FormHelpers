@@ -124,9 +124,10 @@ class AutofillController extends Controller
                 'work_name' => $request->query('work_name')
             ];
 
-            $perPage = min($request->query('per_page', 20), 50); // จำกัดไม่เกิน 50 รายการต่อหน้า
+            $perPage = min($request->query('per_page', 20), 200); // เพิ่มสูงสุดเป็น 200 รายการ
+            $page = max($request->query('page', 1), 1); // ตรวจสอบว่าหน้าไม่ต่ำกว่า 1
             
-            $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage);
+            $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page);
             
             Log::info('AutofillController::getCompletedPricingRequests success', [
                 'total_records' => $completedRequests['pagination']['total'] ?? 0

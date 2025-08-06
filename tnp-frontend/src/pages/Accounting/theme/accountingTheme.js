@@ -40,7 +40,7 @@ export const accountingTheme = createTheme({
             default: '#FFFFFF',    // พื้นหลังหลัก
             paper: '#FFFFFF',      // พื้นหลัง card, modal
             light: '#FAFAFA',      // พื้นหลังอ่อน
-            accent: '#E36264',     // พื้นหลัง section เน้นเบาๆ (แดงอ่อนมาก)
+            accent: '#FDF2F2',     // พื้นหลัง section เน้นเบาๆ (แดงอ่อนมาก)
         },
         text: {
             primary: '#212121',
@@ -370,6 +370,58 @@ export const accountingTheme = createTheme({
                     },
                     '& .MuiDataGrid-row:hover': {
                         backgroundColor: 'rgba(144, 15, 15, 0.02)',
+                    },
+                },
+            },
+        },
+
+        // Pagination components
+        MuiPagination: {
+            styleOverrides: {
+                root: {
+                    '& .MuiPaginationItem-root': {
+                        color: '#757575',
+                        fontWeight: 500,
+                        '&:hover': {
+                            backgroundColor: 'rgba(144, 15, 15, 0.04)',
+                            color: '#900F0F',
+                        },
+                        '&.Mui-selected': {
+                            backgroundColor: '#900F0F',
+                            color: '#FFFFFF',
+                            fontWeight: 600,
+                            '&:hover': {
+                                backgroundColor: '#7A0D0D',
+                            },
+                        },
+                        '&.Mui-disabled': {
+                            color: '#BDBDBD',
+                            backgroundColor: 'transparent',
+                        },
+                    },
+                    '& .MuiPaginationItem-ellipsis': {
+                        color: '#9E9E9E',
+                    },
+                },
+            },
+        },
+
+        // Linear Progress
+        MuiLinearProgress: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: 'rgba(144, 15, 15, 0.1)',
+                    borderRadius: 4,
+                    height: 6,
+                },
+                bar: {
+                    backgroundColor: '#900F0F',
+                    borderRadius: 4,
+                },
+                colorPrimary: {
+                    backgroundColor: 'rgba(144, 15, 15, 0.1)',
+                    '& .MuiLinearProgress-bar': {
+                        backgroundColor: '#900F0F',
                     },
                 },
             },

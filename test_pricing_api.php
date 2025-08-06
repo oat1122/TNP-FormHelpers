@@ -26,21 +26,21 @@ echo "2️⃣ Testing Pricing Requests...\n";
 $response = makeRequest("$baseUrl/pricing-requests");
 if ($response) {
     echo "✅ Pricing Requests API working\n";
-    echo "Total Records: " . ($response['data']['pagination']['total'] ?? 0) . "\n";
-    echo "Data Count: " . count($response['data']['data'] ?? []) . "\n\n";
+    echo "Total Records: " . ($response['pagination']['total'] ?? 0) . "\n";
+    echo "Data Count: " . count($response['data'] ?? []) . "\n\n";
     
     // แสดงตัวอย่างข้อมูล 1 รายการ
-    if (!empty($response['data']['data'])) {
+    if (!empty($response['data'])) {
         echo "Sample Record:\n";
-        echo json_encode($response['data']['data'][0], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo json_encode($response['data'][0], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
     }
 } else {
     echo "❌ Pricing Requests API failed\n\n";
 }
 
 // Test 3: ทดสอบ Pricing Request Autofill (ถ้ามีข้อมูล)
-if (!empty($response['data']['data'])) {
-    $prId = $response['data']['data'][0]['pr_id'];
+if (!empty($response['data'])) {
+    $prId = $response['data'][0]['pr_id'];
     echo "3️⃣ Testing Pricing Request Autofill (ID: $prId)...\n";
     $autofillResponse = makeRequest("$baseUrl/pricing-requests/$prId/autofill");
     if ($autofillResponse) {

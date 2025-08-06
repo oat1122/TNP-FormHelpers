@@ -23,6 +23,11 @@ const UserList = lazy(() => import("./pages/UserManagement/UserList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
+// Accounting components
+const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"));
+const AccountingDashboard = lazy(() => import("./pages/Accounting/AccountingDashboard"));
+const PricingIntegration = lazy(() => import("./pages/Accounting/PricingIntegration"));
+
 // MaxSupply components
 const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));
 const MaxSupplyList = lazy(() => import("./pages/MaxSupply/MaxSupplyList"));
@@ -41,41 +46,53 @@ function App() {
           </div>
         }>
           <Routes>
-          <Route element={<AuthLayout />}>          <Route path="/" element={<ControlPanel />} />
-            <Route path="/monitor" element={<GridCard />} />
-            <Route path="/log" element={<ShowLog />} />
-            <Route path="/signup" element={<AppRegister />} />
-            <Route path="/toast-test" element={<TestToast />} />
+            <Route element={<AuthLayout />}>
+              <Route path="/" element={<ControlPanel />} />
+              <Route path="/monitor" element={<GridCard />} />
+              <Route path="/log" element={<ShowLog />} />
+              <Route path="/signup" element={<AppRegister />} />
+              <Route path="/toast-test" element={<TestToast />} />
 
-            <Route path="/shirt-price" element={<FabricMain />} />
-            <Route path="/user-management" element={<UserList />} />
-            <Route path="/customer" element={<CustomerList />} />
+              <Route path="/shirt-price" element={<FabricMain />} />
+              <Route path="/user-management" element={<UserList />} />
+              <Route path="/customer" element={<CustomerList />} />
 
-            <Route path="/worksheet" element={<WorksheetList />} />
-            <Route path="/worksheet-create/:typeShirt" element={<WorksheetCreate />} />
-            <Route path="/worksheet-update/:id" element={<WorksheetCreate />} />
+              <Route path="/worksheet" element={<WorksheetList />} />
+              <Route path="/worksheet-create/:typeShirt" element={<WorksheetCreate />} />
+              <Route path="/worksheet-update/:id" element={<WorksheetCreate />} />
 
-            <Route path="/pricing" element={<PricingList />} />
-            <Route path="/pricing/create" element={<PricingForm mode="create" />} />
-            <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
-            <Route path="/pricing/view/:id" element={<PricingForm mode="view" />} />
+              <Route path="/pricing" element={<PricingList />} />
+              <Route path="/pricing/create" element={<PricingForm mode="create" />} />
+              <Route path="/pricing/edit/:id" element={<PricingForm mode="edit" />} />
+              <Route path="/pricing/view/:id" element={<PricingForm mode="view" />} />
 
-            {/* MaxSupply Routes */}
-            <Route path="/max-supply" element={<MaxSupplyHome />} />
-            <Route path="/max-supply/home" element={<MaxSupplyHome />} />
-            <Route path="/max-supply/list" element={<MaxSupplyList />} />
-            
-            <Route path="/max-supply/create" element={<MaxSupplyForm />} />
-            <Route path="/max-supply/edit/:id" element={<MaxSupplyForm />} />
-            <Route path="/max-supply/:id" element={<MaxSupplyForm />} />
-            <Route path="/worksheets-for-maxsupply" element={<WorksheetListForMaxSupply />} />
-            <Route path="/worksheets" element={<WorksheetListForMaxSupply />} />
+              {/* Accounting Routes */}
+              <Route path="/accounting" element={<AccountingLayout />}>
+                <Route index element={<AccountingDashboard />} />
+                <Route path="pricing-integration" element={<PricingIntegration />} />
+                <Route path="quotations" element={<div>Quotations (Coming Soon)</div>} />
+                <Route path="invoices" element={<div>Invoices (Coming Soon)</div>} />
+                <Route path="receipts" element={<div>Receipts (Coming Soon)</div>} />
+                <Route path="delivery-notes" element={<div>Delivery Notes (Coming Soon)</div>} />
+              </Route>
 
-            <Route path="/test" element={<Testing />} />
-          </Route>
-          <Route element={<GuestLayout />}>
-            <Route path="/login" element={<AppLogin />} />
-          </Route>
+              {/* MaxSupply Routes */}
+              <Route path="/max-supply" element={<MaxSupplyHome />} />
+              <Route path="/max-supply/home" element={<MaxSupplyHome />} />
+              <Route path="/max-supply/list" element={<MaxSupplyList />} />
+
+              <Route path="/max-supply/create" element={<MaxSupplyForm />} />
+              <Route path="/max-supply/edit/:id" element={<MaxSupplyForm />} />
+              <Route path="/max-supply/:id" element={<MaxSupplyForm />} />
+              <Route path="/worksheets-for-maxsupply" element={<WorksheetListForMaxSupply />} />
+              <Route path="/worksheets" element={<WorksheetListForMaxSupply />} />
+
+              <Route path="/test" element={<Testing />} />
+            </Route>
+
+            <Route element={<GuestLayout />}>
+              <Route path="/login" element={<AppLogin />} />
+            </Route>
           </Routes>
         </Suspense>
       </MaxSupplyProvider>

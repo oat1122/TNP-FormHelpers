@@ -414,6 +414,59 @@ class QuotationController extends Controller
     }
 
     /**
+     * สร้างใบเสนอราคาจากหลาย Pricing Requests (Multi-select)
+     * POST /api/v1/quotations/create-from-multiple-pricing
+     */
+    public function createFromMultiplePricingRequests(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'pricing_request_ids' => 'required|array|min:1',
+                'pricing_request_ids.*' => 'required|string|exists:pricing_requests,pr_id',
+                'customer_id' => 'required|string|exists:master_customers,cus_id',
+                'additional_notes' => 'nullable|string',
+                'subtotal' => 'nullable|numeric|min:0',
+                'tax_amount' => 'nullable|numeric|min:0',
+                'total_amount' => 'nullable|numeric|min:0',
+                'deposit_percentage' => 'nullable|integer|min:0|max:100',
+                'payment_terms' => 'nullable|string|max:50'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $data = $validator->validated();
+            $createdBy = auth()->user()->user_uuid ?? null;
+
+            $quotation = $this->quotationService->createFromMultiplePricingRequests(
+                $data['pricing_request_ids'],
+                $data['customer_id'],
+                $data,
+                $createdBy
+            );
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation,
+                'message' => 'Quotation created from multiple pricing requests successfully'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::createFromMultiplePricingRequests error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create quotation from multiple pricing requests: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
      * POST /api/v1/quotations/{id}/send-back
      */

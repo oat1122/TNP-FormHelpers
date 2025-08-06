@@ -179,6 +179,40 @@ Route::prefix('v1')->group(function() {
 
     //---------- Accounting System ----------
     
+    // Dashboard Stats
+    Route::get('/dashboard/stats', function () {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'totalQuotations' => 15,
+                'pendingApprovals' => 3,
+                'completedDeliveries' => 8,
+                'monthlyRevenue' => 250000,
+                'recentActivities' => [
+                    [
+                        'id' => 1,
+                        'title' => 'ใบเสนอราคา QT-2025-001',
+                        'description' => 'บริษัท ABC จำกัด - เสื้อโปโล',
+                        'status' => 'completed',
+                        'time' => now()->subHours(2)->toISOString(),
+                    ],
+                    [
+                        'id' => 2,
+                        'title' => 'ใบเสนอราคา QT-2025-002',
+                        'description' => 'ร้าน XYZ - เสื้อยืด',
+                        'status' => 'pending',
+                        'time' => now()->subHours(4)->toISOString(),
+                    ],
+                ],
+            ],
+        ]);
+    });
+
+    // Pricing Requests for Accounting Integration  
+    Route::get('/pricing-requests', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getCompletedPricingRequests']);
+    
+    Route::get('/pricing-requests/{id}/autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestAutofill']);
+    
     // Auto-fill APIs
     Route::controller(AutofillController::class)->group(function () {
         // Pricing Request Auto-fill
@@ -221,6 +255,7 @@ Route::prefix('v1')->group(function() {
         
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
+        Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');
     });
 
     // Invoice APIs

@@ -8,6 +8,7 @@ import { worksheetApi } from './features/Worksheet/worksheetApi';
 import { customerApi } from './features/Customer/customerApi';
 import { userManagementApi } from './features/UserManagement/userManagementApi';
 import { pricingApi } from './features/Pricing/pricingApi';
+import { accountingApi } from './features/Accounting/accountingApi';
 
 import globalSliceReducer from './features/globalSlice';
 import fabricCostReducer from './features/fabricCost/fabricCostSlice';
@@ -16,6 +17,7 @@ import worksheetSliceReducer from './features/Worksheet/worksheetSlice';
 import customerSliceReducer from './features/Customer/customerSlice';
 import userManagementReducers from './features/UserManagement/userManagementSlice';
 import pricingReducers from './features/Pricing/pricingSlice';
+import accountingReducer from './features/Accounting/accountingSlice';
 
 const store = configureStore({
   reducer: {
@@ -27,6 +29,7 @@ const store = configureStore({
     customer: customerSliceReducer,
     userManagement: userManagementReducers,
     pricing: pricingReducers,
+    accounting: accountingReducer,
 
     // api
     [apiSlice.reducerPath]: apiSlice.reducer,
@@ -36,6 +39,7 @@ const store = configureStore({
     [customerApi.reducerPath]: customerApi.reducer,
     [userManagementApi.reducerPath]: userManagementApi.reducer,
     [pricingApi.reducerPath]: pricingApi.reducer,
+    [accountingApi.reducerPath]: accountingApi.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -48,6 +52,7 @@ const store = configureStore({
       customerApi.middleware,
       userManagementApi.middleware,
       pricingApi.middleware,
+      accountingApi.middleware,
     ),
 })
 

@@ -318,9 +318,10 @@ class AutofillService
             $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
                 ->where('pr_is_deleted', 0);
 
-            // เพิ่มเงื่อนไขสถานะ Complete
-            // TODO: ต้องตรวจสอบ status_id ที่แสดงถึง "complete" ในระบบจริง
-            // $query->where('pr_status_id', 'COMPLETE_STATUS_ID');
+            // เพิ่มเงื่อนไขสถานะ "ได้ราคาแล้ว" เฉพาะเมื่อไม่มี customer_id filter
+            if (empty($filters['customer_id'])) {
+                $query->where('pr_status_id', '20db8be1-092b-11f0-b223-38ca84abdf0a');
+            }
 
             // Apply filters
             if (!empty($filters['search'])) {

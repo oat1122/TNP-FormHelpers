@@ -110,6 +110,11 @@ class AutofillController extends Controller
     public function getCompletedPricingRequests(Request $request): JsonResponse
     {
         try {
+            // Log request parameters for debugging
+            Log::info('AutofillController::getCompletedPricingRequests called', [
+                'params' => $request->all()
+            ]);
+
             // รองรับ filters ตาม specification
             $filters = [
                 'search' => $request->query('search'),
@@ -123,14 +128,21 @@ class AutofillController extends Controller
             
             $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage);
             
+            Log::info('AutofillController::getCompletedPricingRequests success', [
+                'total_records' => $completedRequests['pagination']['total'] ?? 0
+            ]);
+            
             return response()->json([
                 'success' => true,
-                'data' => $completedRequests,
+                'data' => $completedRequests['data'], // ส่งเฉพาะ data array
+                'pagination' => $completedRequests['pagination'],
                 'message' => 'Completed pricing requests retrieved successfully'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('AutofillController::getCompletedPricingRequests error: ' . $e->getMessage());
+            Log::error('AutofillController::getCompletedPricingRequests error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
                 'success' => false,

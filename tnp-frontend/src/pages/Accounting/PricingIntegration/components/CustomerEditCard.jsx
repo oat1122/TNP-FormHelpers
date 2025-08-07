@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Card,
     CardContent,
@@ -136,6 +136,10 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
     const [subdistricts, setSubdistricts] = useState([]);
     const [businessTypes, setBusinessTypes] = useState([]);
     const [errors, setErrors] = useState({});
+    
+    // Loading states
+    const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+    const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
 
     // Initialize edit data when customer changes
     useEffect(() => {
@@ -161,72 +165,235 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         }
     }, [customer]);
 
-    // Load master data
-    useEffect(() => {
-        loadMasterData();
-    }, []);
-
-    const loadMasterData = async () => {
+    // 🔧 Function definitions (moved before useEffect to avoid hoisting issues)
+    const loadMasterData = useCallback(async () => {
         try {
+            console.log('🔄 Loading master data...');
+            
             // Load business types
             const businessTypesData = await customerApi.getBusinessTypes();
-            setBusinessTypes(businessTypesData);
+            console.log('📊 Raw business types:', businessTypesData);
+            
+            // Filter out invalid business types
+            const validBusinessTypes = (businessTypesData || [])
+                .filter(bt => bt && bt.bt_id && bt.bt_name)
+                .map((bt, index) => ({
+                    ...bt,
+                    bt_id: bt.bt_id || `bt-${index}`
+                }));
+            console.log('✅ Valid business types:', validBusinessTypes);
+            setBusinessTypes(validBusinessTypes);
 
             // Load provinces
             const provincesData = await customerApi.getProvinces();
-            setProvinces(provincesData);
+            console.log('📊 Raw provinces:', provincesData);
+            
+            // Filter out invalid provinces
+            const validProvinces = (provincesData || [])
+                .filter(prov => prov && prov.pro_id && prov.pro_name_th)
+                .map((prov, index) => ({
+                    ...prov,
+                    pro_id: prov.pro_id || `prov-${index}`
+                }));
+            console.log('✅ Valid provinces:', validProvinces);
+            setProvinces(validProvinces);
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'ไม่สามารถโหลดข้อมูลได้';
-            console.error('Failed to load master data:', {
+            console.error('❌ Failed to load master data:', {
                 error: errorMessage,
                 status: error.response?.status,
                 url: error.config?.url
             });
             setErrors({ general: `ไม่สามารถโหลดข้อมูลได้: ${errorMessage}` });
         }
-    };
+    }, []);
 
-    const loadDistricts = async (provinceId) => {
+    // Load master data on component mount
+    useEffect(() => {
+        loadMasterData();
+    }, [loadMasterData]);
+
+    const loadDistricts = useCallback(async (provinceId) => {
+        if (!provinceId) {
+            console.warn('⚠️ loadDistricts called with empty provinceId');
+            setDistricts([]);
+            return;
+        }
+
+        setIsLoadingDistricts(true);
         try {
+            console.log('🔄 Loading districts for province:', provinceId);
             const districtsData = await customerApi.getDistricts(provinceId);
-            setDistricts(districtsData);
+            console.log('📊 Raw districts data:', districtsData);
+            
+            // Filter out invalid entries and ensure unique IDs
+            const validDistricts = (districtsData || [])
+                .filter(district => {
+                    // Check for dis_name_th (Thai name) or dis_name (general name)
+                    const hasValidName = district.dis_name_th || district.dis_name;
+                    const hasValidId = district.dis_id;
+                    const isValid = district && hasValidId && hasValidName;
+                    
+                    if (!isValid) {
+                        console.warn('⚠️ Invalid district data:', district);
+                        console.warn('⚠️ Missing fields:', {
+                            hasId: !!hasValidId,
+                            hasName: !!hasValidName,
+                            dis_name_th: district.dis_name_th,
+                            dis_name: district.dis_name
+                        });
+                    }
+                    return isValid;
+                })
+                .map((district, index) => ({
+                    ...district,
+                    // Ensure unique ID if missing
+                    dis_id: district.dis_id || `district-${provinceId}-${index}`,
+                    // Normalize name field for consistent usage
+                    dis_name: district.dis_name || district.dis_name_th
+                }));
+            
+            console.log('✅ Valid districts:', validDistricts);
+            setDistricts(validDistricts);
             setSubdistricts([]); // Clear subdistricts
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'ไม่สามารถโหลดข้อมูลอำเภอได้';
-            console.error('Failed to load districts:', {
+            console.error('❌ Failed to load districts:', {
                 provinceId,
                 error: errorMessage,
                 status: error.response?.status
             });
             setDistricts([]);
+        } finally {
+            setIsLoadingDistricts(false);
         }
-    };
+    }, []);
 
-    const loadSubdistricts = async (districtId) => {
+    const loadSubdistricts = useCallback(async (districtId) => {
+        if (!districtId) {
+            console.warn('⚠️ loadSubdistricts called with empty districtId');
+            setSubdistricts([]);
+            return;
+        }
+
+        setIsLoadingSubdistricts(true);
         try {
+            console.log('🔄 Loading subdistricts for district:', districtId);
             const subdistrictsData = await customerApi.getSubdistricts(districtId);
-            setSubdistricts(subdistrictsData);
+            console.log('📊 Raw subdistricts data:', subdistrictsData);
+            
+            // Filter out invalid entries and ensure unique IDs
+            const validSubdistricts = (subdistrictsData || [])
+                .filter(subdistrict => {
+                    // Check for sub_name_th (Thai name) or sub_name (general name)
+                    const hasValidName = subdistrict.sub_name_th || subdistrict.sub_name;
+                    const hasValidId = subdistrict.sub_id;
+                    const isValid = subdistrict && hasValidId && hasValidName;
+                    
+                    if (!isValid) {
+                        console.warn('⚠️ Invalid subdistrict data:', subdistrict);
+                        console.warn('⚠️ Missing fields:', {
+                            hasId: !!hasValidId,
+                            hasName: !!hasValidName,
+                            sub_name_th: subdistrict.sub_name_th,
+                            sub_name: subdistrict.sub_name
+                        });
+                    }
+                    return isValid;
+                })
+                .map((subdistrict, index) => ({
+                    ...subdistrict,
+                    // Ensure unique ID if missing
+                    sub_id: subdistrict.sub_id || `subdistrict-${districtId}-${index}`,
+                    // Normalize name field for consistent usage
+                    sub_name: subdistrict.sub_name || subdistrict.sub_name_th
+                }));
+            
+            console.log('✅ Valid subdistricts:', validSubdistricts);
+            setSubdistricts(validSubdistricts);
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'ไม่สามารถโหลดข้อมูลตำบลได้';
-            console.error('Failed to load subdistricts:', {
+            console.error('❌ Failed to load subdistricts:', {
                 districtId,
                 error: errorMessage,
                 status: error.response?.status
             });
             setSubdistricts([]);
+        } finally {
+            setIsLoadingSubdistricts(false);
         }
-    };
+    }, []);
 
-    const handleEdit = () => {
+    // 🔧 Input and form handlers
+    const handleInputChange = useCallback((field, value) => {
+        setEditData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+
+        // Clear specific error when user starts typing
+        if (errors[field]) {
+            setErrors(prev => ({
+                ...prev,
+                [field]: undefined
+            }));
+        }
+    }, [errors]);
+
+    const handleProvinceChange = useCallback((event, newValue) => {
+        console.log('🏢 Province changed:', newValue);
+        
+        handleInputChange('cus_pro_id', newValue?.pro_id || '');
+        setDistricts([]);
+        setSubdistricts([]);
+        handleInputChange('cus_dis_id', '');
+        handleInputChange('cus_sub_id', '');
+
+        // Use pro_sort_id for loading districts (this is usually the correct field)
+        if (newValue?.pro_sort_id) {
+            console.log('🔄 Loading districts with pro_sort_id:', newValue.pro_sort_id);
+            loadDistricts(newValue.pro_sort_id);
+        } else if (newValue?.pro_id) {
+            // Fallback to pro_id if pro_sort_id doesn't exist
+            console.log('🔄 Loading districts with pro_id (fallback):', newValue.pro_id);
+            loadDistricts(newValue.pro_id);
+        } else {
+            console.warn('⚠️ No valid province ID found for loading districts');
+        }
+    }, [handleInputChange, loadDistricts]);
+
+    const handleDistrictChange = useCallback((event, newValue) => {
+        console.log('🏘️ District changed:', newValue);
+        
+        handleInputChange('cus_dis_id', newValue?.dis_id || '');
+        setSubdistricts([]);
+        handleInputChange('cus_sub_id', '');
+
+        // Use dis_sort_id for loading subdistricts
+        if (newValue?.dis_sort_id) {
+            console.log('🔄 Loading subdistricts with dis_sort_id:', newValue.dis_sort_id);
+            loadSubdistricts(newValue.dis_sort_id);
+        } else if (newValue?.dis_id) {
+            // Fallback to dis_id if dis_sort_id doesn't exist
+            console.log('🔄 Loading subdistricts with dis_id (fallback):', newValue.dis_id);
+            loadSubdistricts(newValue.dis_id);
+        } else {
+            console.warn('⚠️ No valid district ID found for loading subdistricts');
+        }
+    }, [handleInputChange, loadSubdistricts]);
+
+    // 🔧 Form action handlers
+    const handleEdit = useCallback(() => {
         setIsEditing(true);
         setIsExpanded(true);
         setErrors({});
-    };
+    }, []);
 
-    const handleCancel = () => {
+    const handleCancel = useCallback(() => {
         setIsEditing(false);
         setIsExpanded(false);
         setErrors({});
+        
         // Reset to original data
         if (customer) {
             setEditData({
@@ -248,16 +415,16 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                 cus_sub_id: customer.cus_sub_id || '',
             });
         }
-        if (onCancel) onCancel();
-    };
+        if (onCancel) onCancel(); onCancel();
+    }, [customer, onCancel]);
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         const validation = validateCustomerData(editData);
         setErrors(validation.errors);
         return validation.isValid;
-    };
+    }, [editData]);
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!validateForm()) {
             return;
         }
@@ -265,14 +432,14 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         setIsSaving(true);
         try {
             await customerApi.updateCustomer(customer.cus_id, editData);
-
+            
             // Update local customer data
             const updatedCustomer = { ...customer, ...editData };
             if (onUpdate) onUpdate(updatedCustomer);
-
+            
             setIsEditing(false);
             setIsExpanded(false);
-
+            
             // Show success message briefly
             setErrors({ success: 'บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว' });
             setTimeout(() => setErrors({}), 3000);
@@ -288,42 +455,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         } finally {
             setIsSaving(false);
         }
-    }; const handleInputChange = (field, value) => {
-        setEditData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-
-        // Clear specific error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({
-                ...prev,
-                [field]: undefined
-            }));
-        }
-    };
-
-    const handleProvinceChange = (event, newValue) => {
-        handleInputChange('cus_pro_id', newValue?.pro_id || '');
-        setDistricts([]);
-        setSubdistricts([]);
-        handleInputChange('cus_dis_id', '');
-        handleInputChange('cus_sub_id', '');
-
-        if (newValue?.pro_sort_id) {
-            loadDistricts(newValue.pro_sort_id);
-        }
-    };
-
-    const handleDistrictChange = (event, newValue) => {
-        handleInputChange('cus_dis_id', newValue?.dis_id || '');
-        setSubdistricts([]);
-        handleInputChange('cus_sub_id', '');
-
-        if (newValue?.dis_sort_id) {
-            loadSubdistricts(newValue.dis_sort_id);
-        }
-    };
+    }, [customer, editData, onUpdate, validateForm]);
 
     if (!customer) {
         return (
@@ -622,6 +754,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                         size="small"
                                         options={businessTypes}
                                         getOptionLabel={(option) => option.bt_name || ''}
+                                        getOptionKey={(option) => `business-type-${option.bt_id || Math.random()}`}
+                                        isOptionEqualToValue={(option, value) => option.bt_id === value.bt_id}
                                         value={businessTypes.find(bt => bt.bt_id === editData.cus_bt_id) || null}
                                         onChange={(event, newValue) => {
                                             handleInputChange('cus_bt_id', newValue?.bt_id || '');
@@ -671,6 +805,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                         size="small"
                                         options={provinces}
                                         getOptionLabel={(option) => option.pro_name_th || ''}
+                                        getOptionKey={(option) => `province-${option.pro_id || Math.random()}`}
+                                        isOptionEqualToValue={(option, value) => option.pro_id === value.pro_id}
                                         value={provinces.find(p => p.pro_id === editData.cus_pro_id) || null}
                                         onChange={handleProvinceChange}
                                         renderInput={(params) => (
@@ -687,7 +823,9 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                     <Autocomplete
                                         size="small"
                                         options={districts}
-                                        getOptionLabel={(option) => option.dis_name || ''}
+                                        getOptionLabel={(option) => option.dis_name || option.dis_name_th || ''}
+                                        getOptionKey={(option) => `district-${option.dis_id || Math.random()}`}
+                                        isOptionEqualToValue={(option, value) => option.dis_id === value.dis_id}
                                         value={districts.find(d => d.dis_id === editData.cus_dis_id) || null}
                                         onChange={handleDistrictChange}
                                         disabled={!editData.cus_pro_id}
@@ -705,7 +843,9 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                     <Autocomplete
                                         size="small"
                                         options={subdistricts}
-                                        getOptionLabel={(option) => option.sub_name || ''}
+                                        getOptionLabel={(option) => option.sub_name || option.sub_name_th || ''}
+                                        getOptionKey={(option) => `subdistrict-${option.sub_id || Math.random()}`}
+                                        isOptionEqualToValue={(option, value) => option.sub_id === value.sub_id}
                                         value={subdistricts.find(s => s.sub_id === editData.cus_sub_id) || null}
                                         onChange={(event, newValue) => {
                                             handleInputChange('cus_sub_id', newValue?.sub_id || '');

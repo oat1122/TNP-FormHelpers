@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\CustomerResource;
 use App\Services\WorksheetService;
 use App\Services\CustomerService;
+use App\Services\AddressService;
 use App\Models\MasterCustomer as Customer;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Models\CustomerDetail;
@@ -22,11 +23,13 @@ class CustomerController extends Controller
 {
     protected $worksheet_service;
     protected $customer_service;
+    protected $address_service;
 
     public function __construct()
     {
         $this->worksheet_service = new WorksheetService;
         $this->customer_service = new CustomerService;
+        $this->address_service = new AddressService;
     }
 
     /**
@@ -72,7 +75,7 @@ class CustomerController extends Controller
                 ->get();
 
             // customer prepared sql
-            $customer_prepared = Customer::active()->with('customerDetail');
+            $customer_prepared = Customer::active()->with(['customerDetail', 'customerProvince', 'customerDistrict', 'customerSubdistrict']);
 
             // count all customer data
             $total_customers_q = Customer::active();
@@ -297,6 +300,10 @@ class CustomerController extends Controller
             $customer->cus_created_by = Auth::id();
             $customer->cus_updated_date = now();
             $customer->cus_updated_by = Auth::id();
+
+            // จัดการที่อยู่ - รองรับทั้งสองแบบ
+            $this->handleAddressUpdate($customer, $data_input);
+
             $customer->save();
             $cus_id = $customer->cus_id;
 
@@ -423,6 +430,10 @@ class CustomerController extends Controller
             $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
             $customer->cus_updated_date = now();
             $customer->cus_updated_by = Auth::id();
+
+            // จัดการที่อยู่ - รองรับทั้งสองแบบ
+            $this->handleAddressUpdate($customer, $data_input);
+
             $customer->save();
 
             $customer_detail = CustomerDetail::where('cd_cus_id', $id)->first();
@@ -702,6 +713,150 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error fetching group counts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * จัดการการอัพเดทที่อยู่ - รองรับทั้งแบบแยก components และแบบรวม
+     * @param Customer $customer
+     * @param array $data_input
+     */
+    private function handleAddressUpdate(Customer $customer, array $data_input)
+    {
+        try {
+            // ตรวจสอบว่าส่งข้อมูลแบบไหนมา
+            $hasComponents = isset($data_input['cus_pro_id']) || 
+                           isset($data_input['cus_dis_id']) || 
+                           isset($data_input['cus_sub_id']);
+            
+            $hasFullAddress = isset($data_input['cus_address']) && !empty($data_input['cus_address']);
+            $hasAddressDetail = isset($data_input['cus_address_detail']) && !empty($data_input['cus_address_detail']);
+
+            if ($hasComponents) {
+                // แบบที่ 1: ส่งมาเป็น components แยก (มาจากฟอร์มเลือก dropdown)
+                Log::info('Updating address from components', [
+                    'pro_id' => $data_input['cus_pro_id'] ?? null,
+                    'dis_id' => $data_input['cus_dis_id'] ?? null,
+                    'sub_id' => $data_input['cus_sub_id'] ?? null,
+                    'zip_code' => $data_input['cus_zip_code'] ?? null,
+                    'address_detail' => $data_input['cus_address_detail'] ?? null
+                ]);
+
+                $customer->updateAddressFromComponents(
+                    $data_input['cus_address_detail'] ?? null,
+                    $data_input['cus_sub_id'] ?? null,
+                    $data_input['cus_dis_id'] ?? null,
+                    $data_input['cus_pro_id'] ?? null,
+                    $data_input['cus_zip_code'] ?? null
+                );
+
+            } elseif ($hasFullAddress) {
+                // แบบที่ 2: ส่งมาเป็น full address (มาจากการพิมพ์เอง หรือจาก GPS)
+                Log::info('Updating address from full address', [
+                    'full_address' => $data_input['cus_address']
+                ]);
+
+                $customer->updateAddressFromFull($data_input['cus_address']);
+
+            } elseif ($hasAddressDetail) {
+                // แบบที่ 3: มีแค่รายละเอียดที่อยู่ ไม่มีข้อมูลสถานที่
+                Log::info('Updating address detail only', [
+                    'address_detail' => $data_input['cus_address_detail']
+                ]);
+
+                $customer->cus_address = $data_input['cus_address_detail'];
+            }
+
+            Log::info('Address updated successfully', [
+                'customer_id' => $customer->cus_id,
+                'final_address' => $customer->cus_address,
+                'pro_id' => $customer->cus_pro_id,
+                'dis_id' => $customer->cus_dis_id,
+                'sub_id' => $customer->cus_sub_id,
+                'zip_code' => $customer->cus_zip_code
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Handle address update error: ' . $e->getMessage(), [
+                'customer_id' => $customer->cus_id ?? 'new',
+                'input_data' => $data_input
+            ]);
+            
+            // ถ้าเกิดข้อผิดพลาด ให้ใช้ข้อมูลที่ส่งมาตรงๆ
+            if (isset($data_input['cus_address'])) {
+                $customer->cus_address = $data_input['cus_address'];
+            }
+        }
+    }
+
+    /**
+     * แปลงที่อยู่เต็มเป็น components สำหรับใช้ใน frontend
+     */
+    public function parseAddress(Request $request)
+    {
+        try {
+            $fullAddress = $request->input('address');
+            
+            if (!$fullAddress) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'กรุณาระบุที่อยู่ที่ต้องการแปลง'
+                ], 400);
+            }
+
+            $components = $this->address_service->parseFullAddress($fullAddress);
+            $locationIds = $this->address_service->findLocationIds(
+                $components['province'],
+                $components['district'],
+                $components['subdistrict']
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'components' => $components,
+                    'location_ids' => $locationIds
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Parse address error: ' . $e);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการแปลงที่อยู่: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * สร้างที่อยู่เต็มจาก components สำหรับใช้ใน frontend
+     */
+    public function buildAddress(Request $request)
+    {
+        try {
+            $addressDetail = $request->input('address_detail');
+            $subId = $request->input('sub_id');
+            $disId = $request->input('dis_id');
+            $proId = $request->input('pro_id');
+            $zipCode = $request->input('zip_code');
+
+            $fullAddress = $this->address_service->buildFullAddress(
+                $addressDetail, $subId, $disId, $proId, $zipCode
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'full_address' => $fullAddress
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Build address error: ' . $e);
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'เกิดข้อผิดพลาดในการสร้างที่อยู่: ' . $e->getMessage()
             ], 500);
         }
     }

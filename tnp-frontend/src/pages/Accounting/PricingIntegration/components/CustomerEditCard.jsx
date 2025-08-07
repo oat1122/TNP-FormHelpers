@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { customerApi, validateCustomerData, formatPhoneNumber, formatTaxId } from './customerApiUtils';
+import { AddressService } from '../../../../services/AddressService';
 
 // Styled Components
 const CustomerCard = styled(Card)(({ theme }) => ({
@@ -431,7 +432,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
 
         setIsSaving(true);
         try {
-            await customerApi.updateCustomer(customer.cus_id, editData);
+            // เตรียมข้อมูลที่อยู่สำหรับส่งไป API
+            const addressData = AddressService.prepareAddressForApi(editData);
+            const updateData = { ...editData, ...addressData };
+            
+            await customerApi.updateCustomer(customer.cus_id, updateData);
             
             // Update local customer data
             const updatedCustomer = { ...customer, ...editData };
@@ -793,7 +798,9 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">ที่อยู่</Typography>
-                                    <Typography variant="body2">{customer.cus_address || '-'}</Typography>
+                                    <Typography variant="body2">
+                                        {AddressService.formatDisplayAddress(customer) || '-'}
+                                    </Typography>
                                 </Box>
                             )}
                         </Grid>

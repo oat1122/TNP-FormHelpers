@@ -81,8 +81,18 @@ Route::prefix('v1')->group(function() {
 
         //---------- Customers ----------
         'customers' => CustomerController::class,
+    ]);
 
-        //---------- Pricing Request ----------
+    // Additional customer routes for address management
+    Route::controller(CustomerController::class)->group(function () {
+        Route::post('/customers/parse-address', 'parseAddress');
+        Route::post('/customers/build-address', 'buildAddress');
+        Route::get('/customers/{id}/group-counts', 'getGroupCounts');
+        Route::post('/customers/{id}/recall', 'recall');
+        Route::patch('/customers/{id}/change-grade', 'changeGrade');
+    });
+
+    Route::apiResources([
         'pricing' => PricingController::class,
     ]);
 

@@ -193,6 +193,12 @@ class MasterCustomer extends Model
 			->select('dis_id', 'dis_pro_sort_id', 'dis_sort_id', 'dis_name_th');
 	}
 
+	public function customerProvince()
+	{
+		return $this->belongsTo(MasterProvice::class, 'cus_pro_id', 'pro_id')
+			->select('pro_id', 'pro_name_th', 'pro_sort_id');
+	}
+
 	public function customerSubdistrict()
 	{
 		return $this->belongsTo(MasterSubdistrict::class, 'cus_sub_id', 'sub_id')
@@ -210,5 +216,68 @@ class MasterCustomer extends Model
 		return $this->hasMany(\App\Models\PricingRequest::class, 'pr_cus_id', 'cus_id')
 			->where('pr_is_deleted', 0)
 			->orderBy('pr_created_date', 'desc');
+	}
+
+	/**
+	 * สร้างที่อยู่เต็มจาก components
+	 */
+	public function getFullAddressAttribute()
+	{
+		$addressService = new \App\Services\AddressService();
+		return $addressService->formatDisplayAddress($this);
+	}
+
+	/**
+	 * แยกที่อยู่เป็น components
+	 */
+	public function getAddressComponentsAttribute()
+	{
+		$addressService = new \App\Services\AddressService();
+		return $addressService->parseFullAddress($this->cus_address);
+	}
+
+	/**
+	 * อัพเดทที่อยู่จาก components
+	 */
+	public function updateAddressFromComponents($addressDetail, $subId, $disId, $proId, $zipCode = null)
+	{
+		$addressService = new \App\Services\AddressService();
+		
+		// อัพเดท components
+		$this->cus_pro_id = $proId;
+		$this->cus_dis_id = $disId;
+		$this->cus_sub_id = $subId;
+		$this->cus_zip_code = $zipCode;
+		
+		// สร้างที่อยู่เต็ม
+		$this->cus_address = $addressService->buildFullAddress($addressDetail, $subId, $disId, $proId, $zipCode);
+		
+		return $this;
+	}
+
+	/**
+	 * อัพเดทที่อยู่จาก full address
+	 */
+	public function updateAddressFromFull($fullAddress)
+	{
+		$addressService = new \App\Services\AddressService();
+		
+		// อัพเดท full address
+		$this->cus_address = $fullAddress;
+		
+		// แยก components และอัพเดท
+		$components = $addressService->parseFullAddress($fullAddress);
+		$locationIds = $addressService->findLocationIds(
+			$components['province'],
+			$components['district'],
+			$components['subdistrict']
+		);
+		
+		$this->cus_pro_id = $locationIds['pro_id'];
+		$this->cus_dis_id = $locationIds['dis_id'];
+		$this->cus_sub_id = $locationIds['sub_id'];
+		$this->cus_zip_code = $components['zip_code'];
+		
+		return $this;
 	}
 }

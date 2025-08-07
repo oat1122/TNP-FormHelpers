@@ -1,4 +1,5 @@
 import React from 'react';
+import { AddressService } from '../../../services/AddressService';
 import {
   Card,
   CardContent,
@@ -160,11 +161,20 @@ const CustomerCard = ({ customer, onView, onEdit, handleRecall }) => {
   }
 
   const parsedAddress = customer.cus_address
-    ? parseFullAddress(typeof customer.cus_address === 'object' ? 
-        (customer.cus_address?.address || customer.cus_address?.full_address || JSON.stringify(customer.cus_address)) : 
-        customer.cus_address
-      )
-    : {};
+    ? {
+        address: AddressService.formatShortAddress(customer, 60),
+        subdistrict: '',
+        district: '',
+        province: '',
+        zipCode: ''
+      }
+    : {
+        address: '',
+        subdistrict: '',
+        district: '',
+        province: '',
+        zipCode: ''
+      };
 
   let relativeRecall = 0;
   try {

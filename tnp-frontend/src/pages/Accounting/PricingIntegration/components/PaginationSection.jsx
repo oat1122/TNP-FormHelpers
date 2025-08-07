@@ -26,16 +26,16 @@ const PaginationSection = ({
             {showHeader && (
                 <Box sx={{ mb: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6" color="primary">
-                            Pricing Request ที่พร้อมออกใบเสนอราคา
-                            <Box component="span" sx={{ ml: 2 }}>
-                                <Chip
-                                    label={pagination.total}
-                                    color="secondary"
-                                    size="small"
-                                />
-                            </Box>
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Typography variant="h6" color="primary">
+                                Pricing Request ที่พร้อมออกใบเสนอราคา
+                            </Typography>
+                            <Chip
+                                label={pagination.total}
+                                color="secondary"
+                                size="small"
+                            />
+                        </Box>
 
                         {/* Items per page selector */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

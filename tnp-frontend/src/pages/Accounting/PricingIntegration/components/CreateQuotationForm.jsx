@@ -570,9 +570,49 @@ const CreateQuotationForm = ({
                                                 <Typography variant="subtitle1" fontWeight={600} color="#900F0F">
                                                     {item.name}
                                                 </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {item.pattern} • {item.fabricType}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
+                                                    <TextField
+                                                        size="small"
+                                                        placeholder="แพทเทิร์น"
+                                                        value={item.pattern}
+                                                        onChange={(e) => setFormData(prev => ({
+                                                            ...prev,
+                                                            items: prev.items.map(i =>
+                                                                i.id === item.id ? { ...i, pattern: e.target.value } : i
+                                                            )
+                                                        }))}
+                                                        sx={{
+                                                            flex: 1,
+                                                            '& .MuiOutlinedInput-root': {
+                                                                fontSize: '0.875rem',
+                                                                '&.Mui-focused fieldset': {
+                                                                    borderColor: '#900F0F',
+                                                                },
+                                                            },
+                                                        }}
+                                                    />
+                                                    <Typography variant="caption" color="text.secondary">•</Typography>
+                                                    <TextField
+                                                        size="small"
+                                                        placeholder="ประเภทผ้า"
+                                                        value={item.fabricType}
+                                                        onChange={(e) => setFormData(prev => ({
+                                                            ...prev,
+                                                            items: prev.items.map(i =>
+                                                                i.id === item.id ? { ...i, fabricType: e.target.value } : i
+                                                            )
+                                                        }))}
+                                                        sx={{
+                                                            flex: 1,
+                                                            '& .MuiOutlinedInput-root': {
+                                                                fontSize: '0.875rem',
+                                                                '&.Mui-focused fieldset': {
+                                                                    borderColor: '#900F0F',
+                                                                },
+                                                            },
+                                                        }}
+                                                    />
+                                                </Box>
                                             </Grid>
                                             <Grid item xs={6} md={2}>
                                                 <Typography variant="caption" color="text.secondary">
@@ -587,8 +627,9 @@ const CreateQuotationForm = ({
                                                     fullWidth
                                                     label="ราคาต่อหน่วย"
                                                     type="number"
-                                                    value={item.unitPrice}
+                                                    value={item.unitPrice || ''}
                                                     onChange={(e) => handleItemPriceChange(item.id, e.target.value)}
+                                                    placeholder="0.00"
                                                     InputProps={{
                                                         startAdornment: <InputAdornment position="start">฿</InputAdornment>,
                                                     }}

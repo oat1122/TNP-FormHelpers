@@ -47,6 +47,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
 import PricingRequestNotesButton from './PricingRequestNotesButton';
 import QuotationPreview from './QuotationPreview';
+import CustomerEditCard from './CustomerEditCard';
 
 // Styled Components with our theme colors
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -335,59 +336,16 @@ const CreateQuotationForm = ({
                                 </Box>
                             </SectionHeader>
 
-                            {/* Customer Information */}
-                            <InfoCard sx={{ mb: 3 }}>
-                                <CardContent>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                        <BusinessIcon sx={{ color: '#B20000', mr: 1 }} />
-                                        <Typography variant="h6" fontWeight={600} color="#900F0F">
-                                            ข้อมูลลูกค้า
-                                        </Typography>
-                                    </Box>
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                บริษัท
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {formData.customer?.cus_company || 'ไม่ระบุ'}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                เลขประจำตัวผู้เสียภาษี
-                                            </Typography>
-                                            <Typography variant="body1" fontWeight={600}>
-                                                {formData.customer?.cus_tax_id || 'ไม่ระบุ'}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                ที่อยู่
-                                            </Typography>
-                                            <Typography variant="body1">
-                                                {formData.customer?.cus_address || 'ไม่ระบุ'}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                โทรศัพท์
-                                            </Typography>
-                                            <Typography variant="body1">
-                                                {formData.customer?.cus_phone || 'ไม่ระบุ'}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} md={6}>
-                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                อีเมล
-                                            </Typography>
-                                            <Typography variant="body1">
-                                                {formData.customer?.cus_email || 'ไม่ระบุ'}
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
-                                </CardContent>
-                            </InfoCard>
+                            {/* Customer Information - แก้ไขได้ */}
+                            <CustomerEditCard 
+                                customer={formData.customer}
+                                onUpdate={(updatedCustomer) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        customer: updatedCustomer
+                                    }));
+                                }}
+                            />
 
                             {/* Work Details */}
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

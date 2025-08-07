@@ -407,6 +407,75 @@ class AutofillService
     }
 
     /**
+     * ดึงข้อมูล Notes ของ Pricing Request
+     */
+    public function getPricingRequestNotes($pricingRequestId)
+    {
+        try {
+            // ตรวจสอบ Pricing Request ที่มีอยู่
+            $pricingRequest = PricingRequest::where('pr_id', $pricingRequestId)
+                ->where('pr_is_deleted', 0)
+                ->first();
+
+            if (!$pricingRequest) {
+                throw new \Exception('Pricing Request not found');
+            }
+
+            // ดึง Notes ตามเงื่อนไขที่กำหนด
+            $notes = PricingRequestNote::with('prnCreatedBy')
+                ->where('prn_pr_id', $pricingRequestId)
+                ->whereIn('prn_note_type', [1, 2]) // เฉพาะ sale และ price
+                ->where('prn_is_deleted', 0)
+                ->orderBy('prn_created_date', 'ASC')
+                ->get();
+
+            // จัดรูปแบบข้อมูล
+            $formattedNotes = $notes->map(function ($note) {
+                $noteTypeLabels = [
+                    1 => 'Sale',
+                    2 => 'Price'
+                ];
+
+                $noteTypeColors = [
+                    1 => '#2196F3', // Blue for Sale
+                    2 => '#4CAF50'  // Green for Price
+                ];
+
+                return [
+                    'prn_id' => $note->prn_id,
+                    'prn_pr_id' => $note->prn_pr_id,
+                    'prn_text' => $note->prn_text,
+                    'prn_note_type' => $note->prn_note_type,
+                    'prn_note_type_label' => $noteTypeLabels[$note->prn_note_type] ?? 'Unknown',
+                    'prn_note_type_color' => $noteTypeColors[$note->prn_note_type] ?? '#757575',
+                    'prn_created_date' => $note->prn_created_date,
+                    'prn_created_by' => $note->prn_created_by,
+                    'created_by_name' => $note->prnCreatedBy->user_nickname ?? $note->prnCreatedBy->user_firstname ?? 'Unknown User',
+                    'formatted_date' => $note->prn_created_date ? $note->prn_created_date->format('d/m/Y H:i') : ''
+                ];
+            });
+
+            // จัดกลุ่มตาม note type
+            $groupedNotes = [
+                'sale_notes' => $formattedNotes->where('prn_note_type', 1)->values(),
+                'price_notes' => $formattedNotes->where('prn_note_type', 2)->values(),
+                'all_notes' => $formattedNotes->values(),
+                'summary' => [
+                    'total_notes' => $formattedNotes->count(),
+                    'sale_count' => $formattedNotes->where('prn_note_type', 1)->count(),
+                    'price_count' => $formattedNotes->where('prn_note_type', 2)->count()
+                ]
+            ];
+
+            return $groupedNotes;
+
+        } catch (\Exception $e) {
+            Log::error('AutofillService::getPricingRequestNotes error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
      */
     public function markPricingRequestAsUsed($pricingRequestId, $userId = null)

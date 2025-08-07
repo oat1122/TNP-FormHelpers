@@ -213,6 +213,9 @@ Route::prefix('v1')->group(function() {
     
     Route::get('/pricing-requests/{id}/autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestAutofill']);
     
+    // NEW: Pricing Request Notes API
+    Route::get('/pricing-requests/{id}/notes', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestNotes']);
+    
     // Auto-fill APIs
     Route::controller(AutofillController::class)->group(function () {
         // Pricing Request Auto-fill

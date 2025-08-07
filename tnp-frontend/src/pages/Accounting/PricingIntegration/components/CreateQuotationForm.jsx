@@ -21,9 +21,6 @@ import {
     Stack,
     IconButton,
     Tooltip,
-    Stepper,
-    Step,
-    StepLabel,
     Avatar,
     Dialog,
     DialogTitle,
@@ -48,6 +45,7 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
+import PricingRequestNotesButton from './PricingRequestNotesButton';
 import QuotationPreview from './QuotationPreview';
 
 // Styled Components with our theme colors
@@ -146,11 +144,8 @@ const CreateQuotationForm = ({
         notes: '',
     });
 
-    const [activeStep, setActiveStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
-
-    const steps = ['ข้อมูลงาน', 'คำนวณราคา', 'เงื่อนไขการชำระ'];
 
     // Calculate totals when items change
     useEffect(() => {
@@ -190,6 +185,7 @@ const CreateQuotationForm = ({
                 console.log(`📝 Processing PR ${index + 1}:`, pr);
                 return {
                     id: pr.pr_id || pr.id || `temp_${index}`,
+                    pricingRequestId: pr.pr_id, // สำหรับ Notes Button
                     name: pr.pr_work_name || pr.work_name || 'ไม่ระบุชื่องาน',
                     pattern: pr.pr_pattern || pr.pattern || '',
                     fabricType: pr.pr_fabric_type || pr.fabric_type || pr.material || '',
@@ -287,30 +283,6 @@ const CreateQuotationForm = ({
     return (
         <Box sx={{ bgcolor: '#F8F9FA', minHeight: '100vh', py: 3 }}>
             <Container maxWidth="lg">
-                {/* Debug Info (Development only) */}
-                {import.meta.env.MODE === 'development' && (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                        <Typography variant="h6">🐛 Debug Info</Typography>
-                        <Typography variant="body2">
-                            Selected Requests: {selectedPricingRequests?.length || 0}
-                        </Typography>
-                        <Typography variant="body2">
-                            Form Items: {formData.items?.length || 0}
-                        </Typography>
-                        <Typography variant="body2">
-                            Customer: {formData.customer?.cus_company || 'ไม่มีข้อมูล'}
-                        </Typography>
-                        {selectedPricingRequests?.length !== formData.items?.length && (
-                            <Typography variant="body2" color="error">
-                                ⚠️ Count mismatch! Expected: {selectedPricingRequests?.length}, Got: {formData.items?.length}
-                            </Typography>
-                        )}
-                        <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                            เปิด Console (F12) เพื่อดูข้อมูล debug เพิ่มเติม
-                        </Typography>
-                    </Alert>
-                )}
-
                 {/* Header */}
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Tooltip title="กลับไปหน้าเดิม">
@@ -344,31 +316,6 @@ const CreateQuotationForm = ({
                         )}
                     </Box>
                 </Box>
-
-                {/* Progress Stepper */}
-                <StyledPaper sx={{ mb: 3, p: 3 }}>
-                    <Stepper activeStep={activeStep} alternativeLabel>
-                        {steps.map((label, index) => (
-                            <Step key={label}>
-                                <StepLabel
-                                    sx={{
-                                        '& .MuiStepLabel-label': {
-                                            fontSize: '16px',
-                                            fontWeight: 600,
-                                            color: index <= activeStep ? '#900F0F' : 'text.secondary',
-                                        },
-                                        '& .MuiStepIcon-root': {
-                                            color: index <= activeStep ? '#900F0F' : 'action.disabled',
-                                            fontSize: '2rem',
-                                        },
-                                    }}
-                                >
-                                    {label}
-                                </StepLabel>
-                            </Step>
-                        ))}
-                    </Stepper>
-                </StyledPaper>
 
                 <Grid container spacing={3}>
                     {/* Step 1: Work Information */}
@@ -585,13 +532,21 @@ const CreateQuotationForm = ({
                                             pb: 2,
                                             borderBottom: '2px solid #F0F0F0'
                                         }}>
-                                            <Box>
-                                                <Typography variant="h5" fontWeight={700} color="#900F0F" sx={{ mb: 1 }}>
-                                                    งานที่ {index + 1}
-                                                </Typography>
-                                                <Typography variant="h6" fontWeight={600} color="text.primary">
-                                                    {item.name}
-                                                </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box>
+                                                    <Typography variant="h5" fontWeight={700} color="#900F0F" sx={{ mb: 1 }}>
+                                                        งานที่ {index + 1}
+                                                    </Typography>
+                                                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                                                        {item.name}
+                                                    </Typography>
+                                                </Box>
+                                                <PricingRequestNotesButton
+                                                    pricingRequestId={item.pricingRequestId || item.pr_id}
+                                                    workName={item.name}
+                                                    variant="icon"
+                                                    size="medium"
+                                                />
                                             </Box>
                                             <Chip
                                                 label={`${item.quantity} ชิ้น`}

@@ -228,6 +228,31 @@ class AutofillController extends Controller
     }
 
     /**
+     * ดึงข้อมูล Notes ของ Pricing Request
+     * GET /api/v1/pricing-requests/{id}/notes
+     */
+    public function getPricingRequestNotes($pricingRequestId): JsonResponse
+    {
+        try {
+            $notes = $this->autofillService->getPricingRequestNotes($pricingRequestId);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $notes,
+                'message' => 'Pricing request notes retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AutofillController::getPricingRequestNotes error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve pricing request notes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
      * POST /api/v1/pricing/requests/{id}/mark-used
      */

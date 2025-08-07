@@ -29,7 +29,6 @@ class AddressService
                     ->where('sub_is_use', true)
                     ->first();
                 if ($subdistrict) {
-                    $parts[] = "แขวง" . $subdistrict->sub_name_th;
                     // ใช้รหัสไปรษณีย์จาก subdistrict ถ้าไม่ได้ส่งมา
                     if (!$zipCode && $subdistrict->sub_zip_code) {
                         $zipCode = $subdistrict->sub_zip_code;
@@ -42,9 +41,6 @@ class AddressService
                 $district = MasterDistrict::where('dis_id', $disId)
                     ->where('dis_is_use', true)
                     ->first();
-                if ($district) {
-                    $parts[] = "เขต" . $district->dis_name_th;
-                }
             }
             
             // จังหวัด
@@ -53,8 +49,28 @@ class AddressService
                     ->where('pro_is_use', true)
                     ->first();
                 if ($province) {
-                    // กรุงเทพฯ ใช้ "กรุงเทพฯ" แทน "จ.กรุงเทพฯ"
-                    if (strpos($province->pro_name_th, 'กรุงเทพ') !== false) {
+                    $isBangkok = strpos($province->pro_name_th, 'กรุงเทพ') !== false;
+                    
+                    // เพิ่มตำบล/แขวง
+                    if ($subId && $subdistrict) {
+                        if ($isBangkok) {
+                            $parts[] = "แขวง" . $subdistrict->sub_name_th;
+                        } else {
+                            $parts[] = "ตำบล" . $subdistrict->sub_name_th;
+                        }
+                    }
+                    
+                    // เพิ่มเขต/อำเภอ
+                    if ($disId && $district) {
+                        if ($isBangkok) {
+                            $parts[] = "เขต" . $district->dis_name_th;
+                        } else {
+                            $parts[] = "อำเภอ" . $district->dis_name_th;
+                        }
+                    }
+                    
+                    // เพิ่มจังหวัด
+                    if ($isBangkok) {
                         $parts[] = "กรุงเทพฯ";
                     } else {
                         $parts[] = "จ." . $province->pro_name_th;
@@ -108,23 +124,30 @@ class AddressService
                 array_pop($parts); // ลบรหัสไปรษณีย์ออก
             }
             
-            // หาจังหวัด (ขึ้นต้นด้วย "จ." หรือ "กทม.")
+            // หาจังหวัด (ขึ้นต้นด้วย "จ." หรือ "กรุงเทพฯ")
             foreach ($parts as $index => $part) {
                 if (strpos($part, 'จ.') === 0) {
                     $result['province'] = str_replace('จ.', '', $part);
                     unset($parts[$index]);
                     break;
-                } elseif (strpos($part, 'กทม.') === 0) {
+                } elseif (strpos($part, 'กรุงเทพฯ') === 0) {
                     $result['province'] = 'กรุงเทพมหานคร';
                     unset($parts[$index]);
                     break;
                 }
             }
             
-            // หาเขต/อำเภอ (ขึ้นต้นด้วย "เขต" หรือ "อ.")
+            // ตรวจสอบว่าเป็นกรุงเทพฯ หรือไม่
+            $isBangkok = $result['province'] === 'กรุงเทพมหานคร';
+            
+            // หาเขต/อำเภอ (ขึ้นต้นด้วย "เขต" หรือ "อำเภอ" หรือ "อ.")
             foreach ($parts as $index => $part) {
                 if (strpos($part, 'เขต') === 0) {
                     $result['district'] = str_replace('เขต', '', $part);
+                    unset($parts[$index]);
+                    break;
+                } elseif (strpos($part, 'อำเภอ') === 0) {
+                    $result['district'] = str_replace('อำเภอ', '', $part);
                     unset($parts[$index]);
                     break;
                 } elseif (strpos($part, 'อ.') === 0) {
@@ -134,10 +157,14 @@ class AddressService
                 }
             }
             
-            // หาแขวง/ตำบล (ขึ้นต้นด้วย "แขวง" หรือ "ต.")
+            // หาแขวง/ตำบล (ขึ้นต้นด้วย "แขวง" หรือ "ตำบล" หรือ "ต.")
             foreach ($parts as $index => $part) {
                 if (strpos($part, 'แขวง') === 0) {
                     $result['subdistrict'] = str_replace('แขวง', '', $part);
+                    unset($parts[$index]);
+                    break;
+                } elseif (strpos($part, 'ตำบล') === 0) {
+                    $result['subdistrict'] = str_replace('ตำบล', '', $part);
                     unset($parts[$index]);
                     break;
                 } elseif (strpos($part, 'ต.') === 0) {

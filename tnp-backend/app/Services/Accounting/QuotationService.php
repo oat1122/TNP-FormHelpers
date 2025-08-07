@@ -161,6 +161,130 @@ class QuotationService
     }
 
     /**
+     * สร้าง Quotation จาก Multiple Pricing Requests
+     */
+    public function createFromMultiplePricingRequests($pricingRequestIds, $customerId, $additionalData = [], $createdBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            Log::info('Creating quotation from multiple pricing requests', [
+                'pricing_request_ids' => $pricingRequestIds,
+                'customer_id' => $customerId,
+                'created_by' => $createdBy
+            ]);
+
+            // ตรวจสอบว่า pricing requests ทั้งหมดมีอยู่จริง
+            $pricingRequests = \DB::table('pricing_requests')
+                ->whereIn('pr_id', $pricingRequestIds)
+                ->where('pr_cus_id', $customerId)
+                ->get();
+
+            if ($pricingRequests->count() !== count($pricingRequestIds)) {
+                throw new \Exception('Some pricing requests not found or do not belong to the specified customer');
+            }
+
+            // ดึงข้อมูลลูกค้า
+            $customer = \DB::table('master_customers')->where('cus_id', $customerId)->first();
+            if (!$customer) {
+                throw new \Exception('Customer not found');
+            }
+
+            // คำนวณยอดรวมจาก pricing requests
+            $totalAmount = $additionalData['total_amount'] ?? 0;
+            $subtotal = $additionalData['subtotal'] ?? 0;
+            $taxAmount = $additionalData['tax_amount'] ?? 0;
+
+            // สร้าง Quotation
+            $quotation = new Quotation();
+            $quotation->id = \Illuminate\Support\Str::uuid();
+            $quotation->number = Quotation::generateQuotationNumber();
+            
+            // เก็บ pricing request ids เป็น JSON
+            $quotation->pricing_request_id = json_encode($pricingRequestIds);
+            
+            // Auto-fill ข้อมูลลูกค้า
+            $quotation->customer_id = $customer->cus_id;
+            $quotation->customer_company = $customer->cus_company;
+            $quotation->customer_tax_id = $customer->cus_tax_id;
+            $quotation->customer_address = $customer->cus_address;
+            $quotation->customer_zip_code = $customer->cus_zip_code;
+            $quotation->customer_tel_1 = $customer->cus_tel_1;
+            $quotation->customer_email = $customer->cus_email;
+            $quotation->customer_firstname = $customer->cus_firstname;
+            $quotation->customer_lastname = $customer->cus_lastname;
+
+            // รวมข้อมูลงานจาก pricing requests ทั้งหมด
+            $workNames = $pricingRequests->pluck('pr_work_name')->filter()->toArray();
+            $quotation->work_name = implode(', ', $workNames);
+            
+            // คำนวณจำนวนรวม
+            $totalQuantity = $pricingRequests->sum('pr_quantity');
+            $quotation->quantity = (string)$totalQuantity;
+
+            // ข้อมูลราคา
+            $quotation->subtotal = $subtotal;
+            $quotation->tax_amount = $taxAmount;
+            $quotation->total_amount = $totalAmount;
+
+            // ข้อมูลการชำระเงิน
+            $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 50;
+            $quotation->deposit_amount = $totalAmount * ($quotation->deposit_percentage / 100);
+            $quotation->payment_terms = $additionalData['payment_terms'] ?? 'credit_30';
+
+            // หมายเหตุ
+            $quotation->notes = $additionalData['additional_notes'] ?? '';
+
+            $quotation->status = 'draft';
+            $quotation->created_by = $createdBy;
+            $quotation->save();
+
+            // สร้าง Order Items Tracking สำหรับแต่ละ pricing request
+            foreach ($pricingRequests as $pr) {
+                if ($pr->pr_quantity && is_numeric($pr->pr_quantity)) {
+                    OrderItemsTracking::create([
+                        'quotation_id' => $quotation->id,
+                        'pricing_request_id' => $pr->pr_id,
+                        'work_name' => $pr->pr_work_name,
+                        'fabric_type' => $pr->pr_fabric_type,
+                        'pattern' => $pr->pr_pattern,
+                        'color' => $pr->pr_color,
+                        'sizes' => $pr->pr_sizes,
+                        'ordered_quantity' => intval($pr->pr_quantity),
+                        'unit_price' => $totalAmount > 0 && $totalQuantity > 0 ? $totalAmount / $totalQuantity : 0
+                    ]);
+                }
+            }
+
+            // บันทึก History
+            $workNamesList = implode(', ', $workNames);
+            DocumentHistory::logCreation('quotation', $quotation->id, $createdBy, "สร้างจาก Multiple Pricing Requests: {$workNamesList}");
+
+            // มาร์ค Pricing Requests ว่าใช้แล้วสำหรับสร้าง Quotation
+            foreach ($pricingRequestIds as $prId) {
+                $this->autofillService->markPricingRequestAsUsed($prId, $createdBy);
+            }
+
+            DB::commit();
+
+            Log::info('Quotation created successfully', [
+                'quotation_id' => $quotation->id,
+                'quotation_number' => $quotation->number
+            ]);
+
+            return $quotation->load(['customer', 'creator']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::createFromMultiplePricingRequests error: ' . $e->getMessage(), [
+                'pricing_request_ids' => $pricingRequestIds,
+                'customer_id' => $customerId
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * อัปเดต Quotation
      */
     public function update($id, $data, $updatedBy = null)

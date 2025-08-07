@@ -213,41 +213,111 @@ const PricingIntegration = () => {
 
     const handleSaveQuotationDraft = async (data) => {
         try {
-            // TODO: Implement save draft API
+            console.log('💾 Saving quotation draft with data:', data);
+
+            // เตรียมข้อมูลสำหรับส่งไป backend (เหมือนกับ submit แต่เป็น draft)
+            const submitData = {
+                // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController
+                pricing_request_ids: selectedPricingRequests.map(pr => pr.pr_id),
+                customer_id: data.customer?.cus_id || selectedPricingRequests[0]?.pr_cus_id,
+                
+                // ข้อมูลการคำนวณ
+                subtotal: data.subtotal || 0,
+                tax_amount: data.vat || 0,
+                total_amount: data.total || 0,
+                
+                // ข้อมูลการชำระเงิน
+                deposit_percentage: data.depositPercentage === 'custom' 
+                    ? parseInt(data.customDepositPercentage) || 50 
+                    : parseInt(data.depositPercentage) || 50,
+                payment_terms: data.paymentMethod || 'credit_30',
+                
+                // หมายเหตุเพิ่มเติม
+                additional_notes: data.notes || '',
+            };
+
+            console.log('📤 API Draft Data:', submitData);
+
+            // เรียก API mutation (status จะเป็น draft โดยอัตโนมัติใน service)
+            const result = await createQuotationFromMultiplePricing(submitData).unwrap();
+            
+            console.log('✅ Draft saved successfully:', result);
+
+            // แสดงข้อความสำเร็จ
             dispatch(addNotification({
                 type: 'success',
-                title: 'บันทึกร่างสำเร็จ',
-                message: 'บันทึกร่างใบเสนอราคาเรียบร้อยแล้ว',
+                title: 'บันทึกร่างสำเร็จ! 📝',
+                message: `เลขที่ใบเสนอราคา: ${result.data?.number || 'N/A'} (สถานะ: ร่าง)`,
             }));
             
+            // รีเซ็ตฟอร์มและกลับไปหน้าหลัก
             setShowCreateForm(false);
             setSelectedPricingRequests([]);
+            refetch(); // รีเฟรชข้อมูล pricing requests
+            
         } catch (error) {
+            console.error('❌ Error saving draft:', error);
+            
             dispatch(addNotification({
                 type: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                message: 'ไม่สามารถบันทึกร่างได้',
+                title: 'เกิดข้อผิดพลาดในการบันทึกร่าง',
+                message: error?.data?.message || error?.message || 'ไม่สามารถบันทึกร่างได้',
             }));
         }
     };
 
     const handleSubmitQuotationForm = async (data) => {
         try {
-            // TODO: Implement submit quotation API
+            console.log('🚀 Submitting quotation form with data:', data);
+
+            // เตรียมข้อมูลสำหรับส่งไป backend
+            const submitData = {
+                // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController
+                pricing_request_ids: selectedPricingRequests.map(pr => pr.pr_id),
+                customer_id: data.customer?.cus_id || selectedPricingRequests[0]?.pr_cus_id,
+                
+                // ข้อมูลการคำนวณ
+                subtotal: data.subtotal || 0,
+                tax_amount: data.vat || 0,
+                total_amount: data.total || 0,
+                
+                // ข้อมูลการชำระเงิน
+                deposit_percentage: data.depositPercentage === 'custom' 
+                    ? parseInt(data.customDepositPercentage) || 50 
+                    : parseInt(data.depositPercentage) || 50,
+                payment_terms: data.paymentMethod || 'credit_30',
+                
+                // หมายเหตุเพิ่มเติม
+                additional_notes: data.notes || '',
+            };
+
+            console.log('📤 API Submit Data:', submitData);
+
+            // เรียก API mutation
+            const result = await createQuotationFromMultiplePricing(submitData).unwrap();
+            
+            console.log('✅ Quotation created successfully:', result);
+
+            // แสดงข้อความสำเร็จ
             dispatch(addNotification({
                 type: 'success',
-                title: 'ส่งใบเสนอราคาสำเร็จ',
-                message: 'ส่งใบเสนอราคาเพื่อตรวจสอบเรียบร้อยแล้ว',
+                title: 'สร้างใบเสนอราคาสำเร็จ! 🎉',
+                message: `เลขที่ใบเสนอราคา: ${result.data?.number || 'N/A'} ยอดรวม: ${new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(result.data?.total_amount || 0)}`,
             }));
             
+            // รีเซ็ตฟอร์มและกลับไปหน้าหลัก
             setShowCreateForm(false);
             setSelectedPricingRequests([]);
-            refetch();
+            refetch(); // รีเฟรชข้อมูล pricing requests
+            
         } catch (error) {
+            console.error('❌ Error submitting quotation:', error);
+            
+            // แสดงข้อความผิดพลาด
             dispatch(addNotification({
                 type: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                message: 'ไม่สามารถส่งใบเสนอราคาได้',
+                title: 'เกิดข้อผิดพลาดในการสร้างใบเสนอราคา',
+                message: error?.data?.message || error?.message || 'ไม่สามารถสร้างใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง',
             }));
         }
     };

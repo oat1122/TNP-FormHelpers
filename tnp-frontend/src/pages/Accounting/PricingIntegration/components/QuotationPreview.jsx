@@ -66,6 +66,19 @@ const CompanyHeader = styled(Box)(({ theme }) => ({
 }));
 
 const QuotationPreview = ({ formData, quotationNumber, showActions = false }) => {
+    // useEffect สำหรับ listen การ print event จาก parent
+    React.useEffect(() => {
+        const handlePrintEvent = () => {
+            handlePrint();
+        };
+        
+        document.addEventListener('quotation-print', handlePrintEvent);
+        
+        return () => {
+            document.removeEventListener('quotation-print', handlePrintEvent);
+        };
+    }, []);
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('th-TH', {
             style: 'currency',
@@ -83,103 +96,264 @@ const QuotationPreview = ({ formData, quotationNumber, showActions = false }) =>
     };
 
     const handlePrint = () => {
-        // เตรียมสำหรับการพิมพ์แบบ A4
-        const printWindow = window.open('', '_blank');
+        // สร้าง print window แยกต่างหาก
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
         const quotationElement = document.querySelector('.quotation-preview');
         
         if (printWindow && quotationElement) {
+            // สร้าง HTML clone ที่สะอาด
+            const clonedElement = quotationElement.cloneNode(true);
+            
+            // ลบ elements ที่ไม่ต้องการ
+            const elementsToRemove = clonedElement.querySelectorAll('.print-hide, button, .MuiButton-root, .MuiIconButton-root');
+            elementsToRemove.forEach(el => el.remove());
+            
+            const quotationHTML = clonedElement.outerHTML;
+            
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
                     <title>ใบเสนอราคา ${quotationNumber || 'QT-2025-XXX'}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
                     <style>
                         @page {
                             size: A4;
-                            margin: 10mm 15mm 10mm 15mm;
+                            margin: 15mm;
+                        }
+                        
+                        * {
+                            box-sizing: border-box;
                         }
                         
                         body {
                             font-family: 'Kanit', 'Arial', sans-serif;
                             margin: 0;
-                            padding: 0;
+                            padding: 15mm;
                             background: white;
                             color: #000;
-                            font-size: 11pt;
-                            line-height: 1.3;
+                            font-size: 12pt;
+                            line-height: 1.4;
                         }
                         
-                        .quotation-content {
+                        .quotation-preview {
                             width: 100%;
                             max-width: none;
                             padding: 0;
+                            margin: 0;
                             box-shadow: none;
                             border-radius: 0;
+                            background: white;
                         }
                         
+                        /* Company Header */
                         .company-header {
                             background: linear-gradient(135deg, #900F0F 0%, #B20000 100%) !important;
                             color: white !important;
-                            padding: 12pt !important;
-                            margin-bottom: 12pt !important;
+                            padding: 20pt !important;
+                            margin: 0 0 20pt 0 !important;
                             text-align: center;
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
+                            border-radius: 0 !important;
+                        }
+                        
+                        .company-header .MuiTypography-h4 {
+                            margin: 0 0 10pt 0 !important;
+                            font-size: 18pt !important;
+                            font-weight: bold !important;
+                            color: white !important;
+                        }
+                        
+                        .company-header .MuiTypography-h6 {
+                            margin: 0 !important;
+                            font-size: 14pt !important;
+                            color: white !important;
+                            opacity: 0.9;
+                        }
+                        
+                        /* Typography */
+                        .MuiTypography-h6 {
+                            color: #900F0F !important;
+                            margin-bottom: 10pt !important;
+                            page-break-after: avoid;
+                            font-size: 14pt !important;
+                            font-weight: 600 !important;
+                        }
+                        
+                        .MuiTypography-body1 {
+                            font-size: 12pt !important;
+                            margin-bottom: 5pt !important;
+                        }
+                        
+                        .MuiTypography-body2 {
+                            font-size: 11pt !important;
+                            margin-bottom: 3pt !important;
                         }
                         
                         .brand-color {
                             color: #900F0F !important;
                         }
                         
+                        /* Table Styles */
                         table {
                             border-collapse: collapse !important;
                             width: 100% !important;
-                            font-size: 10pt !important;
+                            font-size: 11pt !important;
+                            margin: 10pt 0 !important;
                         }
                         
-                        table th,
-                        table td {
+                        .MuiTableContainer-root {
+                            border: 1px solid #E36264 !important;
+                            box-shadow: none !important;
+                        }
+                        
+                        .MuiTableCell-root {
                             border: 1px solid #B20000 !important;
-                            padding: 6pt 8pt !important;
-                            text-align: left !important;
-                        }
-                        
-                        table th {
-                            background-color: rgba(144, 15, 15, 0.1) !important;
-                            font-weight: bold !important;
-                        }
-                        
-                        .summary-box {
-                            border: 2px solid #B20000 !important;
                             padding: 8pt !important;
-                            background: rgba(144, 15, 15, 0.05) !important;
+                            text-align: left !important;
+                            vertical-align: top !important;
+                            background: white !important;
+                        }
+                        
+                        .MuiTableHead-root .MuiTableCell-root {
+                            background: rgba(144, 15, 15, 0.1) !important;
+                            font-weight: bold !important;
+                            color: #900F0F !important;
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
                         
-                        .print-hide {
+                        /* Summary Box */
+                        .summary-box {
+                            border: 2px solid #B20000 !important;
+                            padding: 12pt !important;
+                            background: rgba(144, 15, 15, 0.05) !important;
+                            margin-top: 15pt !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            border-radius: 0 !important;
+                            box-shadow: none !important;
+                        }
+                        
+                        /* Grid and Layout */
+                        .MuiGrid-container {
+                            display: flex;
+                            flex-wrap: wrap;
+                            margin: -8pt;
+                        }
+                        
+                        .MuiGrid-item {
+                            padding: 8pt;
+                            flex-basis: auto;
+                        }
+                        
+                        /* Responsive grid classes */
+                        .MuiGrid-grid-xs-6 {
+                            flex-basis: 50%;
+                            max-width: 50%;
+                        }
+                        
+                        .MuiGrid-grid-xs-4 {
+                            flex-basis: 33.333333%;
+                            max-width: 33.333333%;
+                        }
+                        
+                        .MuiGrid-grid-xs-8 {
+                            flex-basis: 66.666667%;
+                            max-width: 66.666667%;
+                        }
+                        
+                        /* Dividers */
+                        .MuiDivider-root {
+                            border-color: #B20000 !important;
+                            margin: 15pt 0 !important;
+                            border-width: 1px;
+                            border-top-style: solid;
+                        }
+                        
+                        /* Hide interactive elements */
+                        .print-hide,
+                        button,
+                        .MuiButton-root,
+                        .MuiIconButton-root,
+                        .MuiTooltip-tooltip,
+                        .MuiChip-deleteIcon {
                             display: none !important;
+                        }
+                        
+                        /* Chips */
+                        .MuiChip-root {
+                            background-color: #900F0F !important;
+                            color: white !important;
+                            padding: 4pt 8pt !important;
+                            border-radius: 12pt !important;
+                            font-size: 10pt !important;
+                            font-weight: 600 !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            display: inline-block !important;
+                        }
+                        
+                        .MuiChip-label {
+                            color: white !important;
+                            padding: 0 !important;
+                        }
+                        
+                        /* Paper components */
+                        .MuiPaper-root {
+                            background: white !important;
+                            box-shadow: none !important;
+                            border-radius: 0 !important;
+                        }
+                        
+                        /* Text alignment utilities */
+                        [style*="text-align: right"] {
+                            text-align: right !important;
+                        }
+                        
+                        [style*="text-align: center"] {
+                            text-align: center !important;
+                        }
+                        
+                        /* Signature area */
+                        .signature-area {
+                            height: 60pt;
+                            border-bottom: 1px solid #B20000;
+                            margin-bottom: 5pt;
+                        }
+                        
+                        /* Box styling */
+                        .MuiBox-root {
+                            background: transparent !important;
+                        }
+                        
+                        /* Footer border */
+                        [style*="border-top"] {
+                            border-top: 2px solid #E36264 !important;
+                            padding-top: 15pt !important;
+                            margin-top: 20pt !important;
                         }
                     </style>
                 </head>
                 <body>
-                    <div class="quotation-content">
-                        ${quotationElement.innerHTML}
-                    </div>
+                    ${quotationHTML}
                 </body>
                 </html>
             `);
             
             printWindow.document.close();
-            printWindow.focus();
             
-            // Wait for content to load then print
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 500);
+            // รอให้โหลดเสร็จแล้วพิมพ์
+            printWindow.onload = function() {
+                setTimeout(() => {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                }, 1000);
+            };
         }
     };
 

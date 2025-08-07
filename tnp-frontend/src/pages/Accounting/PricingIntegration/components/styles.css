@@ -14,28 +14,42 @@
     print-color-adjust: exact !important;
   }
 
-  /* Hide everything except the quotation preview */
-  body * {
-    visibility: hidden;
+  /* Hide elements that shouldn't be printed */
+  .print-hide,
+  button,
+  .MuiButton-root,
+  .MuiIconButton-root,
+  .MuiTooltip-tooltip,
+  .MuiDialog-root .MuiBackdrop-root {
+    display: none !important;
   }
   
-  /* Show only the quotation preview content */
-  .quotation-preview,
-  .quotation-preview * {
-    visibility: visible;
+  /* If printing from dialog, style dialog properly */
+  .MuiDialog-root .MuiDialog-container {
+    position: static !important;
+    transform: none !important;
+  }
+  
+  .MuiDialog-root .MuiDialog-paper {
+    margin: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    border-radius: 0 !important;
   }
   
   /* Position and size the quotation preview for A4 */
   .quotation-preview {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 210mm !important; /* A4 width */
-    max-width: 210mm !important;
-    min-height: 270mm !important; /* A4 height minus margins */
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 15mm 10mm !important; /* Internal padding */
+    padding: 0 !important;
     box-sizing: border-box !important;
     background: white !important;
     transform: none !important;

@@ -968,13 +968,18 @@ const CreateQuotationForm = ({
                         <QuotationPreview
                             formData={formData}
                             quotationNumber="QT-2025-XXX"
+                            showActions={true}
                         />
                     </DialogContent>
 
                     <DialogActions sx={{ p: 3, bgcolor: '#F8F9FA' }}>
                         <SecondaryButton
                             startIcon={<PrintIcon />}
-                            onClick={() => window.print()}
+                            onClick={() => {
+                                // Trigger custom print event
+                                const event = new CustomEvent('quotation-print');
+                                document.dispatchEvent(event);
+                            }}
                         >
                             พิมพ์
                         </SecondaryButton>

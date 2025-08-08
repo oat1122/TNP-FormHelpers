@@ -51,7 +51,7 @@ const PricingIntegration = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
-    // API Queries
+    // API Queries - fetch a large page and handle client-side pagination
     const {
         data: pricingRequests,
         isLoading,
@@ -63,8 +63,8 @@ const PricingIntegration = () => {
         date_start: dateRange.start,
         date_end: dateRange.end,
         customer_id: selectedCustomer?.id,
-        page: currentPage,
-        per_page: itemsPerPage,
+        page: 1,
+        per_page: 1000,
     });
 
     // Group pricing requests by customer to avoid duplicate customer cards
@@ -74,8 +74,12 @@ const PricingIntegration = () => {
         const map = new Map();
 
         pricingRequests.data.forEach((req) => {
-            const customerId =
-                req.customer?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id;
+            const customerId = (
+                req.customer?.cus_id ||
+                req.pr_cus_id ||
+                req.customer_id ||
+                req.cus_id || ''
+            ).toString();
             if (!customerId) return;
 
             if (!map.has(customerId)) {
@@ -106,6 +110,27 @@ const PricingIntegration = () => {
         return Array.from(map.values());
     }, [pricingRequests]);
 
+    // Client-side pagination based on grouped customers
+    const totalCustomers = groupedPricingRequests.length;
+
+    const paginatedRequests = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return groupedPricingRequests.slice(start, start + itemsPerPage);
+    }, [groupedPricingRequests, currentPage, itemsPerPage]);
+
+    const paginationInfo = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        const to = Math.min(start + itemsPerPage, totalCustomers);
+        return {
+            current_page: currentPage,
+            last_page: Math.max(1, Math.ceil(totalCustomers / itemsPerPage)),
+            per_page: itemsPerPage,
+            total: totalCustomers,
+            from: totalCustomers === 0 ? 0 : start + 1,
+            to,
+        };
+    }, [currentPage, itemsPerPage, totalCustomers]);
+
     // Debug logs
     useEffect(() => {
         console.log('🔍 PricingIntegration Debug Info:', {
@@ -114,16 +139,14 @@ const PricingIntegration = () => {
             error,
             currentPage,
             itemsPerPage,
-            pricingRequests,
+            totalCustomers,
             apiUrl: `${import.meta.env.VITE_END_POINT_URL}/pricing-requests`,
             responseStructure: pricingRequests ? Object.keys(pricingRequests) : 'No data',
             dataArray: pricingRequests?.data || 'No data array',
             dataLength: pricingRequests?.data?.length || 0,
-            pagination: pricingRequests?.pagination || 'No pagination',
-            totalPages: pricingRequests?.pagination ? Math.ceil(pricingRequests.pagination.total / itemsPerPage) : 0,
             sampleRecord: pricingRequests?.data?.[0] || 'No records'
         });
-    }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage]);
+    }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage, totalCustomers]);
 
     const [createQuotationFromMultiplePricing] = useCreateQuotationFromMultiplePricingMutation();
 
@@ -465,7 +488,7 @@ const PricingIntegration = () => {
 
                             {/* Pagination Section */}
                             <PaginationSection
-                                pagination={pricingRequests?.pagination}
+                                pagination={paginationInfo}
                                 currentPage={currentPage}
                                 itemsPerPage={itemsPerPage}
                                 isFetching={isFetching}
@@ -481,7 +504,7 @@ const PricingIntegration = () => {
                             ) : groupedPricingRequests.length > 0 ? (
                                 <>
                                     <Grid container spacing={3}>
-                                        {groupedPricingRequests.map((request) => (
+                                        {paginatedRequests.map((request) => (
                                             <Grid item xs={12} sm={6} lg={4} key={request._customerId}>
                                                 <PricingRequestCard
                                                     request={request}
@@ -493,9 +516,9 @@ const PricingIntegration = () => {
                                     </Grid>
 
                                     {/* Bottom Pagination */}
-                                    {pricingRequests?.pagination && pricingRequests.pagination.last_page > 1 && (
+                                    {paginationInfo.last_page > 1 && (
                                         <PaginationSection
-                                            pagination={pricingRequests.pagination}
+                                            pagination={paginationInfo}
                                             currentPage={currentPage}
                                             itemsPerPage={itemsPerPage}
                                             isFetching={isFetching}

@@ -67,12 +67,17 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                     <Typography variant="h6" component="div" color="primary" fontWeight={600}>
                         {request.pr_id?.slice(-8) || 'PR-XXXX'}
                     </Typography>
-                    <Chip
-                        label={request.pr_status || 'Complete'}
-                        color={getStatusColor(request.pr_status)}
-                        size="small"
-                        icon={<CheckCircleIcon />}
-                    />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        {request.is_quoted && (
+                            <Chip label="มีใบเสนอราคาแล้ว" color="warning" size="small" />
+                        )}
+                        <Chip
+                            label={request.pr_status || 'Complete'}
+                            color={getStatusColor(request.pr_status)}
+                            size="small"
+                            icon={<CheckCircleIcon />}
+                        />
+                    </Stack>
                 </Box>
 
                 {/* Company Info */}
@@ -190,13 +195,14 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                     size="small"
                     startIcon={<AssignmentIcon />}
                     onClick={() => onCreateQuotation(request)}
+                    disabled={request.is_quoted}
                     sx={{
                         borderRadius: 2,
                         fontWeight: 600,
                         textTransform: 'none',
                         '&:hover': {
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 6px 12px rgba(144, 15, 15, 0.25)',
+                            transform: request.is_quoted ? 'none' : 'translateY(-1px)',
+                            boxShadow: request.is_quoted ? 'none' : '0 6px 12px rgba(144, 15, 15, 0.25)',
                         },
                         transition: 'all 0.2s ease-in-out',
                     }}

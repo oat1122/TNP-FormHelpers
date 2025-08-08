@@ -68,7 +68,7 @@ const PricingRequestCard = ({ request, onCreateQuotation, onViewDetails }) => {
                         {request.pr_id?.slice(-8) || 'PR-XXXX'}
                     </Typography>
                     <Stack direction="row" spacing={1} alignItems="center">
-                        {request.is_quoted && (
+                        {request.has_quotation && (
                             <Chip label="มีใบเสนอราคาแล้ว" color="warning" size="small" />
                         )}
                         <Chip

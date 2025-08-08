@@ -68,22 +68,41 @@ const PricingIntegration = () => {
     });
 
     // Group pricing requests by customer to avoid duplicate customer cards
+    // and track quotation status to prevent duplicate quotation creation
     const groupedPricingRequests = useMemo(() => {
         if (!pricingRequests?.data) return [];
         const map = new Map();
+
         pricingRequests.data.forEach((req) => {
             const customerId =
                 req.customer?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id;
             if (!customerId) return;
+
             if (!map.has(customerId)) {
-                map.set(customerId, { ...req, _customerId: customerId, is_quoted: !!req.is_quoted });
+                // Initialize with quotation flags
+                map.set(customerId, {
+                    ...req,
+                    _customerId: customerId,
+                    // is_quoted will be true only if ALL pricing requests have quotations
+                    is_quoted: !!req.is_quoted,
+                    // has_quotation tracks if ANY pricing request has a quotation
+                    has_quotation: !!req.is_quoted,
+                });
             } else {
                 const existing = map.get(customerId);
-                if (!existing.is_quoted && req.is_quoted) {
-                    existing.is_quoted = true;
+
+                // Update has_quotation if any request is quoted
+                if (req.is_quoted) {
+                    existing.has_quotation = true;
+                }
+
+                // is_quoted remains true only if every request is quoted
+                if (!req.is_quoted) {
+                    existing.is_quoted = false;
                 }
             }
         });
+
         return Array.from(map.values());
     }, [pricingRequests]);
 

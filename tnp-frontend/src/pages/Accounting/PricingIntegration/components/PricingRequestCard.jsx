@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
     Box,
     Card,
@@ -18,17 +18,63 @@ import {
     Business as BusinessIcon,
 } from '@mui/icons-material';
 
+/**
+ * 🎯 PricingRequestCard Component
+ * 
+ * แสดงการ์สำหรับแต่ละลูกค้าที่มี pricing requests
+ * 
+ * @param {Object} props
+ * @param {Object} props.group - ข้อมูลกลุ่ม pricing requests ของลูกค้า
+ * @param {string} props.group._customerId - ID ลูกค้า
+ * @param {Object} props.group.customer - ข้อมูลลูกค้า (cus_company, cus_firstname, cus_lastname)
+ * @param {Array} props.group.requests - รายการ pricing requests (pr_id, pr_no, pr_work_name, pr_status, is_quoted)
+ * @param {number} props.group.total_count - จำนวน requests ทั้งหมด
+ * @param {number} props.group.quoted_count - จำนวน requests ที่มีใบเสนอราคา
+ * @param {boolean} props.group.is_quoted - สถานะว่าทุก requests มีใบเสนอราคาหรือไม่
+ * @param {Object} props.group.status_counts - จำนวนแยกตามสถานะ
+ * @param {Function} props.onCreateQuotation - ฟังก์ชันสำหรับสร้างใบเสนอราคา
+ * @param {Function} props.onViewDetails - ฟังก์ชันสำหรับดูรายละเอียด
+ */
 const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
+    // 🎨 Helper Functions for Status Management
     const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'complete':
-            case 'ได้ราคาแล้ว': return 'success';
-            case 'pending':
-            case 'รอทำราคา': return 'warning';
-            case 'in_progress':
-            case 'กำลังทำราคา': return 'info';
-            default: return 'primary';
+        const statusMap = {
+            'complete': 'success',
+            'ได้ราคาแล้ว': 'success',
+            'pending': 'warning', 
+            'รอทำราคา': 'warning',
+            'in_progress': 'info',
+            'กำลังทำราคา': 'info',
+            'submitted': 'primary',
+            'ส่งคำขอสร้างใบเสนอราคาแล้ว': 'primary'
+        };
+        return statusMap[status?.toLowerCase()] || 'primary';
+    };
+
+    // 🔍 Helper Function to get display PR number with fallback
+    const getPRDisplayNumber = (req) => {
+        return req.pr_no || req.pr_number || req.pr_id?.slice(-8) || 'N/A';
+    };
+
+    // 🏷️ Helper Function to determine primary status for display
+    const getPrimaryStatus = (req) => {
+        if (req.is_quoted) {
+            return {
+                label: 'มีใบเสนอราคาแล้ว',
+                color: 'warning',
+                showIcon: false
+            };
         }
+        
+        if (req.pr_status) {
+            return {
+                label: req.pr_status,
+                color: getStatusColor(req.pr_status),
+                showIcon: true
+            };
+        }
+        
+        return null;
     };
 
     return (
@@ -68,15 +114,24 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
                     </Box>
                 </Box>
 
-                {/* Summary Chips */}
+                {/* 📊 Summary Chips - แสดงสรุปข้อมูลโดยรวม */}
                 <Stack direction="row" spacing={1} flexWrap="wrap" mb={2}>
-                    <Chip label={`ทั้งหมด ${group.total_count}`} size="small" />
+                    <Chip 
+                        label={`ทั้งหมด ${group.total_count}`} 
+                        size="small" 
+                        sx={{ 
+                            bgcolor: 'primary.50',
+                            color: 'primary.700',
+                            fontWeight: 600
+                        }}
+                    />
                     {Object.entries(group.status_counts).map(([status, count]) => (
                         <Chip
                             key={status}
                             label={`${status} ${count}`}
                             size="small"
                             color={getStatusColor(status)}
+                            sx={{ fontWeight: 500 }}
                         />
                     ))}
                     {group.quoted_count > 0 && (
@@ -84,6 +139,7 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
                             label={`มีใบเสนอราคา ${group.quoted_count}`}
                             color="warning"
                             size="small"
+                            sx={{ fontWeight: 500 }}
                         />
                     )}
                 </Stack>
@@ -92,31 +148,55 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
 
                 {/* List of Pricing Requests */}
                 <Stack spacing={1}>
-                    {group.requests.map((req) => (
-                        <Box
-                            key={req.pr_id}
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                        >
-                            <Typography variant="body2" color="text.primary">
-                                {req.pr_number || req.pr_id?.slice(-8)} - {req.pr_work_name || '-'}
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                                {req.is_quoted && (
-                                    <Chip label="มีใบเสนอราคาแล้ว" color="warning" size="small" />
-                                )}
-                                {req.pr_status && (
-                                    <Chip
-                                        label={req.pr_status}
-                                        color={getStatusColor(req.pr_status)}
+                    {group.requests.map((req) => {
+                        const primaryStatus = getPrimaryStatus(req);
+                        
+                        return (
+                            <Box
+                                key={req.pr_id}
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                                sx={{
+                                    py: 0.5,
+                                    '&:hover': {
+                                        bgcolor: 'action.hover',
+                                        borderRadius: 1,
+                                        transition: 'background-color 0.2s ease-in-out'
+                                    }
+                                }}
+                            >
+                                <Typography 
+                                    variant="body2" 
+                                    color="text.primary"
+                                    sx={{ 
+                                        fontWeight: 500,
+                                        flex: 1,
+                                        mr: 1
+                                    }}
+                                >
+                                    {getPRDisplayNumber(req)} - {req.pr_work_name || '-'}
+                                </Typography>
+                                
+                                {/* แสดงสถานะเดียว - ป้องกันการซ้ำซ้อน */}
+                                {primaryStatus && (
+                                    <Chip 
+                                        label={primaryStatus.label}
+                                        color={primaryStatus.color}
                                         size="small"
-                                        icon={<CheckCircleIcon />}
+                                        icon={primaryStatus.showIcon ? <CheckCircleIcon /> : undefined}
+                                        sx={{ 
+                                            fontWeight: 500,
+                                            minWidth: 'auto',
+                                            '& .MuiChip-label': {
+                                                fontSize: '0.75rem'
+                                            }
+                                        }}
                                     />
                                 )}
-                            </Stack>
-                        </Box>
-                    ))}
+                            </Box>
+                        );
+                    })}
                 </Stack>
             </CardContent>
 
@@ -155,4 +235,6 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
     );
 };
 
-export default PricingRequestCard;
+// � ป้องกันการ re-render ที่ไม่จำเป็นด้วย React.memo
+// Component จะ re-render เฉพาะเมื่อ props เปลี่ยนแปลงเท่านั้น
+export default memo(PricingRequestCard);

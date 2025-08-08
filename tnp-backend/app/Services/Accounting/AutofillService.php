@@ -68,6 +68,7 @@ class AutofillService
             return [
                 // ข้อมูลจาก Pricing Request  
                 'pr_id' => $pricingRequest->pr_id,
+                'pr_no' => $pricingRequest->pr_no, // 🔢 เพิ่ม pr_no สำหรับการแสดงผล
                 'pr_work_name' => $pricingRequest->pr_work_name,
                 'pr_pattern' => $pricingRequest->pr_pattern,
                 'pr_fabric_type' => $pricingRequest->pr_fabric_type,
@@ -145,6 +146,7 @@ class AutofillService
                 'recent_pricing_requests' => $customer->pricingRequests->map(function ($pr) {
                     return [
                         'pr_id' => $pr->pr_id,
+                        'pr_no' => $pr->pr_no, // 🔢 เพิ่ม pr_no สำหรับการแสดงผล
                         'pr_work_name' => $pr->pr_work_name,
                         'pr_created_date' => $pr->pr_created_date
                     ];
@@ -351,9 +353,12 @@ class AutofillService
             if (!empty($filters['search'])) {
                 $searchTerm = '%' . $filters['search'] . '%';
                 $query->where(function ($q) use ($searchTerm) {
-                    $q->where('pr_work_name', 'like', $searchTerm)
-                      ->orWhere('pr_pattern', 'like', $searchTerm)
-                      ->orWhere('pr_fabric_type', 'like', $searchTerm)
+                    $q->where('pr_no', 'like', $searchTerm) // 🔍 ค้นหาด้วยหมายเลข pr_no
+                      ->orWhere('pr_work_name', 'like', $searchTerm) // 🔍 ค้นหาด้วยชื่องาน
+                      ->orWhere('pr_pattern', 'like', $searchTerm) // 🔍 ค้นหาด้วยลาย/แพทเทิร์น
+                      ->orWhere('pr_fabric_type', 'like', $searchTerm) // 🔍 ค้นหาด้วยประเภทผ้า
+                      ->orWhere('pr_color', 'like', $searchTerm) // 🔍 ค้นหาด้วยสี
+                      ->orWhere('pr_sizes', 'like', $searchTerm) // 🔍 ค้นหาด้วยไซส์
                       ->orWhereHas('pricingCustomer', function ($customerQuery) use ($searchTerm) {
                           $customerQuery->where('cus_company', 'like', $searchTerm)
                                       ->orWhere('cus_firstname', 'like', $searchTerm)
@@ -388,6 +393,7 @@ class AutofillService
             $transformedData = $results->getCollection()->map(function ($pr) {
                 return [
                     'pr_id' => $pr->pr_id,
+                    'pr_no' => $pr->pr_no, // 🔢 เพิ่ม pr_no สำหรับการแสดงผล
                     'pr_work_name' => $pr->pr_work_name,
                     'pr_cus_id' => $pr->pr_cus_id,
                     'pr_pattern' => $pr->pr_pattern,

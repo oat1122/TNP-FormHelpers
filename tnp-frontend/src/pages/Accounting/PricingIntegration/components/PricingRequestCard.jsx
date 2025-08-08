@@ -1,15 +1,9 @@
 import React, { memo } from 'react';
 import {
     Box,
-    Card,
-    CardContent,
     CardActions,
-    Typography,
-    Button,
-    Chip,
     Avatar,
     Stack,
-    Divider,
 } from '@mui/material';
 import {
     Visibility as ViewIcon,
@@ -17,6 +11,22 @@ import {
     CheckCircle as CheckCircleIcon,
     Business as BusinessIcon,
 } from '@mui/icons-material';
+
+// 🎨 Import TNP Styled Components สำหรับ UI ที่อ่านง่าย
+import {
+    TNPCard,
+    TNPCardContent,
+    TNPHeading,
+    TNPSubheading,
+    TNPBodyText,
+    TNPPRNumber,
+    TNPStatusChip,
+    TNPCountChip,
+    TNPPrimaryButton,
+    TNPSecondaryButton,
+    TNPListItem,
+    TNPDivider,
+} from './styles/StyledComponents';
 
 /**
  * 🎯 PricingRequestCard Component
@@ -78,160 +88,114 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
     };
 
     return (
-        <Card
-            sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 20px rgba(144, 15, 15, 0.15)',
-                },
-                transition: 'all 0.3s ease-in-out',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-            }}
-        >
-            <CardContent sx={{ flexGrow: 1 }}>
-                {/* Customer Info */}
-                <Box display="flex" alignItems="center" mb={2}>
+        <TNPCard>
+            <TNPCardContent>
+                {/* 👤 Customer Info - ปรับปรุงให้อ่านง่ายและสวยงาม */}
+                <Box display="flex" alignItems="center" mb={2.5}>
                     <Avatar
-                        sx={{ bgcolor: 'secondary.main', width: 40, height: 40, mr: 2 }}
+                        sx={{ 
+                            bgcolor: 'secondary.main', 
+                            width: 48, 
+                            height: 48, 
+                            mr: 2,
+                            boxShadow: '0 2px 8px rgba(178, 0, 0, 0.2)',
+                        }}
                     >
-                        <BusinessIcon />
+                        <BusinessIcon sx={{ fontSize: '1.5rem' }} />
                     </Avatar>
-                    <Box>
-                        <Typography variant="subtitle1" fontWeight={500}>
+                    <Box flex={1}>
+                        <TNPHeading variant="h6">
                             {group.customer?.cus_company || 'ไม่ระบุบริษัท'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </TNPHeading>
+                        <TNPSubheading>
                             {[
                                 group.customer?.cus_firstname,
                                 group.customer?.cus_lastname,
                             ].filter(Boolean).join(' ') || 'ไม่ระบุชื่อ'}
-                        </Typography>
+                        </TNPSubheading>
                     </Box>
                 </Box>
 
-                {/* 📊 Summary Chips - แสดงสรุปข้อมูลโดยรวม */}
-                <Stack direction="row" spacing={1} flexWrap="wrap" mb={2}>
-                    <Chip 
-                        label={`ทั้งหมด ${group.total_count}`} 
+                {/* 📊 Summary Chips - ปรับปรุงให้เป็นระบบและอ่านง่าย */}
+                <Stack direction="row" spacing={1} flexWrap="wrap" mb={2.5}>
+                    <TNPCountChip 
+                        label={`ทั้งหมด ${group.total_count} งาน`} 
                         size="small" 
-                        sx={{ 
-                            bgcolor: 'primary.50',
-                            color: 'primary.700',
-                            fontWeight: 600
-                        }}
                     />
                     {Object.entries(group.status_counts).map(([status, count]) => (
-                        <Chip
+                        <TNPStatusChip
                             key={status}
-                            label={`${status} ${count}`}
+                            label={`${status} (${count})`}
                             size="small"
-                            color={getStatusColor(status)}
-                            sx={{ fontWeight: 500 }}
+                            statuscolor={getStatusColor(status)}
                         />
                     ))}
                     {group.quoted_count > 0 && (
-                        <Chip
-                            label={`มีใบเสนอราคา ${group.quoted_count}`}
-                            color="warning"
+                        <TNPStatusChip
+                            label={`มีใบเสนอราคา ${group.quoted_count} งาน`}
+                            statuscolor="warning"
                             size="small"
-                            sx={{ fontWeight: 500 }}
                         />
                     )}
                 </Stack>
 
-                <Divider sx={{ mb: 2 }} />
+                <TNPDivider />
 
-                {/* List of Pricing Requests */}
-                <Stack spacing={1}>
+                {/* 📋 List of Pricing Requests - ปรับปรุงให้อ่านง่ายขึ้น */}
+                <Stack spacing={1.5}>
                     {group.requests.map((req) => {
                         const primaryStatus = getPrimaryStatus(req);
                         
                         return (
-                            <Box
-                                key={req.pr_id}
-                                display="flex"
-                                justifyContent="space-between"
-                                alignItems="center"
-                                sx={{
-                                    py: 0.5,
-                                    '&:hover': {
-                                        bgcolor: 'action.hover',
-                                        borderRadius: 1,
-                                        transition: 'background-color 0.2s ease-in-out'
-                                    }
-                                }}
-                            >
-                                <Typography 
-                                    variant="body2" 
-                                    color="text.primary"
-                                    sx={{ 
-                                        fontWeight: 500,
-                                        flex: 1,
-                                        mr: 1
-                                    }}
-                                >
-                                    {getPRDisplayNumber(req)} - {req.pr_work_name || '-'}
-                                </Typography>
+                            <TNPListItem key={req.pr_id}>
+                                {/* หมายเลข PR และชื่องาน */}
+                                <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+                                    <TNPPRNumber>
+                                        #{getPRDisplayNumber(req)}
+                                    </TNPPRNumber>
+                                    
+                                    {/* แสดงสถานะอย่างชัดเจน */}
+                                    {primaryStatus && (
+                                        <TNPStatusChip 
+                                            label={primaryStatus.label}
+                                            statuscolor={primaryStatus.color}
+                                            size="small"
+                                            icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.875rem' }} /> : undefined}
+                                        />
+                                    )}
+                                </Box>
                                 
-                                {/* แสดงสถานะเดียว - ป้องกันการซ้ำซ้อน */}
-                                {primaryStatus && (
-                                    <Chip 
-                                        label={primaryStatus.label}
-                                        color={primaryStatus.color}
-                                        size="small"
-                                        icon={primaryStatus.showIcon ? <CheckCircleIcon /> : undefined}
-                                        sx={{ 
-                                            fontWeight: 500,
-                                            minWidth: 'auto',
-                                            '& .MuiChip-label': {
-                                                fontSize: '0.75rem'
-                                            }
-                                        }}
-                                    />
-                                )}
-                            </Box>
+                                {/* ชื่องาน */}
+                                <TNPBodyText>
+                                    {req.pr_work_name || 'ไม่ระบุชื่องาน'}
+                                </TNPBodyText>
+                            </TNPListItem>
                         );
                     })}
                 </Stack>
-            </CardContent>
+            </TNPCardContent>
 
-            <Divider />
+            <TNPDivider />
 
-              <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
-                  <Button
-                      size="small"
+              <CardActions sx={{ p: 2.5, justifyContent: 'space-between', bgcolor: 'background.light' }}>
+                  <TNPSecondaryButton
+                      size="medium"
                       startIcon={<ViewIcon />}
                       onClick={() => onViewDetails(group)}
-                      color="inherit"
                   >
                       ดูรายละเอียด
-                  </Button>
-                  <Button
+                  </TNPSecondaryButton>
+                  <TNPPrimaryButton
                       variant="contained"
-                      size="small"
+                      size="medium"
                       startIcon={<AssignmentIcon />}
                       onClick={() => onCreateQuotation(group)}
                       disabled={group.is_quoted}
-                      sx={{
-                          borderRadius: 2,
-                          fontWeight: 600,
-                          textTransform: 'none',
-                          '&:hover': {
-                              transform: group.is_quoted ? 'none' : 'translateY(-1px)',
-                              boxShadow: group.is_quoted ? 'none' : '0 6px 12px rgba(144, 15, 15, 0.25)',
-                          },
-                          transition: 'all 0.2s ease-in-out',
-                      }}
                   >
                       สร้างใบเสนอราคา
-                  </Button>
+                  </TNPPrimaryButton>
               </CardActions>
-        </Card>
+        </TNPCard>
     );
 };
 

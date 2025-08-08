@@ -140,9 +140,13 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
     const fetchCustomerPricingRequests = async (customerId) => {
         setIsLoadingCustomerData(true);
         try {
+            // 🔐 เพิ่ม user parameter สำหรับ access control
+            const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+            const userUuid = userData.user_uuid || "";
+            
             // เรียก API เพื่อดึงข้อมูล Pricing Requests ทั้งหมดของลูกค้า
             const response = await fetch(
-                `${import.meta.env.VITE_END_POINT_URL}/pricing-requests?customer_id=${customerId}`,
+                `${import.meta.env.VITE_END_POINT_URL}/pricing-requests?customer_id=${customerId}&user=${userUuid}`,
                 {
                     headers: {
                         'Content-Type': 'application/json',

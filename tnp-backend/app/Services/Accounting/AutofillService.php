@@ -107,20 +107,27 @@ class AutofillService
     /**
      * ดึงข้อมูลลูกค้าสำหรับ Auto-fill
      */
-    public function getCustomerAutofillData($customerId)
+    public function getCustomerAutofillData($customerId, $userInfo = null)
     {
         try {
-            $customer = MasterCustomer::with(['pricingRequests' => function ($query) {
-                    $query->where('pr_is_deleted', 0)
-                          ->orderBy('pr_created_date', 'DESC')
-                          ->limit(5);
+            $query = MasterCustomer::with(['pricingRequests' => function ($q) {
+                    $q->where('pr_is_deleted', 0)
+                      ->orderBy('pr_created_date', 'DESC')
+                      ->limit(5);
                 }])
                 ->where('cus_id', $customerId)
-                ->where('cus_is_use', true)
-                ->first();
+                ->where('cus_is_use', true);
+
+            // 🔐 Access Control: ตรวจสอบสิทธิ์การเข้าถึงลูกค้า
+            if ($userInfo && isset($userInfo['user_id']) && $userInfo['user_id'] != 1) {
+                // ถ้าไม่ใช่ admin (user_id !== 1) ให้ตรวจสอบว่าเป็นลูกค้าที่ตัวเองดูแลหรือไม่
+                $query->where('cus_manage_by', $userInfo['user_id']);
+            }
+
+            $customer = $query->first();
 
             if (!$customer) {
-                throw new \Exception('Customer not found');
+                throw new \Exception('Customer not found or access denied');
             }
 
             return [
@@ -266,20 +273,28 @@ class AutofillService
     }
 
     /**
-     * ค้นหาลูกค้า (สำหรับ Auto-complete)
+     * ค้นหาลูกค้า (สำหรับ Auto-complete) พร้อมการกรองตาม cus_manage_by
      */
-    public function searchCustomers($searchTerm, $limit = 10)
+    public function searchCustomers($searchTerm, $limit = 10, $userInfo = null)
     {
         try {
-            return MasterCustomer::where('cus_is_use', true)
-                ->where(function ($query) use ($searchTerm) {
-                    $query->where('cus_company', 'like', '%' . $searchTerm . '%')
-                          ->orWhere('cus_tax_id', 'like', '%' . $searchTerm . '%')
-                          ->orWhere('cus_firstname', 'like', '%' . $searchTerm . '%')
-                          ->orWhere('cus_lastname', 'like', '%' . $searchTerm . '%')
-                          ->orWhereRaw("CONCAT(cus_firstname, ' ', cus_lastname) LIKE ?", ['%' . $searchTerm . '%']);
-                })
-                ->select([
+            $query = MasterCustomer::where('cus_is_use', true);
+
+            // 🔐 Access Control: แบ่งสิทธิ์การมองเห็นตาม cus_manage_by
+            if ($userInfo && isset($userInfo['user_id']) && $userInfo['user_id'] != 1) {
+                // ถ้าไม่ใช่ admin (user_id !== 1) ให้แสดงเฉพาะลูกค้าที่ตัวเองดูแล
+                $query->where('cus_manage_by', $userInfo['user_id']);
+            }
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('cus_company', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('cus_tax_id', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('cus_firstname', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('cus_lastname', 'like', '%' . $searchTerm . '%')
+                  ->orWhereRaw("CONCAT(cus_firstname, ' ', cus_lastname) LIKE ?", ['%' . $searchTerm . '%']);
+            });
+
+            return $query->select([
                     'cus_id',
                     'cus_company',
                     'cus_tax_id',
@@ -312,7 +327,7 @@ class AutofillService
     /**
      * ดึงรายการ Pricing Request ที่เสร็จแล้ว (สำหรับ Step 0: Pricing Integration)
      */
-    public function getCompletedPricingRequests($filters = [], $perPage = 20, $page = 1)
+    public function getCompletedPricingRequests($filters = [], $perPage = 20, $page = 1, $userInfo = null)
     {
         try {
             $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
@@ -321,6 +336,14 @@ class AutofillService
             // เพิ่มเงื่อนไขสถานะ "ได้ราคาแล้ว" เฉพาะเมื่อไม่มี customer_id filter
             if (empty($filters['customer_id'])) {
                 $query->where('pr_status_id', '20db8be1-092b-11f0-b223-38ca84abdf0a');
+            }
+
+            // 🔐 Access Control: แบ่งสิทธิ์การมองเห็นตาม cus_manage_by
+            if ($userInfo && isset($userInfo['user_id']) && $userInfo['user_id'] != 1) {
+                // ถ้าไม่ใช่ admin (user_id !== 1) ให้แสดงเฉพาะลูกค้าที่ตัวเองดูแล
+                $query->whereHas('pricingCustomer', function ($customerQuery) use ($userInfo) {
+                    $customerQuery->where('cus_manage_by', $userInfo['user_id']);
+                });
             }
 
             // Apply filters

@@ -46,10 +46,28 @@ class AutofillController extends Controller
      * ดึงข้อมูลลูกค้าสำหรับ Auto-fill
      * GET /api/v1/customers/{id}/details
      */
-    public function getCustomerDetails($customerId): JsonResponse
+    public function getCustomerDetails(Request $request, $customerId): JsonResponse
     {
         try {
-            $customerData = $this->autofillService->getCustomerAutofillData($customerId);
+            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
+            $userInfo = null;
+            if ($request->has('user') && $request->user) {
+                $user = \App\Models\User::where('user_uuid', $request->user)
+                    ->where('user_is_enable', true)
+                    ->select('user_id', 'user_uuid', 'role')
+                    ->first();
+                
+                if ($user) {
+                    $userInfo = [
+                        'user_id' => $user->user_id,
+                        'user_uuid' => $user->user_uuid,
+                        'role' => $user->role
+                    ];
+                }
+            }
+
+            // ส่ง userInfo ไป Service สำหรับ access control
+            $customerData = $this->autofillService->getCustomerAutofillData($customerId, $userInfo);
             
             return response()->json([
                 'success' => true,
@@ -85,7 +103,25 @@ class AutofillController extends Controller
                 ]);
             }
 
-            $customers = $this->autofillService->searchCustomers($searchTerm, $limit);
+            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
+            $userInfo = null;
+            if ($request->has('user') && $request->user) {
+                $user = \App\Models\User::where('user_uuid', $request->user)
+                    ->where('user_is_enable', true)
+                    ->select('user_id', 'user_uuid', 'role')
+                    ->first();
+                
+                if ($user) {
+                    $userInfo = [
+                        'user_id' => $user->user_id,
+                        'user_uuid' => $user->user_uuid,
+                        'role' => $user->role
+                    ];
+                }
+            }
+
+            // ส่ง userInfo ไป Service สำหรับ access control
+            $customers = $this->autofillService->searchCustomers($searchTerm, $limit, $userInfo);
             
             return response()->json([
                 'success' => true,
@@ -115,6 +151,23 @@ class AutofillController extends Controller
                 'params' => $request->all()
             ]);
 
+            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
+            $userInfo = null;
+            if ($request->has('user') && $request->user) {
+                $user = \App\Models\User::where('user_uuid', $request->user)
+                    ->where('user_is_enable', true)
+                    ->select('user_id', 'user_uuid', 'role')
+                    ->first();
+                
+                if ($user) {
+                    $userInfo = [
+                        'user_id' => $user->user_id,
+                        'user_uuid' => $user->user_uuid,
+                        'role' => $user->role
+                    ];
+                }
+            }
+
             // รองรับ filters ตาม specification
             $filters = [
                 'search' => $request->query('search'),
@@ -127,10 +180,13 @@ class AutofillController extends Controller
             $perPage = min($request->query('per_page', 20), 200); // เพิ่มสูงสุดเป็น 200 รายการ
             $page = max($request->query('page', 1), 1); // ตรวจสอบว่าหน้าไม่ต่ำกว่า 1
             
-            $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page);
+            // ส่ง userInfo ไป Service สำหรับ access control
+            $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page, $userInfo);
             
             Log::info('AutofillController::getCompletedPricingRequests success', [
-                'total_records' => $completedRequests['pagination']['total'] ?? 0
+                'total_records' => $completedRequests['pagination']['total'] ?? 0,
+                'user_id' => $userInfo['user_id'] ?? 'guest',
+                'access_control_applied' => $userInfo && $userInfo['user_id'] != 1
             ]);
             
             return response()->json([

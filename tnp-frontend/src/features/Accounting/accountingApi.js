@@ -21,15 +21,22 @@ export const accountingApi = createApi({
         // ===================== PRICING REQUESTS =====================
 
         getCompletedPricingRequests: builder.query({
-            query: (params = {}) => ({
-                url: '/pricing-requests',
-                params: {
-                    status: 'complete',
-                    page: params.page || 1,
-                    per_page: params.per_page || 20,
-                    ...params
-                },
-            }),
+            query: (params = {}) => {
+                // 🔐 เพิ่ม user parameter สำหรับ access control
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const userUuid = userData.user_uuid || "";
+                
+                return {
+                    url: '/pricing-requests',
+                    params: {
+                        status: 'complete',
+                        page: params.page || 1,
+                        per_page: params.per_page || 20,
+                        user: userUuid, // 🔐 ส่ง user uuid สำหรับ access control
+                        ...params
+                    },
+                };
+            },
             providesTags: ['PricingRequest'],
             // Keep previous data while fetching new data for better UX
             keepUnusedDataFor: 60, // 1 minute
@@ -400,10 +407,19 @@ export const accountingApi = createApi({
         }),
 
         searchCustomers: builder.query({
-            query: (query) => ({
-                url: '/customers/search',
-                params: { q: query },
-            }),
+            query: (query) => {
+                // 🔐 เพิ่ม user parameter สำหรับ access control
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const userUuid = userData.user_uuid || "";
+                
+                return {
+                    url: '/customers/search',
+                    params: { 
+                        q: query,
+                        user: userUuid // 🔐 ส่ง user uuid สำหรับ access control
+                    },
+                };
+            },
         }),
 
         getDashboardStats: builder.query({

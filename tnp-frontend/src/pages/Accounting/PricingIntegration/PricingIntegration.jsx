@@ -359,6 +359,30 @@ const PricingIntegration = () => {
                                 onResetFilters={handleResetFilters}
                             />
 
+                            {/* 🔐 Access Control Information */}
+                            {(() => {
+                                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                                const isAdmin = userData.user_id === 1;
+                                
+                                if (!isAdmin) {
+                                    return (
+                                        <Alert 
+                                            severity="info" 
+                                            sx={{ mb: 3, borderRadius: 2 }}
+                                            icon={<span>🔐</span>}
+                                        >
+                                            <strong>การแบ่งสิทธิ์การเข้าถึง:</strong> คุณสามารถดูข้อมูล Pricing Request ได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
+                                            {userData.username && (
+                                                <Box component="span" sx={{ ml: 1, color: 'info.dark', fontWeight: 'medium' }}>
+                                                    (ผู้ใช้: {userData.username})
+                                                </Box>
+                                            )}
+                                        </Alert>
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             {/* Content */}
                             {error && (
                                 <Alert severity="error" sx={{ mb: 3 }}>

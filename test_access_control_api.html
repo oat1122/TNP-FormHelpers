@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 TNP Pricing Integration - Access Control API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #3498db;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .result {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { border-color: #27ae60; background: #d5f4e6; }
+        .error { border-color: #e74c3c; background: #fdeaea; }
+        .info { border-color: #f39c12; background: #fef5e7; }
+        .access-info {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .user-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .user-selector button {
+            flex: 1;
+            padding: 10px;
+            background: #95a5a6;
+        }
+        .user-selector button.active {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 TNP Pricing Integration - Access Control API Tester</h1>
+        
+        <div class="access-info">
+            <h3>🔍 การทดสอบระบบแบ่งสิทธิ์การเข้าถึง</h3>
+            <p><strong>วัตถุประสงค์:</strong> ทดสอบการทำงานของระบบ Access Control ที่แบ่งสิทธิ์การมองเห็นข้อมูลตาม <code>cus_manage_by</code></p>
+            <ul>
+                <li><strong>Admin (user_id = 1):</strong> เห็นข้อมูลทั้งหมด</li>
+                <li><strong>User อื่นๆ:</strong> เห็นเฉพาะลูกค้าที่ตัวเองดูแล (cus_manage_by = user_id)</li>
+            </ul>
+        </div>
+
+        <!-- Base URL Configuration -->
+        <div class="test-section">
+            <h3>⚙️ การตั้งค่า</h3>
+            <div class="form-group">
+                <label for="baseUrl">Base URL:</label>
+                <input type="text" id="baseUrl" value="http://localhost:8000/api/v1" placeholder="http://localhost:8000/api/v1">
+            </div>
+        </div>
+
+        <!-- User Selection -->
+        <div class="test-section">
+            <h3>👤 เลือกผู้ใช้สำหรับทดสอบ</h3>
+            <div class="user-selector">
+                <button onclick="selectUser('admin', '1', 'admin-uuid')" id="adminBtn">👑 Admin (user_id: 1)</button>
+                <button onclick="selectUser('sales1', '2', 'sales1-uuid')" id="sales1Btn">👨‍💼 Sales 1 (user_id: 2)</button>
+                <button onclick="selectUser('sales2', '3', 'sales2-uuid')" id="sales2Btn">👩‍💼 Sales 2 (user_id: 3)</button>
+            </div>
+            <div class="form-group">
+                <label for="selectedUser">ผู้ใช้ปัจจุบัน:</label>
+                <input type="text" id="selectedUser" readonly placeholder="กรุณาเลือกผู้ใช้">
+            </div>
+            <div class="form-group">
+                <label for="userUuid">User UUID:</label>
+                <input type="text" id="userUuid" readonly placeholder="UUID ของผู้ใช้">
+            </div>
+        </div>
+
+        <!-- Test Pricing Requests API -->
+        <div class="test-section">
+            <h3>📋 ทดสอบ Pricing Requests API</h3>
+            <div class="form-group">
+                <label for="customerId">Customer ID (ทดสอบเฉพาะลูกค้า - เว้นว่างสำหรับทั้งหมด):</label>
+                <input type="number" id="customerId" placeholder="เช่น 123">
+            </div>
+            <button onclick="testPricingRequests()">🔍 ทดสอบ GET /pricing-requests</button>
+            <div id="pricingResult" class="result"></div>
+        </div>
+
+        <!-- Test Customer Search API -->
+        <div class="test-section">
+            <h3>🔍 ทดสอบ Customer Search API</h3>
+            <div class="form-group">
+                <label for="searchQuery">คำค้นหา:</label>
+                <input type="text" id="searchQuery" placeholder="ชื่อบริษัท หรือ ชื่อลูกค้า" value="test">
+            </div>
+            <button onclick="testCustomerSearch()">🔍 ทดสอบ GET /customers/search</button>
+            <div id="searchResult" class="result"></div>
+        </div>
+
+        <!-- Test Customer Details API -->
+        <div class="test-section">
+            <h3>📝 ทดสอบ Customer Details API</h3>
+            <div class="form-group">
+                <label for="customerDetailId">Customer ID:</label>
+                <input type="number" id="customerDetailId" placeholder="เช่น 123" value="123">
+            </div>
+            <button onclick="testCustomerDetails()">🔍 ทดสอบ GET /customers/{id}/details</button>
+            <div id="detailsResult" class="result"></div>
+        </div>
+
+        <!-- Summary -->
+        <div class="test-section">
+            <h3>📊 สรุปผลการทดสอบ</h3>
+            <div id="testSummary" class="result info">
+                กรุณาเลือกผู้ใช้และทดสอบ API เพื่อดูผลลัพธ์
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let testResults = [];
+
+        // User selection
+        function selectUser(userType, userId, userUuid) {
+            currentUser = { userType, userId, userUuid };
+            
+            // Update UI
+            document.getElementById('selectedUser').value = `${userType} (ID: ${userId})`;
+            document.getElementById('userUuid').value = userUuid;
+            
+            // Update button states
+            document.querySelectorAll('.user-selector button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`${userType}Btn`).classList.add('active');
+            
+            // Reset results
+            document.getElementById('testSummary').textContent = `เลือกผู้ใช้: ${userType} (ID: ${userId}) - พร้อมทดสอบ`;
+            testResults = [];
+        }
+
+        // Make API request with proper headers
+        async function makeRequest(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                console.log(`🌐 Making ${method} request to: ${url}`);
+                
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data,
+                    url: url
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    url: url
+                };
+            }
+        }
+
+        // Test Pricing Requests API
+        async function testPricingRequests() {
+            if (!currentUser) {
+                alert('กรุณาเลือกผู้ใช้ก่อนทดสอบ');
+                return;
+            }
+
+            const baseUrl = document.getElementById('baseUrl').value;
+            const customerId = document.getElementById('customerId').value;
+            const resultDiv = document.getElementById('pricingResult');
+            
+            resultDiv.innerHTML = '🔄 กำลังทดสอบ Pricing Requests API...';
+            
+            // Build URL with parameters
+            let url = `${baseUrl}/pricing-requests?user=${currentUser.userUuid}`;
+            if (customerId) {
+                url += `&customer_id=${customerId}`;
+            }
+            
+            const result = await makeRequest(url);
+            
+            let resultText = `📊 ผลการทดสอบ Pricing Requests API\n`;
+            resultText += `👤 ผู้ใช้: ${currentUser.userType} (ID: ${currentUser.userId})\n`;
+            resultText += `🌐 URL: ${result.url}\n`;
+            resultText += `📈 Status: ${result.status}\n\n`;
+            
+            if (result.success && result.data.success) {
+                const dataCount = result.data.data?.length || 0;
+                resultText += `✅ สำเร็จ!\n`;
+                resultText += `📋 จำนวนข้อมูล: ${dataCount} รายการ\n\n`;
+                
+                if (dataCount > 0) {
+                    resultText += `📝 ตัวอย่างข้อมูล:\n`;
+                    const sample = result.data.data[0];
+                    resultText += `- PR ID: ${sample.pr_id}\n`;
+                    resultText += `- งาน: ${sample.pr_work_name}\n`;
+                    resultText += `- ลูกค้า: ${sample.customer?.cus_company || 'ไม่ระบุ'}\n`;
+                    resultText += `- Customer ID: ${sample.customer?.cus_id || 'ไม่ระบุ'}\n`;
+                }
+                
+                resultDiv.className = 'result success';
+                testResults.push({
+                    api: 'Pricing Requests',
+                    user: currentUser.userType,
+                    status: 'SUCCESS',
+                    count: dataCount
+                });
+            } else {
+                resultText += `❌ ล้มเหลว!\n`;
+                resultText += `📄 Response: ${JSON.stringify(result.data, null, 2)}`;
+                resultDiv.className = 'result error';
+                testResults.push({
+                    api: 'Pricing Requests',
+                    user: currentUser.userType,
+                    status: 'FAILED',
+                    error: result.data?.message || result.error
+                });
+            }
+            
+            resultDiv.textContent = resultText;
+            updateTestSummary();
+        }
+
+        // Test Customer Search API
+        async function testCustomerSearch() {
+            if (!currentUser) {
+                alert('กรุณาเลือกผู้ใช้ก่อนทดสอบ');
+                return;
+            }
+
+            const baseUrl = document.getElementById('baseUrl').value;
+            const searchQuery = document.getElementById('searchQuery').value;
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (!searchQuery || searchQuery.length < 2) {
+                alert('กรุณาใส่คำค้นหาอย่างน้อย 2 ตัวอักษร');
+                return;
+            }
+            
+            resultDiv.innerHTML = '🔄 กำลังทดสอบ Customer Search API...';
+            
+            const url = `${baseUrl}/customers/search?q=${encodeURIComponent(searchQuery)}&user=${currentUser.userUuid}`;
+            const result = await makeRequest(url);
+            
+            let resultText = `🔍 ผลการทดสอบ Customer Search API\n`;
+            resultText += `👤 ผู้ใช้: ${currentUser.userType} (ID: ${currentUser.userId})\n`;
+            resultText += `🔍 คำค้นหา: "${searchQuery}"\n`;
+            resultText += `🌐 URL: ${result.url}\n`;
+            resultText += `📈 Status: ${result.status}\n\n`;
+            
+            if (result.success && result.data.success) {
+                const dataCount = result.data.data?.length || 0;
+                resultText += `✅ สำเร็จ!\n`;
+                resultText += `👥 จำนวนลูกค้า: ${dataCount} รายการ\n\n`;
+                
+                if (dataCount > 0) {
+                    resultText += `📝 รายชื่อลูกค้าที่พบ:\n`;
+                    result.data.data.forEach((customer, index) => {
+                        resultText += `${index + 1}. ${customer.cus_company} (ID: ${customer.cus_id})\n`;
+                    });
+                }
+                
+                resultDiv.className = 'result success';
+                testResults.push({
+                    api: 'Customer Search',
+                    user: currentUser.userType,
+                    status: 'SUCCESS',
+                    count: dataCount
+                });
+            } else {
+                resultText += `❌ ล้มเหลว!\n`;
+                resultText += `📄 Response: ${JSON.stringify(result.data, null, 2)}`;
+                resultDiv.className = 'result error';
+                testResults.push({
+                    api: 'Customer Search',
+                    user: currentUser.userType,
+                    status: 'FAILED',
+                    error: result.data?.message || result.error
+                });
+            }
+            
+            resultDiv.textContent = resultText;
+            updateTestSummary();
+        }
+
+        // Test Customer Details API
+        async function testCustomerDetails() {
+            if (!currentUser) {
+                alert('กรุณาเลือกผู้ใช้ก่อนทดสอบ');
+                return;
+            }
+
+            const baseUrl = document.getElementById('baseUrl').value;
+            const customerId = document.getElementById('customerDetailId').value;
+            const resultDiv = document.getElementById('detailsResult');
+            
+            if (!customerId) {
+                alert('กรุณาใส่ Customer ID');
+                return;
+            }
+            
+            resultDiv.innerHTML = '🔄 กำลังทดสอบ Customer Details API...';
+            
+            const url = `${baseUrl}/customers/${customerId}/details?user=${currentUser.userUuid}`;
+            const result = await makeRequest(url);
+            
+            let resultText = `📝 ผลการทดสอบ Customer Details API\n`;
+            resultText += `👤 ผู้ใช้: ${currentUser.userType} (ID: ${currentUser.userId})\n`;
+            resultText += `🏢 Customer ID: ${customerId}\n`;
+            resultText += `🌐 URL: ${result.url}\n`;
+            resultText += `📈 Status: ${result.status}\n\n`;
+            
+            if (result.success && result.data.success) {
+                const customer = result.data.data;
+                resultText += `✅ สำเร็จ!\n`;
+                resultText += `🏢 บริษัท: ${customer.cus_company}\n`;
+                resultText += `📧 อีเมล: ${customer.cus_email}\n`;
+                resultText += `📞 เบอร์โทร: ${customer.cus_tel_1}\n`;
+                resultText += `📊 Pricing Requests ล่าสุด: ${customer.recent_pricing_requests?.length || 0} รายการ\n`;
+                
+                resultDiv.className = 'result success';
+                testResults.push({
+                    api: 'Customer Details',
+                    user: currentUser.userType,
+                    status: 'SUCCESS',
+                    customer: customer.cus_company
+                });
+            } else {
+                resultText += `❌ ล้มเหลว!\n`;
+                resultText += `📄 Response: ${JSON.stringify(result.data, null, 2)}`;
+                resultDiv.className = 'result error';
+                testResults.push({
+                    api: 'Customer Details',
+                    user: currentUser.userType,
+                    status: 'FAILED',
+                    error: result.data?.message || result.error
+                });
+            }
+            
+            resultDiv.textContent = resultText;
+            updateTestSummary();
+        }
+
+        // Update test summary
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('testSummary');
+            
+            if (testResults.length === 0) {
+                summaryDiv.textContent = 'ยังไม่มีการทดสอบ';
+                return;
+            }
+            
+            let summary = `📊 สรุปผลการทดสอบ (${testResults.length} การทดสอบ)\n\n`;
+            
+            testResults.forEach((result, index) => {
+                summary += `${index + 1}. ${result.api} (${result.user}): `;
+                if (result.status === 'SUCCESS') {
+                    summary += `✅ สำเร็จ`;
+                    if (result.count !== undefined) {
+                        summary += ` (${result.count} รายการ)`;
+                    }
+                    if (result.customer) {
+                        summary += ` - ${result.customer}`;
+                    }
+                } else {
+                    summary += `❌ ล้มเหลว - ${result.error}`;
+                }
+                summary += `\n`;
+            });
+            
+            // Analysis
+            summary += `\n🔍 การวิเคราะห์:\n`;
+            const adminResults = testResults.filter(r => r.user === 'admin');
+            const salesResults = testResults.filter(r => r.user.startsWith('sales'));
+            
+            if (adminResults.length > 0) {
+                const adminSuccess = adminResults.filter(r => r.status === 'SUCCESS');
+                summary += `👑 Admin: ${adminSuccess.length}/${adminResults.length} สำเร็จ\n`;
+            }
+            
+            if (salesResults.length > 0) {
+                const salesSuccess = salesResults.filter(r => r.status === 'SUCCESS');
+                summary += `👨‍💼 Sales Users: ${salesSuccess.length}/${salesResults.length} สำเร็จ\n`;
+            }
+            
+            summaryDiv.textContent = summary;
+            summaryDiv.className = 'result info';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 TNP Pricing Integration - Access Control API Tester initialized');
+        });
+    </script>
+</body>
+</html>

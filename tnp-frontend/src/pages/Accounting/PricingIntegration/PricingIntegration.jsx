@@ -223,8 +223,8 @@ const PricingIntegration = () => {
                 fabric_type: item.fabricType || '',
                 color: item.color || '',
                 size: item.size || '',
-                unit_price: item.unitPrice || 0,
-                quantity: item.quantity || 0,
+                unit_price: parseFloat(item.unitPrice) || 0,
+                quantity: parseInt(item.quantity, 10) || 0,
                 sequence_order: index + 1,
                 unit: 'ชิ้น',
                 notes: item.notes || ''

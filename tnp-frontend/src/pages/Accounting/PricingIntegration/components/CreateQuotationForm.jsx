@@ -192,9 +192,9 @@ const CreateQuotationForm = ({
                     fabricType: pr.pr_fabric_type || pr.fabric_type || pr.material || '',
                     color: pr.pr_color || pr.color || '',
                     size: pr.pr_sizes || pr.sizes || pr.size || '',
-                    quantity: pr.pr_quantity || pr.quantity || 1,
-                    unitPrice: 0, // Sales needs to fill this
-                    total: 0,
+                    quantity: parseInt(pr.pr_quantity || pr.quantity || 1, 10),
+                    unitPrice: pr.pr_unit_price ? parseFloat(pr.pr_unit_price) : 0, // Sales can adjust
+                    total: (pr.pr_unit_price ? parseFloat(pr.pr_unit_price) : 0) * (parseInt(pr.pr_quantity || pr.quantity || 1, 10)),
                     notes: pr.pr_notes || pr.notes || '',
                     // เพิ่มข้อมูลดิบเผื่อต้องใช้
                     originalData: pr,
@@ -225,6 +225,22 @@ const CreateQuotationForm = ({
             items: prev.items.map(item =>
                 item.id === itemId
                     ? { ...item, unitPrice: parseFloat(unitPrice) || 0, total: (parseFloat(unitPrice) || 0) * item.quantity }
+                    : item
+            ),
+        }));
+    };
+
+    const handleItemQuantityChange = (itemId, quantity) => {
+        const parsedQty = parseInt(quantity, 10) || 0;
+        setFormData(prev => ({
+            ...prev,
+            items: prev.items.map(item =>
+                item.id === itemId
+                    ? {
+                          ...item,
+                          quantity: parsedQty,
+                          total: (item.unitPrice || 0) * parsedQty,
+                      }
                     : item
             ),
         }));
@@ -716,24 +732,46 @@ const CreateQuotationForm = ({
                                                 </Box>
                                             </Grid>
                                             <Grid item xs={6} md={4}>
-                                                <Box sx={{
-                                                    p: 3,
-                                                    bgcolor: 'rgba(33, 150, 243, 0.05)',
-                                                    borderRadius: '16px',
-                                                    border: '2px solid #2196F3',
-                                                    textAlign: 'center',
-                                                    height: '100%',
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    justifyContent: 'center',
-                                                    minHeight: '140px'
-                                                }}>
-                                                    <Typography variant="caption" fontWeight={600} color="#2196F3" sx={{ mb: 1, display: 'block' }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 3,
+                                                        bgcolor: 'rgba(33, 150, 243, 0.05)',
+                                                        borderRadius: '16px',
+                                                        border: '2px solid #2196F3',
+                                                        textAlign: 'center',
+                                                        height: '100%',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        justifyContent: 'center',
+                                                        minHeight: '140px',
+                                                        gap: 1,
+                                                    }}
+                                                >
+                                                    <Typography variant="caption" fontWeight={600} color="#2196F3" sx={{ display: 'block' }}>
                                                         📦 จำนวน
                                                     </Typography>
-                                                    <Typography variant="h4" fontWeight={700} color="#2196F3">
-                                                        {item.quantity}
-                                                    </Typography>
+                                                    <TextField
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={(e) => handleItemQuantityChange(item.id, e.target.value)}
+                                                        inputProps={{ min: 0, step: 1, inputMode: 'numeric' }}
+                                                        sx={{
+                                                            '& .MuiOutlinedInput-root': {
+                                                                bgcolor: '#FFFFFF',
+                                                                fontSize: '1.2rem',
+                                                                fontWeight: 600,
+                                                                '&.Mui-focused fieldset': {
+                                                                    borderColor: '#2196F3',
+                                                                    borderWidth: '3px',
+                                                                },
+                                                            },
+                                                            '& input': {
+                                                                textAlign: 'center',
+                                                                fontSize: '1.2rem',
+                                                                fontWeight: 600,
+                                                            },
+                                                        }}
+                                                    />
                                                     <Typography variant="body2" color="#2196F3" fontWeight={600}>
                                                         ชิ้น
                                                     </Typography>

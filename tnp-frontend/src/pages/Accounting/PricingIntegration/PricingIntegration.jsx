@@ -83,28 +83,41 @@ const PricingIntegration = () => {
             if (!customerId) return;
 
             if (!map.has(customerId)) {
-                // Initialize with quotation flags
                 map.set(customerId, {
-                    ...req,
                     _customerId: customerId,
+                    customer: req.customer,
+                    requests: [req],
                     // is_quoted will be true only if ALL pricing requests have quotations
                     is_quoted: !!req.is_quoted,
                     // has_quotation tracks if ANY pricing request has a quotation
                     has_quotation: !!req.is_quoted,
+                    quoted_count: req.is_quoted ? 1 : 0,
+                    status_counts: req.pr_status
+                        ? { [req.pr_status]: 1 }
+                        : {},
                 });
             } else {
                 const existing = map.get(customerId);
+                existing.requests.push(req);
 
-                // Update has_quotation if any request is quoted
                 if (req.is_quoted) {
                     existing.has_quotation = true;
-                }
-
-                // is_quoted remains true only if every request is quoted
-                if (!req.is_quoted) {
+                    existing.quoted_count += 1;
+                } else {
                     existing.is_quoted = false;
                 }
+
+                const status = req.pr_status;
+                if (status) {
+                    existing.status_counts[status] =
+                        (existing.status_counts[status] || 0) + 1;
+                }
             }
+        });
+
+        // attach total counts
+        map.forEach((val) => {
+            val.total_count = val.requests.length;
         });
 
         return Array.from(map.values());
@@ -177,16 +190,18 @@ const PricingIntegration = () => {
         }));
     }, [refetch, dispatch]);
 
-    const handleCreateQuotation = (pricingRequest) => {
-        setSelectedPricingRequest(pricingRequest);
+    const handleCreateQuotation = (group) => {
+        const target = group.requests.find((r) => !r.is_quoted) || group.requests[0];
+        setSelectedPricingRequest(target);
         setShowCreateModal(true);
     };
 
-    const handleViewDetails = (pricingRequest) => {
+    const handleViewDetails = (group) => {
+        const target = group.requests[0];
         dispatch(addNotification({
             type: 'info',
             title: 'ดูรายละเอียด',
-            message: `กำลังแสดงรายละเอียด ${pricingRequest.pr_number}`,
+            message: `กำลังแสดงรายละเอียด ${target.pr_number}`,
         }));
         // TODO: Implement view details modal or navigation
     };
@@ -504,10 +519,10 @@ const PricingIntegration = () => {
                             ) : groupedPricingRequests.length > 0 ? (
                                 <>
                                     <Grid container spacing={3}>
-                                        {paginatedRequests.map((request) => (
-                                            <Grid item xs={12} sm={6} lg={4} key={request._customerId}>
+                                        {paginatedRequests.map((group) => (
+                                            <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
                                                 <PricingRequestCard
-                                                    request={request}
+                                                    group={group}
                                                     onCreateQuotation={handleCreateQuotation}
                                                     onViewDetails={handleViewDetails}
                                                 />

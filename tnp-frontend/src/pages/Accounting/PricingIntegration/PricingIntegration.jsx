@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Container,
@@ -66,6 +66,26 @@ const PricingIntegration = () => {
         page: currentPage,
         per_page: itemsPerPage,
     });
+
+    // Group pricing requests by customer to avoid duplicate customer cards
+    const groupedPricingRequests = useMemo(() => {
+        if (!pricingRequests?.data) return [];
+        const map = new Map();
+        pricingRequests.data.forEach((req) => {
+            const customerId =
+                req.customer?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id;
+            if (!customerId) return;
+            if (!map.has(customerId)) {
+                map.set(customerId, { ...req, _customerId: customerId, is_quoted: !!req.is_quoted });
+            } else {
+                const existing = map.get(customerId);
+                if (!existing.is_quoted && req.is_quoted) {
+                    existing.is_quoted = true;
+                }
+            }
+        });
+        return Array.from(map.values());
+    }, [pricingRequests]);
 
     // Debug logs
     useEffect(() => {
@@ -439,11 +459,11 @@ const PricingIntegration = () => {
                                 <LoadingState itemCount={6} />
                             ) : error ? (
                                 <ErrorState error={error} onRetry={handleRefresh} />
-                            ) : pricingRequests?.data?.length > 0 ? (
+                            ) : groupedPricingRequests.length > 0 ? (
                                 <>
                                     <Grid container spacing={3}>
-                                        {pricingRequests.data.map((request) => (
-                                            <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
+                                        {groupedPricingRequests.map((request) => (
+                                            <Grid item xs={12} sm={6} lg={4} key={request._customerId}>
                                                 <PricingRequestCard
                                                     request={request}
                                                     onCreateQuotation={handleCreateQuotation}

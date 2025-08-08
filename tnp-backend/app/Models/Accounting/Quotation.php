@@ -62,6 +62,8 @@ class Quotation extends Model
         'id',
         'number',
         'pricing_request_id',
+        'primary_pricing_request_id',
+        'primary_pricing_request_ids',
         'customer_id',
         'customer_company',
         'customer_tax_id',
@@ -98,6 +100,7 @@ class Quotation extends Model
     ];
 
     protected $casts = [
+        'primary_pricing_request_ids' => 'array',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
@@ -167,6 +170,40 @@ class Quotation extends Model
     public function orderItemsTracking(): HasMany
     {
         return $this->hasMany(OrderItemsTracking::class, 'quotation_id', 'id');
+    }
+
+    /**
+     * Relationship: Quotation has many Pricing Requests (via junction table)
+     */
+    public function quotationPricingRequests(): HasMany
+    {
+        return $this->hasMany(QuotationPricingRequest::class, 'quotation_id', 'id')
+                    ->orderBy('sequence_order');
+    }
+
+    /**
+     * Relationship: Many-to-Many with Pricing Requests through junction table
+     */
+    public function pricingRequests()
+    {
+        return $this->belongsToMany(
+            \App\Models\PricingRequest::class,
+            'quotation_pricing_requests',
+            'quotation_id',
+            'pricing_request_id',
+            'id',
+            'pr_id'
+        )->withPivot(['sequence_order', 'allocated_amount', 'allocated_quantity', 'created_by'])
+         ->withTimestamps()
+         ->orderBy('sequence_order');
+    }
+
+    /**
+     * Relationship: Primary Pricing Request (first in the list)
+     */
+    public function primaryPricingRequest(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
     }
 
     /**
@@ -264,5 +301,59 @@ class Quotation extends Model
     public function canConvertToInvoice()
     {
         return in_array($this->status, ['approved', 'sent']);
+    }
+
+    /**
+     * Get primary pricing request IDs as array
+     * รองรับทั้ง primary_pricing_request_id (single) และ primary_pricing_request_ids (array)
+     */
+    public function getPrimaryPricingRequestIdsAttribute()
+    {
+        // ถ้ามี primary_pricing_request_ids ใช้ array นั้น
+        if (!empty($this->attributes['primary_pricing_request_ids'])) {
+            $decoded = json_decode($this->attributes['primary_pricing_request_ids'], true);
+            return is_array($decoded) ? $decoded : [$decoded];
+        }
+        
+        // fallback ไปใช้ primary_pricing_request_id (single value)
+        if (!empty($this->attributes['primary_pricing_request_id'])) {
+            return [$this->attributes['primary_pricing_request_id']];
+        }
+        
+        return [];
+    }
+
+    /**
+     * Set primary pricing request IDs from array
+     */
+    public function setPrimaryPricingRequestIdsAttribute($value)
+    {
+        if (is_array($value)) {
+            $this->attributes['primary_pricing_request_ids'] = json_encode($value);
+            // ตั้ง primary_pricing_request_id เป็น first element สำหรับ backward compatibility
+            $this->attributes['primary_pricing_request_id'] = !empty($value) ? $value[0] : null;
+        } elseif (is_string($value)) {
+            $this->attributes['primary_pricing_request_ids'] = json_encode([$value]);
+            $this->attributes['primary_pricing_request_id'] = $value;
+        } else {
+            $this->attributes['primary_pricing_request_ids'] = null;
+            $this->attributes['primary_pricing_request_id'] = null;
+        }
+    }
+
+    /**
+     * Helper: ดึง Pricing Requests ทั้งหมดที่เชื่อมโยงกับ Quotation นี้
+     */
+    public function getAllPricingRequests()
+    {
+        return \App\Models\PricingRequest::whereIn('pr_id', $this->getPrimaryPricingRequestIdsAttribute())->get();
+    }
+
+    /**
+     * Helper: ตรวจสอบว่า Quotation นี้มี Pricing Request ID ที่ระบุหรือไม่
+     */
+    public function hasPricingRequest($pricingRequestId)
+    {
+        return in_array($pricingRequestId, $this->getPrimaryPricingRequestIdsAttribute());
     }
 }

@@ -94,6 +94,28 @@ class AccountingAPI {
     }
 
     /**
+     * สร้างใบเสนอราคาจาก Multiple Pricing Requests
+     * รองรับ primary_pricing_request_ids แบบ array
+     */
+    async createQuotationFromMultiplePricing(data) {
+        return this.makeRequest('/quotations/create-from-multiple-pricing', {
+            method: 'POST',
+            body: JSON.stringify({
+                pricing_request_ids: data.pricingRequestIds,
+                customer_id: data.customerId,
+                primary_pricing_request_ids: data.pricingRequestIds, // ⭐ รองรับ multiple IDs
+                additional_notes: data.additional_notes,
+                subtotal: data.subtotal,
+                tax_amount: data.tax_amount,
+                total_amount: data.total_amount,
+                deposit_percentage: data.deposit_percentage,
+                payment_terms: data.payment_terms,
+                ...data
+            }),
+        });
+    }
+
+    /**
      * อัปเดตใบเสนอราคา
      */
     async updateQuotation(id, data) {

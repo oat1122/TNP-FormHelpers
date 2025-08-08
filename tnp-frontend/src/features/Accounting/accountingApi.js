@@ -90,6 +90,7 @@ export const accountingApi = createApi({
                 body: {
                     pricing_request_ids: pricingRequestIds,
                     customer_id: customerId,
+                    primary_pricing_request_ids: pricingRequestIds, // ⭐ รองรับ multiple primary IDs
                     ...additionalData,
                 },
             }),

@@ -200,8 +200,8 @@ class QuotationService
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->number = Quotation::generateQuotationNumber();
             
-            // เก็บ pricing request ids เป็น JSON
-            $quotation->pricing_request_id = json_encode($pricingRequestIds);
+            // ⭐ รองรับ multiple primary pricing request IDs 
+            $quotation->primary_pricing_request_ids = $pricingRequestIds; // จะถูก cast เป็น JSON โดย Model
             
             // Auto-fill ข้อมูลลูกค้า
             $quotation->customer_id = $customer->cus_id;
@@ -239,6 +239,23 @@ class QuotationService
             $quotation->created_by = $createdBy;
             $quotation->save();
 
+            // ⭐ สร้าง Junction Records ใน quotation_pricing_requests table
+            foreach ($pricingRequestIds as $index => $pricingRequestId) {
+                $pr = $pricingRequests->where('pr_id', $pricingRequestId)->first();
+                
+                \DB::table('quotation_pricing_requests')->insert([
+                    'id' => \Illuminate\Support\Str::uuid(),
+                    'quotation_id' => $quotation->id,
+                    'pricing_request_id' => $pricingRequestId,
+                    'sequence_order' => $index + 1,
+                    'allocated_amount' => $pr->pr_total_cost ?? 0,
+                    'allocated_quantity' => $pr->pr_quantity ? intval($pr->pr_quantity) : 0,
+                    'created_by' => $createdBy,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             // สร้าง Order Items Tracking สำหรับแต่ละ pricing request
             foreach ($pricingRequests as $pr) {
                 if ($pr->pr_quantity && is_numeric($pr->pr_quantity)) {
@@ -269,7 +286,8 @@ class QuotationService
 
             Log::info('Quotation created successfully', [
                 'quotation_id' => $quotation->id,
-                'quotation_number' => $quotation->number
+                'quotation_number' => $quotation->number,
+                'primary_pricing_request_ids' => $pricingRequestIds
             ]);
 
             return $quotation->load(['customer', 'creator']);

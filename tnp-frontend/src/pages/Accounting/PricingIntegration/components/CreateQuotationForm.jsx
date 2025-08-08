@@ -685,11 +685,16 @@ const CreateQuotationForm = ({
                                                         type="number"
                                                         value={item.unitPrice || ''}
                                                         onChange={(e) => handleItemPriceChange(item.id, e.target.value)}
-                                                        placeholder="0.00"
+                                                        placeholder="0"
                                                         InputProps={{
                                                             startAdornment: <InputAdornment position="start">
                                                                 <Typography variant="h6" fontWeight={700} color="#4CAF50">฿</Typography>
                                                             </InputAdornment>,
+                                                        }}
+                                                        inputProps={{
+                                                            inputMode: 'decimal',
+                                                            min: 0,
+                                                            step: 'any'
                                                         }}
                                                         sx={{
                                                             '& .MuiOutlinedInput-root': {

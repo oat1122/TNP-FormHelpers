@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\MasterCustomer;
 use App\Models\PricingRequest;
 use App\Models\User;
+use App\Models\Accounting\QuotationItem;
 
 /**
  * Class Quotation
@@ -170,6 +171,15 @@ class Quotation extends Model
     public function orderItemsTracking(): HasMany
     {
         return $this->hasMany(OrderItemsTracking::class, 'quotation_id', 'id');
+    }
+
+    /**
+     * Relationship: Quotation has many Quotation Items
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(QuotationItem::class, 'quotation_id', 'id')
+                    ->orderBy('sequence_order');
     }
 
     /**

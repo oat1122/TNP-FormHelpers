@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Models\Accounting;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
+
+/**
+ * QuotationItem Model
+ * รายการสินค้าในใบเสนอราคา
+ */
+class QuotationItem extends Model
+{
+    protected $table = 'quotation_items';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected $fillable = [
+        'id',
+        'quotation_id',
+        'pricing_request_id',
+        'item_name',
+        'item_description',
+        'sequence_order',
+        'pattern',
+        'fabric_type',
+        'color',
+        'size',
+        'unit_price',
+        'quantity',
+        'unit',
+        'discount_percentage',
+        'discount_amount',
+        'notes',
+        'status',
+        'created_by',
+        'updated_by',
+    ];
+
+    protected $casts = [
+        'unit_price' => 'decimal:2',
+        'quantity' => 'integer',
+        'discount_percentage' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'sequence_order' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
+    }
+}
+

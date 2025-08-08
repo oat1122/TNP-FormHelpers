@@ -216,22 +216,39 @@ const PricingIntegration = () => {
             console.log('💾 Saving quotation draft with data:', data);
 
             // เตรียมข้อมูลสำหรับส่งไป backend (เหมือนกับ submit แต่เป็น draft)
+            const items = (data.items || []).map((item, index) => ({
+                pricing_request_id: item.pricingRequestId || item.id,
+                item_name: item.name,
+                pattern: item.pattern || '',
+                fabric_type: item.fabricType || '',
+                color: item.color || '',
+                size: item.size || '',
+                unit_price: item.unitPrice || 0,
+                quantity: item.quantity || 0,
+                sequence_order: index + 1,
+                unit: 'ชิ้น',
+                notes: item.notes || ''
+            }));
+
             const submitData = {
                 // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController
                 pricing_request_ids: selectedPricingRequests.map(pr => pr.pr_id),
                 customer_id: data.customer?.cus_id || selectedPricingRequests[0]?.pr_cus_id,
-                
+
                 // ข้อมูลการคำนวณ
                 subtotal: data.subtotal || 0,
                 tax_amount: data.vat || 0,
                 total_amount: data.total || 0,
-                
+
                 // ข้อมูลการชำระเงิน
-                deposit_percentage: data.depositPercentage === 'custom' 
-                    ? parseInt(data.customDepositPercentage) || 50 
+                deposit_percentage: data.depositPercentage === 'custom'
+                    ? parseInt(data.customDepositPercentage) || 50
                     : parseInt(data.depositPercentage) || 50,
                 payment_terms: data.paymentMethod || 'credit_30',
-                
+
+                // รายการสินค้า
+                items,
+
                 // หมายเหตุเพิ่มเติม
                 additional_notes: data.notes || '',
             };
@@ -271,22 +288,39 @@ const PricingIntegration = () => {
             console.log('🚀 Submitting quotation form with data:', data);
 
             // เตรียมข้อมูลสำหรับส่งไป backend
+            const items = (data.items || []).map((item, index) => ({
+                pricing_request_id: item.pricingRequestId || item.id,
+                item_name: item.name,
+                pattern: item.pattern || '',
+                fabric_type: item.fabricType || '',
+                color: item.color || '',
+                size: item.size || '',
+                unit_price: item.unitPrice || 0,
+                quantity: item.quantity || 0,
+                sequence_order: index + 1,
+                unit: 'ชิ้น',
+                notes: item.notes || ''
+            }));
+
             const submitData = {
                 // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController
                 pricing_request_ids: selectedPricingRequests.map(pr => pr.pr_id),
                 customer_id: data.customer?.cus_id || selectedPricingRequests[0]?.pr_cus_id,
-                
+
                 // ข้อมูลการคำนวณ
                 subtotal: data.subtotal || 0,
                 tax_amount: data.vat || 0,
                 total_amount: data.total || 0,
-                
+
                 // ข้อมูลการชำระเงิน
-                deposit_percentage: data.depositPercentage === 'custom' 
-                    ? parseInt(data.customDepositPercentage) || 50 
+                deposit_percentage: data.depositPercentage === 'custom'
+                    ? parseInt(data.customDepositPercentage) || 50
                     : parseInt(data.depositPercentage) || 50,
                 payment_terms: data.paymentMethod || 'credit_30',
-                
+
+                // รายการสินค้า
+                items,
+
                 // หมายเหตุเพิ่มเติม
                 additional_notes: data.notes || '',
             };

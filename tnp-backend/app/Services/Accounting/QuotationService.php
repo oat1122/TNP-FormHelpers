@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\Quotation;
+use App\Models\Accounting\QuotationItem;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DeliveryNote;
@@ -273,6 +274,32 @@ class QuotationService
                 }
             }
 
+            // สร้าง Quotation Items ถ้ามีส่งมา
+            if (!empty($additionalData['items']) && is_array($additionalData['items'])) {
+                foreach ($additionalData['items'] as $index => $item) {
+                    QuotationItem::create([
+                        'quotation_id' => $quotation->id,
+                        'pricing_request_id' => $item['pricing_request_id'] ?? null,
+                        'item_name' => $item['item_name'] ?? 'ไม่ระบุชื่องาน',
+                        'item_description' => $item['item_description'] ?? null,
+                        'sequence_order' => $item['sequence_order'] ?? ($index + 1),
+                        'pattern' => $item['pattern'] ?? null,
+                        'fabric_type' => $item['fabric_type'] ?? null,
+                        'color' => $item['color'] ?? null,
+                        'size' => $item['size'] ?? null,
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'quantity' => $item['quantity'] ?? 0,
+                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'discount_percentage' => $item['discount_percentage'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                        'notes' => $item['notes'] ?? null,
+                        'status' => $item['status'] ?? 'draft',
+                        'created_by' => $createdBy,
+                        'updated_by' => $createdBy,
+                    ]);
+                }
+            }
+
             // บันทึก History
             $workNamesList = implode(', ', $workNames);
             DocumentHistory::logCreation('quotation', $quotation->id, $createdBy, "สร้างจาก Multiple Pricing Requests: {$workNamesList}");
@@ -290,7 +317,7 @@ class QuotationService
                 'primary_pricing_request_ids' => $pricingRequestIds
             ]);
 
-            return $quotation->load(['customer', 'creator']);
+            return $quotation->load(['customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

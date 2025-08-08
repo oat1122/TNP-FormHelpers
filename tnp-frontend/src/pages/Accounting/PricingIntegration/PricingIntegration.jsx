@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Container,
@@ -51,7 +51,7 @@ const PricingIntegration = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
-    // API Queries
+    // API Queries - fetch a large page and handle client-side pagination
     const {
         data: pricingRequests,
         isLoading,
@@ -63,9 +63,86 @@ const PricingIntegration = () => {
         date_start: dateRange.start,
         date_end: dateRange.end,
         customer_id: selectedCustomer?.id,
-        page: currentPage,
-        per_page: itemsPerPage,
+        page: 1,
+        per_page: 1000,
     });
+
+    // Group pricing requests by customer to avoid duplicate customer cards
+    // and track quotation status to prevent duplicate quotation creation
+    const groupedPricingRequests = useMemo(() => {
+        if (!pricingRequests?.data) return [];
+        const map = new Map();
+
+        pricingRequests.data.forEach((req) => {
+            const customerId = (
+                req.customer?.cus_id ||
+                req.pr_cus_id ||
+                req.customer_id ||
+                req.cus_id || ''
+            ).toString();
+            if (!customerId) return;
+
+            if (!map.has(customerId)) {
+                map.set(customerId, {
+                    _customerId: customerId,
+                    customer: req.customer,
+                    requests: [req],
+                    // is_quoted will be true only if ALL pricing requests have quotations
+                    is_quoted: !!req.is_quoted,
+                    // has_quotation tracks if ANY pricing request has a quotation
+                    has_quotation: !!req.is_quoted,
+                    quoted_count: req.is_quoted ? 1 : 0,
+                    status_counts: req.pr_status
+                        ? { [req.pr_status]: 1 }
+                        : {},
+                });
+            } else {
+                const existing = map.get(customerId);
+                existing.requests.push(req);
+
+                if (req.is_quoted) {
+                    existing.has_quotation = true;
+                    existing.quoted_count += 1;
+                } else {
+                    existing.is_quoted = false;
+                }
+
+                const status = req.pr_status;
+                if (status) {
+                    existing.status_counts[status] =
+                        (existing.status_counts[status] || 0) + 1;
+                }
+            }
+        });
+
+        // attach total counts
+        map.forEach((val) => {
+            val.total_count = val.requests.length;
+        });
+
+        return Array.from(map.values());
+    }, [pricingRequests]);
+
+    // Client-side pagination based on grouped customers
+    const totalCustomers = groupedPricingRequests.length;
+
+    const paginatedRequests = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return groupedPricingRequests.slice(start, start + itemsPerPage);
+    }, [groupedPricingRequests, currentPage, itemsPerPage]);
+
+    const paginationInfo = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        const to = Math.min(start + itemsPerPage, totalCustomers);
+        return {
+            current_page: currentPage,
+            last_page: Math.max(1, Math.ceil(totalCustomers / itemsPerPage)),
+            per_page: itemsPerPage,
+            total: totalCustomers,
+            from: totalCustomers === 0 ? 0 : start + 1,
+            to,
+        };
+    }, [currentPage, itemsPerPage, totalCustomers]);
 
     // Debug logs
     useEffect(() => {
@@ -75,16 +152,14 @@ const PricingIntegration = () => {
             error,
             currentPage,
             itemsPerPage,
-            pricingRequests,
+            totalCustomers,
             apiUrl: `${import.meta.env.VITE_END_POINT_URL}/pricing-requests`,
             responseStructure: pricingRequests ? Object.keys(pricingRequests) : 'No data',
             dataArray: pricingRequests?.data || 'No data array',
             dataLength: pricingRequests?.data?.length || 0,
-            pagination: pricingRequests?.pagination || 'No pagination',
-            totalPages: pricingRequests?.pagination ? Math.ceil(pricingRequests.pagination.total / itemsPerPage) : 0,
             sampleRecord: pricingRequests?.data?.[0] || 'No records'
         });
-    }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage]);
+    }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage, totalCustomers]);
 
     const [createQuotationFromMultiplePricing] = useCreateQuotationFromMultiplePricingMutation();
 
@@ -115,16 +190,18 @@ const PricingIntegration = () => {
         }));
     }, [refetch, dispatch]);
 
-    const handleCreateQuotation = (pricingRequest) => {
-        setSelectedPricingRequest(pricingRequest);
+    const handleCreateQuotation = (group) => {
+        const target = group.requests.find((r) => !r.is_quoted) || group.requests[0];
+        setSelectedPricingRequest(target);
         setShowCreateModal(true);
     };
 
-    const handleViewDetails = (pricingRequest) => {
+    const handleViewDetails = (group) => {
+        const target = group.requests[0];
         dispatch(addNotification({
             type: 'info',
             title: 'ดูรายละเอียด',
-            message: `กำลังแสดงรายละเอียด ${pricingRequest.pr_number}`,
+            message: `กำลังแสดงรายละเอียด ${target.pr_number}`,
         }));
         // TODO: Implement view details modal or navigation
     };
@@ -426,7 +503,7 @@ const PricingIntegration = () => {
 
                             {/* Pagination Section */}
                             <PaginationSection
-                                pagination={pricingRequests?.pagination}
+                                pagination={paginationInfo}
                                 currentPage={currentPage}
                                 itemsPerPage={itemsPerPage}
                                 isFetching={isFetching}
@@ -439,13 +516,13 @@ const PricingIntegration = () => {
                                 <LoadingState itemCount={6} />
                             ) : error ? (
                                 <ErrorState error={error} onRetry={handleRefresh} />
-                            ) : pricingRequests?.data?.length > 0 ? (
+                            ) : groupedPricingRequests.length > 0 ? (
                                 <>
                                     <Grid container spacing={3}>
-                                        {pricingRequests.data.map((request) => (
-                                            <Grid item xs={12} sm={6} lg={4} key={request.pr_id}>
+                                        {paginatedRequests.map((group) => (
+                                            <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
                                                 <PricingRequestCard
-                                                    request={request}
+                                                    group={group}
                                                     onCreateQuotation={handleCreateQuotation}
                                                     onViewDetails={handleViewDetails}
                                                 />
@@ -454,9 +531,9 @@ const PricingIntegration = () => {
                                     </Grid>
 
                                     {/* Bottom Pagination */}
-                                    {pricingRequests?.pagination && pricingRequests.pagination.last_page > 1 && (
+                                    {paginationInfo.last_page > 1 && (
                                         <PaginationSection
-                                            pagination={pricingRequests.pagination}
+                                            pagination={paginationInfo}
                                             currentPage={currentPage}
                                             itemsPerPage={itemsPerPage}
                                             isFetching={isFetching}

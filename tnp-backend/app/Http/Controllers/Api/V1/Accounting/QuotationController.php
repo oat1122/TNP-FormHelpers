@@ -429,7 +429,21 @@ class QuotationController extends Controller
                 'tax_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'nullable|numeric|min:0',
                 'deposit_percentage' => 'nullable|integer|min:0|max:100',
-                'payment_terms' => 'nullable|string|max:50'
+                'payment_terms' => 'nullable|string|max:50',
+                'items' => 'nullable|array',
+                'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
+                'items.*.item_name' => 'required_with:items|string|max:255',
+                'items.*.item_description' => 'nullable|string',
+                'items.*.pattern' => 'nullable|string|max:255',
+                'items.*.fabric_type' => 'nullable|string|max:255',
+                'items.*.color' => 'nullable|string|max:255',
+                'items.*.size' => 'nullable|string|max:255',
+                'items.*.unit_price' => 'required_with:items|numeric|min:0',
+                'items.*.quantity' => 'required_with:items|integer|min:0',
+                'items.*.unit' => 'nullable|string|max:50',
+                'items.*.discount_percentage' => 'nullable|numeric|min:0',
+                'items.*.discount_amount' => 'nullable|numeric|min:0',
+                'items.*.notes' => 'nullable|string'
             ]);
 
             if ($validator->fails()) {

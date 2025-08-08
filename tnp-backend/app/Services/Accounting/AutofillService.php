@@ -331,6 +331,7 @@ class AutofillService
     {
         try {
             $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
+                ->withCount('quotationItems')
                 ->where('pr_is_deleted', 0);
 
             // เพิ่มเงื่อนไขสถานะ "ได้ราคาแล้ว" เฉพาะเมื่อไม่มี customer_id filter
@@ -397,6 +398,7 @@ class AutofillService
                     'pr_due_date' => $pr->pr_due_date ? $pr->pr_due_date->format('Y-m-d') : null,
                     'pr_status' => $pr->pricingStatus->status_name ?? 'Unknown',
                     'pr_completed_at' => $pr->pr_updated_date ? $pr->pr_updated_date->format('Y-m-d\TH:i:s\Z') : null,
+                    'is_quoted' => ($pr->quotation_items_count ?? 0) > 0,
                     'customer' => [
                         'cus_id' => $pr->pricingCustomer->cus_id ?? null,
                         'cus_company' => $pr->pricingCustomer->cus_company ?? '',

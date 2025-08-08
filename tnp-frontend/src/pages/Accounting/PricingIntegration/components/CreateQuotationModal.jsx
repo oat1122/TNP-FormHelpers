@@ -158,14 +158,20 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
             const data = await response.json();
 
             if (data.success) {
-                setCustomerPricingRequests(data.data || []);
-                // เลือก Pricing Request ปัจจุบันเป็นค่าเริ่มต้น
-                setSelectedPricingItems([pricingRequest.pr_id]);
+                const requests = data.data || [];
+                setCustomerPricingRequests(requests);
+                // เลือก Pricing Request ปัจจุบันเป็นค่าเริ่มต้น (ถ้ายังไม่มีใบเสนอราคา)
+                const current = requests.find(pr => pr.pr_id === pricingRequest.pr_id);
+                if (current && !current.is_quoted) {
+                    setSelectedPricingItems([pricingRequest.pr_id]);
+                } else {
+                    setSelectedPricingItems([]);
+                }
             }
         } catch (error) {
             console.error('Error fetching customer pricing requests:', error);
             setCustomerPricingRequests([pricingRequest]); // fallback
-            setSelectedPricingItems([pricingRequest.pr_id]);
+            setSelectedPricingItems(pricingRequest.is_quoted ? [] : [pricingRequest.pr_id]);
         } finally {
             setIsLoadingCustomerData(false);
         }
@@ -404,15 +410,15 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                         <Fade in timeout={300 + index * 100} key={item.pr_id}>
                                             <SelectionCard
                                                 selected={selectedPricingItems.includes(item.pr_id)}
-                                                sx={{ mb: 2 }}
-                                                onClick={() => handlePricingItemToggle(item.pr_id)}
+                                                sx={{ mb: 2, opacity: item.is_quoted ? 0.5 : 1, pointerEvents: item.is_quoted ? 'none' : 'auto' }}
+                                                onClick={() => !item.is_quoted && handlePricingItemToggle(item.pr_id)}
                                             >
                                                 <CardContent sx={{ p: 3 }}>
                                                     <Box display="flex" alignItems="center" justifyContent="space-between">
                                                         <Box sx={{ flex: 1 }}>
                                                             <Box display="flex" alignItems="center" gap={2} mb={2}>
-                                                                <Avatar 
-                                                                    sx={{ 
+                                                                <Avatar
+                                                                    sx={{
                                                                         bgcolor: selectedPricingItems.includes(item.pr_id) ? '#900F0F' : '#E5E7EB',
                                                                         color: selectedPricingItems.includes(item.pr_id) ? '#FFFFFF' : '#6B7280',
                                                                         width: 32,
@@ -462,23 +468,29 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                                             </Grid>
                                                         </Box>
                                                         <Box sx={{ ml: 3 }}>
-                                                            <Tooltip title={selectedPricingItems.includes(item.pr_id) ? 'คลิกเพื่อยกเลิกการเลือก' : 'คลิกเพื่อเลือก'}>
-                                                                <IconButton 
-                                                                    sx={{ 
-                                                                        color: selectedPricingItems.includes(item.pr_id) ? '#900F0F' : '#9CA3AF',
-                                                                        transform: selectedPricingItems.includes(item.pr_id) ? 'scale(1.1)' : 'scale(1)',
-                                                                        transition: 'all 0.2s ease-in-out'
-                                                                    }}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handlePricingItemToggle(item.pr_id);
-                                                                    }}
-                                                                >
-                                                                    {selectedPricingItems.includes(item.pr_id) ? <CheckCircleIcon /> : <UncheckIcon />}
-                                                                </IconButton>
+                                                            <Tooltip title={item.is_quoted ? 'มีใบเสนอราคาแล้ว' : (selectedPricingItems.includes(item.pr_id) ? 'คลิกเพื่อยกเลิกการเลือก' : 'คลิกเพื่อเลือก')}>
+                                                                <span>
+                                                                    <IconButton
+                                                                        disabled={item.is_quoted}
+                                                                        sx={{
+                                                                            color: selectedPricingItems.includes(item.pr_id) ? '#900F0F' : '#9CA3AF',
+                                                                            transform: selectedPricingItems.includes(item.pr_id) ? 'scale(1.1)' : 'scale(1)',
+                                                                            transition: 'all 0.2s ease-in-out'
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handlePricingItemToggle(item.pr_id);
+                                                                        }}
+                                                                    >
+                                                                        {selectedPricingItems.includes(item.pr_id) ? <CheckCircleIcon /> : <UncheckIcon />}
+                                                                    </IconButton>
+                                                                </span>
                                                             </Tooltip>
                                                         </Box>
                                                     </Box>
+                                                    {item.is_quoted && (
+                                                        <Chip label="มีใบเสนอราคาแล้ว" color="warning" size="small" sx={{ mt: 1 }} />
+                                                    )}
                                                 </CardContent>
                                             </SelectionCard>
                                         </Fade>

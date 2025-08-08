@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\Quotation;
+use App\Models\Accounting\QuotationItem;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DeliveryNote;
@@ -13,6 +14,7 @@ use App\Services\Accounting\AutofillService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class QuotationService
 {
@@ -199,9 +201,13 @@ class QuotationService
             $quotation = new Quotation();
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->number = Quotation::generateQuotationNumber();
-            
-            // ⭐ รองรับ multiple primary pricing request IDs 
-            $quotation->primary_pricing_request_ids = $pricingRequestIds; // จะถูก cast เป็น JSON โดย Model
+
+            // ⭐ รองรับ multiple primary pricing request IDs (พร้อม backward compatibility)
+            if (Schema::hasColumn('quotations', 'primary_pricing_request_ids')) {
+                $quotation->primary_pricing_request_ids = $pricingRequestIds; // จะถูก cast เป็น JSON โดย Model
+            } else {
+                $quotation->primary_pricing_request_id = $pricingRequestIds[0] ?? null;
+            }
             
             // Auto-fill ข้อมูลลูกค้า
             $quotation->customer_id = $customer->cus_id;
@@ -239,21 +245,23 @@ class QuotationService
             $quotation->created_by = $createdBy;
             $quotation->save();
 
-            // ⭐ สร้าง Junction Records ใน quotation_pricing_requests table
-            foreach ($pricingRequestIds as $index => $pricingRequestId) {
-                $pr = $pricingRequests->where('pr_id', $pricingRequestId)->first();
-                
-                \DB::table('quotation_pricing_requests')->insert([
-                    'id' => \Illuminate\Support\Str::uuid(),
-                    'quotation_id' => $quotation->id,
-                    'pricing_request_id' => $pricingRequestId,
-                    'sequence_order' => $index + 1,
-                    'allocated_amount' => $pr->pr_total_cost ?? 0,
-                    'allocated_quantity' => $pr->pr_quantity ? intval($pr->pr_quantity) : 0,
-                    'created_by' => $createdBy,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            // ⭐ สร้าง Junction Records ใน quotation_pricing_requests table (ถ้ามี)
+            if (Schema::hasTable('quotation_pricing_requests')) {
+                foreach ($pricingRequestIds as $index => $pricingRequestId) {
+                    $pr = $pricingRequests->where('pr_id', $pricingRequestId)->first();
+
+                    \DB::table('quotation_pricing_requests')->insert([
+                        'id' => \Illuminate\Support\Str::uuid(),
+                        'quotation_id' => $quotation->id,
+                        'pricing_request_id' => $pricingRequestId,
+                        'sequence_order' => $index + 1,
+                        'allocated_amount' => $pr->pr_total_cost ?? 0,
+                        'allocated_quantity' => $pr->pr_quantity ? intval($pr->pr_quantity) : 0,
+                        'created_by' => $createdBy,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
             // สร้าง Order Items Tracking สำหรับแต่ละ pricing request
@@ -269,6 +277,32 @@ class QuotationService
                         'sizes' => $pr->pr_sizes,
                         'ordered_quantity' => intval($pr->pr_quantity),
                         'unit_price' => $totalAmount > 0 && $totalQuantity > 0 ? $totalAmount / $totalQuantity : 0
+                    ]);
+                }
+            }
+
+            // สร้าง Quotation Items ถ้ามีส่งมา
+            if (!empty($additionalData['items']) && is_array($additionalData['items'])) {
+                foreach ($additionalData['items'] as $index => $item) {
+                    QuotationItem::create([
+                        'quotation_id' => $quotation->id,
+                        'pricing_request_id' => $item['pricing_request_id'] ?? null,
+                        'item_name' => $item['item_name'] ?? 'ไม่ระบุชื่องาน',
+                        'item_description' => $item['item_description'] ?? null,
+                        'sequence_order' => $item['sequence_order'] ?? ($index + 1),
+                        'pattern' => $item['pattern'] ?? null,
+                        'fabric_type' => $item['fabric_type'] ?? null,
+                        'color' => $item['color'] ?? null,
+                        'size' => $item['size'] ?? null,
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'quantity' => $item['quantity'] ?? 0,
+                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'discount_percentage' => $item['discount_percentage'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                        'notes' => $item['notes'] ?? null,
+                        'status' => $item['status'] ?? 'draft',
+                        'created_by' => $createdBy,
+                        'updated_by' => $createdBy,
                     ]);
                 }
             }
@@ -290,7 +324,7 @@ class QuotationService
                 'primary_pricing_request_ids' => $pricingRequestIds
             ]);
 
-            return $quotation->load(['customer', 'creator']);
+            return $quotation->load(['customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -1,7 +1,7 @@
 // Export all components from a single file for easier imports
 export { default as PricingRequestCard } from './PricingRequestCard';
-export { default as CreateQuotationModal } from './CreateQuotationModal';
-export { default as CreateQuotationForm } from './CreateQuotationForm';
+export { default as CreateQuotationModal } from './quotation/CreateQuotationModal';
+export { default as CreateQuotationForm } from './quotation/CreateQuotationForm';
 export { default as QuotationPreview } from './QuotationPreview';
 export { default as FilterSection } from './FilterSection';
 export { default as PaginationSection } from './PaginationSection';

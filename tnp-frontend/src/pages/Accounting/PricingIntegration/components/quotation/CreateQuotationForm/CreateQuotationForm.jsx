@@ -40,10 +40,10 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from '../../styles/quotationTheme';
-import useQuotationCalc from '../../hooks/useQuotationCalc';
-import { formatTHB } from '../../utils/currency';
-import { formatDateTH } from '../../utils/date';
+} from '../styles/quotationTheme';
+import useQuotationCalc from '../hooks/useQuotationCalc';
+import { formatTHB } from '../utils/currency';
+import { formatDateTH } from '../utils/date';
 
 import PricingRequestNotesButton from '../../PricingRequestNotesButton';
 import QuotationPreview from '../../QuotationPreview';

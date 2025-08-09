@@ -35,8 +35,8 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from '../../styles/quotationTheme';
-import useCustomerPricingRequests from '../../hooks/useCustomerPricingRequests';
+} from '../styles/quotationTheme';
+import useCustomerPricingRequests from '../hooks/useCustomerPricingRequests';
 
 const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,21 +115,6 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
             </Box>
           </Box>
           <Box display="flex" alignItems="center" gap={1}>
-            <Badge
-              badgeContent={selectedPricingItems.length}
-              sx={{
-                '& .MuiBadge-badge': {
-                  backgroundColor: tokens.primary,
-                  color: tokens.white,
-                },
-              }}
-            >
-              <Chip
-                icon={<AssignmentIcon />}
-                label={`เลือกแล้ว ${selectedPricingItems.length} งาน`}
-                variant="outlined"
-              />
-            </Badge>
             <Tooltip title="ปิด">
               <IconButton onClick={onClose}>
                 <CloseIcon />

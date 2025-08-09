@@ -2,20 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
     Box,
     Grid,
-    Card,
     CardContent,
     Typography,
-    Button,
     TextField,
     Chip,
-    Dialog,
-    DialogTitle,
     DialogContent,
     DialogActions,
     Alert,
     Skeleton,
     Stack,
-    Paper,
     Checkbox,
     Avatar,
     Fade,
@@ -35,89 +30,14 @@ import {
     Add as AddIcon,
     Remove as RemoveIcon,
 } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-
-// Styled Components
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuiDialog-paper': {
-        borderRadius: '16px',
-        maxWidth: '1000px',
-        width: '90vw',
-        maxHeight: '90vh',
-        background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)',
-        boxShadow: '0 24px 48px rgba(144, 15, 15, 0.15)',
-    },
-}));
-
-const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-    color: '#FFFFFF',
-    padding: '24px 32px',
-    position: 'relative',
-    '& .MuiTypography-root': {
-        fontSize: '1.5rem',
-        fontWeight: 600,
-    },
-}));
-
-const SelectionCard = styled(Card)(({ theme, selected }) => ({
-    cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    border: selected ? '2px solid #900F0F' : '1px solid #E5E7EB',
-    backgroundColor: selected ? 'rgba(144, 15, 15, 0.02)' : '#FFFFFF',
-    transform: selected ? 'translateY(-2px)' : 'translateY(0)',
-    boxShadow: selected 
-        ? '0 8px 25px rgba(144, 15, 15, 0.15)' 
-        : '0 2px 8px rgba(0, 0, 0, 0.08)',
-    '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 12px 32px rgba(144, 15, 15, 0.2)',
-        borderColor: selected ? '#900F0F' : '#B20000',
-    },
-}));
-
-const CustomerInfoCard = styled(Paper)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%)',
-    border: '1px solid #E36264',
-    borderRadius: '12px',
-    padding: '20px',
-    marginBottom: '24px',
-    position: 'relative',
-    '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '4px',
-        background: 'linear-gradient(90deg, #900F0F 0%, #B20000 100%)',
-        borderRadius: '12px 12px 0 0',
-    },
-}));
-
-const PrimaryButton = styled(Button)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-    color: '#FFFFFF',
-    borderRadius: '12px',
-    padding: '12px 32px',
-    fontSize: '16px',
-    fontWeight: 600,
-    textTransform: 'none',
-    boxShadow: '0 4px 16px rgba(144, 15, 15, 0.3)',
-    minWidth: '200px',
-    '&:hover': {
-        background: 'linear-gradient(135deg, #B20000 0%, #E36264 100%)',
-        transform: 'translateY(-2px)',
-        boxShadow: '0 8px 24px rgba(144, 15, 15, 0.4)',
-    },
-    '&:disabled': {
-        background: '#E5E7EB',
-        color: '#9CA3AF',
-        transform: 'none',
-        boxShadow: 'none',
-    },
-    transition: 'all 0.3s ease-in-out',
-}));
+import {
+    StyledDialog,
+    StyledDialogTitle,
+    SelectionCard,
+    CustomerInfoCard,
+    PrimaryButton,
+    SecondaryButton,
+} from './styles/QuotationStyles';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
     return <Slide direction="up" ref={ref} {...props} />;
@@ -539,21 +459,12 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                         )}
                     </Box>
                     <Box display="flex" gap={2}>
-                        <Button 
-                            onClick={onClose} 
-                            disabled={isSubmitting}
-                            size="large"
-                            sx={{ 
-                                borderRadius: '12px',
-                                padding: '12px 24px',
-                                color: '#6B7280',
-                                '&:hover': {
-                                    backgroundColor: '#F3F4F6',
-                                },
-                            }}
+                        <SecondaryButton
+                            onClick={onClose}
+                            disabled={isSubmitting || selectedPricingItems.length === 0}
                         >
                             ยกเลิก
-                        </Button>
+                        </SecondaryButton>
                         <PrimaryButton
                             onClick={handleSubmit}
                             disabled={isSubmitting || selectedPricingItems.length === 0}

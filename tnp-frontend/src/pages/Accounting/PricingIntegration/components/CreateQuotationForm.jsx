@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
     Box,
     Container,
-    Paper,
     Typography,
     Grid,
     TextField,
-    Button,
     Card,
     CardContent,
     Divider,
@@ -44,75 +42,16 @@ import {
     Print as PrintIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { styled } from '@mui/material/styles';
 import PricingRequestNotesButton from './PricingRequestNotesButton';
 import QuotationPreview from './QuotationPreview';
 import CustomerEditCard from './CustomerEditCard';
-
-// Styled Components with our theme colors
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)',
-    borderRadius: '16px',
-    boxShadow: '0 8px 32px rgba(144, 15, 15, 0.08)',
-    border: '1px solid rgba(144, 15, 15, 0.1)',
-    overflow: 'hidden',
-}));
-
-const SectionHeader = styled(Box)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-    color: '#FFFFFF',
-    padding: '16px 24px',
-    margin: '-1px -1px 24px -1px',
-    borderRadius: '16px 16px 0 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-}));
-
-const InfoCard = styled(Card)(({ theme }) => ({
-    backgroundColor: '#F8F9FA',
-    border: '1px solid #E36264',
-    borderRadius: '12px',
-    '& .MuiCardContent-root': {
-        padding: '20px',
-        '&:last-child': {
-            paddingBottom: '20px',
-        },
-    },
-}));
-
-const PrimaryButton = styled(Button)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-    color: '#FFFFFF',
-    borderRadius: '12px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: 600,
-    textTransform: 'none',
-    boxShadow: '0 4px 16px rgba(144, 15, 15, 0.3)',
-    '&:hover': {
-        background: 'linear-gradient(135deg, #B20000 0%, #E36264 100%)',
-        transform: 'translateY(-2px)',
-        boxShadow: '0 8px 24px rgba(144, 15, 15, 0.4)',
-    },
-    transition: 'all 0.3s ease-in-out',
-}));
-
-const SecondaryButton = styled(Button)(({ theme }) => ({
-    border: '2px solid #B20000',
-    color: '#B20000',
-    borderRadius: '12px',
-    padding: '10px 24px',
-    fontSize: '16px',
-    fontWeight: 600,
-    textTransform: 'none',
-    '&:hover': {
-        backgroundColor: 'rgba(178, 0, 0, 0.05)',
-        border: '2px solid #900F0F',
-        color: '#900F0F',
-    },
-    transition: 'all 0.3s ease-in-out',
-}));
+import {
+    StyledPaper,
+    SectionHeader,
+    InfoCard,
+    PrimaryButton,
+    SecondaryButton,
+} from './styles/QuotationStyles';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
     return <Slide direction="up" ref={ref} {...props} />;

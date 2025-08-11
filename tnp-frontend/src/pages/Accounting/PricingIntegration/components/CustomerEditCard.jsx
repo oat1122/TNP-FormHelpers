@@ -132,6 +132,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [editData, setEditData] = useState({});
+    const [displayCustomer, setDisplayCustomer] = useState(customer);
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [subdistricts, setSubdistricts] = useState([]);
@@ -163,6 +164,23 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                 cus_dis_id: customer.cus_dis_id || '',
                 cus_sub_id: customer.cus_sub_id || '',
             });
+
+            // Keep a local display customer and hydrate with full details if needed
+            setDisplayCustomer(customer);
+            (async () => {
+                try {
+                    if (customer.cus_id) {
+                        const full = await customerApi.getCustomer(customer.cus_id);
+                        // Merge, prefer full details
+                        setDisplayCustomer({ ...customer, ...full });
+                    }
+                } catch (e) {
+                    // Silent fail; use provided customer fields
+                    if (import.meta.env.VITE_DEBUG_API === 'true') {
+                        console.warn('Failed to hydrate customer details:', e);
+                    }
+                }
+            })();
         }
     }, [customer]);
 
@@ -345,10 +363,13 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         console.log('🏢 Province changed:', newValue);
         
         handleInputChange('cus_pro_id', newValue?.pro_id || '');
+    handleInputChange('cus_province_name', newValue?.pro_name_th || '');
         setDistricts([]);
         setSubdistricts([]);
         handleInputChange('cus_dis_id', '');
+    handleInputChange('cus_district_name', '');
         handleInputChange('cus_sub_id', '');
+    handleInputChange('cus_subdistrict_name', '');
 
         // Use pro_sort_id for loading districts (this is usually the correct field)
         if (newValue?.pro_sort_id) {
@@ -367,8 +388,10 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         console.log('🏘️ District changed:', newValue);
         
         handleInputChange('cus_dis_id', newValue?.dis_id || '');
+    handleInputChange('cus_district_name', newValue?.dis_name || newValue?.dis_name_th || '');
         setSubdistricts([]);
         handleInputChange('cus_sub_id', '');
+    handleInputChange('cus_subdistrict_name', '');
 
         // Use dis_sort_id for loading subdistricts
         if (newValue?.dis_sort_id) {
@@ -415,8 +438,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                 cus_dis_id: customer.cus_dis_id || '',
                 cus_sub_id: customer.cus_sub_id || '',
             });
-        }
-        if (onCancel) onCancel(); onCancel();
+    }
+    if (onCancel) onCancel();
     }, [customer, onCancel]);
 
     const validateForm = useCallback(() => {
@@ -425,30 +448,63 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         return validation.isValid;
     }, [editData]);
 
+    // Build a display address from current selection for optimistic UI
+    const buildDisplayAddress = useCallback(() => {
+        if (editData.cus_address && editData.cus_address.trim()) {
+            return editData.cus_address.trim();
+        }
+        const proName = editData.cus_province_name || provinces.find(p => p.pro_id === editData.cus_pro_id)?.pro_name_th || '';
+        const disName = editData.cus_district_name || districts.find(d => d.dis_id === editData.cus_dis_id)?.dis_name || districts.find(d => d.dis_id === editData.cus_dis_id)?.dis_name_th || '';
+        const subName = editData.cus_subdistrict_name || subdistricts.find(s => s.sub_id === editData.cus_sub_id)?.sub_name || subdistricts.find(s => s.sub_id === editData.cus_sub_id)?.sub_name_th || '';
+        const zip = editData.cus_zip_code || '';
+
+        const isBkk = proName.includes('กรุงเทพ');
+        const parts = [];
+        if (subName) parts.push(isBkk ? `แขวง${subName}` : `ตำบล${subName}`);
+        if (disName) parts.push(isBkk ? `เขต${disName}` : `อำเภอ${disName}`);
+        if (proName) parts.push(isBkk ? 'กรุงเทพฯ' : `จ.${proName}`);
+        if (zip) parts.push(zip);
+        return parts.join(' ').trim();
+    }, [editData, provinces, districts, subdistricts]);
+
     const handleSave = useCallback(async () => {
         if (!validateForm()) {
             return;
         }
+
+        // Optimistic update: update UI and parent immediately
+        const originalCustomer = displayCustomer || customer;
+        const optimisticCustomer = { ...originalCustomer, ...editData };
+        const optimisticAddress = buildDisplayAddress();
+        if (optimisticAddress) {
+            optimisticCustomer.cus_address = optimisticAddress;
+        }
+        // Keep name fields for AddressService format fallback
+        optimisticCustomer.cus_province_name = editData.cus_province_name || optimisticCustomer.cus_province_name;
+        optimisticCustomer.cus_district_name = editData.cus_district_name || optimisticCustomer.cus_district_name;
+        optimisticCustomer.cus_subdistrict_name = editData.cus_subdistrict_name || optimisticCustomer.cus_subdistrict_name;
+        optimisticCustomer.cus_zip_code = editData.cus_zip_code || optimisticCustomer.cus_zip_code;
+        setDisplayCustomer(optimisticCustomer);
+        if (onUpdate) onUpdate(optimisticCustomer);
+        setIsEditing(false);
+        setIsExpanded(false);
 
         setIsSaving(true);
         try {
             // เตรียมข้อมูลที่อยู่สำหรับส่งไป API
             const addressData = AddressService.prepareAddressForApi(editData);
             const updateData = { ...editData, ...addressData };
-            
+
             await customerApi.updateCustomer(customer.cus_id, updateData);
-            
-            // Update local customer data
-            const updatedCustomer = { ...customer, ...editData };
-            if (onUpdate) onUpdate(updatedCustomer);
-            
-            setIsEditing(false);
-            setIsExpanded(false);
-            
+
             // Show success message briefly
             setErrors({ success: 'บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว' });
             setTimeout(() => setErrors({}), 3000);
         } catch (error) {
+            // Rollback on failure
+            setDisplayCustomer(originalCustomer);
+            if (onUpdate) onUpdate(originalCustomer);
+
             const errorMessage = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
             console.error('Failed to save customer data:', {
                 customerId: customer.cus_id,
@@ -457,10 +513,14 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                 data: error.response?.data
             });
             setErrors({ general: `เกิดข้อผิดพลาด: ${errorMessage}` });
+
+            // Re-open edit mode to let user fix input
+            setIsEditing(true);
+            setIsExpanded(true);
         } finally {
             setIsSaving(false);
         }
-    }, [customer, editData, onUpdate, validateForm]);
+    }, [customer, editData, onUpdate, validateForm, displayCustomer, buildDisplayAddress]);
 
     if (!customer) {
         return (
@@ -469,6 +529,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
             </Alert>
         );
     }
+
+    const viewCustomer = displayCustomer || customer;
 
     return (
         <CustomerCard>
@@ -554,7 +616,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             <Box>
                                 <Typography variant="caption" color="text.secondary">ชื่อบริษัท</Typography>
                                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    {customer.cus_company || '-'}
+                                    {viewCustomer.cus_company || '-'}
                                 </Typography>
                             </Box>
                         )}
@@ -577,7 +639,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             <Box>
                                 <Typography variant="caption" color="text.secondary">เบอร์โทรศัพท์</Typography>
                                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    {formatPhoneNumber(customer.cus_tel_1) || '-'}
+                                    {formatPhoneNumber(viewCustomer.cus_tel_1) || '-'}
                                 </Typography>
                             </Box>
                         )}
@@ -610,7 +672,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">ชื่อ</Typography>
-                                    <Typography variant="body2">{customer.cus_firstname || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_firstname || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -629,7 +691,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">นามสกุล</Typography>
-                                    <Typography variant="body2">{customer.cus_lastname || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_lastname || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -648,7 +710,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">ชื่อเล่น</Typography>
-                                    <Typography variant="body2">{customer.cus_name || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_name || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -665,7 +727,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">ตำแหน่ง/แผนก</Typography>
-                                    <Typography variant="body2">{customer.cus_depart || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_depart || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -682,7 +744,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">เบอร์โทรสำรอง</Typography>
-                                    <Typography variant="body2">{formatPhoneNumber(customer.cus_tel_2) || '-'}</Typography>
+                                    <Typography variant="body2">{formatPhoneNumber(viewCustomer.cus_tel_2) || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -704,7 +766,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">อีเมล</Typography>
-                                    <Typography variant="body2">{customer.cus_email || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_email || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -723,7 +785,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             ) : (
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">เลขประจำตัวผู้เสียภาษี</Typography>
-                                    <Typography variant="body2">{formatTaxId(customer.cus_tax_id) || '-'}</Typography>
+                                    <Typography variant="body2">{formatTaxId(viewCustomer.cus_tax_id) || '-'}</Typography>
                                 </Box>
                             )}
                         </Grid>
@@ -799,7 +861,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">ที่อยู่</Typography>
                                     <Typography variant="body2">
-                                        {AddressService.formatDisplayAddress(customer) || '-'}
+                                        {AddressService.formatDisplayAddress(viewCustomer) || '-'}
                                     </Typography>
                                 </Box>
                             )}
@@ -856,6 +918,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                         value={subdistricts.find(s => s.sub_id === editData.cus_sub_id) || null}
                                         onChange={(event, newValue) => {
                                             handleInputChange('cus_sub_id', newValue?.sub_id || '');
+                                            handleInputChange('cus_subdistrict_name', newValue?.sub_name || newValue?.sub_name_th || '');
                                             if (newValue?.sub_zip_code) {
                                                 handleInputChange('cus_zip_code', newValue.sub_zip_code);
                                             }
@@ -887,7 +950,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                             <Grid item xs={12} md={3}>
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">รหัสไปรษณีย์</Typography>
-                                    <Typography variant="body2">{customer.cus_zip_code || '-'}</Typography>
+                                    <Typography variant="body2">{viewCustomer.cus_zip_code || '-'}</Typography>
                                 </Box>
                             </Grid>
                         )}

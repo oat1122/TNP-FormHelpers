@@ -134,6 +134,8 @@ class AutofillService
             return [
                 'cus_id' => $customer->cus_id,
                 'cus_company' => $customer->cus_company,
+                'cus_name' => $customer->cus_name,
+                'cus_depart' => $customer->cus_depart,
                 'cus_tax_id' => $customer->cus_tax_id,
                 'cus_address' => $customer->cus_address,
                 'cus_zip_code' => $customer->cus_zip_code,
@@ -408,6 +410,9 @@ class AutofillService
                     'customer' => [
                         'cus_id' => $pr->pricingCustomer->cus_id ?? null,
                         'cus_company' => $pr->pricingCustomer->cus_company ?? '',
+                        // เพิ่มฟิลด์ที่ใช้ในหน้าแก้ไขลูกค้า
+                        'cus_name' => $pr->pricingCustomer->cus_name ?? '',
+                        'cus_depart' => $pr->pricingCustomer->cus_depart ?? '',
                         'cus_tax_id' => $pr->pricingCustomer->cus_tax_id ?? '',
                         'cus_address' => $pr->pricingCustomer->cus_address ?? '',
                         'cus_zip_code' => $pr->pricingCustomer->cus_zip_code ?? '',

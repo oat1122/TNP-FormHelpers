@@ -40,34 +40,26 @@ class QuotationService
             $quotation = new Quotation();
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->number = Quotation::generateQuotationNumber();
-            $quotation->pricing_request_id = $autofillData['pr_id'];
-            
-            // Auto-fill ข้อมูลลูกค้า
-            $quotation->customer_id = $autofillData['pr_cus_id'];
-            $quotation->customer_company = $autofillData['cus_company'];
-            $quotation->customer_tax_id = $autofillData['cus_tax_id'];
-            $quotation->customer_address = $autofillData['cus_address'];
-            $quotation->customer_zip_code = $autofillData['cus_zip_code'];
-            $quotation->customer_tel_1 = $autofillData['cus_tel_1'];
-            $quotation->customer_email = $autofillData['cus_email'];
-            $quotation->customer_firstname = $autofillData['cus_firstname'];
-            $quotation->customer_lastname = $autofillData['cus_lastname'];
+            // Lean schema: primary pricing request linkage
+            $quotation->primary_pricing_request_id = $autofillData['pr_id'] ?? null;
 
-            // Auto-fill ข้อมูลงาน
-            $quotation->work_name = $autofillData['pr_work_name'];
-            $quotation->fabric_type = $autofillData['pr_fabric_type'];
-            $quotation->pattern = $autofillData['pr_pattern'];
-            $quotation->color = $autofillData['pr_color'];
-            $quotation->sizes = $autofillData['pr_sizes'];
-            $quotation->quantity = $autofillData['pr_quantity'];
-            $quotation->silk_screen = $autofillData['pr_silk'];
-            $quotation->dft_screen = $autofillData['pr_dft'];
-            $quotation->embroider = $autofillData['pr_embroider'];
-            $quotation->sub_screen = $autofillData['pr_sub'];
-            $quotation->other_screen = $autofillData['pr_other_screen'];
-            $quotation->product_image = $autofillData['pr_image'];
-            $quotation->due_date = $autofillData['pr_due_date'];
-            $quotation->notes = $autofillData['initial_notes'];
+            // Auto-fill ข้อมูลลูกค้า (lean: เก็บ snapshot รวม + customer_id)
+            $quotation->customer_id = $autofillData['pr_cus_id'] ?? null;
+            $quotation->customer_snapshot = [
+                'cus_company' => $autofillData['cus_company'] ?? null,
+                'cus_tax_id' => $autofillData['cus_tax_id'] ?? null,
+                'cus_address' => $autofillData['cus_address'] ?? null,
+                'cus_zip_code' => $autofillData['cus_zip_code'] ?? null,
+                'cus_tel_1' => $autofillData['cus_tel_1'] ?? null,
+                'cus_email' => $autofillData['cus_email'] ?? null,
+                'cus_firstname' => $autofillData['cus_firstname'] ?? null,
+                'cus_lastname' => $autofillData['cus_lastname'] ?? null,
+            ];
+
+            // Auto-fill ข้อมูลงาน (lean: เก็บเฉพาะหัวใบและวันที่ครบกำหนด)
+            $quotation->work_name = $autofillData['pr_work_name'] ?? null;
+            $quotation->due_date = $autofillData['pr_due_date'] ?? null;
+            $quotation->notes = $autofillData['initial_notes'] ?? null;
 
             // ข้อมูลเพิ่มเติมจาก user input
             $quotation->subtotal = $additionalData['subtotal'] ?? 0;
@@ -86,20 +78,7 @@ class QuotationService
             $quotation->created_by = $createdBy;
             $quotation->save();
 
-            // สร้าง Order Items Tracking
-            if ($quotation->quantity && is_numeric($quotation->quantity)) {
-                OrderItemsTracking::create([
-                    'quotation_id' => $quotation->id,
-                    'pricing_request_id' => $pricingRequestId,
-                    'work_name' => $quotation->work_name,
-                    'fabric_type' => $quotation->fabric_type,
-                    'pattern' => $quotation->pattern,
-                    'color' => $quotation->color,
-                    'sizes' => $quotation->sizes,
-                    'ordered_quantity' => intval($quotation->quantity),
-                    'unit_price' => $quotation->total_amount > 0 ? $quotation->total_amount / intval($quotation->quantity) : 0
-                ]);
-            }
+            // Tracking logic optional in lean; skip creating OrderItemsTracking here to decouple quoting from production
 
             // บันทึก History
             DocumentHistory::logCreation('quotation', $quotation->id, $createdBy, 'สร้างจาก Pricing Request: ' . $autofillData['pr_work_name']);
@@ -211,22 +190,22 @@ class QuotationService
             
             // Auto-fill ข้อมูลลูกค้า
             $quotation->customer_id = $customer->cus_id;
-            $quotation->customer_company = $customer->cus_company;
-            $quotation->customer_tax_id = $customer->cus_tax_id;
-            $quotation->customer_address = $customer->cus_address;
-            $quotation->customer_zip_code = $customer->cus_zip_code;
-            $quotation->customer_tel_1 = $customer->cus_tel_1;
-            $quotation->customer_email = $customer->cus_email;
-            $quotation->customer_firstname = $customer->cus_firstname;
-            $quotation->customer_lastname = $customer->cus_lastname;
+            $quotation->customer_snapshot = [
+                'cus_company' => $customer->cus_company,
+                'cus_tax_id' => $customer->cus_tax_id,
+                'cus_address' => $customer->cus_address,
+                'cus_zip_code' => $customer->cus_zip_code,
+                'cus_tel_1' => $customer->cus_tel_1,
+                'cus_email' => $customer->cus_email,
+                'cus_firstname' => $customer->cus_firstname,
+                'cus_lastname' => $customer->cus_lastname,
+            ];
 
             // รวมข้อมูลงานจาก pricing requests ทั้งหมด
             $workNames = $pricingRequests->pluck('pr_work_name')->filter()->toArray();
             $quotation->work_name = implode(', ', $workNames);
             
-            // คำนวณจำนวนรวม
-            $totalQuantity = $pricingRequests->sum('pr_quantity');
-            $quotation->quantity = (string)$totalQuantity;
+            // Lean: ไม่เก็บ quantity บนหัวใบ
 
             // ข้อมูลราคา
             $quotation->subtotal = $subtotal;
@@ -265,21 +244,7 @@ class QuotationService
             }
 
             // สร้าง Order Items Tracking สำหรับแต่ละ pricing request
-            foreach ($pricingRequests as $pr) {
-                if ($pr->pr_quantity && is_numeric($pr->pr_quantity)) {
-                    OrderItemsTracking::create([
-                        'quotation_id' => $quotation->id,
-                        'pricing_request_id' => $pr->pr_id,
-                        'work_name' => $pr->pr_work_name,
-                        'fabric_type' => $pr->pr_fabric_type,
-                        'pattern' => $pr->pr_pattern,
-                        'color' => $pr->pr_color,
-                        'sizes' => $pr->pr_sizes,
-                        'ordered_quantity' => intval($pr->pr_quantity),
-                        'unit_price' => $totalAmount > 0 && $totalQuantity > 0 ? $totalAmount / $totalQuantity : 0
-                    ]);
-                }
-            }
+            // Lean: ไม่สร้าง OrderItemsTracking อัตโนมัติที่นี่ เพื่อลด coupling
 
             // สร้าง Quotation Items ถ้ามีส่งมา
             if (!empty($additionalData['items']) && is_array($additionalData['items'])) {

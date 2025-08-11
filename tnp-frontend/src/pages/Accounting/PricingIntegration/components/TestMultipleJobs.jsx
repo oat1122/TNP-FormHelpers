@@ -1,5 +1,5 @@
 import React from 'react';
-import CreateQuotationForm from './CreateQuotationForm';
+import CreateQuotationForm from './quotation/CreateQuotationForm';
 
 /**
  * 🧪 Test Component สำหรับทดสอบ Multiple Jobs

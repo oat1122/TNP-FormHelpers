@@ -485,3 +485,43 @@ export const {
     useSearchCustomersQuery,
     useGetDashboardStatsQuery,
 } = accountingApi;
+
+class AccountingAPI {
+    constructor() {
+        this.baseURL = `${apiConfig.baseUrl}`;
+    }
+
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = new Headers();
+        apiConfig.prepareHeaders(headers);
+
+        const config = {
+            method: options.method || "GET",
+            headers,
+            credentials: apiConfig.credentials,
+            body: options.body,
+        };
+
+        const res = await fetch(url, config);
+        const isJson = (res.headers.get("content-type") || "").includes("application/json");
+        const data = isJson ? await res.json().catch(() => ({})) : await res.text();
+        if (!res.ok) {
+            const message = data?.message || `${res.status} ${res.statusText}`;
+            const err = new Error(message);
+            err.response = { status: res.status, data };
+            throw err;
+        }
+        return data;
+    }
+
+    // Customer helper for full details (used by Pricing Integration forms)
+    getCustomerDetails(customerId, params = {}) {
+        const qs = new URLSearchParams(params).toString();
+        const suffix = qs ? `?${qs}` : "";
+        return this.request(`/customers/${customerId}/details${suffix}`);
+    }
+}
+
+const accountingHttp = new AccountingAPI();
+export default accountingHttp;

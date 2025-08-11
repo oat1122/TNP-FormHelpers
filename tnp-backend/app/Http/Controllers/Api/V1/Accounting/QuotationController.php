@@ -129,7 +129,8 @@ class QuotationController extends Controller
                 'approver',
                 'documentHistory.actionBy',
                 'attachments',
-                'orderItemsTracking'
+                'orderItemsTracking',
+                'items'
             ])->findOrFail($id);
             
             return response()->json([

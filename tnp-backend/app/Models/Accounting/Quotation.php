@@ -62,30 +62,11 @@ class Quotation extends Model
     protected $fillable = [
         'id',
         'number',
-        'pricing_request_id',
+        'customer_id',
         'primary_pricing_request_id',
         'primary_pricing_request_ids',
-        'customer_id',
-        'customer_company',
-        'customer_tax_id',
-        'customer_address',
-        'customer_zip_code',
-        'customer_tel_1',
-        'customer_email',
-        'customer_firstname',
-        'customer_lastname',
+        'customer_snapshot',
         'work_name',
-        'fabric_type',
-        'pattern',
-        'color',
-        'sizes',
-        'quantity',
-        'silk_screen',
-        'dft_screen',
-        'embroider',
-        'sub_screen',
-        'other_screen',
-        'product_image',
         'status',
         'subtotal',
         'tax_amount',
@@ -96,12 +77,14 @@ class Quotation extends Model
         'due_date',
         'notes',
         'created_by',
+        'updated_by',
         'approved_by',
-        'approved_at'
+        'approved_at',
     ];
 
     protected $casts = [
-        'primary_pricing_request_ids' => 'array',
+    'primary_pricing_request_ids' => 'array',
+    'customer_snapshot' => 'array',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
@@ -130,7 +113,8 @@ class Quotation extends Model
      */
     public function pricingRequest(): BelongsTo
     {
-        return $this->belongsTo(PricingRequest::class, 'pricing_request_id', 'pr_id');
+        // Backward-compatible accessor to primary PR
+        return $this->belongsTo(PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
     }
 
     /**

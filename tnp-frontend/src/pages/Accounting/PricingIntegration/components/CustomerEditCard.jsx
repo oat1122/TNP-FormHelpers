@@ -127,9 +127,28 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     },
 }));
 
-const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
+const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false }) => {
+    // Normalize channel value to the string values expected by RadioGroup: '1' | '2' | '3' | ''
+    const normalizeChannelValue = useCallback((raw) => {
+        if (raw === null || raw === undefined) return '';
+        const v = typeof raw === 'string' ? raw.trim() : raw;
+        if (v === '') return '';
+        // Map common textual values
+        const lower = String(v).toLowerCase();
+        if (lower === 'sales') return '1';
+        if (lower === 'online') return '2';
+        if (lower === 'office') return '3';
+        // Map numeric-like values
+        const num = Number(v);
+        if (Number.isFinite(num)) {
+            if (num >= 1 && num <= 3) return String(num);
+            if (num === 0) return '';
+        }
+        return '';
+    }, []);
+
+    const [isEditing, setIsEditing] = useState(startInEdit);
+    const [isExpanded, setIsExpanded] = useState(startInEdit);
     const [isSaving, setIsSaving] = useState(false);
     const [editData, setEditData] = useState({});
     const [displayCustomer, setDisplayCustomer] = useState(customer);
@@ -146,6 +165,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
     // Initialize edit data when customer changes
     useEffect(() => {
         if (customer) {
+            const initChannelRaw = (customer.cus_channel ?? customer.channel ?? null);
+            const initBtRaw = (customer.cus_bt_id ?? customer.bt_id ?? customer.business_type_id ?? customer.business_type?.bt_id ?? null);
             setEditData({
                 cus_company: customer.cus_company || '',
                 cus_firstname: customer.cus_firstname || '',
@@ -158,8 +179,10 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                 cus_tax_id: customer.cus_tax_id || '',
                 cus_address: customer.cus_address || '',
                 cus_zip_code: customer.cus_zip_code || '',
-                cus_channel: customer.cus_channel || 1,
-                cus_bt_id: customer.cus_bt_id || '',
+                // Keep as string for RadioGroup; normalize from number or text
+                cus_channel: normalizeChannelValue(initChannelRaw),
+                // Keep business type id as string for stable equality in UI
+                cus_bt_id: initBtRaw == null ? '' : String(initBtRaw),
                 cus_pro_id: customer.cus_pro_id || '',
                 cus_dis_id: customer.cus_dis_id || '',
                 cus_sub_id: customer.cus_sub_id || '',
@@ -172,7 +195,28 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                     if (customer.cus_id) {
                         const full = await customerApi.getCustomer(customer.cus_id);
                         // Merge, prefer full details
-                        setDisplayCustomer({ ...customer, ...full });
+                        // Some APIs may return nested data or alternate keys
+                        const src = full?.data || full?.customer || full || {};
+                        const merged = { ...customer, ...src };
+                        setDisplayCustomer(merged);
+                        // Autofill missing editable fields (channel, business type) after hydration
+                        setEditData((prev) => ({
+                            ...prev,
+                            cus_channel:
+                                (prev.cus_channel === '' || prev.cus_channel == null)
+                                    ? (() => {
+                                        const ch = (merged.cus_channel ?? merged.channel ?? null);
+                                        return normalizeChannelValue(ch);
+                                    })()
+                                    : prev.cus_channel,
+                            cus_bt_id:
+                                (prev.cus_bt_id === '' || prev.cus_bt_id == null)
+                                    ? (() => {
+                                        const bt = (merged.cus_bt_id ?? merged.bt_id ?? merged.business_type_id ?? merged.business_type?.bt_id ?? null);
+                                        return bt == null ? '' : String(bt);
+                                    })()
+                                    : prev.cus_bt_id,
+                        }));
                     }
                 } catch (e) {
                     // Silent fail; use provided customer fields
@@ -192,13 +236,25 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
             // Load business types
             const businessTypesData = await customerApi.getBusinessTypes();
             console.log('📊 Raw business types:', businessTypesData);
-            
-            // Filter out invalid business types
-            const validBusinessTypes = (businessTypesData || [])
-                .filter(bt => bt && bt.bt_id && bt.bt_name)
+
+            // Unwrap possible shapes and normalize field names
+            const btRaw = Array.isArray(businessTypesData)
+                ? businessTypesData
+                : (
+                    businessTypesData?.master_business_types ||
+                    businessTypesData?.master_business_type ||
+                    businessTypesData?.data ||
+                    businessTypesData?.items ||
+                    []
+                );
+
+            const validBusinessTypes = (btRaw || [])
+                .filter(bt => bt && (bt.bt_id != null || bt.id != null) && (bt.bt_name || bt.name))
                 .map((bt, index) => ({
                     ...bt,
-                    bt_id: bt.bt_id || `bt-${index}`
+                    // normalize as string for consistent UI equality
+                    bt_id: (bt.bt_id != null ? String(bt.bt_id) : (bt.id != null ? String(bt.id) : `bt-${index}`)),
+                    bt_name: bt.bt_name || bt.name || 'ไม่ทราบประเภทธุรกิจ',
                 }));
             console.log('✅ Valid business types:', validBusinessTypes);
             setBusinessTypes(validBusinessTypes);
@@ -418,29 +474,32 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
         setIsExpanded(false);
         setErrors({});
         
-        // Reset to original data
-        if (customer) {
+        // Reset to hydrated data if available
+        const base = displayCustomer || customer;
+        if (base) {
+            const resetChannel = (base.cus_channel ?? base.channel ?? null);
+            const resetBt = (base.cus_bt_id ?? base.bt_id ?? base.business_type_id ?? base.business_type?.bt_id ?? null);
             setEditData({
-                cus_company: customer.cus_company || '',
-                cus_firstname: customer.cus_firstname || '',
-                cus_lastname: customer.cus_lastname || '',
-                cus_name: customer.cus_name || '',
-                cus_depart: customer.cus_depart || '',
-                cus_tel_1: customer.cus_tel_1 || '',
-                cus_tel_2: customer.cus_tel_2 || '',
-                cus_email: customer.cus_email || '',
-                cus_tax_id: customer.cus_tax_id || '',
-                cus_address: customer.cus_address || '',
-                cus_zip_code: customer.cus_zip_code || '',
-                cus_channel: customer.cus_channel || 1,
-                cus_bt_id: customer.cus_bt_id || '',
-                cus_pro_id: customer.cus_pro_id || '',
-                cus_dis_id: customer.cus_dis_id || '',
-                cus_sub_id: customer.cus_sub_id || '',
+                cus_company: base.cus_company || '',
+                cus_firstname: base.cus_firstname || '',
+                cus_lastname: base.cus_lastname || '',
+                cus_name: base.cus_name || '',
+                cus_depart: base.cus_depart || '',
+                cus_tel_1: base.cus_tel_1 || '',
+                cus_tel_2: base.cus_tel_2 || '',
+                cus_email: base.cus_email || '',
+                cus_tax_id: base.cus_tax_id || '',
+                cus_address: base.cus_address || '',
+                cus_zip_code: base.cus_zip_code || '',
+                cus_channel: normalizeChannelValue(resetChannel),
+                cus_bt_id: resetBt == null ? '' : String(resetBt),
+                cus_pro_id: base.cus_pro_id || '',
+                cus_dis_id: base.cus_dis_id || '',
+                cus_sub_id: base.cus_sub_id || '',
             });
-    }
+        }
     if (onCancel) onCancel();
-    }, [customer, onCancel]);
+    }, [customer, displayCustomer, onCancel]);
 
     const validateForm = useCallback(() => {
         const validation = validateCustomerData(editData);
@@ -494,6 +553,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
             // เตรียมข้อมูลที่อยู่สำหรับส่งไป API
             const addressData = AddressService.prepareAddressForApi(editData);
             const updateData = { ...editData, ...addressData };
+            updateData.cus_channel = editData.cus_channel === '' ? null : parseInt(editData.cus_channel, 10);
+            updateData.cus_bt_id = editData.cus_bt_id === '' ? null : isNaN(Number(editData.cus_bt_id)) ? editData.cus_bt_id : Number(editData.cus_bt_id);
 
             await customerApi.updateCustomer(customer.cus_id, updateData);
 
@@ -807,11 +868,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                         <RadioGroup
                                             row
                                             value={editData.cus_channel}
-                                            onChange={(e) => handleInputChange('cus_channel', parseInt(e.target.value))}
+                                            onChange={(e) => handleInputChange('cus_channel', e.target.value)}
                                         >
-                                            <FormControlLabel value={1} control={<Radio size="small" />} label="Sales" />
-                                            <FormControlLabel value={2} control={<Radio size="small" />} label="Online" />
-                                            <FormControlLabel value={3} control={<Radio size="small" />} label="Office" />
+                                            <FormControlLabel value={"1"} control={<Radio size="small" />} label="Sales" />
+                                            <FormControlLabel value={"2"} control={<Radio size="small" />} label="Online" />
+                                            <FormControlLabel value={"3"} control={<Radio size="small" />} label="Office" />
                                         </RadioGroup>
                                     </FormControl>
                                 </Grid>
@@ -822,10 +883,10 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel }) => {
                                         options={businessTypes}
                                         getOptionLabel={(option) => option.bt_name || ''}
                                         getOptionKey={(option) => `business-type-${option.bt_id || Math.random()}`}
-                                        isOptionEqualToValue={(option, value) => option.bt_id === value.bt_id}
-                                        value={businessTypes.find(bt => bt.bt_id === editData.cus_bt_id) || null}
+                                        isOptionEqualToValue={(option, value) => String(option.bt_id) === String(value.bt_id)}
+                                        value={businessTypes.find(bt => String(bt.bt_id) === String(editData.cus_bt_id)) || null}
                                         onChange={(event, newValue) => {
-                                            handleInputChange('cus_bt_id', newValue?.bt_id || '');
+                                            handleInputChange('cus_bt_id', newValue?.bt_id != null ? String(newValue.bt_id) : '');
                                         }}
                                         renderInput={(params) => (
                                             <StyledTextField

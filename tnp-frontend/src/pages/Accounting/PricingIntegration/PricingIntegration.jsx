@@ -33,6 +33,7 @@ import {
     Header,
     FloatingActionButton,
 } from './components';
+import CustomerEditDialog from './components/CustomerEditDialog';
 
 // Main Component
 const PricingIntegration = () => {
@@ -46,6 +47,11 @@ const PricingIntegration = () => {
     const [selectedPricingRequest, setSelectedPricingRequest] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedPricingRequests, setSelectedPricingRequests] = useState([]);
+    // Customer edit dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState(null);
+    // Local overrides for customer info (to reflect edits without refetch)
+    const [customerOverrides, setCustomerOverrides] = useState({}); // key by cus_id
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -85,7 +91,10 @@ const PricingIntegration = () => {
             if (!map.has(customerId)) {
                 map.set(customerId, {
                     _customerId: customerId,
-                    customer: req.customer,
+                    customer: {
+                        ...req.customer,
+                        ...(customerOverrides[customerId] || {}),
+                    },
                     requests: [req],
                     // is_quoted will be true only if ALL pricing requests have quotations
                     is_quoted: !!req.is_quoted,
@@ -121,7 +130,7 @@ const PricingIntegration = () => {
         });
 
         return Array.from(map.values());
-    }, [pricingRequests]);
+    }, [pricingRequests, customerOverrides]);
 
     // Client-side pagination based on grouped customers
     const totalCustomers = groupedPricingRequests.length;
@@ -468,6 +477,21 @@ const PricingIntegration = () => {
         }
     };
 
+    // Edit customer handlers
+    const handleEditCustomer = useCallback((group) => {
+        const cust = group.customer || {};
+        setEditingCustomer(cust);
+        setEditDialogOpen(true);
+    }, []);
+
+    const handleCustomerUpdated = useCallback((updated) => {
+        if (!updated?.cus_id) return;
+        setCustomerOverrides((prev) => ({
+            ...prev,
+            [String(updated.cus_id)]: updated,
+        }));
+    }, []);
+
     const handleResetFilters = () => {
         setSearchQuery('');
         setDateRange({ start: null, end: null });
@@ -555,11 +579,11 @@ const PricingIntegration = () => {
                                 <>
                                     <Grid container spacing={3}>
                                         {paginatedRequests.map((group) => (
-                                            <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
+                        <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
                                                 <PricingRequestCard
                                                     group={group}
                                                     onCreateQuotation={handleCreateQuotation}
-                                                    onViewDetails={handleViewDetails}
+                                                    onEditCustomer={handleEditCustomer}
                                                 />
                                             </Grid>
                                         ))}
@@ -589,6 +613,14 @@ const PricingIntegration = () => {
                             onClose={() => setShowCreateModal(false)}
                             pricingRequest={selectedPricingRequest}
                             onSubmit={handleQuotationFromModal}
+                        />
+
+                        {/* Customer Edit Dialog */}
+                        <CustomerEditDialog
+                            open={editDialogOpen}
+                            onClose={() => setEditDialogOpen(false)}
+                            customer={editingCustomer}
+                            onUpdated={handleCustomerUpdated}
                         />
 
                         {/* Floating Action Button */}

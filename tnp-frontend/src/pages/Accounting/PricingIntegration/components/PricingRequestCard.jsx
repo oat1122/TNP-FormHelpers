@@ -6,10 +6,10 @@ import {
     Stack,
 } from '@mui/material';
 import {
-    Visibility as ViewIcon,
     Assignment as AssignmentIcon,
     CheckCircle as CheckCircleIcon,
     Business as BusinessIcon,
+    Edit as EditIcon,
 } from '@mui/icons-material';
 
 // 🎨 Import TNP Styled Components สำหรับ UI ที่อ่านง่าย
@@ -45,7 +45,7 @@ import {
  * @param {Function} props.onCreateQuotation - ฟังก์ชันสำหรับสร้างใบเสนอราคา
  * @param {Function} props.onViewDetails - ฟังก์ชันสำหรับดูรายละเอียด
  */
-const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
+const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
     // 🎨 Helper Functions for Status Management
     const getStatusColor = (status) => {
         const statusMap = {
@@ -178,13 +178,15 @@ const PricingRequestCard = ({ group, onCreateQuotation, onViewDetails }) => {
             <TNPDivider />
 
               <CardActions sx={{ p: 2.5, justifyContent: 'space-between', bgcolor: 'background.light' }}>
-                  <TNPSecondaryButton
-                      size="medium"
-                      startIcon={<ViewIcon />}
-                      onClick={() => onViewDetails(group)}
-                  >
-                      ดูรายละเอียด
-                  </TNPSecondaryButton>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TNPSecondaryButton
+                          size="medium"
+                          startIcon={<EditIcon />}
+                          onClick={() => onEditCustomer?.(group)}
+                      >
+                          แก้ไขลูกค้า
+                      </TNPSecondaryButton>
+                  </Box>
                   <TNPPrimaryButton
                       variant="contained"
                       size="medium"

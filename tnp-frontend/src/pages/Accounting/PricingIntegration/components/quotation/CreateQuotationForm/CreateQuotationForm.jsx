@@ -42,6 +42,8 @@ import {
   InfoCard,
   tokens,
 } from '../styles/quotationTheme';
+  import EditIcon from '@mui/icons-material/Edit';
+  import CustomerEditDialog from '../../CustomerEditDialog';
 import useQuotationCalc from '../hooks/useQuotationCalc';
 import { formatTHB } from '../utils/currency';
 import { formatDateTH } from '../utils/date';
@@ -63,6 +65,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
 
   useEffect(() => {
     if (!selectedPricingRequests?.length) return;
@@ -259,6 +262,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                   customer={formData.customer}
                   onUpdate={(c) => setFormData((prev) => ({ ...prev, customer: c }))}
                 />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                  <SecondaryButton
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => setEditCustomerOpen(true)}
+                  >
+                    แก้ไขลูกค้า
+                  </SecondaryButton>
+                </Box>
 
                 <Box
                   sx={{
@@ -312,6 +324,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         {item.fabricType && (
                           <Grid item xs={6} md={3}>
                             <Typography variant="caption" color="text.secondary">
+
                               ประเภทผ้า
                             </Typography>
                             <Typography variant="body2" fontWeight={500}>
@@ -825,6 +838,16 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
             <PrimaryButton onClick={() => setShowPreview(false)}>ปิด</PrimaryButton>
           </DialogActions>
         </Dialog>
+
+        <CustomerEditDialog
+          open={editCustomerOpen}
+          onClose={() => setEditCustomerOpen(false)}
+          customer={formData.customer}
+          onUpdated={(c) => {
+            setFormData((prev) => ({ ...prev, customer: c }));
+            setEditCustomerOpen(false);
+          }}
+        />
       </Container>
     </Box>
   );

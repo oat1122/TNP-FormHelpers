@@ -293,19 +293,37 @@ const PricingIntegration = () => {
             console.log('💾 Saving quotation draft with data:', data);
 
             // เตรียมข้อมูลสำหรับส่งไป backend (เหมือนกับ submit แต่เป็น draft)
-            const items = (data.items || []).map((item, index) => ({
-                pricing_request_id: item.pricingRequestId || item.id,
-                item_name: item.name,
-                pattern: item.pattern || '',
-                fabric_type: item.fabricType || '',
-                color: item.color || '',
-                size: item.size || '',
-                unit_price: parseFloat(item.unitPrice) || 0,
-                quantity: parseInt(item.quantity, 10) || 0,
-                sequence_order: index + 1,
-                unit: 'ชิ้น',
-                notes: item.notes || ''
-            }));
+            // แปลง sizeRows เป็นรายการย่อยใน quotation_items
+            const items = (data.items || []).flatMap((item, index) => {
+                if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
+                    return item.sizeRows.map((row, rIndex) => ({
+                        pricing_request_id: item.pricingRequestId || item.id,
+                        item_name: `${item.name} - ${row.size || 'ไม่ระบุขนาด'}`,
+                        pattern: item.pattern || '',
+                        fabric_type: item.fabricType || '',
+                        color: item.color || '',
+                        size: row.size || '',
+                        unit_price: parseFloat(row.unitPrice) || 0,
+                        quantity: parseInt(row.quantity, 10) || 0,
+                        sequence_order: (index + 1) * 100 + (rIndex + 1),
+                        unit: 'ชิ้น',
+                        notes: item.notes || ''
+                    }));
+                }
+                return [{
+                    pricing_request_id: item.pricingRequestId || item.id,
+                    item_name: item.name,
+                    pattern: item.pattern || '',
+                    fabric_type: item.fabricType || '',
+                    color: item.color || '',
+                    size: item.size || '',
+                    unit_price: parseFloat(item.unitPrice) || 0,
+                    quantity: parseInt(item.quantity, 10) || 0,
+                    sequence_order: index + 1,
+                    unit: 'ชิ้น',
+                    notes: item.notes || ''
+                }];
+            });
 
             const submitData = {
                 // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController
@@ -365,19 +383,36 @@ const PricingIntegration = () => {
             console.log('🚀 Submitting quotation form with data:', data);
 
             // เตรียมข้อมูลสำหรับส่งไป backend
-            const items = (data.items || []).map((item, index) => ({
-                pricing_request_id: item.pricingRequestId || item.id,
-                item_name: item.name,
-                pattern: item.pattern || '',
-                fabric_type: item.fabricType || '',
-                color: item.color || '',
-                size: item.size || '',
-                unit_price: item.unitPrice || 0,
-                quantity: item.quantity || 0,
-                sequence_order: index + 1,
-                unit: 'ชิ้น',
-                notes: item.notes || ''
-            }));
+            const items = (data.items || []).flatMap((item, index) => {
+                if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
+                    return item.sizeRows.map((row, rIndex) => ({
+                        pricing_request_id: item.pricingRequestId || item.id,
+                        item_name: `${item.name} - ${row.size || 'ไม่ระบุขนาด'}`,
+                        pattern: item.pattern || '',
+                        fabric_type: item.fabricType || '',
+                        color: item.color || '',
+                        size: row.size || '',
+                        unit_price: parseFloat(row.unitPrice) || 0,
+                        quantity: parseInt(row.quantity, 10) || 0,
+                        sequence_order: (index + 1) * 100 + (rIndex + 1),
+                        unit: 'ชิ้น',
+                        notes: item.notes || ''
+                    }));
+                }
+                return [{
+                    pricing_request_id: item.pricingRequestId || item.id,
+                    item_name: item.name,
+                    pattern: item.pattern || '',
+                    fabric_type: item.fabricType || '',
+                    color: item.color || '',
+                    size: item.size || '',
+                    unit_price: item.unitPrice || 0,
+                    quantity: item.quantity || 0,
+                    sequence_order: index + 1,
+                    unit: 'ชิ้น',
+                    notes: item.notes || ''
+                }];
+            });
 
             const submitData = {
                 // ข้อมูลหลัก - ต้องตรงกับ validation ใน QuotationController

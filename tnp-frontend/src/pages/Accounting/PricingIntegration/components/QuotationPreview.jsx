@@ -16,10 +16,7 @@ import {
     IconButton,
     Tooltip,
 } from '@mui/material';
-import {
-    Print as PrintIcon,
-    Download as DownloadIcon,
-} from '@mui/icons-material';
+import { Download as DownloadIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 // Import print styles
 import './styles.css';
@@ -377,18 +374,6 @@ const QuotationPreview = ({ formData, quotationNumber, showActions = false }) =>
                     gap: 1,
                     zIndex: 10 
                 }}>
-                    <Tooltip title="พิมพ์ใบเสนอราคา">
-                        <IconButton 
-                            onClick={handlePrint}
-                            sx={{ 
-                                bgcolor: '#900F0F', 
-                                color: 'white',
-                                '&:hover': { bgcolor: '#B20000' }
-                            }}
-                        >
-                            <PrintIcon />
-                        </IconButton>
-                    </Tooltip>
                     <Tooltip title="ดาวน์โหลด PDF">
                         <IconButton 
                             onClick={handleDownloadPDF}
@@ -483,30 +468,56 @@ const QuotationPreview = ({ formData, quotationNumber, showActions = false }) =>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {formData.items?.map((item, index) => (
-                            <TableRow key={item.id}>
-                                <TableCell>{index + 1}</TableCell>
-                                <TableCell>
-                                    <Typography variant="body1" fontWeight={600}>
-                                        {item.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {[item.pattern, item.fabricType, item.color, item.size]
-                                            .filter(Boolean)
-                                            .join(' • ')}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell sx={{ textAlign: 'center' }}>
-                                    {item.quantity} ชิ้น
-                                </TableCell>
-                                <TableCell sx={{ textAlign: 'right' }}>
-                                    {formatCurrency(item.unitPrice)}
-                                </TableCell>
-                                <TableCell sx={{ textAlign: 'right', fontWeight: 600 }}>
-                                    {formatCurrency(item.total)}
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {formData.items?.map((item, index) => {
+                            const hasSizes = Array.isArray(item.sizeRows) && item.sizeRows.length > 0;
+                            const rows = hasSizes ? item.sizeRows : [];
+                            const sumQty = hasSizes ? rows.reduce((s, r) => s + Number(r.quantity || 0), 0) : Number(item.quantity || 0);
+                            return (
+                                <React.Fragment key={item.id}>
+                                    <TableRow>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>
+                                            <Typography variant="body1" fontWeight={600}>
+                                                {item.name}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {[item.pattern, item.fabricType, item.color, item.size]
+                                                    .filter(Boolean)
+                                                    .join(' • ')}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: 'center' }}>
+                                            {sumQty} ชิ้น
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: 'right' }}>
+                                            {hasSizes ? '—' : formatCurrency(item.unitPrice)}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: 'right', fontWeight: 600 }}>
+                                            {formatCurrency(item.total)}
+                                        </TableCell>
+                                    </TableRow>
+                                    {hasSizes && rows.map((r, rIdx) => (
+                                        <TableRow key={r.uuid || `${item.id}-row-${rIdx}`}>
+                                            <TableCell />
+                                            <TableCell>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    ขนาด: {r.size || '-'}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: 'center' }}>
+                                                {Number(r.quantity || 0)} ชิ้น
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: 'right' }}>
+                                                {formatCurrency(Number(r.unitPrice || 0))}
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: 'right' }}>
+                                                {formatCurrency(Number(r.quantity || 0) * Number(r.unitPrice || 0))}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </React.Fragment>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </TableContainer>

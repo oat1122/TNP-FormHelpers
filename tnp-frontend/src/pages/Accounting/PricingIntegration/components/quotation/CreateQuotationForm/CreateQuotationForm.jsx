@@ -22,15 +22,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  InputAdornment,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Visibility as VisibilityIcon,
-  Print as PrintIcon,
   Assignment as AssignmentIcon,
   Calculate as CalculateIcon,
   Payment as PaymentIcon,
 } from '@mui/icons-material';
+import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import {
@@ -81,13 +82,21 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         parseInt(pr.pr_quantity || pr.quantity || 1, 10),
       notes: pr.pr_notes || pr.notes || '',
       originalData: pr,
+      sizeRows: [
+        {
+          uuid: `${pr.pr_id || pr.id || idx}-size-1`,
+          size: pr.pr_sizes || 'S-XL',
+          quantity: parseInt(pr.pr_quantity || 1, 10),
+          unitPrice: pr.pr_unit_price ? Number(pr.pr_unit_price) : 0,
+        },
+      ],
     }));
     const dd = new Date();
     dd.setDate(dd.getDate() + 30);
     setFormData((prev) => ({ ...prev, customer, items, dueDate: dd }));
   }, [selectedPricingRequests]);
 
-  const { subtotal, vat, total, depositAmount, remainingAmount } = useQuotationCalc(
+  const { subtotal, vat, total, depositAmount, remainingAmount, warnings } = useQuotationCalc(
     formData.items,
     formData.depositPercentage,
     formData.customDepositPercentage
@@ -101,13 +110,69 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           ? {
               ...i,
               ...patch,
-              total:
-                ((patch.unitPrice ?? i.unitPrice) || 0) *
-                ((patch.quantity ?? i.quantity) || 0),
+              total: Array.isArray(patch.sizeRows ?? i.sizeRows)
+                ? (patch.sizeRows ?? i.sizeRows).reduce(
+                    (s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0),
+                    0
+                  )
+                : (((patch.unitPrice ?? i.unitPrice) || 0) *
+                  ((patch.quantity ?? i.quantity) || 0)),
             }
           : i
       ),
     }));
+
+  const addSizeRow = (itemId) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((i) => {
+        if (i.id !== itemId) return i;
+        const newRow = {
+          uuid: `${itemId}-size-${(i.sizeRows?.length || 0) + 1}`,
+          size: '',
+          quantity: 0,
+          unitPrice: i.unitPrice || 0,
+        };
+        const sizeRows = [...(i.sizeRows || []), newRow];
+        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        return { ...i, sizeRows, total, quantity };
+      }),
+    }));
+  };
+
+  const updateSizeRow = (itemId, rowUuid, patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((i) => {
+        if (i.id !== itemId) return i;
+        const sizeRows = (i.sizeRows || []).map((r) =>
+          r.uuid === rowUuid
+            ? {
+                ...r,
+                ...patch,
+              }
+            : r
+        );
+        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        return { ...i, sizeRows, total, quantity };
+      }),
+    }));
+  };
+
+  const removeSizeRow = (itemId, rowUuid) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((i) => {
+        if (i.id !== itemId) return i;
+        const sizeRows = (i.sizeRows || []).filter((r) => r.uuid !== rowUuid);
+        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        return { ...i, sizeRows, total, quantity };
+      }),
+    }));
+  };
 
   const onChangePaymentMethod = (method) => {
     let due = null;
@@ -221,23 +286,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 ) : (
                   formData.items.map((item, idx) => (
                     <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                      <Box
-                        display="flex"
-                        alignItems="flex-start"
-                        justifyContent="space-between"
-                        mb={1}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight={700}
-                          color={tokens.primary}
-                        >
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                        <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
                           งานที่ {idx + 1}: {item.name}
                         </Typography>
                         <Chip
                           label={`${item.quantity} ชิ้น`}
                           size="small"
-                          sx={{ bgcolor: tokens.primary, color: tokens.white }}
+                          variant="outlined"
+                          sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }}
                         />
                       </Box>
 
@@ -285,7 +342,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                       </Grid>
 
                       {item.notes && (
-                        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#fff5f5', borderRadius: 1 }}>
+                        <Box
+                          sx={{
+                            mt: 1.5,
+                            p: 1.5,
+                            bgcolor: tokens.bg,
+                            borderRadius: 1,
+                            borderLeft: `3px solid ${tokens.primary}`,
+                          }}
+                        >
                           <Typography variant="caption" color={tokens.primary} fontWeight={700}>
                             หมายเหตุจาก PR
                           </Typography>
@@ -323,12 +388,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 {formData.items.map((item, idx) => (
                   <Card key={item.id} variant="outlined" sx={{ mb: 1.5 }}>
                     <CardContent sx={{ p: 2 }}>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        mb={1.5}
-                      >
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
                         <Box display="flex" alignItems="center" gap={1.5}>
                           <Typography
                             variant="subtitle1"
@@ -347,7 +407,12 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             size="small"
                           />
                         </Box>
-                        <Chip label={`${item.quantity} ชิ้น`} size="small" />
+                        <Chip
+                          label={`${item.quantity} ชิ้น`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }}
+                        />
                       </Box>
 
                       <Grid container spacing={1.5}>
@@ -384,43 +449,105 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                           <TextField
                             fullWidth
                             size="small"
-                            label="ขนาด"
+                            label="ขนาด (สรุป)"
                             value={item.size}
                             onChange={(e) => setItem(item.id, { size: e.target.value })}
                           />
                         </Grid>
 
-                        <Grid item xs={12} md={4}>
-                          <TextField
-                            fullWidth
-                            label="ราคาต่อหน่วย"
-                            type="number"
-                            value={item.unitPrice || ''}
-                            onChange={(e) =>
-                              setItem(item.id, { unitPrice: Number(e.target.value || 0) })
-                            }
-                          />
-                        </Grid>
-                        <Grid item xs={6} md={4}>
-                          <TextField
-                            fullWidth
-                            label="จำนวน"
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              setItem(item.id, {
-                                quantity: parseInt(e.target.value || 0, 10),
-                              })
-                            }
-                          />
+                        {/* Size rows editor */}
+                        <Grid item xs={12}>
+                          <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                              <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
+                              <SecondaryButton size="small" onClick={() => addSizeRow(item.id)}>เพิ่มขนาด</SecondaryButton>
+                            </Box>
+                            {/* Header row */}
+                            <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
+                              <Grid item xs={12} md={3}>
+                                <Typography variant="caption" color="text.secondary">ขนาด</Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">จำนวน</Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography>
+                              </Grid>
+                              <Grid item xs={10} md={2}>
+                                <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
+                              </Grid>
+                              <Grid item xs={2} md={1}>
+                                {/* empty for actions */}
+                              </Grid>
+                            </Grid>
+                            <Grid container spacing={1}>
+                              {(item.sizeRows || []).map((row) => (
+                                <React.Fragment key={row.uuid}>
+                                  <Grid item xs={12} md={3}>
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      label="ขนาด"
+                                      value={row.size}
+                                      onChange={(e) => updateSizeRow(item.id, row.uuid, { size: e.target.value })}
+                                    />
+                                  </Grid>
+                                  <Grid item xs={6} md={3}>
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      label="จำนวน"
+                                      type="number"
+                                      value={row.quantity}
+                                      InputProps={{ endAdornment: <InputAdornment position="end">ชิ้น</InputAdornment> }}
+                                      onChange={(e) => updateSizeRow(item.id, row.uuid, { quantity: parseInt(e.target.value || 0, 10) })}
+                                    />
+                                  </Grid>
+                                  <Grid item xs={6} md={3}>
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      label="ราคาต่อหน่วย"
+                                      type="number"
+                                      value={row.unitPrice}
+                                      InputProps={{ startAdornment: <InputAdornment position="start">฿</InputAdornment> }}
+                                      onChange={(e) => updateSizeRow(item.id, row.uuid, { unitPrice: Number(e.target.value || 0) })}
+                                    />
+                                  </Grid>
+                                  <Grid item xs={10} md={2}>
+                                    <Box sx={{ p: 1, bgcolor: '#fff', border: `1px solid ${tokens.border}`, borderRadius: 1, textAlign: 'center' }}>
+                                      <Typography variant="subtitle2" fontWeight={800}>
+                                        {formatTHB((Number(row.quantity || 0) * Number(row.unitPrice || 0)) || 0)}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                  <Grid item xs={2} md={1}>
+                                    <Box display="flex" height="100%" alignItems="center" justifyContent="center">
+                                      <Tooltip title="ลบแถว">
+                                        <IconButton color="error" size="small" onClick={() => removeSizeRow(item.id, row.uuid)}>
+                                          <DeleteOutlineIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Box>
+                                  </Grid>
+                                </React.Fragment>
+                              ))}
+                            </Grid>
+                            {!!warnings?.[item.id] && (
+                              <Alert severity={warnings[item.id].type} sx={{ mt: 1 }}>
+                                {warnings[item.id].message}
+                              </Alert>
+                            )}
+                          </Box>
                         </Grid>
                         <Grid item xs={6} md={4}>
                           <Box
                             sx={{
                               p: 1.5,
-                              border: `1px dashed ${tokens.border}`,
+                              border: `1px solid ${tokens.border}`,
                               borderRadius: 1.5,
                               textAlign: 'center',
+                              bgcolor: tokens.bg,
                             }}
                           >
                             <Typography variant="caption" color="text.secondary">
@@ -660,7 +787,6 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
             >
               ดูตัวอย่าง
             </SecondaryButton>
-            <SecondaryButton onClick={() => submit('draft')}>บันทึกร่าง</SecondaryButton>
             <PrimaryButton
               onClick={() => submit('review')}
               disabled={isSubmitting || total === 0}
@@ -696,12 +822,6 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
             />
           </DialogContent>
           <DialogActions>
-            <SecondaryButton
-              startIcon={<PrintIcon />}
-              onClick={() => document.dispatchEvent(new CustomEvent('quotation-print'))}
-            >
-              พิมพ์
-            </SecondaryButton>
             <PrimaryButton onClick={() => setShowPreview(false)}>ปิด</PrimaryButton>
           </DialogActions>
         </Dialog>

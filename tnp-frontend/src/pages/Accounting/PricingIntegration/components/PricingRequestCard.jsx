@@ -1,9 +1,11 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import {
     Box,
     CardActions,
     Avatar,
     Stack,
+    Collapse,
+    Button,
 } from '@mui/material';
 import {
     Assignment as AssignmentIcon,
@@ -27,6 +29,7 @@ import {
     TNPListItem,
     TNPDivider,
 } from './styles/StyledComponents';
+import { sortPricingRequestsByLatest } from './utils/sortUtils';
 
 /**
  * 🎯 PricingRequestCard Component
@@ -46,6 +49,8 @@ import {
  * @param {Function} props.onViewDetails - ฟังก์ชันสำหรับดูรายละเอียด
  */
 const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
+    const [expanded, setExpanded] = useState(false);
+
     // 🎨 Helper Functions for Status Management
     const getStatusColor = (status) => {
         const statusMap = {
@@ -86,6 +91,11 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
         
         return null;
     };
+
+    // 🧮 Sort requests by latest and compute visible subsets
+    const sortedRequests = useMemo(() => sortPricingRequestsByLatest(group.requests || []), [group.requests]);
+    const latestThree = useMemo(() => sortedRequests.slice(0, 3), [sortedRequests]);
+    const hasMore = (group?.requests?.length || 0) > 3;
 
     return (
         <TNPCard>
@@ -143,20 +153,14 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
 
                 {/* 📋 List of Pricing Requests - ปรับปรุงให้อ่านง่ายขึ้น */}
                 <Stack spacing={1.5}>
-                    {group.requests.map((req) => {
+                    {latestThree.map((req) => {
                         const primaryStatus = getPrimaryStatus(req);
-                        
                         return (
                             <TNPListItem key={req.pr_id}>
-                                {/* หมายเลข PR และชื่องาน */}
                                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-                                    <TNPPRNumber>
-                                        #{getPRDisplayNumber(req)}
-                                    </TNPPRNumber>
-                                    
-                                    {/* แสดงสถานะอย่างชัดเจน */}
+                                    <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
                                     {primaryStatus && (
-                                        <TNPStatusChip 
+                                        <TNPStatusChip
                                             label={primaryStatus.label}
                                             statuscolor={primaryStatus.color}
                                             size="small"
@@ -164,15 +168,56 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                                         />
                                     )}
                                 </Box>
-                                
-                                {/* ชื่องาน */}
-                                <TNPBodyText>
-                                    {req.pr_work_name || 'ไม่ระบุชื่องาน'}
-                                </TNPBodyText>
+                                <TNPBodyText>{req.pr_work_name || 'ไม่ระบุชื่องาน'}</TNPBodyText>
                             </TNPListItem>
                         );
                     })}
+
+                    {/* Additional items with smooth animation */}
+                    {hasMore && (
+                        <Collapse in={expanded} timeout={250} unmountOnExit>
+                            <Stack spacing={1.5} mt={0.5}>
+                                {sortedRequests.slice(3).map((req) => {
+                                    const primaryStatus = getPrimaryStatus(req);
+                                    return (
+                                        <TNPListItem key={req.pr_id}>
+                                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+                                                <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
+                                                {primaryStatus && (
+                                                    <TNPStatusChip
+                                                        label={primaryStatus.label}
+                                                        statuscolor={primaryStatus.color}
+                                                        size="small"
+                                                        icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.875rem' }} /> : undefined}
+                                                    />
+                                                )}
+                                            </Box>
+                                            <TNPBodyText>{req.pr_work_name || 'ไม่ระบุชื่องาน'}</TNPBodyText>
+                                        </TNPListItem>
+                                    );
+                                })}
+                            </Stack>
+                        </Collapse>
+                    )}
                 </Stack>
+
+                {/* See more / Collapse toggle */}
+                {hasMore && (
+                    <Box mt={1}
+                        sx={{ display: 'flex', justifyContent: 'center' }}>
+                        <Button
+                            size="small"
+                            onClick={() => setExpanded((v) => !v)}
+                            sx={{
+                                mt: 0.5,
+                                textTransform: 'none',
+                                transition: 'all 200ms ease',
+                            }}
+                        >
+                            {expanded ? 'แสดงน้อยลง' : 'ดูเพิ่มเติม'}
+                        </Button>
+                    </Box>
+                )}
             </TNPCardContent>
 
             <TNPDivider />

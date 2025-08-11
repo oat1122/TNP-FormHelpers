@@ -324,30 +324,30 @@ Route::prefix('v1')->group(function() {
     //---------- DeliveryNote Controller (Step 4) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController::class)->group(function () {
         // DeliveryNote CRUD
-        Route::get('/delivery-notes', 'index');
-        Route::get('/delivery-notes/{id}', 'show');
-        Route::post('/delivery-notes', 'store');
-        Route::put('/delivery-notes/{id}', 'update');
-        Route::delete('/delivery-notes/{id}', 'destroy');
+        Route::get('/delivery-notes', 'index')->name('delivery-notes.index');
+        Route::get('/delivery-notes/{id}', 'show')->name('delivery-notes.show');
+        Route::post('/delivery-notes', 'store')->name('delivery-notes.store');
+        Route::put('/delivery-notes/{id}', 'update')->name('delivery-notes.update');
+        Route::delete('/delivery-notes/{id}', 'destroy')->name('delivery-notes.destroy');
         
         // Step 4 Workflow APIs - Create from Receipt
-        Route::post('/delivery-notes/create-from-receipt', 'createFromReceipt');
+        Route::post('/delivery-notes/create-from-receipt', 'createFromReceipt')->name('delivery-notes.create-from-receipt');
         
         // Step 4 Workflow APIs - Status Management
-        Route::post('/delivery-notes/{id}/start-shipping', 'startShipping');
-        Route::post('/delivery-notes/{id}/update-tracking', 'updateTracking');
-        Route::post('/delivery-notes/{id}/mark-delivered', 'markDelivered');
-        Route::post('/delivery-notes/{id}/mark-completed', 'markCompleted');
-        Route::post('/delivery-notes/{id}/mark-failed', 'markFailed');
+        Route::post('/delivery-notes/{id}/start-shipping', 'startShipping')->name('delivery-notes.start-shipping');
+        Route::post('/delivery-notes/{id}/update-tracking', 'updateTracking')->name('delivery-notes.update-tracking');
+        Route::post('/delivery-notes/{id}/mark-delivered', 'markDelivered')->name('delivery-notes.mark-delivered');
+        Route::post('/delivery-notes/{id}/mark-completed', 'markCompleted')->name('delivery-notes.mark-completed');
+        Route::post('/delivery-notes/{id}/mark-failed', 'markFailed')->name('delivery-notes.mark-failed');
         
         // Step 4 Workflow APIs - Evidence & Documents
-        Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence');
-        Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf');
-        Route::get('/delivery-notes/{id}/timeline', 'getTimeline');
+        Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence')->name('delivery-notes.upload-evidence');
+        Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf')->name('delivery-notes.generate-pdf');
+        Route::get('/delivery-notes/{id}/timeline', 'getTimeline')->name('delivery-notes.timeline');
         
         // DeliveryNote Utilities
-        Route::get('/delivery-notes/courier-companies', 'getCourierCompanies');
-        Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods');
-        Route::get('/delivery-notes/statuses', 'getDeliveryStatuses');
+        Route::get('/delivery-notes/courier-companies', 'getCourierCompanies')->name('delivery-notes.courier-companies');
+        Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods')->name('delivery-notes.delivery-methods');
+        Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses');
     });
 });

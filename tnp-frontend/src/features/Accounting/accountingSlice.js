@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 
 const initialState = {
     // UI State
@@ -298,12 +298,15 @@ export const selectCurrentDocumentType = (state) => state.accounting.currentDocu
 export const selectAutofillData = (state) => state.accounting.autofillData;
 export const selectDashboardStats = (state) => state.accounting.dashboardStats;
 export const selectNotifications = (state) => state.accounting.notifications;
-export const selectUnreadNotifications = (state) =>
-    state.accounting.notifications.filter(n => !n.read);
+export const selectUnreadNotifications = createSelector(
+    (state) => state.accounting.notifications,
+    (notifications) => notifications.filter((n) => !n.read)
+);
 export const selectViewMode = (state) => state.accounting.viewMode;
-export const selectSorting = (state) => ({
-    sortBy: state.accounting.sortBy,
-    sortOrder: state.accounting.sortOrder,
-});
+export const selectSorting = createSelector(
+    (state) => state.accounting.sortBy,
+    (state) => state.accounting.sortOrder,
+    (sortBy, sortOrder) => ({ sortBy, sortOrder })
+);
 
 export default accountingSlice.reducer;

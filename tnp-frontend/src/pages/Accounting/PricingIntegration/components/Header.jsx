@@ -5,7 +5,7 @@ import {
     Typography,
 } from '@mui/material';
 
-const Header = () => {
+const Header = ({ title = '📊 งานใหม่จากระบบ Pricing', subtitle = 'เลือกงานที่เสร็จสมบูรณ์แล้วเพื่อสร้างใบเสนอราคา' }) => {
     return (
         <Box sx={{
             bgcolor: 'primary.main',
@@ -15,10 +15,10 @@ const Header = () => {
         }}>
             <Container maxWidth="xl">
                 <Typography variant="h4" component="h1" gutterBottom>
-                    📊 งานใหม่จากระบบ Pricing
+                    {title}
                 </Typography>
                 <Typography variant="subtitle1">
-                    เลือกงานที่เสร็จสมบูรณ์แล้วเพื่อสร้างใบเสนอราคา
+                    {subtitle}
                 </Typography>
             </Container>
         </Box>

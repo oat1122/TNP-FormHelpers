@@ -131,9 +131,122 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Submit quotation for review
+        submitQuotation: builder.mutation({
+            query: (id) => ({
+                url: `/quotations/${id}/submit`,
+                method: 'POST',
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: 'Quotation', id },
+                'Quotation',
+                'Dashboard',
+            ],
+        }),
+
+        // Reject quotation (Account)
+        rejectQuotation: builder.mutation({
+            query: ({ id, reason }) => ({
+                url: `/quotations/${id}/reject`,
+                method: 'POST',
+                body: { reason },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+                'Quotation',
+                'Dashboard',
+            ],
+        }),
+
+        // Send back for editing (Account)
+        sendBackQuotation: builder.mutation({
+            query: ({ id, reason }) => ({
+                url: `/quotations/${id}/send-back`,
+                method: 'POST',
+                body: { reason },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+                'Quotation',
+            ],
+        }),
+
+        // Revoke approval (Account)
+        revokeApprovalQuotation: builder.mutation({
+            query: ({ id, reason }) => ({
+                url: `/quotations/${id}/revoke-approval`,
+                method: 'POST',
+                body: { reason },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+                'Quotation',
+                'Dashboard',
+            ],
+        }),
+
+        // Mark as sent (Sales)
+        markQuotationSent: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/quotations/${id}/mark-sent`,
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+                'Quotation',
+            ],
+        }),
+
+        // Upload evidence
+        uploadQuotationEvidence: builder.mutation({
+            query: ({ id, files, description }) => {
+                const formData = new FormData();
+                if (Array.isArray(files)) {
+                    files.forEach((f) => formData.append('files[]', f));
+                } else if (files) {
+                    formData.append('files[]', files);
+                }
+                if (description) formData.append('description', description);
+                return {
+                    url: `/quotations/${id}/upload-evidence`,
+                    method: 'POST',
+                    body: formData,
+                    formData: true,
+                };
+            },
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+            ],
+        }),
+
+        // Send quotation email
+        sendQuotationEmail: builder.mutation({
+            query: ({ id, ...emailData }) => ({
+                url: `/quotations/${id}/send-email`,
+                method: 'POST',
+                body: emailData,
+            }),
+        }),
+
+        // Mark as completed (Sales)
+        markQuotationCompleted: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/quotations/${id}/mark-completed`,
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+                'Quotation',
+                'Dashboard',
+            ],
+        }),
+
+        // Generate PDF (available after approval)
         generateQuotationPDF: builder.mutation({
             query: (id) => ({
-                url: `/quotations/${id}/generate-pdf`,
+                url: `/quotations/${id}/pdf`,
                 method: 'GET',
             }),
         }),
@@ -444,7 +557,15 @@ export const {
     useCreateQuotationFromMultiplePricingMutation,
     useUpdateQuotationMutation,
     useDeleteQuotationMutation,
+    useSubmitQuotationMutation,
     useApproveQuotationMutation,
+    useRejectQuotationMutation,
+    useSendBackQuotationMutation,
+    useRevokeApprovalQuotationMutation,
+    useMarkQuotationSentMutation,
+    useUploadQuotationEvidenceMutation,
+    useSendQuotationEmailMutation,
+    useMarkQuotationCompletedMutation,
     useGenerateQuotationPDFMutation,
 
     // Invoices

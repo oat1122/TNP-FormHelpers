@@ -45,7 +45,8 @@ const PricingRequestNotesButton = ({
     workName, 
     notesCount = 0,
     variant = 'icon', // 'icon' | 'chip'
-    size = 'medium' // 'small' | 'medium' | 'large'
+    size = 'medium', // 'small' | 'medium' | 'large'
+    showCount = true,
 }) => {
     const [modalOpen, setModalOpen] = useState(false);
 
@@ -69,7 +70,7 @@ const PricingRequestNotesButton = ({
                 <Tooltip title={`ดู Notes สำหรับงาน: ${workName}`} arrow>
                     <NotesChip
                         icon={<ViewIcon />}
-                        label={`${notesCount} Notes`}
+                        label={showCount ? `${notesCount} Notes` : 'Notes'}
                         onClick={handleClick}
                         clickable
                         size={size}
@@ -90,7 +91,8 @@ const PricingRequestNotesButton = ({
         <>
             <Tooltip title={`ดู Notes สำหรับงาน: ${workName}`} arrow>
                 <Badge 
-                    badgeContent={notesCount} 
+                    badgeContent={notesCount}
+                    invisible={!showCount}
                     color="primary"
                     anchorOrigin={{
                         vertical: 'top',

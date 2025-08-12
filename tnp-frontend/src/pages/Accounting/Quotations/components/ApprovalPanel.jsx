@@ -17,6 +17,8 @@ import {
   TableCell,
 } from '@mui/material';
 import { useGetQuotationQuery } from '../../../../features/Accounting/accountingApi';
+import useQuotationDetails from '../hooks/useQuotationDetails';
+import { formatTHB, joinAttrs } from '../utils/format';
 
 const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent, onDownloadPDF, onUploadEvidence, onSubmitForReview, onOpenLinkedPricing }) => {
   const [notes, setNotes] = useState('');
@@ -25,9 +27,7 @@ const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent,
   const [desc, setDesc] = useState('');
 
   // Fetch full quotation details for richer view
-  const qid = quotation?.id;
-  const { data: qData } = useGetQuotationQuery(qid, { skip: !qid });
-  const q = useMemo(() => (qData?.data || qData || quotation || null), [qData, quotation]);
+  const { q, prIds } = useQuotationDetails(quotation);
   const status = q?.status || 'draft';
   const canApprove = status === 'pending_review';
   const canReject = status === 'pending_review';
@@ -47,17 +47,6 @@ const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent,
   };
   const statusColor = statusColorMap[status] || 'default';
 
-  // Collect PR references (IDs only here)
-  const prIds = useMemo(() => {
-    const set = new Set();
-  const qq = q || {};
-  if (Array.isArray(qq.items)) qq.items.forEach((it) => it?.pricing_request_id && set.add(it.pricing_request_id));
-    if (qq.primary_pricing_request_id) set.add(qq.primary_pricing_request_id);
-    const multi = qq.primary_pricing_request_ids;
-  if (Array.isArray(multi)) multi.forEach((id) => set.add(id));
-    return Array.from(set);
-  }, [q]);
-
   if (!quotation) {
     return (
       <Box>
@@ -74,7 +63,7 @@ const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent,
 
       <Box mt={2}>
   <Chip size="small" color={statusColor} label={`สถานะ: ${status}`} sx={{ mr: 1 }} />
-  <Chip size="small" label={`ยอดรวม: ${fmt.format(Number(q?.total_amount || 0))}`} />
+  <Chip size="small" label={`ยอดรวม: ${formatTHB(q?.total_amount)}`} />
       </Box>
 
       <Divider sx={{ my: 2 }} />
@@ -95,10 +84,10 @@ const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent,
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="subtitle2" gutterBottom>สรุปยอด</Typography>
             <Stack spacing={0.5}>
-              <Typography variant="body2">ก่อนภาษี: {fmt.format(Number(q?.subtotal || 0))}</Typography>
-              <Typography variant="body2">ภาษี: {fmt.format(Number(q?.tax_amount || 0))}</Typography>
-              <Typography variant="body2" fontWeight={700}>รวมทั้งสิ้น: {fmt.format(Number(q?.total_amount || 0))}</Typography>
-              <Typography variant="body2">มัดจำ: {q?.deposit_percentage ? `${q.deposit_percentage}%` : '0%'} ({fmt.format(Number(q?.deposit_amount || 0))})</Typography>
+              <Typography variant="body2">ก่อนภาษี: {formatTHB(q?.subtotal)}</Typography>
+              <Typography variant="body2">ภาษี: {formatTHB(q?.tax_amount)}</Typography>
+              <Typography variant="body2" fontWeight={700}>รวมทั้งสิ้น: {formatTHB(q?.total_amount)}</Typography>
+              <Typography variant="body2">มัดจำ: {q?.deposit_percentage ? `${q.deposit_percentage}%` : '0%'} ({formatTHB(q?.deposit_amount)})</Typography>
               <Typography variant="body2">เงื่อนไขชำระเงิน: {q?.payment_terms || '-'}</Typography>
               <Typography variant="body2">ครบกำหนด: {q?.due_date || '-'}</Typography>
             </Stack>
@@ -133,11 +122,11 @@ const ApprovalPanel = ({ quotation, onApprove, onReject, onSendBack, onMarkSent,
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(q?.items || []).map((it, idx) => {
+                    {(q?.items || []).map((it, idx) => {
                   const discount = Number(it.discount_amount || 0) || 0;
                   const subtotal = Number(it.unit_price || 0) * Number(it.quantity || 0);
                   const total = subtotal - discount;
-                  const detail = [it.pattern, it.fabric_type, it.color, it.size].filter(Boolean).join(' / ');
+                      const detail = joinAttrs([it.pattern, it.fabric_type, it.color, it.size]);
                   return (
                     <TableRow key={it.id || idx}>
                       <TableCell>{it.sequence_order || idx + 1}</TableCell>

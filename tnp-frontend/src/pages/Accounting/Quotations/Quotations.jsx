@@ -32,6 +32,7 @@ import { addNotification } from '../../../features/Accounting/accountingSlice';
 import QuotationCard from './components/QuotationCard';
 import ApprovalPanel from './components/ApprovalPanel';
 import LinkedPricingDialog from './components/LinkedPricingDialog';
+import usePagination from './hooks/usePagination';
 
 const statusOrder = ['draft','pending_review','approved','sent','completed','rejected'];
 
@@ -67,24 +68,7 @@ const Quotations = () => {
     });
   }, [data]);
 
-  const total = quotations.length;
-  const paginated = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return quotations.slice(start, start + itemsPerPage);
-  }, [quotations, currentPage, itemsPerPage]);
-
-  const paginationInfo = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    const to = Math.min(start + itemsPerPage, total);
-    return {
-      current_page: currentPage,
-      last_page: Math.max(1, Math.ceil(total / itemsPerPage)),
-      per_page: itemsPerPage,
-      total,
-      from: total === 0 ? 0 : start + 1,
-      to,
-    };
-  }, [currentPage, itemsPerPage, total]);
+  const { pageData: paginated, info: paginationInfo, total } = usePagination(quotations, currentPage, itemsPerPage);
 
   const [approveQuotation] = useApproveQuotationMutation();
   const [rejectQuotation] = useRejectQuotationMutation();

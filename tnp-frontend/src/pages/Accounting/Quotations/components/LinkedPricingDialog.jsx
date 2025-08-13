@@ -65,23 +65,26 @@ const PRDetailRow = ({ prId }) => {
   const workName = pr?.pr_work_name || pr?.work_name || 'ไม่ระบุชื่องาน';
   return (
     <ListItem divider>
-      <ListItemText
-        primary={<Typography fontWeight={700}>#{prNo} • {workName}</Typography>}
-        secondary={pr?.pr_status ? `สถานะ: ${pr.pr_status}` : null}
-      />
-      <Stack direction="row" spacing={1}>
-        <Chip label={`PR NO: ${prNo}`} size="small" />
-        <PricingRequestNotesButton pricingRequestId={prId} workName={workName} variant="chip" showCount={false} />
-        <Button
-          variant="outlined"
-          size="small"
-          href={getPricingViewUrl(prId)}
-          target="_blank"
-          rel="noopener"
-        >
-          ดูใบงานต้น ฉบับ
-        </Button>
-      </Stack>
+      <Box sx={{ width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+          <Typography variant="body1" fontWeight={700}>#{prNo}</Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            href={getPricingViewUrl(prId)}
+            target="_blank"
+            rel="noopener"
+            sx={{ textTransform: 'none', px: 1.25, py: 0.25, borderRadius: 1.5 }}
+          >
+            ดูใบงานต้น ฉบับ
+          </Button>
+        </Box>
+        <Typography variant="body1" sx={{ mt: 0.5 }}>{workName}</Typography>
+        <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+          <Chip label={`PR NO: ${prNo}`} size="small" />
+          <PricingRequestNotesButton pricingRequestId={prId} workName={workName} variant="chip" showCount={false} />
+        </Stack>
+      </Box>
     </ListItem>
   );
 };

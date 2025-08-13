@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import moment from 'moment';
 import {
     Dialog,
     DialogTitle,
@@ -115,6 +116,8 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
         sale: true,
         price: true
     });
+    // show only the latest note by default; allow expanding to full history per section
+    const [showHistory, setShowHistory] = useState({ sale: false, price: false });
 
     // Fetch notes when modal opens
     useEffect(() => {
@@ -160,6 +163,13 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
         }));
     };
 
+    const toggleHistory = (section) => {
+        setShowHistory(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
     const formatNoteText = (text) => {
         return text?.split('\n').map((line, index) => (
             <Typography key={index} variant="body2" sx={{ mb: index < text.split('\n').length - 1 ? 1 : 0 }}>
@@ -168,12 +178,18 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
         ));
     };
 
-    const renderNoteSection = (title, notes, noteType, sectionKey) => {
+        const renderNoteSection = (title, notes, noteType, sectionKey) => {
         const isExpanded = expandedSections[sectionKey];
         const noteTypeLabels = {
             1: 'Sale',
             2: 'Price'
         };
+                // Sort by newest first (align with PricingNote components)
+                const sorted = Array.isArray(notes)
+                    ? notes.slice().sort((a, b) => new Date(b.prn_created_date || b.created_at || 0) - new Date(a.prn_created_date || a.created_at || 0))
+                    : [];
+                const hasMoreThanOne = sorted.length > 1;
+                const visibleNotes = showHistory[sectionKey] ? sorted : sorted.slice(0, 1);
 
         return (
             <Box key={sectionKey} sx={{ mb: 3 }}>
@@ -186,12 +202,19 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
                             <NotesIcon color="action" />
                         </Badge>
                     </Box>
-                    <IconButton
-                        onClick={() => toggleSection(sectionKey)}
-                        sx={{ color: '#900F0F' }}
-                    >
-                        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {hasMoreThanOne && (
+                            <Button size="small" variant="text" onClick={() => toggleHistory(sectionKey)} sx={{ textTransform: 'none', color: '#900F0F' }}>
+                                {showHistory[sectionKey] ? 'ซ่อนประวัติ' : 'ดูประวัติ'}
+                            </Button>
+                        )}
+                        <IconButton
+                            onClick={() => toggleSection(sectionKey)}
+                            sx={{ color: '#900F0F' }}
+                        >
+                            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                    </Box>
                 </SectionHeader>
 
                 <Collapse in={isExpanded}>
@@ -209,7 +232,7 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
                         </Alert>
                     ) : (
                         <Stack spacing={2}>
-                            {notes.map((note, index) => (
+                            {visibleNotes.map((note, index) => (
                                 <NoteCard key={note.prn_id} noteType={noteType}>
                                     <CardContent sx={{ p: 3 }}>
                                         {/* Header */}
@@ -222,13 +245,15 @@ const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 
                                                     icon={<PersonIcon />}
                                                 />
                                                 <Typography variant="body2" color="text.secondary">
-                                                    โดย {note.created_by_name}
+                                                    โดย {note.created_by_name || note.created_name || note.user_name || 'ไม่ระบุ'}
                                                 </Typography>
                                             </Box>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                                 <Typography variant="caption" color="text.secondary">
-                                                    {note.formatted_date}
+                                                    {note.prn_created_date
+                                                      ? moment(note.prn_created_date).format('DD/MM HH:mm')
+                                                      : (note.formatted_date || '')}
                                                 </Typography>
                                             </Box>
                                         </Box>

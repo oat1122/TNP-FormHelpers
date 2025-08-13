@@ -128,6 +128,26 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
 
 export default QuotationCard;
 
+// Build Pricing view URL dynamically (mirrors LinkedPricingDialog)
+const getPricingViewUrl = (prId) => {
+  if (import.meta.env.DEV) {
+    return `/pricing/view/${encodeURIComponent(prId)}`;
+  }
+  const apiBase = import.meta.env.VITE_END_POINT_URL;
+  try {
+    if (apiBase) {
+      const u = new URL(apiBase);
+      const cleanedHost = u.host
+        .replace(/^api\./, '')
+        .replace(/-api(?=\.|:)/, '');
+      return `${u.protocol}//${cleanedHost}/pricing/view/${encodeURIComponent(prId)}`;
+    }
+  } catch (e) {
+    // fallback below
+  }
+  return `/pricing/view/${encodeURIComponent(prId)}`;
+};
+
 // PR row with code + status chip and job name below
 const PRRow = ({ prId }) => {
   const { data, isLoading } = useGetPricingRequestAutofillQuery(prId, { skip: !prId });
@@ -135,11 +155,54 @@ const PRRow = ({ prId }) => {
   const prNo = pr.pr_no || pr.pr_number || `#${String(prId).slice(-6)}`;
   const workName = pr.pr_work_name || pr.work_name || '-';
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 0.25 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-        <Typography variant="body1" sx={{ fontWeight: 500 }}>#{prNo.toString().replace(/^#/, '')}</Typography>
+    <Box
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        px: 1.25,
+        py: 1,
+        bgcolor: 'background.paper',
+        '&:hover': { borderColor: 'primary.light', boxShadow: 1 },
+      }}
+   >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          minWidth: 0,
+        }}
+      >
+        {/* Left: PR code + job name (two lines) */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Typography variant="body1" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+            #{prNo.toString().replace(/^#/, '')}
+          </Typography>
+          <Typography variant="body1" noWrap sx={{ color: 'text.secondary', minWidth: 0 }}>
+            {isLoading ? 'กำลังโหลด…' : workName}
+          </Typography>
+        </Box>
+
+        {/* Right: Button vertically centered */}
+        <Button
+          variant="outlined"
+          size="small"
+          href={getPricingViewUrl(prId)}
+          target="_blank"
+          rel="noopener"
+          sx={{
+            textTransform: 'none',
+            px: 1.25,
+            py: 0.25,
+            borderRadius: 1.5,
+            alignSelf: 'center',
+          }}
+        >
+          ดูใบงานต้น ฉบับ
+        </Button>
       </Box>
-      <Typography variant="body1">{isLoading ? 'กำลังโหลด…' : workName}</Typography>
     </Box>
   );
 };

@@ -1,14 +1,14 @@
 import React from 'react';
-import { Box, Stack, Avatar } from '@mui/material';
+import { Box, Stack, Avatar, Typography, Collapse, Button } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useGetPricingRequestAutofillQuery } from '../../../../features/Accounting/accountingApi';
 import {
   TNPCard,
   TNPCardContent,
   TNPHeading,
-  TNPSubheading,
   TNPBodyText,
   TNPStatusChip,
   TNPCountChip,
@@ -28,6 +28,18 @@ const statusColor = {
 
 const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
   const amountText = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0));
+  const [showAll, setShowAll] = React.useState(false);
+  // collect linked PR ids from this quotation
+  const detail = data; // data may already contain items
+  const prIds = React.useMemo(() => {
+    const set = new Set();
+    if (Array.isArray(detail?.items)) {
+      detail.items.forEach((it) => { if (it?.pricing_request_id) set.add(it.pricing_request_id); });
+    }
+    if (detail?.primary_pricing_request_id) set.add(detail.primary_pricing_request_id);
+    if (Array.isArray(detail?.primary_pricing_request_ids)) detail.primary_pricing_request_ids.forEach((id) => set.add(id));
+    return Array.from(set);
+  }, [detail]);
   return (
     <TNPCard>
       <TNPCardContent>
@@ -48,9 +60,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
             <TNPHeading variant="h6">
               {data.customer?.cus_company || data.customer_name || '-'}
             </TNPHeading>
-            <TNPSubheading title={data.work_name || ''}>
-              {data.work_name || '-'}
-            </TNPSubheading>
+            {/* Jobs list under PR codes */}
           </Box>
         </Box>
 
@@ -67,9 +77,34 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
           )}
         </Stack>
 
-        <TNPBodyText color="text.secondary">
-          ผู้สร้าง: {data.created_by_name || '-'}
-        </TNPBodyText>
+        <TNPBodyText color="text.secondary">ผู้สร้าง: {data.created_by_name || '-'}</TNPBodyText>
+
+        {/* PR entries with job names */}
+        {prIds.length > 0 && (
+          <Box sx={{ mt: 1.5 }}>
+            <Stack spacing={1.2}>
+              {prIds.slice(0, 3).map((id) => (
+                <PRRow key={id} prId={id} />
+              ))}
+            </Stack>
+            {prIds.length > 3 && (
+              <>
+                <Collapse in={showAll}>
+                  <Stack spacing={1.2} sx={{ mt: 1 }}>
+                    {prIds.slice(3).map((id) => (
+                      <PRRow key={id} prId={id} />
+                    ))}
+                  </Stack>
+                </Collapse>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                  <Button size="small" onClick={() => setShowAll((v) => !v)} sx={{ textTransform: 'none' }}>
+                    {showAll ? 'ย่อ' : 'ดูเพิ่มเติม'}
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+        )}
       </TNPCardContent>
 
       <TNPDivider />
@@ -92,3 +127,19 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
 };
 
 export default QuotationCard;
+
+// PR row with code + status chip and job name below
+const PRRow = ({ prId }) => {
+  const { data, isLoading } = useGetPricingRequestAutofillQuery(prId, { skip: !prId });
+  const pr = data?.data || data || {};
+  const prNo = pr.pr_no || pr.pr_number || `#${String(prId).slice(-6)}`;
+  const workName = pr.pr_work_name || pr.work_name || '-';
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 0.25 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+        <Typography variant="body1" sx={{ fontWeight: 500 }}>#{prNo.toString().replace(/^#/, '')}</Typography>
+      </Box>
+      <Typography variant="body1">{isLoading ? 'กำลังโหลด…' : workName}</Typography>
+    </Box>
+  );
+};

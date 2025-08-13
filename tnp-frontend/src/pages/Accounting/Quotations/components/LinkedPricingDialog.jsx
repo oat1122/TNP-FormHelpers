@@ -27,6 +27,29 @@ const Title = styled(DialogTitle)({
   fontWeight: 700,
 });
 
+// Build Pricing view URL dynamically
+const getPricingViewUrl = (prId) => {
+  // In development, use app origin (Vite dev server) with relative path
+  if (import.meta.env.DEV) {
+    return `/pricing/view/${encodeURIComponent(prId)}`;
+  }
+  // In production, derive base from VITE_END_POINT_URL
+  const apiBase = import.meta.env.VITE_END_POINT_URL;
+  try {
+    if (apiBase) {
+      const u = new URL(apiBase);
+      // Drop API path and strip common api subdomain markers
+      const cleanedHost = u.host
+        .replace(/^api\./, '')
+        .replace(/-api(?=\.|:)/, '');
+      return `${u.protocol}//${cleanedHost}/pricing/view/${encodeURIComponent(prId)}`;
+    }
+  } catch (e) {
+    // fall back to relative path
+  }
+  return `/pricing/view/${encodeURIComponent(prId)}`;
+};
+
 const PRDetailRow = ({ prId }) => {
   const { data, isLoading } = useGetPricingRequestAutofillQuery(prId, { skip: !prId });
   if (isLoading) {
@@ -49,6 +72,15 @@ const PRDetailRow = ({ prId }) => {
       <Stack direction="row" spacing={1}>
         <Chip label={`PR NO: ${prNo}`} size="small" />
         <PricingRequestNotesButton pricingRequestId={prId} workName={workName} variant="chip" showCount={false} />
+        <Button
+          variant="outlined"
+          size="small"
+          href={getPricingViewUrl(prId)}
+          target="_blank"
+          rel="noopener"
+        >
+          ดูใบงานต้น ฉบับ
+        </Button>
       </Stack>
     </ListItem>
   );

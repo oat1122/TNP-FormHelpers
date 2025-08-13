@@ -17,6 +17,7 @@ const PaginationSection = ({
     onPageChange,
     onItemsPerPageChange,
     showHeader = true,
+    title = 'Pricing Request ที่พร้อมออกใบเสนอราคา',
 }) => {
     if (!pagination) return null;
 
@@ -28,7 +29,7 @@ const PaginationSection = ({
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Typography variant="h6" color="primary">
-                                Pricing Request ที่พร้อมออกใบเสนอราคา
+                                {title}
                             </Typography>
                             <Chip
                                 label={pagination.total}

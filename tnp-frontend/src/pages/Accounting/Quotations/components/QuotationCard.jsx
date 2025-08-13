@@ -1,7 +1,21 @@
 import React from 'react';
-import { Card, CardContent, CardActions, Box, Typography, Chip, Button, Stack } from '@mui/material';
+import { Box, Stack, Avatar } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import DescriptionIcon from '@mui/icons-material/Description';
+import BusinessIcon from '@mui/icons-material/Business';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import {
+  TNPCard,
+  TNPCardContent,
+  TNPHeading,
+  TNPSubheading,
+  TNPBodyText,
+  TNPStatusChip,
+  TNPCountChip,
+  TNPPrimaryButton,
+  TNPSecondaryButton,
+  TNPDivider,
+} from '../../PricingIntegration/components/styles/StyledComponents';
 
 const statusColor = {
   draft: 'default',
@@ -12,31 +26,68 @@ const statusColor = {
   completed: 'success',
 };
 
-const QuotationCard = ({ data, onSelect, onDownloadPDF, onViewLinked }) => {
+const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
+  const amountText = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0));
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2, '&:hover': { boxShadow: 3 } }}>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <DescriptionIcon color="primary" />
-            <Typography variant="subtitle1" fontWeight={700}>{data.number || 'QT-XXXX'}</Typography>
-          </Stack>
-          <Chip size="small" label={data.status} color={statusColor[data.status] || 'default'} />
+    <TNPCard>
+      <TNPCardContent>
+        {/* Header: Customer info to match PricingIntegration style */}
+        <Box display="flex" alignItems="center" mb={2.5}>
+          <Avatar
+            sx={{
+              bgcolor: 'secondary.main',
+              width: 48,
+              height: 48,
+              mr: 2,
+              boxShadow: '0 2px 8px rgba(178, 0, 0, 0.2)',
+            }}
+          >
+            <BusinessIcon sx={{ fontSize: '1.5rem' }} />
+          </Avatar>
+          <Box flex={1} minWidth={0}>
+            <TNPHeading variant="h6">
+              {data.customer?.cus_company || data.customer_name || '-'}
+            </TNPHeading>
+            <TNPSubheading title={data.work_name || ''}>
+              {data.work_name || '-'}
+            </TNPSubheading>
+          </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          ลูกค้า: {data.customer?.cus_company || data.customer_name || '-'}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">ยอดรวม: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0))}</Typography>
-        {data.work_name && (
-          <Typography variant="body2" sx={{ mt: 0.5 }}>งาน: {data.work_name}</Typography>
-        )}
-      </CardContent>
-      <CardActions sx={{ px: 2, pb: 2 }}>
-        <Button size="small" onClick={onSelect}>ตรวจสอบ</Button>
-        <Button size="small" disabled={data.status !== 'approved'} onClick={onDownloadPDF}>ดาวน์โหลด PDF</Button>
-  <Button size="small" startIcon={<LinkIcon />} onClick={onViewLinked}>ดูงาน Pricing</Button>
-      </CardActions>
-    </Card>
+
+        {/* Chips: status and amount */}
+        <Stack direction="row" spacing={1} flexWrap="wrap" mb={2.5}>
+          <TNPStatusChip
+            label={data.status || 'draft'}
+            size="small"
+            statuscolor={statusColor[data.status] || 'default'}
+          />
+          <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
+          {data.number && (
+            <TNPCountChip icon={<DescriptionIcon sx={{ fontSize: '1rem' }} />} label={data.number} size="small" />
+          )}
+        </Stack>
+
+        <TNPBodyText color="text.secondary">
+          ผู้สร้าง: {data.created_by_name || '-'}
+        </TNPBodyText>
+      </TNPCardContent>
+
+      <TNPDivider />
+
+      <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: 'background.light' }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TNPSecondaryButton size="medium" startIcon={<LinkIcon />} onClick={onViewLinked}>
+            ดูงาน Pricing
+          </TNPSecondaryButton>
+          <TNPSecondaryButton size="medium" onClick={onDownloadPDF} disabled={data.status !== 'approved'}>
+            ดาวน์โหลด PDF
+          </TNPSecondaryButton>
+        </Box>
+        <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>
+          ดูรายละเอียด
+        </TNPPrimaryButton>
+      </Box>
+    </TNPCard>
   );
 };
 

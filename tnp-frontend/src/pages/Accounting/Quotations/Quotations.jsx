@@ -8,15 +8,17 @@ import {
   Box,
   Container,
   Grid,
-  Paper,
   Alert,
 } from '@mui/material';
-import Header from '../PricingIntegration/components/Header';
-import FilterSection from '../PricingIntegration/components/FilterSection';
-import PaginationSection from '../PricingIntegration/components/PaginationSection';
-import LoadingState from '../PricingIntegration/components/LoadingState';
-import ErrorState from '../PricingIntegration/components/ErrorState';
-import EmptyState from '../PricingIntegration/components/EmptyState';
+import {
+  Header,
+  FilterSection,
+  PaginationSection,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  FloatingActionButton,
+} from '../PricingIntegration/components';
 import {
   useGetQuotationsQuery,
   useApproveQuotationMutation,
@@ -30,8 +32,9 @@ import {
 import { useDispatch } from 'react-redux';
 import { addNotification } from '../../../features/Accounting/accountingSlice';
 import QuotationCard from './components/QuotationCard';
-import ApprovalPanel from './components/ApprovalPanel';
+// ApprovalPanel removed along with Drawer UI
 import LinkedPricingDialog from './components/LinkedPricingDialog';
+import QuotationDetailDialog from './components/QuotationDetailDialog';
 import usePagination from './hooks/usePagination';
 
 const statusOrder = ['draft','pending_review','approved','sent','completed','rejected'];
@@ -44,8 +47,9 @@ const Quotations = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
   const [linkedOpen, setLinkedOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
     search: searchQuery || undefined,
@@ -149,20 +153,36 @@ const Quotations = () => {
     }
   };
 
-  const handleRefresh = useCallback(() => refetch(), [refetch]);
+  const handleRefresh = useCallback(() => {
+    refetch();
+    dispatch(addNotification({
+      type: 'success',
+      title: 'รีเฟรชข้อมูล',
+      message: 'ข้อมูลถูกอัปเดตแล้ว',
+    }));
+  }, [refetch, dispatch]);
   const handleResetFilters = () => {
     setSearchQuery('');
     setDateRange({ start: null, end: null });
     setStatusFilter('all');
   };
 
-  useEffect(() => {
-    // auto select first pending_review for quick approval UX
-    if (!selectedQuotation && quotations.length) {
-      const target = quotations.find(q => q.status === 'pending_review') || quotations[0];
-      setSelectedQuotation(target);
-    }
-  }, [quotations, selectedQuotation]);
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((e, p) => {
+    setCurrentPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleItemsPerPageChange = useCallback((val) => {
+    setItemsPerPage(val);
+    setCurrentPage(1);
+  }, []);
+
+  // Removed auto-selection effect since Drawer has been removed
 
   return (
     <ThemeProvider theme={accountingTheme}>
@@ -173,72 +193,92 @@ const Quotations = () => {
           <Container maxWidth="xl" sx={{ py: 4 }}>
             <FilterSection
               searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
+              onSearchChange={handleSearch}
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
               onRefresh={handleRefresh}
               onResetFilters={handleResetFilters}
             />
 
+            {/* 🔐 Access Control Information */}
+            {(() => {
+              const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+              const isAdmin = userData.user_id === 1;
+              if (!isAdmin) {
+                return (
+                  <Alert
+                    severity="info"
+                    sx={{ mb: 3, borderRadius: 2 }}
+                    icon={<span>🔐</span>}
+                  >
+                    <strong>การแบ่งสิทธิ์การเข้าถึง:</strong> คุณสามารถดูข้อมูลใบเสนอราคาได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
+                    {userData.username && (
+                      <Box component="span" sx={{ ml: 1, color: 'info.dark', fontWeight: 'medium' }}>
+                        (ผู้ใช้: {userData.username})
+                      </Box>
+                    )}
+                  </Alert>
+                );
+              }
+              return null;
+            })()}
+
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>โหลดข้อมูลไม่สำเร็จ: {error.message}</Alert>
             )}
 
+            {/* Pagination Section (Top) */}
+            <PaginationSection
+              title="ใบเสนอราคาทั้งหมด"
+              pagination={paginationInfo}
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              isFetching={isFetching}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+
             <Grid container spacing={3}>
-              <Grid item xs={12} md={7} lg={8}>
-                {isLoading ? (
-                  <LoadingState itemCount={6} />
-                ) : error ? (
-                  <ErrorState error={error} onRetry={handleRefresh} />
-                ) : quotations.length > 0 ? (
-                  <>
-                    <Grid container spacing={2}>
-                      {paginated.map((q) => (
-            <Grid item xs={12} key={q.id}>
-                          <QuotationCard
-                            data={q}
-                            onSelect={() => setSelectedQuotation(q)}
-                            onDownloadPDF={() => handleDownloadPDF(q.id)}
-              onViewLinked={() => { setSelectedQuotation(q); setLinkedOpen(true); }}
-                          />
-                        </Grid>
-                      ))}
+              {isLoading ? (
+                <Grid item xs={12}><LoadingState itemCount={6} /></Grid>
+              ) : error ? (
+                <Grid item xs={12}><ErrorState error={error} onRetry={handleRefresh} /></Grid>
+              ) : quotations.length > 0 ? (
+                <>
+      {paginated.map((q) => (
+                    <Grid item xs={12} sm={6} lg={4} key={q.id}>
+                      <QuotationCard
+        data={q}
+                        onDownloadPDF={() => handleDownloadPDF(q.id)}
+                        onViewLinked={() => { setSelectedQuotation(q); setLinkedOpen(true); }}
+                        onViewDetail={() => { setSelectedQuotation(q); setDetailOpen(true); }}
+                      />
                     </Grid>
-                    {paginationInfo.last_page > 1 && (
+                  ))}
+                  {paginationInfo.last_page > 1 && (
+                    <Grid item xs={12}>
                       <PaginationSection
+                        title="ใบเสนอราคาทั้งหมด"
                         pagination={paginationInfo}
                         currentPage={currentPage}
                         itemsPerPage={itemsPerPage}
                         isFetching={isFetching}
-                        onPageChange={(e, p) => setCurrentPage(p)}
-                        onItemsPerPageChange={setItemsPerPage}
+                        onPageChange={handlePageChange}
+                        onItemsPerPageChange={handleItemsPerPageChange}
                         showHeader={false}
                       />
-                    )}
-                  </>
-                ) : (
-                  <EmptyState onRefresh={handleRefresh} />
-                )}
-              </Grid>
-
-              <Grid item xs={12} md={5} lg={4}>
-                <Paper sx={{ p: 2, position: 'sticky', top: 16 }}>
-                  <ApprovalPanel
-                    quotation={selectedQuotation}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    onSendBack={handleSendBack}
-                    onMarkSent={handleMarkSent}
-                    onDownloadPDF={handleDownloadPDF}
-                    onUploadEvidence={handleUploadEvidence}
-                    onSubmitForReview={handleSubmitForReview}
-                    onOpenLinkedPricing={(id) => { if (id) { const found = quotations.find((x) => x.id === id); if (found) setSelectedQuotation(found); } setLinkedOpen(true); }}
-                  />
-                </Paper>
-              </Grid>
+                    </Grid>
+                  )}
+                </>
+              ) : (
+                <Grid item xs={12}><EmptyState onRefresh={handleRefresh} /></Grid>
+              )}
             </Grid>
           </Container>
           <LinkedPricingDialog open={linkedOpen} onClose={() => setLinkedOpen(false)} quotationId={selectedQuotation?.id} />
+          <QuotationDetailDialog open={detailOpen} onClose={() => setDetailOpen(false)} quotationId={selectedQuotation?.id} />
+          {/* Floating Action Button */}
+          <FloatingActionButton onRefresh={handleRefresh} />
         </Box>
       </LocalizationProvider>
     </ThemeProvider>

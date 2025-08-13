@@ -49,10 +49,11 @@ import { formatTHB } from '../utils/currency';
 import { formatDateTH } from '../utils/date';
 
 import PricingRequestNotesButton from '../../PricingRequestNotesButton';
+import { useGetPricingRequestAutofillQuery } from '../../../../../../features/Accounting/accountingApi';
 import QuotationPreview from '../../QuotationPreview';
 import CustomerEditCard from '../../CustomerEditCard';
 
-const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onSubmit }) => {
+const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onSubmit, readOnly = false }) => {
   const [formData, setFormData] = useState({
     customer: {},
     pricingRequests: selectedPricingRequests,
@@ -66,6 +67,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(!readOnly);
 
   useEffect(() => {
     if (!selectedPricingRequests?.length) return;
@@ -213,24 +215,43 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
   return (
     <Box sx={{ bgcolor: tokens.bg, minHeight: '100vh', py: 3 }}>
       <Container maxWidth="lg">
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Tooltip title="ย้อนกลับ">
-            <IconButton
-              onClick={onBack}
-              size="small"
-              sx={{ color: tokens.primary, border: `1px solid ${tokens.primary}` }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-          </Tooltip>
-          <Box>
-            <Typography variant="h5" fontWeight={700} color={tokens.primary}>
-              สร้างใบเสนอราคา
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              จาก {formData.items.length} งาน • {formData.customer?.cus_company || 'กำลังโหลด…'}
-            </Typography>
+        {/* Resolve missing work_name from PR API if needed */}
+        {formData.items.map((it) => (
+          <PRNameResolver key={`resolver-${it.id}`} prId={it.pricingRequestId || it.pr_id} currentName={it.name} onResolved={(name) => {
+            if (!name) return;
+            setFormData((prev) => ({
+              ...prev,
+              items: prev.items.map((x) => x.id === it.id ? { ...x, name } : x)
+            }));
+          }} />
+        ))}
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Tooltip title="ย้อนกลับ">
+              <IconButton
+                onClick={onBack}
+                size="small"
+                sx={{ color: tokens.primary, border: `1px solid ${tokens.primary}` }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+            </Tooltip>
+            <Box>
+              <Typography variant="h5" fontWeight={700} color={tokens.primary}>
+                สร้างใบเสนอราคา
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                จาก {formData.items.length} งาน • {formData.customer?.cus_company || 'กำลังโหลด…'}
+              </Typography>
+            </Box>
           </Box>
+          {readOnly && (
+            <Tooltip title={isEditing ? 'โหมดแก้ไข' : 'โหมดดู'}>
+              <IconButton aria-label="toggle-edit" size="small" onClick={() => setIsEditing((v) => !v)}>
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         <Grid container spacing={2}>
@@ -267,6 +288,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                     size="small"
                     startIcon={<EditIcon />}
                     onClick={() => setEditCustomerOpen(true)}
+                    disabled={readOnly && !isEditing}
                   >
                     แก้ไขลูกค้า
                   </SecondaryButton>
@@ -429,13 +451,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                       </Box>
 
                       <Grid container spacing={1.5}>
-                        <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={3}>
                           <TextField
                             fullWidth
                             size="small"
                             label="แพทเทิร์น"
                             value={item.pattern}
-                            onChange={(e) => setItem(item.id, { pattern: e.target.value })}
+              onChange={(e) => setItem(item.id, { pattern: e.target.value })}
+              disabled={readOnly && !isEditing}
                           />
                         </Grid>
                         <Grid item xs={12} md={3}>
@@ -447,6 +470,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             onChange={(e) =>
                               setItem(item.id, { fabricType: e.target.value })
                             }
+              disabled={readOnly && !isEditing}
                           />
                         </Grid>
                         <Grid item xs={12} md={3}>
@@ -455,7 +479,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             size="small"
                             label="สี"
                             value={item.color}
-                            onChange={(e) => setItem(item.id, { color: e.target.value })}
+              onChange={(e) => setItem(item.id, { color: e.target.value })}
+              disabled={readOnly && !isEditing}
                           />
                         </Grid>
                         <Grid item xs={12} md={3}>
@@ -464,7 +489,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             size="small"
                             label="ขนาด (สรุป)"
                             value={item.size}
-                            onChange={(e) => setItem(item.id, { size: e.target.value })}
+              onChange={(e) => setItem(item.id, { size: e.target.value })}
+              disabled={readOnly && !isEditing}
                           />
                         </Grid>
 
@@ -473,7 +499,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                           <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
                             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                               <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
-                              <SecondaryButton size="small" onClick={() => addSizeRow(item.id)}>เพิ่มขนาด</SecondaryButton>
+                              <SecondaryButton size="small" onClick={() => addSizeRow(item.id)} disabled={readOnly && !isEditing}>เพิ่มขนาด</SecondaryButton>
                             </Box>
                             {/* Header row */}
                             <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
@@ -503,6 +529,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                       label="ขนาด"
                                       value={row.size}
                                       onChange={(e) => updateSizeRow(item.id, row.uuid, { size: e.target.value })}
+                                      disabled={readOnly && !isEditing}
                                     />
                                   </Grid>
                                   <Grid item xs={6} md={3}>
@@ -514,6 +541,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                       value={row.quantity}
                                       InputProps={{ endAdornment: <InputAdornment position="end">ชิ้น</InputAdornment> }}
                                       onChange={(e) => updateSizeRow(item.id, row.uuid, { quantity: parseInt(e.target.value || 0, 10) })}
+                                      disabled={readOnly && !isEditing}
                                     />
                                   </Grid>
                                   <Grid item xs={6} md={3}>
@@ -525,6 +553,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                       value={row.unitPrice}
                                       InputProps={{ startAdornment: <InputAdornment position="start">฿</InputAdornment> }}
                                       onChange={(e) => updateSizeRow(item.id, row.uuid, { unitPrice: Number(e.target.value || 0) })}
+                                      disabled={readOnly && !isEditing}
                                     />
                                   </Grid>
                                   <Grid item xs={10} md={2}>
@@ -537,7 +566,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                   <Grid item xs={2} md={1}>
                                     <Box display="flex" height="100%" alignItems="center" justifyContent="center">
                                       <Tooltip title="ลบแถว">
-                                        <IconButton color="error" size="small" onClick={() => removeSizeRow(item.id, row.uuid)}>
+                                        <IconButton color="error" size="small" onClick={() => removeSizeRow(item.id, row.uuid)} disabled={readOnly && !isEditing}>
                                           <DeleteOutlineIcon fontSize="small" />
                                         </IconButton>
                                       </Tooltip>
@@ -649,7 +678,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
               <Box sx={{ p: 2 }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
-                    <FormControl>
+                    <FormControl disabled={readOnly && !isEditing}>
                       <FormLabel>การชำระเงิน</FormLabel>
                       <RadioGroup
                         value={formData.paymentMethod}
@@ -671,7 +700,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                   </Grid>
 
                   <Grid item xs={12} md={6}>
-                    <FormControl>
+                    <FormControl disabled={readOnly && !isEditing}>
                       <FormLabel>เงินมัดจำ</FormLabel>
                       <RadioGroup
                         value={formData.depositPercentage}
@@ -767,6 +796,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         value={formData.dueDate}
                         onChange={(d) => setFormData((prev) => ({ ...prev, dueDate: d }))}
                         slotProps={{ textField: { fullWidth: true } }}
+                        disabled={readOnly && !isEditing}
                       />
                     </Grid>
                   )}
@@ -782,6 +812,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         setFormData((prev) => ({ ...prev, notes: e.target.value }))
                       }
                       placeholder="เช่น ราคานี้รวมค่าจัดส่งและติดตั้งแล้ว…"
+                      disabled={readOnly && !isEditing}
                     />
                   </Grid>
                 </Grid>
@@ -802,7 +833,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
             </SecondaryButton>
             <PrimaryButton
               onClick={() => submit('review')}
-              disabled={isSubmitting || total === 0}
+              disabled={isSubmitting || total === 0 || (readOnly && !isEditing)}
             >
               {isSubmitting ? 'กำลังส่ง…' : 'ส่งตรวจสอบ'}
             </PrimaryButton>
@@ -854,3 +885,22 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
 };
 
 export default CreateQuotationForm;
+
+// Internal helper: fetch work_name for a PR and report back if current name is placeholder/missing
+const PRNameResolver = ({ prId, currentName, onResolved }) => {
+  const skip = !prId;
+  const { data } = useGetPricingRequestAutofillQuery(prId, { skip });
+  const isMissing = (v) => {
+    if (!v) return true;
+    const s = String(v).trim();
+    return s === '' || s === '-' || s === 'ไม่ระบุชื่องาน';
+  };
+  React.useEffect(() => {
+    if (skip || !onResolved) return;
+    if (!isMissing(currentName)) return;
+    const pr = data?.data || data;
+    const wn = pr?.pr_work_name || pr?.work_name;
+    if (wn) onResolved(wn);
+  }, [skip, data, currentName, onResolved]);
+  return null;
+};

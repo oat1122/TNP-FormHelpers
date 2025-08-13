@@ -1,443 +1,365 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/Accounting/PricingIntegration/components/PricingRequestNotesModal.jsx
+import React from 'react';
 import moment from 'moment';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Typography,
-    Box,
-    Card,
-    CardContent,
-    Chip,
-    Avatar,
-    Button,
-    IconButton,
-    Collapse,
-    Alert,
-    Skeleton,
-    Divider,
-    Stack,
-    Badge
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Collapse,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Divider,
 } from '@mui/material';
-import {
-    Close as CloseIcon,
-    StickyNote2 as NotesIcon,
-    Person as PersonIcon,
-    Schedule as ScheduleIcon,
-    ExpandMore as ExpandMoreIcon,
-    ExpandLess as ExpandLessIcon,
-    Warning as WarningIcon,
-    CheckCircle as CheckCircleIcon
-} from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import HistoryIcon from '@mui/icons-material/History';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import PersonIcon from '@mui/icons-material/Person';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import NotesIcon from '@mui/icons-material/Notes';
 
-// Styled Components
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuiPaper-root': {
-        borderRadius: '16px',
-        boxShadow: '0 24px 48px rgba(144, 15, 15, 0.12)',
-        border: '1px solid rgba(144, 15, 15, 0.1)',
-    },
+/**
+ * โมดัล Notes สำหรับ Pricing Request (โฟกัส sale/price)
+ * - แสดง "โน้ตล่าสุด 1 อัน" ต่อประเภท (sales, price)
+ * - ปุ่ม "ดูประวัติ" เพื่อกางรายการทั้งหมดของประเภทนั้น
+ * - ฟอร์แมตข้อความแบบ pre-wrap + แสดงผู้เขียน | เวลา (DD/MM HH:mm)
+ */
+
+const StyledDialog = styled(Dialog)(() => ({
+  '& .MuiPaper-root': {
+    borderRadius: 12,
+    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+    border: '1px solid #EEE',
+  },
 }));
 
-const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
-    background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-    color: '#FFFFFF',
-    padding: '20px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
+const StyledDialogTitle = styled(DialogTitle)(() => ({
+  background: '#fff',
+  color: '#333',
+  padding: '16px 20px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  borderBottom: '1px solid #F0F0F0',
 }));
 
-const NoteCard = styled(Card)(({ theme, noteType }) => {
-    const colors = {
-        1: { // Sale
-            background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(33, 150, 243, 0.1) 100%)',
-            border: '2px solid #2196F3',
-            chip: '#2196F3'
-        },
-        2: { // Price
-            background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.1) 100%)',
-            border: '2px solid #4CAF50',
-            chip: '#4CAF50'
-        }
-    };
-
-    const colorSet = colors[noteType] || colors[1];
-
-    return {
-        background: colorSet.background,
-        border: colorSet.border,
-        borderRadius: '12px',
-        marginBottom: '16px',
-        transition: 'all 0.3s ease-in-out',
-        '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: `0 8px 24px ${colorSet.chip}20`,
-        },
-    };
-});
-
-const NoteChip = styled(Chip)(({ theme, noteType }) => {
-    const colors = {
-        1: '#2196F3', // Sale - Blue
-        2: '#4CAF50'  // Price - Green
-    };
-
-    const bgColor = colors[noteType] || '#757575';
-
-    return {
-        backgroundColor: bgColor,
-        color: '#FFFFFF',
-        fontWeight: 600,
-        fontSize: '0.75rem',
-        '& .MuiChip-icon': {
-            color: '#FFFFFF',
-        },
-    };
-});
-
-const SectionHeader = styled(Box)(({ theme }) => ({
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '8px 0',
-    marginBottom: '12px',
-    borderBottom: '2px solid #F0F0F0',
+const SectionHeader = styled(Box)(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '6px 0',
+  marginBottom: 8,
+  borderBottom: '1px solid #F0F0F0',
 }));
 
-const PricingRequestNotesModal = ({ open, onClose, pricingRequestId, workName = 'ไม่ระบุ' }) => {
-    const [notesData, setNotesData] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [expandedSections, setExpandedSections] = useState({
-        sale: true,
-        price: true
-    });
-    // show only the latest note by default; allow expanding to full history per section
-    const [showHistory, setShowHistory] = useState({ sale: false, price: false });
+const NoteCard = styled(Card)(() => ({
+  background: '#fff',
+  border: '1px solid #EAEAEA',
+  borderRadius: 10,
+}));
 
-    // Fetch notes when modal opens
-    useEffect(() => {
-        if (open && pricingRequestId) {
-            fetchNotes();
-        }
-    }, [open, pricingRequestId]);
+const Pill = styled(Chip)(() => ({
+  backgroundColor: '#F5F5F5',
+  color: '#555',
+  fontWeight: 600,
+  fontSize: '0.75rem',
+}));
 
-    const fetchNotes = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(
-                `${import.meta.env.VITE_END_POINT_URL}/pricing-requests/${pricingRequestId}/notes`,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token')}`,
-                    },
-                }
-            );
+// แบ่งกลุ่มจาก prn_type เป็น sale / price (ตัด manager ออก)
+function groupNotes(list) {
+  const g = { sale: [], price: [] };
+  (list || []).forEach((n) => {
+    const t = (n?.prn_type || 'sale').toLowerCase();
+    if (t === 'price') g.price.push(n);
+    else if (t === 'sale') g.sale.push(n);
+  });
+  return g;
+}
 
-            const data = await response.json();
+// พยายามอ่านวันที่จากหลายฟิลด์ แล้วเรียงใหม่→เก่า
+function getTime(note) {
+  const raw =
+    note?.prn_created_date ||
+    note?.created_at ||
+    note?.updated_at ||
+    note?.created_at_display ||
+    '';
+  const t = raw ? new Date(raw).getTime() : 0;
+  return Number.isFinite(t) ? t : 0;
+}
+function sortNewestFirst(arr) {
+  return [...(arr || [])].sort((a, b) => getTime(b) - getTime(a));
+}
 
-            if (data.success) {
-                setNotesData(data.data);
-            } else {
-                setError(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
-            }
-        } catch (err) {
-            console.error('Error fetching notes:', err);
-            setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-        } finally {
-            setLoading(false);
-        }
-    };
+// แสดงการ์ดโน้ต 1 ใบ (ฟอร์แมตเหมือน PricingNote: pre-wrap + author | time)
+function NoteItem({ type, note }) {
+  const author =
+    note?.created_by_name || note?.created_name || note?.user_name || '-';
+  const when = note?.prn_created_date
+    ? moment(note.prn_created_date).format('DD/MM HH:mm')
+    : (note?.formatted_date || note?.created_at_display || '');
 
-    const toggleSection = (section) => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [section]: !prev[section]
-        }));
-    };
+  const typeLabel = type === 'price' ? 'price' : 'note sales';
 
-    const toggleHistory = (section) => {
-        setShowHistory(prev => ({
-            ...prev,
-            [section]: !prev[section]
-        }));
-    };
-
-    const formatNoteText = (text) => {
-        return text?.split('\n').map((line, index) => (
-            <Typography key={index} variant="body2" sx={{ mb: index < text.split('\n').length - 1 ? 1 : 0 }}>
-                {line}
-            </Typography>
-        ));
-    };
-
-        const renderNoteSection = (title, notes, noteType, sectionKey) => {
-        const isExpanded = expandedSections[sectionKey];
-        const noteTypeLabels = {
-            1: 'Sale',
-            2: 'Price'
-        };
-                // Sort by newest first (align with PricingNote components)
-                const sorted = Array.isArray(notes)
-                    ? notes.slice().sort((a, b) => new Date(b.prn_created_date || b.created_at || 0) - new Date(a.prn_created_date || a.created_at || 0))
-                    : [];
-                const hasMoreThanOne = sorted.length > 1;
-                const visibleNotes = showHistory[sectionKey] ? sorted : sorted.slice(0, 1);
-
-        return (
-            <Box key={sectionKey} sx={{ mb: 3 }}>
-                <SectionHeader>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="h6" fontWeight={600} color="#900F0F">
-                            {title}
-                        </Typography>
-                        <Badge badgeContent={notes.length} color="primary">
-                            <NotesIcon color="action" />
-                        </Badge>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {hasMoreThanOne && (
-                            <Button size="small" variant="text" onClick={() => toggleHistory(sectionKey)} sx={{ textTransform: 'none', color: '#900F0F' }}>
-                                {showHistory[sectionKey] ? 'ซ่อนประวัติ' : 'ดูประวัติ'}
-                            </Button>
-                        )}
-                        <IconButton
-                            onClick={() => toggleSection(sectionKey)}
-                            sx={{ color: '#900F0F' }}
-                        >
-                            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                        </IconButton>
-                    </Box>
-                </SectionHeader>
-
-                <Collapse in={isExpanded}>
-                    {notes.length === 0 ? (
-                        <Alert 
-                            severity="info" 
-                            sx={{ 
-                                bgcolor: 'rgba(33, 150, 243, 0.05)',
-                                border: '1px solid rgba(33, 150, 243, 0.2)'
-                            }}
-                        >
-                            <Typography variant="body2">
-                                ไม่มี{title}สำหรับงานนี้
-                            </Typography>
-                        </Alert>
-                    ) : (
-                        <Stack spacing={2}>
-                            {visibleNotes.map((note, index) => (
-                                <NoteCard key={note.prn_id} noteType={noteType}>
-                                    <CardContent sx={{ p: 3 }}>
-                                        {/* Header */}
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <NoteChip
-                                                    noteType={noteType}
-                                                    label={noteTypeLabels[noteType]}
-                                                    size="small"
-                                                    icon={<PersonIcon />}
-                                                />
-                                                <Typography variant="body2" color="text.secondary">
-                                                    โดย {note.created_by_name || note.created_name || note.user_name || 'ไม่ระบุ'}
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {note.prn_created_date
-                                                      ? moment(note.prn_created_date).format('DD/MM HH:mm')
-                                                      : (note.formatted_date || '')}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-
-                                        {/* Content */}
-                                        <Box sx={{ 
-                                            bgcolor: '#FFFFFF', 
-                                            p: 2, 
-                                            borderRadius: '8px',
-                                            border: '1px solid rgba(0,0,0,0.1)'
-                                        }}>
-                                            {formatNoteText(note.prn_text)}
-                                        </Box>
-                                    </CardContent>
-                                </NoteCard>
-                            ))}
-                        </Stack>
-                    )}
-                </Collapse>
-            </Box>
-        );
-    };
-
-    const renderContent = () => {
-        if (loading) {
-            return (
-                <Box sx={{ p: 2 }}>
-                    {[1, 2, 3].map((i) => (
-                        <Box key={i} sx={{ mb: 2 }}>
-                            <Skeleton variant="rectangular" height={60} sx={{ borderRadius: 1, mb: 1 }} />
-                            <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
-                        </Box>
-                    ))}
-                </Box>
-            );
-        }
-
-        if (error) {
-            return (
-                <Alert 
-                    severity="error" 
-                    sx={{ m: 2 }}
-                    icon={<WarningIcon />}
-                    action={
-                        <Button onClick={fetchNotes} size="small">
-                            ลองใหม่
-                        </Button>
-                    }
-                >
-                    <Typography variant="body2">{error}</Typography>
-                </Alert>
-            );
-        }
-
-        if (!notesData) {
-            return (
-                <Alert severity="info" sx={{ m: 2 }}>
-                    <Typography variant="body2">ไม่พบข้อมูล Notes</Typography>
-                </Alert>
-            );
-        }
-
-        const { sale_notes, price_notes, summary } = notesData;
-
-        return (
-            <Box sx={{ maxHeight: '70vh', overflow: 'auto', p: 1 }}>
-                {/* Summary Card */}
-                <Card sx={{ 
-                    mb: 3,
-                    background: 'linear-gradient(135deg, rgba(144, 15, 15, 0.05) 0%, rgba(227, 98, 100, 0.05) 100%)',
-                    border: '2px solid #E36264'
-                }}>
-                    <CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" fontWeight={600} color="#900F0F">
-                                📋 สรุป Notes สำหรับงาน: {workName}
-                            </Typography>
-                            <Chip 
-                                label={`${summary.total_notes} Notes ทั้งหมด`}
-                                sx={{ bgcolor: '#900F0F', color: '#FFFFFF', fontWeight: 600 }}
-                            />
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 3, mt: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Avatar sx={{ bgcolor: '#2196F3', width: 24, height: 24, fontSize: '0.8rem' }}>
-                                    {summary.sale_count}
-                                </Avatar>
-                                <Typography variant="body2">Sale Notes</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Avatar sx={{ bgcolor: '#4CAF50', width: 24, height: 24, fontSize: '0.8rem' }}>
-                                    {summary.price_count}
-                                </Avatar>
-                                <Typography variant="body2">Price Notes</Typography>
-                            </Box>
-                        </Box>
-                    </CardContent>
-                </Card>
-
-                {/* Notes Sections */}
-                {renderNoteSection('📞 Sale Notes', sale_notes, 1, 'sale')}
-                {renderNoteSection('💰 Price Notes', price_notes, 2, 'price')}
-
-                {summary.total_notes === 0 && (
-                    <Alert 
-                        severity="info" 
-                        sx={{ 
-                            mt: 2,
-                            bgcolor: 'rgba(144, 15, 15, 0.05)',
-                            border: '1px solid rgba(144, 15, 15, 0.2)'
-                        }}
-                        icon={<CheckCircleIcon />}
-                    >
-                        <Typography variant="body1" fontWeight={600}>
-                            ไม่มี Notes สำหรับงานนี้
-                        </Typography>
-                        <Typography variant="body2">
-                            งานนี้ยังไม่มีการบันทึก Notes จากทีม Sale หรือ Price
-                        </Typography>
-                    </Alert>
-                )}
-            </Box>
-        );
-    };
-
-    return (
-        <StyledDialog
-            open={open}
-            onClose={onClose}
-            maxWidth="md"
-            fullWidth
-            PaperProps={{
-                sx: {
-                    maxHeight: '85vh',
-                    bgcolor: '#FAFAFA'
-                }
-            }}
+  return (
+    <NoteCard>
+      <CardContent sx={{ p: 2 }}>
+        {/* meta แถวบน */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 1,
+          }}
         >
-            <StyledDialogTitle>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#FFFFFF', color: '#900F0F' }}>
-                        <NotesIcon />
-                    </Avatar>
-                    <Box>
-                        <Typography variant="h6" fontWeight={600}>
-                            📝 Pricing Request Notes
-                        </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                            ประวัติการบันทึกและความเห็นของทีมงาน
-                        </Typography>
-                    </Box>
-                </Box>
-                <IconButton 
-                    onClick={onClose}
-                    sx={{ color: '#FFFFFF' }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </StyledDialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Pill
+              label={typeLabel}
+              size="small"
+              icon={<PersonIcon sx={{ fontSize: 16 }} />}
+            />
+            <Typography variant="body2" color="text.secondary">
+              โดย {author}
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Typography variant="caption" color="text.secondary">
+              {when}
+            </Typography>
+          </Stack>
+        </Box>
 
-            <DialogContent sx={{ p: 0 }}>
-                {renderContent()}
-            </DialogContent>
+        {/* เนื้อหา */}
+        <Typography
+          variant="body2"
+          sx={{ whiteSpace: 'pre-wrap', color: 'text.primary' }}
+        >
+          {note?.prn_text ?? note?.text ?? ''}
+        </Typography>
+      </CardContent>
+    </NoteCard>
+  );
+}
 
-            <DialogActions sx={{ p: 3, bgcolor: '#F8F9FA', borderTop: '1px solid #E0E0E0' }}>
-                <Button
-                    onClick={onClose}
-                    variant="contained"
-                    sx={{
-                        background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-                        color: '#FFFFFF',
-                        borderRadius: '12px',
-                        padding: '10px 24px',
-                        fontWeight: 600,
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #B20000 0%, #E36264 100%)',
-                        },
-                    }}
-                >
-                    ปิด
-                </Button>
-            </DialogActions>
-        </StyledDialog>
+// ส่วนละประเภท: แสดงล่าสุด 1 + ปุ่มดูประวัติ -> กางทั้งหมด
+function LatestWithHistorySection({ title, typeKey, items }) {
+  const [openHistory, setOpenHistory] = React.useState(false);
+
+  const sorted = sortNewestFirst(items);
+  const latest = sorted[0];
+  const history = sorted.slice(1);
+
+  return (
+    <Box sx={{ mb: 2.5 }}>
+      <SectionHeader>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+            sx={{ textTransform: 'uppercase' }}
+          >
+            {title}
+          </Typography>
+          <Chip label={`${items?.length || 0} รายการ`} size="small" />
+        </Stack>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Button
+            size="small"
+            onClick={() => setOpenHistory((v) => !v)}
+            startIcon={openHistory ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            sx={{ textTransform: 'none' }}
+            disabled={!history.length}
+          >
+            {!history.length
+              ? 'ไม่มีประวัติเพิ่ม'
+              : openHistory
+              ? 'ย่อประวัติ'
+              : 'ดูประวัติ'}
+          </Button>
+        </Box>
+      </SectionHeader>
+
+      {/* ล่าสุด 1 อัน */}
+      {latest ? (
+        <NoteItem type={typeKey} note={latest} />
+      ) : (
+        <Alert severity="info" sx={{ bgcolor: '#fff' }}>
+          <Typography variant="body2">
+            ไม่มี {title.toLowerCase()} สำหรับงานนี้
+          </Typography>
+        </Alert>
+      )}
+
+      {/* ประวัติทั้งหมดของประเภทนั้น */}
+      <Collapse in={openHistory} unmountOnExit>
+        <Stack spacing={1.25} sx={{ mt: 1.25 }}>
+          {history.map((n) => (
+            <NoteItem
+              key={n.prn_id || `${typeKey}-${getTime(n)}-${(n.prn_text || '').slice(0, 16)}`}
+              type={typeKey}
+              note={n}
+            />
+          ))}
+        </Stack>
+      </Collapse>
+    </Box>
+  );
+}
+
+export default function PricingRequestNotesModal({
+  open,
+  onClose,
+  pricingRequestId,
+  workName = 'ไม่ระบุ',
+}) {
+  const [notesData, setNotesData] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  // โหลดโน้ตเมื่อเปิดโมดัล
+  React.useEffect(() => {
+    if (open && pricingRequestId) {
+      fetchNotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pricingRequestId]);
+
+  const fetchNotes = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_END_POINT_URL}/pricing-requests/${pricingRequestId}/notes`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${
+              localStorage.getItem('authToken') || localStorage.getItem('token') || ''
+            }`,
+          },
+        },
+      );
+      const json = await resp.json();
+      if (json?.success) {
+        setNotesData(json?.data);
+      } else {
+        setError(json?.message || 'ไม่สามารถดึงข้อมูล Notes ได้');
+      }
+    } catch (e) {
+      console.error(e);
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderBody = () => {
+    if (loading) {
+      return (
+        <Box display="flex" alignItems="center" gap={1} p={2}>
+          <CircularProgress size={22} />
+          <Typography variant="body2">กำลังโหลด Notes...</Typography>
+        </Box>
+      );
+    }
+    if (error) {
+      return (
+        <Alert
+          severity="error"
+          sx={{ m: 2 }}
+          action={
+            <Button onClick={fetchNotes} size="small">
+              ลองใหม่
+            </Button>
+          }
+        >
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
+      );
+    }
+    if (!notesData) {
+      return (
+        <Alert severity="info" sx={{ m: 2 }}>
+          <Typography variant="body2">ไม่พบข้อมูล Notes</Typography>
+        </Alert>
+      );
+    }
+
+    // รองรับโครงสร้างจาก API (อิงของเดิม)
+    const list =
+      Array.isArray(notesData?.notes) ? notesData.notes : Array.isArray(notesData) ? notesData : null;
+
+    // เคสโครงสร้างใหม่ที่แยก sale_notes / price_notes
+    const saleNotes = notesData?.sale_notes ?? list?.filter(n => (n?.prn_type || '').toLowerCase() === 'sale') ?? [];
+    const priceNotes = notesData?.price_notes ?? list?.filter(n => (n?.prn_type || '').toLowerCase() === 'price') ?? [];
+
+    // เข้าทรงเดียวกับ PricingNote: แสดงล่าสุด 1 + ประวัติ (ต่อประเภท)
+    return (
+      <Box sx={{ p: 2, bgcolor: '#FAFAFA' }}>
+        <Card sx={{ mb: 2, border: '1px solid #EEE', bgcolor: '#fff' }}>
+          <CardContent sx={{ py: 1.25, px: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="subtitle1" fontWeight={700}>
+                สรุป Notes สำหรับงาน: {workName}
+              </Typography>
+              <Chip
+                icon={<NotesIcon />}
+                label={`ทั้งหมด ${[
+                  ...(saleNotes || []),
+                  ...(priceNotes || []),
+                ].length} รายการ`}
+                size="small"
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* PRICE */}
+        <LatestWithHistorySection title="price" typeKey="price" items={priceNotes} />
+        <Divider sx={{ my: 1.25 }} />
+        {/* SALES */}
+        <LatestWithHistorySection title="note sales" typeKey="sale" items={saleNotes} />
+      </Box>
     );
-};
+  };
 
-export default PricingRequestNotesModal;
+  return (
+    <StyledDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { maxHeight: '85vh', bgcolor: '#FAFAFA' } }}
+    >
+      <StyledDialogTitle>
+        <Typography variant="h6" fontWeight={700}>
+          📝 Pricing Request Notes
+        </Typography>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
+          <HistoryIcon sx={{ opacity: 0 }} /> {/* spacer ให้ขนาดปุ่มฝั่งขวาเท่ากัน */}
+        </IconButton>
+      </StyledDialogTitle>
+
+      <DialogContent sx={{ p: 0 }}>{renderBody()}</DialogContent>
+
+      <DialogActions sx={{ p: 2, bgcolor: '#F8F9FA', borderTop: '1px solid #E0E0E0' }}>
+        <Button onClick={onClose} variant="contained" sx={{ borderRadius: 2 }}>
+          ปิด
+        </Button>
+      </DialogActions>
+    </StyledDialog>
+  );
+}

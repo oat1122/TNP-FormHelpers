@@ -537,7 +537,13 @@ class QuotationService
     public function getList($filters = [], $perPage = 15)
     {
         try {
-            $query = Quotation::with(['customer', 'creator', 'pricingRequest'])
+            // Eager-load relations needed by frontend; guard junction table existence
+            $with = ['customer', 'creator', 'pricingRequest', 'items'];
+            if (Schema::hasTable('quotation_pricing_requests')) {
+                $with[] = 'pricingRequests';
+            }
+
+            $query = Quotation::with($with)
                             ->whereNotIn('status', ['deleted']);
 
             // Apply filters

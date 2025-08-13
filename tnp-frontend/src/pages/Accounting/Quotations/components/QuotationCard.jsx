@@ -84,7 +84,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
           <Box sx={{ mt: 1.5 }}>
             <Stack spacing={1.2}>
               {prIds.slice(0, 3).map((id) => (
-                <PRRow key={id} prId={id} />
+                <PRRow key={id} prId={id} items={Array.isArray(data.items) ? data.items : []} />
               ))}
             </Stack>
             {prIds.length > 3 && (
@@ -92,7 +92,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
                 <Collapse in={showAll}>
                   <Stack spacing={1.2} sx={{ mt: 1 }}>
                     {prIds.slice(3).map((id) => (
-                      <PRRow key={id} prId={id} />
+                      <PRRow key={id} prId={id} items={Array.isArray(data.items) ? data.items : []} />
                     ))}
                   </Stack>
                 </Collapse>
@@ -149,13 +149,21 @@ const getPricingViewUrl = (prId) => {
 };
 
 // PR row with code + status chip and job name below
-const PRRow = ({ prId }) => {
+const PRRow = ({ prId, items }) => {
   const { data, isLoading } = useGetPricingRequestAutofillQuery(prId, { skip: !prId });
   const pr = data?.data || data || {};
   const prNo = pr.pr_no || pr.pr_number || `#${String(prId).slice(-6)}`;
   const workName = pr.pr_work_name || pr.work_name || '-';
+  const [open, setOpen] = React.useState(false);
+  const handleToggle = () => setOpen((v) => !v);
+  const handleButtonClick = (e) => { e.stopPropagation(); };
+  const relatedItems = Array.isArray(items)
+    ? items.filter((it) => it?.pricing_request_id === prId || it?.pricing_request_id === pr?.id)
+    : [];
+  const imgUrl = pr?.pr_image || pr?.image_url || pr?.image;
   return (
     <Box
+      onClick={handleToggle}
       sx={{
         border: '1px solid',
         borderColor: 'divider',
@@ -164,6 +172,7 @@ const PRRow = ({ prId }) => {
         py: 1,
         bgcolor: 'background.paper',
         '&:hover': { borderColor: 'primary.light', boxShadow: 1 },
+        cursor: 'pointer',
       }}
    >
       <Box
@@ -199,10 +208,39 @@ const PRRow = ({ prId }) => {
             borderRadius: 1.5,
             alignSelf: 'center',
           }}
+          onClick={handleButtonClick}
         >
           ดูใบงานต้น ฉบับ
         </Button>
       </Box>
+      {/* Expanded details */}
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: imgUrl ? '1fr 160px' : '1fr' }, gap: 1.25 }}>
+          <Stack spacing={0.75}>
+            {relatedItems.length === 0 && (
+              <Typography variant="body2" color="text.secondary">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
+            )}
+            {relatedItems.map((it) => (
+              <Box key={it.id || `${prId}-${it.sequence_order}`} sx={{ p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="body2"><strong>รายการ:</strong> {it.item_name || it.name || '-'}</Typography>
+                <Typography variant="body2"><strong>ลำดับ:</strong> {it.sequence_order ?? '-'}</Typography>
+                <Typography variant="body2"><strong>แพทเทิร์น:</strong> {it.pattern ?? '-'}</Typography>
+                <Typography variant="body2"><strong>ผ้า:</strong> {it.fabric_type ?? '-'}</Typography>
+                <Typography variant="body2"><strong>สี:</strong> {it.color ?? '-'}</Typography>
+                <Typography variant="body2"><strong>ไซส์:</strong> {it.size ?? '-'}</Typography>
+                <Typography variant="body2"><strong>ราคา/หน่วย:</strong> {it.unit_price ?? '-'}</Typography>
+                <Typography variant="body2"><strong>จำนวน:</strong> {it.quantity ?? '-'}</Typography>
+                <Typography variant="body2"><strong>รวม:</strong> {it.subtotal ?? '-'}</Typography>
+              </Box>
+            ))}
+          </Stack>
+          {imgUrl && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+              <Box component="img" src={imgUrl} alt={workName} sx={{ maxWidth: 160, maxHeight: 160, borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
+            </Box>
+          )}
+        </Box>
+      </Collapse>
     </Box>
   );
 };

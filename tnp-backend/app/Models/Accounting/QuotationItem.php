@@ -48,6 +48,11 @@ class QuotationItem extends Model
         'updated_at' => 'datetime',
     ];
 
+    // Append computed attributes when serializing
+    protected $appends = [
+        'subtotal',
+    ];
+
     protected static function boot()
     {
         parent::boot();
@@ -62,6 +67,25 @@ class QuotationItem extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
+    }
+
+    /**
+     * Computed subtotal for an item: (unit_price * quantity) - discount
+     * If discount_amount missing, falls back to discount_percentage.
+     */
+    public function getSubtotalAttribute()
+    {
+        $unitPrice = (float) ($this->unit_price ?? 0);
+        $qty = (int) ($this->quantity ?? 0);
+        $gross = $unitPrice * $qty;
+
+        $discountAmount = (float) ($this->discount_amount ?? 0);
+        if ($discountAmount <= 0 && !is_null($this->discount_percentage)) {
+            $discountAmount = $gross * ((float) $this->discount_percentage) / 100.0;
+        }
+
+        $subtotal = $gross - $discountAmount;
+        return $subtotal < 0 ? 0 : round($subtotal, 2);
     }
 }
 

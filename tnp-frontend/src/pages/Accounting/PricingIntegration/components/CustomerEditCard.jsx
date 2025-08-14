@@ -18,6 +18,7 @@ import {
     RadioGroup,
     FormControlLabel,
     Radio,
+    InputAdornment,
 } from '@mui/material';
 import {
     Edit as EditIcon,
@@ -34,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { customerApi, validateCustomerData, formatPhoneNumber, formatTaxId } from './customerApiUtils';
+import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { AddressService } from '../../../../services/AddressService';
 
 // Styled Components
@@ -133,11 +135,16 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         if (raw === null || raw === undefined) return '';
         const v = typeof raw === 'string' ? raw.trim() : raw;
         if (v === '') return '';
-        // Map common textual values
+        // Accept already-correct values
+        if (v === '1' || v === '2' || v === '3') return String(v);
+        // Map common textual values and synonyms (EN/TH)
         const lower = String(v).toLowerCase();
-        if (lower === 'sales') return '1';
-        if (lower === 'online') return '2';
-        if (lower === 'office') return '3';
+        const salesSet = new Set(['sales', 'sale', 'ฝ่ายขาย', 'เซลส์', 'เซล', 'ขาย']);
+        const onlineSet = new Set(['online', 'on-line', 'ออนไลน์', 'website', 'web', 'facebook', 'ig', 'line', 'ไลน์', 'เพจ']);
+        const officeSet = new Set(['office', 'walk-in', 'walkin', 'หน้าร้าน', 'ออฟฟิศ', 'สาขา', 'หน้าสำนักงาน']);
+        if (salesSet.has(lower)) return '1';
+        if (onlineSet.has(lower)) return '2';
+        if (officeSet.has(lower)) return '3';
         // Map numeric-like values
         const num = Number(v);
         if (Number.isFinite(num)) {
@@ -167,6 +174,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         if (customer) {
             const initChannelRaw = (customer.cus_channel ?? customer.channel ?? null);
             const initBtRaw = (customer.cus_bt_id ?? customer.bt_id ?? customer.business_type_id ?? customer.business_type?.bt_id ?? null);
+            // Infer customer type: prefer explicit field, fallback to presence of company name
+            const initType = (customer.customer_type || customer.cus_type || (customer.cus_company ? 'company' : 'individual'));
             setEditData({
                 cus_company: customer.cus_company || '',
                 cus_firstname: customer.cus_firstname || '',
@@ -186,6 +195,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 cus_pro_id: customer.cus_pro_id || '',
                 cus_dis_id: customer.cus_dis_id || '',
                 cus_sub_id: customer.cus_sub_id || '',
+                customer_type: initType === 'individual' ? 'individual' : 'company',
             });
 
             // Keep a local display customer and hydrate with full details if needed
@@ -199,24 +209,21 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                         const src = full?.data || full?.customer || full || {};
                         const merged = { ...customer, ...src };
                         setDisplayCustomer(merged);
-                        // Autofill missing editable fields (channel, business type) after hydration
-                        setEditData((prev) => ({
-                            ...prev,
-                            cus_channel:
-                                (prev.cus_channel === '' || prev.cus_channel == null)
-                                    ? (() => {
-                                        const ch = (merged.cus_channel ?? merged.channel ?? null);
-                                        return normalizeChannelValue(ch);
-                                    })()
-                                    : prev.cus_channel,
-                            cus_bt_id:
-                                (prev.cus_bt_id === '' || prev.cus_bt_id == null)
-                                    ? (() => {
-                                        const bt = (merged.cus_bt_id ?? merged.bt_id ?? merged.business_type_id ?? merged.business_type?.bt_id ?? null);
-                                        return bt == null ? '' : String(bt);
-                                    })()
-                                    : prev.cus_bt_id,
-                        }));
+                        // Autofill/normalize editable fields after hydration
+                        setEditData((prev) => {
+                            const prevCh = normalizeChannelValue(prev.cus_channel);
+                            const mergedCh = normalizeChannelValue(merged.cus_channel ?? merged.channel ?? null);
+                            const effectiveCh = prevCh === '' ? mergedCh : prevCh;
+                            const prevBt = prev.cus_bt_id;
+                            const mergedBt = (merged.cus_bt_id ?? merged.bt_id ?? merged.business_type_id ?? merged.business_type?.bt_id ?? null);
+                            const mergedType = (merged.customer_type || merged.cus_type || (merged.cus_company ? 'company' : 'individual'));
+                            return {
+                                ...prev,
+                                cus_channel: effectiveCh,
+                                cus_bt_id: (prevBt === '' || prevBt == null) ? (mergedBt == null ? '' : String(mergedBt)) : prevBt,
+                                customer_type: prev.customer_type || mergedType,
+                            };
+                        });
                     }
                 } catch (e) {
                     // Silent fail; use provided customer fields
@@ -496,6 +503,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 cus_pro_id: base.cus_pro_id || '',
                 cus_dis_id: base.cus_dis_id || '',
                 cus_sub_id: base.cus_sub_id || '',
+                customer_type: (base.customer_type || base.cus_type || (base.cus_company ? 'company' : 'individual')),
             });
         }
     if (onCancel) onCancel();
@@ -503,8 +511,32 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
 
     const validateForm = useCallback(() => {
         const validation = validateCustomerData(editData);
-        setErrors(validation.errors);
-        return validation.isValid;
+        const nextErrors = { ...(validation.errors || {}) };
+        let isValid = !!validation.isValid;
+
+        // Conditional requirements based on customer_type
+        if (editData.customer_type === 'individual') {
+            // Company not required for individuals
+            delete nextErrors.cus_company;
+            // Require first and last name
+            if (!editData.cus_firstname || String(editData.cus_firstname).trim() === '') {
+                nextErrors.cus_firstname = nextErrors.cus_firstname || 'กรุณากรอกชื่อ';
+                isValid = false;
+            }
+            if (!editData.cus_lastname || String(editData.cus_lastname).trim() === '') {
+                nextErrors.cus_lastname = nextErrors.cus_lastname || 'กรุณากรอกนามสกุล';
+                isValid = false;
+            }
+        } else {
+            // Company required for business customers
+            if (!editData.cus_company || String(editData.cus_company).trim() === '') {
+                nextErrors.cus_company = nextErrors.cus_company || 'กรุณากรอกชื่อบริษัท';
+                isValid = false;
+            }
+        }
+
+        setErrors(nextErrors);
+        return isValid;
     }, [editData]);
 
     // Build a display address from current selection for optimistic UI
@@ -533,7 +565,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
 
         // Optimistic update: update UI and parent immediately
         const originalCustomer = displayCustomer || customer;
-        const optimisticCustomer = { ...originalCustomer, ...editData };
+    const optimisticCustomer = { ...originalCustomer, ...editData };
         const optimisticAddress = buildDisplayAddress();
         if (optimisticAddress) {
             optimisticCustomer.cus_address = optimisticAddress;
@@ -543,25 +575,31 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         optimisticCustomer.cus_district_name = editData.cus_district_name || optimisticCustomer.cus_district_name;
         optimisticCustomer.cus_subdistrict_name = editData.cus_subdistrict_name || optimisticCustomer.cus_subdistrict_name;
         optimisticCustomer.cus_zip_code = editData.cus_zip_code || optimisticCustomer.cus_zip_code;
-        setDisplayCustomer(optimisticCustomer);
+    setDisplayCustomer(optimisticCustomer);
         if (onUpdate) onUpdate(optimisticCustomer);
         setIsEditing(false);
         setIsExpanded(false);
 
-        setIsSaving(true);
+    setIsSaving(true);
+    const loadingId = showLoading('กำลังบันทึกข้อมูลลูกค้า…');
         try {
             // เตรียมข้อมูลที่อยู่สำหรับส่งไป API
             const addressData = AddressService.prepareAddressForApi(editData);
             const updateData = { ...editData, ...addressData };
+            // normalize customer_type to backend-acceptable values
+            updateData.customer_type = (editData.customer_type === 'individual') ? 'individual' : 'company';
+            updateData.cus_type = updateData.customer_type;
             updateData.cus_channel = editData.cus_channel === '' ? null : parseInt(editData.cus_channel, 10);
             updateData.cus_bt_id = editData.cus_bt_id === '' ? null : isNaN(Number(editData.cus_bt_id)) ? editData.cus_bt_id : Number(editData.cus_bt_id);
 
             await customerApi.updateCustomer(customer.cus_id, updateData);
 
             // Show success message briefly
-            setErrors({ success: 'บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว' });
-            setTimeout(() => setErrors({}), 3000);
+            dismissToast(loadingId);
+            showSuccess('บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว');
+            setErrors({});
         } catch (error) {
+            dismissToast(loadingId);
             // Rollback on failure
             setDisplayCustomer(originalCustomer);
             if (onUpdate) onUpdate(originalCustomer);
@@ -574,11 +612,12 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 data: error.response?.data
             });
             setErrors({ general: `เกิดข้อผิดพลาด: ${errorMessage}` });
+            showError(errorMessage || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
 
             // Re-open edit mode to let user fix input
             setIsEditing(true);
             setIsExpanded(true);
-        } finally {
+    } finally {
             setIsSaving(false);
         }
     }, [customer, editData, onUpdate, validateForm, displayCustomer, buildDisplayAddress]);
@@ -666,11 +705,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                         {isEditing ? (
                             <StyledTextField
                                 fullWidth
-                                label="ชื่อบริษัท *"
+                                label={editData.customer_type === 'individual' ? 'ชื่อบริษัท (ถ้ามี)' : 'ชื่อบริษัท *'}
                                 value={editData.cus_company}
                                 onChange={(e) => handleInputChange('cus_company', e.target.value)}
-                                error={!!errors.cus_company}
-                                helperText={errors.cus_company}
+                                error={!!errors.cus_company && editData.customer_type !== 'individual'}
+                                helperText={editData.customer_type === 'individual' ? '' : (errors.cus_company || '')}
                                 size="small"
                             />
                         ) : (
@@ -693,8 +732,13 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                 helperText={errors.cus_tel_1}
                                 size="small"
                                 InputProps={{
-                                    startAdornment: <PhoneIcon sx={{ color: '#900F0F', mr: 1 }} />
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <PhoneIcon sx={{ color: '#900F0F' }} />
+                                        </InputAdornment>
+                                    ),
                                 }}
+                                InputLabelProps={{ shrink: Boolean(editData.cus_tel_1 && String(editData.cus_tel_1).length) }}
                             />
                         ) : (
                             <Box>
@@ -718,6 +762,24 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                 <PersonIcon /> ข้อมูลผู้ติดต่อ
                             </Typography>
                         </Grid>
+
+                        {isEditing && (
+                            <Grid item xs={12} md={6}>
+                                <FormControl component="fieldset" size="small">
+                                    <FormLabel component="legend" sx={{ color: '#900F0F', fontSize: '0.875rem' }}>
+                                        ประเภทลูกค้า
+                                    </FormLabel>
+                                    <RadioGroup
+                                        row
+                                        value={editData.customer_type}
+                                        onChange={(e) => handleInputChange('customer_type', e.target.value)}
+                                    >
+                                        <FormControlLabel value={"individual"} control={<Radio size="small" />} label="บุคคลธรรมดา" />
+                                        <FormControlLabel value={"company"} control={<Radio size="small" />} label="บริษัท" />
+                                    </RadioGroup>
+                                </FormControl>
+                            </Grid>
+                        )}
 
                         <Grid item xs={12} md={4}>
                             {isEditing ? (
@@ -1002,6 +1064,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                         value={editData.cus_zip_code}
                                         onChange={(e) => handleInputChange('cus_zip_code', e.target.value)}
                                         size="small"
+                                        InputLabelProps={{ shrink: Boolean(editData.cus_zip_code && String(editData.cus_zip_code).length) }}
                                     />
                                 </Grid>
                             </>

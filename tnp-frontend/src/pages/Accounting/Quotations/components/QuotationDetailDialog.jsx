@@ -27,6 +27,9 @@ import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
 import CustomerEditDialog from '../../PricingIntegration/components/CustomerEditDialog';
 import { sanitizeInt, sanitizeDecimal } from '../../shared/inputSanitizers';
+import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
@@ -88,6 +91,9 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
   const unit = group.unit || 'ชิ้น';
   const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
   const itemTotal = rows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+  const prQty = Number(pr?.pr_quantity ?? pr?.quantity ?? 0) || 0;
+  const hasPrQty = prQty > 0;
+  const qtyMatches = hasPrQty ? totalQty === prQty : true;
 
   return (
     <Box component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
@@ -98,6 +104,14 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
         </Box>
         <Box display="flex" alignItems="center" gap={1}>
           <Chip label={`${totalQty} ${unit}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+          {hasPrQty && (
+            <Chip
+              label={`PR: ${prQty} ${unit}`}
+              size="small"
+              color={qtyMatches ? 'success' : 'error'}
+              variant={qtyMatches ? 'outlined' : 'filled'}
+            />
+          )}
           {isEditing && (
             <SecondaryButton size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => onDeleteGroup(group.id)}>
               ลบงานนี้
@@ -210,8 +224,27 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
                         </SecondaryButton>
                       )}
                     </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="หมายเหตุ (บรรทัดนี้)"
+                        multiline
+                        minRows={1}
+                        value={row.notes || ''}
+                        disabled={!isEditing}
+                        onChange={(e) => onChangeRow(group.id, row.uuid, 'notes', e.target.value)}
+                      />
+                    </Grid>
                   </React.Fragment>
                 ))}
+                {hasPrQty && !qtyMatches && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" sx={{ color: 'error.main' }}>
+                      จำนวนรวมทุกขนาด ({totalQty} {unit}) {totalQty > prQty ? 'มากกว่า' : 'น้อยกว่า'} จำนวนในงาน Pricing ({prQty} {unit})
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
             )}
           </Box>
@@ -234,12 +267,49 @@ const pickQuotation = (resp) => (resp && resp.data) || resp || {};
 
 const normalizeCustomer = (q) => {
   const c = q.customer || {};
+  // Prefer existing customer fields, then fallback to quotation-level aliases
+  const cus_id = c.cus_id || c.id || q.customer_id || null;
+  const cus_company = c.cus_company || q.customer_name || '';
+  const cus_tax_id = c.cus_tax_id || q.customer_tax_id || '';
+  const cus_email = c.cus_email || q.customer_email || '';
+  const cus_tel_1 = c.cus_tel_1 || c.cus_phone || q.customer_phone || '';
+  const cus_tel_2 = c.cus_tel_2 || '';
+  const cus_firstname = c.cus_firstname || c.contact_firstname || q.contact_firstname || '';
+  const cus_lastname = c.cus_lastname || c.contact_lastname || q.contact_lastname || '';
+  const cus_name = c.cus_name || c.contact_nickname || q.contact_nickname || '';
+  const cus_depart = c.cus_depart || c.contact_position || q.contact_position || '';
+  const cus_address = c.cus_address || q.customer_address || '';
+  const cus_zip_code = c.cus_zip_code || '';
+  const cus_channel = c.cus_channel ?? c.channel ?? '';
+  const cus_bt_id = c.cus_bt_id ?? c.bt_id ?? c.business_type_id ?? c.business_type?.bt_id ?? '';
+  const cus_pro_id = c.cus_pro_id || '';
+  const cus_dis_id = c.cus_dis_id || '';
+  const cus_sub_id = c.cus_sub_id || '';
+  const customer_type = c.customer_type || c.cus_type || (cus_company ? 'company' : 'individual');
+
   return {
-    cus_company: c.cus_company || q.customer_name || '-',
-    cus_tax_id: c.cus_tax_id || q.customer_tax_id || '-',
-    cus_address: c.cus_address || q.customer_address || '-',
-    cus_phone: c.cus_phone || q.customer_phone || '-',
-    cus_email: c.cus_email || q.customer_email || '-',
+    // pass through original fields for maximum compatibility
+    ...c,
+    // ensure the expected keys exist for the editor
+    cus_id,
+    cus_company,
+    cus_tax_id,
+    cus_email,
+    cus_tel_1,
+    cus_tel_2,
+    cus_firstname,
+    cus_lastname,
+    cus_name,
+    cus_depart,
+    cus_address,
+    cus_zip_code,
+    cus_channel,
+    cus_bt_id: cus_bt_id === '' ? '' : String(cus_bt_id),
+    cus_pro_id,
+    cus_dis_id,
+    cus_sub_id,
+  customer_type,
+    // also keep some display-only fallbacks used in cards
     contact_name: c.contact_name || q.contact_name || c.cus_contact_name || '',
     contact_nickname: c.contact_nickname || q.contact_nickname || '',
     contact_position: c.contact_position || q.contact_position || '',
@@ -257,14 +327,15 @@ const normalizeAndGroupItems = (q, prIdsAll = []) => {
     const nameRaw = it.item_name || it.work_name || it.name || it.item_description || it.description || '';
     const name = nameRaw || '-';
     const unit = it.unit || it.unit_name || 'ชิ้น';
-    const unitPrice = Number(it.unit_price || 0);
-    const baseRow = { uuid: `${it.id || idx}-row-1`, size: it.size || '', quantity: Number(it.quantity || 0), unitPrice };
+  const unitPrice = Number(it.unit_price || 0);
+  const baseRow = { uuid: `${it.id || idx}-row-1`, size: it.size || '', quantity: Number(it.quantity || 0), unitPrice, notes: it.notes || '' };
     const sizeRows = Array.isArray(it.size_rows) && it.size_rows.length
       ? it.size_rows.map((r, rIdx) => ({
           uuid: r.uuid || `${it.id || idx}-row-${rIdx + 1}`,
           size: r.size || '',
           quantity: Number(r.quantity || 0),
-          unitPrice: Number(r.unit_price || unitPrice || 0),
+      unitPrice: Number(r.unit_price || unitPrice || 0),
+      notes: r.notes || '',
         }))
       : [baseRow];
     return {
@@ -402,9 +473,29 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [customer, setCustomer] = React.useState(() => normalizeCustomer(q));
   const [isEditing, setIsEditing] = React.useState(false);
   const [groups, setGroups] = React.useState([]);
+  const [quotationNotes, setQuotationNotes] = React.useState(q?.notes || '');
+  const [selectedDueDate, setSelectedDueDate] = React.useState(q?.due_date ? new Date(q.due_date) : null);
+  // Payment terms: support predefined codes and a custom (อื่นๆ) value
+  const initialRawTerms = q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash');
+  const isKnownTerms = ['cash', 'credit_30', 'credit_60'].includes(initialRawTerms);
+  const [paymentTermsType, setPaymentTermsType] = React.useState(isKnownTerms ? initialRawTerms : 'other');
+  const [paymentTermsCustom, setPaymentTermsCustom] = React.useState(isKnownTerms ? '' : (initialRawTerms || ''));
+  const [depositPct, setDepositPct] = React.useState(
+    q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50)
+  );
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
   }, [q?.id, q?.customer_name, q?.customer]);
+  React.useEffect(() => {
+    // Sync notes from server when quotation changes/opened
+    setQuotationNotes(q?.notes || '');
+  const raw = q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash');
+  const known = ['cash', 'credit_30', 'credit_60'].includes(raw);
+  setPaymentTermsType(known ? raw : 'other');
+  setPaymentTermsCustom(known ? '' : (raw || ''));
+    setDepositPct(q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50));
+    setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
+  }, [open, q?.id, q?.notes]);
   const prIdsAll = getAllPrIdsFromQuotation(q);
   const items = normalizeAndGroupItems(q, prIdsAll);
   React.useEffect(() => {
@@ -417,7 +508,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const onAddRow = React.useCallback((groupId) => {
     setGroups(prev => prev.map(g => {
       if (g.id !== groupId) return g;
-      const newRow = { uuid: `${groupId}-${Date.now()}`, size: '', quantity: '', unitPrice: '' };
+      const newRow = { uuid: `${groupId}-${Date.now()}`, size: '', quantity: '', unitPrice: '', notes: '' };
       return { ...g, sizeRows: [...(g.sizeRows || []), newRow] };
     }));
   }, []);
@@ -454,8 +545,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const workName = q.work_name || q.workname || q.title || '';
   const quotationNumber = q.number || '';
   // Prefer quotations.payment_terms when available
-  const paymentMethod = q.payment_terms || q.payment_method || (q.credit_days === 30 ? 'credit_30' : q.credit_days === 60 ? 'credit_60' : 'cash');
-  const depositPercentage = q.deposit_percentage ?? (paymentMethod === 'cash' ? 0 : 50);
+  const paymentMethod = isEditing
+    ? (paymentTermsType === 'other' ? (paymentTermsCustom || '') : paymentTermsType)
+    : (q.payment_terms || q.payment_method || (q.credit_days === 30 ? 'credit_30' : q.credit_days === 60 ? 'credit_60' : 'cash'));
+  const depositPercentage = isEditing
+    ? Number(depositPct || 0)
+    : (q.deposit_percentage ?? (paymentMethod === 'cash' ? 0 : 50));
   const dueDate = q.due_date ? new Date(q.due_date) : null;
   const computed = computeTotals(activeGroups, depositPercentage);
   const subtotal = q.subtotal != null ? Number(q.subtotal) : computed.subtotal;
@@ -463,6 +558,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const total = q.total_amount != null ? Number(q.total_amount) : computed.total;
   const depositAmount = q.deposit_amount != null ? Number(q.deposit_amount) : computed.depositAmount;
   const remainingAmount = +(total - depositAmount).toFixed(2);
+
+  const toISODate = (d) => {
+    if (!d) return null;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
 
   const handleSave = async () => {
     // Map editable groups back to API items
@@ -484,23 +585,35 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
           size: r.size || '',
           unit_price: isNaN(price) ? 0 : price,
           quantity: isNaN(qty) ? 0 : qty,
+          notes: r.notes || '',
           sequence_order: idx + 1,
         };
       });
     });
 
     const totals = computeTotals(groups, depositPercentage);
-    try {
+    const isCredit = paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60';
+    const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
+  const loadingId = showLoading('กำลังบันทึกใบเสนอราคา…');
+  try {
       await updateQuotation({
         id: q.id,
         items: flatItems,
         subtotal: totals.subtotal,
         tax_amount: totals.vat,
         total_amount: totals.total,
-        deposit_percentage: q.deposit_percentage ?? 0,
+  deposit_percentage: Number(depositPct || 0),
+  payment_terms: paymentTermsType === 'other' ? (paymentTermsCustom || '') : paymentTermsType,
+  due_date: dueDateForSave,
+  notes: quotationNotes || '',
       }).unwrap();
       setIsEditing(false);
-    } catch (e) {}
+      dismissToast(loadingId);
+      showSuccess('บันทึกใบเสนอราคาเรียบร้อย');
+    } catch (e) {
+      dismissToast(loadingId);
+      showError(e?.data?.message || e?.message || 'บันทึกใบเสนอราคาไม่สำเร็จ');
+    }
   };
 
   return (
@@ -535,12 +648,16 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     <InfoCard sx={{ p: 2, mb: 1.5 }}>
                       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">ชื่อบริษัท</Typography>
-                          <Typography variant="body1" fontWeight={700}>{customer.cus_company}</Typography>
+                          <Typography variant="body2" color="text.secondary">{customer?.customer_type === 'individual' ? 'ชื่อผู้ติดต่อ' : 'ชื่อบริษัท'}</Typography>
+                          <Typography variant="body1" fontWeight={700}>
+                            {customer?.customer_type === 'individual'
+                              ? `${customer?.cus_firstname || ''} ${customer?.cus_lastname || ''}`.trim() || customer?.cus_name || '-'
+                              : (customer?.cus_company || '-')}
+                          </Typography>
                         </Box>
                         <Box display="flex" alignItems="center" gap={1}>
-                          {customer.cus_phone ? (
-                            <Chip size="small" variant="outlined" label={customer.cus_phone} sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+                          {customer.cus_tel_1 ? (
+                            <Chip size="small" variant="outlined" label={customer.cus_tel_1} sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
                           ) : null}
                           <SecondaryButton size="small" startIcon={<EditIcon />} onClick={() => setEditCustomerOpen(true)}>
                             แก้ไขลูกค้า
@@ -684,15 +801,61 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                       <Grid item xs={12} md={6}>
                         <InfoCard sx={{ p: 2 }}>
                           <Typography variant="caption" color="text.secondary">การชำระเงิน</Typography>
-                          <Typography variant="body1" fontWeight={700}>
-                            {paymentMethod === 'cash' ? 'เงินสด' : paymentMethod === 'credit_60' ? 'เครดิต 60 วัน' : 'เครดิต 30 วัน'}
-                          </Typography>
+                          {isEditing ? (
+                            <>
+                              <TextField
+                                select
+                                fullWidth
+                                size="small"
+                                SelectProps={{ native: true }}
+                                value={paymentTermsType}
+                                onChange={(e) => setPaymentTermsType(e.target.value)}
+                                sx={{ mb: paymentTermsType === 'other' ? 1 : 0 }}
+                              >
+                                <option value="cash">เงินสด</option>
+                                <option value="credit_30">เครดิต 30 วัน</option>
+                                <option value="credit_60">เครดิต 60 วัน</option>
+                                <option value="other">อื่นๆ (กำหนดเอง)</option>
+                              </TextField>
+                              {paymentTermsType === 'other' && (
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  placeholder="พิมพ์วิธีการชำระเงิน"
+                                  value={paymentTermsCustom}
+                                  onChange={(e) => setPaymentTermsCustom(e.target.value)}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <Typography variant="body1" fontWeight={700}>
+                              {paymentMethod === 'cash'
+                                ? 'เงินสด'
+                                : paymentMethod === 'credit_60'
+                                ? 'เครดิต 60 วัน'
+                                : paymentMethod === 'credit_30'
+                                ? 'เครดิต 30 วัน'
+                                : paymentMethod || '-'}
+                            </Typography>
+                          )}
                         </InfoCard>
                       </Grid>
                       <Grid item xs={12} md={6}>
                         <InfoCard sx={{ p: 2 }}>
                           <Typography variant="caption" color="text.secondary">เงินมัดจำ</Typography>
-                          <Typography variant="body1" fontWeight={700}>{Number(depositPercentage)}%</Typography>
+                          {isEditing ? (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type="text"
+                              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                              value={String(depositPct ?? '')}
+                              onChange={(e) => setDepositPct(sanitizeInt(e.target.value))}
+                              helperText="เป็นเปอร์เซ็นต์ (0-100)"
+                            />
+                          ) : (
+                            <Typography variant="body1" fontWeight={700}>{Number(depositPercentage)}%</Typography>
+                          )}
                         </InfoCard>
                       </Grid>
 
@@ -706,21 +869,39 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                             <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(depositAmount)}</Typography></Grid>
                             <Grid item xs={6}><Typography>ยอดคงเหลือ</Typography></Grid>
                             <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(remainingAmount)}</Typography></Grid>
-                            {paymentMethod !== 'cash' && (
+                            {(isEditing ? (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') : (paymentMethod !== 'cash')) && (
                               <>
                                 <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
-                                <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatDateTH(dueDate)}</Typography></Grid>
+                                <Grid item xs={6}>
+                                  {isEditing && (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') ? (
+                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                      <DatePicker
+                                        value={selectedDueDate}
+                                        onChange={(newVal) => setSelectedDueDate(newVal)}
+                                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                                      />
+                                    </LocalizationProvider>
+                                  ) : (
+                                    <Typography textAlign="right" fontWeight={700}>{formatDateTH(dueDate)}</Typography>
+                                  )}
+                                </Grid>
                               </>
                             )}
                           </Grid>
                         </InfoCard>
                       </Grid>
 
-                      {q.notes && (
-                        <Grid item xs={12}>
-                          <TextField fullWidth multiline rows={3} label="หมายเหตุ" value={q.notes} disabled />
-                        </Grid>
-                      )}
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          label="หมายเหตุ"
+                          value={isEditing ? (quotationNotes ?? '') : (q?.notes ?? '')}
+                          disabled={!isEditing}
+                          onChange={(e) => setQuotationNotes(e.target.value)}
+                        />
+                      </Grid>
                     </Grid>
                   </Box>
                 </Section>

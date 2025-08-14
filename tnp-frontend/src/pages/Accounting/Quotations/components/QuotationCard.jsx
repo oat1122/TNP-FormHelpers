@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid } from '@mui/material';
-import LinkIcon from '@mui/icons-material/Link';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useGetPricingRequestAutofillQuery } from '../../../../features/Accounting/accountingApi';
+import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
 import {
   TNPCard,
   TNPCardContent,
@@ -111,9 +111,6 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
 
       <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: 'background.light' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <TNPSecondaryButton size="medium" startIcon={<LinkIcon />} onClick={onViewLinked}>
-            ดูงาน Pricing
-          </TNPSecondaryButton>
           <TNPSecondaryButton size="medium" onClick={onDownloadPDF} disabled={data.status !== 'approved'}>
             ดาวน์โหลด PDF
           </TNPSecondaryButton>
@@ -194,24 +191,32 @@ const PRRow = ({ prId, items }) => {
           </Typography>
         </Box>
 
-        {/* Right: Button vertically centered */}
-        <Button
-          variant="outlined"
-          size="small"
-          href={getPricingViewUrl(prId)}
-          target="_blank"
-          rel="noopener"
-          sx={{
-            textTransform: 'none',
-            px: 1.25,
-            py: 0.25,
-            borderRadius: 1.5,
-            alignSelf: 'center',
-          }}
-          onClick={handleButtonClick}
-        >
-          ดูใบงานต้น ฉบับ
-        </Button>
+        {/* Right: Notes button + original link, vertically centered */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} onClick={(e) => e.stopPropagation()}>
+          <PricingRequestNotesButton
+            pricingRequestId={prId}
+            workName={workName}
+            size="small"
+            showCount={false}
+          />
+          <Button
+            variant="outlined"
+            size="small"
+            href={getPricingViewUrl(prId)}
+            target="_blank"
+            rel="noopener"
+            sx={{
+              textTransform: 'none',
+              px: 1.25,
+              py: 0.25,
+              borderRadius: 1.5,
+              alignSelf: 'center',
+            }}
+            onClick={handleButtonClick}
+          >
+            ดูใบงานต้น ฉบับ
+          </Button>
+        </Box>
       </Box>
       {/* Expanded details */}
       <Collapse in={open} timeout="auto" unmountOnExit>

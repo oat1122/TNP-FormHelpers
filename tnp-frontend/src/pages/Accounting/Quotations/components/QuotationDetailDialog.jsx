@@ -75,7 +75,7 @@ const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index
 });
 
 // Child: Calculation card per PR group
-const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEditing, onAddRow, onChangeRow, onRemoveRow, onDeleteGroup }) {
+const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEditing, onAddRow, onChangeRow, onRemoveRow, onDeleteGroup, onChangeGroup }) {
   const { data: prData } = useGetPricingRequestAutofillQuery(group.prId, { skip: !group.prId });
   const pr = prData?.data || prData || {};
   const name = group.name && group.name !== '-' ? group.name : (pr.pr_work_name || pr.work_name || '-');
@@ -107,13 +107,34 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
 
       <Grid container spacing={1.5}>
         <Grid item xs={12} md={3}>
-          <TextField fullWidth size="small" label="แพทเทิร์น" value={pattern} disabled />
+          <TextField
+            fullWidth
+            size="small"
+            label="แพทเทิร์น"
+            value={pattern}
+            disabled={!isEditing}
+            onChange={(e) => onChangeGroup(group.id, 'pattern', e.target.value)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
-          <TextField fullWidth size="small" label="ประเภทผ้า" value={fabric} disabled />
+          <TextField
+            fullWidth
+            size="small"
+            label="ประเภทผ้า"
+            value={fabric}
+            disabled={!isEditing}
+            onChange={(e) => onChangeGroup(group.id, 'fabricType', e.target.value)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
-          <TextField fullWidth size="small" label="สี" value={color} disabled />
+          <TextField
+            fullWidth
+            size="small"
+            label="สี"
+            value={color}
+            disabled={!isEditing}
+            onChange={(e) => onChangeGroup(group.id, 'color', e.target.value)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
           <TextField fullWidth size="small" label="ขนาด (สรุป)" value={size} disabled />
@@ -440,6 +461,9 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const onDeleteGroup = React.useCallback((groupId) => {
     setGroups(prev => prev.filter(g => g.id !== groupId));
   }, []);
+  const onChangeGroup = React.useCallback((groupId, field, value) => {
+    setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, [field]: value } : g)));
+  }, []);
   const activeGroups = isEditing ? groups : items;
 
   // components are hoisted above
@@ -629,7 +653,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     </Box>
                   </SectionHeader>
                     <Box sx={{ p: 2 }} id="calc-section">
-                    { (isEditing ? groups : items).map((item, idx) => (
+          { (isEditing ? groups : items).map((item, idx) => (
                       <PRGroupCalcCard
                         key={`calc-${item.id}`}
                         group={item}
@@ -639,6 +663,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                         onChangeRow={onChangeRow}
                         onRemoveRow={onRemoveRow}
                         onDeleteGroup={onDeleteGroup}
+            onChangeGroup={onChangeGroup}
                       />
                     ))}
 

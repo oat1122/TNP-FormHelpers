@@ -295,7 +295,8 @@ class CustomerController extends Controller
             $customer->cus_id = Str::uuid();
             $customer->cus_no = $this->customer_service->genCustomerNo($customer_q->cus_no);
             $customer->cus_mcg_id = $group_q->mcg_id; // Set default grade (D)
-            $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
+            // Accept both object shape { user_id } and scalar for cus_manage_by
+            $customer->cus_manage_by = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
             $customer->cus_created_date = now();
             $customer->cus_created_by = Auth::id();
             $customer->cus_updated_date = now();
@@ -318,7 +319,7 @@ class CustomerController extends Controller
             $customer_detail->save();
 
             $rel_cus_user->rcs_cus_id = $cus_id;
-            $rel_cus_user->rcs_user_id = $data_input['cus_manage_by']['user_id'] ?? null;
+            $rel_cus_user->rcs_user_id = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
             $rel_cus_user->save();
 
             DB::commit();
@@ -427,7 +428,8 @@ class CustomerController extends Controller
 
             $customer = Customer::findOrFail($id);
             $customer->fill($data_input);
-            $customer->cus_manage_by = $data_input['cus_manage_by']['user_id'] ?? null;
+            // Accept both object shape { user_id } and scalar for cus_manage_by
+            $customer->cus_manage_by = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
             $customer->cus_updated_date = now();
             $customer->cus_updated_by = Auth::id();
 
@@ -859,5 +861,35 @@ class CustomerController extends Controller
                 'message' => 'เกิดข้อผิดพลาดในการสร้างที่อยู่: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Extract and validate manager user_id from various input shapes.
+     * Supports either scalar ("123") or object(["user_id"=>123]). Returns int or null.
+     * @param mixed $input
+     * @return int|null
+     */
+    private function extractManagerId($input)
+    {
+        // If input is an array/object, try common keys
+        if (is_array($input)) {
+            $candidate = $input['user_id'] ?? $input['id'] ?? null;
+        } elseif (is_object($input)) {
+            $candidate = $input->user_id ?? $input->id ?? null;
+        } else {
+            $candidate = $input;
+        }
+
+        if ($candidate === null || $candidate === '') {
+            return null;
+        }
+
+        // Only accept numeric values for user_id (DB column is int)
+        if (is_numeric($candidate)) {
+            return (int) $candidate;
+        }
+
+        // Non-numeric (e.g., UUID) is not valid for this column
+        return null;
     }
 }

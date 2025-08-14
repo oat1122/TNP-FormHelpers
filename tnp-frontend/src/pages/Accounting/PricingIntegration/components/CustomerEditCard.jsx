@@ -37,6 +37,7 @@ import { styled } from '@mui/material/styles';
 import { customerApi, validateCustomerData, formatPhoneNumber, formatTaxId } from './customerApiUtils';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { AddressService } from '../../../../services/AddressService';
+import { useGetUserByRoleQuery } from '../../../../features/globalApi';
 
 // Styled Components
 const CustomerCard = styled(Card)(({ theme }) => ({
@@ -157,7 +158,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     const [isEditing, setIsEditing] = useState(startInEdit);
     const [isExpanded, setIsExpanded] = useState(startInEdit);
     const [isSaving, setIsSaving] = useState(false);
-    const [editData, setEditData] = useState({});
+    const [editData, setEditData] = useState({
+        // Safe defaults to show selected state immediately
+        cus_channel: '1',
+        cus_manage_by: { user_id: '', username: '' }
+    });
     const [displayCustomer, setDisplayCustomer] = useState(customer);
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -168,6 +173,20 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     // Loading states
     const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
     const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
+    // Sales list for assigning manager (cus_manage_by)
+    const { data: userRoleData } = useGetUserByRoleQuery('sale');
+    const salesList = (userRoleData?.sale_role || [])
+        .filter(u => u && u.user_id != null) // ensure numeric id exists
+        .map(u => ({
+            user_id: String(u.user_id),
+            username: u.username || u.user_nickname || u.name || `User ${u.user_id}`
+        }));
+
+    // Current user & role
+    const currentUser = React.useMemo(() => {
+        try { return JSON.parse(localStorage.getItem('userData') || '{}') || {}; } catch { return {}; }
+    }, []);
+    const isAdmin = String(currentUser?.role).toLowerCase() === 'admin';
 
     // Initialize edit data when customer changes
     useEffect(() => {
@@ -176,6 +195,19 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             const initBtRaw = (customer.cus_bt_id ?? customer.bt_id ?? customer.business_type_id ?? customer.business_type?.bt_id ?? null);
             // Infer customer type: prefer explicit field, fallback to presence of company name
             const initType = (customer.customer_type || customer.cus_type || (customer.cus_company ? 'company' : 'individual'));
+            // Normalize manage_by into object { user_id, username }
+            const rawManage = customer.cus_manage_by;
+            let initManageObj = { user_id: '', username: '' };
+            if (rawManage && typeof rawManage === 'object') {
+                const id = rawManage.user_id ?? rawManage.user_uuid ?? rawManage.id ?? '';
+                const name = rawManage.username || rawManage.user_nickname || rawManage.name || '';
+                initManageObj = { user_id: id ? String(id) : '', username: name };
+            } else if (rawManage != null && rawManage !== '') {
+                initManageObj = { user_id: String(rawManage), username: '' };
+            } else if (!isAdmin && currentUser?.user_id) {
+                // Default for non-admin: self-assign
+                initManageObj = { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' };
+            }
             setEditData({
                 cus_company: customer.cus_company || '',
                 cus_firstname: customer.cus_firstname || '',
@@ -189,13 +221,15 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 cus_address: customer.cus_address || '',
                 cus_zip_code: customer.cus_zip_code || '',
                 // Keep as string for RadioGroup; normalize from number or text
-                cus_channel: normalizeChannelValue(initChannelRaw),
+                cus_channel: normalizeChannelValue(initChannelRaw) || '1',
                 // Keep business type id as string for stable equality in UI
                 cus_bt_id: initBtRaw == null ? '' : String(initBtRaw),
                 cus_pro_id: customer.cus_pro_id || '',
                 cus_dis_id: customer.cus_dis_id || '',
                 cus_sub_id: customer.cus_sub_id || '',
                 customer_type: initType === 'individual' ? 'individual' : 'company',
+                // Manager assignment
+                cus_manage_by: initManageObj,
             });
 
             // Keep a local display customer and hydrate with full details if needed
@@ -213,15 +247,28 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                         setEditData((prev) => {
                             const prevCh = normalizeChannelValue(prev.cus_channel);
                             const mergedCh = normalizeChannelValue(merged.cus_channel ?? merged.channel ?? null);
-                            const effectiveCh = prevCh === '' ? mergedCh : prevCh;
+                            const effectiveCh = (prevCh === '' ? (mergedCh || '1') : prevCh) || '1';
                             const prevBt = prev.cus_bt_id;
                             const mergedBt = (merged.cus_bt_id ?? merged.bt_id ?? merged.business_type_id ?? merged.business_type?.bt_id ?? null);
                             const mergedType = (merged.customer_type || merged.cus_type || (merged.cus_company ? 'company' : 'individual'));
+                            // Merge cus_manage_by
+                            let mergedManage = prev.cus_manage_by;
+                            const mRaw = merged.cus_manage_by;
+                            if (!mergedManage || !mergedManage.user_id) {
+                                if (mRaw && typeof mRaw === 'object') {
+                                    const id = mRaw.user_id ?? mRaw.user_uuid ?? mRaw.id ?? '';
+                                    const name = mRaw.username || mRaw.user_nickname || mRaw.name || '';
+                                    mergedManage = { user_id: id ? String(id) : '', username: name };
+                                } else if (mRaw != null && mRaw !== '') {
+                                    mergedManage = { user_id: String(mRaw), username: '' };
+                                }
+                            }
                             return {
                                 ...prev,
                                 cus_channel: effectiveCh,
                                 cus_bt_id: (prevBt === '' || prevBt == null) ? (mergedBt == null ? '' : String(mergedBt)) : prevBt,
                                 customer_type: prev.customer_type || mergedType,
+                                cus_manage_by: mergedManage,
                             };
                         });
                     }
@@ -234,6 +281,17 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             })();
         }
     }, [customer]);
+
+    // Hydrate manager username from sales list when available
+    useEffect(() => {
+        if (!editData?.cus_manage_by?.user_id) return;
+        if (editData.cus_manage_by.username) return;
+        const match = salesList.find(u => String(u.user_id) === String(editData.cus_manage_by.user_id));
+        if (match) {
+            setEditData(prev => ({ ...prev, cus_manage_by: { ...prev.cus_manage_by, username: match.username } }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userRoleData]);
 
     // 🔧 Function definitions (moved before useEffect to avoid hoisting issues)
     const loadMasterData = useCallback(async () => {
@@ -486,6 +544,18 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         if (base) {
             const resetChannel = (base.cus_channel ?? base.channel ?? null);
             const resetBt = (base.cus_bt_id ?? base.bt_id ?? base.business_type_id ?? base.business_type?.bt_id ?? null);
+            // Reset manager
+            const rawManage = base.cus_manage_by;
+            let resetManage = { user_id: '', username: '' };
+            if (rawManage && typeof rawManage === 'object') {
+                const id = rawManage.user_id ?? rawManage.user_uuid ?? rawManage.id ?? '';
+                const name = rawManage.username || rawManage.user_nickname || rawManage.name || '';
+                resetManage = { user_id: id ? String(id) : '', username: name };
+            } else if (rawManage != null && rawManage !== '') {
+                resetManage = { user_id: String(rawManage), username: '' };
+            } else if (!isAdmin && currentUser?.user_id) {
+                resetManage = { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' };
+            }
             setEditData({
                 cus_company: base.cus_company || '',
                 cus_firstname: base.cus_firstname || '',
@@ -504,10 +574,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 cus_dis_id: base.cus_dis_id || '',
                 cus_sub_id: base.cus_sub_id || '',
                 customer_type: (base.customer_type || base.cus_type || (base.cus_company ? 'company' : 'individual')),
+                cus_manage_by: resetManage,
             });
         }
     if (onCancel) onCancel();
-    }, [customer, displayCustomer, onCancel]);
+    }, [customer, displayCustomer, onCancel, isAdmin, currentUser]);
 
     const validateForm = useCallback(() => {
         const validation = validateCustomerData(editData);
@@ -535,9 +606,27 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             }
         }
 
+        // Require contact channel selection
+        if (!editData.cus_channel || !['1','2','3'].includes(String(editData.cus_channel))) {
+            nextErrors.cus_channel = 'กรุณาเลือกช่องทางการติดต่อ';
+            isValid = false;
+        }
+
+        // Require manager assignment; non-admin will auto-assign to self, admin must select
+        const mgrId = editData?.cus_manage_by?.user_id || '';
+        if (!mgrId) {
+            if (isAdmin) {
+                nextErrors.cus_manage_by = 'กรุณาเลือกผู้ดูแลลูกค้า';
+                isValid = false;
+            } else if (currentUser?.user_id) {
+                // Auto-fix for non-admin
+                setEditData(prev => ({ ...prev, cus_manage_by: { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' } }));
+            }
+        }
+
         setErrors(nextErrors);
         return isValid;
-    }, [editData]);
+    }, [editData, isAdmin, currentUser]);
 
     // Build a display address from current selection for optimistic UI
     const buildDisplayAddress = useCallback(() => {
@@ -591,6 +680,12 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             updateData.cus_type = updateData.customer_type;
             updateData.cus_channel = editData.cus_channel === '' ? null : parseInt(editData.cus_channel, 10);
             updateData.cus_bt_id = editData.cus_bt_id === '' ? null : isNaN(Number(editData.cus_bt_id)) ? editData.cus_bt_id : Number(editData.cus_bt_id);
+            // Map manager assignment to backend field (bigint)
+            const selectedManagerId = isAdmin ? (editData?.cus_manage_by?.user_id || '') : (currentUser?.user_id || '');
+            // Send as object to align with backend's flexible extractor; keep numeric id only
+            updateData.cus_manage_by = (selectedManagerId && /^\d+$/.test(String(selectedManagerId)))
+                ? { user_id: Number(selectedManagerId) }
+                : null;
 
             await customerApi.updateCustomer(customer.cus_id, updateData);
 
@@ -927,15 +1022,19 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                         <FormLabel component="legend" sx={{ color: '#900F0F', fontSize: '0.875rem' }}>
                                             ช่องทางการติดต่อ
                                         </FormLabel>
-                                        <RadioGroup
+                                                      <RadioGroup
                                             row
-                                            value={editData.cus_channel}
+                                                          name="cus_channel"
+                                                          value={editData.cus_channel}
                                             onChange={(e) => handleInputChange('cus_channel', e.target.value)}
                                         >
                                             <FormControlLabel value={"1"} control={<Radio size="small" />} label="Sales" />
                                             <FormControlLabel value={"2"} control={<Radio size="small" />} label="Online" />
                                             <FormControlLabel value={"3"} control={<Radio size="small" />} label="Office" />
                                         </RadioGroup>
+                                        {errors.cus_channel && (
+                                            <Typography variant="caption" color="error">{errors.cus_channel}</Typography>
+                                        )}
                                     </FormControl>
                                 </Grid>
 
@@ -958,6 +1057,47 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                             />
                                         )}
                                     />
+                                </Grid>
+
+                                {/* Manager Assignment */}
+                                <Grid item xs={12} md={6}>
+                                    <FormControl component="fieldset" size="small" fullWidth>
+                                        <FormLabel component="legend" sx={{ color: '#900F0F', fontSize: '0.875rem' }}>
+                                            ผู้ดูแลลูกค้า
+                                        </FormLabel>
+                                        {isAdmin ? (
+                                            <Autocomplete
+                                                size="small"
+                                                options={salesList}
+                                                getOptionLabel={(option) => option.username || ''}
+                                                isOptionEqualToValue={(option, value) => String(option.user_id) === String(value.user_id)}
+                                                value={(() => {
+                                                    const id = editData?.cus_manage_by?.user_id || '';
+                                                    return id ? (salesList.find(u => String(u.user_id) === String(id)) || { user_id: id, username: editData?.cus_manage_by?.username || '' }) : null;
+                                                })()}
+                                                onChange={(event, newValue) => {
+                                                    handleInputChange('cus_manage_by', newValue ? { user_id: String(newValue.user_id), username: newValue.username } : { user_id: '', username: '' });
+                                                }}
+                                                renderInput={(params) => (
+                                                    <StyledTextField
+                                                        {...params}
+                                                        label="เลือกผู้ดูแลลูกค้า"
+                                                        placeholder="เลือกผู้ดูแล"
+                                                        error={!!errors.cus_manage_by}
+                                                        helperText={errors.cus_manage_by}
+                                                    />
+                                                )}
+                                            />
+                                        ) : (
+                                            <StyledTextField
+                                                fullWidth
+                                                size="small"
+                                                label="ผู้ดูแลลูกค้า"
+                                                value={editData?.cus_manage_by?.username || currentUser?.username || currentUser?.user_nickname || ''}
+                                                disabled
+                                            />
+                                        )}
+                                    </FormControl>
                                 </Grid>
                             </>
                         )}

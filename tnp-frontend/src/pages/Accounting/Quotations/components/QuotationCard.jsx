@@ -158,6 +158,46 @@ const PRRow = ({ prId, items }) => {
     ? items.filter((it) => it?.pricing_request_id === prId || it?.pricing_request_id === pr?.id)
     : [];
   const imgUrl = pr?.pr_image || pr?.image_url || pr?.image;
+
+  // Helper: THB formatting
+  const formatTHB = React.useMemo(() => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }), []);
+
+  // Group items by common attributes (รายการ/แพทเทิร์น/ผ้า/สี)
+  const grouped = React.useMemo(() => {
+    const map = new Map();
+    (relatedItems || []).forEach((it, idx) => {
+      const name = it.item_name || it.name || '-';
+      const pattern = it.pattern || '';
+      const fabric = it.fabric_type || it.material || '';
+      const color = it.color || '';
+      const key = [name, pattern, fabric, color].join('||');
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name,
+          pattern,
+          fabric,
+          color,
+          rows: [],
+        });
+      }
+      const q = typeof it.quantity === 'string' ? parseFloat(it.quantity || '0') : Number(it.quantity || 0);
+      const p = typeof it.unit_price === 'string' ? parseFloat(it.unit_price || '0') : Number(it.unit_price || 0);
+      const subtotal = !isNaN(q) && !isNaN(p) ? q * p : 0;
+      map.get(key).rows.push({
+        id: it.id || `${idx}`,
+        size: it.size || '',
+        unit_price: isNaN(p) ? 0 : p,
+        quantity: isNaN(q) ? 0 : q,
+        subtotal: typeof it.subtotal === 'number' ? it.subtotal : subtotal,
+      });
+    });
+    return Array.from(map.values()).map(g => ({
+      ...g,
+      total: g.rows.reduce((s, r) => s + (Number(r.subtotal) || 0), 0),
+      totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+    }));
+  }, [relatedItems]);
   return (
     <Box
       onClick={handleToggle}
@@ -221,21 +261,83 @@ const PRRow = ({ prId, items }) => {
       {/* Expanded details */}
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: imgUrl ? '1fr 160px' : '1fr' }, gap: 1.25 }}>
-          <Stack spacing={0.75}>
-            {relatedItems.length === 0 && (
+          <Stack spacing={1}>
+            {grouped.length === 0 && (
               <Typography variant="body2" color="text.secondary">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
             )}
-            {relatedItems.map((it) => (
-              <Box key={it.id || `${prId}-${it.sequence_order}`} sx={{ p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-                <Typography variant="body2"><strong>รายการ:</strong> {it.item_name || it.name || '-'}</Typography>
-                <Typography variant="body2"><strong>ลำดับ:</strong> {it.sequence_order ?? '-'}</Typography>
-                <Typography variant="body2"><strong>แพทเทิร์น:</strong> {it.pattern ?? '-'}</Typography>
-                <Typography variant="body2"><strong>ผ้า:</strong> {it.fabric_type ?? '-'}</Typography>
-                <Typography variant="body2"><strong>สี:</strong> {it.color ?? '-'}</Typography>
-                <Typography variant="body2"><strong>ไซส์:</strong> {it.size ?? '-'}</Typography>
-                <Typography variant="body2"><strong>ราคา/หน่วย:</strong> {it.unit_price ?? '-'}</Typography>
-                <Typography variant="body2"><strong>จำนวน:</strong> {it.quantity ?? '-'}</Typography>
-                <Typography variant="body2"><strong>รวม:</strong> {it.subtotal ?? '-'}</Typography>
+            {grouped.map((g, gi) => (
+              <Box
+                key={g.key || gi}
+                sx={{
+                  p: 1.25,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  bgcolor: 'background.paper',
+                }}
+              >
+                {/* Header: unique fields (friendly chips) */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                      {g.name}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                      {g.pattern && (
+                        <Chip size="small" label={`แพทเทิร์น: ${g.pattern}`} variant="outlined" />
+                      )}
+                      {g.fabric && (
+                        <Chip size="small" label={`ผ้า: ${g.fabric}`} variant="outlined" />
+                      )}
+                      {g.color && (
+                        <Chip size="small" label={`สี: ${g.color}`} variant="outlined" />
+                      )}
+                    </Stack>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="caption" color="text.secondary">ยอดรวมของงานนี้</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{formatTHB.format(g.total)}</Typography>
+                    <Typography variant="caption" color="text.secondary">รวมจำนวน {Number(g.totalQty || 0)} ชิ้น</Typography>
+                  </Box>
+                </Box>
+                {/* Per-size rows */}
+                <Box>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.2fr 1fr 1fr 1.2fr',
+                      gap: 0.75,
+                      mb: 0.5,
+                      p: 0.75,
+                      bgcolor: 'background.default',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">ไซส์</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>ราคา/หน่วย</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>จำนวน</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>รวม</Typography>
+                  </Box>
+                  {g.rows.map((r, ri) => (
+                    <Box
+                      key={r.id || ri}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.2fr 1fr 1fr 1.2fr',
+                        gap: 0.75,
+                        py: 0.5,
+                        px: 0.75,
+                        bgcolor: ri % 2 ? 'background.default' : 'transparent',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography variant="body2">{r.size || '-'}</Typography>
+                      <Typography variant="body2" sx={{ textAlign: 'right' }}>{formatTHB.format(Number(r.unit_price || 0))}</Typography>
+                      <Typography variant="body2" sx={{ textAlign: 'right' }}>{Number(r.quantity || 0)}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, textAlign: 'right' }}>{formatTHB.format(Number(r.subtotal || 0))}</Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
             ))}
           </Stack>

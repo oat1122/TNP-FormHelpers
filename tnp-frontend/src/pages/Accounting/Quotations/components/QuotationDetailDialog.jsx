@@ -18,8 +18,10 @@ import {
   Calculate as CalculateIcon,
   Payment as PaymentIcon,
   Edit as EditIcon,
+  Add as AddIcon,
+  DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
-import { useGetQuotationQuery } from '../../../../features/Accounting/accountingApi';
+import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation } from '../../../../features/Accounting/accountingApi';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
@@ -43,35 +45,141 @@ const normalizeCustomer = (q) => {
   };
 };
 
-const normalizeItems = (q) => {
+// Build normalized quotation_items then group them by pricing_request_id
+const normalizeAndGroupItems = (q, prIdsAll = []) => {
   const items = Array.isArray(q.items) ? q.items : [];
   const sorted = [...items].sort((a, b) => (Number(a?.sequence_order ?? 0) - Number(b?.sequence_order ?? 0)));
-  return sorted.map((it, idx) => ({
-    id: it.id || it.pricing_request_id || `qitem_${idx}`,
-  // Prefer quotation_items.item_name when present, then other common fallbacks
-  name: it.item_name || it.work_name || it.name || it.item_description || it.description || '-',
-    pattern: it.pattern || '',
-    fabricType: it.fabric_type || it.material || '',
-    color: it.color || '',
-    size: it.size || '',
-    quantity: Number(it.quantity || 0),
-  unit: it.unit || it.unit_name || 'ชิ้น',
-    unitPrice: Number(it.unit_price || 0),
-    // If backend ever provides detailed sizes, prefer them; else fall back to one row
-    sizeRows: Array.isArray(it.size_rows) && it.size_rows.length
+
+  // Step 1: normalize raw items
+  const normalized = sorted.map((it, idx) => {
+    const nameRaw = it.item_name || it.work_name || it.name || it.item_description || it.description || '';
+    const name = nameRaw || '-';
+    const unit = it.unit || it.unit_name || 'ชิ้น';
+    const unitPrice = Number(it.unit_price || 0);
+    const baseRow = { uuid: `${it.id || idx}-row-1`, size: it.size || '', quantity: Number(it.quantity || 0), unitPrice };
+    const sizeRows = Array.isArray(it.size_rows) && it.size_rows.length
       ? it.size_rows.map((r, rIdx) => ({
           uuid: r.uuid || `${it.id || idx}-row-${rIdx + 1}`,
           size: r.size || '',
           quantity: Number(r.quantity || 0),
-          unitPrice: Number(r.unit_price || it.unit_price || 0),
+          unitPrice: Number(r.unit_price || unitPrice || 0),
         }))
-      : [{ uuid: `${it.id || idx}-row-1`, size: it.size || '', quantity: Number(it.quantity || 0), unitPrice: Number(it.unit_price || 0) }],
-  }));
+      : [baseRow];
+    return {
+      id: it.id || `qitem_${idx}`,
+      prId: it.pricing_request_id || null,
+      name,
+      pattern: it.pattern || '',
+      fabricType: it.fabric_type || it.material || '',
+      color: it.color || '',
+      size: it.size || '',
+      unit,
+      unitPrice,
+      sizeRows,
+      sequence: Number(it?.sequence_order ?? idx + 1),
+    };
+  });
+
+  // Step 2: group by PR
+  const groupMap = new Map();
+  for (const it of normalized) {
+    const key = it.prId || `misc-${it.sequence}`;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        id: key,
+        prId: it.prId || null,
+        nameCandidates: [],
+        patterns: new Set(),
+        fabrics: new Set(),
+        colors: new Set(),
+        sizes: new Set(),
+        unitCandidates: new Set(),
+        sizeRows: [],
+        sequenceMin: it.sequence,
+      });
+    }
+    const g = groupMap.get(key);
+    g.sequenceMin = Math.min(g.sequenceMin, it.sequence);
+    // Try to keep base name without trailing size info like " - S-XL"
+    const baseName = (it.name || '').split(' - ')[0] || it.name;
+    if (baseName) g.nameCandidates.push(baseName);
+    if (it.pattern) g.patterns.add(it.pattern);
+    if (it.fabricType) g.fabrics.add(it.fabricType);
+    if (it.color) g.colors.add(it.color);
+    if (it.size) g.sizes.add(it.size);
+    if (it.unit) g.unitCandidates.add(it.unit);
+    if (Array.isArray(it.sizeRows)) g.sizeRows.push(...it.sizeRows);
+  }
+
+  // Ensure all PR IDs in quotation are represented (even if no items)
+  for (let i = 0; i < prIdsAll.length; i++) {
+    const pid = prIdsAll[i];
+    if (!groupMap.has(pid)) {
+      groupMap.set(pid, {
+        id: pid,
+        prId: pid,
+        nameCandidates: [],
+        patterns: new Set(),
+        fabrics: new Set(),
+        colors: new Set(),
+        sizes: new Set(),
+        unitCandidates: new Set(['ชิ้น']),
+        sizeRows: [],
+        sequenceMin: Number.MAX_SAFE_INTEGER - (prIdsAll.length - i),
+      });
+    }
+  }
+
+  // Step 3: finalize groups to UI model
+  const groups = Array.from(groupMap.values())
+    .sort((a, b) => a.sequenceMin - b.sequenceMin)
+    .map((g, idx) => {
+      const name = g.nameCandidates.find(Boolean) || '-';
+      const unit = g.unitCandidates.size === 1 ? Array.from(g.unitCandidates)[0] : 'ชิ้น';
+      const sizeSummarySet = new Set([
+        ...Array.from(g.sizes),
+        ...g.sizeRows.map(r => r.size).filter(Boolean),
+      ]);
+      const sizeSummary = Array.from(sizeSummarySet).join(', ');
+      return {
+        id: g.id || `group_${idx}`,
+        prId: g.prId,
+        name,
+        pattern: Array.from(g.patterns).join(', '),
+        fabricType: Array.from(g.fabrics).join(', '),
+        color: Array.from(g.colors).join(', '),
+        size: sizeSummary,
+        unit,
+        sizeRows: g.sizeRows,
+      };
+    });
+
+  return groups;
+};
+
+// Collect all PR ids referenced by a quotation (primary + array + from items)
+const getAllPrIdsFromQuotation = (q) => {
+  const set = new Set();
+  const primary = q.primary_pricing_request_id || q.primary_pricing_request || null;
+  if (primary) set.add(primary);
+  let arr = [];
+  if (Array.isArray(q.primary_pricing_request_ids)) arr = q.primary_pricing_request_ids;
+  else if (typeof q.primary_pricing_request_ids === 'string' && q.primary_pricing_request_ids.trim()) {
+    try { arr = JSON.parse(q.primary_pricing_request_ids); } catch (e) { /* ignore */ }
+  }
+  arr.forEach((id) => id && set.add(id));
+  const items = Array.isArray(q.items) ? q.items : [];
+  items.forEach((it) => { if (it?.pricing_request_id) set.add(it.pricing_request_id); });
+  return Array.from(set);
 };
 
 const computeTotals = (items, depositPercentage) => {
   const subtotal = items.reduce((s, it) => {
-    const itemTotal = (it.sizeRows || []).reduce((ss, r) => ss + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+    const itemTotal = (it.sizeRows || []).reduce((ss, r) => {
+      const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+      const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+      return ss + (isNaN(q) || isNaN(p) ? 0 : q * p);
+    }, 0);
     return s + itemTotal;
   }, 0);
   const vat = +(subtotal * 0.07).toFixed(2);
@@ -85,24 +193,267 @@ const computeTotals = (items, depositPercentage) => {
 const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, { skip: !open || !quotationId });
   const q = pickQuotation(data);
+  const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
   const [editCustomerOpen, setEditCustomerOpen] = React.useState(false);
   const [customer, setCustomer] = React.useState(() => normalizeCustomer(q));
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [groups, setGroups] = React.useState([]);
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
   }, [q?.id, q?.customer_name, q?.customer]);
-  const items = normalizeItems(q);
+  const prIdsAll = getAllPrIdsFromQuotation(q);
+  const items = normalizeAndGroupItems(q, prIdsAll);
+  React.useEffect(() => {
+    // Initialize editable groups on open or when quotation changes
+    const editable = items.map(g => ({ ...g, sizeRows: (g.sizeRows || []).map(r => ({ ...r })) }));
+    setGroups(editable);
+    setIsEditing(false);
+  }, [open, q?.id]);
+
+  const onAddRow = (groupId) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const newRow = { uuid: `${groupId}-${Date.now()}`, size: '', quantity: '', unitPrice: '' };
+      return { ...g, sizeRows: [...(g.sizeRows || []), newRow] };
+    }));
+  };
+  const onChangeRow = (groupId, rowUuid, field, value) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const rows = (g.sizeRows || []).map(r => {
+        if (r.uuid !== rowUuid) return r;
+        if (field === 'size') return { ...r, size: value };
+        // Keep numeric fields as strings during editing to avoid caret/focus issues
+        if (field === 'quantity') return { ...r, quantity: value };
+        if (field === 'unitPrice') return { ...r, unitPrice: value };
+        return { ...r, [field]: value };
+      });
+      return { ...g, sizeRows: rows };
+    }));
+  };
+  const onRemoveRow = (groupId, rowUuid) => {
+    setGroups(prev => prev.map(g => {
+      if (g.id !== groupId) return g;
+      const rows = (g.sizeRows || []).filter(r => r.uuid !== rowUuid);
+      return { ...g, sizeRows: rows };
+    }));
+  };
+  const onDeleteGroup = (groupId) => {
+    setGroups(prev => prev.filter(g => g.id !== groupId));
+  };
+  const activeGroups = isEditing ? groups : items;
+
+  // Child: Summary card per PR group (fetch PR info if group has no name)
+  const PRGroupSummaryCard = ({ group, index }) => {
+    const { data: prData } = useGetPricingRequestAutofillQuery(group.prId, { skip: !group.prId });
+    const pr = prData?.data || prData || {};
+    const name = group.name && group.name !== '-' ? group.name : (pr.pr_work_name || pr.work_name || '-');
+    const pattern = group.pattern || pr.pr_pattern || '';
+    const fabric = group.fabricType || pr.pr_fabric_type || '';
+    const color = group.color || pr.pr_color || '';
+    const size = group.size || pr.pr_sizes || '';
+    const totalQty = (group.sizeRows || []).reduce((s, r) => s + Number(r.quantity || 0), 0);
+    const unit = group.unit || 'ชิ้น';
+    return (
+      <InfoCard sx={{ p: 2, mb: 1.5 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {index + 1}: {name}</Typography>
+          <Chip label={`${totalQty} ${unit}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+        </Box>
+        <Grid container spacing={1}>
+          {pattern && (
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">แพทเทิร์น</Typography>
+              <Typography variant="body2" fontWeight={500}>{pattern}</Typography>
+            </Grid>
+          )}
+          {fabric && (
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">ประเภทผ้า</Typography>
+              <Typography variant="body2" fontWeight={500}>{fabric}</Typography>
+            </Grid>
+          )}
+          {color && (
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">สี</Typography>
+              <Typography variant="body2" fontWeight={500}>{color}</Typography>
+            </Grid>
+          )}
+          {size && (
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">ขนาด</Typography>
+              <Typography variant="body2" fontWeight={500}>{size}</Typography>
+            </Grid>
+          )}
+        </Grid>
+      </InfoCard>
+    );
+  };
+
+  // Child: Calculation card per PR group
+  const PRGroupCalcCard = ({ group, index }) => {
+    const { data: prData } = useGetPricingRequestAutofillQuery(group.prId, { skip: !group.prId });
+    const pr = prData?.data || prData || {};
+    const name = group.name && group.name !== '-' ? group.name : (pr.pr_work_name || pr.work_name || '-');
+    const pattern = group.pattern || pr.pr_pattern || '';
+    const fabric = group.fabricType || pr.pr_fabric_type || '';
+    const color = group.color || pr.pr_color || '';
+    const size = group.size || pr.pr_sizes || '';
+    const rows = Array.isArray(group.sizeRows) ? group.sizeRows : [];
+    const unit = group.unit || 'ชิ้น';
+    const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+    const itemTotal = rows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+
+    return (
+      <Box component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {index + 1}</Typography>
+            <Typography variant="body2" color="text.secondary">{name}</Typography>
+          </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Chip label={`${totalQty} ${unit}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+            {isEditing && (
+              <SecondaryButton size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => onDeleteGroup(group.id)}>
+                ลบงานนี้
+              </SecondaryButton>
+            )}
+          </Box>
+        </Box>
+
+        <Grid container spacing={1.5}>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth size="small" label="แพทเทิร์น" value={pattern} disabled />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth size="small" label="ประเภทผ้า" value={fabric} disabled />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth size="small" label="สี" value={color} disabled />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth size="small" label="ขนาด (สรุป)" value={size} disabled />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
+                {isEditing && (
+                  <SecondaryButton size="small" startIcon={<AddIcon />} onClick={() => onAddRow(group.id)}>
+                    เพิ่มแถว
+                  </SecondaryButton>
+                )}
+              </Box>
+              <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
+                <Grid item xs={12} md={3}><Typography variant="caption" color="text.secondary">ขนาด</Typography></Grid>
+                <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">จำนวน</Typography></Grid>
+                <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography></Grid>
+                <Grid item xs={10} md={2}><Typography variant="caption" color="text.secondary">ยอดรวม</Typography></Grid>
+                <Grid item xs={2} md={1}></Grid>
+              </Grid>
+              {rows.length === 0 ? (
+                <Box sx={{ p: 1, color: 'text.secondary' }}>
+                  <Typography variant="body2">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
+                </Box>
+              ) : (
+                <Grid container spacing={1}>
+                  {rows.map((row) => (
+                    <React.Fragment key={row.uuid}>
+                      <Grid item xs={12} md={3}>
+                        <TextField fullWidth size="small" inputProps={{ inputMode: 'text' }} label="ขนาด" value={row.size || ''} disabled={!isEditing} onChange={(e) => onChangeRow(group.id, row.uuid, 'size', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={6} md={3}>
+                        <TextField fullWidth size="small" label="จำนวน" type="number" inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} value={row.quantity ?? ''} disabled={!isEditing} onChange={(e) => onChangeRow(group.id, row.uuid, 'quantity', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={6} md={3}>
+                        <TextField fullWidth size="small" label="ราคาต่อหน่วย" type="number" inputProps={{ inputMode: 'decimal' }} value={row.unitPrice ?? ''} disabled={!isEditing} onChange={(e) => onChangeRow(group.id, row.uuid, 'unitPrice', e.target.value)} />
+                      </Grid>
+                      <Grid item xs={10} md={2}>
+                        <Box sx={{ p: 1, bgcolor: '#fff', border: `1px solid ${tokens.border}`, borderRadius: 1, textAlign: 'center' }}>
+                          <Typography variant="subtitle2" fontWeight={800}>{(() => {
+                            const q = typeof row.quantity === 'string' ? parseFloat(row.quantity || '0') : Number(row.quantity || 0);
+                            const p = typeof row.unitPrice === 'string' ? parseFloat(row.unitPrice || '0') : Number(row.unitPrice || 0);
+                            const val = (isNaN(q) || isNaN(p)) ? 0 : q * p;
+                            return formatTHB(val);
+                          })()}</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={2} md={1}>
+                        {isEditing && (
+                          <SecondaryButton size="small" color="error" onClick={() => onRemoveRow(group.id, row.uuid)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </SecondaryButton>
+                        )}
+                      </Grid>
+                    </React.Fragment>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          </Grid>
+
+          <Grid item xs={6} md={4}>
+            <Box sx={{ p: 1.5, border: `1px solid ${tokens.border}`, borderRadius: 1.5, textAlign: 'center', bgcolor: tokens.bg }}>
+              <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
+              <Typography variant="h6" fontWeight={800}>{formatTHB(itemTotal)}</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
   const workName = q.work_name || q.workname || q.title || '';
   const quotationNumber = q.number || '';
   // Prefer quotations.payment_terms when available
   const paymentMethod = q.payment_terms || q.payment_method || (q.credit_days === 30 ? 'credit_30' : q.credit_days === 60 ? 'credit_60' : 'cash');
   const depositPercentage = q.deposit_percentage ?? (paymentMethod === 'cash' ? 0 : 50);
   const dueDate = q.due_date ? new Date(q.due_date) : null;
-  const computed = computeTotals(items, depositPercentage);
+  const computed = computeTotals(activeGroups, depositPercentage);
   const subtotal = q.subtotal != null ? Number(q.subtotal) : computed.subtotal;
   const vat = q.tax_amount != null ? Number(q.tax_amount) : computed.vat;
   const total = q.total_amount != null ? Number(q.total_amount) : computed.total;
   const depositAmount = q.deposit_amount != null ? Number(q.deposit_amount) : computed.depositAmount;
   const remainingAmount = +(total - depositAmount).toFixed(2);
+
+  const handleSave = async () => {
+    // Map editable groups back to API items
+    const flatItems = groups.flatMap((g) => {
+      const unit = g.unit || 'ชิ้น';
+      const base = {
+        pricing_request_id: g.prId || null,
+        item_name: g.name || 'ไม่ระบุชื่องาน',
+        pattern: g.pattern || '',
+        fabric_type: g.fabricType || '',
+        color: g.color || '',
+        unit,
+      };
+      return (g.sizeRows || []).map((r, idx) => {
+        const qty = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+        const price = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+        return {
+          ...base,
+          size: r.size || '',
+          unit_price: isNaN(price) ? 0 : price,
+          quantity: isNaN(qty) ? 0 : qty,
+          sequence_order: idx + 1,
+        };
+      });
+    });
+
+    const totals = computeTotals(groups, depositPercentage);
+    try {
+      await updateQuotation({
+        id: q.id,
+        items: flatItems,
+        subtotal: totals.subtotal,
+        tax_amount: totals.vat,
+        total_amount: totals.total,
+        deposit_percentage: q.deposit_percentage ?? 0,
+      }).unwrap();
+      setIsEditing(false);
+    } catch (e) {}
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
@@ -208,38 +559,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                       </InfoCard>
                     ) : (
                       items.map((item, idx) => (
-                        <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                            <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {idx + 1}: {item.name}</Typography>
-                            <Chip label={`${item.sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0)} ${item.unit || 'ชิ้น'}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
-                          </Box>
-                          <Grid container spacing={1}>
-                            {item.pattern && (
-                              <Grid item xs={6} md={3}>
-                                <Typography variant="caption" color="text.secondary">แพทเทิร์น</Typography>
-                                <Typography variant="body2" fontWeight={500}>{item.pattern}</Typography>
-                              </Grid>
-                            )}
-                            {item.fabricType && (
-                              <Grid item xs={6} md={3}>
-                                <Typography variant="caption" color="text.secondary">ประเภทผ้า</Typography>
-                                <Typography variant="body2" fontWeight={500}>{item.fabricType}</Typography>
-                              </Grid>
-                            )}
-                            {item.color && (
-                              <Grid item xs={6} md={3}>
-                                <Typography variant="caption" color="text.secondary">สี</Typography>
-                                <Typography variant="body2" fontWeight={500}>{item.color}</Typography>
-                              </Grid>
-                            )}
-                            {item.size && (
-                              <Grid item xs={6} md={3}>
-                                <Typography variant="caption" color="text.secondary">ขนาด</Typography>
-                                <Typography variant="body2" fontWeight={500}>{item.size}</Typography>
-                              </Grid>
-                            )}
-                          </Grid>
-                        </InfoCard>
+                        <PRGroupSummaryCard key={item.id} group={item} index={idx} />
                       ))
                     )}
                   </Box>
@@ -252,82 +572,26 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
                       <CalculateIcon fontSize="small" />
                     </Avatar>
-                    <Typography variant="subtitle1" fontWeight={700}>การคำนวณราคา</Typography>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="subtitle1" fontWeight={700}>การคำนวณราคา</Typography>
+                      <SecondaryButton size="small" startIcon={<EditIcon />} onClick={() => {
+                        const el = document.getElementById('calc-section');
+                        const y = el ? el.scrollTop : null;
+                        setIsEditing(v => !v);
+                        // restore scroll shortly after DOM updates
+                        setTimeout(() => {
+                          const el2 = document.getElementById('calc-section');
+                          if (el2 != null && y != null) el2.scrollTop = y;
+                        }, 0);
+                      }}>
+                        {isEditing ? 'ยกเลิกแก้ไข' : 'แก้ไข'}
+                      </SecondaryButton>
+                    </Box>
                   </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {items.map((item, idx) => {
-                      const itemTotal = item.sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
-                      return (
-                        <Box key={`calc-${item.id}`} component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
-                          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-                            <Box display="flex" alignItems="center" gap={1.5}>
-                              <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {idx + 1}</Typography>
-                              <Typography variant="body2" color="text.secondary">{item.name}</Typography>
-                            </Box>
-                            <Chip label={`${item.sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0)} ${item.unit || 'ชิ้น'}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
-                          </Box>
-
-                          <Grid container spacing={1.5}>
-                            <Grid item xs={12} md={3}>
-                              <TextField fullWidth size="small" label="แพทเทิร์น" value={item.pattern} disabled />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                              <TextField fullWidth size="small" label="ประเภทผ้า" value={item.fabricType} disabled />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                              <TextField fullWidth size="small" label="สี" value={item.color} disabled />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                              <TextField fullWidth size="small" label="ขนาด (สรุป)" value={item.size} disabled />
-                            </Grid>
-
-                            <Grid item xs={12}>
-                              <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
-                                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                                  <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
-                                </Box>
-                                {/* Header row */}
-                                <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
-                                  <Grid item xs={12} md={3}><Typography variant="caption" color="text.secondary">ขนาด</Typography></Grid>
-                                  <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">จำนวน</Typography></Grid>
-                                  <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography></Grid>
-                                  <Grid item xs={10} md={2}><Typography variant="caption" color="text.secondary">ยอดรวม</Typography></Grid>
-                                  <Grid item xs={2} md={1}></Grid>
-                                </Grid>
-                                <Grid container spacing={1}>
-                                  {(item.sizeRows || []).map((row) => (
-                                    <React.Fragment key={row.uuid}>
-                                      <Grid item xs={12} md={3}>
-                                        <TextField fullWidth size="small" label="ขนาด" value={row.size} disabled />
-                                      </Grid>
-                                      <Grid item xs={6} md={3}>
-                                        <TextField fullWidth size="small" label="จำนวน" type="number" value={row.quantity} disabled />
-                                      </Grid>
-                                      <Grid item xs={6} md={3}>
-                                        <TextField fullWidth size="small" label="ราคาต่อหน่วย" type="number" value={row.unitPrice} disabled />
-                                      </Grid>
-                                      <Grid item xs={10} md={2}>
-                                        <Box sx={{ p: 1, bgcolor: '#fff', border: `1px solid ${tokens.border}`, borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="subtitle2" fontWeight={800}>{formatTHB((Number(row.quantity || 0) * Number(row.unitPrice || 0)) || 0)}</Typography>
-                                        </Box>
-                                      </Grid>
-                                      <Grid item xs={2} md={1}></Grid>
-                                    </React.Fragment>
-                                  ))}
-                                </Grid>
-                              </Box>
-                            </Grid>
-
-                            <Grid item xs={6} md={4}>
-                              <Box sx={{ p: 1.5, border: `1px solid ${tokens.border}`, borderRadius: 1.5, textAlign: 'center', bgcolor: tokens.bg }}>
-                                <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
-                                <Typography variant="h6" fontWeight={800}>{formatTHB(itemTotal)}</Typography>
-                              </Box>
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      );
-                    })}
+                    <Box sx={{ p: 2 }} id="calc-section">
+                    { (isEditing ? groups : items).map((item, idx) => (
+                      <PRGroupCalcCard key={`calc-${item.id}`} group={item} index={idx} />
+                    ))}
 
                     <Divider sx={{ my: 2 }} />
 
@@ -408,7 +672,14 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
         )}
       </DialogContent>
       <DialogActions>
-        <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+        {isEditing ? (
+          <>
+            <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
+            <SecondaryButton onClick={handleSave} disabled={isSaving}>{isSaving ? 'กำลังบันทึก…' : 'บันทึก'}</SecondaryButton>
+          </>
+        ) : (
+          <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+        )}
       </DialogActions>
       <CustomerEditDialog
         open={editCustomerOpen}

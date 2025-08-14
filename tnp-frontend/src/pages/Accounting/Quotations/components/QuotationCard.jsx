@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Stack, Avatar, Typography, Collapse, Button } from '@mui/material';
+import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -83,16 +83,16 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
         {prIds.length > 0 && (
           <Box sx={{ mt: 1.5 }}>
             <Stack spacing={1.2}>
-              {prIds.slice(0, 3).map((id) => (
-                <PRRow key={id} prId={id} items={Array.isArray(data.items) ? data.items : []} />
+              {prIds.slice(0, 3).map((id, idx) => (
+                <PRRow key={id} prId={id} order={idx + 1} items={Array.isArray(data.items) ? data.items : []} />
               ))}
             </Stack>
             {prIds.length > 3 && (
               <>
                 <Collapse in={showAll}>
                   <Stack spacing={1.2} sx={{ mt: 1 }}>
-                    {prIds.slice(3).map((id) => (
-                      <PRRow key={id} prId={id} items={Array.isArray(data.items) ? data.items : []} />
+                    {prIds.slice(3).map((id, idx) => (
+                      <PRRow key={id} prId={id} order={3 + idx + 1} items={Array.isArray(data.items) ? data.items : []} />
                     ))}
                   </Stack>
                 </Collapse>

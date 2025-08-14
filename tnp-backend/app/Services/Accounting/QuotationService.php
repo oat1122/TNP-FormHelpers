@@ -315,6 +315,67 @@ class QuotationService
             $quotation->fill($data);
             $quotation->save();
 
+            // If frontend sends full items array, replace existing quotation_items accordingly
+            if (array_key_exists('items', $data) && is_array($data['items'])) {
+                // Remove all existing items first to simplify ordering and grouping logic
+                QuotationItem::where('quotation_id', $id)->delete();
+
+                $seqSeen = [];
+                foreach ($data['items'] as $index => $item) {
+                    // Ensure continuous, unique sequence_order per quotation
+                    $seq = isset($item['sequence_order']) && is_numeric($item['sequence_order'])
+                        ? intval($item['sequence_order'])
+                        : ($index + 1);
+                    if (isset($seqSeen[$seq])) {
+                        // Bump to next available sequence
+                        while (isset($seqSeen[$seq])) { $seq++; }
+                    }
+                    $seqSeen[$seq] = true;
+
+                    QuotationItem::create([
+                        'quotation_id' => $quotation->id,
+                        'pricing_request_id' => $item['pricing_request_id'] ?? null,
+                        'item_name' => $item['item_name'] ?? 'ไม่ระบุชื่องาน',
+                        'item_description' => $item['item_description'] ?? null,
+                        'sequence_order' => $seq,
+                        'pattern' => $item['pattern'] ?? null,
+                        'fabric_type' => $item['fabric_type'] ?? null,
+                        'color' => $item['color'] ?? null,
+                        'size' => $item['size'] ?? null,
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'quantity' => $item['quantity'] ?? 0,
+                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'discount_percentage' => $item['discount_percentage'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                        'notes' => $item['notes'] ?? null,
+                        'status' => $item['status'] ?? 'draft',
+                        'created_by' => $updatedBy,
+                        'updated_by' => $updatedBy,
+                    ]);
+                }
+
+                // Also sync the quotation's primary_pricing_request_ids to reflect remaining jobs
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('quotations', 'primary_pricing_request_ids')) {
+                        $remainingPrIds = collect($data['items'])
+                            ->pluck('pricing_request_id')
+                            ->filter()
+                            ->unique()
+                            ->values()
+                            ->all();
+                        $quotation->primary_pricing_request_ids = $remainingPrIds;
+                        $quotation->save();
+                    } elseif (\Illuminate\Support\Facades\Schema::hasColumn('quotations', 'primary_pricing_request_id')) {
+                        // Fallback: set to first remaining PR or null
+                        $first = collect($data['items'])->pluck('pricing_request_id')->first();
+                        $quotation->primary_pricing_request_id = $first;
+                        $quotation->save();
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to sync primary_pricing_request_ids on quotation update: ' . $e->getMessage());
+                }
+            }
+
             // อัปเดต Order Items Tracking ถ้าจำนวนเปลี่ยน
             if (isset($data['quantity']) && is_numeric($data['quantity'])) {
                 $tracking = OrderItemsTracking::where('quotation_id', $id)->first();
@@ -334,7 +395,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator']);
+            return $quotation->load(['customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

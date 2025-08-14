@@ -307,7 +307,7 @@ const PricingIntegration = () => {
                 if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
                     return item.sizeRows.map((row, rIndex) => ({
                         pricing_request_id: item.pricingRequestId || item.id,
-                        item_name: `${item.name} - ${row.size || 'ไม่ระบุขนาด'}`,
+                        item_name: item.name,
                         pattern: item.pattern || '',
                         fabric_type: item.fabricType || '',
                         color: item.color || '',
@@ -396,7 +396,7 @@ const PricingIntegration = () => {
                 if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
                     return item.sizeRows.map((row, rIndex) => ({
                         pricing_request_id: item.pricingRequestId || item.id,
-                        item_name: `${item.name} - ${row.size || 'ไม่ระบุขนาด'}`,
+                        item_name: item.name,
                         pattern: item.pattern || '',
                         fabric_type: item.fabricType || '',
                         color: item.color || '',

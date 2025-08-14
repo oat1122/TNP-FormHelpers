@@ -49,6 +49,7 @@ import { formatTHB } from '../utils/currency';
 import { formatDateTH } from '../utils/date';
 
 import PricingRequestNotesButton from '../../PricingRequestNotesButton';
+import { sanitizeInt, sanitizeDecimal } from '../../../../shared/inputSanitizers';
 import { useGetPricingRequestAutofillQuery } from '../../../../../../features/Accounting/accountingApi';
 import QuotationPreview from '../../QuotationPreview';
 import CustomerEditCard from '../../CustomerEditCard';
@@ -135,12 +136,19 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         const newRow = {
           uuid: `${itemId}-size-${(i.sizeRows?.length || 0) + 1}`,
           size: '',
-          quantity: 0,
-          unitPrice: i.unitPrice || 0,
+          quantity: '',
+          unitPrice: String(i.unitPrice || ''),
         };
         const sizeRows = [...(i.sizeRows || []), newRow];
-        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
-        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        const total = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
+        }, 0);
+        const quantity = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          return s + (isNaN(q) ? 0 : q);
+        }, 0);
         return { ...i, sizeRows, total, quantity };
       }),
     }));
@@ -159,8 +167,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
               }
             : r
         );
-        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
-        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        const total = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
+        }, 0);
+        const quantity = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          return s + (isNaN(q) ? 0 : q);
+        }, 0);
         return { ...i, sizeRows, total, quantity };
       }),
     }));
@@ -172,8 +187,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       items: prev.items.map((i) => {
         if (i.id !== itemId) return i;
         const sizeRows = (i.sizeRows || []).filter((r) => r.uuid !== rowUuid);
-        const total = sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
-        const quantity = sizeRows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+        const total = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
+        }, 0);
+        const quantity = sizeRows.reduce((s, r) => {
+          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          return s + (isNaN(q) ? 0 : q);
+        }, 0);
         return { ...i, sizeRows, total, quantity };
       }),
     }));
@@ -489,8 +511,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             size="small"
                             label="ขนาด (สรุป)"
                             value={item.size}
-              onChange={(e) => setItem(item.id, { size: e.target.value })}
-              disabled={readOnly && !isEditing}
+                            onChange={(e) => setItem(item.id, { size: e.target.value })}
+                            disabled={readOnly && !isEditing}
                           />
                         </Grid>
 
@@ -499,7 +521,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                           <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
                             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                               <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
-                              <SecondaryButton size="small" onClick={() => addSizeRow(item.id)} disabled={readOnly && !isEditing}>เพิ่มขนาด</SecondaryButton>
+                              <SecondaryButton size="small" onClick={() => addSizeRow(item.id)} disabled={readOnly && !isEditing}>เพิ่มแถว</SecondaryButton>
                             </Box>
                             {/* Header row */}
                             <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
@@ -537,10 +559,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                       fullWidth
                                       size="small"
                                       label="จำนวน"
-                                      type="number"
-                                      value={row.quantity}
+                                      type="text"
+                                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                                      value={String(row.quantity ?? '')}
                                       InputProps={{ endAdornment: <InputAdornment position="end">ชิ้น</InputAdornment> }}
-                                      onChange={(e) => updateSizeRow(item.id, row.uuid, { quantity: parseInt(e.target.value || 0, 10) })}
+                                      onChange={(e) => {
+                                        const v = sanitizeInt(e.target.value);
+                                        updateSizeRow(item.id, row.uuid, { quantity: v });
+                                      }}
                                       disabled={readOnly && !isEditing}
                                     />
                                   </Grid>
@@ -549,17 +575,26 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                       fullWidth
                                       size="small"
                                       label="ราคาต่อหน่วย"
-                                      type="number"
-                                      value={row.unitPrice}
+                                      type="text"
+                                      inputProps={{ inputMode: 'decimal' }}
+                                      value={String(row.unitPrice ?? '')}
                                       InputProps={{ startAdornment: <InputAdornment position="start">฿</InputAdornment> }}
-                                      onChange={(e) => updateSizeRow(item.id, row.uuid, { unitPrice: Number(e.target.value || 0) })}
+                                      onChange={(e) => {
+                                        const v = sanitizeDecimal(e.target.value);
+                                        updateSizeRow(item.id, row.uuid, { unitPrice: v });
+                                      }}
                                       disabled={readOnly && !isEditing}
                                     />
                                   </Grid>
                                   <Grid item xs={10} md={2}>
                                     <Box sx={{ p: 1, bgcolor: '#fff', border: `1px solid ${tokens.border}`, borderRadius: 1, textAlign: 'center' }}>
                                       <Typography variant="subtitle2" fontWeight={800}>
-                                        {formatTHB((Number(row.quantity || 0) * Number(row.unitPrice || 0)) || 0)}
+                                        {(() => {
+                                          const q = typeof row.quantity === 'string' ? parseFloat(row.quantity || '0') : Number(row.quantity || 0);
+                                          const p = typeof row.unitPrice === 'string' ? parseFloat(row.unitPrice || '0') : Number(row.unitPrice || 0);
+                                          const sum = (isNaN(q) || isNaN(p)) ? 0 : q * p;
+                                          return formatTHB(sum);
+                                        })()}
                                       </Typography>
                                     </Box>
                                   </Grid>

@@ -26,6 +26,7 @@ import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../..
 import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
 import CustomerEditDialog from '../../PricingIntegration/components/CustomerEditDialog';
+import { sanitizeInt, sanitizeDecimal } from '../../shared/inputSanitizers';
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
@@ -391,24 +392,7 @@ const computeTotals = (items, depositPercentage) => {
   return { subtotal, vat, total, depositAmount, remainingAmount };
 };
 
-// Sanitizers to keep typing smooth and prevent re-mounts on invalid values
-const sanitizeInt = (val) => {
-  if (val == null) return '';
-  let s = String(val);
-  // keep only digits
-  s = s.replace(/\D+/g, '');
-  return s;
-};
-
-const sanitizeDecimal = (val) => {
-  if (val == null) return '';
-  let s = String(val).replace(/,/g, '.');
-  // allow only digits and one dot
-  s = s.replace(/[^0-9.]/g, '');
-  const parts = s.split('.');
-  if (parts.length <= 1) return parts[0];
-  return `${parts[0]}.${parts.slice(1).join('').replace(/\./g, '')}`;
-};
+// sanitizers imported from shared to keep behavior consistent across forms
 
 const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, { skip: !open || !quotationId });

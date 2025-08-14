@@ -3,7 +3,7 @@ import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid } from '@m
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useGetPricingRequestAutofillQuery } from '../../../../features/Accounting/accountingApi';
+import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation } from '../../../../features/Accounting/accountingApi';
 import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
 import {
   TNPCard,
@@ -29,6 +29,8 @@ const statusColor = {
 const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
   const amountText = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0));
   const [showAll, setShowAll] = React.useState(false);
+  const [deleted, setDeleted] = React.useState(false);
+  const [deleteQuotation] = useDeleteQuotationMutation();
   // collect linked PR ids from this quotation
   const detail = data; // data may already contain items
   const prIds = React.useMemo(() => {
@@ -40,6 +42,19 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
     if (Array.isArray(detail?.primary_pricing_request_ids)) detail.primary_pricing_request_ids.forEach((id) => set.add(id));
     return Array.from(set);
   }, [detail]);
+
+  // If no linked PRs, auto-delete this invalid quotation and hide the card
+  React.useEffect(() => {
+    if (!data?.id) return;
+    if (deleted) return;
+    if ((prIds?.length || 0) === 0) {
+      deleteQuotation(data.id).finally(() => setDeleted(true));
+    }
+  }, [data?.id, prIds, deleted, deleteQuotation]);
+
+  if ((prIds?.length || 0) === 0 || deleted) {
+    return null;
+  }
   return (
     <TNPCard>
       <TNPCardContent>

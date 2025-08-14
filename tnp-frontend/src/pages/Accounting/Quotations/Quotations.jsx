@@ -72,7 +72,18 @@ const Quotations = () => {
     });
   }, [data]);
 
-  const { pageData: paginated, info: paginationInfo, total } = usePagination(quotations, currentPage, itemsPerPage);
+  // Filter out quotations without any linked pricing request (global filter affects pagination totals)
+  const hasPR = useCallback((q) => {
+    const set = new Set();
+    if (Array.isArray(q?.items)) q.items.forEach((it) => { if (it?.pricing_request_id) set.add(it.pricing_request_id); });
+    if (q?.primary_pricing_request_id) set.add(q.primary_pricing_request_id);
+    if (Array.isArray(q?.primary_pricing_request_ids)) q.primary_pricing_request_ids.forEach((id) => id && set.add(id));
+    return set.size > 0;
+  }, []);
+
+  const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
+
+  const { pageData: paginated, info: paginationInfo, total } = usePagination(validQuotations, currentPage, itemsPerPage);
 
   const [approveQuotation] = useApproveQuotationMutation();
   const [rejectQuotation] = useRejectQuotationMutation();
@@ -184,6 +195,13 @@ const Quotations = () => {
 
   // Removed auto-selection effect since Drawer has been removed
 
+  // Ensure current page stays within bounds after filtering or per-page changes
+  useEffect(() => {
+    if (paginationInfo && currentPage > paginationInfo.last_page) {
+      setCurrentPage(paginationInfo.last_page || 1);
+    }
+  }, [paginationInfo?.last_page]);
+
   return (
     <ThemeProvider theme={accountingTheme}>
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
@@ -243,9 +261,9 @@ const Quotations = () => {
                 <Grid item xs={12}><LoadingState itemCount={6} /></Grid>
               ) : error ? (
                 <Grid item xs={12}><ErrorState error={error} onRetry={handleRefresh} /></Grid>
-              ) : quotations.length > 0 ? (
+              ) : validQuotations.length > 0 ? (
                 <>
-      {paginated.map((q) => (
+                  {(paginated || []).map((q) => (
                     <Grid item xs={12} sm={6} lg={4} key={q.id}>
                       <QuotationCard
         data={q}
@@ -255,11 +273,11 @@ const Quotations = () => {
                       />
                     </Grid>
                   ))}
-                  {paginationInfo.last_page > 1 && (
+      {paginationInfo.last_page > 1 && (
                     <Grid item xs={12}>
                       <PaginationSection
                         title="ใบเสนอราคาทั้งหมด"
-                        pagination={paginationInfo}
+        pagination={paginationInfo}
                         currentPage={currentPage}
                         itemsPerPage={itemsPerPage}
                         isFetching={isFetching}
@@ -268,7 +286,7 @@ const Quotations = () => {
                         showHeader={false}
                       />
                     </Grid>
-                  )}
+      )}
                 </>
               ) : (
                 <Grid item xs={12}><EmptyState onRefresh={handleRefresh} /></Grid>

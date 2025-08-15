@@ -27,7 +27,7 @@ const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"));
 const AccountingDashboard = lazy(() => import("./pages/Accounting/AccountingDashboard/AccountingDashboard"));
 const PricingIntegration = lazy(() => import("./pages/Accounting/PricingIntegration/PricingIntegration"));
-const Quotations = lazy(() => import("./pages/Accounting/Quotations/Quotations"));
+import Quotations from "./pages/Accounting/Quotations/Quotations";
 
 // MaxSupply components
 const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));

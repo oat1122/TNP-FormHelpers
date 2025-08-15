@@ -26,10 +26,13 @@ import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../..
 import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
 import CustomerEditDialog from '../../PricingIntegration/components/CustomerEditDialog';
-import { sanitizeInt, sanitizeDecimal } from '../../shared/inputSanitizers';
+import QuotationPreview from '../../PricingIntegration/components/QuotationPreview';
+import { sanitizeInt } from '../../shared/inputSanitizers';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { pickQuotation, normalizeCustomer, getAllPrIdsFromQuotation, normalizeAndGroupItems, computeTotals, toISODate } from '../utils/quotationUtils';
+import { useQuotationGroups } from '../hooks/useQuotationGroups';
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
@@ -262,207 +265,6 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
 });
 
 
-// Normalize API response
-const pickQuotation = (resp) => (resp && resp.data) || resp || {};
-
-const normalizeCustomer = (q) => {
-  const c = q.customer || {};
-  // Prefer existing customer fields, then fallback to quotation-level aliases
-  const cus_id = c.cus_id || c.id || q.customer_id || null;
-  const cus_company = c.cus_company || q.customer_name || '';
-  const cus_tax_id = c.cus_tax_id || q.customer_tax_id || '';
-  const cus_email = c.cus_email || q.customer_email || '';
-  const cus_tel_1 = c.cus_tel_1 || c.cus_phone || q.customer_phone || '';
-  const cus_tel_2 = c.cus_tel_2 || '';
-  const cus_firstname = c.cus_firstname || c.contact_firstname || q.contact_firstname || '';
-  const cus_lastname = c.cus_lastname || c.contact_lastname || q.contact_lastname || '';
-  const cus_name = c.cus_name || c.contact_nickname || q.contact_nickname || '';
-  const cus_depart = c.cus_depart || c.contact_position || q.contact_position || '';
-  const cus_address = c.cus_address || q.customer_address || '';
-  const cus_zip_code = c.cus_zip_code || '';
-  const cus_channel = c.cus_channel ?? c.channel ?? '';
-  const cus_bt_id = c.cus_bt_id ?? c.bt_id ?? c.business_type_id ?? c.business_type?.bt_id ?? '';
-  const cus_pro_id = c.cus_pro_id || '';
-  const cus_dis_id = c.cus_dis_id || '';
-  const cus_sub_id = c.cus_sub_id || '';
-  const customer_type = c.customer_type || c.cus_type || (cus_company ? 'company' : 'individual');
-
-  return {
-    // pass through original fields for maximum compatibility
-    ...c,
-    // ensure the expected keys exist for the editor
-    cus_id,
-    cus_company,
-    cus_tax_id,
-    cus_email,
-    cus_tel_1,
-    cus_tel_2,
-    cus_firstname,
-    cus_lastname,
-    cus_name,
-    cus_depart,
-    cus_address,
-    cus_zip_code,
-    cus_channel,
-    cus_bt_id: cus_bt_id === '' ? '' : String(cus_bt_id),
-    cus_pro_id,
-    cus_dis_id,
-    cus_sub_id,
-  customer_type,
-    // also keep some display-only fallbacks used in cards
-    contact_name: c.contact_name || q.contact_name || c.cus_contact_name || '',
-    contact_nickname: c.contact_nickname || q.contact_nickname || '',
-    contact_position: c.contact_position || q.contact_position || '',
-    contact_phone_alt: c.contact_phone_alt || q.contact_phone_alt || '',
-  };
-};
-
-// Build normalized quotation_items then group them by pricing_request_id
-const normalizeAndGroupItems = (q, prIdsAll = []) => {
-  const items = Array.isArray(q.items) ? q.items : [];
-  const sorted = [...items].sort((a, b) => (Number(a?.sequence_order ?? 0) - Number(b?.sequence_order ?? 0)));
-
-  // Step 1: normalize raw items
-  const normalized = sorted.map((it, idx) => {
-    const nameRaw = it.item_name || it.work_name || it.name || it.item_description || it.description || '';
-    const name = nameRaw || '-';
-    const unit = it.unit || it.unit_name || 'ชิ้น';
-  const unitPrice = Number(it.unit_price || 0);
-  const baseRow = { uuid: `${it.id || idx}-row-1`, size: it.size || '', quantity: Number(it.quantity || 0), unitPrice, notes: it.notes || '' };
-    const sizeRows = Array.isArray(it.size_rows) && it.size_rows.length
-      ? it.size_rows.map((r, rIdx) => ({
-          uuid: r.uuid || `${it.id || idx}-row-${rIdx + 1}`,
-          size: r.size || '',
-          quantity: Number(r.quantity || 0),
-      unitPrice: Number(r.unit_price || unitPrice || 0),
-      notes: r.notes || '',
-        }))
-      : [baseRow];
-    return {
-      id: it.id || `qitem_${idx}`,
-      prId: it.pricing_request_id || null,
-      name,
-      pattern: it.pattern || '',
-      fabricType: it.fabric_type || it.material || '',
-      color: it.color || '',
-      size: it.size || '',
-      unit,
-      unitPrice,
-      sizeRows,
-      sequence: Number(it?.sequence_order ?? idx + 1),
-    };
-  });
-
-  // Step 2: group by PR
-  const groupMap = new Map();
-  for (const it of normalized) {
-    const key = it.prId || `misc-${it.sequence}`;
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        id: key,
-        prId: it.prId || null,
-        nameCandidates: [],
-        patterns: new Set(),
-        fabrics: new Set(),
-        colors: new Set(),
-        sizes: new Set(),
-        unitCandidates: new Set(),
-        sizeRows: [],
-        sequenceMin: it.sequence,
-      });
-    }
-    const g = groupMap.get(key);
-    g.sequenceMin = Math.min(g.sequenceMin, it.sequence);
-    // Try to keep base name without trailing size info like " - S-XL"
-    const baseName = (it.name || '').split(' - ')[0] || it.name;
-    if (baseName) g.nameCandidates.push(baseName);
-    if (it.pattern) g.patterns.add(it.pattern);
-    if (it.fabricType) g.fabrics.add(it.fabricType);
-    if (it.color) g.colors.add(it.color);
-    if (it.size) g.sizes.add(it.size);
-    if (it.unit) g.unitCandidates.add(it.unit);
-    if (Array.isArray(it.sizeRows)) g.sizeRows.push(...it.sizeRows);
-  }
-
-  // Ensure all PR IDs in quotation are represented (even if no items)
-  for (let i = 0; i < prIdsAll.length; i++) {
-    const pid = prIdsAll[i];
-    if (!groupMap.has(pid)) {
-      groupMap.set(pid, {
-        id: pid,
-        prId: pid,
-        nameCandidates: [],
-        patterns: new Set(),
-        fabrics: new Set(),
-        colors: new Set(),
-        sizes: new Set(),
-        unitCandidates: new Set(['ชิ้น']),
-        sizeRows: [],
-        sequenceMin: Number.MAX_SAFE_INTEGER - (prIdsAll.length - i),
-      });
-    }
-  }
-
-  // Step 3: finalize groups to UI model
-  const groups = Array.from(groupMap.values())
-    .sort((a, b) => a.sequenceMin - b.sequenceMin)
-    .map((g, idx) => {
-      const name = g.nameCandidates.find(Boolean) || '-';
-      const unit = g.unitCandidates.size === 1 ? Array.from(g.unitCandidates)[0] : 'ชิ้น';
-      const sizeSummarySet = new Set([
-        ...Array.from(g.sizes),
-        ...g.sizeRows.map(r => r.size).filter(Boolean),
-      ]);
-      const sizeSummary = Array.from(sizeSummarySet).join(', ');
-      return {
-        id: g.id || `group_${idx}`,
-        prId: g.prId,
-        name,
-        pattern: Array.from(g.patterns).join(', '),
-        fabricType: Array.from(g.fabrics).join(', '),
-        color: Array.from(g.colors).join(', '),
-        size: sizeSummary,
-        unit,
-        sizeRows: g.sizeRows,
-      };
-    });
-
-  return groups;
-};
-
-// Collect all PR ids referenced by a quotation (primary + array + from items)
-const getAllPrIdsFromQuotation = (q) => {
-  const set = new Set();
-  const primary = q.primary_pricing_request_id || q.primary_pricing_request || null;
-  if (primary) set.add(primary);
-  let arr = [];
-  if (Array.isArray(q.primary_pricing_request_ids)) arr = q.primary_pricing_request_ids;
-  else if (typeof q.primary_pricing_request_ids === 'string' && q.primary_pricing_request_ids.trim()) {
-    try { arr = JSON.parse(q.primary_pricing_request_ids); } catch (e) { /* ignore */ }
-  }
-  arr.forEach((id) => id && set.add(id));
-  const items = Array.isArray(q.items) ? q.items : [];
-  items.forEach((it) => { if (it?.pricing_request_id) set.add(it.pricing_request_id); });
-  return Array.from(set);
-};
-
-const computeTotals = (items, depositPercentage) => {
-  const subtotal = items.reduce((s, it) => {
-    const itemTotal = (it.sizeRows || []).reduce((ss, r) => {
-      const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
-      const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
-      return ss + (isNaN(q) || isNaN(p) ? 0 : q * p);
-    }, 0);
-    return s + itemTotal;
-  }, 0);
-  const vat = +(subtotal * 0.07).toFixed(2);
-  const total = +(subtotal + vat).toFixed(2);
-  const depPct = Math.max(0, Math.min(100, Number(depositPercentage || 0)));
-  const depositAmount = +(total * (depPct / 100)).toFixed(2);
-  const remainingAmount = +(total - depositAmount).toFixed(2);
-  return { subtotal, vat, total, depositAmount, remainingAmount };
-};
-
 // sanitizers imported from shared to keep behavior consistent across forms
 
 const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
@@ -471,10 +273,22 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
   const [editCustomerOpen, setEditCustomerOpen] = React.useState(false);
   const [customer, setCustomer] = React.useState(() => normalizeCustomer(q));
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [groups, setGroups] = React.useState([]);
+  const prIdsAll = getAllPrIdsFromQuotation(q);
+  const items = normalizeAndGroupItems(q, prIdsAll);
+  const {
+    groups,
+    setGroups,
+    isEditing,
+    setIsEditing,
+    onAddRow,
+    onChangeRow,
+    onRemoveRow,
+    onDeleteGroup,
+    onChangeGroup,
+  } = useQuotationGroups(items);
   const [quotationNotes, setQuotationNotes] = React.useState(q?.notes || '');
   const [selectedDueDate, setSelectedDueDate] = React.useState(q?.due_date ? new Date(q.due_date) : null);
+  const [showPreview, setShowPreview] = React.useState(false);
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms = q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash');
   const isKnownTerms = ['cash', 'credit_30', 'credit_60'].includes(initialRawTerms);
@@ -496,49 +310,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     setDepositPct(q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50));
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
   }, [open, q?.id, q?.notes]);
-  const prIdsAll = getAllPrIdsFromQuotation(q);
-  const items = normalizeAndGroupItems(q, prIdsAll);
-  React.useEffect(() => {
-    // Initialize editable groups on open or when quotation changes
-    const editable = items.map(g => ({ ...g, sizeRows: (g.sizeRows || []).map(r => ({ ...r })) }));
-    setGroups(editable);
-    setIsEditing(false);
-  }, [open, q?.id]);
-
-  const onAddRow = React.useCallback((groupId) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id !== groupId) return g;
-      const newRow = { uuid: `${groupId}-${Date.now()}`, size: '', quantity: '', unitPrice: '', notes: '' };
-      return { ...g, sizeRows: [...(g.sizeRows || []), newRow] };
-    }));
-  }, []);
-  const onChangeRow = React.useCallback((groupId, rowUuid, field, value) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id !== groupId) return g;
-      const rows = (g.sizeRows || []).map(r => {
-        if (r.uuid !== rowUuid) return r;
-        if (field === 'size') return { ...r, size: value };
-        // Keep numeric fields as strings during editing to avoid caret/focus issues
-        if (field === 'quantity') return { ...r, quantity: sanitizeInt(value) };
-        if (field === 'unitPrice') return { ...r, unitPrice: sanitizeDecimal(value) };
-        return { ...r, [field]: value };
-      });
-      return { ...g, sizeRows: rows };
-    }));
-  }, []);
-  const onRemoveRow = React.useCallback((groupId, rowUuid) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id !== groupId) return g;
-      const rows = (g.sizeRows || []).filter(r => r.uuid !== rowUuid);
-      return { ...g, sizeRows: rows };
-    }));
-  }, []);
-  const onDeleteGroup = React.useCallback((groupId) => {
-    setGroups(prev => prev.filter(g => g.id !== groupId));
-  }, []);
-  const onChangeGroup = React.useCallback((groupId, field, value) => {
-    setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, [field]: value } : g)));
-  }, []);
   const activeGroups = isEditing ? groups : items;
 
   // components are hoisted above
@@ -559,11 +330,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const depositAmount = q.deposit_amount != null ? Number(q.deposit_amount) : computed.depositAmount;
   const remainingAmount = +(total - depositAmount).toFixed(2);
 
-  const toISODate = (d) => {
-    if (!d) return null;
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  };
+  // using toISODate util
 
   const handleSave = async () => {
     // Map editable groups back to API items
@@ -616,7 +383,41 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     }
   };
 
+  const previewItems = (isEditing ? groups : items).map((g) => {
+    const rows = Array.isArray(g.sizeRows) ? g.sizeRows : [];
+    const totalByItem = rows.reduce((s, r) => {
+      const qv = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+      const pv = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+      return s + (isNaN(qv) || isNaN(pv) ? 0 : qv * pv);
+    }, 0);
+    return {
+      id: g.id,
+      name: g.name,
+      pattern: g.pattern,
+      fabricType: g.fabricType,
+      color: g.color,
+      size: g.size,
+      sizeRows: rows,
+      unitPrice: g.unitPrice,
+      total: totalByItem,
+    };
+  });
+
+  const previewFormData = {
+    customer,
+    items: previewItems,
+    subtotal,
+    vat,
+    total,
+    depositAmount,
+    remainingAmount,
+    dueDate: isEditing ? selectedDueDate : dueDate,
+    paymentMethod,
+    notes: isEditing ? (quotationNotes ?? '') : (q?.notes ?? ''),
+  };
+
   return (
+    <>
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         รายละเอียดใบเสนอราคา
@@ -913,11 +714,15 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
       <DialogActions>
         {isEditing ? (
           <>
+            <SecondaryButton onClick={() => setShowPreview(true)}>ดูตัวอย่าง PDF</SecondaryButton>
             <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
             <SecondaryButton onClick={handleSave} disabled={isSaving}>{isSaving ? 'กำลังบันทึก…' : 'บันทึก'}</SecondaryButton>
           </>
         ) : (
-          <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+          <>
+            <SecondaryButton onClick={() => setShowPreview(true)}>ดูตัวอย่าง PDF</SecondaryButton>
+            <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+          </>
         )}
       </DialogActions>
       <CustomerEditDialog
@@ -930,6 +735,18 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
         }}
       />
     </Dialog>
+
+    {/* Preview Dialog */}
+    <Dialog open={showPreview} onClose={() => setShowPreview(false)} maxWidth="lg" fullWidth>
+      <DialogTitle>ดูตัวอย่าง PDF</DialogTitle>
+      <DialogContent dividers>
+        <QuotationPreview formData={previewFormData} quotationNumber={quotationNumber} showActions={true} />
+      </DialogContent>
+      <DialogActions>
+        <SecondaryButton onClick={() => setShowPreview(false)}>ปิด</SecondaryButton>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Paper, Typography, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Stack } from '@mui/material';
 import { adaptQuotationPayloadToPreview } from '../utils/quotationAdapter';
+import QuotationPDF from './QuotationPDF';
+import { pdf } from '@react-pdf/renderer';
+import { ensureThaiFontsRegisteredAsync } from '../../../../shared/pdf/fonts/registerThaiFonts';
 
 // A4 printable quotation preview with logo and size from quotation_items
-export default function QuotationPreview({ formData = {}, record = null, quotationNumber = '', showActions = false, onClose }) {
-  const data = adaptQuotationPayloadToPreview({ formData, record, quotationNumber });
+export default function QuotationPreview({ formData = {}, record = null, quotationNumber = '', showActions = false, onClose, previewData }) {
+  const [loading, setLoading] = useState(false);
+  // Keep compatibility: prefer adapter when formData/record provided; otherwise accept previewData prop
+  const data = useMemo(() => {
+    if (previewData) return previewData;
+    return adaptQuotationPayloadToPreview({ formData, record, quotationNumber });
+  }, [previewData, formData, record, quotationNumber]);
   const company = data.company || {};
   const customer = data.customer || {};
   const items = Array.isArray(data.items) ? data.items : [];
@@ -35,11 +43,37 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
   const remainingAmount = Number(data.remainingAmount ?? Math.max(total - depositAmount, 0));
   const termsText = data.terms || 'ไม่สามารถหักภาษี ณ ที่จ่ายได้ เนื่องจากเป็นการซื้อวัตถุดิบ\nมัดจำ 50% ก่อนเริ่มงาน และชำระ 50% ก่อนส่งมอบสินค้า';
 
+  const handlePrintPDF = async () => {
+    try {
+      setLoading(true);
+      // ✅ สำคัญ: ลงทะเบียนฟอนต์ไทยให้เสร็จก่อน gen PDF
+      await ensureThaiFontsRegisteredAsync();
+
+      // สร้าง PDF
+      const instance = pdf(<QuotationPDF data={data} />);
+      const blob = await instance.toBlob();
+
+      // ดาวน์โหลดไฟล์
+      const fileName = data?.quotationNumber ? `Quotation_${data.quotationNumber}.pdf` : 'Quotation.pdf';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate PDF', err);
+      alert('ไม่สามารถสร้างไฟล์ PDF ได้');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ p: 2 }}>
       {showActions && (
         <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-          <Button variant="contained" onClick={() => window.print()}>พิมพ์</Button>
+          <Button variant="contained" onClick={handlePrintPDF} disabled={loading}>{loading ? 'กำลังสร้าง PDF...' : 'พิมพ์'}</Button>
           {!!onClose && <Button variant="outlined" onClick={onClose}>ปิด</Button>}
         </Stack>
       )}

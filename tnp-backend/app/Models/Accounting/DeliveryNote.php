@@ -47,6 +47,7 @@ class DeliveryNote extends Model
 
     protected $fillable = [
         'id',
+        'company_id',
         'number',
         'receipt_id',
         'customer_id',
@@ -88,6 +89,9 @@ class DeliveryNote extends Model
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+            if (empty($model->company_id)) {
+                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
         });
     }
@@ -177,24 +181,10 @@ class DeliveryNote extends Model
     /**
      * Auto-generate delivery note number
      */
-    public static function generateDeliveryNoteNumber()
+    public static function generateDeliveryNoteNumber(string $companyId)
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = 'DN' . $year . $month;
-        
-        $lastDeliveryNote = static::where('number', 'like', $prefix . '%')
-                                 ->orderBy('number', 'desc')
-                                 ->first();
-        
-        if ($lastDeliveryNote) {
-            $lastNumber = intval(substr($lastDeliveryNote->number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\Support\DocumentNumberService::class)
+            ->next($companyId, 'delivery_note');
     }
 
     /**

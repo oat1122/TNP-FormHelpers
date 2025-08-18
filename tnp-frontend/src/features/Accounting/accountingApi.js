@@ -14,9 +14,58 @@ export const accountingApi = createApi({
         'Invoice',
         'Receipt',
         'DeliveryNote',
-        'Dashboard'
+        'Dashboard',
+        'Company',
     ],
     endpoints: (builder) => ({
+        // ===================== COMPANIES (CRUD) =====================
+
+        getCompanies: builder.query({
+            query: (params = {}) => ({
+                url: '/companies',
+                params,
+            }),
+            providesTags: (result) => {
+                // Tag list + individual for cache granularity
+                const items = (result?.data ?? result ?? []).map?.(c => ({ type: 'Company', id: c.id })) || [];
+                return [{ type: 'Company', id: 'LIST' }, ...items];
+            },
+            keepUnusedDataFor: 60,
+        }),
+
+        getCompany: builder.query({
+            query: (id) => `/companies/${id}`,
+            providesTags: (result, error, id) => [{ type: 'Company', id }],
+        }),
+
+        createCompany: builder.mutation({
+            query: (data) => ({
+                url: '/companies',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: [{ type: 'Company', id: 'LIST' }],
+        }),
+
+        updateCompany: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/companies/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Company', id },
+                { type: 'Company', id: 'LIST' },
+            ],
+        }),
+
+        deleteCompany: builder.mutation({
+            query: (id) => ({
+                url: `/companies/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: [{ type: 'Company', id: 'LIST' }],
+        }),
 
         // ===================== PRICING REQUESTS =====================
 
@@ -246,7 +295,7 @@ export const accountingApi = createApi({
         // Generate PDF (available after approval)
         generateQuotationPDF: builder.mutation({
             query: (id) => ({
-                url: `/quotations/${id}/pdf`,
+                url: `/quotations/${id}/generate-pdf`,
                 method: 'GET',
             }),
         }),
@@ -545,6 +594,12 @@ export const accountingApi = createApi({
 
 // Export hooks for usage in functional components
 export const {
+    // Companies
+    useGetCompaniesQuery,
+    useGetCompanyQuery,
+    useCreateCompanyMutation,
+    useUpdateCompanyMutation,
+    useDeleteCompanyMutation,
     // Pricing Requests
     useGetCompletedPricingRequestsQuery,
     useGetPricingRequestAutofillQuery,

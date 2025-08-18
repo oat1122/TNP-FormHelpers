@@ -47,7 +47,9 @@ class DeliveryNoteService
             // สร้าง Delivery Note
             $deliveryNote = new DeliveryNote();
             $deliveryNote->id = \Illuminate\Support\Str::uuid();
-            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber();
+            $deliveryNote->company_id = $receipt->company_id
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
             $deliveryNote->receipt_id = $receipt->id;
             
             // Auto-fill ข้อมูลจาก Receipt
@@ -109,7 +111,9 @@ class DeliveryNoteService
 
             $deliveryNote = new DeliveryNote();
             $deliveryNote->id = \Illuminate\Support\Str::uuid();
-            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber();
+            $deliveryNote->company_id = $data['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
             
             // ข้อมูลลูกค้า
             $deliveryNote->customer_id = $data['customer_id'] ?? null;

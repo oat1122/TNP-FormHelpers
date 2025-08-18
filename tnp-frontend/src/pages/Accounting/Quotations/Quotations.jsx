@@ -9,6 +9,7 @@ import {
   Container,
   Grid,
   Alert,
+  Button,
 } from '@mui/material';
 import {
   Header,
@@ -36,6 +37,7 @@ import QuotationCard from './components/QuotationCard';
 import LinkedPricingDialog from './components/LinkedPricingDialog';
 import QuotationDetailDialog from './components/QuotationDetailDialog';
 import usePagination from './hooks/usePagination';
+import CompanyManagerDialog from './components/CompanyManagerDialog';
 
 const statusOrder = ['draft','pending_review','approved','sent','completed','rejected'];
 
@@ -50,6 +52,7 @@ const Quotations = () => {
   const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
   const [linkedOpen, setLinkedOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
     search: searchQuery || undefined,
@@ -222,23 +225,32 @@ const Quotations = () => {
             {(() => {
               const userData = JSON.parse(localStorage.getItem('userData') || '{}');
               const isAdmin = userData.user_id === 1;
-              if (!isAdmin) {
-                return (
-                  <Alert
-                    severity="info"
-                    sx={{ mb: 3, borderRadius: 2 }}
-                    icon={<span>🔐</span>}
-                  >
-                    <strong>การแบ่งสิทธิ์การเข้าถึง:</strong> คุณสามารถดูข้อมูลใบเสนอราคาได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
-                    {userData.username && (
-                      <Box component="span" sx={{ ml: 1, color: 'info.dark', fontWeight: 'medium' }}>
-                        (ผู้ใช้: {userData.username})
-                      </Box>
-                    )}
-                  </Alert>
-                );
-              }
-              return null;
+              const canManageCompanies = userData.role === 'admin' || userData.role === 'account';
+              return (
+                <>
+                  {!isAdmin && (
+                    <Alert
+                      severity="info"
+                      sx={{ mb: 2, borderRadius: 2 }}
+                      icon={<span>🔐</span>}
+                    >
+                      <strong>การแบ่งสิทธิ์การเข้าถึง:</strong> คุณสามารถดูข้อมูลใบเสนอราคาได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
+                      {userData.username && (
+                        <Box component="span" sx={{ ml: 1, color: 'info.dark', fontWeight: 'medium' }}>
+                          (ผู้ใช้: {userData.username})
+                        </Box>
+                      )}
+                    </Alert>
+                  )}
+                  {canManageCompanies && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                      <Button variant="outlined" size="small" onClick={() => setCompanyDialogOpen(true)}>
+                        จัดการบริษัท
+                      </Button>
+                    </Box>
+                  )}
+                </>
+              );
             })()}
 
             {error && (
@@ -295,6 +307,7 @@ const Quotations = () => {
           </Container>
           <LinkedPricingDialog open={linkedOpen} onClose={() => setLinkedOpen(false)} quotationId={selectedQuotation?.id} />
           <QuotationDetailDialog open={detailOpen} onClose={() => setDetailOpen(false)} quotationId={selectedQuotation?.id} />
+          <CompanyManagerDialog open={companyDialogOpen} onClose={() => setCompanyDialogOpen(false)} />
           {/* Floating Action Button */}
           <FloatingActionButton onRefresh={handleRefresh} />
         </Box>

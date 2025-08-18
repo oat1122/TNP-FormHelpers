@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Paper, Typography, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Stack } from '@mui/material';
 import { adaptQuotationPayloadToPreview } from '../utils/quotationAdapter';
-import QuotationPDF from './QuotationPDF';
-import { pdf } from '@react-pdf/renderer';
-import { ensureThaiFontsRegisteredAsync } from '../../../../shared/pdf/fonts/registerThaiFonts';
+// Backend PDF generation via API
+import accountingHttp from '../../../../api/accountingApi';
 
 // A4 printable quotation preview with logo and size from quotation_items
 export default function QuotationPreview({ formData = {}, record = null, quotationNumber = '', showActions = false, onClose, previewData }) {
@@ -46,21 +45,16 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
   const handlePrintPDF = async () => {
     try {
       setLoading(true);
-      // ✅ สำคัญ: ลงทะเบียนฟอนต์ไทยให้เสร็จก่อน gen PDF
-      await ensureThaiFontsRegisteredAsync();
-
-      // สร้าง PDF
-      const instance = pdf(<QuotationPDF data={data} />);
-      const blob = await instance.toBlob();
-
-      // ดาวน์โหลดไฟล์
-      const fileName = data?.quotationNumber ? `Quotation_${data.quotationNumber}.pdf` : 'Quotation.pdf';
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
+      // ใช้ backend สร้าง PDF และเปิดไฟล์ที่ได้
+      const id = record?.id || data?.id;
+      if (!id) throw new Error('missing quotation id');
+      const res = await accountingHttp.generateQuotationPDF(id);
+      const pdfUrl = res?.data?.pdf_url || res?.pdf_url;
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
+      } else {
+        throw new Error('missing pdf url');
+      }
     } catch (err) {
       console.error('Failed to generate PDF', err);
       alert('ไม่สามารถสร้างไฟล์ PDF ได้');

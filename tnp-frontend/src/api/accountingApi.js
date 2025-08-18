@@ -302,6 +302,37 @@ class AccountingAPI {
         return this.makeRequest(`/receipts/${id}/generate-pdf`);
     }
 
+    // ===================== COMPANIES (CRUD) =====================
+
+    async getCompanies(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        return this.makeRequest(`/companies${query ? `?${query}` : ''}`);
+    }
+
+    async getCompany(id) {
+        return this.makeRequest(`/companies/${id}`);
+    }
+
+    async createCompany(data) {
+        return this.makeRequest('/companies', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateCompany(id, data) {
+        return this.makeRequest(`/companies/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteCompany(id) {
+        return this.makeRequest(`/companies/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     // ===================== DELIVERY NOTES =====================
 
     /**

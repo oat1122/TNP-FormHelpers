@@ -95,6 +95,7 @@ class DeliveryNoteController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                'company_id' => 'nullable|string|exists:companies,id',
                 'customer_company' => 'required|string|max:255',
                 'customer_address' => 'required|string|max:500',
                 'work_name' => 'required|string|max:255',

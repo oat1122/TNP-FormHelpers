@@ -41,7 +41,9 @@ class ReceiptService
             // สร้าง Receipt
             $receipt = new Receipt();
             $receipt->id = \Illuminate\Support\Str::uuid();
-            $receipt->number = $this->generateReceiptNumber($paymentData['receipt_type'] ?? 'receipt');
+            $receipt->company_id = $invoice->company_id
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $receipt->number = Receipt::generateReceiptNumber($receipt->company_id, $paymentData['receipt_type'] ?? 'receipt');
             $receipt->invoice_id = $invoice->id;
             
             // Auto-fill ข้อมูลจาก Invoice
@@ -79,7 +81,7 @@ class ReceiptService
 
             // Generate Tax Invoice Number สำหรับใบกำกับภาษี
             if (in_array($receiptType, ['tax_invoice', 'full_tax_invoice'])) {
-                $receipt->tax_invoice_number = $this->generateTaxInvoiceNumber();
+                $receipt->generateTaxInvoiceNumber();
             }
 
             $receipt->notes = $paymentData['notes'] ?? null;
@@ -119,7 +121,9 @@ class ReceiptService
 
             $receipt = new Receipt();
             $receipt->id = \Illuminate\Support\Str::uuid();
-            $receipt->number = $this->generateReceiptNumber($receiptData['receipt_type'] ?? 'receipt');
+            $receipt->company_id = $receiptData['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $receipt->number = Receipt::generateReceiptNumber($receipt->company_id, $receiptData['receipt_type'] ?? 'receipt');
             
             // กรอกข้อมูลจาก input
             foreach ($receiptData as $key => $value) {
@@ -130,7 +134,7 @@ class ReceiptService
 
             // Generate Tax Invoice Number สำหรับใบกำกับภาษี
             if (in_array($receipt->receipt_type, ['tax_invoice', 'full_tax_invoice'])) {
-                $receipt->tax_invoice_number = $this->generateTaxInvoiceNumber();
+                $receipt->generateTaxInvoiceNumber();
             }
 
             $receipt->status = 'draft';
@@ -551,59 +555,7 @@ class ReceiptService
         ];
     }
 
-    /**
-     * Generate Receipt Number
-     */
-    private function generateReceiptNumber($type = 'receipt')
-    {
-        $year = date('Y');
-        $month = date('m');
-        
-        $prefixes = [
-            'receipt' => 'RCPT',
-            'tax_invoice' => 'TAX',
-            'full_tax_invoice' => 'FTAX'
-        ];
-        
-        $prefix = $prefixes[$type] ?? 'RCPT';
-        $prefix .= $year . $month;
-        
-        $lastReceipt = Receipt::where('number', 'like', $prefix . '%')
-                            ->orderBy('number', 'desc')
-                            ->first();
-        
-        if ($lastReceipt) {
-            $lastNumber = intval(substr($lastReceipt->number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Generate Tax Invoice Number
-     */
-    private function generateTaxInvoiceNumber()
-    {
-        $year = date('Y') + 543; // Buddhist Year
-        $prefix = 'AA12345678901'; // เลขประจำตัวผู้เสียภาษีของบริษัท
-        
-        $lastTaxInvoice = Receipt::whereNotNull('tax_invoice_number')
-                               ->where('tax_invoice_number', 'like', $prefix . '-' . $year . '%')
-                               ->orderBy('tax_invoice_number', 'desc')
-                               ->first();
-        
-        if ($lastTaxInvoice) {
-            $lastNumber = intval(substr($lastTaxInvoice->tax_invoice_number, -3));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . $year . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-    }
+    // Deprecated local generators replaced by per-company service via model methods
 
     /**
      * อัปเดตสถานะการชำระของ Invoice

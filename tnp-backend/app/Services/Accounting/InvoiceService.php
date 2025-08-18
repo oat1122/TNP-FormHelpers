@@ -42,7 +42,9 @@ class InvoiceService
             // สร้าง Invoice
             $invoice = new Invoice();
             $invoice->id = \Illuminate\Support\Str::uuid();
-            $invoice->number = Invoice::generateInvoiceNumber();
+            $invoice->company_id = $quotation->company_id
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
             $invoice->quotation_id = $quotation->id;
             
             // Auto-fill ข้อมูลจาก Quotation
@@ -116,7 +118,9 @@ class InvoiceService
 
             $invoice = new Invoice();
             $invoice->id = \Illuminate\Support\Str::uuid();
-            $invoice->number = Invoice::generateInvoiceNumber();
+            $invoice->company_id = $invoiceData['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
             
             // กรอกข้อมูลจาก input
             foreach ($invoiceData as $key => $value) {

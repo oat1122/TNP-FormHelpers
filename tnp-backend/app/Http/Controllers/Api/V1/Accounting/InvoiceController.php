@@ -93,6 +93,7 @@ class InvoiceController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                'company_id' => 'nullable|string|exists:companies,id',
                 'customer_company' => 'required|string|max:255',
                 'customer_tax_id' => 'required|string|max:13',
                 'customer_address' => 'required|string|max:500',

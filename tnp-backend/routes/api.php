@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Accounting\AutofillController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
+use App\Http\Controllers\Api\V1\CompanyController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -110,6 +111,15 @@ Route::prefix('v1')->group(function() {
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
         Route::delete("/user/{id}", "destroy");
+    });
+
+    //---------- Companies ----------
+    Route::controller(CompanyController::class)->group(function () {
+        Route::get('/companies', 'index');
+        Route::post('/companies', 'store');
+        Route::get('/companies/{id}', 'show');
+        Route::put('/companies/{id}', 'update');
+        Route::delete('/companies/{id}', 'destroy');
     });
 
 

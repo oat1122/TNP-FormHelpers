@@ -10,6 +10,7 @@ use App\Models\MasterCustomer;
 use App\Models\PricingRequest;
 use App\Models\User;
 use App\Models\Accounting\QuotationItem;
+use App\Models\Company;
 
 /**
  * Class Quotation
@@ -61,6 +62,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'id',
+        'company_id',
         'number',
         'customer_id',
         'primary_pricing_request_id',
@@ -105,7 +107,19 @@ class Quotation extends Model
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
+            // Assign a default company_id if not provided (first active company)
+            if (empty($model->company_id)) {
+                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
+            }
         });
+    }
+
+    /**
+     * Relationship: Quotation belongs to Company
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 
     /**
@@ -245,24 +259,10 @@ class Quotation extends Model
     /**
      * Auto-generate quotation number
      */
-    public static function generateQuotationNumber()
+    public static function generateQuotationNumber(string $companyId)
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = 'QT' . $year . $month;
-        
-        $lastQuotation = static::where('number', 'like', $prefix . '%')
-                              ->orderBy('number', 'desc')
-                              ->first();
-        
-        if ($lastQuotation) {
-            $lastNumber = intval(substr($lastQuotation->number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\Support\DocumentNumberService::class)
+            ->next($companyId, 'quotation');
     }
 
     /**

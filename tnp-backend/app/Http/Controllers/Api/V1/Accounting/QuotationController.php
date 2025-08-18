@@ -63,6 +63,7 @@ class QuotationController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                'company_id' => 'nullable|string|exists:companies,id',
                 'pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
                 'customer_company' => 'required|string|max:255',
                 'work_name' => 'required|string|max:100',
@@ -124,6 +125,7 @@ class QuotationController extends Controller
         try {
             $quotation = Quotation::with([
                 'customer',
+                'company',
                 'pricingRequest',
                 'creator',
                 'approver',
@@ -157,6 +159,7 @@ class QuotationController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                'company_id' => 'nullable|string|exists:companies,id',
                 'customer_company' => 'sometimes|string|max:255',
                 'work_name' => 'sometimes|string|max:100',
                 'subtotal' => 'sometimes|numeric|min:0',

@@ -51,6 +51,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'id',
+        'company_id',
         'number',
         'quotation_id',
         'customer_id',
@@ -113,6 +114,9 @@ class Invoice extends Model
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+            if (empty($model->company_id)) {
+                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
         });
     }
@@ -203,24 +207,10 @@ class Invoice extends Model
     /**
      * Auto-generate invoice number
      */
-    public static function generateInvoiceNumber()
+    public static function generateInvoiceNumber(string $companyId)
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = 'INV' . $year . $month;
-        
-        $lastInvoice = static::where('number', 'like', $prefix . '%')
-                            ->orderBy('number', 'desc')
-                            ->first();
-        
-        if ($lastInvoice) {
-            $lastNumber = intval(substr($lastInvoice->number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\Support\DocumentNumberService::class)
+            ->next($companyId, 'invoice');
     }
 
     /**

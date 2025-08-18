@@ -48,6 +48,7 @@ class Receipt extends Model
 
     protected $fillable = [
         'id',
+        'company_id',
         'number',
         'invoice_id',
         'customer_id',
@@ -92,6 +93,9 @@ class Receipt extends Model
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
+            }
+            if (empty($model->company_id)) {
+                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
         });
     }
@@ -181,32 +185,10 @@ class Receipt extends Model
     /**
      * Auto-generate receipt number based on type
      */
-    public static function generateReceiptNumber($type = 'receipt')
+    public static function generateReceiptNumber(string $companyId, $type = 'receipt')
     {
-        $year = date('Y');
-        $month = date('m');
-        
-        $prefixMap = [
-            'receipt' => 'RCPT',
-            'tax_invoice' => 'TAX',
-            'full_tax_invoice' => 'FTAX'
-        ];
-        
-        $prefix = $prefixMap[$type] . $year . $month;
-        
-        $lastReceipt = static::where('number', 'like', $prefix . '%')
-                            ->where('type', $type)
-                            ->orderBy('number', 'desc')
-                            ->first();
-        
-        if ($lastReceipt) {
-            $lastNumber = intval(substr($lastReceipt->number, -4));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\Support\DocumentNumberService::class)
+            ->next($companyId, $type);
     }
 
     /**
@@ -215,25 +197,10 @@ class Receipt extends Model
     public function generateTaxInvoiceNumber()
     {
         if ($this->type === 'tax_invoice' || $this->type === 'full_tax_invoice') {
-            $year = date('Y');
-            $month = date('m');
-            $prefix = 'TI' . $year . $month;
-            
-            $lastTaxInvoice = static::where('tax_invoice_number', 'like', $prefix . '%')
-                                  ->orderBy('tax_invoice_number', 'desc')
-                                  ->first();
-            
-            if ($lastTaxInvoice) {
-                $lastNumber = intval(substr($lastTaxInvoice->tax_invoice_number, -4));
-                $newNumber = $lastNumber + 1;
-            } else {
-                $newNumber = 1;
-            }
-            
-            $this->tax_invoice_number = $prefix . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            $this->tax_invoice_number = app(\App\Services\Support\DocumentNumberService::class)
+                ->next($this->company_id, 'tax_invoice');
             $this->save();
         }
-        
         return $this;
     }
 

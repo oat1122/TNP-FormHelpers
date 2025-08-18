@@ -39,7 +39,9 @@ class QuotationService
             // สร้าง Quotation
             $quotation = new Quotation();
             $quotation->id = \Illuminate\Support\Str::uuid();
-            $quotation->number = Quotation::generateQuotationNumber();
+            $quotation->company_id = $additionalData['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
             // Lean schema: primary pricing request linkage
             $quotation->primary_pricing_request_id = $autofillData['pr_id'] ?? null;
 
@@ -88,7 +90,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'pricingRequest', 'creator']);
+            return $quotation->load(['customer', 'pricingRequest', 'creator', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -107,7 +109,9 @@ class QuotationService
 
             $quotation = new Quotation();
             $quotation->id = \Illuminate\Support\Str::uuid();
-            $quotation->number = Quotation::generateQuotationNumber();
+            $quotation->company_id = $data['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
             $quotation->fill($data);
             $quotation->status = 'draft';
             $quotation->created_by = $createdBy;
@@ -132,7 +136,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator']);
+            return $quotation->load(['customer', 'creator', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -179,7 +183,9 @@ class QuotationService
             // สร้าง Quotation
             $quotation = new Quotation();
             $quotation->id = \Illuminate\Support\Str::uuid();
-            $quotation->number = Quotation::generateQuotationNumber();
+            $quotation->company_id = $additionalData['company_id']
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
 
             // ⭐ รองรับ multiple primary pricing request IDs (พร้อม backward compatibility)
             if (Schema::hasColumn('quotations', 'primary_pricing_request_ids')) {
@@ -289,7 +295,7 @@ class QuotationService
                 'primary_pricing_request_ids' => $pricingRequestIds
             ]);
 
-            return $quotation->load(['customer', 'creator', 'items']);
+            return $quotation->load(['customer', 'creator', 'items', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -311,8 +317,20 @@ class QuotationService
 
             $quotation = Quotation::findOrFail($id);
             $oldStatus = $quotation->status;
+            $oldCompanyId = $quotation->company_id;
 
             $quotation->fill($data);
+
+            // If company changed and document is not finalized, renumber for the new company
+            if (
+                array_key_exists('company_id', $data) &&
+                !empty($data['company_id']) &&
+                $data['company_id'] !== $oldCompanyId &&
+                !in_array($quotation->status, ['approved', 'sent', 'completed'])
+            ) {
+                $quotation->number = Quotation::generateQuotationNumber($data['company_id']);
+            }
+
             $quotation->save();
 
             // If frontend sends full items array, replace existing quotation_items accordingly
@@ -519,7 +537,9 @@ class QuotationService
             // สร้าง Invoice
             $invoice = new Invoice();
             $invoice->id = \Illuminate\Support\Str::uuid();
-            $invoice->number = Invoice::generateInvoiceNumber();
+            $invoice->company_id = $quotation->company_id
+                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
+            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
             $invoice->quotation_id = $quotation->id;
             
             // Auto-fill ข้อมูลจาก Quotation
@@ -599,7 +619,7 @@ class QuotationService
     {
         try {
             // Eager-load relations needed by frontend; guard junction table existence
-            $with = ['customer', 'creator', 'pricingRequest', 'items'];
+            $with = ['customer', 'creator', 'pricingRequest', 'items', 'company'];
             if (Schema::hasTable('quotation_pricing_requests')) {
                 $with[] = 'pricingRequests';
             }
@@ -676,7 +696,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator', 'documentHistory']);
+            return $quotation->load(['customer', 'creator', 'documentHistory', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -719,7 +739,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator', 'documentHistory']);
+            return $quotation->load(['customer', 'creator', 'documentHistory', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -734,30 +754,18 @@ class QuotationService
     public function generatePdf($quotationId)
     {
         try {
-            $quotation = Quotation::with(['customer', 'pricingRequest'])->findOrFail($quotationId);
+            $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items'])->findOrFail($quotationId);
 
             // ตรวจสอบว่าสถานะอนุญาตให้สร้าง PDF ได้
             if (!in_array($quotation->status, ['approved', 'sent', 'completed'])) {
                 throw new \Exception('Quotation must be approved before generating PDF');
             }
 
-            // สร้าง PDF ด้วย Laravel PDF library หรือ external service
-            $filename = "quotation-{$quotation->number}.pdf";
-            $pdfPath = storage_path("app/public/pdfs/quotations/{$filename}");
-
-            // สร้าง directory ถ้าไม่มี
-            $directory = dirname($pdfPath);
-            if (!file_exists($directory)) {
-                mkdir($directory, 0755, true);
-            }
-
-            // TODO: Implement actual PDF generation
-            // For now, create a simple text file as placeholder
-            $content = $this->generatePdfContent($quotation);
-            file_put_contents($pdfPath, $content);
-
-            $fileSize = filesize($pdfPath);
-            $pdfUrl = url("storage/pdfs/quotations/{$filename}");
+            // สร้าง PDF ด้วย Laravel-FPDF service
+            $pdfPath = app(\App\Services\Accounting\Pdf\QuotationPdfService::class)->render($quotation);
+            $filename = basename($pdfPath);
+            $pdfUrl = url('storage/pdfs/quotations/' . $filename);
+            $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
 
             // บันทึก History
             DocumentHistory::logAction(
@@ -775,7 +783,7 @@ class QuotationService
                 'path' => $pdfPath
             ];
 
-        } catch (\Exception $e) {
+    } catch (\Exception $e) {
             Log::error('QuotationService::generatePdf error: ' . $e->getMessage());
             throw $e;
         }
@@ -939,7 +947,7 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator', 'documentHistory']);
+            return $quotation->load(['customer', 'creator', 'documentHistory', 'company']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -999,35 +1007,5 @@ class QuotationService
     /**
      * สร้างเนื้อหา PDF (placeholder implementation)
      */
-    private function generatePdfContent($quotation)
-    {
-        return "
-TNP GROUP
-ใบเสนอราคา {$quotation->number}
-
-ลูกค้า: {$quotation->customer_company}
-เลขภาษี: {$quotation->customer_tax_id}
-ที่อยู่: {$quotation->customer_address}
-
-รายละเอียดงาน:
-{$quotation->work_name}
-ประเภทผ้า: {$quotation->fabric_type}
-สี: {$quotation->color}
-ขนาด: {$quotation->sizes}
-จำนวน: {$quotation->quantity}
-
-ราคา:
-ยอดก่อนภาษี: " . number_format($quotation->subtotal, 2) . " บาท
-ภาษีมูลค่าเพิ่ม: " . number_format($quotation->tax_amount, 2) . " บาท
-ยอดรวม: " . number_format($quotation->total_amount, 2) . " บาท
-
-เงื่อนไขการชำระ: {$quotation->payment_terms}
-เงินมัดจำ: {$quotation->deposit_percentage}% (" . number_format($quotation->deposit_amount, 2) . " บาท)
-
-หมายเหตุ:
-{$quotation->notes}
-
-วันที่: " . now()->format('d/m/Y') . "
-";
-    }
+    // legacy placeholder generator removed in favor of FPDF service
 }

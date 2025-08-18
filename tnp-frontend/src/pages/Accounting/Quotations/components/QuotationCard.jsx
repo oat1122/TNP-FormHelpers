@@ -1,9 +1,9 @@
 import React from 'react';
-import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid } from '@mui/material';
+import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid, FormControl, Select, MenuItem, InputLabel, CircularProgress, Tooltip } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation, useGetCompaniesQuery, useUpdateQuotationMutation } from '../../../../features/Accounting/accountingApi';
 import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
 import {
   TNPCard,
@@ -31,6 +31,17 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
   const [showAll, setShowAll] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
   const [deleteQuotation] = useDeleteQuotationMutation();
+  const { data: companiesResp, isLoading: companiesLoading } = useGetCompaniesQuery(undefined, { refetchOnMountOrArgChange: false });
+  const [updateQuotation, { isLoading: updatingCompany }] = useUpdateQuotationMutation();
+  const companies = React.useMemo(() => {
+    const list = companiesResp?.data ?? companiesResp ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [companiesResp]);
+  const userData = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('userData') || '{}'); } catch { return {}; }
+  }, []);
+  const canChangeCompany = ['admin','account'].includes(userData?.role);
+  const currentCompany = React.useMemo(() => companies.find((c) => c.id === data.company_id), [companies, data?.company_id]);
   // collect linked PR ids from this quotation
   const detail = data; // data may already contain items
   const prIds = React.useMemo(() => {
@@ -75,7 +86,45 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
             <TNPHeading variant="h6">
               {data.customer?.cus_company || data.customer_name || '-'}
             </TNPHeading>
-            {/* Jobs list under PR codes */}
+            {/* Company info / selector (admin, account) */}
+            <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 1, minHeight: 36 }}>
+              {canChangeCompany ? (
+                <FormControl size="small" sx={{ minWidth: 180 }} disabled={companiesLoading || updatingCompany}>
+                  <InputLabel id={`company-select-label-${data.id}`}>บริษัท</InputLabel>
+                  <Select
+                    labelId={`company-select-label-${data.id}`}
+                    value={data.company_id || ''}
+                    label="บริษัท"
+                    onChange={async (e) => {
+                      const newCompanyId = e.target.value;
+                      try {
+                        await updateQuotation({ id: data.id, company_id: newCompanyId }).unwrap();
+                      } catch (err) {
+                        console.error('Update company failed', err);
+                      }
+                    }}
+                    renderValue={(val) => {
+                      const found = companies.find(c => c.id === val);
+                      return found ? (found.short_code || found.name) : 'ไม่ระบุ';
+                    }}
+                  >
+                    {companies.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.short_code || c.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{c.name}</Typography>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              ) : (
+                <Tooltip title="บริษัทที่ออกเอกสาร">
+                  <Chip size="small" color="default" label={currentCompany?.short_code || currentCompany?.name || 'ไม่ระบุบริษัท'} />
+                </Tooltip>
+              )}
+              {updatingCompany && <CircularProgress size={18} />}
+            </Box>
           </Box>
         </Box>
 

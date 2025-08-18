@@ -7,6 +7,13 @@
 			"command": "cd c:\\worke\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes",
 			"group": "test",
 			"isBackground": false
+		},
+		{
+			"label": "Run the Step 4 Delivery APIs test",
+			"type": "shell",
+			"command": "echo START && cd c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes --no-ansi && echo DONE",
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }

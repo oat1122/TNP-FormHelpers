@@ -787,13 +787,17 @@ class QuotationService
         try {
             $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items'])->findOrFail($quotationId);
 
-            // ตรวจสอบว่าสถานะอนุญาตให้สร้าง PDF ได้
-            if (!in_array($quotation->status, ['approved', 'sent', 'completed'])) {
-                throw new \Exception('Quotation must be approved before generating PDF');
-            }
+            // อนุญาตให้ Preview ได้ทุกสถานะ (draft/pending_review ใช้เป็น preview)
+            $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
 
             // สร้าง PDF ด้วย Laravel-FPDF service
-            $pdfPath = app(\App\Services\Accounting\Pdf\QuotationPdfService::class)->render($quotation);
+            $pdfSvc = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+            if (method_exists($pdfSvc, 'make')) {
+                $pdfPath = $pdfSvc->make($quotation);
+            } else {
+                // backward compatibility
+                $pdfPath = $pdfSvc->render($quotation);
+            }
             $filename = basename($pdfPath);
             $pdfUrl = url('storage/pdfs/quotations/' . $filename);
             $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
@@ -804,7 +808,7 @@ class QuotationService
                 $quotationId,
                 'generate_pdf',
                 auth()->user()->user_uuid ?? null,
-                "สร้าง PDF: {$filename}"
+                ($isFinal ? "สร้าง PDF: {$filename}" : "สร้าง PDF (preview): {$filename}")
             );
 
             return [

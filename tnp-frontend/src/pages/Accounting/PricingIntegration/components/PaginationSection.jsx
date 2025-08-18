@@ -64,17 +64,18 @@ const PaginationSection = ({
 
                     {/* Pagination info */}
                     <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                            แสดง {pagination.from || 0} - {pagination.to || 0} จาก {pagination.total} รายการ
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                แสดง {pagination.from || 0} - {pagination.to || 0} จาก {pagination.total} รายการ
+                            </Typography>
                             {isFetching && (
                                 <Chip
                                     label="กำลังโหลด..."
                                     size="small"
                                     color="primary"
-                                    sx={{ ml: 1 }}
                                 />
                             )}
-                        </Typography>
+                        </Box>
                         {isFetching && (
                             <LinearProgress
                                 sx={{ mt: 1, borderRadius: 1 }}

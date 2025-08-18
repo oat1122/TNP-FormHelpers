@@ -21,12 +21,12 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
-import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation } from '../../../../features/Accounting/accountingApi';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
 import CustomerEditDialog from '../../PricingIntegration/components/CustomerEditDialog';
-import QuotationPreview from '../../PricingIntegration/components/QuotationPreview';
+// Replaced custom client-side preview with backend PDF generation
 import { sanitizeInt } from '../../shared/inputSanitizers';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -288,7 +288,10 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   } = useQuotationGroups(items);
   const [quotationNotes, setQuotationNotes] = React.useState(q?.notes || '');
   const [selectedDueDate, setSelectedDueDate] = React.useState(q?.due_date ? new Date(q.due_date) : null);
-  const [showPreview, setShowPreview] = React.useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+  const [pdfUrl, setPdfUrl] = React.useState('');
+  const [showPdfViewer, setShowPdfViewer] = React.useState(false);
+  const [generateQuotationPDF] = useGenerateQuotationPDFMutation();
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms = q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash');
   const isKnownTerms = ['cash', 'credit_30', 'credit_60'].includes(initialRawTerms);
@@ -383,37 +386,44 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     }
   };
 
-  const previewItems = (isEditing ? groups : items).map((g) => {
-    const rows = Array.isArray(g.sizeRows) ? g.sizeRows : [];
-    const totalByItem = rows.reduce((s, r) => {
-      const qv = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
-      const pv = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
-      return s + (isNaN(qv) || isNaN(pv) ? 0 : qv * pv);
-    }, 0);
-    return {
-      id: g.id,
-      name: g.name,
-      pattern: g.pattern,
-      fabricType: g.fabricType,
-      color: g.color,
-      size: g.size,
-      sizeRows: rows,
-      unitPrice: g.unitPrice,
-      total: totalByItem,
-    };
-  });
+  // client-side preview removed; using backend PDF instead
 
-  const previewFormData = {
-    customer,
-    items: previewItems,
-    subtotal,
-    vat,
-    total,
-    depositAmount,
-    remainingAmount,
-    dueDate: isEditing ? selectedDueDate : dueDate,
-    paymentMethod,
-    notes: isEditing ? (quotationNotes ?? '') : (q?.notes ?? ''),
+  const handlePreviewPdf = async () => {
+    if (!q?.id) return;
+    // Require approved/sent/completed before generating PDF to avoid backend 500
+    const allowed = ['approved', 'sent', 'completed'];
+    if (q?.status && !allowed.includes(String(q.status))) {
+      showError('ต้องอนุมัติใบเสนอราคาก่อนจึงจะสร้าง PDF ได้');
+      return;
+    }
+    // If editing, ask to save changes first so PDF reflects latest data
+    if (isEditing) {
+      const confirmSave = window.confirm('คุณกำลังแก้ไขข้อมูล ต้องการบันทึกก่อนสร้าง PDF หรือไม่?');
+      if (confirmSave) {
+        await handleSave();
+      }
+    }
+    setIsGeneratingPdf(true);
+    const loadingId = showLoading('กำลังสร้าง PDF ใบเสนอราคา…');
+    try {
+      const res = await generateQuotationPDF(q.id).unwrap();
+      const dataObj = res?.data || res; // support either wrapped or direct
+      const url = dataObj?.pdf_url || dataObj?.url;
+      if (!url) throw new Error('ไม่พบลิงก์ไฟล์ PDF');
+      setPdfUrl(url);
+      setShowPdfViewer(true);
+      dismissToast(loadingId);
+    } catch (e) {
+      dismissToast(loadingId);
+      const msg = e?.data?.message || e?.message || 'ไม่สามารถสร้าง PDF ได้';
+      // Map backend rule for unapproved doc to friendly Thai message
+      const friendly = /must be approved/i.test(String(msg))
+        ? 'ต้องอนุมัติใบเสนอราคาก่อนจึงจะสร้าง PDF ได้'
+        : msg;
+      showError(friendly);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -714,13 +724,13 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
       <DialogActions>
         {isEditing ? (
           <>
-            <SecondaryButton onClick={() => setShowPreview(true)}>ดูตัวอย่าง PDF</SecondaryButton>
+            <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf}>{isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}</SecondaryButton>
             <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
             <SecondaryButton onClick={handleSave} disabled={isSaving}>{isSaving ? 'กำลังบันทึก…' : 'บันทึก'}</SecondaryButton>
           </>
         ) : (
           <>
-            <SecondaryButton onClick={() => setShowPreview(true)}>ดูตัวอย่าง PDF</SecondaryButton>
+            <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf}>{isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}</SecondaryButton>
             <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
           </>
         )}
@@ -736,14 +746,24 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
       />
     </Dialog>
 
-    {/* Preview Dialog */}
-    <Dialog open={showPreview} onClose={() => setShowPreview(false)} maxWidth="lg" fullWidth>
+    {/* Backend PDF Viewer Dialog */}
+    <Dialog open={showPdfViewer} onClose={() => setShowPdfViewer(false)} maxWidth="lg" fullWidth>
       <DialogTitle>ดูตัวอย่าง PDF</DialogTitle>
-      <DialogContent dividers>
-        <QuotationPreview formData={previewFormData} quotationNumber={quotationNumber} showActions={true} />
+      <DialogContent dividers sx={{ p: 0 }}>
+        {pdfUrl ? (
+          <iframe title="quotation-pdf" src={pdfUrl} style={{ width: '100%', height: '80vh', border: 0 }} />
+        ) : (
+          <Box display="flex" alignItems="center" gap={1} p={2}>
+            <CircularProgress size={22} />
+            <Typography variant="body2">กำลังโหลดตัวอย่าง PDF…</Typography>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
-        <SecondaryButton onClick={() => setShowPreview(false)}>ปิด</SecondaryButton>
+        {pdfUrl && (
+          <SecondaryButton onClick={() => window.open(pdfUrl, '_blank')}>เปิดในแท็บใหม่</SecondaryButton>
+        )}
+        <SecondaryButton onClick={() => setShowPdfViewer(false)}>ปิด</SecondaryButton>
       </DialogActions>
     </Dialog>
     </>

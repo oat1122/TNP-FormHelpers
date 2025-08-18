@@ -33,8 +33,8 @@ class DocumentNumberService
         $prefix = $customPrefix ?? ($prefixMap[$docType] ?? strtoupper(substr($docType, 0, 3)));
         $prefix .= $year . $month;
 
-        // transaction + upsert/lock row to avoid race
-        return DB::transaction(function () use ($companyId, $docType, $year, $month, $prefix, $pad) {
+    // transaction + lock row to avoid race; fill gaps by choosing the smallest unused sequence for this month/company
+    return DB::transaction(function () use ($companyId, $docType, $year, $month, $prefix, $pad) {
             $row = DocumentSequence::where([
                 'company_id' => $companyId,
                 'doc_type' => $docType,
@@ -52,11 +52,50 @@ class DocumentNumberService
                 ]);
             }
 
-            $row->last_number = (int)$row->last_number + 1;
+            // Map docType to model/table for existence check
+            $tableMap = [
+                'quotation' => 'quotations',
+                'invoice' => 'invoices',
+                'receipt' => 'receipts',
+                'tax_invoice' => 'receipts',
+                'full_tax_invoice' => 'receipts',
+                'delivery_note' => 'delivery_notes',
+            ];
+            $table = $tableMap[$docType] ?? null;
+
+            // Compute the smallest unused running number for this prefix within the target table (gap filling)
+            $seqNumber = 1;
+            if ($table) {
+                $numbers = DB::table($table)
+                    ->where('company_id', $companyId)
+                    ->where('number', 'like', $prefix . '-%')
+                    ->pluck('number')
+                    ->all();
+
+                $used = [];
+                foreach ($numbers as $num) {
+                    if (is_string($num) && preg_match('/-(\d+)$/', $num, $m)) {
+                        $used[(int)$m[1]] = true;
+                    }
+                }
+
+                // Find the smallest positive integer not in $used
+                $seqNumber = 1;
+                while (isset($used[$seqNumber])) {
+                    $seqNumber++;
+                    // Hard cap to avoid pathological loops
+                    if ($seqNumber > 100000) { break; }
+                }
+            }
+
+            // Build candidate with padding
+            $candidate = $prefix . '-' . str_pad((string)$seqNumber, $pad, '0', STR_PAD_LEFT);
+
+            // Keep last_number as the max ever issued (do not decrease)
+            $row->last_number = max((int)$row->last_number, (int)$seqNumber);
             $row->save();
 
-            $seq = str_pad((string)$row->last_number, $pad, '0', STR_PAD_LEFT);
-            return $prefix . '-' . $seq;
+            return $candidate;
         });
     }
 }

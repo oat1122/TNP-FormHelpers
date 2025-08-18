@@ -41,7 +41,7 @@ class QuotationService
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->company_id = $additionalData['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
+            // เลขที่เอกสารจะถูกกำหนดตอนอนุมัติ เพื่อลดการสูญเสียเลขจากการสลับบริษัทระหว่างร่าง
             // Lean schema: primary pricing request linkage
             $quotation->primary_pricing_request_id = $autofillData['pr_id'] ?? null;
 
@@ -62,6 +62,9 @@ class QuotationService
             $quotation->work_name = $autofillData['pr_work_name'] ?? null;
             $quotation->due_date = $autofillData['pr_due_date'] ?? null;
             $quotation->notes = $autofillData['initial_notes'] ?? null;
+
+            // ป้องกัน client ส่ง number มา
+            unset($additionalData['number']);
 
             // ข้อมูลเพิ่มเติมจาก user input
             $quotation->subtotal = $additionalData['subtotal'] ?? 0;
@@ -111,7 +114,11 @@ class QuotationService
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->company_id = $data['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
+            // เลขที่เอกสารจะถูกกำหนดตอนอนุมัติ เท่านั้น
+            // ป้องกัน client ส่ง number มา
+            unset($data['number']);
+            // ป้องกัน client ส่ง number มา
+            unset($data['number']);
             $quotation->fill($data);
             $quotation->status = 'draft';
             $quotation->created_by = $createdBy;
@@ -185,7 +192,7 @@ class QuotationService
             $quotation->id = \Illuminate\Support\Str::uuid();
             $quotation->company_id = $additionalData['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
+            // เลขที่เอกสารจะถูกกำหนดตอนอนุมัติ เท่านั้น
 
             // ⭐ รองรับ multiple primary pricing request IDs (พร้อม backward compatibility)
             if (Schema::hasColumn('quotations', 'primary_pricing_request_ids')) {
@@ -224,6 +231,8 @@ class QuotationService
             $quotation->payment_terms = $additionalData['payment_terms'] ?? 'credit_30';
 
             // หมายเหตุ
+            // ป้องกัน client ส่ง number มา
+            unset($additionalData['number']);
             $quotation->notes = $additionalData['additional_notes'] ?? '';
 
             $quotation->status = 'draft';
@@ -321,14 +330,25 @@ class QuotationService
 
             $quotation->fill($data);
 
-            // If company changed and document is not finalized, renumber for the new company
+            // หากเป็นเอกสารที่อนุมัติแล้ว/ส่งแล้ว/เสร็จสิ้น ห้ามเปลี่ยนบริษัท
+            if (
+                array_key_exists('company_id', $data) &&
+                !empty($data['company_id']) &&
+                $data['company_id'] !== $oldCompanyId &&
+                in_array($quotation->status, ['approved', 'sent', 'completed'])
+            ) {
+                throw new \Exception('Cannot change company for approved/sent/completed quotation');
+            }
+
+            // ถ้าบริษัทถูกเปลี่ยนและยังไม่ Final ให้ตั้งเลขชั่วคราว (DRAFT-xxxx) เพื่อออกใหม่ตอนอนุมัติ
             if (
                 array_key_exists('company_id', $data) &&
                 !empty($data['company_id']) &&
                 $data['company_id'] !== $oldCompanyId &&
                 !in_array($quotation->status, ['approved', 'sent', 'completed'])
             ) {
-                $quotation->number = Quotation::generateQuotationNumber($data['company_id']);
+                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
+                $quotation->number = 'DRAFT-' . $suffix;
             }
 
             $quotation->save();
@@ -465,6 +485,12 @@ class QuotationService
             
             if ($quotation->status !== 'pending_review') {
                 throw new \Exception('Can only approve quotations that are pending review');
+            }
+
+            // กำหนดเลขที่เอกสารตอนอนุมัติ (ครั้งแรกหรือกรณีเป็นเลขชั่วคราว DRAFT-xxxx)
+            if (empty($quotation->number) || \Illuminate\Support\Str::startsWith($quotation->number, 'DRAFT-')) {
+                // ใช้ปี/เดือนปัจจุบันในการออกเลข
+                $quotation->number = Quotation::generateQuotationNumber($quotation->company_id);
             }
 
             $quotation->status = 'approved';
@@ -724,6 +750,11 @@ class QuotationService
             $quotation->status = 'pending_review';
             $quotation->approved_by = null;
             $quotation->approved_at = null;
+            // Free the official number so the sequence can be reused (numbers are assigned only for approved)
+            if (!empty($quotation->number) && !\Illuminate\Support\Str::startsWith($quotation->number, 'DRAFT-')) {
+                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
+                $quotation->number = 'DRAFT-' . $suffix;
+            }
             $quotation->save();
 
             // บันทึก History

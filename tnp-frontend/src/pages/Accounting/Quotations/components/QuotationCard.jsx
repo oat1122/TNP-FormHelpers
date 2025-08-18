@@ -3,7 +3,7 @@ import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid, FormContr
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation, useGetCompaniesQuery, useUpdateQuotationMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation, useGetCompaniesQuery, useUpdateQuotationMutation, useApproveQuotationMutation, useSubmitQuotationMutation } from '../../../../features/Accounting/accountingApi';
 import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
 import {
   TNPCard,
@@ -33,6 +33,8 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
   const [deleteQuotation] = useDeleteQuotationMutation();
   const { data: companiesResp, isLoading: companiesLoading } = useGetCompaniesQuery(undefined, { refetchOnMountOrArgChange: false });
   const [updateQuotation, { isLoading: updatingCompany }] = useUpdateQuotationMutation();
+  const [approveQuotation, { isLoading: approving }] = useApproveQuotationMutation();
+  const [submitQuotation, { isLoading: submitting }] = useSubmitQuotationMutation();
   const companies = React.useMemo(() => {
     const list = companiesResp?.data ?? companiesResp ?? [];
     return Array.isArray(list) ? list : [];
@@ -42,6 +44,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
   }, []);
   const canChangeCompany = ['admin','account'].includes(userData?.role);
   const currentCompany = React.useMemo(() => companies.find((c) => c.id === data.company_id), [companies, data?.company_id]);
+  const canApprove = React.useMemo(() => ['admin','account'].includes(userData?.role) && ['draft','pending_review'].includes(data?.status), [userData?.role, data?.status]);
   // collect linked PR ids from this quotation
   const detail = data; // data may already contain items
   const prIds = React.useMemo(() => {
@@ -136,7 +139,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
             statuscolor={statusColor[data.status] || 'default'}
           />
           <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
-          {data.number && (
+          {data.number && !String(data.number).startsWith('DRAFT-') && (
             <TNPCountChip icon={<DescriptionIcon sx={{ fontSize: '1rem' }} />} label={data.number} size="small" />
           )}
         </Stack>
@@ -174,10 +177,31 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
       <TNPDivider />
 
       <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: 'background.light' }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TNPSecondaryButton size="medium" onClick={onDownloadPDF} disabled={data.status !== 'approved'}>
             ดาวน์โหลด PDF
           </TNPSecondaryButton>
+          {canApprove && (
+            <Button
+              size="medium"
+              variant="contained"
+              color="success"
+              disabled={approving || submitting}
+              onClick={async () => {
+                try {
+                  // If still draft, submit first then approve
+                  if (data.status === 'draft') {
+                    try { await submitQuotation(data.id).unwrap(); } catch (e) { /* ignore, may already be pending */ }
+                  }
+                  await approveQuotation({ id: data.id }).unwrap();
+                } catch (e) {
+                  console.error('Approve failed', e);
+                }
+              }}
+            >
+              {approving || submitting ? 'กำลังอนุมัติ…' : 'อนุมัติ'}
+            </Button>
+          )}
         </Box>
         <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>
           ดูรายละเอียด

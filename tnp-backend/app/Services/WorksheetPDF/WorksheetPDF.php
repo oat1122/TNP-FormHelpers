@@ -8,7 +8,7 @@ use App\Services\WorksheetService;
 use App\Services\WorksheetPDF\MainLayout;
 
 // header("Access-Control-Allow-Origin: " . env('APP_URL'));
-define('FPDF_FONTPATH', 'fonts/');
+// define('FPDF_FONTPATH', 'fonts/');
 
 class WorksheetPDF
 {

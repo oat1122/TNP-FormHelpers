@@ -4,6 +4,7 @@ namespace App\Services\Accounting\Pdf;
 
 use Codedge\Fpdf\Fpdf\Fpdf;
 use App\Models\Accounting\Quotation;
+use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 
 class QuotationPdfService
 {
@@ -59,30 +60,29 @@ class QuotationPdfService
             if (is_file($cand)) { $logoPath = $cand; break; }
         }
 
+        $logoHeightMm = 0.0;
         if ($logoPath) {
             // x=12, y=10, width=32mm
-            $this->pdf->Image($logoPath, 12, 10, 32);
+            $logoW = 32.0;
+            // Estimate logo height from image ratio; fallback to 18mm if unknown
+            $imgW = 0; $imgH = 0; $calcH = 18.0;
+            if (function_exists('getimagesize')) {
+                $info = @getimagesize($logoPath);
+                if (is_array($info) && isset($info[0], $info[1]) && $info[0] > 0) {
+                    $calcH = ($info[1] / $info[0]) * $logoW;
+                }
+            }
+            $logoHeightMm = $calcH;
+            $this->pdf->Image($logoPath, 12, 10, $logoW);
         }
 
-    $this->pdf->SetXY(12 + 36, 10);
     // Choose available font (custom Thai font or fallback)
     $boldFont = 'PSLKittithadaBold';
     $regularFont = 'PSLKittithada';
     $fallbackBold = ['Arial', 'B'];
     $fallbackRegular = ['Arial', ''];
-    try { $this->pdf->SetFont($boldFont, '', 16); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 16); }
-        $companyName = $q->company->legal_name ?? $q->company->name ?? 'บริษัทของคุณ';
-        $this->pdf->Cell(120, 7, $this->t($companyName));
-        $this->pdf->Ln(7);
-    try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
-        $addressLine = (string)($q->company->address ?? '');
-        if ($addressLine !== '') {
-            $this->pdf->MultiCell(120, 6, $this->t($addressLine));
-        }
-        $phoneTax = 'โทร: ' . ($q->company->phone ?? '-') . '  ' . 'เลขประจำตัวผู้เสียภาษี: ' . ($q->company->tax_id ?? '-');
-        $this->pdf->Cell(120, 6, $this->t($phoneTax));
-
-        // Title and meta
+    
+        // Right-side Title and meta first
         $this->pdf->SetXY(-90, 10);
     try { $this->pdf->SetFont($boldFont, '', 18); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 18); }
         $this->pdf->Cell(78, 8, $this->t('ใบเสนอราคา'), 0, 2, 'R');
@@ -90,17 +90,63 @@ class QuotationPdfService
         $this->pdf->Cell(78, 6, $this->t('เลขที่: ' . ($q->number ?? '-')), 0, 2, 'R');
         $this->pdf->Cell(78, 6, $this->t('วันที่: ' . now()->format('d/m/Y')), 0, 2, 'R');
 
-        // Customer box
-        $this->pdf->Ln(4);
+    // Then render company block under the logo (confined to left column to avoid overlap with right meta)
+    $leftColumnWidth = 186 - 90; // full content width (186) minus reserved right column (~90)
+    $yStart = 10 + $logoHeightMm + 1; // slightly closer to the logo as requested
+    $this->pdf->SetXY(12, $yStart);
+    try { $this->pdf->SetFont($boldFont, '', 16); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 16); }
+        $companyName = $q->company->legal_name ?? $q->company->name ?? 'บริษัทของคุณ';
+        $this->pdf->Cell($leftColumnWidth, 7, $this->t($companyName));
+        $this->pdf->Ln(7);
     try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
-        $this->pdf->Cell(40, 7, $this->t('ลูกค้า: '), 0, 0);
-    try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
-        $this->pdf->Cell(120, 7, $this->t(($q->customer_company ?? '-')));
+        $addressLine = (string)($q->company->address ?? '');
+        if ($addressLine !== '') {
+            $this->pdf->MultiCell($leftColumnWidth, 6, $this->t($addressLine));
+        }
+        $phoneTax = 'โทร: ' . ($q->company->phone ?? '-') . '  ' . 'เลขประจำตัวผู้เสียภาษี: ' . ($q->company->tax_id ?? '-');
+        $this->pdf->Cell($leftColumnWidth, 6, $this->t($phoneTax));
+
+        // Add extra space before customer block for readability
         $this->pdf->Ln(6);
+
+    // Customer box (centralized via CustomerInfoExtractor)
+    $this->pdf->Ln(4);
+    $c = CustomerInfoExtractor::fromQuotation($q);
+    $name = $c['name'] !== '' ? $c['name'] : '-';
+    $addr = $c['address'] !== '' ? $c['address'] : '-';
+    $tax  = $c['tax_id'] !== '' ? $c['tax_id'] : '-';
+    $tel  = $c['tel'] !== '' ? $c['tel'] : '-';
+
+    // Compute a tight label width based on the longest label
     try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
-        $this->pdf->MultiCell(180, 6, $this->t('ที่อยู่: ' . ($q->customer_address ?? '-')));
-        $this->pdf->Cell(90, 6, $this->t('เลขภาษี: ' . ($q->customer_tax_id ?? '-')));
-        $this->pdf->Cell(90, 6, $this->t('โทร: ' . ($q->customer_tel_1 ?? '-')));
+    $labels = ['ลูกค้า: ', 'ที่อยู่: ', 'เลขภาษี: ', 'โทร: '];
+    $maxLabelW = 0;
+    foreach ($labels as $L) { $w = $this->pdf->GetStringWidth($this->t($L)); if ($w > $maxLabelW) { $maxLabelW = $w; } }
+    $labelW = $maxLabelW + 2; // add a bit of padding
+
+    // ลูกค้า
+    $this->pdf->Cell($labelW, 7, $this->t('ลูกค้า: '), 0, 0);
+    try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
+    $this->pdf->Cell(0, 7, $this->t($name), 0, 1);
+
+    // ที่อยู่ (multiline, indent under value column)
+    try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
+    $x0 = $this->pdf->GetX();
+    $y0 = $this->pdf->GetY();
+    $this->pdf->Cell($labelW, 6, $this->t('ที่อยู่: '), 0, 0);
+    $this->pdf->SetXY($x0 + $labelW, $y0);
+    $this->pdf->MultiCell(0, 6, $this->t($addr));
+
+    // เลขภาษี
+    $this->pdf->Cell($labelW, 6, $this->t('เลขภาษี: '), 0, 0);
+    try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
+    $this->pdf->Cell(0, 6, $this->t($tax), 0, 1);
+
+    // โทร
+    try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
+    $this->pdf->Cell($labelW, 6, $this->t('โทร: '), 0, 0);
+    try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
+    $this->pdf->Cell(0, 6, $this->t($tel), 0, 1);
 
         // Items table header (adjusted widths to fit 186mm content area)
         $this->pdf->Ln(8);

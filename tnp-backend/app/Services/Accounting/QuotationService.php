@@ -790,13 +790,19 @@ class QuotationService
             // อนุญาตให้ Preview ได้ทุกสถานะ (draft/pending_review ใช้เป็น preview)
             $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
 
-            // สร้าง PDF ด้วย Laravel-FPDF service
-            $pdfSvc = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
-            if (method_exists($pdfSvc, 'make')) {
-                $pdfPath = $pdfSvc->make($quotation);
-            } else {
-                // backward compatibility
-                $pdfPath = $pdfSvc->render($quotation);
+            // สร้าง PDF: พยายามใช้ mPDF ก่อน จากนั้น fallback เป็น FPDF เพื่อความเข้ากันได้ย้อนหลัง
+            $pdfPath = null;
+            try {
+                if (class_exists(\App\Services\Accounting\Pdf\Mpdf\QuotationMpdfService::class)) {
+                    $mpdfSvc = app(\App\Services\Accounting\Pdf\Mpdf\QuotationMpdfService::class);
+                    $pdfPath = method_exists($mpdfSvc, 'make') ? $mpdfSvc->make($quotation) : $mpdfSvc->render($quotation);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+            }
+            if (!$pdfPath || !is_file($pdfPath)) {
+                $pdfSvc = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+                $pdfPath = method_exists($pdfSvc, 'make') ? $pdfSvc->make($quotation) : $pdfSvc->render($quotation);
             }
             $filename = basename($pdfPath);
             $pdfUrl = url('storage/pdfs/quotations/' . $filename);

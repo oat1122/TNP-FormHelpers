@@ -140,9 +140,12 @@ class QuotationPdfMasterService
         // Header/footer and watermark
         $this->addHeaderFooter($mpdf, $viewData);
 
-        // Render body HTML
-    $html = View::make('accounting.pdf.quotation.quotation-master', $viewData)->render();
-        $mpdf->WriteHTML($html);
+        // Render body HTML with separate CSS
+        $css = file_get_contents(resource_path('views/accounting/pdf/quotation/quotation-master.css'));
+        $mpdf->WriteHTML($css, \Mpdf\HTMLParserMode::HEADER_CSS);
+        
+        $html = View::make('accounting.pdf.quotation.quotation-master', $viewData)->render();
+        $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
 
         return $mpdf;
     }

@@ -2,10 +2,8 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <title>ใบเสนอราคา {{ $quotation->number ?? 'DRAFT' }}</title>
-  <style>
-    {!! file_get_contents(resource_path('views/accounting/pdf/quotation/quotation-master.css')) !!}
-  </style>
+  
+  {{-- CSS is loaded separately by QuotationPdfMasterService --}}
 </head>
 <body>
   <div class="document-content">

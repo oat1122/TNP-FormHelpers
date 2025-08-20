@@ -101,40 +101,58 @@ table{
   width: 100%;
   margin: 24pt 0;
   page-break-inside: avoid;
+  clear: both;
 }
 
 .summary-notes-wrapper {
   width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
+  border-collapse: separate;
+  border-spacing: 15pt 0;
+  table-layout: fixed;
 }
 
 .notes-cell {
-  width: 48%;
+  width: 45%;
   vertical-align: top;
-  padding-right: 12pt;
+  padding: 0;
+  border: none;
+}
+
+.notes-cell h3 {
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 0 0 200pt 0;
+  padding: 0;
+  color: #34495e;
+  line-height: 1.2;
 }
 
 .spacer-cell {
-  width: 4%;
+  width: 10%;
   padding: 0;
+  border: none;
 }
 
 .summary-cell {
-  width: 48%;
+  width: 45%;
   vertical-align: top;
-  padding-left: 12pt;
+  padding: 0;
+  border: none;
 }
 
 /* Notes section */
 .notes-section{
-  background:#f8f9fa;
-  border-left:4pt solid #6c757d;
+  
+  border-left:4pt ;
   padding:15pt;
   border-radius:4pt;
   min-height:120pt;
-  border:1px solid #dee2e6;
+  font-size: 14pt;
   width: 100%;
+  box-sizing: border-box;
+  display: block;
+  margin-top: 10pt;
+  clear: both;
 }
 
 /* Summary section */
@@ -145,22 +163,30 @@ table{
   overflow:hidden;
   min-height:120pt;
   width: 100%;
+  box-sizing: border-box;
+  display: block;
 }
 
 .summary-header {
   text-align: center;
-  margin-bottom: 12pt;
+  margin: 0 0 12pt 0;
+  padding: 0;
+  font-size: 13pt;
+  font-weight: bold;
+  color: #34495e;
 }
 
 .summary-row{
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1pt;
+  margin: 0;
+  display: table;
 }
 
 .summary-row td {
   padding: 12pt 15pt;
   border-bottom: 1px solid #e9ecef;
+  display: table-cell;
 }
 
 .summary-label{
@@ -168,6 +194,7 @@ table{
   font-weight:bold;
   color:#2c3e50;
   width: 60%;
+  white-space: nowrap;
 }
 
 .summary-amount{
@@ -178,6 +205,10 @@ table{
 }
 
 .total-row {
+  background:#e3f2fd !important;
+}
+
+.total-row td {
   background:#e3f2fd !important;
 }
 
@@ -193,6 +224,7 @@ table{
   font-size:10pt;
   margin-top:4pt;
   font-style:italic;
+  display: block;
 }
 
 /* ===== Signature Section ===== */

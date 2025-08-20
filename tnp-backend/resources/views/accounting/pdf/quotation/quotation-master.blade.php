@@ -142,16 +142,18 @@
 	.row-item td.desc { padding-left: 14pt; }
 	.meta-light { color: #6e7b88; font-weight: normal; }
 	.group-body { page-break-inside: avoid; }
-	.group-body .row-title td { border-top: 2px solid #dee5ed; }
 	/* Container row that holds all detail rows as a nested table */
-	.row-items > td { border-bottom: 0; padding: 0 8pt 6pt; }
+	.row-group > td.group-cell { border-bottom: 0; padding: 0 8pt 10pt; }
 	.group-box { page-break-inside: avoid; }
 	.group-inner { width: 100%; border-collapse: collapse; }
 	.group-inner td { padding: 6pt 0; border-bottom: 1px solid #e3e9ef; }
-	.group-inner .desc { width: 54%; padding-left: 14pt; }
+	.group-inner .title { font-weight: bold; background: #fafbfc; border-top: 2px solid #dee5ed; }
+	/* plain number before title, add clearer gap before title */
+	.num-badge { display: inline-block; margin-right: 10pt; font-weight: bold; }
+	.group-inner .desc { width: 53%; padding-left: 14pt; }
 	.group-inner .qty { width: 14%; text-align: center; }
 	.group-inner .price { width: 16%; text-align: right; }
-	.group-inner .amount { width: 16%; text-align: right; }
+	.group-inner .amount { width: 17%; text-align: right; }
 
 		/* Status Indicators */
 		.status-draft { color: #f39c12; }
@@ -254,16 +256,14 @@
 				</thead>
 				@foreach ($groupsData as $g)
 					<tbody class="group-body">
-						<tr class="row-title">
-							<td class="num">{{ $g['no'] }}</td>
-							<td class="desc" colspan="4">{!! $g['title'] !!}</td>
-						</tr>
-						<tr class="row-items">
-							<td class="num"></td>
-							<td class="desc" colspan="4">
+						<tr class="row-group">
+							<td class="group-cell" colspan="5">
 								<div class="group-box">
 									<table class="group-inner">
 										<tbody>
+											<tr>
+												<td class="desc title" colspan="4"><span class="num-badge">{{ $g['no'] }}</span>&nbsp;{!! $g['title'] !!}</td>
+											</tr>
 											@foreach ($g['items'] as $it)
 												<tr>
 													<td class="desc">{{ $it['desc'] }}</td>

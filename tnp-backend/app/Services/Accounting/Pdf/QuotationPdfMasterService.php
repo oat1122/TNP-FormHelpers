@@ -123,6 +123,11 @@ class QuotationPdfMasterService
             'fontDir' => $hasThaiFonts ? array_merge($fontDirs, [$customFontDir]) : $fontDirs,
             'fontdata' => $hasThaiFonts ? ($fontData + $customFontData) : $fontData,
             'tempDir' => storage_path('app/mpdf-temp'),
+            // Improve Thai diacritics rendering
+            'useOTL' => 0xFF, // enable all OpenType layout features
+            'useKerning' => true,
+            'autoLangToFont' => true,
+            'autoScriptToLang' => true,
         ];
 
         // Ensure temp and output directories exist

@@ -33,7 +33,7 @@
             @endif
             
             <div style="font-size: 10pt; color: #7f8c8d;">
-                โทร: {{ $quotation->company->phone ?? '-' }} | 
+                โทร: {{ $quotation->company->phone ?? '-' }} <br/>
                 เลขประจำตัวผู้เสียภาษี: {{ $quotation->company->tax_id ?? '-' }}
             </div>
         </td>

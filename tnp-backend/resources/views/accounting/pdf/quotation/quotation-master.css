@@ -1,0 +1,238 @@
+/* ===== Base ===== */
+body{
+  font-family:'thsarabun','DejaVu Sans',sans-serif;
+  font-size:12pt;
+  line-height:1.35;
+  color:#333;
+  margin:0;
+  padding:20pt;
+}
+
+h1{font-size:20pt;font-weight:bold;margin:0 0 8pt;color:#2c3e50}
+h2{font-size:16pt;font-weight:bold;margin:12pt 0 6pt;color:#34495e}
+h3{font-size:13pt;font-weight:bold;margin:10pt 0 6pt;color:#34495e}
+
+/* ===== Reset any potential Bootstrap conflicts ===== */
+* {
+  box-sizing: border-box;
+}
+
+.clearfix:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* ===== Info Box ===== */
+.info-box{
+  background:#f8f9fa;
+  border:1px solid #e9ecef;
+  border-radius:6pt;
+  padding:12pt;
+  margin-bottom:15pt;
+  width:100%;
+}
+
+.info-box table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-box td {
+  padding: 4pt 8pt;
+  vertical-align: top;
+}
+
+/* ===== Tables ===== */
+table{
+  border-collapse:collapse;
+  width:100%;
+  margin-bottom: 15pt;
+}
+
+/* Items table */
+.items-table th,.items-table td{
+  padding:6pt 8pt;
+  border: 1px solid #dee2e6;
+}
+
+.items-table thead th{
+  border-bottom:2px solid #9fb3c8;
+  background:#eef2f5;
+  text-align:center;
+  font-weight: bold;
+}
+
+.items-table .num{width:7%;text-align:center}
+.items-table .desc{width:53%}
+.items-table .qty{width:14%;text-align:center}
+.items-table .price{width:13%;text-align:right}
+.items-table .amount{width:13%;text-align:right}
+
+/* Group styling */
+.group-body{page-break-inside:avoid}
+.group-box{
+  page-break-inside:avoid;
+  border: 1px solid #e5edf5;
+  margin: 5pt 0;
+}
+
+.group-inner{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.group-inner td{
+  padding:6pt 8pt;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.group-inner .title{
+  font-weight:bold;
+  background:#fafbfc;
+  border-top:2px solid #dee5ed;
+  border-bottom:1px solid #e3e9ef;
+}
+
+.meta-light{color:#6e7b88;font-weight:normal}
+
+/* ===== Summary and Notes Section (Fixed Layout) ===== */
+.summary-notes-container {
+  width: 100%;
+  margin: 24pt 0;
+  page-break-inside: avoid;
+}
+
+.summary-notes-wrapper {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.notes-cell {
+  width: 48%;
+  vertical-align: top;
+  padding-right: 12pt;
+}
+
+.spacer-cell {
+  width: 4%;
+  padding: 0;
+}
+
+.summary-cell {
+  width: 48%;
+  vertical-align: top;
+  padding-left: 12pt;
+}
+
+/* Notes section */
+.notes-section{
+  background:#f8f9fa;
+  border-left:4pt solid #6c757d;
+  padding:15pt;
+  border-radius:4pt;
+  min-height:120pt;
+  border:1px solid #dee2e6;
+  width: 100%;
+}
+
+/* Summary section */
+.summary-section{
+  background:#fff;
+  border:1px solid #dee2e6;
+  border-radius:6pt;
+  overflow:hidden;
+  min-height:120pt;
+  width: 100%;
+}
+
+.summary-header {
+  text-align: center;
+  margin-bottom: 12pt;
+}
+
+.summary-row{
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1pt;
+}
+
+.summary-row td {
+  padding: 12pt 15pt;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.summary-label{
+  text-align:right;
+  font-weight:bold;
+  color:#2c3e50;
+  width: 60%;
+}
+
+.summary-amount{
+  text-align:right;
+  white-space:nowrap;
+  font-size:12pt;
+  width: 40%;
+}
+
+.total-row {
+  background:#e3f2fd !important;
+}
+
+.total-row .summary-label,
+.total-row .summary-amount{
+  color:#1565c0 !important;
+  font-weight: bold !important;
+  font-size: 14pt !important;
+}
+
+.reading{
+  color:#6c757d;
+  font-size:10pt;
+  margin-top:4pt;
+  font-style:italic;
+}
+
+/* ===== Signature Section ===== */
+.signature-section{
+  margin-top:36pt;
+  page-break-inside:avoid;
+  width: 100%;
+}
+
+.signature-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.signature-cell {
+  width: 50%;
+  text-align: center;
+  vertical-align: top;
+  padding: 12pt;
+}
+
+.signature-box{
+  width:200pt;
+  height:60pt;
+  border-bottom:1pt solid #333;
+  margin-bottom:8pt;
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* ===== Utility Classes ===== */
+.text-right{text-align:right}
+.text-center{text-align:center}
+.text-muted{color:#6c757d}
+.mb-3{margin-bottom:12pt}
+.mb-4{margin-bottom:16pt}
+.mt-4{margin-top:16pt}
+
+/* Prevent page breaks in critical sections */
+thead{display:table-header-group}
+tfoot{display:table-footer-group}
+tr{page-break-inside:avoid}

@@ -806,28 +806,60 @@ class QuotationService
             // กำหนดสถานะเอกสาร
             $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
 
-            // ใช้ Master PDF Service (mPDF) เป็นหลัก
-            try {
-                $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
-                $result = $masterService->generatePdf($quotation, $options);
-                
-                // บันทึก History
-                DocumentHistory::logAction(
-                    'quotation',
-                    $quotationId,
-                    'generate_pdf',
-                    auth()->user()->user_uuid ?? null,
-                    "สร้าง PDF (mPDF): {$result['filename']} ({$result['type']})"
-                );
+            // ใช้ Master PDF Service (mPDF) เป็นหลัก หากมี
+            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class)
+                && class_exists(\Mpdf\Config\ConfigVariables::class)
+                && class_exists(\Mpdf\Config\FontVariables::class);
 
-                // ระบุ engine ที่ใช้
-                $result['engine'] = 'mPDF';
-                return $result;
-                
-            } catch (\Throwable $e) {
-                Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
-                
-                // Fallback to FPDF only if mPDF completely fails
+            if ($mpdfAvailable) {
+                try {
+                    $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+                    $result = $masterService->generatePdf($quotation, $options);
+
+                    // บันทึก History
+                    DocumentHistory::logAction(
+                        'quotation',
+                        $quotationId,
+                        'generate_pdf',
+                        auth()->user()->user_uuid ?? null,
+                        "สร้าง PDF (mPDF): {$result['filename']} ({$result['type']})"
+                    );
+
+                    // ระบุ engine ที่ใช้
+                    $result['engine'] = 'mPDF';
+                    return $result;
+
+                } catch (\Throwable $e) {
+                    Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+
+                    // Fallback to FPDF only if mPDF completely fails
+                    $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+                    $primary = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
+                    $pdfPath = $fpdfService->render($quotation, ['primaryColor' => $primary]);
+                    $filename = basename($pdfPath);
+                    $pdfUrl = url('storage/pdfs/quotations/' . $filename);
+                    $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
+
+                    DocumentHistory::logAction(
+                        'quotation',
+                        $quotationId,
+                        'generate_pdf',
+                        auth()->user()->user_uuid ?? null,
+                        "สร้าง PDF (FPDF fallback): {$filename} - " . $e->getMessage()
+                    );
+
+                    return [
+                        'url' => $pdfUrl,
+                        'filename' => $filename,
+                        'size' => $fileSize,
+                        'path' => $pdfPath,
+                        'type' => $isFinal ? 'final' : 'preview',
+                        'engine' => 'fpdf'
+                    ];
+                }
+            } else {
+                Log::info('QuotationService::generatePdf mPDF not available, using FPDF fallback');
+
                 $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
                 $primary = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
                 $pdfPath = $fpdfService->render($quotation, ['primaryColor' => $primary]);
@@ -840,7 +872,7 @@ class QuotationService
                     $quotationId,
                     'generate_pdf',
                     auth()->user()->user_uuid ?? null,
-                    "สร้าง PDF (FPDF fallback): {$filename} - " . $e->getMessage()
+                    "สร้าง PDF (FPDF fallback): {$filename} - mPDF not installed"
                 );
 
                 return [
@@ -868,25 +900,38 @@ class QuotationService
             $quotation = Quotation::with(['customer', 'company', 'items'])
                                   ->findOrFail($quotationId);
                                   
-            // ใช้ Master PDF Service (mPDF) เป็นหลัก
-            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
-            return $masterService->streamPdf($quotation, $options);
-            
-        } catch (\Throwable $e) {
-            Log::warning('QuotationService::streamPdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
-            
+            // ใช้ Master PDF Service (mPDF) เป็นหลัก หากมี
+            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class)
+                && class_exists(\Mpdf\Config\ConfigVariables::class)
+                && class_exists(\Mpdf\Config\FontVariables::class);
+
+            if ($mpdfAvailable) {
+                try {
+                    $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+                    return $masterService->streamPdf($quotation, $options);
+                } catch (\Throwable $e) {
+                    Log::warning('QuotationService::streamPdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+                }
+            } else {
+                Log::info('QuotationService::streamPdf mPDF not available, using FPDF fallback');
+            }
+
             // Fallback to FPDF
             $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+            // reload quotation to ensure fresh relations if mPDF branch attempted
             $quotation = Quotation::with(['customer', 'company', 'items'])->findOrFail($quotationId);
             $primary = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
             $pdfPath = $fpdfService->render($quotation, ['primaryColor' => $primary]);
-            
+
             $filename = sprintf('quotation-%s.pdf', $quotation->number ?? $quotation->id);
-            
+
             return response()->file($pdfPath, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="' . $filename . '"'
             ]);
+        } catch (\Throwable $e) {
+            Log::error('QuotationService::streamPdf unexpected error: ' . $e->getMessage());
+            throw $e;
         }
     }
 

@@ -7,8 +7,6 @@ use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
-use Mpdf\Config\ConfigVariables;
-use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 
 /**
@@ -92,22 +90,8 @@ class QuotationPdfMasterService
     {
         $options = $viewData['options'] ?? [];
 
-        // Merge font directories and data with custom Thai fonts
-        $defaultConfig = (new ConfigVariables())->getDefaults();
-        $fontDirs = $defaultConfig['fontDir'];
-        $defaultFontConfig = (new FontVariables())->getDefaults();
-        $fontData = $defaultFontConfig['fontdata'];
-
-    $customFontDir = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
-    $customFontData = config('pdf.custom_font_data', [
-            'thsarabun' => [
-                'R' => 'Sarabun-Regular.ttf',
-                'B' => 'Sarabun-Bold.ttf',
-                'I' => 'Sarabun-Italic.ttf',
-                'BI' => 'Sarabun-BoldItalic.ttf',
-            ],
-        ]);
-    $hasThaiFonts = $this->checkThaiFonts();
+        $hasFontConfig = class_exists(\Mpdf\Config\ConfigVariables::class) && class_exists(\Mpdf\Config\FontVariables::class);
+        $hasThaiFonts = $this->checkThaiFonts();
 
         $config = [
             'mode' => 'utf-8',
@@ -122,10 +106,7 @@ class QuotationPdfMasterService
             'margin_footer' => 8,  // mm, distance from bottom to footer content
             'setAutoTopMargin' => 'stretch',
             'setAutoBottomMargin' => 'stretch',
-            'default_font' => $hasThaiFonts ? 'thsarabun' : 'dejavusans',
             'default_font_size' => 12,
-            'fontDir' => $hasThaiFonts ? array_merge($fontDirs, [$customFontDir]) : $fontDirs,
-            'fontdata' => $hasThaiFonts ? ($fontData + $customFontData) : $fontData,
             'tempDir' => storage_path('app/mpdf-temp'),
             // Improve Thai diacritics rendering
             'useOTL' => 0xFF, // enable all OpenType layout features
@@ -133,6 +114,49 @@ class QuotationPdfMasterService
             'autoLangToFont' => true,
             'autoScriptToLang' => true,
         ];
+
+        if ($hasFontConfig) {
+            $defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
+            $fontDirs = $defaultConfig['fontDir'];
+            $defaultFontConfig = (new \Mpdf\Config\FontVariables())->getDefaults();
+            $fontData = $defaultFontConfig['fontdata'];
+
+            $customFontDir = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
+            $customFontData = config('pdf.custom_font_data', [
+                'thsarabun' => [
+                    'R' => 'Sarabun-Regular.ttf',
+                    'B' => 'Sarabun-Bold.ttf',
+                    'I' => 'Sarabun-Italic.ttf',
+                    'BI' => 'Sarabun-BoldItalic.ttf',
+                ],
+            ]);
+
+            if ($hasThaiFonts) {
+                $config['fontDir'] = array_merge($fontDirs, [$customFontDir]);
+                $config['fontdata'] = $fontData + $customFontData;
+                $config['default_font'] = 'thsarabun';
+            } else {
+                $config['fontDir'] = $fontDirs;
+                $config['fontdata'] = $fontData;
+                $config['default_font'] = 'dejavusans';
+            }
+        } else {
+            $config['default_font'] = $hasThaiFonts ? 'thsarabun' : 'dejavusans';
+
+            if ($hasThaiFonts) {
+                $customFontDir = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
+                $customFontData = config('pdf.custom_font_data', [
+                    'thsarabun' => [
+                        'R' => 'Sarabun-Regular.ttf',
+                        'B' => 'Sarabun-Bold.ttf',
+                        'I' => 'Sarabun-Italic.ttf',
+                        'BI' => 'Sarabun-BoldItalic.ttf',
+                    ],
+                ]);
+                $config['fontDir'] = [$customFontDir];
+                $config['fontdata'] = $customFontData;
+            }
+        }
 
         // Ensure temp and output directories exist
         if (!is_dir($config['tempDir'])) {

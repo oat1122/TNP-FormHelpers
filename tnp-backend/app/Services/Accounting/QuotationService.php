@@ -807,9 +807,7 @@ class QuotationService
             $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
 
             // ใช้ Master PDF Service (mPDF) เป็นหลัก หากมี
-            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class)
-                && class_exists(\Mpdf\Config\ConfigVariables::class)
-                && class_exists(\Mpdf\Config\FontVariables::class);
+            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class);
 
             if ($mpdfAvailable) {
                 try {
@@ -901,9 +899,7 @@ class QuotationService
                                   ->findOrFail($quotationId);
                                   
             // ใช้ Master PDF Service (mPDF) เป็นหลัก หากมี
-            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class)
-                && class_exists(\Mpdf\Config\ConfigVariables::class)
-                && class_exists(\Mpdf\Config\FontVariables::class);
+            $mpdfAvailable = class_exists(\Mpdf\Mpdf::class);
 
             if ($mpdfAvailable) {
                 try {

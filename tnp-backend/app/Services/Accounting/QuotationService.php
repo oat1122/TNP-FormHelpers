@@ -829,7 +829,8 @@ class QuotationService
                 
                 // Fallback to FPDF only if mPDF completely fails
                 $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
-                $pdfPath = $fpdfService->render($quotation);
+                $primary = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
+                $pdfPath = $fpdfService->render($quotation, ['primaryColor' => $primary]);
                 $filename = basename($pdfPath);
                 $pdfUrl = url('storage/pdfs/quotations/' . $filename);
                 $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
@@ -877,7 +878,8 @@ class QuotationService
             // Fallback to FPDF
             $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
             $quotation = Quotation::with(['customer', 'company', 'items'])->findOrFail($quotationId);
-            $pdfPath = $fpdfService->render($quotation);
+            $primary = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
+            $pdfPath = $fpdfService->render($quotation, ['primaryColor' => $primary]);
             
             $filename = sprintf('quotation-%s.pdf', $quotation->number ?? $quotation->id);
             

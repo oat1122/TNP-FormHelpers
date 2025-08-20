@@ -101,36 +101,65 @@
 			background: #e8f4f8;
 		}
 
-		/* Summary Table */
-		.summary-table {
-			width: 100%;
-			max-width: 400pt;
-			margin-left: auto;
-			font-size: 12pt;
+		/* Summary Section - แทนตารางด้วย div ที่สะอาดกว่า */
+		.summary-section {
+			background: #ffffff;
+			border: 1px solid #e9ecef;
+			border-radius: 6pt;
+			overflow: hidden;
 		}
 
-		.summary-table td {
-			border: 1px solid #bdc3c7;
-			padding: 8pt;
+		.summary-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 12pt 15pt;
+			border-bottom: 1px solid #e9ecef;
+			font-size: 13pt;
 		}
 
-		.summary-table .label {
-			background: #ecf0f1;
+		.summary-row:last-child {
+			border-bottom: none;
+		}
+
+		.summary-row.total-row {
+			background: #e3f2fd;
+			color: #1565c0;
 			font-weight: bold;
-			width: 60%;
+			font-size: 14pt;
 		}
 
-		.summary-table .amount {
+		.summary-label {
+			font-weight: bold;
+			color: #2c3e50;
+		}
+
+		.summary-row.total-row .summary-label {
+			color: #1565c0;
+		}
+
+		.summary-amount {
 			text-align: right;
-			width: 40%;
+			font-weight: normal;
 		}
 
-	.summary-table .total-row { background: #e7f1ff; color: #1b5eaa; font-weight: bold; }
+		.summary-row.total-row .summary-amount {
+			color: #1565c0;
+		}
 
-	/* Items Table (clean, horizontal separators) */
+		/* Reading line for Thai baht text */
+		.reading { 
+			color: #6c757d; 
+			font-size: 11pt; 
+			margin-top: 4pt; 
+			font-weight: normal;
+			font-style: italic;
+		}
+
+	/* Items Table (clean, fewer lines) */
 	.items-table { border-collapse: collapse; width: 100%; }
 	.items-table th,
-	.items-table td { padding: 6pt 8pt; border-bottom: 1px solid #bdc3c7; }
+	.items-table td { padding: 6pt 8pt; }
 	.items-table thead th { border-bottom: 2px solid #9fb3c8; }
 	.items-table .num { width: 7%; text-align: center; }
 	.items-table .desc { width: 53%; }
@@ -146,14 +175,17 @@
 	.row-group > td.group-cell { border-bottom: 0; padding: 0 8pt 10pt; }
 	.group-box { page-break-inside: avoid; }
 	.group-inner { width: 100%; border-collapse: collapse; }
-	.group-inner td { padding: 6pt 0; border-bottom: 1px solid #e3e9ef; }
-	.group-inner .title { font-weight: bold; background: #fafbfc; border-top: 2px solid #dee5ed; }
-	/* plain number before title, add clearer gap before title */
-	.num-badge { display: inline-block; margin-right: 10pt; font-weight: bold; }
+	.group-inner td { padding: 6pt 0; border-bottom: none; }
+	.group-inner .title { font-weight: bold; background: #fafbfc; border-top: 2px solid #dee5ed; border-bottom: 1px solid #e3e9ef; }
+	/* subtle divider after each group */
+	.group-box { page-break-inside: avoid; border-bottom: 1px solid #e5edf5; }
+	/* inner table columns match header widths */
+	.group-inner .num { width: 7%; text-align: center; }
 	.group-inner .desc { width: 53%; padding-left: 14pt; }
 	.group-inner .qty { width: 14%; text-align: center; }
-	.group-inner .price { width: 16%; text-align: right; }
-	.group-inner .amount { width: 17%; text-align: right; }
+	.group-inner .price { width: 13%; text-align: right; }
+	.group-inner .amount { width: 13%; text-align: right; }
+	.nowrap { white-space: nowrap; }
 
 		/* Status Indicators */
 		.status-draft { color: #f39c12; }
@@ -182,6 +214,33 @@
 		.page-break-avoid { page-break-inside: avoid; }
 
 		@media print { .no-print { display: none; } body { -webkit-print-color-adjust: exact; } }
+
+		/* Flex helper for summary+notes row - ปรับปรุงให้แยกชัดเจน */
+		.flex-between { 
+			display: flex; 
+			justify-content: space-between; 
+			align-items: flex-start; 
+			gap: 20pt;
+			margin-top: 20pt;
+		}
+		.flex-between .col { display: block; padding: 0; }
+		.flex-between .col-7 { flex: 0 0 58%; max-width: 58%; }
+		.flex-between .col-5 { flex: 0 0 40%; max-width: 40%; }
+
+		/* หมายเหตุ section */
+		.notes-section {
+			background: #f8f9fa;
+			border-left: 4pt solid #6c757d;
+			padding: 15pt;
+			border-radius: 4pt;
+			min-height: 120pt;
+		}
+
+		.notes-section h3 {
+			margin-top: 0;
+			color: #495057;
+			margin-bottom: 10pt;
+		}
 	</style>
 </head>
 <body>
@@ -219,7 +278,7 @@
 					$unit = $g['unit'] ?? 'ชิ้น';
 					$meta = array_filter([$g['pattern'] ?: null, $g['fabric'] ?: null, $g['color'] ?: null]);
 					$title = ($g['name'] ?: 'ไม่ระบุชื่องาน');
-					if ($meta) { $title .= ' <span class="meta-light">' . implode(' • ', $meta) . '</span>'; }
+					if ($meta) { $title .= ' <span class="meta-light">' . implode(', ', $meta) . '</span>'; }
 					$items = [];
 					foreach ($g['rows'] as $r) {
 						$qty = (float)($r['quantity'] ?? 0);
@@ -261,17 +320,19 @@
 								<div class="group-box">
 									<table class="group-inner">
 										<tbody>
-											<tr>
-												<td class="desc title" colspan="4"><span class="num-badge">{{ $g['no'] }}</span>&nbsp;{!! $g['title'] !!}</td>
-											</tr>
-											@foreach ($g['items'] as $it)
 												<tr>
-													<td class="desc">{{ $it['desc'] }}</td>
-													<td class="qty">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
-													<td class="price">{{ number_format($it['price'], 2) }} บาท</td>
-													<td class="amount">{{ number_format($it['amount'], 2) }}</td>
+													<td class="num title">{{ $g['no'] }}</td>
+													<td class="desc title" colspan="4">{!! $g['title'] !!}</td>
 												</tr>
-											@endforeach
+												@foreach ($g['items'] as $it)
+													<tr>
+														<td class="num"></td>
+														<td class="desc">{{ $it['desc'] }}</td>
+														<td class="qty">{{ number_format($it['qty']) }}</td>
+														<td class="price">{{ number_format($it['price'], 2) }} </td>
+														<td class="amount">{{ number_format($it['amount'], 2) }}</td>
+													</tr>
+												@endforeach
 										</tbody>
 									</table>
 								</div>
@@ -284,28 +345,83 @@
 			<div class="highlight-box text-center"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
 		@endif
 
-		{{-- สรุปยอดเงิน --}}
-		<div class="mt-4 page-break-avoid">
-			<h3 class="mb-3">สรุปยอดเงิน</h3>
-			<table class="summary-table">
-				<tr><td class="label">รวมเป็นเงิน</td><td class="amount">{{ number_format($summary['subtotal'], 2) }}</td></tr>
-				<tr><td class="label">ภาษีมูลค่าเพิ่ม 7%</td><td class="amount">{{ number_format($summary['tax'], 2) }}</td></tr>
-				<tr class="total-row"><td class="label">จำนวนเงินรวมทั้งสิ้น</td><td class="amount">{{ number_format($summary['total'], 2) }}</td></tr>
-				@if ($summary['deposit_amount'] > 0)
-					<tr><td class="label">มัดจำ ({{ $summary['deposit_percentage'] }}%)</td><td class="amount">{{ number_format($summary['deposit_amount'], 2) }}</td></tr>
-					<tr><td class="label">คงเหลือ</td><td class="amount">{{ number_format($summary['remaining'], 2) }}</td></tr>
-				@endif
-			</table>
-		</div>
+		{{-- สรุปยอดเงิน + หมายเหตุ (ซ้าย: หมายเหตุ, ขวา: สรุปยอดเงิน) --}}
+		@php
+			// Helper: แปลงตัวเลขเป็นข้อความไทยแบบบาทสตางค์
+			$thaiBahtText = function($number) {
+				$number = (float)$number;
+				$txtnum1 = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+				$txtnum2 = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
+				$toWords = function($numStr) use (&$toWords, $txtnum1, $txtnum2) {
+					$len = strlen($numStr);
+					if ($len > 7) {
+						$mod = $len % 6;
+						$head = substr($numStr, 0, $len - 6);
+						$tail = substr($numStr, -6);
+						return $toWords(ltrim($head,'0')) . 'ล้าน' . $toWords(str_pad($tail, 6, '0', STR_PAD_LEFT));
+					}
+					$result = '';
+					for ($i = 0; $i < $len; $i++) {
+						$n = (int)$numStr[$i];
+						$pos = $len - $i - 1;
+						if ($n === 0) continue;
+						if ($pos === 0 && $n === 1 && $len > 1) {
+							$result .= 'เอ็ด';
+						} elseif ($pos === 1 && $n === 2) {
+							$result .= 'ยี่';
+						} elseif ($pos === 1 && $n === 1) {
+							$result .= '';
+						} else {
+							$result .= $txtnum1[$n];
+						}
+						$result .= $txtnum2[$pos] ?? '';
+					}
+					return $result === '' ? 'ศูนย์' : $result;
+				};
+				$formatted = number_format($number, 2, '.', '');
+				[$intPart, $decPart] = explode('.', $formatted);
+				$intPart = ltrim($intPart, '0');
+				$text = ($intPart === '' ? 'ศูนย์' : $toWords($intPart)) . 'บาท';
+				$dec = (int)$decPart;
+				$text .= $dec === 0 ? 'ถ้วน' : $toWords(str_pad((string)$dec, 2, '0', STR_PAD_LEFT)) . 'สตางค์';
+				return $text;
+			};
+		@endphp
 
-		@if (!empty($quotation->notes))
-			<div class="mt-4">
-				<h3>หมายเหตุ</h3>
-				<div class="info-box">{!! nl2br(e($quotation->notes)) !!}</div>
+		{{-- รวมหมายเหตุและสรุปยอดเงินใน div เดียวกัน --}}
+		<div class="page-break-avoid">
+			<div class="flex-between">
+				{{-- หมายเหตุ (ซ้าย) --}}
+				<div class="col-7">
+					<div class="notes-section">
+						<h3>หมายเหตุ</h3>
+						<div>{!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : '—' !!}</div>
+					</div>
+				</div>
+
+				{{-- สรุปยอดเงิน (ขวา) --}}
+				<div class="col-5">
+					<h3 class="mb-3">สรุปยอดเงิน</h3>
+					<div class="summary-section">
+						<div class="summary-row">
+							<span class="summary-label">รวมเป็นเงิน</span>
+							<span class="summary-amount">{{ number_format($summary['subtotal'], 2) }}</span>
+						</div>
+						<div class="summary-row">
+							<span class="summary-label">ภาษีมูลค่าเพิ่ม 7%</span>
+							<span class="summary-amount">{{ number_format($summary['tax'], 2) }}</span>
+						</div>
+						<div class="summary-row total-row">
+							<span class="summary-label">จำนวนเงินรวมทั้งสิ้น</span>
+							<div class="summary-amount">
+								<div>{{ number_format($summary['total'], 2) }}</div>
+								<div class="reading">{{ $thaiBahtText($summary['total']) }}</div>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
-		@endif
-
-		
+		</div>
 
 		<div class="signature-section">
 			<div class="row">

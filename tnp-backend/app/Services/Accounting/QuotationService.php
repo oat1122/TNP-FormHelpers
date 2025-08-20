@@ -800,7 +800,7 @@ class QuotationService
     public function generatePdf($quotationId, $options = [])
     {
         try {
-            $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items'])
+            $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items', 'creator'])
                                   ->findOrFail($quotationId);
 
             // กำหนดสถานะเอกสาร

@@ -51,24 +51,29 @@
                 @if ($quotation->due_date)
                     <div><strong>กำหนดส่ง:</strong> {{ \Carbon\Carbon::parse($quotation->due_date)->format('d/m/Y') }}</div>
                 @endif
+                @php
+                    $sellerFirst = optional($quotation->creator)->user_firstname;
+                    $sellerLast = optional($quotation->creator)->user_lastname;
+                    $sellerUsername = optional($quotation->creator)->username;
+                    $sellerDisplay = trim(trim(($sellerFirst ?? '') . ' ' . ($sellerLast ?? '')));
+                    if ($sellerDisplay === '' && !empty($sellerUsername)) {
+                        $sellerDisplay = $sellerUsername;
+                    }
+                @endphp
+                @if (!empty($sellerDisplay))
+                    <div><strong>ผู้ขาย:</strong> {{ $sellerDisplay }}</div>
+                @endif
             </div>
             
-            {{-- สถานะเอกสาร --}}
-            @php
-                $statusConfig = [
-                    'draft' => ['label' => 'ร่าง', 'color' => '#f39c12'],
-                    'pending_review' => ['label' => 'รอตรวจสอบ', 'color' => '#e67e22'],
-                    'approved' => ['label' => 'อนุมัติแล้ว', 'color' => '#27ae60'],
-                    'sent' => ['label' => 'ส่งแล้ว', 'color' => '#3498db'],
-                    'completed' => ['label' => 'เสร็จสิ้น', 'color' => '#8e44ad'],
-                    'rejected' => ['label' => 'ปฏิเสธ', 'color' => '#e74c3c'],
-                ];
-                $status = $statusConfig[$quotation->status] ?? ['label' => $quotation->status, 'color' => '#95a5a6'];
-            @endphp
-            
-            <div style="margin-top: 8pt; padding: 4pt 8pt; background: {{ $status['color'] }}; color: white; border-radius: 3pt; font-size: 10pt; font-weight: bold; display: inline-block;">
-                {{ $status['label'] }}
-            </div>
+            {{-- สถานะเอกสาร: แสดงเฉพาะ "ร่าง" เท่านั้น --}}
+            @if ($quotation->status === 'draft')
+                @php
+                    $status = ['label' => 'ร่าง', 'color' => '#f39c12'];
+                @endphp
+                <div style="margin-top: 8pt; padding: 4pt 8pt; background: {{ $status['color'] }}; color: white; border-radius: 3pt; font-size: 10pt; font-weight: bold; display: inline-block;">
+                    {{ $status['label'] }}
+                </div>
+            @endif
         </td>
     </tr>
 </table>

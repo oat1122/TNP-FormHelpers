@@ -17,6 +17,8 @@ class QuotationController extends Controller
     public function __construct(QuotationService $quotationService)
     {
         $this->quotationService = $quotationService;
+    // Require authentication for all quotation endpoints so created_by uses auth()->user()->user_uuid
+    $this->middleware('auth:sanctum');
     }
 
     /**

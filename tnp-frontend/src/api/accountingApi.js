@@ -74,9 +74,40 @@ class AccountingAPI {
      * สร้างใบเสนอราคาใหม่
      */
     async createQuotation(data) {
+        // Normalize payload to backend expectations
+        const payload = {
+            company_id: data.company_id,
+            pricing_request_id: data.pricing_request_id,
+            customer_company: data.customer?.cus_company || data.customer_company,
+            work_name: data.work_name || (data.items?.[0]?.name ?? ''),
+            subtotal: data.subtotal,
+            tax_amount: data.vat ?? data.tax_amount,
+            total_amount: data.total,
+            deposit_percentage: data.depositPercentage ?? data.deposit_percentage,
+            payment_terms: data.paymentMethod ?? data.payment_terms,
+            due_date: data.dueDate ?? data.due_date,
+            notes: data.notes,
+            // Optional items
+            items: (data.items || []).map((it, idx) => ({
+                pricing_request_id: it.pricingRequestId || it.pr_id || it.pricing_request_id,
+                item_name: it.name,
+                item_description: it.item_description || null,
+                sequence_order: it.sequence_order ?? (idx + 1),
+                pattern: it.pattern || null,
+                fabric_type: it.fabricType || it.fabric_type || null,
+                color: it.color || null,
+                size: it.size || null,
+                unit_price: it.unitPrice ?? it.unit_price ?? 0,
+                quantity: it.quantity ?? 0,
+                unit: it.unit ?? '',
+                discount_percentage: it.discount_percentage ?? 0,
+                discount_amount: it.discount_amount ?? 0,
+                notes: it.notes || null,
+            })),
+        };
         return this.makeRequest('/quotations', {
             method: 'POST',
-            body: JSON.stringify(data),
+            body: JSON.stringify(payload),
         });
     }
 
@@ -98,20 +129,36 @@ class AccountingAPI {
      * รองรับ primary_pricing_request_ids แบบ array
      */
     async createQuotationFromMultiplePricing(data) {
+        const payload = {
+            pricing_request_ids: data.pricingRequestIds,
+            customer_id: data.customerId,
+            primary_pricing_request_ids: data.pricingRequestIds,
+            additional_notes: data.additional_notes,
+            subtotal: data.subtotal,
+            tax_amount: data.vat ?? data.tax_amount,
+            total_amount: data.total ?? data.total_amount,
+            deposit_percentage: data.depositPercentage ?? data.deposit_percentage,
+            payment_terms: data.paymentMethod ?? data.payment_terms,
+            items: (data.items || []).map((it, idx) => ({
+                pricing_request_id: it.pricingRequestId || it.pr_id || it.pricing_request_id,
+                item_name: it.name,
+                item_description: it.item_description || null,
+                sequence_order: it.sequence_order ?? (idx + 1),
+                pattern: it.pattern || null,
+                fabric_type: it.fabricType || it.fabric_type || null,
+                color: it.color || null,
+                size: it.size || null,
+                unit_price: it.unitPrice ?? it.unit_price ?? 0,
+                quantity: it.quantity ?? 0,
+                unit: it.unit ?? '',
+                discount_percentage: it.discount_percentage ?? 0,
+                discount_amount: it.discount_amount ?? 0,
+                notes: it.notes || null,
+            })),
+        };
         return this.makeRequest('/quotations/create-from-multiple-pricing', {
             method: 'POST',
-            body: JSON.stringify({
-                pricing_request_ids: data.pricingRequestIds,
-                customer_id: data.customerId,
-                primary_pricing_request_ids: data.pricingRequestIds, // ⭐ รองรับ multiple IDs
-                additional_notes: data.additional_notes,
-                subtotal: data.subtotal,
-                tax_amount: data.tax_amount,
-                total_amount: data.total_amount,
-                deposit_percentage: data.deposit_percentage,
-                payment_terms: data.payment_terms,
-                ...data
-            }),
+            body: JSON.stringify(payload),
         });
     }
 

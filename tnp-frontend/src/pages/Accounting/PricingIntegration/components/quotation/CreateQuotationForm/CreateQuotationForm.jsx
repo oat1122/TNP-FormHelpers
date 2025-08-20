@@ -381,6 +381,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                   const rows = Array.isArray(item.sizeRows) ? item.sizeRows : [];
                   const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
                   const itemTotal = rows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+                  const knownUnits = ['ชิ้น', 'ตัว', 'ชุด', 'กล่อง', 'แพ็ค'];
+                  const unitSelectValue = knownUnits.includes(item.unit) ? item.unit : 'อื่นๆ';
 
                   return (
                     <InfoCard key={`calc-${item.id}`} sx={{ p: 2, mb: 1.5 }}>
@@ -406,6 +408,47 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         <Grid item xs={12} md={3}>
                           <TextField fullWidth size="small" label="ขนาด (สรุป)" value={item.size} disabled={!isCalcEditing} onChange={(e) => setItem(item.id, { size: e.target.value })} />
                         </Grid>
+                        {/* Unit editor */}
+                        <Grid item xs={12} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            select
+                            SelectProps={{ native: true }}
+                            label="หน่วย"
+                            value={unitSelectValue}
+                            disabled={!isCalcEditing}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === 'อื่นๆ') {
+                                // switch to custom mode; keep current custom value in item.unit
+                                setItem(item.id, { unit: item.unit && !knownUnits.includes(item.unit) ? item.unit : '' });
+                              } else {
+                                setItem(item.id, { unit: val });
+                              }
+                            }}
+                          >
+                            <option value="ชิ้น">ชิ้น</option>
+                            <option value="ตัว">ตัว</option>
+                            <option value="ชุด">ชุด</option>
+                            <option value="กล่อง">กล่อง</option>
+                            <option value="แพ็ค">แพ็ค</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                          </TextField>
+                        </Grid>
+                        {unitSelectValue === 'อื่นๆ' && (
+                          <Grid item xs={12} md={3}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="หน่วย (กำหนดเอง)"
+                              placeholder="พิมพ์หน่วย เช่น โหล, ตร.ม., แผ่น"
+                              value={item.unit || ''}
+                              disabled={!isCalcEditing}
+                              onChange={(e) => setItem(item.id, { unit: e.target.value })}
+                            />
+                          </Grid>
+                        )}
 
                         {/* Size rows editor */}
                         <Grid item xs={12}>

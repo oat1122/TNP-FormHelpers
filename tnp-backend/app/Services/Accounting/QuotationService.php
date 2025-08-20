@@ -80,6 +80,11 @@ class QuotationService
             }
 
             $quotation->status = 'draft';
+            // Ensure unique draft number to satisfy (company_id, number) unique index
+            if (empty($quotation->number)) {
+                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
+                $quotation->number = 'DRAFT-' . $suffix;
+            }
             $quotation->created_by = $createdBy;
             $quotation->save();
 
@@ -121,6 +126,11 @@ class QuotationService
             unset($data['number']);
             $quotation->fill($data);
             $quotation->status = 'draft';
+            // Ensure unique draft number to satisfy (company_id, number) unique index
+            if (empty($quotation->number)) {
+                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
+                $quotation->number = 'DRAFT-' . $suffix;
+            }
             $quotation->created_by = $createdBy;
             $quotation->save();
 
@@ -236,6 +246,11 @@ class QuotationService
             $quotation->notes = $additionalData['additional_notes'] ?? '';
 
             $quotation->status = 'draft';
+            // Ensure unique draft number to satisfy (company_id, number) unique index
+            if (empty($quotation->number)) {
+                $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
+                $quotation->number = 'DRAFT-' . $suffix;
+            }
             $quotation->created_by = $createdBy;
             $quotation->save();
 
@@ -276,7 +291,7 @@ class QuotationService
                         'size' => $item['size'] ?? null,
                         'unit_price' => $item['unit_price'] ?? 0,
                         'quantity' => $item['quantity'] ?? 0,
-                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'unit' => array_key_exists('unit', $item) ? ($item['unit'] === '' ? null : $item['unit']) : null,
                         'discount_percentage' => $item['discount_percentage'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
                         'notes' => $item['notes'] ?? null,
@@ -382,7 +397,7 @@ class QuotationService
                         'size' => $item['size'] ?? null,
                         'unit_price' => $item['unit_price'] ?? 0,
                         'quantity' => $item['quantity'] ?? 0,
-                        'unit' => $item['unit'] ?? 'ชิ้น',
+                        'unit' => array_key_exists('unit', $item) ? ($item['unit'] === '' ? null : $item['unit']) : null,
                         'discount_percentage' => $item['discount_percentage'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
                         'notes' => $item['notes'] ?? null,

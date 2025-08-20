@@ -4,6 +4,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation, useGetCompaniesQuery, useUpdateQuotationMutation, useApproveQuotationMutation, useSubmitQuotationMutation } from '../../../../features/Accounting/accountingApi';
+import { formatUserDisplay } from '../../../../utils/formatUser';
 import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
 import {
   TNPCard,
@@ -56,6 +57,9 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
     if (Array.isArray(detail?.primary_pricing_request_ids)) detail.primary_pricing_request_ids.forEach((id) => set.add(id));
     return Array.from(set);
   }, [detail]);
+
+  // Build a friendly creator display: username (firstname lastname) with robust fallbacks
+  const creatorText = React.useMemo(() => formatUserDisplay(data), [data]);
 
   // If no linked PRs, auto-delete this invalid quotation and hide the card
   React.useEffect(() => {
@@ -144,7 +148,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
           )}
         </Stack>
 
-        <TNPBodyText color="text.secondary">ผู้สร้าง: {data.created_by_name || '-'}</TNPBodyText>
+  <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>
 
         {/* PR entries with job names */}
         {prIds.length > 0 && (

@@ -315,7 +315,8 @@ const PricingIntegration = () => {
                         unit_price: parseFloat(row.unitPrice) || 0,
                         quantity: parseInt(row.quantity, 10) || 0,
                         sequence_order: (index + 1) * 100 + (rIndex + 1),
-                        unit: 'ชิ้น',
+                        // use selected unit from form; let backend/db default if empty
+                        unit: (item.unit ?? ''),
                         notes: item.notes || ''
                     }));
                 }
@@ -329,7 +330,7 @@ const PricingIntegration = () => {
                     unit_price: parseFloat(item.unitPrice) || 0,
                     quantity: parseInt(item.quantity, 10) || 0,
                     sequence_order: index + 1,
-                    unit: 'ชิ้น',
+                    unit: (item.unit ?? ''),
                     notes: item.notes || ''
                 }];
             });
@@ -404,7 +405,7 @@ const PricingIntegration = () => {
                         unit_price: parseFloat(row.unitPrice) || 0,
                         quantity: parseInt(row.quantity, 10) || 0,
                         sequence_order: (index + 1) * 100 + (rIndex + 1),
-                        unit: 'ชิ้น',
+                        unit: (item.unit ?? ''),
                         notes: item.notes || ''
                     }));
                 }
@@ -418,7 +419,7 @@ const PricingIntegration = () => {
                     unit_price: item.unitPrice || 0,
                     quantity: item.quantity || 0,
                     sequence_order: index + 1,
-                    unit: 'ชิ้น',
+                    unit: (item.unit ?? ''),
                     notes: item.notes || ''
                 }];
             });

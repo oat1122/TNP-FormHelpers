@@ -92,6 +92,8 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
   const size = group.size || pr.pr_sizes || '';
   const rows = Array.isArray(group.sizeRows) ? group.sizeRows : [];
   const unit = group.unit || 'ชิ้น';
+  const knownUnits = ['ชิ้น', 'ตัว', 'ชุด', 'กล่อง', 'แพ็ค'];
+  const unitSelectValue = knownUnits.includes(group.unit) ? group.unit : 'อื่นๆ';
   const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
   const itemTotal = rows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
   const prQty = Number(pr?.pr_quantity ?? pr?.quantity ?? 0) || 0;
@@ -157,6 +159,47 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
         <Grid item xs={12} md={3}>
           <TextField fullWidth size="small" label="ขนาด (สรุป)" value={size} disabled />
         </Grid>
+
+        {/* Unit editor */}
+        <Grid item xs={12} md={3}>
+          <TextField
+            fullWidth
+            size="small"
+            select
+            SelectProps={{ native: true }}
+            label="หน่วย"
+            value={unitSelectValue}
+            disabled={!isEditing}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'อื่นๆ') {
+                onChangeGroup(group.id, 'unit', (group.unit && !knownUnits.includes(group.unit)) ? group.unit : '');
+              } else {
+                onChangeGroup(group.id, 'unit', val);
+              }
+            }}
+          >
+            <option value="ชิ้น">ชิ้น</option>
+            <option value="ตัว">ตัว</option>
+            <option value="ชุด">ชุด</option>
+            <option value="กล่อง">กล่อง</option>
+            <option value="แพ็ค">แพ็ค</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </TextField>
+        </Grid>
+        {unitSelectValue === 'อื่นๆ' && (
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              size="small"
+              label="หน่วย (กำหนดเอง)"
+              placeholder="พิมพ์หน่วย เช่น โหล, ตร.ม., แผ่น"
+              value={group.unit || ''}
+              disabled={!isEditing}
+              onChange={(e) => onChangeGroup(group.id, 'unit', e.target.value)}
+            />
+          </Grid>
+        )}
 
         <Grid item xs={12}>
           <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>

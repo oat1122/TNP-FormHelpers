@@ -149,56 +149,28 @@
       };
     @endphp
 
-    {{-- Summary and Notes Section (Fixed Layout) --}}
-    <div class="summary-notes-container">
-      <table class="summary-notes-wrapper">
-        <tr>
-          {{-- Notes Section --}}
-          <td class="notes-cell">
-            <h3>หมายเหตุ</h3>
-            <div class="notes-section">
-              {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
-            </div>
-          </td>
-          
-          {{-- Spacer --}}
-          <td class="spacer-cell"></td>
-          
-          {{-- Summary Section --}}
-          <td class="summary-cell">
-            <h3 class="summary-header">สรุปยอดเงิน</h3>
-            <div class="summary-section">
-              {{-- Subtotal --}}
-              <table class="summary-row">
-                <tr>
-                  <td class="summary-label">รวมเป็นเงิน</td>
-                  <td class="summary-amount">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</td>
-                </tr>
-              </table>
-              
-              {{-- Tax --}}
-              <table class="summary-row">
-                <tr>
-                  <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
-                  <td class="summary-amount">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</td>
-                </tr>
-              </table>
-              
-              {{-- Total --}}
-              <table class="summary-row total-row">
-                <tr>
-                  <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
-                  <td class="summary-amount">
-                    {{ number_format($summary['total'] ?? 0, 2) }} บาท
-                    <div class="reading">({{ $thaiBahtText($summary['total'] ?? 0) }})</div>
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
+    {{-- Summary and Notes Section --}}
+    <table class="notes-summary-table">
+      <tr>
+        <td class="notes-box" rowspan="3">
+          <strong>หมายเหตุ</strong><br/>
+          {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
+        </td>
+        <td class="summary-label">รวมเป็นเงิน</td>
+        <td class="summary-value">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</td>
+      </tr>
+      <tr>
+        <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
+        <td class="summary-value">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</td>
+      </tr>
+      <tr class="total-row">
+        <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
+        <td class="summary-value">
+          {{ number_format($summary['total'] ?? 0, 2) }} บาท
+          <div class="reading">({{ $thaiBahtText($summary['total'] ?? 0) }})</div>
+        </td>
+      </tr>
+    </table>
 
     {{-- ลายเซ็น --}}
     <div class="signature-section">

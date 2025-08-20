@@ -588,6 +588,9 @@ class QuotationController extends Controller
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
+            if ($request->filled('primary_color')) {
+                $options['primaryColor'] = $request->input('primary_color');
+            }
             $result = $this->quotationService->generatePdf($id, $options);
             
             return response()->json([
@@ -618,6 +621,9 @@ class QuotationController extends Controller
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
+            if ($request->filled('primary_color')) {
+                $options['primaryColor'] = $request->input('primary_color');
+            }
             return $this->quotationService->streamPdf($id, $options);
         } catch (\Exception $e) {
             return response()->json([
@@ -633,7 +639,11 @@ class QuotationController extends Controller
     public function downloadPdf(Request $request, $id)
     {
         try {
-            $result = $this->quotationService->generatePdf($id, $request->only(['format', 'orientation']));
+            $options = $request->only(['format', 'orientation']);
+            if ($request->filled('primary_color')) {
+                $options['primaryColor'] = $request->input('primary_color');
+            }
+            $result = $this->quotationService->generatePdf($id, $options);
             $filename = $result['filename'] ?? ('quotation-' . $id . '.pdf');
             $path = $result['path'] ?? null;
             if (!$path || !is_file($path)) {

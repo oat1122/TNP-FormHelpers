@@ -8,9 +8,9 @@ body{
   padding:20pt;
 }
 
-h1{font-size:20pt;font-weight:bold;margin:0 0 8pt;color:#2c3e50}
-h2{font-size:16pt;font-weight:bold;margin:12pt 0 6pt;color:#34495e}
-h3{font-size:13pt;font-weight:bold;margin:10pt 0 6pt;color:#34495e}
+h1{font-size:20pt;font-weight:bold;margin:0 0 8pt;color:#900F0F}
+h2{font-size:16pt;font-weight:bold;margin:12pt 0 6pt;color:#900F0F}
+h3{font-size:13pt;font-weight:bold;margin:10pt 0 6pt;color:#900F0F}
 
 /* ===== Reset any potential Bootstrap conflicts ===== */
 * {
@@ -25,8 +25,9 @@ h3{font-size:13pt;font-weight:bold;margin:10pt 0 6pt;color:#34495e}
 
 /* ===== Info Box ===== */
 .info-box{
-  background:#f8f9fa;
+  background:#fdf0f0;
   border:1px solid #e9ecef;
+  border-left:4pt solid #900F0F;
   border-radius:6pt;
   padding:12pt;
   margin-bottom:15pt;
@@ -57,8 +58,9 @@ table{
 }
 
 .items-table thead th{
-  border-bottom:2px solid #9fb3c8;
-  background:#eef2f5;
+  border-bottom:2px solid #700b0b;
+  background:#900F0F;
+  color:#fff;
   text-align:center;
   font-weight: bold;
 }
@@ -68,6 +70,9 @@ table{
 .items-table .qty{width:14%;text-align:center}
 .items-table .price{width:13%;text-align:right}
 .items-table .amount{width:13%;text-align:right}
+
+.items-table tbody tr:nth-child(even) td{background:#fdf0f0;}
+.items-table td.title{background:#f5e6e6;color:#900F0F;font-weight:bold;}
 
 /* Group styling */
 .group-body{page-break-inside:avoid}
@@ -96,127 +101,52 @@ table{
 
 .meta-light{color:#6e7b88;font-weight:normal}
 
-/* ===== Summary and Notes Section (Fixed Layout) ===== */
-.summary-notes-container {
-  width: 100%;
-  margin: 24pt 0;
-  page-break-inside: avoid;
-  clear: both;
+/* ===== Summary and Notes Table ===== */
+.notes-summary-table{
+  width:100%;
+  border-collapse:collapse;
+  margin:20pt 0;
 }
 
-.summary-notes-wrapper {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 15pt 0;
-  table-layout: fixed;
-}
-
-.notes-cell {
-  width: 45%;
-  vertical-align: top;
-  padding: 0;
-  border: none;
-}
-
-.notes-cell h3 {
-  font-size: 13pt;
-  font-weight: bold;
-  margin: 0 0 200pt 0;
-  padding: 0;
-  color: #34495e;
-  line-height: 1.2;
-}
-
-.spacer-cell {
-  width: 10%;
-  padding: 0;
-  border: none;
-}
-
-.summary-cell {
-  width: 45%;
-  vertical-align: top;
-  padding: 0;
-  border: none;
-}
-
-/* Notes section */
-.notes-section{
-  
-  border-left:4pt ;
-  padding:15pt;
-  border-radius:4pt;
-  min-height:120pt;
-  font-size: 14pt;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-  margin-top: 10pt;
-  clear: both;
-}
-
-/* Summary section */
-.summary-section{
-  background:#fff;
+.notes-summary-table td{
   border:1px solid #dee2e6;
-  border-radius:6pt;
-  overflow:hidden;
-  min-height:120pt;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
+  padding:8pt 10pt;
+  vertical-align:top;
 }
 
-.summary-header {
-  text-align: center;
-  margin: 0 0 12pt 0;
-  padding: 0;
-  font-size: 13pt;
-  font-weight: bold;
-  color: #34495e;
+.notes-summary-table .notes-box{
+  width:60%;
+  background:#fdf0f0;
+  border-left:4pt solid #900F0F;
+  font-size:14pt;
 }
 
-.summary-row{
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0;
-  display: table;
-}
-
-.summary-row td {
-  padding: 12pt 15pt;
-  border-bottom: 1px solid #e9ecef;
-  display: table-cell;
-}
-
-.summary-label{
+.notes-summary-table .summary-label{
+  width:20%;
   text-align:right;
   font-weight:bold;
-  color:#2c3e50;
-  width: 60%;
-  white-space: nowrap;
+  color:#900F0F;
+  white-space:nowrap;
 }
 
-.summary-amount{
+.notes-summary-table .summary-value{
+  width:20%;
   text-align:right;
   white-space:nowrap;
-  font-size:12pt;
-  width: 40%;
 }
 
-.total-row {
-  background:#e3f2fd !important;
+.notes-summary-table .total-row td{
+  background:#900F0F;
+  color:#fff;
+  font-weight:bold;
 }
 
-.total-row td {
-  background:#e3f2fd !important;
+.notes-summary-table .total-row .summary-value{
+  color:#fff;
 }
 
-.total-row .summary-label,
-.total-row .summary-amount{
-  color:#1565c0 !important;
-  font-weight: bold !important;
-  font-size: 14pt !important;
+.notes-summary-table .total-row .reading{
+  color:#fff;
 }
 
 .reading{
@@ -224,7 +154,7 @@ table{
   font-size:10pt;
   margin-top:4pt;
   font-style:italic;
-  display: block;
+  display:block;
 }
 
 /* ===== Signature Section ===== */
@@ -249,7 +179,7 @@ table{
 .signature-box{
   width:200pt;
   height:60pt;
-  border-bottom:1pt solid #333;
+  border-bottom:1pt solid #900F0F;
   margin-bottom:8pt;
   display:block;
   margin-left:auto;

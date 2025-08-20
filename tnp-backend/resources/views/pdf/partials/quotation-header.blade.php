@@ -36,11 +36,14 @@
                 โทร: {{ $quotation->company->phone ?? '-' }} <br/>
                 เลขประจำตัวผู้เสียภาษี: {{ $quotation->company->tax_id ?? '-' }}
             </div>
+            <div style="font-size: 11pt; color: {{ $primaryColor }}; margin-top: 4pt;">
+                {{ $quotation->company->tagline ?? 'ผู้ผลิตและจำหน่ายเสื้อคุณภาพ' }}
+            </div>
         </td>
         
         <td style="width: 45%; vertical-align: top; text-align: right; padding: 8pt;">
             {{-- หัวข้อเอกสาร --}}
-            <div style="font-size: 20pt; font-weight: bold; color: #e74c3c; margin-bottom: 5pt;">
+            <div style="font-size: 20pt; font-weight: bold; color: {{ $primaryColor }}; margin-bottom: 5pt;">
                 ใบเสนอราคา
             </div>
             
@@ -79,4 +82,4 @@
 </table>
 
 {{-- เส้นแบ่ง --}}
-<div style="border-bottom: 2pt solid #34495e; margin: 8pt 0;"></div>
+<div style="border-bottom: 2pt solid {{ $primaryColor }}; margin: 8pt 0;"></div>

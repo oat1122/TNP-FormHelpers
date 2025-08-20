@@ -44,12 +44,16 @@ class QuotationPdfMasterService
             $isFinal = in_array($q->status, ['approved', 'sent', 'completed']);
 
             // เตรียมข้อมูลสำหรับ template
+            $primaryColor = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
+            unset($options['primaryColor']);
+
             $viewData = [
                 'quotation' => $q,
                 'customer' => $customer,
                 'groups' => $groups,
                 'summary' => $summary,
                 'isFinal' => $isFinal,
+                'primaryColor' => $primaryColor,
                 'options' => array_merge([
                     'format' => 'A4',
                     'orientation' => 'P',
@@ -158,19 +162,22 @@ class QuotationPdfMasterService
         $quotation = $data['quotation'];
         $customer = $data['customer'];
         $isFinal = $data['isFinal'];
+        $primaryColor = $data['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
 
         // สร้าง header HTML
-    $headerHtml = View::make('accounting.pdf.quotation.partials.quotation-header', [
+        $headerHtml = View::make('accounting.pdf.quotation.partials.quotation-header', [
             'quotation' => $quotation,
             'customer' => $customer,
-            'isFinal' => $isFinal
+            'isFinal' => $isFinal,
+            'primaryColor' => $primaryColor,
         ])->render();
 
         // สร้าง footer HTML
-    $footerHtml = View::make('accounting.pdf.quotation.partials.quotation-footer', [
+        $footerHtml = View::make('accounting.pdf.quotation.partials.quotation-footer', [
             'quotation' => $quotation,
             'customer' => $customer,
-            'isFinal' => $isFinal
+            'isFinal' => $isFinal,
+            'primaryColor' => $primaryColor,
         ])->render();
 
         // กำหนด header/footer ให้ mPDF
@@ -296,12 +303,16 @@ class QuotationPdfMasterService
         $summary = $this->calculateSummary($q);
         $isFinal = in_array($q->status, ['approved', 'sent', 'completed']);
 
+        $primaryColor = $options['primaryColor'] ?? config('pdf.primary_color', '#900F0F');
+        unset($options['primaryColor']);
+
         $viewData = [
             'quotation' => $q,
             'customer' => $customer,
             'groups' => $groups,
             'summary' => $summary,
             'isFinal' => $isFinal,
+            'primaryColor' => $primaryColor,
             'options' => array_merge(['format' => 'A4', 'orientation' => 'P'], $options)
         ];
 

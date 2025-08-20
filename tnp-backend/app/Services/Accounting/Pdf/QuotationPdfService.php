@@ -9,6 +9,7 @@ use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 class QuotationPdfService
 {
     protected Fpdf $pdf;
+
     /**
      * Convert UTF-8 text to TIS-620 safely for FPDF Thai fonts.
      * Drops unsupported characters to avoid iconv warnings/exceptions.
@@ -17,6 +18,23 @@ class QuotationPdfService
     {
         $s = iconv('UTF-8', 'TIS-620//IGNORE', (string)$text);
         return $s === false ? '' : $s;
+    }
+
+    /**
+     * Convert hex color code to RGB array for FPDF functions.
+     */
+    private function hexToRgb(string $hex): array
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) === 6) {
+            return [
+                'r' => hexdec(substr($hex, 0, 2)),
+                'g' => hexdec(substr($hex, 2, 2)),
+                'b' => hexdec(substr($hex, 4, 2)),
+            ];
+        }
+
+        return ['r' => 0, 'g' => 0, 'b' => 0];
     }
 
     public function __construct()
@@ -45,8 +63,10 @@ class QuotationPdfService
         }
     }
 
-    public function render(Quotation $q): string
+    public function render(Quotation $q, array $options = []): string
     {
+        $primary = $this->hexToRgb($options['primaryColor'] ?? config('pdf.primary_color', '#900F0F'));
+
         $this->pdf->AddPage();
 
         // Header: Logo + Company info
@@ -84,9 +104,11 @@ class QuotationPdfService
     
         // Right-side Title and meta first
         $this->pdf->SetXY(-90, 10);
-    try { $this->pdf->SetFont($boldFont, '', 18); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 18); }
+        $this->pdf->SetTextColor($primary['r'], $primary['g'], $primary['b']);
+        try { $this->pdf->SetFont($boldFont, '', 18); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 18); }
         $this->pdf->Cell(78, 8, $this->t('ใบเสนอราคา'), 0, 2, 'R');
-    try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
+        $this->pdf->SetTextColor(0, 0, 0);
+        try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
         $this->pdf->Cell(78, 6, $this->t('เลขที่: ' . ($q->number ?? '-')), 0, 2, 'R');
         $this->pdf->Cell(78, 6, $this->t('วันที่: ' . now()->format('d/m/Y')), 0, 2, 'R');
 
@@ -151,13 +173,15 @@ class QuotationPdfService
         // Items table header (adjusted widths to fit 186mm content area)
         $this->pdf->Ln(8);
         try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
-        $this->pdf->SetFillColor(245, 245, 245);
+        $this->pdf->SetFillColor($primary['r'], $primary['g'], $primary['b']);
+        $this->pdf->SetTextColor(255, 255, 255);
         $wIdx = 12; $wDetail = 102; $wQty = 24; $wUnit = 24; $wTotal = 24; // sum = 186
         $this->pdf->Cell($wIdx, 8, '#', 1, 0, 'C', true);
-    $this->pdf->Cell($wDetail, 8, $this->t('รายละเอียดงาน'), 1, 0, 'L', true);
-    $this->pdf->Cell($wQty, 8, $this->t('จำนวน'), 1, 0, 'R', true);
-    $this->pdf->Cell($wUnit, 8, $this->t('ราคาต่อหน่วย'), 1, 0, 'R', true);
-    $this->pdf->Cell($wTotal, 8, $this->t('ยอดรวม'), 1, 1, 'R', true);
+        $this->pdf->Cell($wDetail, 8, $this->t('รายละเอียดงาน'), 1, 0, 'L', true);
+        $this->pdf->Cell($wQty, 8, $this->t('จำนวน'), 1, 0, 'R', true);
+        $this->pdf->Cell($wUnit, 8, $this->t('ราคาต่อหน่วย'), 1, 0, 'R', true);
+        $this->pdf->Cell($wTotal, 8, $this->t('ยอดรวม'), 1, 1, 'R', true);
+        $this->pdf->SetTextColor(0, 0, 0);
 
         // Group items by name + attributes to emulate frontend preview
         $groups = [];
@@ -271,11 +295,13 @@ class QuotationPdfService
         try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
         $this->pdf->Cell($valueW, 7, number_format((float)($q->tax_amount ?? 0), 2), 0, 1, 'R');
 
-        // Total
+        // Total highlighted with brand color
+        $this->pdf->SetTextColor($primary['r'], $primary['g'], $primary['b']);
         try { $this->pdf->SetFont($boldFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackBold[0], $fallbackBold[1], 12); }
         $this->pdf->Cell($labelW, 7, $this->t('จำนวนเงินรวมทั้งสิ้น'), 0, 0, 'R');
         $totalAmount = (float)($q->total_amount ?? (($q->subtotal ?? 0) + ($q->tax_amount ?? 0)));
         $this->pdf->Cell($valueW, 7, number_format($totalAmount, 2), 0, 1, 'R');
+        $this->pdf->SetTextColor(0, 0, 0);
 
         // Deposit and remaining
         try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }

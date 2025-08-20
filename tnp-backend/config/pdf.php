@@ -12,6 +12,7 @@ return [
     'margin_header'          => 0,
     'margin_footer'          => 0,
     'orientation'            => 'P',
+    'primary_color'         => '#900F0F',
 
     'title'                  => 'Laravel mPDF',
     'author'                 => 'YourApp',

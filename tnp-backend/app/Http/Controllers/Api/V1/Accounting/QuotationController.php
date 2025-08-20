@@ -580,30 +580,139 @@ class QuotationController extends Controller
     }
 
     /**
-     * สร้าง PDF ใบเสนอราคา
-     * GET /api/v1/quotations/{id}/pdf
+     * สร้างและบันทึก PDF (ใช้ mPDF เป็นหลัก)
      */
-    public function generatePdf($id): JsonResponse
+    public function generatePdf(Request $request, $id)
     {
         try {
-            $pdfData = $this->quotationService->generatePdf($id);
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $result = $this->quotationService->generatePdf($id, $options);
             
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'pdf_url' => $pdfData['url'],
-                    'filename' => $pdfData['filename'],
-                    'size' => $pdfData['size']
-                ],
-                'message' => 'PDF generated successfully'
+                'pdf_url' => $result['url'] ?? null,
+                'filename' => $result['filename'] ?? null,
+                'size' => $result['size'] ?? null,
+                'type' => $result['type'] ?? null,
+                'engine' => $result['engine'] ?? 'mPDF',
+                'data' => $result,
+                'message' => isset($result['engine']) && $result['engine'] === 'fpdf' 
+                    ? 'PDF สร้างด้วย FPDF (fallback) เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
+                    : 'PDF สร้างด้วย mPDF สำเร็จ'
             ]);
-
         } catch (\Exception $e) {
-            Log::error('QuotationController::generatePdf error: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate PDF: ' . $e->getMessage()
+                'message' => $e->getMessage(),
+                'error_type' => 'pdf_generation_failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * แสดง PDF ในเบราว์เซอร์ (ใช้ mPDF)
+     */
+    public function streamPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            return $this->quotationService->streamPdf($id, $options);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถแสดง PDF ได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF
+     */
+    public function downloadPdf(Request $request, $id)
+    {
+        try {
+            $result = $this->quotationService->generatePdf($id, $request->only(['format', 'orientation']));
+            $filename = $result['filename'] ?? ('quotation-' . $id . '.pdf');
+            $path = $result['path'] ?? null;
+            if (!$path || !is_file($path)) {
+                throw new \Exception('PDF ยังไม่พร้อมดาวน์โหลด');
+            }
+            return response()->download($path, $filename, [
+                'Content-Type' => 'application/pdf'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถดาวน์โหลด PDF ได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ตรวจสอบสถานะระบบ PDF
+     */
+    public function checkPdfStatus()
+    {
+        try {
+            $status = $this->quotationService->checkPdfSystemStatus();
+            
+            return response()->json([
+                'success' => true,
+                'system_ready' => $status['system_ready'],
+                'preferred_engine' => $status['preferred_engine'],
+                'components' => $status['components'],
+                'recommendations' => $status['recommendations']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'preferred_engine' => 'FPDF'
+            ], 500);
+        }
+    }
+
+    /**
+     * ทดสอบการสร้าง PDF ด้วย mPDF
+     */
+    public function testMpdf(Request $request, $id)
+    {
+        try {
+            $quotation = Quotation::with(['customer', 'company', 'items'])->findOrFail($id);
+            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+            
+            // ทดสอบสถานะระบบ
+            $systemStatus = $masterService->checkSystemStatus();
+            
+            if (empty($systemStatus['all_ready']) || !$systemStatus['all_ready']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ระบบ mPDF ไม่พร้อมใช้งาน',
+                    'system_status' => $systemStatus,
+                    'action' => 'fix_system_first'
+                ], 422);
+            }
+            
+            // ทดสอบสร้าง PDF
+            $result = $masterService->generatePdf($quotation, [
+                'showWatermark' => true,
+                'format' => 'A4'
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'ทดสอบ mPDF สำเร็จ!',
+                'pdf_url' => $result['url'] ?? null,
+                'filename' => $result['filename'] ?? null,
+                'size' => $result['size'] ?? null,
+                'system_status' => $systemStatus
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ทดสอบ mPDF ไม่สำเร็จ: ' . $e->getMessage(),
+                'error_trace' => $e->getTraceAsString()
             ], 500);
         }
     }

@@ -270,7 +270,11 @@ Route::prefix('v1')->group(function() {
         // Step 1 Workflow APIs
         Route::post('/quotations/{id}/send-back', 'sendBack');
         Route::post('/quotations/{id}/revoke-approval', 'revokeApproval');
-        Route::get('/quotations/{id}/generate-pdf', 'generatePdf');
+        // PDF APIs (Accounting-only, mPDF-first with FPDF fallback)
+        Route::match(['get', 'post'], '/quotations/{id}/generate-pdf', 'generatePdf');
+        Route::get('/quotations/{id}/pdf/stream', 'streamPdf');
+        Route::get('/quotations/{id}/pdf/download', 'downloadPdf');
+        Route::get('/quotations/{id}/pdf/test', 'testMpdf');
         Route::post('/quotations/{id}/send-email', 'sendEmail');
         Route::post('/quotations/{id}/upload-evidence', 'uploadEvidence');
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');
@@ -280,6 +284,9 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
         Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');
     });
+
+    // System Status (PDF)
+    Route::get('/system/pdf-status', [QuotationController::class, 'checkPdfStatus']);
 
     // Invoice APIs
     Route::controller(InvoiceController::class)->group(function () {

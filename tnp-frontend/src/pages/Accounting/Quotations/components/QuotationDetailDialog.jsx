@@ -390,12 +390,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
 
   const handlePreviewPdf = async () => {
     if (!q?.id) return;
-    // Require approved/sent/completed before generating PDF to avoid backend 500
-    const allowed = ['approved', 'sent', 'completed'];
-    if (q?.status && !allowed.includes(String(q.status))) {
-      showError('ต้องอนุมัติใบเสนอราคาก่อนจึงจะสร้าง PDF ได้');
-      return;
-    }
     // If editing, ask to save changes first so PDF reflects latest data
     if (isEditing) {
       const confirmSave = window.confirm('คุณกำลังแก้ไขข้อมูล ต้องการบันทึกก่อนสร้าง PDF หรือไม่?');
@@ -406,21 +400,25 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     setIsGeneratingPdf(true);
     const loadingId = showLoading('กำลังสร้าง PDF ใบเสนอราคา…');
     try {
-      const res = await generateQuotationPDF(q.id).unwrap();
+      // Request mPDF with preview watermark if not final
+      const isFinal = ['approved', 'sent', 'completed'].includes(String(q?.status || ''));
+      const res = await generateQuotationPDF({ id: q.id, format: 'A4', orientation: 'P', showWatermark: !isFinal }).unwrap();
       const dataObj = res?.data || res; // support either wrapped or direct
       const url = dataObj?.pdf_url || dataObj?.url;
       if (!url) throw new Error('ไม่พบลิงก์ไฟล์ PDF');
       setPdfUrl(url);
       setShowPdfViewer(true);
+      const engine = (dataObj?.engine || '').toLowerCase();
+      if (engine === 'fpdf') {
+        showError('ระบบใช้ FPDF (fallback) ชั่วคราว เนื่องจาก mPDF ไม่พร้อมใช้งาน');
+      } else {
+        showSuccess('PDF สร้างด้วย mPDF สำเร็จ');
+      }
       dismissToast(loadingId);
     } catch (e) {
       dismissToast(loadingId);
       const msg = e?.data?.message || e?.message || 'ไม่สามารถสร้าง PDF ได้';
-      // Map backend rule for unapproved doc to friendly Thai message
-      const friendly = /must be approved/i.test(String(msg))
-        ? 'ต้องอนุมัติใบเสนอราคาก่อนจึงจะสร้าง PDF ได้'
-        : msg;
-      showError(friendly);
+      showError(msg);
     } finally {
       setIsGeneratingPdf(false);
     }

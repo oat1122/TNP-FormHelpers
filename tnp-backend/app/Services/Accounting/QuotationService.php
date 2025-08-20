@@ -780,54 +780,157 @@ class QuotationService
     }
 
     /**
-     * สร้าง PDF ใบเสนอราคา
+     * สร้าง PDF ใบเสนอราคา (ใหม่ - ใช้ Master Service)
      */
-    public function generatePdf($quotationId)
+    public function generatePdf($quotationId, $options = [])
     {
         try {
-            $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items'])->findOrFail($quotationId);
+            $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items'])
+                                  ->findOrFail($quotationId);
 
-            // อนุญาตให้ Preview ได้ทุกสถานะ (draft/pending_review ใช้เป็น preview)
+            // กำหนดสถานะเอกสาร
             $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
 
-            // สร้าง PDF: พยายามใช้ mPDF ก่อน จากนั้น fallback เป็น FPDF เพื่อความเข้ากันได้ย้อนหลัง
-            $pdfPath = null;
+            // ใช้ Master PDF Service (mPDF) เป็นหลัก
             try {
-                if (class_exists(\App\Services\Accounting\Pdf\Mpdf\QuotationMpdfService::class)) {
-                    $mpdfSvc = app(\App\Services\Accounting\Pdf\Mpdf\QuotationMpdfService::class);
-                    $pdfPath = method_exists($mpdfSvc, 'make') ? $mpdfSvc->make($quotation) : $mpdfSvc->render($quotation);
-                }
+                $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+                $result = $masterService->generatePdf($quotation, $options);
+                
+                // บันทึก History
+                DocumentHistory::logAction(
+                    'quotation',
+                    $quotationId,
+                    'generate_pdf',
+                    auth()->user()->user_uuid ?? null,
+                    "สร้าง PDF (mPDF): {$result['filename']} ({$result['type']})"
+                );
+
+                // ระบุ engine ที่ใช้
+                $result['engine'] = 'mPDF';
+                return $result;
+                
             } catch (\Throwable $e) {
-                \Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+                Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+                
+                // Fallback to FPDF only if mPDF completely fails
+                $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+                $pdfPath = $fpdfService->render($quotation);
+                $filename = basename($pdfPath);
+                $pdfUrl = url('storage/pdfs/quotations/' . $filename);
+                $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
+
+                DocumentHistory::logAction(
+                    'quotation',
+                    $quotationId,
+                    'generate_pdf',
+                    auth()->user()->user_uuid ?? null,
+                    "สร้าง PDF (FPDF fallback): {$filename} - " . $e->getMessage()
+                );
+
+                return [
+                    'url' => $pdfUrl,
+                    'filename' => $filename,
+                    'size' => $fileSize,
+                    'path' => $pdfPath,
+                    'type' => $isFinal ? 'final' : 'preview',
+                    'engine' => 'fpdf'
+                ];
             }
-            if (!$pdfPath || !is_file($pdfPath)) {
-                $pdfSvc = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
-                $pdfPath = method_exists($pdfSvc, 'make') ? $pdfSvc->make($quotation) : $pdfSvc->render($quotation);
-            }
-            $filename = basename($pdfPath);
-            $pdfUrl = url('storage/pdfs/quotations/' . $filename);
-            $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
 
-            // บันทึก History
-            DocumentHistory::logAction(
-                'quotation',
-                $quotationId,
-                'generate_pdf',
-                auth()->user()->user_uuid ?? null,
-                ($isFinal ? "สร้าง PDF: {$filename}" : "สร้าง PDF (preview): {$filename}")
-            );
-
-            return [
-                'url' => $pdfUrl,
-                'filename' => $filename,
-                'size' => $fileSize,
-                'path' => $pdfPath
-            ];
-
-    } catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('QuotationService::generatePdf error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Stream PDF สำหรับดู/ดาวน์โหลดทันที
+     */
+    public function streamPdf($quotationId, $options = [])
+    {
+        try {
+            $quotation = Quotation::with(['customer', 'company', 'items'])
+                                  ->findOrFail($quotationId);
+                                  
+            // ใช้ Master PDF Service (mPDF) เป็นหลัก
+            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+            return $masterService->streamPdf($quotation, $options);
+            
+        } catch (\Throwable $e) {
+            Log::warning('QuotationService::streamPdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
+            
+            // Fallback to FPDF
+            $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
+            $quotation = Quotation::with(['customer', 'company', 'items'])->findOrFail($quotationId);
+            $pdfPath = $fpdfService->render($quotation);
+            
+            $filename = sprintf('quotation-%s.pdf', $quotation->number ?? $quotation->id);
+            
+            return response()->file($pdfPath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"'
+            ]);
+        }
+    }
+
+    /**
+     * ตรวจสอบสถานะระบบ PDF
+     */
+    public function checkPdfSystemStatus()
+    {
+        try {
+            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+            $status = $masterService->checkSystemStatus();
+            
+            return [
+                'system_ready' => $status['all_ready'],
+                'components' => $status,
+                'recommendations' => $this->getPdfRecommendations($status),
+                'preferred_engine' => $status['all_ready'] ? 'mPDF' : 'FPDF'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('QuotationService::checkPdfSystemStatus error: ' . $e->getMessage());
+            
+            return [
+                'system_ready' => false,
+                'components' => ['error' => $e->getMessage()],
+                'recommendations' => ['ติดตั้ง mPDF package และ dependencies ที่จำเป็น'],
+                'preferred_engine' => 'FPDF'
+            ];
+        }
+    }
+
+    /**
+     * ให้คำแนะนำสำหรับการแก้ไขระบบ PDF
+     */
+    private function getPdfRecommendations($status)
+    {
+        $recommendations = [];
+        
+        if (empty($status['mpdf_available']) || !$status['mpdf_available']) {
+            $recommendations[] = 'ติดตั้ง mPDF: composer require carlos-meneses/laravel-mpdf';
+        }
+        
+        if (empty($status['thai_fonts_available']) || !$status['thai_fonts_available']) {
+            $recommendations[] = 'ดาวน์โหลดและติดตั้งฟอนต์ Sarabun ในโฟลเดอร์ public/fonts/thsarabun/';
+            $recommendations[] = 'ตรวจสอบไฟล์: Sarabun-Regular.ttf และ Sarabun-Bold.ttf';
+        }
+        
+        if (empty($status['storage_writable']) || !$status['storage_writable']) {
+            $recommendations[] = 'ตรวจสอบสิทธิ์การเขียนในโฟลเดอร์ storage/app/public';
+        }
+        
+        if (empty($status['views_exist']) || !$status['views_exist']) {
+            $recommendations[] = 'สร้างไฟล์ view templates ตามที่ระบุในคู่มือ';
+            $recommendations[] = 'ตรวจสอบไฟล์: pdf.quotation-master, pdf.partials.quotation-header, pdf.partials.quotation-footer';
+        }
+        
+        if (empty($recommendations)) {
+            $recommendations[] = 'ระบบพร้อมใช้งาน mPDF แล้ว!';
+        }
+        
+        return $recommendations;
     }
 
     /**

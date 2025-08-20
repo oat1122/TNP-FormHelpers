@@ -145,10 +145,13 @@ class AccountingAPI {
     }
 
     /**
-     * สร้าง PDF ใบเสนอราคา
+     * สร้าง PDF ใบเสนอราคา (mPDF-first)
      */
-    async generateQuotationPDF(id) {
-        return this.makeRequest(`/quotations/${id}/generate-pdf`);
+    async generateQuotationPDF(id, options = {}) {
+        return this.makeRequest(`/quotations/${id}/generate-pdf`, {
+            method: 'POST',
+            body: JSON.stringify(options || {}),
+        });
     }
 
     // ===================== INVOICES =====================

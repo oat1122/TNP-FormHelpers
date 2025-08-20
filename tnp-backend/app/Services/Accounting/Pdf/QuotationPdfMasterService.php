@@ -7,7 +7,9 @@ use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
-use Mccarlosen\LaravelMpdf\Facades\LaravelMpdf as PDF;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
 
 /**
  * Master PDF Service สำหรับใบเสนอราคา
@@ -82,32 +84,62 @@ class QuotationPdfMasterService
     /**
      * สร้าง mPDF instance พร้อม config ที่เหมาะสม
      */
-    protected function createMpdf(array $viewData): \Mpdf\Mpdf
+    protected function createMpdf(array $viewData): Mpdf
     {
-        $options = $viewData['options'];
-        
-        // กำหนด config พิเศษสำหรับ header/footer
+        $options = $viewData['options'] ?? [];
+
+        // Merge font directories and data with custom Thai fonts
+        $defaultConfig = (new ConfigVariables())->getDefaults();
+        $fontDirs = $defaultConfig['fontDir'];
+        $defaultFontConfig = (new FontVariables())->getDefaults();
+        $fontData = $defaultFontConfig['fontdata'];
+
+    $customFontDir = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
+    $customFontData = config('pdf.custom_font_data', [
+            'thsarabun' => [
+                'R' => 'Sarabun-Regular.ttf',
+                'B' => 'Sarabun-Bold.ttf',
+                'I' => 'Sarabun-Italic.ttf',
+                'BI' => 'Sarabun-BoldItalic.ttf',
+            ],
+        ]);
+    $hasThaiFonts = $this->checkThaiFonts();
+
         $config = [
             'mode' => 'utf-8',
-            'format' => $options['format'],
-            'orientation' => $options['orientation'],
-            'margin_left' => 15,
-            'margin_right' => 15,
-            'margin_top' => 45,      // เพิ่มพื้นที่สำหรับ header
-            'margin_bottom' => 25,   // เพิ่มพื้นที่สำหรับ footer
-            'margin_header' => 10,
-            'margin_footer' => 10,
-            'default_font' => 'thsarabun',
+            'format' => $options['format'] ?? 'A4',
+            'orientation' => $options['orientation'] ?? 'P',
+            // Give generous content margins and let mPDF auto-stretch to fit header/footer
+            'margin_left' => 15,   // mm
+            'margin_right' => 15,  // mm
+            'margin_top' => 55,    // mm, base min height for header area
+            'margin_bottom' => 32, // mm, base min height for footer area
+            'margin_header' => 8,  // mm, distance from top to header content
+            'margin_footer' => 8,  // mm, distance from bottom to footer content
+            'setAutoTopMargin' => 'stretch',
+            'setAutoBottomMargin' => 'stretch',
+            'default_font' => $hasThaiFonts ? 'thsarabun' : 'dejavusans',
             'default_font_size' => 12,
+            'fontDir' => $hasThaiFonts ? array_merge($fontDirs, [$customFontDir]) : $fontDirs,
+            'fontdata' => $hasThaiFonts ? ($fontData + $customFontData) : $fontData,
+            'tempDir' => storage_path('app/mpdf-temp'),
         ];
 
-        // สร้าง PDF ด้วย view template
-        $pdf = PDF::loadView('pdf.quotation-master', $viewData, [], $config);
+        // Ensure temp and output directories exist
+        if (!is_dir($config['tempDir'])) {
+            @mkdir($config['tempDir'], 0755, true);
+        }
 
-        // เพิ่ม header/footer ที่แสดงทุกหน้า
-        $this->addHeaderFooter($pdf->getMpdf(), $viewData);
+        $mpdf = new Mpdf($config);
 
-        return $pdf->getMpdf();
+        // Header/footer and watermark
+        $this->addHeaderFooter($mpdf, $viewData);
+
+        // Render body HTML
+    $html = View::make('accounting.pdf.quotation.quotation-master', $viewData)->render();
+        $mpdf->WriteHTML($html);
+
+        return $mpdf;
     }
 
     /**
@@ -120,14 +152,14 @@ class QuotationPdfMasterService
         $isFinal = $data['isFinal'];
 
         // สร้าง header HTML
-        $headerHtml = View::make('pdf.partials.quotation-header', [
+    $headerHtml = View::make('accounting.pdf.quotation.partials.quotation-header', [
             'quotation' => $quotation,
             'customer' => $customer,
             'isFinal' => $isFinal
         ])->render();
 
         // สร้าง footer HTML
-        $footerHtml = View::make('pdf.partials.quotation-footer', [
+    $footerHtml = View::make('accounting.pdf.quotation.partials.quotation-footer', [
             'quotation' => $quotation,
             'customer' => $customer,
             'isFinal' => $isFinal
@@ -265,7 +297,7 @@ class QuotationPdfMasterService
             'options' => array_merge(['format' => 'A4', 'orientation' => 'P'], $options)
         ];
 
-        $mpdf = $this->createMpdf($viewData);
+    $mpdf = $this->createMpdf($viewData);
         
         $filename = sprintf(
             'quotation-%s.pdf',
@@ -287,13 +319,14 @@ class QuotationPdfMasterService
             'thai_fonts_available' => $this->checkThaiFonts(),
             'storage_writable' => is_writable(storage_path('app/public')),
             'views_exist' => $this->checkRequiredViews(),
+            'temp_dir_writable' => is_writable(storage_path('app/mpdf-temp')) || @mkdir(storage_path('app/mpdf-temp'), 0755, true),
         ];
 
         $status['all_ready'] = array_reduce($status, function($carry, $item) {
             return $carry && $item;
         }, true);
 
-        return $status;
+    return $status;
     }
 
     /**
@@ -319,9 +352,9 @@ class QuotationPdfMasterService
     protected function checkRequiredViews(): bool
     {
         $requiredViews = [
-            'pdf.quotation-master',
-            'pdf.partials.quotation-header',
-            'pdf.partials.quotation-footer'
+            'accounting.pdf.quotation.quotation-master',
+            'accounting.pdf.quotation.partials.quotation-header',
+            'accounting.pdf.quotation.partials.quotation-footer'
         ];
 
         foreach ($requiredViews as $view) {

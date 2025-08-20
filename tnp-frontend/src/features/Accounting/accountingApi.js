@@ -292,12 +292,22 @@ export const accountingApi = createApi({
             ],
         }),
 
-        // Generate PDF (available after approval)
+        // Generate PDF (mPDF-first with fallback). Accepts id or { id, format, orientation, showWatermark }
         generateQuotationPDF: builder.mutation({
-            query: (id) => ({
-                url: `/quotations/${id}/generate-pdf`,
-                method: 'GET',
-            }),
+            query: (arg) => {
+                const isScalar = typeof arg === 'string' || typeof arg === 'number';
+                const id = isScalar ? arg : arg?.id;
+                const body = isScalar ? {} : {
+                    format: arg?.format,
+                    orientation: arg?.orientation,
+                    showWatermark: arg?.showWatermark,
+                };
+                return {
+                    url: `/quotations/${id}/generate-pdf`,
+                    method: 'POST',
+                    body,
+                };
+            },
         }),
 
         // ===================== INVOICES =====================

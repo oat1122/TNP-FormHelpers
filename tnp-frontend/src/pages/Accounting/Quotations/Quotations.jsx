@@ -138,7 +138,7 @@ const Quotations = () => {
 
   const handleDownloadPDF = async (id) => {
     try {
-      const res = await generatePDF(id).unwrap();
+      const res = await generatePDF({ id, format: 'A4', orientation: 'P' }).unwrap();
       const url = res?.data?.pdf_url || res?.pdf_url;
       if (url) window.open(url, '_blank');
       else throw new Error('ไม่พบไฟล์ PDF');

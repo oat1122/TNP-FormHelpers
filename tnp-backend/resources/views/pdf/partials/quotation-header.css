@@ -1,5 +1,22 @@
-/* ===== Header layout ===== */
-.pdf-header {
+/* ===== Header layou/* ===== Company text ===== */
+.company-name {
+  font-size: 13pt;
+  font-weight: bold;
+  color: #2c3e50;
+  line-height: 1.12;                 /* บีบ line-height กันดู "ตก" */
+  margin: 1pt 0 3pt 0;
+}
+.company-addr {
+  font-size: 10pt;
+  color: #34495e;
+  line-height: 1.32;
+  margin: 0 0 3pt 0;
+}
+.company-meta {
+  font-size: 9pt;
+  color: #7f8c8d;
+  line-height: 1.28;
+}der {
   width: 100%;
   border-collapse: collapse;
   font-family: 'thsarabun', sans-serif;
@@ -8,8 +25,8 @@
 .pdf-header td { vertical-align: top; padding: 8pt; }
 
 /* ซ้าย/ขวา */
-.header-left  { width: 55%; }
-.header-right { width: 45%; text-align: right; }
+.header-left  { width: 77%; }
+.header-right { width: 23%; text-align: right; }
 
 /* ===== Logo (ตัดปัญหา baseline ช่องว่างใต้รูป) ===== */
 .logo-wrap { line-height: 0; }      /* สำคัญ: ตัด baseline */
@@ -41,14 +58,14 @@
 
 /* ===== Document right side ===== */
 .doc-title {
-  font-size: 20pt;
+  font-size: 10pt;
   font-weight: bold;
   color: #e74c3c;
   margin: 0 0 5pt 0;
   line-height: 1.05;                 /* คุมให้หัวข้อไม่ห้อย */
 }
 .doc-meta {
-  font-size: 12pt;
+  font-size: 9pt;
   color: #2c3e50;
   line-height: 1.35;
 }

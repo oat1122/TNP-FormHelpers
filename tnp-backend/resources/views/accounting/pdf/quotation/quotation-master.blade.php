@@ -8,7 +8,7 @@
 <body>
   <div class="document-content">
 
-    {{-- ข้อมูลลูกค้า (สไตล์แบบรูปที่ 2) --}}
+    {{-- ข้อมูลลูกค้า --}}
     @php
       $name   = trim($customer['name'] ?? '-');
       $addr   = trim($customer['address'] ?? '-');

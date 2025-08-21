@@ -33,6 +33,11 @@ const SpecialDiscountField = ({
 }) => {
   const theme = useTheme();
 
+  // Ensure all values are numbers to prevent errors
+  const safeDiscountValue = Number(discountValue) || 0;
+  const safeTotalAmount = Number(totalAmount) || 0;
+  const safeDiscountAmount = Number(discountAmount) || 0;
+
   const discountTypeOptions = [
     {
       value: 'percentage',
@@ -49,21 +54,22 @@ const SpecialDiscountField = ({
       icon: <MoneyIcon fontSize="small" />,
       color: '#4CAF50',
       placeholder: '0.00 บาท',
-      maxValue: totalAmount,
-      helperText: `สูงสุด ${formatTHB(totalAmount)}`
+      maxValue: safeTotalAmount,
+      helperText: `สูงสุด ${formatTHB(safeTotalAmount)}`
     }
   ];
 
-  const currentOption = discountTypeOptions.find(opt => opt.value === discountType);
+  const currentOption = discountTypeOptions.find(opt => opt.value === discountType) || discountTypeOptions[0];
 
   const handleValueChange = (value) => {
-    const sanitizedValue = sanitizeDecimal(value, 0, currentOption.maxValue);
+    const numValue = Number(value) || 0;
+    const sanitizedValue = sanitizeDecimal(numValue, 0, currentOption?.maxValue || 0);
     onDiscountValueChange?.(sanitizedValue);
   };
 
   const discountPercentage = discountType === 'percentage' 
-    ? discountValue 
-    : totalAmount > 0 ? (discountAmount / totalAmount) * 100 : 0;
+    ? safeDiscountValue
+    : safeTotalAmount > 0 ? (safeDiscountAmount / safeTotalAmount) * 100 : 0;
 
   return (
     <Card 
@@ -167,7 +173,7 @@ const SpecialDiscountField = ({
                 fontWeight: 600
               }
             }}
-            value={String(discountValue || '')}
+            value={String(safeDiscountValue || '')}
             onChange={(e) => handleValueChange(e.target.value)}
             placeholder={currentOption.placeholder}
             disabled={disabled}
@@ -234,8 +240,8 @@ const SpecialDiscountField = ({
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={8}>
                   <Typography variant="caption" color="#f57c00" fontWeight={600}>
-                    ส่วนลด {discountPercentage.toFixed(2)}% 
-                    {discountType === 'amount' && ` (${formatTHB(discountValue)})`}
+                    ส่วนลด {Number(discountPercentage || 0).toFixed(2)}% 
+                    {discountType === 'amount' && ` (${formatTHB(safeDiscountValue)})`}
                   </Typography>
                 </Grid>
                 <Grid item xs={4}>
@@ -245,7 +251,7 @@ const SpecialDiscountField = ({
                     color="#d84315"
                     textAlign="right"
                   >
-                    -{formatTHB(discountAmount)}
+                    -{formatTHB(safeDiscountAmount)}
                   </Typography>
                 </Grid>
               </Grid>

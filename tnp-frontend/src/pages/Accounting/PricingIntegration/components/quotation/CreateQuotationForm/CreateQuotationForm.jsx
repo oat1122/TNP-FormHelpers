@@ -236,9 +236,16 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         subtotal,
         vat,
         total,
+        // Special discount fields
+        specialDiscountType: formData.specialDiscountType,
+        specialDiscountValue: formData.specialDiscountValue,
         specialDiscountAmount,
         netAfterDiscount,
+        // Withholding tax fields
+        hasWithholdingTax: formData.hasWithholdingTax,
+        withholdingTaxPercentage: formData.withholdingTaxPercentage,
         withholdingTaxAmount,
+        // Final calculations
         finalTotal,
         depositAmount,
         remainingAmount,

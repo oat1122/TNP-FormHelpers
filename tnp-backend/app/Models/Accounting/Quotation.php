@@ -110,6 +110,15 @@ class Quotation extends Model
         'updated_at' => 'datetime'
     ];
 
+    /**
+     * Append calculated accessors to JSON output
+     */
+    protected $appends = [
+        'calculated_withholding_tax',
+        'net_after_discount', 
+        'final_net_amount'
+    ];
+
     // Generate UUID when creating
     protected static function boot()
     {

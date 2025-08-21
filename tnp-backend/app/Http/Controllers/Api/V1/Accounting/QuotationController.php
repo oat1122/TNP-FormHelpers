@@ -71,11 +71,23 @@ class QuotationController extends Controller
                 'work_name' => 'required|string|max:100',
                 'subtotal' => 'required|numeric|min:0',
                 'tax_amount' => 'required|numeric|min:0',
+                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'special_discount_amount' => 'nullable|numeric|min:0',
+                'has_withholding_tax' => 'nullable|boolean',
+                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
+                'withholding_tax_amount' => 'nullable|numeric|min:0',
+                'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
                 'deposit_percentage' => 'nullable|integer|min:0|max:100',
                 'payment_terms' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
-                'notes' => 'nullable|string'
+                'notes' => 'nullable|string',
+                'items' => 'nullable|array',
+                'items.*.item_name' => 'required_with:items|string|max:255',
+                'items.*.quantity' => 'required_with:items|integer|min:1',
+                'items.*.unit_price' => 'required_with:items|numeric|min:0',
+                'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'items.*.discount_amount' => 'nullable|numeric|min:0',
             ]);
 
             if ($validator->fails()) {

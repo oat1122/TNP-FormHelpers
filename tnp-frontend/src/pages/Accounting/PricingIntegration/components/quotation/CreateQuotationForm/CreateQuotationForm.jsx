@@ -36,6 +36,11 @@ import CustomerEditCard from '../../CustomerEditCard';
 import QuotationPreview from '../../QuotationPreview';
 import PricingRequestNotesButton from '../../PricingRequestNotesButton';
 
+// NEW COMPONENTS
+import SpecialDiscountField from './components/SpecialDiscountField';
+import WithholdingTaxField from './components/WithholdingTaxField';
+import CalculationSummary from './components/CalculationSummary';
+
 // UTILS
 import useQuotationCalc from '../hooks/useQuotationCalc';
 import { formatTHB } from '../utils/currency';
@@ -64,6 +69,11 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
     paymentTermsCustom: '',
     depositPct: 50,
     dueDate: null,
+    // New fields for special discount and withholding tax
+    specialDiscountType: 'percentage', // 'percentage' | 'amount'
+    specialDiscountValue: 0,
+    hasWithholdingTax: false,
+    withholdingTaxPercentage: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -110,10 +120,25 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
   }, [selectedPricingRequests]);
 
   // ======== CALC ========
-  const { subtotal, vat, total, depositAmount, remainingAmount, warnings } = useQuotationCalc(
+  const { 
+    subtotal, 
+    vat, 
+    total, 
+    specialDiscountAmount,
+    netAfterDiscount,
+    withholdingTaxAmount,
+    finalTotal,
+    depositAmount, 
+    remainingAmount, 
+    warnings 
+  } = useQuotationCalc(
     formData.items,
     String(formData.depositPct),
-    formData.paymentTermsType === 'other' ? '' : ''
+    formData.paymentTermsType === 'other' ? '' : '',
+    formData.specialDiscountType,
+    formData.specialDiscountValue,
+    formData.hasWithholdingTax,
+    formData.withholdingTaxPercentage
   );
 
   // ======== HELPERS ========
@@ -211,6 +236,10 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         subtotal,
         vat,
         total,
+        specialDiscountAmount,
+        netAfterDiscount,
+        withholdingTaxAmount,
+        finalTotal,
         depositAmount,
         remainingAmount,
         // normalize terms for caller
@@ -556,18 +585,43 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
 
                 <Divider sx={{ my: 2 }} />
 
-                <InfoCard sx={{ p: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={700} color={tokens.primary} gutterBottom>สรุปยอดเงิน</Typography>
-                  <Grid container>
-                    <Grid item xs={6}><Typography>ยอดก่อนภาษี</Typography></Grid>
-                    <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(subtotal)}</Typography></Grid>
-                    <Grid item xs={6}><Typography>VAT 7%</Typography></Grid>
-                    <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(vat)}</Typography></Grid>
-                    <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
-                    <Grid item xs={6}><Typography variant="subtitle1" fontWeight={800}>ยอดรวมทั้งสิ้น</Typography></Grid>
-                    <Grid item xs={6}><Typography variant="subtitle1" fontWeight={800} textAlign="right">{formatTHB(total)}</Typography></Grid>
+                {/* Special Discount & Withholding Tax Controls */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12} md={6}>
+                    <SpecialDiscountField
+                      discountType={formData.specialDiscountType}
+                      discountValue={formData.specialDiscountValue}
+                      totalAmount={total}
+                      discountAmount={specialDiscountAmount}
+                      onDiscountTypeChange={(type) => setFormData((p) => ({ ...p, specialDiscountType: type }))}
+                      onDiscountValueChange={(value) => setFormData((p) => ({ ...p, specialDiscountValue: value }))}
+                      disabled={!isCalcEditing}
+                    />
                   </Grid>
-                </InfoCard>
+                  <Grid item xs={12} md={6}>
+                    <WithholdingTaxField
+                      hasWithholdingTax={formData.hasWithholdingTax}
+                      taxPercentage={formData.withholdingTaxPercentage}
+                      taxAmount={withholdingTaxAmount}
+                      subtotalAmount={subtotal}
+                      onToggleWithholdingTax={(enabled) => setFormData((p) => ({ ...p, hasWithholdingTax: enabled }))}
+                      onTaxPercentageChange={(percentage) => setFormData((p) => ({ ...p, withholdingTaxPercentage: percentage }))}
+                      disabled={!isCalcEditing}
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Calculation Summary */}
+                <CalculationSummary
+                  subtotal={subtotal}
+                  vat={vat}
+                  total={total}
+                  specialDiscountAmount={specialDiscountAmount}
+                  netAfterDiscount={netAfterDiscount}
+                  withholdingTaxAmount={withholdingTaxAmount}
+                  finalTotal={finalTotal}
+                  showDetailed={true}
+                />
               </Box>
             </Section>
           </Grid>
@@ -626,7 +680,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                     <InfoCard sx={{ p: 2 }}>
                       <Typography variant="subtitle1" fontWeight={700} color={tokens.primary} gutterBottom>สรุปการชำระเงิน</Typography>
                       <Grid container>
-                        <Grid item xs={6}><Typography>จำนวนมัดจำ</Typography></Grid>
+                        <Grid item xs={6}><Typography>จำนวนมัดจำ ({formData.depositPct}%)</Typography></Grid>
                         <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(depositAmount)}</Typography></Grid>
                         <Grid item xs={6}><Typography>ยอดคงเหลือ</Typography></Grid>
                         <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(remainingAmount)}</Typography></Grid>
@@ -667,10 +721,10 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
           <SecondaryButton onClick={onBack} startIcon={<ArrowBackIcon />}>ยกเลิก</SecondaryButton>
           <Box display="flex" gap={1}>
-            <SecondaryButton startIcon={<VisibilityIcon />} onClick={() => setShowPreview(true)} disabled={total === 0}>
+            <SecondaryButton startIcon={<VisibilityIcon />} onClick={() => setShowPreview(true)} disabled={finalTotal === 0}>
               ดูตัวอย่าง
             </SecondaryButton>
-            <PrimaryButton onClick={() => handleSubmit('review')} disabled={isSubmitting || total === 0}>
+            <PrimaryButton onClick={() => handleSubmit('review')} disabled={isSubmitting || finalTotal === 0}>
               {isSubmitting ? 'กำลังส่ง…' : 'ส่งตรวจสอบ'}
             </PrimaryButton>
           </Box>

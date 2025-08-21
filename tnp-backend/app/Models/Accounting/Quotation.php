@@ -72,6 +72,12 @@ class Quotation extends Model
         'status',
         'subtotal',
         'tax_amount',
+        'special_discount_percentage',
+        'special_discount_amount',
+        'has_withholding_tax',
+        'withholding_tax_percentage',
+        'withholding_tax_amount',
+        'final_total_amount',
         'total_amount',
         'deposit_percentage',
         'deposit_amount',
@@ -89,6 +95,12 @@ class Quotation extends Model
     'customer_snapshot' => 'array',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
+        'special_discount_percentage' => 'decimal:2',
+        'special_discount_amount' => 'decimal:2',
+        'has_withholding_tax' => 'boolean',
+        'withholding_tax_percentage' => 'decimal:2',
+        'withholding_tax_amount' => 'decimal:2',
+        'final_total_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'deposit_percentage' => 'integer',
@@ -279,6 +291,37 @@ class Quotation extends Model
     public function getRemainingAmountAttribute()
     {
         return $this->total_amount - $this->deposit_amount;
+    }
+
+    /**
+     * Calculate net amount after special discount (before withholding tax)
+     */
+    public function getNetAfterDiscountAttribute()
+    {
+        return $this->total_amount - $this->special_discount_amount;
+    }
+
+    /**
+     * Calculate withholding tax amount based on subtotal (before VAT)
+     * ภาษีหัก ณ ที่จ่าย = ยอดก่อนภาษี × อัตราภาษี
+     */
+    public function getCalculatedWithholdingTaxAttribute()
+    {
+        if (!$this->has_withholding_tax || $this->withholding_tax_percentage <= 0) {
+            return 0;
+        }
+        return $this->subtotal * ($this->withholding_tax_percentage / 100);
+    }
+
+    /**
+     * Calculate final total after all deductions
+     * ยอดสุทธิสุดท้าย = ยอดหลังหักส่วนลดพิเศษ - ภาษีหัก ณ ที่จ่าย
+     */
+    public function getFinalNetAmountAttribute()
+    {
+        $netAfterDiscount = $this->net_after_discount;
+        $withholdingTax = $this->calculated_withholding_tax;
+        return $netAfterDiscount - $withholdingTax;
     }
 
     /**

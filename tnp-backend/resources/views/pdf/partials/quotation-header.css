@@ -1,0 +1,73 @@
+/* ===== Header layout ===== */
+.pdf-header {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'thsarabun', sans-serif;
+  margin: 0; padding: 0;
+}
+.pdf-header td { vertical-align: top; padding: 8pt; }
+
+/* ซ้าย/ขวา */
+.header-left  { width: 55%; }
+.header-right { width: 45%; text-align: right; }
+
+/* ===== Logo (ตัดปัญหา baseline ช่องว่างใต้รูป) ===== */
+.logo-wrap { line-height: 0; }      /* สำคัญ: ตัด baseline */
+.logo-img  {
+  display: block;                    /* ไม่ให้อยู่บน baseline */
+  height: 20mm;
+  margin: 0 0 4pt 0;                 /* ระยะห่างจากข้อความด้านล่าง */
+}
+
+/* ===== Company text ===== */
+.company-name {
+  font-size: 14.5pt;
+  font-weight: bold;
+  color: #2c3e50;
+  line-height: 1.12;                 /* บีบ line-height กันดู “ตก” */
+  margin: 1pt 0 3pt 0;
+}
+.company-addr {
+  font-size: 11pt;
+  color: #34495e;
+  line-height: 1.32;
+  margin: 0 0 3pt 0;
+}
+.company-meta {
+  font-size: 10pt;
+  color: #7f8c8d;
+  line-height: 1.28;
+}
+
+/* ===== Document right side ===== */
+.doc-title {
+  font-size: 20pt;
+  font-weight: bold;
+  color: #e74c3c;
+  margin: 0 0 5pt 0;
+  line-height: 1.05;                 /* คุมให้หัวข้อไม่ห้อย */
+}
+.doc-meta {
+  font-size: 12pt;
+  color: #2c3e50;
+  line-height: 1.35;
+}
+.badge-draft {
+  margin-top: 8pt;
+  padding: 4pt 8pt;
+  background: #f39c12;
+  color: #fff;
+  border-radius: 3pt;
+  font-size: 10pt;
+  font-weight: bold;
+  display: inline-block;
+}
+
+/* เส้นคั่นใต้ header */
+.header-divider {
+  border-bottom: 2pt solid #34495e;
+  margin: 8pt 0;
+}
+
+/* ป้องกันผลกระทบจาก Bootstrap (ถ้ามี) */
+.pdf-header img { border: 0 !important; }

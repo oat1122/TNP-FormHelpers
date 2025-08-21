@@ -3,15 +3,12 @@
   <tr>
     <td class="header-left">
       {{-- โลโก้บริษัท --}}
-      @php
-        $logoPath = collect([public_path('images/logo.png'), public_path('logo.png')])
-          ->first(fn($p) => file_exists($p));
-      @endphp
-      @if ($logoPath)
-        <div class="logo-wrap">
-          <img class="logo-img" src="{{ $logoPath }}" alt="logo">
-        </div>
-      @endif
+      <x-company-logo 
+        :company-id="$quotation->company->id ?? null" 
+        css-class="logo-img" 
+        alt="logo" 
+        :for-pdf="true" 
+      />
 
       {{-- ข้อมูลบริษัท --}}
       <div class="company-name">

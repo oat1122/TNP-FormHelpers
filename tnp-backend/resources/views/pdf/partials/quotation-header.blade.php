@@ -39,14 +39,16 @@
         @if ($quotation->due_date)
           <div><strong>กำหนดส่ง:</strong> {{ \Carbon\Carbon::parse($quotation->due_date)->format('d/m/Y') }}</div>
         @endif
+         <!-- เอาแค่ ชื่อจริงพอถ้าเอสนามสกุลด้วยมันจะล้น บรรทัด -->
         @php
           $sellerFirst = optional($quotation->creator)->user_firstname;
-          $sellerLast  = optional($quotation->creator)->user_lastname;
+         
+           $sellerLast  = optional($quotation->creator)->user_lastname;
           $sellerUser  = optional($quotation->creator)->username;
-          $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: $sellerUser);
+          $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: $sellerUser); 
         @endphp
         @if ($sellerDisplay)
-          <div><strong>ผู้ขาย:</strong> {{ $sellerDisplay }}</div>
+          <div><strong>ผู้ขาย:</strong> {{ $sellerFirst }}</div>
         @endif
       </div>
 

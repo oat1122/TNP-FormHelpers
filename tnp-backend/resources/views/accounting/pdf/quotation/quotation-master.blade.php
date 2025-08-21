@@ -84,7 +84,7 @@
         </colgroup>
         <thead>
           <tr>
-            <th class="desc-head">รายละเอียด</th>
+            <th class="desc-head text-center">รายละเอียด</th>
             <th class="text-right">ราคาต่อหน่วย</th>
             <th class="text-right">จำนวน</th>
             <th class="text-right">ยอดรวม</th>
@@ -95,17 +95,17 @@
             {{-- แถวหัวข้อกลุ่ม (parent) --}}
             <tr class="group-row">
               <td class="desc">{!! $g['title'] !!}</td>
-              <td class="num muted">-</td>
-              <td class="num muted">-</td>
-              <td class="num muted">-</td>
+              <td class="num muted"></td>
+              <td class="num muted"></td>
+              <td class="num muted"></td>
             </tr>
 
             {{-- แถวรายการย่อย (child) --}}
             @foreach($g['items'] as $it)
               <tr class="item-row">
-                <td class="desc child">{{ $it['desc'] }} <span class="reading">(หน่วย: {{ $it['unit'] }})</span></td>
+                <td class="desc child">{{ $it['desc'] }} </td>
                 <td class="num">{{ number_format($it['price'], 2) }}</td>
-                <td class="num">{{ number_format($it['qty']) }}</td>
+                <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
                 <td class="num">{{ number_format($it['amount'], 2) }}</td>
               </tr>
             @endforeach

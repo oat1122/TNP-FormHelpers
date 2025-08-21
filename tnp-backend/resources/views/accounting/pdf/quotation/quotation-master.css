@@ -221,7 +221,7 @@ table{
 
 .reading{
   color:#6c757d;
-  font-size:10pt;
+  font-size:9pt;        /* ลดขนาดจาก 10pt เป็น 9pt */
   margin-top:4pt;
   font-style:italic;
   display: block;
@@ -272,16 +272,18 @@ tr{page-break-inside:avoid}
 /* === ตารางแบบรูปที่ 2 (Minimal lines) === */
 .items-table.slim th,
 .items-table.slim td {
-  padding: 6pt 6pt;
+  padding: 5pt 5pt;
   border: none;                 /* ตัดกรอบเซลล์เดิม */
   background: transparent;
   vertical-align: top;
+  font-size: 10pt;              /* ลดขนาดตัวอักษร */
 }
 
 .items-table.slim thead th {
   font-weight: bold;
   text-align: right;
   border-bottom: 0.6pt solid #666;  /* เส้นคั่นหัวตารางแบบบาง */
+  font-size: 11pt;              /* หัวตารางใหญ่กว่าเนื้อหาเล็กน้อย */
 }
 .items-table.slim thead th:first-child { text-align: left; }
 
@@ -292,23 +294,28 @@ tr{page-break-inside:avoid}
 /* หัวข้อกลุ่ม (parent) */
 .items-table.slim .group-row td {
   font-weight: bold;
-  padding-top: 10pt;
-  padding-bottom: 6pt;
+  padding-top: 8pt;
+  padding-bottom: 5pt;
   border-bottom: 0.6pt solid #999;   /* เส้นคั่นใต้หัวข้อ */
+  font-size: 11pt;               /* หัวข้อกลุ่มใหญ่กว่าข้อมูลเล็กน้อย */
+  background-color: #f8f9fa;    /* สีพื้นหลังอ่อนๆ */
 }
 
 /* แถวรายการย่อย (child) */
 .items-table.slim .item-row td {
-  padding-top: 8pt;
-  padding-bottom: 8pt;
+  padding-top: 6pt;
+  padding-bottom: 6pt;
   border-bottom: 0.6pt solid #ddd;   /* เส้นคั่นใต้รายการ */
+  font-size: 10pt;               /* ข้อมูลรายการย่อย */
 }
-.items-table.slim .desc.child { padding-left: 8pt; } /* ย่อหน้าเล็กน้อยให้เห็นลำดับ */
+.items-table.slim .desc.child { 
+  padding-left: 16pt;            /* เพิ่มการย่อหน้าให้มากขึ้น */
+  text-indent: 0;                /* ไม่ใช้ text-indent */
+}
 
 /* กล่องข้อมูลลูกค้าแบบบล็อก */
 .customer-box{
-  background:#f8f9fa;
-  border:1px solid #e9ecef;
+
   border-radius:6pt;
   padding:12pt;
 }

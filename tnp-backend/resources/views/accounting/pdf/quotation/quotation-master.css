@@ -304,3 +304,24 @@ tr{page-break-inside:avoid}
   border-bottom: 0.6pt solid #ddd;   /* เส้นคั่นใต้รายการ */
 }
 .items-table.slim .desc.child { padding-left: 8pt; } /* ย่อหน้าเล็กน้อยให้เห็นลำดับ */
+
+/* กล่องข้อมูลลูกค้าแบบบล็อก */
+.customer-box{
+  background:#f8f9fa;
+  border:1px solid #e9ecef;
+  border-radius:6pt;
+  padding:12pt;
+}
+.customer-name{
+  font-weight:bold;
+  font-size:14pt;          /* ใหญ่กว่าข้อความทั่วไป */
+  color:#2c3e50;
+  margin-bottom:2pt;
+}
+.customer-line{
+  font-size:11pt;
+  color:#34495e;
+  margin:2pt 0;
+  line-height:1.35;
+}
+.customer-line.muted{ color:#6c757d; }

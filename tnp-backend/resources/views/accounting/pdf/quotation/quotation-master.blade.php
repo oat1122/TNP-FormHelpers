@@ -8,27 +8,31 @@
 <body>
   <div class="document-content">
 
-    {{-- ข้อมูลลูกค้า --}}
-    <div class="info-box mb-4">
-      <h3 class="mb-3">ข้อมูลลูกค้า</h3>
-      <table>
-        <tr>
-          <td style="width:25%"><strong>ลูกค้า:</strong></td>
-          <td>{{ $customer['name'] ?: '-' }}</td>
-        </tr>
-        <tr>
-          <td><strong>ที่อยู่:</strong></td>
-          <td>{!! nl2br(e($customer['address'] ?: '-')) !!}</td>
-        </tr>
-        <tr>
-          <td><strong>เลขภาษี:</strong></td>
-          <td>{{ $customer['tax_id'] ?: '-' }}</td>
-        </tr>
-        <tr>
-          <td><strong>โทรศัพท์:</strong></td>
-          <td>{{ $customer['tel'] ?: '-' }}</td>
-        </tr>
-      </table>
+    {{-- ข้อมูลลูกค้า (สไตล์แบบรูปที่ 2) --}}
+    @php
+      $name   = trim($customer['name'] ?? '-');
+      $addr   = trim($customer['address'] ?? '-');
+      $telRaw = $customer['tel'] ?? '';
+      // แยกเบอร์ด้วย , / | หรือช่องว่างหลายตัว
+      $phones = implode(', ', array_filter(preg_split('/[,\s\/|]+/', $telRaw)));
+      $taxId  = trim($customer['tax_id'] ?? '');
+      // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
+      if (preg_match('/^\d{13}$/', $taxId)) {
+          $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
+      }
+    @endphp
+
+    <div class="customer-box mb-4">
+      <div class="customer-name">{{ $name }}</div>
+      <div class="customer-line">{!! nl2br(e($addr)) !!}</div>
+
+      @if($phones)
+        <div class="customer-line muted">โทร: {{ $phones }}</div>
+      @endif
+
+      @if($taxId !== '')
+        <div class="customer-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
+      @endif
     </div>
 
     {{-- ตารางสินค้า/บริการ --}}

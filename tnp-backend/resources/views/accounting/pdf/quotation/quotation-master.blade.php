@@ -162,56 +162,49 @@
       };
     @endphp
 
-    {{-- Summary and Notes Section (Fixed Layout) --}}
+    {{-- Summary and Notes Section (Float Layout for Page Break) --}}
     <div class="summary-notes-container">
-      <table class="summary-notes-wrapper">
-        <tr>
-          {{-- Notes Section --}}
-          <td class="notes-cell">
-            <h3>หมายเหตุ</h3>
-            <div class="notes-section">
-              {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
-            </div>
-          </td>
-          
-          {{-- Spacer --}}
-          <td class="spacer-cell"></td>
-          
-          {{-- Summary Section --}}
-          <td class="summary-cell">
-            <h3 class="summary-header">สรุปยอดเงิน</h3>
-            <div class="summary-section">
-              {{-- Subtotal --}}
-              <table class="summary-row">
-                <tr>
-                  <td class="summary-label">รวมเป็นเงิน</td>
-                  <td class="summary-amount">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</td>
-                </tr>
-              </table>
-              
-              {{-- Tax --}}
-              <table class="summary-row">
-                <tr>
-                  <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
-                  <td class="summary-amount">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</td>
-                </tr>
-              </table>
-              
-              {{-- Total --}}
-              <table class="summary-row total-row">
-                <tr>
-                  <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
-                  <td class="summary-amount">
-                    {{ number_format($summary['total'] ?? 0, 2) }} บาท
-                    <div class="reading">({{ $thaiBahtText($summary['total'] ?? 0) }})</div>
-                  </td>
-                </tr>
-              </table>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
+      {{-- Notes Section (Left) --}}
+      <div style="page-break-before: auto;">
+        <div style="width: 45%; float: left; padding: 10pt; border: 1px solid #dee2e6; background: #f8f9fa; margin-right: 5%;">
+          <h3 style="font-size: 14pt; font-weight: bold; margin-bottom: 8pt; color: #495057;">หมายเหตุ</h3>
+          <div style="font-size: 11pt; line-height: 1.4; color: #666;">
+            {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
+          </div>
+        </div>
+        
+        {{-- Summary Section (Right) --}}
+        <div style="width: 45%; float: right; padding: 10pt; border: 1px solid #dee2e6; background: #fff;">
+          <h3 style="font-size: 14pt; font-weight: bold; margin-bottom: 8pt; color: #495057; text-align: center;">สรุปยอดเงิน</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11pt;">
+            {{-- Subtotal --}}
+            <tr>
+              <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: left; width: 60%;">รวมเป็นเงิน</td>
+              <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: right; width: 40%; font-weight: bold;">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</td>
+            </tr>
+            
+            {{-- Tax --}}
+            <tr>
+              <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: left;">ภาษีมูลค่าเพิ่ม 7%</td>
+              <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: right; font-weight: bold;">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</td>
+            </tr>
+            
+            {{-- Total --}}
+            <tr style="background: #e3f2fd; border-top: 2px solid #2196f3;">
+              <td style="padding: 10pt 8pt; text-align: left; font-weight: bold; color: #1976d2;">รวมเป็นเงินทั้งสิ้น</td>
+              <td style="padding: 10pt 8pt; text-align: right; font-weight: bold; color: #1976d2; font-size: 12pt;">
+                {{ number_format($summary['total'] ?? 0, 2) }} บาท
+                <div style="font-size: 9pt; font-style: italic; color: #666; margin-top: 4pt; font-weight: normal;">
+                  ({{ $thaiBahtText($summary['total'] ?? 0) }})
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+        
+        {{-- Clear float --}}
+        <div style="clear: both;"></div>
+      </div>
 
     {{-- ลายเซ็น --}}
     <div class="signature-section">

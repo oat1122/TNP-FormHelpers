@@ -97,118 +97,132 @@ table{
 .meta-light{color:#6e7b88;font-weight:normal}
 
 /* ===== Summary and Notes Section (Fixed Layout) ===== */
+/* ===== Summary and Notes Layout - Float Layout for Page Break ===== */
 .summary-notes-container {
   width: 100%;
   margin: 24pt 0;
-  page-break-inside: avoid;
   clear: both;
+  overflow: hidden; /* สำคัญ: เพื่อจัดการ float */
 }
 
-.summary-notes-wrapper {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 15pt 0;
-  table-layout: fixed;
+/* Page break friendly container */
+.summary-notes-split {
+  page-break-inside: auto;
+  margin-bottom: 20pt;
 }
 
-.notes-cell {
+/* Notes section (left) */
+.notes-left {
   width: 45%;
-  vertical-align: top;
-  padding: 0;
-  border: none;
+  float: left;
+  margin-right: 5%;
+  padding: 10pt;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+  min-height: 80pt;
+  page-break-inside: auto;
 }
 
-.notes-cell h3 {
-  font-size: 13pt;
-  font-weight: bold;
-  margin: 0 0 200pt 0;
-  padding: 0;
-  color: #34495e;
-  line-height: 1.2;
-}
-
-.spacer-cell {
-  width: 10%;
-  padding: 0;
-  border: none;
-}
-
-.summary-cell {
-  width: 45%;
-  vertical-align: top;
-  padding: 0;
-  border: none;
-}
-
-/* Notes section */
-.notes-section{
-  
-  border-left:4pt ;
-  padding:15pt;
-  border-radius:4pt;
-  min-height:120pt;
+.notes-left h3 {
   font-size: 14pt;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-  margin-top: 10pt;
-  clear: both;
-}
-
-/* Summary section */
-.summary-section{
-  background:#fff;
-  border:1px solid #dee2e6;
-  border-radius:6pt;
-  overflow:hidden;
-  min-height:120pt;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-}
-
-.summary-header {
-  text-align: center;
-  margin: 0 0 12pt 0;
-  padding: 0;
-  font-size: 13pt;
   font-weight: bold;
-  color: #34495e;
+  margin-bottom: 8pt;
+  color: #495057;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 4pt;
 }
 
-.summary-row{
+.notes-left .notes-content {
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #666;
+}
+
+/* Summary section (right) */
+.summary-right {
+  width: 45%;
+  float: right;
+  padding: 10pt;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  page-break-inside: auto;
+}
+
+.summary-right h3 {
+  font-size: 14pt;
+  font-weight: bold;
+  margin-bottom: 8pt;
+  color: #495057;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 4pt;
+}
+
+.summary-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 0;
-  display: table;
+  font-size: 11pt;
 }
 
-.summary-row td {
-  padding: 12pt 15pt;
-  border-bottom: 1px solid #e9ecef;
-  display: table-cell;
+.summary-table td {
+  padding: 6pt 8pt;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.summary-label{
-  text-align:right;
-  font-weight:bold;
-  color:#2c3e50;
+.summary-table .summary-label {
+  text-align: left;
   width: 60%;
-  white-space: nowrap;
 }
 
-.summary-amount{
-  text-align:right;
-  white-space:nowrap;
-  font-size:12pt;
+.summary-table .summary-amount {
+  text-align: right;
   width: 40%;
+  font-weight: bold;
+}
+
+.summary-table .total-row {
+  background: #e3f2fd;
+  border-top: 2px solid #2196f3;
+}
+
+.summary-table .total-row td {
+  font-weight: bold;
+  color: #1976d2;
+  padding: 10pt 8pt;
+}
+
+.summary-table .total-row .summary-amount {
+  font-size: 12pt;
+}
+
+.reading {
+  font-size: 9pt;
+  font-style: italic;
+  color: #666;
+  margin-top: 4pt;
+  font-weight: normal;
+}
+
+/* Clear floats */
+.clearfix {
+  clear: both;
+  height: 0;
+  font-size: 0;
+  line-height: 0;
+}
+
+/* Media Query สำหรับหน้าจอเล็ก - ให้เป็น full width */
+@media print, (max-width: 600pt) {
+  .notes-section-float,
+  .summary-section-float {
+    width: 100%;
+    float: none;
+    padding-right: 0;
+    margin-bottom: 15pt;
+  }
 }
 
 .total-row {
-  background:#e3f2fd !important;
-}
-
-.total-row td {
   background:#e3f2fd !important;
 }
 

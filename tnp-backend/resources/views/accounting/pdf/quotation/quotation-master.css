@@ -268,3 +268,39 @@ table{
 thead{display:table-header-group}
 tfoot{display:table-footer-group}
 tr{page-break-inside:avoid}
+
+/* === ตารางแบบรูปที่ 2 (Minimal lines) === */
+.items-table.slim th,
+.items-table.slim td {
+  padding: 6pt 6pt;
+  border: none;                 /* ตัดกรอบเซลล์เดิม */
+  background: transparent;
+  vertical-align: top;
+}
+
+.items-table.slim thead th {
+  font-weight: bold;
+  text-align: right;
+  border-bottom: 0.6pt solid #666;  /* เส้นคั่นหัวตารางแบบบาง */
+}
+.items-table.slim thead th:first-child { text-align: left; }
+
+.items-table.slim .desc { text-align: left; }
+.items-table.slim .num  { text-align: right; white-space: nowrap; }
+.items-table.slim .muted{ color:#888; }
+
+/* หัวข้อกลุ่ม (parent) */
+.items-table.slim .group-row td {
+  font-weight: bold;
+  padding-top: 10pt;
+  padding-bottom: 6pt;
+  border-bottom: 0.6pt solid #999;   /* เส้นคั่นใต้หัวข้อ */
+}
+
+/* แถวรายการย่อย (child) */
+.items-table.slim .item-row td {
+  padding-top: 8pt;
+  padding-bottom: 8pt;
+  border-bottom: 0.6pt solid #ddd;   /* เส้นคั่นใต้รายการ */
+}
+.items-table.slim .desc.child { padding-left: 8pt; } /* ย่อหน้าเล็กน้อยให้เห็นลำดับ */

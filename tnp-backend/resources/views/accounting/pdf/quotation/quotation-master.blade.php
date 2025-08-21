@@ -71,29 +71,38 @@
     @endif
 
     @if(count($groupsData))
-      <table class="items-table">
+      <table class="items-table slim">
+        <colgroup>
+          <col style="width:60%">  {{-- รายละเอียด --}}
+          <col style="width:15%">  {{-- Unit Price --}}
+          <col style="width:10%">  {{-- Qnt --}}
+          <col style="width:15%">  {{-- Total --}}
+        </colgroup>
         <thead>
           <tr>
-            <th class="num">#</th>
-            <th class="desc">รายละเอียดงาน</th>
-            <th class="qty">จำนวน</th>
-            <th class="price">ราคาต่อหน่วย</th>
-            <th class="amount">ยอดรวม</th>
+            <th class="desc-head">รายละเอียด</th>
+            <th class="text-right">ราคาต่อหน่วย</th>
+            <th class="text-right">จำนวน</th>
+            <th class="text-right">ยอดรวม</th>
           </tr>
         </thead>
         <tbody>
           @foreach($groupsData as $g)
-            <tr>
-              <td class="num title">{{ $g['no'] }}</td>
-              <td class="desc title" colspan="4">{!! $g['title'] !!}</td>
+            {{-- แถวหัวข้อกลุ่ม (parent) --}}
+            <tr class="group-row">
+              <td class="desc">{!! $g['title'] !!}</td>
+              <td class="num muted">-</td>
+              <td class="num muted">-</td>
+              <td class="num muted">-</td>
             </tr>
+
+            {{-- แถวรายการย่อย (child) --}}
             @foreach($g['items'] as $it)
-              <tr>
-                <td class="num"></td>
-                <td class="desc">{{ $it['desc'] }}</td>
-                <td class="qty">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
-                <td class="price">{{ number_format($it['price'],2) }}</td>
-                <td class="amount">{{ number_format($it['amount'],2) }}</td>
+              <tr class="item-row">
+                <td class="desc child">{{ $it['desc'] }} <span class="reading">(หน่วย: {{ $it['unit'] }})</span></td>
+                <td class="num">{{ number_format($it['price'], 2) }}</td>
+                <td class="num">{{ number_format($it['qty']) }}</td>
+                <td class="num">{{ number_format($it['amount'], 2) }}</td>
               </tr>
             @endforeach
           @endforeach

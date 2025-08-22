@@ -160,12 +160,16 @@
       };
     @endphp
 
-    {{-- Summary and Notes Section (Table Layout for Complete Page Break) --}}
+    {{-- Summary and Notes Section - แยกคำอ่านออกมา --}}
     <div class="summary-notes-wrapper">
       <table class="summary-notes-table">
+        <colgroup>
+          <col style="width: 40%;">
+          <col style="width: 55%;">
+        </colgroup>
         <tr>
           {{-- Notes Section (Left) --}}
-          <td class="panel-box panel-notes" style="width:45%;">
+          <td class="panel-box panel-notes">
             <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
             <div class="panel-content">
               {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
@@ -173,27 +177,48 @@
           </td>
           
           {{-- Summary Section (Right) --}}
-          <td class="panel-box" style="width:45%;">
+          <td class="panel-box">
             <h3 class="panel-title panel-title--sm center">สรุปยอดเงิน</h3>
-            <table class="summary-table summary-compact">
+            <table class="summary-table">
+              <colgroup>
+                <col style="width: 45%;">
+                <col style="width: 55%;">
+              </colgroup>
               {{-- Subtotal --}}
               <tr>
                 <td class="summary-label">รวมเป็นเงิน</td>
-                <td class="summary-amount"><span class="amount-main">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</span></td>
+                <td class="summary-amount">
+                  <div class="amount-container">
+                    <span class="amount-main">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</span>
+                  </div>
+                </td>
               </tr>
               
               {{-- Tax --}}
               <tr>
                 <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
-                <td class="summary-amount"><span class="amount-main">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</span></td>
+                <td class="summary-amount">
+                  <div class="amount-container">
+                    <span class="amount-main">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</span>
+                  </div>
+                </td>
               </tr>
               
-              {{-- Total --}}
+              {{-- Total - แยกตัวเลขกับคำอ่าน --}}
               <tr class="total-row">
                 <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
                 <td class="summary-amount">
-                  <span class="amount-main">{{ number_format($summary['total'] ?? 0, 2) }} บาท</span>
-                  <div class="reading">
+                  <div class="amount-container">
+                    <span class="amount-main {{ ($summary['total'] ?? 0) > 999999 ? 'large-amount' : '' }}">
+                      {{ number_format($summary['total'] ?? 0, 2) }} บาท
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              {{-- แถวคำอ่าน - แยกออกมา --}}
+              <tr class="reading-row">
+                <td colspan="2" class="reading-cell">
+                  <div class="reading-full-width">
                     ({{ $thaiBahtText($summary['total'] ?? 0) }})
                   </div>
                 </td>

@@ -96,135 +96,6 @@ table{
 
 .meta-light{color:#6e7b88;font-weight:normal}
 
-/* ===== Summary and Notes Section (Fixed Layout) ===== */
-/* ===== Summary and Notes Layout - Float Layout for Page Break ===== */
-.summary-notes-container {
-  width: 100%;
-  margin: 24pt 0;
-  clear: both;
-  overflow: hidden; /* สำคัญ: เพื่อจัดการ float */
-}
-
-/* Page break friendly container */
-.summary-notes-split {
-  page-break-inside: auto;
-  margin-bottom: 20pt;
-}
-
-/* Notes section (left) */
-.notes-left {
-  width: 45%;
-  float: left;
-  margin-right: 5%;
-  padding: 10pt;
-  border: 1px solid #dee2e6;
-  background: #f8f9fa;
-  min-height: 80pt;
-  page-break-inside: auto;
-}
-
-.notes-left h3 {
-  font-size: 14pt;
-  font-weight: bold;
-  margin-bottom: 8pt;
-  color: #495057;
-  border-bottom: 1px solid #dee2e6;
-  padding-bottom: 4pt;
-}
-
-.notes-left .notes-content {
-  font-size: 11pt;
-  line-height: 1.4;
-  color: #666;
-}
-
-/* Summary section (right) */
-.summary-right {
-  width: 45%;
-  float: right;
-  padding: 10pt;
-  border: 1px solid #dee2e6;
-  background: #fff;
-  page-break-inside: auto;
-}
-
-.summary-right h3 {
-  font-size: 14pt;
-  font-weight: bold;
-  margin-bottom: 8pt;
-  color: #495057;
-  text-align: center;
-  border-bottom: 1px solid #dee2e6;
-  padding-bottom: 4pt;
-}
-
-.summary-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11pt;
-}
-
-.summary-table td {
-  padding: 6pt 8pt;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.summary-table .summary-label {
-  text-align: left;
-  width: 60%;
-}
-
-.summary-table .summary-amount {
-  text-align: right;
-  width: 40%;
-  font-weight: bold;
-}
-
-/* เรียบ: ไม่ใช้พื้นหลังเข้ม / เส้นหนา */
-.summary-table .total-row { background:transparent; border-top:1px solid #d0d7dd; }
-.summary-table .total-row td { font-weight:600; color:#1e4d79; padding:6pt 8pt; }
-.summary-table .total-row .summary-amount { font-size:11pt; }
-
-.reading {
-  font-size: 9pt;
-  font-style: italic;
-  color: #666;
-  margin-top: 4pt;
-  font-weight: normal;
-}
-
-/* Clear floats */
-.clearfix {
-  clear: both;
-  height: 0;
-  font-size: 0;
-  line-height: 0;
-}
-
-/* Media Query สำหรับหน้าจอเล็ก - ให้เป็น full width */
-@media print, (max-width: 600pt) {
-  .notes-section-float,
-  .summary-section-float {
-    width: 100%;
-    float: none;
-    padding-right: 0;
-    margin-bottom: 15pt;
-  }
-}
-
-/* ปรับ total-row เดิมให้บางลง */
-.total-row { background:transparent !important; }
-.total-row .summary-label,
-.total-row .summary-amount{ color:#1e4d79 !important; font-weight:600 !important; font-size:11pt !important; }
-
-.reading{
-  color:#6c757d;
-  font-size:9pt;        /* ลดขนาดจาก 10pt เป็น 9pt */
-  margin-top:4pt;
-  font-style:italic;
-  display: block;
-}
-
 /* ===== Signature Section ===== */
 .signature-section{
   margin-top:36pt;
@@ -331,36 +202,11 @@ tr{page-break-inside:avoid}
 }
 .customer-line.muted{ color:#6c757d; }
 
-/* === Compact overrides (moved from inline <style>) === */
-/* ใช้เมื่ออยากลดขนาดตัวเลขไม่ให้ตกรวมบรรทัด */
+/* === Compact overrides === */
 .table-numbers-sm td.num,
 .table-numbers-sm th.text-right { font-size:10pt !important; }
 
-/* ปรับคำอธิบาย (desc) ในตารางแบบ slim ให้ใหญ่กว่าตัวเลขเล็กน้อย */
 .items-table.slim.table-numbers-sm td.desc { font-size:10.5pt; }
-
-/* Summary table compact mode */
-.summary-table.summary-compact { font-size:9.5pt; }
-.summary-table.summary-compact td,
-.summary-table.summary-compact th { font-size:9.5pt !important; }
-.summary-table.summary-compact .total-row .summary-label,
-.summary-table.summary-compact .total-row .summary-amount { font-size:10.5pt !important; }
-
-/* === Layout: Summary & Notes (table variant) === */
-.summary-notes-wrapper { page-break-inside:auto; margin-top:15pt; }
-.summary-notes-table { width:100%; border-collapse:separate; border-spacing:10pt 0; }
-
-/* Panels */
-.panel-box { vertical-align:top; padding:6pt 4pt; border:none; background:transparent; }
-.panel-notes { background:transparent; }
-.panel-title { font-size:12pt; font-weight:600; margin:0 0 4pt; color:#2f3d48; }
-.panel-title--sm { font-size:11pt; }
-.panel-title--xs { font-size:10.5pt; }
-.panel-title.center { text-align:center; }
-.panel-content { font-size:9.5pt; line-height:1.35; color:#555; }
-
-/* Signature spacing utility */
-.mt-8 { margin-top:8pt !important; }
 
 /* No items box */
 .no-items-box { text-align:center; padding:20pt; border:1px solid #dee2e6; background:#f8f9fa; }
@@ -371,5 +217,262 @@ col.w-unit-price { width:15%; }
 col.w-qty { width:10%; }
 col.w-total { width:15%; }
 
-/* Prevent line break for main amount line */
-.summary-amount .amount-main { white-space:nowrap; }
+/* Signature spacing utility */
+.mt-8 { margin-top:8pt !important; }
+
+/* ===== สำหรับ mPDF - แก้ไขปัญหาตัวเลขตกและคำอ่านล้น ===== */
+
+/* === Layout: Summary & Notes (table variant) === */
+.summary-notes-wrapper { 
+  page-break-inside: auto; 
+  margin-top: 15pt; 
+  width: 100%;
+}
+
+.summary-notes-table { 
+  width: 100%; 
+  border-collapse: separate; 
+  border-spacing: 8pt 0;
+  table-layout: fixed; /* บังคับให้ใช้ width ที่กำหนด */
+}
+
+/* Panels */
+.panel-box { 
+  vertical-align: top; 
+  padding: 6pt 4pt; 
+  border: none; 
+  background: transparent; 
+  overflow: hidden;
+}
+
+.panel-notes { 
+  background: transparent; 
+  width: 40% !important;
+}
+
+.panel-box:last-child {
+  width: 55% !important;
+}
+
+.panel-title { 
+  font-size: 12pt; 
+  font-weight: 600; 
+  margin: 0 0 4pt; 
+  color: #2f3d48; 
+}
+
+.panel-title--sm { 
+  font-size: 11pt; 
+}
+
+.panel-title.center { 
+  text-align: center; 
+}
+
+.panel-content { 
+  font-size: 9.5pt; 
+  line-height: 1.35; 
+  color: #555; 
+}
+
+/* ===== Summary Table - แก้ไขหลักสำหรับ mPDF ===== */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  table-layout: fixed;
+}
+
+.summary-table td {
+  padding: 5pt 6pt;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+
+/* ปรับสัดส่วน column ใหม่สำหรับ mPDF */
+.summary-table .summary-label {
+  text-align: left;
+  width: 45% !important;
+  font-size: 10pt;
+}
+
+.summary-table .summary-amount {
+  text-align: right;
+  width: 55% !important;
+  font-weight: bold;
+  font-size: 10pt;
+  padding-left: 8pt;
+}
+
+/* แก้ไขการแสดงผลตัวเลขสำหรับ mPDF */
+.summary-amount .amount-main { 
+  white-space: nowrap !important;
+  display: block;
+  font-size: 10pt;
+  overflow: hidden;
+}
+
+/* แก้ไขคำอ่านภาษาไทยสำหรับ mPDF */
+.reading {
+  color: #6c757d;
+  font-size: 8pt !important;
+  margin-top: 2pt;
+  font-style: italic;
+  display: block;
+  line-height: 1.1 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100%;
+  hyphens: auto;
+}
+
+/* Total row styling */
+.summary-table .total-row { 
+  background: transparent; 
+  border-top: 1.5pt solid #d0d7dd;
+}
+
+.summary-table .total-row td { 
+  font-weight: 600; 
+  color: #1e4d79; 
+  padding: 8pt 6pt;
+  font-size: 10.5pt;
+}
+
+.summary-table .total-row .summary-amount { 
+  font-size: 10.5pt;
+}
+
+.summary-table .total-row .reading {
+  font-size: 7.5pt !important;
+  color: #1e4d79;
+  opacity: 0.8;
+  line-height: 1.0 !important;
+}
+
+/* ===== เพิ่ม CSS สำหรับแถวคำอ่านที่แยกออกมา ===== */
+/* แถวคำอ่าน - แยกออกจากตัวเลข */
+.summary-table .reading-row { background: transparent; border-top: none; }
+.summary-table .reading-row td { padding: 4pt 6pt 8pt 6pt; border-bottom: none; }
+
+/* คำอ่านแบบเต็มความกว้าง */
+.reading-full-width {
+  color: #1e4d79;
+  font-size: 8pt !important;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* สำหรับ compact mode */
+.summary-table.summary-compact .reading-full-width { font-size: 7.5pt !important; }
+
+/* กรณีบังคับบรรทัดเดียว */
+.reading-full-width.single-line { white-space: nowrap; overflow: visible; text-overflow: unset; }
+
+/* ลดระยะห่างด้านล่างของแถวยอดรวมให้ชิดกับคำอ่าน */
+.summary-table .total-row td { padding-bottom: 6pt; }
+
+@media print {
+  .reading-full-width { font-size: 7pt !important; line-height: 1.1; }
+  .summary-table.summary-compact .reading-full-width { font-size: 6.5pt !important; }
+}
+
+/* Compact mode */
+.summary-table.summary-compact { 
+  font-size: 9pt; 
+}
+
+.summary-table.summary-compact td,
+.summary-table.summary-compact th { 
+  font-size: 9pt !important; 
+  padding: 4pt 5pt;
+}
+
+.summary-table.summary-compact .total-row .summary-label,
+.summary-table.summary-compact .total-row .summary-amount { 
+  font-size: 9.5pt !important; 
+}
+
+.summary-table.summary-compact .reading {
+  font-size: 7pt !important;
+}
+
+/* เพิ่มการจัดการสำหรับข้อความยาวในภาษาไทย */
+.thai-text-break {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* กำหนดความกว้างสูงสุดสำหรับคำอ่าน */
+.reading-container {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* ป้องกันการล้นของตัวเลขจำนวนเงิน */
+.amount-container {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* สำหรับจำนวนเงินที่มีหลายหลัก */
+.large-amount {
+  font-size: 9pt !important;
+}
+
+/* แก้ไขเพิ่มเติมสำหรับ mPDF ที่อาจมีปัญหากับ table layout */
+.summary-notes-table td {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Fallback สำหรับกรณีที่ข้อความยาวเกินไป */
+.text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* เพิ่มกฎเฉพาะสำหรับ mPDF ที่มีปัญหากับ text overflow */
+@media print {
+  .summary-notes-table {
+    border-spacing: 6pt 0;
+  }
+  
+  .panel-notes {
+    width: 38% !important;
+  }
+  
+  .panel-box:last-child {
+    width: 57% !important;
+  }
+  
+  .summary-table .summary-label {
+    width: 42% !important;
+    font-size: 9.5pt;
+  }
+  
+  .summary-table .summary-amount {
+    width: 58% !important;
+    font-size: 9.5pt;
+  }
+  
+  .reading {
+    font-size: 7.5pt !important;
+    line-height: 1.0 !important;
+  }
+  
+  .summary-amount .amount-main {
+    font-size: 9.5pt;
+  }
+}

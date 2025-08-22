@@ -69,6 +69,13 @@ class QuotationService
             // ข้อมูลเพิ่มเติมจาก user input
             $quotation->subtotal = $additionalData['subtotal'] ?? 0;
             $quotation->tax_amount = $additionalData['tax_amount'] ?? 0;
+            // ⭐ New financial fields
+            $quotation->special_discount_percentage = $additionalData['special_discount_percentage'] ?? 0;
+            $quotation->special_discount_amount = $additionalData['special_discount_amount'] ?? 0;
+            $quotation->has_withholding_tax = $additionalData['has_withholding_tax'] ?? false;
+            $quotation->withholding_tax_percentage = $additionalData['withholding_tax_percentage'] ?? 0;
+            $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
+            $quotation->final_total_amount = $additionalData['final_total_amount'] ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $additionalData['total_amount'] ?? 0;
             $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 0;
             $quotation->deposit_amount = $additionalData['deposit_amount'] ?? 0;
@@ -125,6 +132,23 @@ class QuotationService
             // ป้องกัน client ส่ง number มา
             unset($data['number']);
             $quotation->fill($data);
+
+            // If any of the extended financial fields provided, recalc final_total_amount if not explicitly sent
+            $financialKeys = ['special_discount_percentage','special_discount_amount','has_withholding_tax','withholding_tax_percentage','withholding_tax_amount','total_amount'];
+            $touched = false;
+            foreach ($financialKeys as $k) {
+                if (array_key_exists($k, $data)) { $touched = true; break; }
+            }
+            if ($touched && !array_key_exists('final_total_amount', $data)) {
+                $quotation->final_total_amount = ($quotation->total_amount - $quotation->special_discount_amount - $quotation->withholding_tax_amount);
+            }
+            // Ensure financial extended fields are set even if omitted (fill might already cover if fillable)
+            $quotation->special_discount_percentage = $data['special_discount_percentage'] ?? ($quotation->special_discount_percentage ?? 0);
+            $quotation->special_discount_amount = $data['special_discount_amount'] ?? ($quotation->special_discount_amount ?? 0);
+            $quotation->has_withholding_tax = $data['has_withholding_tax'] ?? ($quotation->has_withholding_tax ?? false);
+            $quotation->withholding_tax_percentage = $data['withholding_tax_percentage'] ?? ($quotation->withholding_tax_percentage ?? 0);
+            $quotation->withholding_tax_amount = $data['withholding_tax_amount'] ?? ($quotation->withholding_tax_amount ?? 0);
+            $quotation->final_total_amount = $data['final_total_amount'] ?? ($quotation->total_amount - $quotation->special_discount_amount - $quotation->withholding_tax_amount);
             $quotation->status = 'draft';
             // Ensure unique draft number to satisfy (company_id, number) unique index
             if (empty($quotation->number)) {
@@ -233,6 +257,13 @@ class QuotationService
             // ข้อมูลราคา
             $quotation->subtotal = $subtotal;
             $quotation->tax_amount = $taxAmount;
+            // ⭐ New financial fields (multi-create)
+            $quotation->special_discount_percentage = $additionalData['special_discount_percentage'] ?? 0;
+            $quotation->special_discount_amount = $additionalData['special_discount_amount'] ?? 0;
+            $quotation->has_withholding_tax = $additionalData['has_withholding_tax'] ?? false;
+            $quotation->withholding_tax_percentage = $additionalData['withholding_tax_percentage'] ?? 0;
+            $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
+            $quotation->final_total_amount = $additionalData['final_total_amount'] ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $totalAmount;
 
             // ข้อมูลการชำระเงิน

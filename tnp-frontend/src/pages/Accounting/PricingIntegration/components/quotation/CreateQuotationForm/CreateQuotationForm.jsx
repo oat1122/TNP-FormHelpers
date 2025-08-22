@@ -38,10 +38,11 @@ import PricingRequestNotesButton from '../../PricingRequestNotesButton';
 // NEW COMPONENTS
 import SpecialDiscountField from './components/SpecialDiscountField';
 import WithholdingTaxField from './components/WithholdingTaxField';
-import CalculationSummary from './components/CalculationSummary';
+import Calculation from '../../../../shared/components/Calculation';
+import PaymentTerms from '../../../../shared/components/PaymentTerms';
 
 // UTILS
-import useQuotationCalc from '../hooks/useQuotationCalc';
+import { useQuotationFinancials } from '../../../../shared/hooks/useQuotationFinancials';
 import { formatTHB } from '../utils/currency';
 import { formatDateTH } from '../utils/date';
 import { sanitizeInt, sanitizeDecimal } from '../../../../shared/inputSanitizers';
@@ -64,9 +65,11 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
     items: [],
     notes: '',
     // terms (UI-facing)
-    paymentTermsType: 'credit_30', // 'cash' | 'credit_30' | 'credit_60' | 'other'
-    paymentTermsCustom: '',
-    depositPct: 50,
+  paymentTermsType: 'credit_30', // 'cash' | 'credit_30' | 'credit_60' | 'other'
+  paymentTermsCustom: '',
+  depositMode: 'percentage', // 'percentage' | 'amount'
+  depositPct: 50, // when percentage mode
+  depositAmountInput: '', // raw input when amount mode
     dueDate: null,
     // New fields for special discount and withholding tax
     specialDiscountType: 'percentage', // 'percentage' | 'amount'
@@ -119,26 +122,28 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
   }, [selectedPricingRequests]);
 
   // ======== CALC ========
-  const { 
-    subtotal, 
-    vat, 
-    total, 
+  const financials = useQuotationFinancials({
+    items: formData.items,
+    depositMode: formData.depositMode,
+    depositPercentage: formData.depositPct,
+    depositAmountInput: formData.depositAmountInput,
+    specialDiscountType: formData.specialDiscountType,
+    specialDiscountValue: formData.specialDiscountValue,
+    hasWithholdingTax: formData.hasWithholdingTax,
+    withholdingTaxPercentage: formData.withholdingTaxPercentage,
+  });
+  const {
+    subtotal,
     specialDiscountAmount,
-    netAfterDiscount,
+    discountedSubtotal,
+    vat,
+    total,
     withholdingTaxAmount,
     finalTotal,
-    depositAmount, 
-    remainingAmount, 
-    warnings 
-  } = useQuotationCalc(
-    formData.items,
-    String(formData.depositPct),
-    formData.paymentTermsType === 'other' ? '' : '',
-    formData.specialDiscountType,
-    formData.specialDiscountValue,
-    formData.hasWithholdingTax,
-    formData.withholdingTaxPercentage
-  );
+    depositAmount,
+    remainingAmount,
+  } = financials;
+  const warnings = {}; // placeholder (old hook provided warnings)
 
   // ======== HELPERS ========
   const prQtyOf = useCallback((it) => {
@@ -233,13 +238,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       const payload = {
         ...formData,
         subtotal,
-        vat,
-        total,
+  // New order: discount applied to subtotal before VAT
+  vat,
+  total, // discountedSubtotal + vat
         // Special discount fields
         specialDiscountType: formData.specialDiscountType,
         specialDiscountValue: formData.specialDiscountValue,
         specialDiscountAmount,
-        netAfterDiscount,
+  netAfterDiscount: discountedSubtotal, // rename compatibility (net after discount before VAT)
         // Withholding tax fields
         hasWithholdingTax: formData.hasWithholdingTax,
         withholdingTaxPercentage: formData.withholdingTaxPercentage,
@@ -250,7 +256,10 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         remainingAmount,
         // normalize terms for caller
         paymentMethod: formData.paymentTermsType === 'other' ? formData.paymentTermsCustom : formData.paymentTermsType,
-        depositPercentage: String(formData.depositPct ?? 0),
+  depositMode: formData.depositMode,
+  depositPercentage: String(financials.depositPercentage ?? formData.depositPct ?? 0),
+  depositAmount: depositAmount,
+  depositAmountInput: formData.depositAmountInput,
         action,
       };
       if (action === 'draft') await onSave?.(payload);
@@ -604,15 +613,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 </Grid>
 
                 {/* Calculation Summary */}
-                <CalculationSummary
+                <Calculation
                   subtotal={subtotal}
+                  discountAmount={specialDiscountAmount}
+                  discountedBase={discountedSubtotal}
                   vat={vat}
-                  total={total}
-                  specialDiscountAmount={specialDiscountAmount}
-                  netAfterDiscount={netAfterDiscount}
-                  withholdingTaxAmount={withholdingTaxAmount}
+                  totalAfterVat={total}
+                  withholdingAmount={withholdingTaxAmount}
                   finalTotal={finalTotal}
-                  showDetailed={true}
                 />
               </Box>
             </Section>
@@ -627,83 +635,33 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 </Avatar>
                 <Typography variant="subtitle1" fontWeight={700}>เงื่อนไขการชำระเงิน</Typography>
               </SectionHeader>
-
               <Box sx={{ p: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <InfoCard sx={{ p: 2 }}>
-                      <Typography variant="caption" color="text.secondary">การชำระเงิน</Typography>
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        SelectProps={{ native: true }}
-                        value={formData.paymentTermsType}
-                        onChange={(e) => setFormData((p) => ({ ...p, paymentTermsType: e.target.value }))}
-                        sx={{ mb: formData.paymentTermsType === 'other' ? 1 : 0 }}
-                      >
-                        <option value="cash">เงินสด</option>
-                        <option value="credit_30">เครดิต 30 วัน</option>
-                        <option value="credit_60">เครดิต 60 วัน</option>
-                        <option value="other">อื่นๆ (กำหนดเอง)</option>
-                      </TextField>
-                      {formData.paymentTermsType === 'other' && (
-                        <TextField fullWidth size="small" placeholder="พิมพ์วิธีการชำระเงิน" value={formData.paymentTermsCustom} onChange={(e) => setFormData((p) => ({ ...p, paymentTermsCustom: e.target.value }))} />
-                      )}
-                    </InfoCard>
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <InfoCard sx={{ p: 2 }}>
-                      <Typography variant="caption" color="text.secondary">เงินมัดจำ</Typography>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="text"
-                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                        value={String(formData.depositPct ?? '')}
-                        onChange={(e) => setFormData((p) => ({ ...p, depositPct: sanitizeInt(e.target.value) }))}
-                        helperText="เป็นเปอร์เซ็นต์ (0-100)"
-                      />
-                    </InfoCard>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <InfoCard sx={{ p: 2 }}>
-                      <Typography variant="subtitle1" fontWeight={700} color={tokens.primary} gutterBottom>สรุปการชำระเงิน</Typography>
-                      <Grid container>
-                        <Grid item xs={6}><Typography>จำนวนมัดจำ ({formData.depositPct}%)</Typography></Grid>
-                        <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(depositAmount)}</Typography></Grid>
-                        <Grid item xs={6}><Typography>ยอดคงเหลือ</Typography></Grid>
-                        <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(remainingAmount)}</Typography></Grid>
-                        {isCredit && (
-                          <>
-                            <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
-                            <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatDateTH(formData.dueDate)}</Typography></Grid>
-                          </>
-                        )}
-                      </Grid>
-                    </InfoCard>
-                  </Grid>
-
-                  {isCredit && (
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="วันครบกำหนด (พิมพ์ได้)"
-                        value={formatDateTH(formData.dueDate) || ''}
-                        onChange={() => {}}
-                        helperText="ระบบจะบันทึกค่า date เดิมของแบบฟอร์ม"
-                        disabled
-                      />
-                    </Grid>
-                  )}
-
-                  <Grid item xs={12}>
-                    <TextField fullWidth multiline rows={3} label="หมายเหตุ" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} placeholder="เช่น ราคานี้รวมค่าจัดส่งและติดตั้งแล้ว…" />
-                  </Grid>
-                </Grid>
+                <PaymentTerms
+                  isEditing
+                  paymentTermsType={formData.paymentTermsType}
+                  paymentTermsCustom={formData.paymentTermsCustom}
+                  onChangePaymentTermsType={(v) => setFormData(p => ({ ...p, paymentTermsType: v }))}
+                  onChangePaymentTermsCustom={(v) => setFormData(p => ({ ...p, paymentTermsCustom: v }))}
+                  depositMode={formData.depositMode}
+                  onChangeDepositMode={(v) => setFormData(p => ({ ...p, depositMode: v }))}
+                  depositPercentage={formData.depositPct}
+                  depositAmountInput={formData.depositAmountInput}
+                  onChangeDepositPercentage={(v) => setFormData(p => ({ ...p, depositPct: sanitizeInt(v) }))}
+                  onChangeDepositAmount={(v) => setFormData(p => ({ ...p, depositAmountInput: sanitizeDecimal(v) }))}
+                  isCredit={isCredit}
+                  dueDateNode={isCredit ? (
+                    <>
+                      <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
+                      <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatDateTH(formData.dueDate)}</Typography></Grid>
+                    </>
+                  ) : null}
+                  finalTotal={finalTotal}
+                  depositAmount={depositAmount}
+                  remainingAmount={remainingAmount}
+                />
+                <Box sx={{ mt: 2 }}>
+                  <TextField fullWidth multiline rows={3} label="หมายเหตุ" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} placeholder="เช่น ราคานี้รวมค่าจัดส่งและติดตั้งแล้ว…" />
+                </Box>
               </Box>
             </Section>
           </Grid>

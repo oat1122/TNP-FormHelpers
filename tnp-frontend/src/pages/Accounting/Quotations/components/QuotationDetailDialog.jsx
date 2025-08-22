@@ -32,7 +32,13 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../utils/a
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { pickQuotation, normalizeCustomer, getAllPrIdsFromQuotation, normalizeAndGroupItems, computeTotals, toISODate } from '../utils/quotationUtils';
+import { useQuotationFinancials } from '../../shared/hooks/useQuotationFinancials';
 import { useQuotationGroups } from '../hooks/useQuotationGroups';
+// Reuse discount & withholding components from create form
+import SpecialDiscountField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField';
+import WithholdingTaxField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField';
+import Calculation from '../../shared/components/Calculation';
+import PaymentTerms from '../../shared/components/PaymentTerms';
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
@@ -340,9 +346,10 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const isKnownTerms = ['cash', 'credit_30', 'credit_60'].includes(initialRawTerms);
   const [paymentTermsType, setPaymentTermsType] = React.useState(isKnownTerms ? initialRawTerms : 'other');
   const [paymentTermsCustom, setPaymentTermsCustom] = React.useState(isKnownTerms ? '' : (initialRawTerms || ''));
-  const [depositPct, setDepositPct] = React.useState(
-    q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50)
-  );
+  const inferredDepositPct = q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50);
+  const [depositMode, setDepositMode] = React.useState('percentage');
+  const [depositPct, setDepositPct] = React.useState(inferredDepositPct);
+  const [depositAmountInput, setDepositAmountInput] = React.useState('');
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
   }, [q?.id, q?.customer_name, q?.customer]);
@@ -353,7 +360,9 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const known = ['cash', 'credit_30', 'credit_60'].includes(raw);
   setPaymentTermsType(known ? raw : 'other');
   setPaymentTermsCustom(known ? '' : (raw || ''));
-    setDepositPct(q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50));
+  setDepositPct(q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50));
+  setDepositAmountInput('');
+  setDepositMode('percentage');
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
   }, [open, q?.id, q?.notes]);
   const activeGroups = isEditing ? groups : items;
@@ -366,15 +375,52 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     ? (paymentTermsType === 'other' ? (paymentTermsCustom || '') : paymentTermsType)
     : (q.payment_terms || q.payment_method || (q.credit_days === 30 ? 'credit_30' : q.credit_days === 60 ? 'credit_60' : 'cash'));
   const depositPercentage = isEditing
-    ? Number(depositPct || 0)
+    ? (depositMode === 'percentage' ? Number(depositPct || 0) : undefined)
     : (q.deposit_percentage ?? (paymentMethod === 'cash' ? 0 : 50));
   const dueDate = q.due_date ? new Date(q.due_date) : null;
-  const computed = computeTotals(activeGroups, depositPercentage);
+  const computed = computeTotals(activeGroups, (depositPercentage ?? 0));
   const subtotal = q.subtotal != null ? Number(q.subtotal) : computed.subtotal;
   const vat = q.tax_amount != null ? Number(q.tax_amount) : computed.vat;
   const total = q.total_amount != null ? Number(q.total_amount) : computed.total;
-  const depositAmount = q.deposit_amount != null ? Number(q.deposit_amount) : computed.depositAmount;
-  const remainingAmount = +(total - depositAmount).toFixed(2);
+
+  // ===== Extended financial states (editable) =====
+  const [specialDiscountType, setSpecialDiscountType] = React.useState(() => {
+    // infer type from existing data
+    if ((q.special_discount_percentage ?? 0) > 0) return 'percentage';
+    if ((q.special_discount_amount ?? 0) > 0) return 'amount';
+    return 'percentage';
+  });
+  const [specialDiscountValue, setSpecialDiscountValue] = React.useState(() => {
+    if ((q.special_discount_percentage ?? 0) > 0) return Number(q.special_discount_percentage);
+    if ((q.special_discount_amount ?? 0) > 0) return Number(q.special_discount_amount);
+    return 0;
+  });
+  const [hasWithholdingTax, setHasWithholdingTax] = React.useState(() => !!q.has_withholding_tax);
+  const [withholdingTaxPercentage, setWithholdingTaxPercentage] = React.useState(() => Number(q.withholding_tax_percentage || 0));
+
+  // Recompute dynamic amounts based on current edit inputs (mirroring logic in useQuotationCalc)
+  // Use unified financials hook (discount applied to subtotal BEFORE VAT)
+  const financials = useQuotationFinancials({
+    items: activeGroups,
+    depositMode: isEditing ? depositMode : 'percentage',
+    depositPercentage: depositMode === 'percentage' ? depositPercentage : undefined,
+    depositAmountInput: depositMode === 'amount' ? depositAmountInput : undefined,
+    specialDiscountType,
+    specialDiscountValue,
+    hasWithholdingTax,
+    withholdingTaxPercentage,
+  });
+  const {
+    specialDiscountAmount: discountAmountComputed,
+    discountedSubtotal: netAfterDiscount, // net after discount before VAT
+    vat: vatRecalc,
+    total: totalAfterDiscountAndVat,
+    withholdingTaxAmount: withholdingTaxAmountComputed,
+    finalTotal: finalNetAmountComputed,
+    depositAmount,
+    depositPercentage: liveDepositPercentage,
+    remainingAmount,
+  } = financials;
 
   // using toISODate util
 
@@ -413,9 +459,19 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
         id: q.id,
         items: flatItems,
         subtotal: totals.subtotal,
-        tax_amount: totals.vat,
-        total_amount: totals.total,
-  deposit_percentage: Number(depositPct || 0),
+  // Recalculate tax & total based on discount-before-VAT logic
+  tax_amount: vatRecalc,
+  total_amount: totalAfterDiscountAndVat,
+  // ⭐ Extended financial fields (from local editable states)
+  special_discount_percentage: specialDiscountType === 'percentage' ? Number(specialDiscountValue || 0) : 0,
+  special_discount_amount: specialDiscountType === 'amount' ? Number(specialDiscountValue || 0) : discountAmountComputed,
+  has_withholding_tax: hasWithholdingTax,
+  withholding_tax_percentage: hasWithholdingTax ? Number(withholdingTaxPercentage || 0) : 0,
+  withholding_tax_amount: withholdingTaxAmountComputed,
+  final_total_amount: finalNetAmountComputed,
+  deposit_percentage: depositMode === 'percentage' ? Number(depositPct || 0) : Number(liveDepositPercentage || 0),
+  deposit_amount: depositAmount,
+  deposit_mode: depositMode,
   payment_terms: paymentTermsType === 'other' ? (paymentTermsCustom || '') : paymentTermsType,
   due_date: dueDateForSave,
   notes: quotationNotes || '',
@@ -621,21 +677,40 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     ))}
 
                     <Divider sx={{ my: 2 }} />
-
-                    <InfoCard sx={{ p: 2 }}>
-                      <Typography variant="subtitle1" fontWeight={700} color={tokens.primary} gutterBottom>
-                        สรุปยอดเงิน
-                      </Typography>
-                      <Grid container>
-                        <Grid item xs={6}><Typography>ยอดก่อนภาษี</Typography></Grid>
-                        <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(subtotal)}</Typography></Grid>
-                        <Grid item xs={6}><Typography>VAT 7%</Typography></Grid>
-                        <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(vat)}</Typography></Grid>
-                        <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
-                        <Grid item xs={6}><Typography variant="subtitle1" fontWeight={800}>ยอดรวมทั้งสิ้น</Typography></Grid>
-                        <Grid item xs={6}><Typography variant="subtitle1" fontWeight={800} textAlign="right">{formatTHB(total)}</Typography></Grid>
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} md={6}>
+                        <SpecialDiscountField
+                          discountType={specialDiscountType}
+                          discountValue={specialDiscountValue}
+                          totalAmount={total}
+                          discountAmount={discountAmountComputed}
+                          onDiscountTypeChange={(t) => { if (!isEditing) return; setSpecialDiscountType(t); }}
+                          onDiscountValueChange={(v) => { if (!isEditing) return; setSpecialDiscountValue(v); }}
+                          disabled={!isEditing}
+                        />
                       </Grid>
-                    </InfoCard>
+                      <Grid item xs={12} md={6}>
+                        <WithholdingTaxField
+                          hasWithholdingTax={hasWithholdingTax}
+                          taxPercentage={withholdingTaxPercentage}
+                          taxAmount={withholdingTaxAmountComputed}
+                          subtotalAmount={subtotal}
+                          onToggleWithholdingTax={(en) => isEditing && setHasWithholdingTax(en)}
+                          onTaxPercentageChange={(p) => isEditing && setWithholdingTaxPercentage(p)}
+                          disabled={!isEditing}
+                        />
+                      </Grid>
+                    </Grid>
+
+                    <Calculation
+                      subtotal={subtotal}
+                      discountAmount={discountAmountComputed}
+                      discountedBase={netAfterDiscount}
+                      vat={vatRecalc}
+                      totalAfterVat={totalAfterDiscountAndVat}
+                      withholdingAmount={withholdingTaxAmountComputed}
+                      finalTotal={finalNetAmountComputed}
+                    />
                   </Box>
                 </Section>
               </Grid>
@@ -649,112 +724,52 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     <Typography variant="subtitle1" fontWeight={700}>เงื่อนไขการชำระเงิน</Typography>
                   </SectionHeader>
                   <Box sx={{ p: 2 }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <InfoCard sx={{ p: 2 }}>
-                          <Typography variant="caption" color="text.secondary">การชำระเงิน</Typography>
-                          {isEditing ? (
-                            <>
-                              <TextField
-                                select
-                                fullWidth
-                                size="small"
-                                SelectProps={{ native: true }}
-                                value={paymentTermsType}
-                                onChange={(e) => setPaymentTermsType(e.target.value)}
-                                sx={{ mb: paymentTermsType === 'other' ? 1 : 0 }}
-                              >
-                                <option value="cash">เงินสด</option>
-                                <option value="credit_30">เครดิต 30 วัน</option>
-                                <option value="credit_60">เครดิต 60 วัน</option>
-                                <option value="other">อื่นๆ (กำหนดเอง)</option>
-                              </TextField>
-                              {paymentTermsType === 'other' && (
-                                <TextField
-                                  fullWidth
-                                  size="small"
-                                  placeholder="พิมพ์วิธีการชำระเงิน"
-                                  value={paymentTermsCustom}
-                                  onChange={(e) => setPaymentTermsCustom(e.target.value)}
+                    <PaymentTerms
+                      isEditing={isEditing}
+                      paymentTermsType={paymentTermsType}
+                      paymentTermsCustom={paymentTermsCustom}
+                      onChangePaymentTermsType={(v) => isEditing && setPaymentTermsType(v)}
+                      onChangePaymentTermsCustom={(v) => isEditing && setPaymentTermsCustom(v)}
+                      depositMode={depositMode}
+                      onChangeDepositMode={(v) => isEditing && setDepositMode(v)}
+                      depositPercentage={depositPct}
+                      depositAmountInput={depositAmountInput}
+                      onChangeDepositPercentage={(v) => isEditing && setDepositPct(sanitizeInt(v))}
+                      onChangeDepositAmount={(v) => isEditing && setDepositAmountInput(v)}
+                      isCredit={isEditing ? (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') : (paymentMethod !== 'cash')}
+                      dueDateNode={(isEditing ? (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') : (paymentMethod !== 'cash')) ? (
+                        <>
+                          <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
+                          <Grid item xs={6}>
+                            {isEditing && (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') ? (
+                              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                <DatePicker
+                                  value={selectedDueDate}
+                                  onChange={(newVal) => setSelectedDueDate(newVal)}
+                                  slotProps={{ textField: { size: 'small', fullWidth: true } }}
                                 />
-                              )}
-                            </>
-                          ) : (
-                            <Typography variant="body1" fontWeight={700}>
-                              {paymentMethod === 'cash'
-                                ? 'เงินสด'
-                                : paymentMethod === 'credit_60'
-                                ? 'เครดิต 60 วัน'
-                                : paymentMethod === 'credit_30'
-                                ? 'เครดิต 30 วัน'
-                                : paymentMethod || '-'}
-                            </Typography>
-                          )}
-                        </InfoCard>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <InfoCard sx={{ p: 2 }}>
-                          <Typography variant="caption" color="text.secondary">เงินมัดจำ</Typography>
-                          {isEditing ? (
-                            <TextField
-                              fullWidth
-                              size="small"
-                              type="text"
-                              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                              value={String(depositPct ?? '')}
-                              onChange={(e) => setDepositPct(sanitizeInt(e.target.value))}
-                              helperText="เป็นเปอร์เซ็นต์ (0-100)"
-                            />
-                          ) : (
-                            <Typography variant="body1" fontWeight={700}>{Number(depositPercentage)}%</Typography>
-                          )}
-                        </InfoCard>
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <InfoCard sx={{ p: 2 }}>
-                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary} gutterBottom>
-                            สรุปการชำระเงิน
-                          </Typography>
-                          <Grid container>
-                            <Grid item xs={6}><Typography>จำนวนมัดจำ</Typography></Grid>
-                            <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(depositAmount)}</Typography></Grid>
-                            <Grid item xs={6}><Typography>ยอดคงเหลือ</Typography></Grid>
-                            <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(remainingAmount)}</Typography></Grid>
-                            {(isEditing ? (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') : (paymentMethod !== 'cash')) && (
-                              <>
-                                <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
-                                <Grid item xs={6}>
-                                  {isEditing && (paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60') ? (
-                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                      <DatePicker
-                                        value={selectedDueDate}
-                                        onChange={(newVal) => setSelectedDueDate(newVal)}
-                                        slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                                      />
-                                    </LocalizationProvider>
-                                  ) : (
-                                    <Typography textAlign="right" fontWeight={700}>{formatDateTH(dueDate)}</Typography>
-                                  )}
-                                </Grid>
-                              </>
+                              </LocalizationProvider>
+                            ) : (
+                              <Typography textAlign="right" fontWeight={700}>{formatDateTH(dueDate)}</Typography>
                             )}
                           </Grid>
-                        </InfoCard>
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={3}
-                          label="หมายเหตุ"
-                          value={isEditing ? (quotationNotes ?? '') : (q?.notes ?? '')}
-                          disabled={!isEditing}
-                          onChange={(e) => setQuotationNotes(e.target.value)}
-                        />
-                      </Grid>
-                    </Grid>
+                        </>
+                      ) : null}
+                      finalTotal={finalNetAmountComputed}
+                      depositAmount={depositAmount}
+                      remainingAmount={remainingAmount}
+                    />
+                    <Box sx={{ mt: 2 }}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="หมายเหตุ"
+                        value={isEditing ? (quotationNotes ?? '') : (q?.notes ?? '')}
+                        disabled={!isEditing}
+                        onChange={(e) => setQuotationNotes(e.target.value)}
+                      />
+                    </Box>
                   </Box>
                 </Section>
               </Grid>

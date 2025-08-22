@@ -344,6 +344,13 @@ const PricingIntegration = () => {
                 subtotal: data.subtotal || 0,
                 tax_amount: data.vat || 0,
                 total_amount: data.total || 0,
+                // ⭐ Extended financial fields
+                special_discount_percentage: data.specialDiscountType === 'percentage' ? (data.specialDiscountValue || 0) : 0,
+                special_discount_amount: data.specialDiscountType === 'amount' ? (data.specialDiscountValue || data.specialDiscountAmount || 0) : (data.specialDiscountAmount || 0),
+                has_withholding_tax: data.hasWithholdingTax || false,
+                withholding_tax_percentage: data.withholdingTaxPercentage || 0,
+                withholding_tax_amount: data.withholdingTaxAmount || 0,
+                final_total_amount: data.finalTotal || (data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0)),
 
                 // ข้อมูลการชำระเงิน
                 deposit_percentage: data.depositPercentage === 'custom'
@@ -433,6 +440,13 @@ const PricingIntegration = () => {
                 subtotal: data.subtotal || 0,
                 tax_amount: data.vat || 0,
                 total_amount: data.total || 0,
+                // ⭐ Extended financial fields
+                special_discount_percentage: data.specialDiscountType === 'percentage' ? (data.specialDiscountValue || 0) : 0,
+                special_discount_amount: data.specialDiscountType === 'amount' ? (data.specialDiscountValue || data.specialDiscountAmount || 0) : (data.specialDiscountAmount || 0),
+                has_withholding_tax: data.hasWithholdingTax || false,
+                withholding_tax_percentage: data.withholdingTaxPercentage || 0,
+                withholding_tax_amount: data.withholdingTaxAmount || 0,
+                final_total_amount: data.finalTotal || (data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0)),
 
                 // ข้อมูลการชำระเงิน
                 deposit_percentage: data.depositPercentage === 'custom'

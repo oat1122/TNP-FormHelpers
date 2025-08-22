@@ -17,10 +17,10 @@ import { tokens } from '../../styles/quotationTheme';
 
 const CalculationSummary = ({
   subtotal = 0,
-  vat = 0,
-  total = 0,
   specialDiscountAmount = 0,
-  netAfterDiscount = 0,
+  netAfterDiscount = 0, // discounted subtotal (base for VAT & WHT)
+  vat = 0,
+  total = 0, // discountedSubtotal + VAT
   withholdingTaxAmount = 0,
   finalTotal = 0,
   showDetailed = true
@@ -119,53 +119,42 @@ const CalculationSummary = ({
       <CardContent sx={{ pt: 3, pb: 2 }}>
         <Grid container>
           {/* Basic Calculation */}
-          <LineItem 
-            label="ยอดก่อนภาษี" 
+          <LineItem
+            label="ยอดก่อนภาษี"
             amount={subtotal}
-            description="รวมราคาสินค้าทั้งหมด"
+            description="รวมราคาสินค้าทั้งหมด (ก่อนส่วนลด)"
           />
-          <LineItem 
-            label="VAT 7%" 
-            amount={vat}
-            description="ภาษีมูลค่าเพิ่ม"
-          />
-          
-          <SectionDivider />
-          <LineItem 
-            label="ยอดรวมก่อนส่วนลด" 
-            amount={total}
-            isSubtotal={true}
-          />
-
-          {/* Special Discount */}
           {specialDiscountAmount > 0 && (
-            <>
-              <SectionDivider />
-              <LineItem 
-                label="ส่วนลดพิเศษ" 
-                amount={specialDiscountAmount}
-                isDeduction={true}
-                description="ส่วนลดเพิ่มเติมจากโปรโมชั่น"
-              />
-              <LineItem 
-                label="ยอดหลังหักส่วนลด" 
-                amount={netAfterDiscount}
-                isSubtotal={true}
-              />
-            </>
+            <LineItem
+              label="ส่วนลดพิเศษ"
+              amount={specialDiscountAmount}
+              isDeduction
+              description="หักออกจากยอดก่อนภาษี"
+            />
           )}
-
-          {/* Withholding Tax */}
+          <LineItem
+            label="ฐานคำนวณภาษี (หลังส่วนลด)"
+            amount={netAfterDiscount}
+            isSubtotal
+          />
+          <LineItem
+            label="VAT 7%"
+            amount={vat}
+            description={`คำนวณจาก ${formatTHB(netAfterDiscount)} x 7%`}
+          />
+          <SectionDivider />
+          <LineItem
+            label="ยอดรวมหลัง VAT"
+            amount={total}
+            isSubtotal
+          />
           {withholdingTaxAmount > 0 && (
-            <>
-              <SectionDivider />
-              <LineItem 
-                label="ภาษีหัก ณ ที่จ่าย" 
-                amount={withholdingTaxAmount}
-                isDeduction={true}
-                description={`คำนวณจากยอดก่อนภาษี ${formatTHB(subtotal)}`}
-              />
-            </>
+            <LineItem
+              label="ภาษีหัก ณ ที่จ่าย"
+              amount={withholdingTaxAmount}
+              isDeduction
+              description={`คำนวณจากฐานหลังส่วนลด ${formatTHB(netAfterDiscount)}`}
+            />
           )}
 
 

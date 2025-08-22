@@ -87,12 +87,13 @@ class AccountingAPI {
             has_withholding_tax: data.hasWithholdingTax || false,
             withholding_tax_percentage: data.withholdingTaxPercentage || 0,
             withholding_tax_amount: data.withholdingTaxAmount || 0,
-            final_total_amount: data.finalTotal || data.total,
             total_amount: data.total,
             deposit_percentage: data.depositPercentage ?? data.deposit_percentage,
             payment_terms: data.paymentMethod ?? data.payment_terms,
             due_date: data.dueDate ?? data.due_date,
             notes: data.notes,
+            // total already reflects (subtotal - discount) + VAT; only subtract withholding for final
+            final_total_amount: data.finalTotal || (data.total - (data.withholdingTaxAmount || 0)),
             // Optional items
             items: (data.items || []).map((it, idx) => ({
                 pricing_request_id: it.pricingRequestId || it.pr_id || it.pricing_request_id,
@@ -143,6 +144,13 @@ class AccountingAPI {
             subtotal: data.subtotal,
             tax_amount: data.vat ?? data.tax_amount,
             total_amount: data.total ?? data.total_amount,
+            // ⭐ Extended financial fields passthrough
+            special_discount_percentage: data.special_discount_percentage ?? data.specialDiscountPercentage ?? (data.specialDiscountType === 'percentage' ? data.specialDiscountValue : 0),
+            special_discount_amount: data.special_discount_amount ?? data.specialDiscountAmount ?? (data.specialDiscountType === 'amount' ? data.specialDiscountValue : 0),
+            has_withholding_tax: data.has_withholding_tax ?? data.hasWithholdingTax ?? false,
+            withholding_tax_percentage: data.withholding_tax_percentage ?? data.withholdingTaxPercentage ?? 0,
+            withholding_tax_amount: data.withholding_tax_amount ?? data.withholdingTaxAmount ?? 0,
+            final_total_amount: data.final_total_amount ?? data.finalTotal ?? ((data.total ?? 0) - (data.withholdingTaxAmount || 0)),
             deposit_percentage: data.depositPercentage ?? data.deposit_percentage,
             payment_terms: data.paymentMethod ?? data.payment_terms,
             items: (data.items || []).map((it, idx) => ({

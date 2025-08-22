@@ -260,9 +260,10 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         depositPercentage: String(
           formData.depositMode === 'percentage'
             ? (formData.depositPct ?? 0)
-            : Math.round(financials.depositPercentage ?? 0)
+            : (financials.depositPercentage != null
+                ? Number(financials.depositPercentage).toFixed(4)
+                : 0)
         ),
-  depositAmount: depositAmount,
   depositAmountInput: formData.depositAmountInput,
         action,
       };

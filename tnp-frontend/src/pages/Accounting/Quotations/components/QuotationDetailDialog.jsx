@@ -347,9 +347,10 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [paymentTermsType, setPaymentTermsType] = React.useState(isKnownTerms ? initialRawTerms : 'other');
   const [paymentTermsCustom, setPaymentTermsCustom] = React.useState(isKnownTerms ? '' : (initialRawTerms || ''));
   const inferredDepositPct = q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50);
-  const [depositMode, setDepositMode] = React.useState('percentage');
+  // Deposit state (supports percentage | amount)
+  const [depositMode, setDepositMode] = React.useState(q?.deposit_mode || 'percentage');
   const [depositPct, setDepositPct] = React.useState(inferredDepositPct);
-  const [depositAmountInput, setDepositAmountInput] = React.useState('');
+  const [depositAmountInput, setDepositAmountInput] = React.useState(q?.deposit_mode === 'amount' ? (q?.deposit_amount ?? '') : '');
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
   }, [q?.id, q?.customer_name, q?.customer]);
@@ -361,8 +362,8 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   setPaymentTermsType(known ? raw : 'other');
   setPaymentTermsCustom(known ? '' : (raw || ''));
   setDepositPct(q?.deposit_percentage ?? ((q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash')) === 'cash' ? 0 : 50));
-  setDepositAmountInput('');
-  setDepositMode('percentage');
+  setDepositMode(q?.deposit_mode || 'percentage');
+  setDepositAmountInput(q?.deposit_mode === 'amount' ? (q?.deposit_amount ?? '') : '');
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
   }, [open, q?.id, q?.notes]);
 
@@ -424,9 +425,13 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   // Use unified financials hook (discount applied to subtotal BEFORE VAT)
   const financials = useQuotationFinancials({
     items: activeGroups,
-    depositMode: isEditing ? depositMode : 'percentage',
-    depositPercentage: depositMode === 'percentage' ? depositPercentage : undefined,
-    depositAmountInput: depositMode === 'amount' ? depositAmountInput : undefined,
+    depositMode: isEditing ? depositMode : (q?.deposit_mode || 'percentage'),
+    depositPercentage: isEditing
+      ? (depositMode === 'percentage' ? depositPct : undefined)
+      : (q?.deposit_mode === 'percentage' ? q?.deposit_percentage : undefined),
+    depositAmountInput: isEditing
+      ? (depositMode === 'amount' ? depositAmountInput : undefined)
+      : (q?.deposit_mode === 'amount' ? q?.deposit_amount : undefined),
     specialDiscountType,
     specialDiscountValue,
     hasWithholdingTax,

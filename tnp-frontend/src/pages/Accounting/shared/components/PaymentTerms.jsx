@@ -114,7 +114,13 @@ export default function PaymentTerms({
           </Typography>
           <Grid container>
             <Grid item xs={6}><Typography>จำนวนมัดจำ</Typography></Grid>
-            <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(depositAmount)}</Typography></Grid>
+            <Grid item xs={6}>
+              <Typography textAlign="right" fontWeight={700}>
+                {depositMode === 'amount'
+                  ? formatTHB(depositAmount)
+                  : `${depositPercentage || 0}% (${formatTHB(depositAmount)})`}
+              </Typography>
+            </Grid>
             <Grid item xs={6}><Typography>ยอดคงเหลือ</Typography></Grid>
             <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(remainingAmount)}</Typography></Grid>
             {isCredit && dueDateNode}

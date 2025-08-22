@@ -56,4 +56,3 @@
   </tr>
 </table>
 
-<div class="header-divider"></div>

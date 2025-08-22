@@ -329,20 +329,20 @@ tr{page-break-inside:avoid}
 
 /* กล่องข้อมูลลูกค้าแบบบล็อก */
 .customer-box{
-
   border-radius:6pt;
   padding:12pt;
+  margin-top:-6pt;        /* ยกกล่องขึ้นเล็กน้อย ลดช่องว่างหลัง header */
 }
 .customer-name{
   font-weight:bold;
-  font-size:14pt;          /* ใหญ่กว่าข้อความทั่วไป */
+  font-size:12pt;          /* ให้ตามหัวบริษัทใหม่ */
   color:#2c3e50;
   margin-bottom:2pt;
 }
 .customer-line{
-  font-size:11pt;
+  font-size:9pt;           /* ให้ตาม company-addr */
   color:#34495e;
   margin:2pt 0;
-  line-height:1.35;
+  line-height:1.34;
 }
 .customer-line.muted{ color:#6c757d; }

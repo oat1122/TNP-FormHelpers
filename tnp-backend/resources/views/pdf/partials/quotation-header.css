@@ -1,22 +1,5 @@
-/* ===== Header layou/* ===== Company text ===== */
-.company-name {
-  font-size: 13pt;
-  font-weight: bold;
-  color: #2c3e50;
-  line-height: 1.12;                 /* บีบ line-height กันดู "ตก" */
-  margin: 1pt 0 3pt 0;
-}
-.company-addr {
-  font-size: 10pt;
-  color: #34495e;
-  line-height: 1.32;
-  margin: 0 0 3pt 0;
-}
-.company-meta {
-  font-size: 9pt;
-  color: #7f8c8d;
-  line-height: 1.28;
-}der {
+/* ===== Header layout ===== */
+.pdf-header {
   width: 100%;
   border-collapse: collapse;
   font-family: 'thsarabun', sans-serif;
@@ -38,22 +21,22 @@
 
 /* ===== Company text ===== */
 .company-name {
-  font-size: 14.5pt;
+  font-size: 12pt;                   /* ลดลงอีก ยังชัดสำหรับหัวเรื่อง */
   font-weight: bold;
   color: #2c3e50;
-  line-height: 1.12;                 /* บีบ line-height กันดู “ตก” */
+  line-height: 1.18;                 /* เพิ่ม line-height นิดเพราะตัวเล็กลง */
   margin: 1pt 0 3pt 0;
 }
 .company-addr {
-  font-size: 11pt;
+  font-size: 9pt;                    /* ตัวเนื้อหา ที่อยู่ */
   color: #34495e;
-  line-height: 1.32;
+  line-height: 1.34;
   margin: 0 0 3pt 0;
 }
 .company-meta {
-  font-size: 10pt;
+  font-size: 8pt;                    /* เมตา เล็กกว่าที่อยู่ 1 จุด */
   color: #7f8c8d;
-  line-height: 1.28;
+  line-height: 1.3;
 }
 
 /* ===== Document right side ===== */
@@ -83,7 +66,7 @@
 /* เส้นคั่นใต้ header */
 .header-divider {
   border-bottom: 2pt solid #34495e;
-  margin: 8pt 0;
+  margin: 8pt 0 4pt 0; /* ลดช่องว่างด้านล่างลง ให้ customer-box ขยับขึ้น */
 }
 
 /* ป้องกันผลกระทบจาก Bootstrap (ถ้ามี) */

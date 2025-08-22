@@ -17,7 +17,6 @@ import {
   Assignment as AssignmentIcon,
   Calculate as CalculateIcon,
   Payment as PaymentIcon,
-  Edit as EditIcon,
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
@@ -295,11 +294,6 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
               <Typography variant="body2" color="text.secondary">จาก {activeItems.length} งาน • {formData.customer?.cus_company || 'กำลังโหลด…'}</Typography>
             </Box>
           </Box>
-          <Tooltip title={isCalcEditing ? 'กำลังแก้ไข' : 'โหมดดู'}>
-            <IconButton aria-label="toggle-edit" size="small" onClick={() => setIsCalcEditing((v) => !v)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
         </Box>
 
         <Grid container spacing={2}>
@@ -321,12 +315,6 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                   customer={formData.customer}
                   onUpdate={(c) => setFormData((prev) => ({ ...prev, customer: c }))}
                 />
-
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-                  <SecondaryButton size="small" startIcon={<EditIcon />} onClick={() => setEditCustomerOpen(true)}>
-                    แก้ไขลูกค้า
-                  </SecondaryButton>
-                </Box>
 
                 {/* งานสรุป */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -404,11 +392,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
                   <CalculateIcon fontSize="small" />
                 </Avatar>
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box>
                   <Typography variant="subtitle1" fontWeight={700}>การคำนวณราคา</Typography>
-                  <SecondaryButton size="small" startIcon={<EditIcon />} onClick={() => setIsCalcEditing((v) => !v)}>
-                    {isCalcEditing ? 'ยกเลิกแก้ไข' : 'แก้ไข'}
-                  </SecondaryButton>
                 </Box>
               </SectionHeader>
 

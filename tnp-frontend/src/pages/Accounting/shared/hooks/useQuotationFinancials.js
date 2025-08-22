@@ -31,7 +31,7 @@ export function useQuotationFinancials({
     specialDiscountValue,
     hasWithholdingTax,
     withholdingTaxPercentage,
-  }), [items, depositPercentage, specialDiscountType, specialDiscountValue, hasWithholdingTax, withholdingTaxPercentage]);
+  }), [items, depositMode, depositPercentage, depositAmountInput, specialDiscountType, specialDiscountValue, hasWithholdingTax, withholdingTaxPercentage]);
 }
 
 export function computeFinancials({

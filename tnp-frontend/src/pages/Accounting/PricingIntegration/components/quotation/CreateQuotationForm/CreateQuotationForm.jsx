@@ -256,8 +256,12 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         remainingAmount,
         // normalize terms for caller
         paymentMethod: formData.paymentTermsType === 'other' ? formData.paymentTermsCustom : formData.paymentTermsType,
-  depositMode: formData.depositMode,
-  depositPercentage: String(financials.depositPercentage ?? formData.depositPct ?? 0),
+        depositMode: formData.depositMode,
+        depositPercentage: String(
+          formData.depositMode === 'percentage'
+            ? (formData.depositPct ?? 0)
+            : Math.round(financials.depositPercentage ?? 0)
+        ),
   depositAmount: depositAmount,
   depositAmountInput: formData.depositAmountInput,
         action,

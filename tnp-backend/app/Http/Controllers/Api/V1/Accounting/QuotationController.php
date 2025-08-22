@@ -78,7 +78,10 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'deposit_percentage' => 'nullable|integer|min:0|max:100',
+                // Allow decimal precision for reverse-calculated percentage when amount mode is used
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_amount' => 'nullable|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
                 'notes' => 'nullable|string',
@@ -186,7 +189,10 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'sometimes|numeric|min:0',
                 'final_total_amount' => 'sometimes|numeric|min:0',
                 'total_amount' => 'sometimes|numeric|min:0',
-                'deposit_percentage' => 'nullable|integer|min:0|max:100',
+                // Allow decimal precision for reverse-calculated percentage when amount mode is used
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_amount' => 'nullable|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
                 'notes' => 'nullable|string',
@@ -419,7 +425,10 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'deposit_percentage' => 'nullable|integer|min:0|max:100',
+                // Allow decimal precision for reverse-calculated percentage when amount mode is used
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_amount' => 'nullable|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:50',
                 'notes' => 'nullable|string'
             ]);
@@ -482,7 +491,10 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'nullable|numeric|min:0',
-                'deposit_percentage' => 'nullable|integer|min:0|max:100',
+                // Allow decimal precision for reverse-calculated percentage when amount mode is used
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_amount' => 'nullable|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:50',
                 'items' => 'nullable|array',
                 'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',

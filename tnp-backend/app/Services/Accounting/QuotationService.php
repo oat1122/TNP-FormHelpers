@@ -77,8 +77,19 @@ class QuotationService
             $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
             $quotation->final_total_amount = $additionalData['final_total_amount'] ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $additionalData['total_amount'] ?? 0;
-            $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 0;
-            $quotation->deposit_amount = $additionalData['deposit_amount'] ?? 0;
+            // Deposit logic: allow either percentage or explicit amount via deposit_mode
+            $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
+            if ($depositMode === 'amount' && isset($additionalData['deposit_amount'])) {
+                $quotation->deposit_amount = max(0, floatval($additionalData['deposit_amount']));
+                $baseFinal = $quotation->final_total_amount ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
+                $quotation->deposit_percentage = $baseFinal > 0 ? round(($quotation->deposit_amount / $baseFinal) * 100, 4) : 0;
+            } else {
+                $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 0;
+                $baseFinal = $quotation->final_total_amount ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
+                $pct = max(0, min(100, floatval($quotation->deposit_percentage)));
+                $quotation->deposit_amount = round($baseFinal * ($pct/100), 2);
+            }
+            $quotation->deposit_mode = $depositMode;
             $quotation->payment_terms = $additionalData['payment_terms'] ?? null;
             
             // Append additional notes ถ้ามี
@@ -93,6 +104,23 @@ class QuotationService
                 $quotation->number = 'DRAFT-' . $suffix;
             }
             $quotation->created_by = $createdBy;
+            $quotation->save();
+
+            // Recompute deposit if deposit_mode / amount provided (use $additionalData; avoid undefined $data)
+            $recomputeDepositMode = $additionalData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
+            $finalBase = $quotation->final_total_amount ?? ($quotation->total_amount - $quotation->special_discount_amount - $quotation->withholding_tax_amount);
+            if ($recomputeDepositMode === 'amount' && array_key_exists('deposit_amount', $additionalData)) {
+                $amount = max(0, floatval($additionalData['deposit_amount']));
+                if ($finalBase > 0) {
+                    $quotation->deposit_percentage = round(($amount / $finalBase) * 100, 4);
+                }
+                $quotation->deposit_amount = min($amount, $finalBase);
+            } elseif (array_key_exists('deposit_percentage', $additionalData)) {
+                $pct = max(0, min(100, floatval($additionalData['deposit_percentage'])));
+                $quotation->deposit_percentage = $pct;
+                $quotation->deposit_amount = round($finalBase * ($pct/100), 2);
+            }
+            $quotation->deposit_mode = $recomputeDepositMode;
             $quotation->save();
 
             // Tracking logic optional in lean; skip creating OrderItemsTracking here to decouple quoting from production
@@ -267,8 +295,18 @@ class QuotationService
             $quotation->total_amount = $totalAmount;
 
             // ข้อมูลการชำระเงิน
-            $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 50;
-            $quotation->deposit_amount = $totalAmount * ($quotation->deposit_percentage / 100);
+            $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
+            if ($depositMode === 'amount' && isset($additionalData['deposit_amount'])) {
+                $quotation->deposit_amount = max(0, floatval($additionalData['deposit_amount']));
+                $finalBase = $quotation->final_total_amount ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
+                $quotation->deposit_percentage = $finalBase > 0 ? round(($quotation->deposit_amount / $finalBase) * 100, 4) : 0;
+            } else {
+                $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 50;
+                $pct = max(0, min(100, floatval($quotation->deposit_percentage)));
+                $finalBase = $quotation->final_total_amount ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
+                $quotation->deposit_amount = round($finalBase * ($pct/100), 2);
+            }
+            $quotation->deposit_mode = $depositMode;
             $quotation->payment_terms = $additionalData['payment_terms'] ?? 'credit_30';
 
             // หมายเหตุ

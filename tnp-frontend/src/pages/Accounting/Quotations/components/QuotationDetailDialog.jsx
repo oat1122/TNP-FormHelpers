@@ -365,6 +365,28 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   setDepositMode('percentage');
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
   }, [open, q?.id, q?.notes]);
+
+  // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
+  React.useEffect(() => {
+    if (!q?.id) return; // nothing yet
+    if (isEditing) return; // don't override while editing
+
+    // Re-infer special discount type/value from latest quotation data
+    if ((q.special_discount_percentage ?? 0) > 0) {
+      setSpecialDiscountType('percentage');
+      setSpecialDiscountValue(Number(q.special_discount_percentage));
+    } else if ((q.special_discount_amount ?? 0) > 0) {
+      setSpecialDiscountType('amount');
+      setSpecialDiscountValue(Number(q.special_discount_amount));
+    } else {
+      setSpecialDiscountType('percentage');
+      setSpecialDiscountValue(0);
+    }
+
+    // Withholding tax
+    setHasWithholdingTax(!!q.has_withholding_tax);
+    setWithholdingTaxPercentage(Number(q.withholding_tax_percentage || 0));
+  }, [q?.id, q?.special_discount_percentage, q?.special_discount_amount, q?.has_withholding_tax, q?.withholding_tax_percentage, isEditing]);
   const activeGroups = isEditing ? groups : items;
 
   // components are hoisted above

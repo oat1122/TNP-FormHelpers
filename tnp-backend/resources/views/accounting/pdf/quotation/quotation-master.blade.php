@@ -75,12 +75,12 @@
     @endif
 
     @if(count($groupsData))
-      <table class="items-table slim">
+  <table class="items-table slim table-numbers-sm">
         <colgroup>
-          <col style="width:60%">  {{-- รายละเอียด --}}
-          <col style="width:15%">  {{-- Unit Price --}}
-          <col style="width:10%">  {{-- Qnt --}}
-          <col style="width:15%">  {{-- Total --}}
+          <col class="w-desc">  {{-- รายละเอียด --}}
+          <col class="w-unit-price">  {{-- Unit Price --}}
+          <col class="w-qty">  {{-- Qnt --}}
+          <col class="w-total">  {{-- Total --}}
         </colgroup>
         <thead>
           <tr>
@@ -113,9 +113,7 @@
         </tbody>
       </table>
     @else
-      <div style="text-align:center; padding:20pt; border:1px solid #dee2e6; background:#f8f9fa;">
-        <strong>ไม่มีรายการสินค้า/บริการ</strong>
-      </div>
+  <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
     {{-- Helper: แปลงตัวเลขเป็นข้อความไทยแบบบาทสตางค์ --}}
@@ -163,39 +161,39 @@
     @endphp
 
     {{-- Summary and Notes Section (Table Layout for Complete Page Break) --}}
-    <div style="page-break-inside: auto; margin-top: 15pt;">
-      <table style="width: 100%; border-collapse: separate; border-spacing: 10pt 0;">
+    <div class="summary-notes-wrapper">
+      <table class="summary-notes-table">
         <tr>
           {{-- Notes Section (Left) --}}
-          <td style="width: 45%; vertical-align: top; padding: 10pt; border: 1px solid #dee2e6; background: #f8f9fa;">
-            <h3 style="font-size: 14pt; font-weight: bold; margin-bottom: 8pt; color: #495057;">หมายเหตุ</h3>
-            <div style="font-size: 11pt; line-height: 1.4; color: #666;">
+          <td class="panel-box panel-notes" style="width:45%;">
+            <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
+            <div class="panel-content">
               {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
             </div>
           </td>
           
           {{-- Summary Section (Right) --}}
-          <td style="width: 45%; vertical-align: top; padding: 10pt; border: 1px solid #dee2e6; background: #fff;">
-            <h3 style="font-size: 14pt; font-weight: bold; margin-bottom: 8pt; color: #495057; text-align: center;">สรุปยอดเงิน</h3>
-            <table style="width: 100%; border-collapse: collapse; font-size: 11pt;">
+          <td class="panel-box" style="width:45%;">
+            <h3 class="panel-title panel-title--sm center">สรุปยอดเงิน</h3>
+            <table class="summary-table summary-compact">
               {{-- Subtotal --}}
               <tr>
-                <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: left; width: 60%;">รวมเป็นเงิน</td>
-                <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: right; width: 40%; font-weight: bold;">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</td>
+                <td class="summary-label">รวมเป็นเงิน</td>
+                <td class="summary-amount"><span class="amount-main">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</span></td>
               </tr>
               
               {{-- Tax --}}
               <tr>
-                <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: left;">ภาษีมูลค่าเพิ่ม 7%</td>
-                <td style="padding: 6pt 8pt; border-bottom: 1px solid #dee2e6; text-align: right; font-weight: bold;">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</td>
+                <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
+                <td class="summary-amount"><span class="amount-main">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</span></td>
               </tr>
               
               {{-- Total --}}
-              <tr style="background: #e3f2fd; border-top: 2px solid #2196f3;">
-                <td style="padding: 10pt 8pt; text-align: left; font-weight: bold; color: #1976d2;">รวมเป็นเงินทั้งสิ้น</td>
-                <td style="padding: 10pt 8pt; text-align: right; font-weight: bold; color: #1976d2; font-size: 12pt;">
-                  {{ number_format($summary['total'] ?? 0, 2) }} บาท
-                  <div style="font-size: 9pt; font-style: italic; color: #666; margin-top: 4pt; font-weight: normal;">
+              <tr class="total-row">
+                <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
+                <td class="summary-amount">
+                  <span class="amount-main">{{ number_format($summary['total'] ?? 0, 2) }} บาท</span>
+                  <div class="reading">
                     ({{ $thaiBahtText($summary['total'] ?? 0) }})
                   </div>
                 </td>
@@ -213,14 +211,14 @@
           <td class="signature-cell">
             <div class="signature-box"></div>
             <div><strong>ผู้สั่งซื้อสินค้า</strong></div>
-            <div style="margin-top:8pt;">(_______________________)</div>
-            <div class="text-muted" style="margin-top:8pt;">วันที่: _______________</div>
+            <div class="mt-8">(_______________________)</div>
+            <div class="text-muted mt-8">วันที่: _______________</div>
           </td>
           <td class="signature-cell">
             <div class="signature-box"></div>
             <div><strong>ผู้อนุมัติ</strong></div>
-            <div style="margin-top:8pt;">(_______________________)</div>
-            <div class="text-muted" style="margin-top:8pt;">วันที่: _______________</div>
+            <div class="mt-8">(_______________________)</div>
+            <div class="text-muted mt-8">วันที่: _______________</div>
           </td>
         </tr>
       </table>

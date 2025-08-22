@@ -1,7 +1,7 @@
 /* ===== Base ===== */
 body{
   font-family:'thsarabun','DejaVu Sans',sans-serif;
-  font-size:12pt;
+  font-size:11pt; /* ลดลงให้ดูกะทัดรัด */
   line-height:1.35;
   color:#333;
   margin:0;
@@ -180,20 +180,10 @@ table{
   font-weight: bold;
 }
 
-.summary-table .total-row {
-  background: #e3f2fd;
-  border-top: 2px solid #2196f3;
-}
-
-.summary-table .total-row td {
-  font-weight: bold;
-  color: #1976d2;
-  padding: 10pt 8pt;
-}
-
-.summary-table .total-row .summary-amount {
-  font-size: 12pt;
-}
+/* เรียบ: ไม่ใช้พื้นหลังเข้ม / เส้นหนา */
+.summary-table .total-row { background:transparent; border-top:1px solid #d0d7dd; }
+.summary-table .total-row td { font-weight:600; color:#1e4d79; padding:6pt 8pt; }
+.summary-table .total-row .summary-amount { font-size:11pt; }
 
 .reading {
   font-size: 9pt;
@@ -222,16 +212,10 @@ table{
   }
 }
 
-.total-row {
-  background:#e3f2fd !important;
-}
-
+/* ปรับ total-row เดิมให้บางลง */
+.total-row { background:transparent !important; }
 .total-row .summary-label,
-.total-row .summary-amount{
-  color:#1565c0 !important;
-  font-weight: bold !important;
-  font-size: 14pt !important;
-}
+.total-row .summary-amount{ color:#1e4d79 !important; font-weight:600 !important; font-size:11pt !important; }
 
 .reading{
   color:#6c757d;
@@ -346,3 +330,46 @@ tr{page-break-inside:avoid}
   line-height:1.34;
 }
 .customer-line.muted{ color:#6c757d; }
+
+/* === Compact overrides (moved from inline <style>) === */
+/* ใช้เมื่ออยากลดขนาดตัวเลขไม่ให้ตกรวมบรรทัด */
+.table-numbers-sm td.num,
+.table-numbers-sm th.text-right { font-size:10pt !important; }
+
+/* ปรับคำอธิบาย (desc) ในตารางแบบ slim ให้ใหญ่กว่าตัวเลขเล็กน้อย */
+.items-table.slim.table-numbers-sm td.desc { font-size:10.5pt; }
+
+/* Summary table compact mode */
+.summary-table.summary-compact { font-size:9.5pt; }
+.summary-table.summary-compact td,
+.summary-table.summary-compact th { font-size:9.5pt !important; }
+.summary-table.summary-compact .total-row .summary-label,
+.summary-table.summary-compact .total-row .summary-amount { font-size:10.5pt !important; }
+
+/* === Layout: Summary & Notes (table variant) === */
+.summary-notes-wrapper { page-break-inside:auto; margin-top:15pt; }
+.summary-notes-table { width:100%; border-collapse:separate; border-spacing:10pt 0; }
+
+/* Panels */
+.panel-box { vertical-align:top; padding:6pt 4pt; border:none; background:transparent; }
+.panel-notes { background:transparent; }
+.panel-title { font-size:12pt; font-weight:600; margin:0 0 4pt; color:#2f3d48; }
+.panel-title--sm { font-size:11pt; }
+.panel-title--xs { font-size:10.5pt; }
+.panel-title.center { text-align:center; }
+.panel-content { font-size:9.5pt; line-height:1.35; color:#555; }
+
+/* Signature spacing utility */
+.mt-8 { margin-top:8pt !important; }
+
+/* No items box */
+.no-items-box { text-align:center; padding:20pt; border:1px solid #dee2e6; background:#f8f9fa; }
+
+/* Column width helpers for items table */
+col.w-desc { width:60%; }
+col.w-unit-price { width:15%; }
+col.w-qty { width:10%; }
+col.w-total { width:15%; }
+
+/* Prevent line break for main amount line */
+.summary-amount .amount-main { white-space:nowrap; }

@@ -759,11 +759,63 @@ class QuotationService
             }
 
             if (!empty($filters['search'])) {
-                $search = '%' . $filters['search'] . '%';
-                $query->where(function ($q) use ($search) {
-                    $q->where('number', 'like', $search)
-                      ->orWhere('work_name', 'like', $search)
-                      ->orWhere('customer_company', 'like', $search);
+                $rawSearch = trim($filters['search']);
+                $like = '%' . $rawSearch . '%';
+
+                // Pre-compute which quotation columns exist
+                $hasCustomerCompany = Schema::hasColumn('quotations', 'customer_company');
+                $hasCustomerFirst = Schema::hasColumn('quotations', 'customer_firstname');
+                $hasCustomerLast = Schema::hasColumn('quotations', 'customer_lastname');
+
+                // Decide joins first (outside closure) so they definitely exist in final SQL
+                $joinedMaster = false;
+                if (Schema::hasTable('master_customers')) {
+                    $query->leftJoin('master_customers', 'quotations.customer_id', '=', 'master_customers.cus_id');
+                    $joinedMaster = true;
+                }
+                $joinedPricing = false;
+                if (Schema::hasTable('pricing_requests')) {
+                    $pricingFk = null;
+                    if (Schema::hasColumn('quotations', 'pricing_request_id')) {
+                        $pricingFk = 'pricing_request_id';
+                    } elseif (Schema::hasColumn('quotations', 'primary_pricing_request_id')) {
+                        $pricingFk = 'primary_pricing_request_id';
+                    }
+                    if ($pricingFk) {
+                        $query->leftJoin('pricing_requests', "quotations.$pricingFk", '=', 'pricing_requests.pr_id');
+                        $joinedPricing = true;
+                    }
+                }
+
+                // Prevent column collision + duplication
+                $query->select('quotations.*');
+
+                $query->where(function ($q) use ($like, $hasCustomerCompany, $hasCustomerFirst, $hasCustomerLast, $joinedMaster, $joinedPricing) {
+                    $q->where('quotations.number', 'like', $like)
+                      ->orWhere('quotations.work_name', 'like', $like);
+                    if ($hasCustomerCompany) {
+                        $q->orWhere('quotations.customer_company', 'like', $like);
+                    }
+                    if ($hasCustomerFirst) {
+                        $q->orWhere('quotations.customer_firstname', 'like', $like);
+                    }
+                    if ($hasCustomerLast) {
+                        $q->orWhere('quotations.customer_lastname', 'like', $like);
+                    }
+                    if ($joinedMaster) {
+                        foreach (['cus_company','cus_firstname','cus_lastname','cus_name'] as $col) {
+                            if (Schema::hasColumn('master_customers', $col)) {
+                                $q->orWhere("master_customers.$col", 'like', $like);
+                            }
+                        }
+                    }
+                    if ($joinedPricing) {
+                        foreach (['pr_no','pr_work_name'] as $col) {
+                            if (Schema::hasColumn('pricing_requests', $col)) {
+                                $q->orWhere("pricing_requests.$col", 'like', $like);
+                            }
+                        }
+                    }
                 });
             }
 
@@ -1201,6 +1253,71 @@ class QuotationService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('QuotationService::uploadSignatures error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * ลบรูปหลักฐานการเซ็น 1 รูปโดยอ้างอิง filename หรือ index
+     */
+    public function deleteSignatureImage($quotationId, $identifier, $deletedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            /** @var Quotation $quotation */
+            $quotation = Quotation::findOrFail($quotationId);
+            $images = is_array($quotation->signature_images) ? $quotation->signature_images : [];
+            if (empty($images)) {
+                throw new \Exception('ไม่พบรูปสำหรับลบ');
+            }
+
+            $removed = null;
+            // Identifier may be numeric index or filename
+            if (is_numeric($identifier)) {
+                $idx = (int)$identifier;
+                if ($idx < 0 || $idx >= count($images)) {
+                    throw new \Exception('ตำแหน่งรูปไม่ถูกต้อง');
+                }
+                $removed = $images[$idx];
+                unset($images[$idx]);
+            } else {
+                foreach ($images as $i => $img) {
+                    if (($img['filename'] ?? null) === $identifier) {
+                        $removed = $img;
+                        unset($images[$i]);
+                        break;
+                    }
+                }
+                if (!$removed) {
+                    throw new \Exception('ไม่พบไฟล์ที่ระบุ');
+                }
+            }
+
+            // Delete actual stored file if still exists
+            if (!empty($removed['path']) && Storage::exists($removed['path'])) {
+                try { Storage::delete($removed['path']); } catch (\Throwable $t) { /* ignore */ }
+            }
+
+            $quotation->signature_images = array_values($images);
+            $quotation->save();
+
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'delete_signature_image',
+                $deletedBy,
+                'ลบรูปหลักฐานการเซ็น: ' . ($removed['filename'] ?? 'unknown')
+            );
+
+            DB::commit();
+            return [
+                'deleted' => $removed,
+                'signature_images' => $quotation->signature_images,
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::deleteSignatureImage error: ' . $e->getMessage());
             throw $e;
         }
     }

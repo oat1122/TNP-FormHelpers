@@ -914,6 +914,38 @@ class QuotationController extends Controller
     }
 
     /**
+     * ลบรูปหลักฐานการเซ็น 1 รูป
+     * DELETE /api/v1/quotations/{id}/signatures/{identifier}
+     * identifier: index (0-based) หรือ filename
+     */
+    public function deleteSignatureImage($id, $identifier): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','sale'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์ลบรูปหลักฐานการเซ็น'
+                ], 403);
+            }
+
+            $result = $this->quotationService->deleteSignatureImage($id, $identifier, $user->user_uuid ?? null);
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'ลบรูปหลักฐานการเซ็นเรียบร้อย'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('QuotationController::deleteSignatureImage error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete signature image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * มาร์คว่าลูกค้าตอบรับแล้ว
      * POST /api/v1/quotations/{id}/mark-completed
      */

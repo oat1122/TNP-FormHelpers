@@ -292,6 +292,17 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Delete one signature image
+        deleteQuotationSignatureImage: builder.mutation({
+            query: ({ id, identifier }) => ({
+                url: `/quotations/${id}/signatures/${encodeURIComponent(identifier)}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+            ],
+        }),
+
         // Send quotation email
         sendQuotationEmail: builder.mutation({
             query: ({ id, ...emailData }) => ({
@@ -653,6 +664,7 @@ export const {
     useMarkQuotationSentMutation,
     useUploadQuotationEvidenceMutation,
     useUploadQuotationSignaturesMutation,
+    useDeleteQuotationSignatureImageMutation,
     useSendQuotationEmailMutation,
     useMarkQuotationCompletedMutation,
     useGenerateQuotationPDFMutation,

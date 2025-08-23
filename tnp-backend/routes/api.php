@@ -278,6 +278,7 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/{id}/send-email', 'sendEmail');
         Route::post('/quotations/{id}/upload-evidence', 'uploadEvidence');
     Route::post('/quotations/{id}/upload-signatures', 'uploadSignatures');
+    Route::delete('/quotations/{id}/signatures/{identifier}', 'deleteSignatureImage');
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');
         Route::post('/quotations/{id}/mark-sent', 'markSent');
         

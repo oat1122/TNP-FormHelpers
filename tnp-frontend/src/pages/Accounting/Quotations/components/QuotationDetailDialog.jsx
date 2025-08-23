@@ -21,7 +21,7 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
-import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation, useUploadQuotationSignaturesMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation, useUploadQuotationSignaturesMutation, useDeleteQuotationSignatureImageMutation } from '../../../../features/Accounting/accountingApi';
 import { apiConfig } from '../../../../api/apiConfig';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB } from '../utils/format';
@@ -343,6 +343,8 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [showPdfViewer, setShowPdfViewer] = React.useState(false);
   const [generateQuotationPDF] = useGenerateQuotationPDFMutation();
   const [uploadSignatures, { isLoading: isUploadingSignatures }] = useUploadQuotationSignaturesMutation();
+  const [deleteSignatureImage, { isLoading: isDeletingSignature }] = useDeleteQuotationSignatureImageMutation();
+  const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem('userData') || '{}'), []);
   const canUploadSignatures = ['admin','sale'].includes(userData?.role) && q?.status === 'approved';
   const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
@@ -867,9 +869,24 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                 const finalUrl = normalize(urlCandidate);
                                 return (
                             <Grid item key={idx} xs={6} md={3}>
-                              <Box sx={{ border:'1px solid '+tokens.border, borderRadius:1, p:1, bgcolor:'#fff' }}>
-                                <Box sx={{ position:'relative', pb:'70%', overflow:'hidden', borderRadius:1, mb:1 }}>
-                                  <img src={finalUrl} alt={img.filename} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', objectFit:'contain', background:'#fafafa' }} />
+                              <Box sx={{ border:'1px solid '+tokens.border, borderRadius:1, p:1, bgcolor:'#fff', cursor:'pointer', position:'relative', '&:hover .hover-actions':{opacity:1} }} onClick={() => setPreviewImage({ url: finalUrl, filename: img.original_filename || img.filename, idx })}>
+                                <Box sx={{ position:'relative', pb:'70%', overflow:'hidden', borderRadius:1, mb:1, background:'#fafafa' }}>
+                                  <img src={finalUrl} alt={img.filename} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                                  {canUploadSignatures && (
+                                    <Box className="hover-actions" sx={{ position:'absolute', top:4, right:4, display:'flex', gap:0.5, opacity:0, transition:'opacity 0.2s' }} onClick={(e)=>e.stopPropagation()}>
+                                      <SecondaryButton size="small" color="error" disabled={isDeletingSignature} onClick={async ()=>{
+                                        if (!window.confirm('ลบรูปนี้หรือไม่?')) return;
+                                        try {
+                                          const loadingId = showLoading('กำลังลบรูป…');
+                                          await deleteSignatureImage({ id: q.id, identifier: img.filename }).unwrap();
+                                          dismissToast(loadingId);
+                                          showSuccess('ลบรูปสำเร็จ');
+                                        } catch (err) {
+                                          showError(err?.data?.message || err?.message || 'ลบรูปไม่สำเร็จ');
+                                        }
+                                      }}>ลบ</SecondaryButton>
+                                    </Box>
+                                  )}
                                 </Box>
                                 <Typography variant="caption" sx={{ display:'block', wordBreak:'break-all' }}>{img.original_filename || img.filename}</Typography>
                               </Box>
@@ -936,6 +953,35 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
           <SecondaryButton onClick={() => window.open(pdfUrl, '_blank')}>เปิดในแท็บใหม่</SecondaryButton>
         )}
         <SecondaryButton onClick={() => setShowPdfViewer(false)}>ปิด</SecondaryButton>
+      </DialogActions>
+    </Dialog>
+
+    {/* Signature Image Preview Dialog */}
+    <Dialog open={!!previewImage} onClose={()=>setPreviewImage(null)} maxWidth="md" fullWidth>
+      <DialogTitle>{previewImage?.filename || 'ภาพตัวอย่าง'}</DialogTitle>
+      <DialogContent dividers sx={{ bgcolor:'#000' }}>
+        {previewImage && (
+          <Box sx={{ position:'relative', width:'100%', textAlign:'center' }}>
+            <img src={previewImage.url} alt={previewImage.filename} style={{ maxWidth:'100%', maxHeight:'75vh', objectFit:'contain' }} />
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        {canUploadSignatures && previewImage && (
+          <SecondaryButton color="error" disabled={isDeletingSignature} onClick={async ()=>{
+            if (!window.confirm('ยืนยันลบรูปนี้หรือไม่?')) return;
+            try {
+              const loadingId = showLoading('กำลังลบรูป…');
+              await deleteSignatureImage({ id: q.id, identifier: (previewImage.filename || '') }).unwrap();
+              dismissToast(loadingId);
+              showSuccess('ลบรูปสำเร็จ');
+              setPreviewImage(null);
+            } catch (err) {
+              showError(err?.data?.message || err?.message || 'ลบรูปไม่สำเร็จ');
+            }
+          }}>ลบรูปนี้</SecondaryButton>
+        )}
+        <SecondaryButton onClick={()=>setPreviewImage(null)}>ปิด</SecondaryButton>
       </DialogActions>
     </Dialog>
     </>

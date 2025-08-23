@@ -229,25 +229,9 @@
       </table>
     </div>
 
-    {{-- ลายเซ็น --}}
-    <div class="signature-section">
-      <table class="signature-table">
-        <tr>
-          <td class="signature-cell">
-            <div class="signature-box"></div>
-            <div><strong>ผู้สั่งซื้อสินค้า</strong></div>
-            <div class="mt-8">(_______________________)</div>
-            <div class="text-muted mt-8">วันที่: _______________</div>
-          </td>
-          <td class="signature-cell">
-            <div class="signature-box"></div>
-            <div><strong>ผู้อนุมัติ</strong></div>
-            <div class="mt-8">(_______________________)</div>
-            <div class="text-muted mt-8">วันที่: _______________</div>
-          </td>
-        </tr>
-      </table>
-    </div>
+  {{-- Signature spacer: กันไม่ให้เนื้อหามาชนพื้นที่ลายเซ็นคงที่ด้านล่างหน้า --}}
+  {{-- signature injected by service dynamically --}}
+  <div class="signature-spacer"></div>
 
   </div>
 </body>

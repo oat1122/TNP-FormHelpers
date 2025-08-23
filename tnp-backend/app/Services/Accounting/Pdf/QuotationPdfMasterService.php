@@ -167,6 +167,9 @@ class QuotationPdfMasterService
         $html = View::make('accounting.pdf.quotation.quotation-master', $viewData)->render();
         $mpdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 
+        /* 4) เพิ่มลายเซ็นแบบ fixed ที่ท้ายหน้าสุดท้าย (ต้องมา AFTER body) */
+    $this->renderSignatureAdaptive($mpdf, $viewData);
+
         return $mpdf;
     }
 
@@ -226,6 +229,79 @@ class QuotationPdfMasterService
         if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {
             $mpdf->SetWatermarkText('PREVIEW', 0.1);
             $mpdf->showWatermarkText = true;
+        }
+    }
+
+    /**
+     * วาดกล่องลายเซ็นคงที่ (fixed) บนหน้าสุดท้าย เหนือ footer
+     * - ใช้ WriteFixedPosHTML เพื่อให้ยึดตำแหน่งจากก้นหน้ากระดาษ
+     * - มี spacer ใน template เพื่อกันเนื้อหามาชนทับ (signature-spacer)
+     */
+    protected function addSignatureBlock(Mpdf $mpdf, array $data): void
+    {
+        try {
+            $signatureHeight = 50; // mm สูงโดยประมาณของกล่องลายเซ็น
+            $bottomGap       = 10; // mm ระยะห่างเหนือ footer (เพิ่มหน่อยให้โปร)
+
+            $lastPage = $mpdf->page; // หน้าปัจจุบันคือสุดท้ายหลัง WriteHTML
+            $mpdf->SetPage($lastPage);
+
+            // ตั้งตำแหน่ง Y จากด้านล่างของหน้า (mPDF: SetY(-n) = จากล่างขึ้นบน n mm)
+            $mpdf->SetY(-($signatureHeight + $bottomGap));
+
+            $sigHtml = View::make('pdf.partials.quotation-signature')->render();
+            $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
+            Log::info('Signature rendered via SetY method', ['page'=>$lastPage,'offset'=>$signatureHeight + $bottomGap]);
+        } catch (\Throwable $e) {
+            Log::warning('Add signature block failed: '.$e->getMessage());
+        }
+    }
+
+    protected function shouldRenderFixedSignature(): bool
+    {
+    // ปิดค่า default ไว้ก่อน เพื่อให้ inline แสดงแน่นอน
+    return (bool) (env('PDF_SIGNATURE_FIXED', false));
+    }
+
+    protected function shouldRenderFallbackInline(): bool
+    {
+        return (bool) (env('PDF_SIGNATURE_FALLBACK_INLINE', false));
+    }
+
+    /**
+     * เรนเดอร์ลายเซ็นให้อยู่ชิดด้านล่างหน้าสุดท้ายแบบ adaptive:
+     * 1) วัดพื้นที่คงเหลือหลัง body (current Y)
+     * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
+     * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
+     */
+    protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
+    {
+        try {
+            $requiredHeight = 45; // mm พื้นที่ที่อยากได้รวม heading + เว้น
+            $bottomPadding  = 6;  // mm เพิ่มเติมกันชนเหนือ footer
+
+            $pageHeight = $mpdf->h - $mpdf->tMargin - $mpdf->bMargin; // usable height
+            $currentY   = $mpdf->y - $mpdf->tMargin; // Y ภายใน usable
+            $remaining  = $pageHeight - $currentY;
+
+            $sigHtml = View::make('pdf.partials.quotation-signature')->render();
+
+            if ($remaining >= ($requiredHeight + $bottomPadding)) {
+                // มีที่พอ: ใช้ block container ที่มี margin-top = (remaining - requiredHeight - bottomPadding)
+                $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
+                $wrapper  = '<div style="margin-top:'.$pushDown.'mm">'.$sigHtml.'</div>';
+                $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+                Log::info('Signature adaptive: placed on same page', compact('remaining','pushDown'));
+            } else {
+                // ไม่พอ: สร้างหน้าใหม่ แล้ววางชิดล่างด้วย SetY(-height)
+                $mpdf->AddPage();
+                $heightBlock = 40; // mm จริงของบล็อก signature (ประมาณ)
+                $mpdf->SetY(-($heightBlock + $bottomPadding));
+                $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
+                Log::info('Signature adaptive: new page created', compact('remaining'));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Signature adaptive render failed: '.$e->getMessage());
         }
     }
 

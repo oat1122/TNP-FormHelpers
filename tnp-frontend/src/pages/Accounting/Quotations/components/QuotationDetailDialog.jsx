@@ -21,7 +21,8 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
-import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation, useUploadQuotationSignaturesMutation } from '../../../../features/Accounting/accountingApi';
+import { apiConfig } from '../../../../api/apiConfig';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB } from '../utils/format';
 import { formatDateTH } from '../../PricingIntegration/components/quotation/utils/date';
@@ -341,6 +342,24 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [pdfUrl, setPdfUrl] = React.useState('');
   const [showPdfViewer, setShowPdfViewer] = React.useState(false);
   const [generateQuotationPDF] = useGenerateQuotationPDFMutation();
+  const [uploadSignatures, { isLoading: isUploadingSignatures }] = useUploadQuotationSignaturesMutation();
+  const userData = React.useMemo(() => JSON.parse(localStorage.getItem('userData') || '{}'), []);
+  const canUploadSignatures = ['admin','sale'].includes(userData?.role) && q?.status === 'approved';
+  const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
+  const handleUploadSignatures = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    try {
+      const loadingId = showLoading('กำลังอัปโหลดหลักฐานการเซ็น…');
+      await uploadSignatures({ id: q.id, files }).unwrap();
+      dismissToast(loadingId);
+      showSuccess('อัปโหลดสำเร็จ');
+    } catch (err) {
+      showError(err?.data?.message || err?.message || 'อัปโหลดไม่สำเร็จ');
+    } finally {
+      e.target.value = '';
+    }
+  };
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms = q?.payment_terms || q?.payment_method || (q?.credit_days === 30 ? 'credit_30' : q?.credit_days === 60 ? 'credit_60' : 'cash');
   const isKnownTerms = ['cash', 'credit_30', 'credit_60'].includes(initialRawTerms);
@@ -801,6 +820,76 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                 </Section>
               </Grid>
             </Grid>
+
+              {q?.status === 'approved' && (
+                <Grid item xs={12}>
+                  <Section>
+                    <SectionHeader>
+                      <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                        S
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>หลักฐานการเซ็น / Signed Evidence</Typography>
+                        <Typography variant="caption" color="text.secondary">ไฟล์รูปภาพที่ยืนยันการเซ็นใบเสนอราคา</Typography>
+                      </Box>
+                    </SectionHeader>
+                    <Box sx={{ p:2 }}>
+                      {signatureImages.length === 0 && (
+                        <InfoCard sx={{ p:2, textAlign:'center', mb:2 }}>
+                          <Typography variant="body2" color="text.secondary">ยังไม่มีรูปหลักฐานการเซ็น</Typography>
+                        </InfoCard>
+                      )}
+                      {signatureImages.length > 0 && (
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                              {signatureImages.map((img, idx) => {
+                                const apiBase = apiConfig.baseUrl || '';
+                                // Derive origin root (strip /api/... if present)
+                                const origin = (() => {
+                                  try {
+                                    if (!apiBase) return '';
+                                    const u = new URL(apiBase);
+                                    return u.origin; // http://localhost:8000
+                                  } catch { return apiBase.replace(/\/api\b.*$/, ''); }
+                                })();
+                                const normalize = (u) => {
+                                  if (!u) return '';
+                                  if (/^https?:/i.test(u)) return u; // absolute
+                                  if (u.startsWith('//')) return window.location.protocol + u; // protocol-relative
+                                  if (u.startsWith('/')) return origin + u; // backend relative root
+                                  // maybe "storage/..." without leading slash
+                                  if (u.startsWith('storage/')) return origin + '/' + u;
+                                  return u; // fallback
+                                };
+                                let urlCandidate = img?.url || '';
+                                if (!urlCandidate && img?.path) {
+                                  urlCandidate = 'storage/' + img.path.replace(/^public\//,'');
+                                }
+                                const finalUrl = normalize(urlCandidate);
+                                return (
+                            <Grid item key={idx} xs={6} md={3}>
+                              <Box sx={{ border:'1px solid '+tokens.border, borderRadius:1, p:1, bgcolor:'#fff' }}>
+                                <Box sx={{ position:'relative', pb:'70%', overflow:'hidden', borderRadius:1, mb:1 }}>
+                                  <img src={finalUrl} alt={img.filename} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', objectFit:'contain', background:'#fafafa' }} />
+                                </Box>
+                                <Typography variant="caption" sx={{ display:'block', wordBreak:'break-all' }}>{img.original_filename || img.filename}</Typography>
+                              </Box>
+                            </Grid>
+                          );})}
+                        </Grid>
+                      )}
+                      {canUploadSignatures && (
+                        <Box>
+                          <SecondaryButton component="label" disabled={isUploadingSignatures}>
+                            {isUploadingSignatures ? 'กำลังอัปโหลด…' : 'อัปโหลดรูปหลักฐานการเซ็น'}
+                            <input type="file" accept="image/*" multiple hidden onChange={handleUploadSignatures} />
+                          </SecondaryButton>
+                          <Typography variant="caption" color="text.secondary" sx={{ ml:1 }}>รองรับ JPG / PNG สูงสุด 5MB ต่อไฟล์</Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Section>
+                </Grid>
+              )}
           </Box>
         )}
       </DialogContent>

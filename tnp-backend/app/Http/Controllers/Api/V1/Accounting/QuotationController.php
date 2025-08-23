@@ -849,6 +849,71 @@ class QuotationController extends Controller
     }
 
     /**
+     * อัปโหลดรูปหลักฐานการเซ็น (images only) - เฉพาะใบเสนอราคา approved และผู้ใช้ role sale/admin เท่านั้น
+     * POST /api/v1/quotations/{id}/upload-signatures
+     */
+    public function uploadSignatures(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required',
+                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120', // 5MB per image
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','sale'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณไม่มีสิทธิ์อัปโหลดหลักฐานการเซ็น'
+                ], 403);
+            }
+
+        // รองรับ keys แบบ files[] จาก FormData
+        $rawFiles = $request->file('files');
+            // Normalise to array
+            if ($rawFiles === null) {
+                return response()->json([
+                    'success' => false,
+            'message' => 'ไม่พบไฟล์สำหรับอัปโหลด',
+            'errors' => ['files' => ['No uploaded files found']]
+                ], 422);
+            }
+            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
+            if (count($files) === 0) {
+                return response()->json([
+                    'success' => false,
+            'message' => 'ไม่พบไฟล์สำหรับอัปโหลด',
+            'errors' => ['files' => ['Empty files array']]
+                ], 422);
+            }
+
+            $result = $this->quotationService->uploadSignatures($id, $files, $user->user_uuid ?? null);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'อัปโหลดรูปหลักฐานการเซ็นเรียบร้อย'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::uploadSignatures error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload signatures: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * มาร์คว่าลูกค้าตอบรับแล้ว
      * POST /api/v1/quotations/{id}/mark-completed
      */

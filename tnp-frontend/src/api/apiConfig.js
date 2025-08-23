@@ -1,8 +1,16 @@
 export const apiConfig = {
     baseUrl: import.meta.env.VITE_END_POINT_URL,
     prepareHeaders: (headers) => {
-      headers.set("Content-Type", "application/json");
-      headers.set("Accept", "application/json");
+      // Allow caller to skip forcing JSON (for FormData) via X-Skip-Json header flag
+      const skipJson = headers.get('X-Skip-Json') === '1';
+      if (!skipJson) {
+        headers.set("Content-Type", "application/json");
+        headers.set("Accept", "application/json");
+      } else {
+        // Ensure we don't accidentally send leftover JSON content-type
+        headers.delete('Content-Type');
+        headers.set('Accept', 'application/json');
+      }
 
       // Try to get token from multiple possible storage keys for backward compatibility
       const authToken = localStorage.getItem("authToken");
@@ -21,7 +29,7 @@ export const apiConfig = {
         console.warn("API Config: No authentication token found");
       }
 
-      return headers;
+  return headers;
     },
     credentials: "include",
   };

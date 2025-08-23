@@ -1140,6 +1140,72 @@ class QuotationService
     }
 
     /**
+     * อัปโหลดรูปหลักฐานการเซ็น (เฉพาะใบเสนอราคาที่ Approved แล้ว)
+     */
+    public function uploadSignatures($quotationId, $files, $uploadedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            /** @var Quotation $quotation */
+            $quotation = Quotation::findOrFail($quotationId);
+            if ($quotation->status !== 'approved') {
+                throw new \Exception('อัปโหลดได้เฉพาะใบเสนอราคาที่อนุมัติแล้ว');
+            }
+
+            $existing = is_array($quotation->signature_images) ? $quotation->signature_images : [];
+            $stored = [];
+
+            if (!is_array($files) && !($files instanceof \Traversable)) {
+                throw new \Exception('รูปแบบไฟล์ไม่ถูกต้อง (expected array)');
+            }
+
+            foreach ($files as $file) {
+                if (!$file) { continue; }
+                $ext = $file->getClientOriginalExtension();
+                $safeExt = strtolower($ext ?: 'jpg');
+                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                $path = $file->storeAs('public/images/quotation', $filename); // storage/app/public/images/quotation
+                // Use full absolute URL (handles APP_URL). Storage::url may return relative if APP_URL unset.
+                $relative = str_replace('public/', '', $path); // images/quotation/...
+                $publicUrl = url('storage/' . $relative);
+                $stored[] = [
+                    'filename' => $filename,
+                    'path' => $path,
+                    'url' => $publicUrl,
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                    'uploaded_at' => now()->toIso8601String(),
+                    'uploaded_by' => $uploadedBy,
+                ];
+            }
+
+            $quotation->signature_images = array_values(array_merge($existing, $stored));
+            $quotation->save();
+
+            // History
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'upload_signatures',
+                $uploadedBy,
+                'อัปโหลดรูปหลักฐานการเซ็นจำนวน ' . count($files) . ' ไฟล์'
+            );
+
+            DB::commit();
+
+            return [
+                'signature_images' => $quotation->signature_images,
+                'uploaded_count' => count($files),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::uploadSignatures error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * มาร์คว่าลูกค้าตอบรับแล้ว
      */
     public function markCompleted($quotationId, $data, $completedBy = null)

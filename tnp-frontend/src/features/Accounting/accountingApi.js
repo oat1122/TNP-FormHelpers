@@ -261,6 +261,29 @@ export const accountingApi = createApi({
                     url: `/quotations/${id}/upload-evidence`,
                     method: 'POST',
                     body: formData,
+                    headers: { 'X-Skip-Json': '1' },
+                    formData: true,
+                };
+            },
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+            ],
+        }),
+
+        // Upload signature images (approved quotations)
+        uploadQuotationSignatures: builder.mutation({
+            query: ({ id, files }) => {
+                const formData = new FormData();
+                if (Array.isArray(files)) {
+                    files.forEach(f => formData.append('files[]', f));
+                } else if (files) {
+                    formData.append('files[]', files);
+                }
+                return {
+                    url: `/quotations/${id}/upload-signatures`,
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Skip-Json': '1' },
                     formData: true,
                 };
             },
@@ -629,6 +652,7 @@ export const {
     useRevokeApprovalQuotationMutation,
     useMarkQuotationSentMutation,
     useUploadQuotationEvidenceMutation,
+    useUploadQuotationSignaturesMutation,
     useSendQuotationEmailMutation,
     useMarkQuotationCompletedMutation,
     useGenerateQuotationPDFMutation,

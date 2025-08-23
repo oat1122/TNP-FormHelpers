@@ -129,6 +129,15 @@ table{
 .signature-fixed-wrapper { font-size:10pt; }
 .signature-table.fixed { width:100%; border-collapse:collapse; }
 .signature-table.fixed .signature-cell { padding:6pt 12pt; }
+.signature-table.fixed .signature-role { font-weight:600; margin-top:6pt; font-size:10.5pt; color:#2c3e50; line-height:1.35; }
+.signature-table.fixed .signature-name-placeholder { margin-top:8pt; font-size:9pt; color:#555; font-style:italic; line-height:1.4; }
+.signature-table.fixed .signature-date-line { margin-top:8pt; font-size:8.5pt; color:#444; letter-spacing:.5pt; line-height:1.4; }
+.signature-hint { margin-top:4pt; text-align:center; font-size:7.5pt; }
+.signature-box { position:relative; }
+.signature-box:after { content:""; position:absolute; left:0; right:0; bottom:-2pt; height:0; border-bottom:1pt solid #555; }
+.signature-cell { position:relative; }
+.signature-cell:not(:last-child) { border-right:none; }
+.signature-fixed-wrapper { border:none; border-radius:0; padding:10pt 6pt 6pt; background:transparent; }
 
 /* Spacer to reserve vertical space so body content doesn't collide with fixed signature */
 .signature-spacer { height:12mm; /* minimal reserve; bottom signature now absolute via SetY */ }

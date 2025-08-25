@@ -170,7 +170,7 @@
         <tr>
           {{-- Notes Section (Left) --}}
           <td class="panel-box panel-notes">
-            <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
+            <h3 class="panel-title panel-title--sm">หมายเหตุ</h3> <br/>  
             <div class="panel-content">
               {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
             </div>
@@ -178,7 +178,7 @@
           
           {{-- Summary Section (Right) --}}
           <td class="panel-box">
-            <h3 class="panel-title panel-title--sm center">สรุปยอดเงิน</h3>
+            
             @php
               // Extract financial data directly from database fields
               $subtotal = (float) ($quotation->subtotal ?? 0);

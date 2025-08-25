@@ -57,7 +57,7 @@ table{
 }
 
 .items-table thead th{
-  border-bottom:2px solid #9fb3c8;
+  border-bottom:2px solid #fca7a7;
   background:#eef2f5;
   text-align:center;
   font-weight: bold;
@@ -94,7 +94,7 @@ table{
   border-bottom:1px solid #e3e9ef;
 }
 
-.meta-light{color:#6e7b88;font-weight:normal}
+.meta-light{color:#555555;font-weight:normal}
 
 /* ===== Signature Section ===== */
 .signature-section{
@@ -168,23 +168,25 @@ tr{page-break-inside:avoid}
 .items-table.slim thead th {
   font-weight: bold;
   text-align: right;
-  border-bottom: 0.6pt solid #666;  /* เส้นคั่นหัวตารางแบบบาง */
+  /* border-bottom: 0.6pt solid #666;  เส้นคั่นหัวตารางแบบบาง */
   font-size: 11pt;              /* หัวตารางใหญ่กว่าเนื้อหาเล็กน้อย */
+  background:#900F0F !important; /* Override to requested color */
+  color:#fff !important;        /* White text */
 }
 .items-table.slim thead th:first-child { text-align: left; }
 
 .items-table.slim .desc { text-align: left; }
 .items-table.slim .num  { text-align: right; white-space: nowrap; }
-.items-table.slim .muted{ color:#888; }
+.items-table.slim .muted{ color:#ffffff; }
 
 /* หัวข้อกลุ่ม (parent) */
 .items-table.slim .group-row td {
   font-weight: bold;
   padding-top: 8pt;
   padding-bottom: 5pt;
-  border-bottom: 0.6pt solid #999;   /* เส้นคั่นใต้หัวข้อ */
+  border-bottom: 0.6pt solid #670000;  /* เส้นคั่นใต้หัวข้อ */
   font-size: 11pt;               /* หัวข้อกลุ่มใหญ่กว่าข้อมูลเล็กน้อย */
-  background-color: #f8f9fa;    /* สีพื้นหลังอ่อนๆ */
+  background-color: #fcd4d4;    /* สีพื้นหลังอ่อนๆ */
 }
 
 /* แถวรายการย่อย (child) */
@@ -372,7 +374,7 @@ col.w-total { width:15%; }
 
 .summary-table .total-row td { 
   font-weight: 600; 
-  color: #1e4d79; 
+  color: #000000; 
   padding: 8pt 6pt;
   font-size: 10.5pt;
 }
@@ -383,7 +385,7 @@ col.w-total { width:15%; }
 
 .summary-table .total-row .reading {
   font-size: 7.5pt !important;
-  color: #1e4d79;
+  color: #000000;
   opacity: 0.8;
   line-height: 1.0 !important;
 }
@@ -395,7 +397,7 @@ col.w-total { width:15%; }
 
 /* คำอ่านแบบเต็มความกว้าง */
 .reading-full-width {
-  color: #1e4d79;
+  color: #000000;
   font-size: 8pt !important;
   font-style: italic;
   text-align: center;

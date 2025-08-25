@@ -179,59 +179,67 @@
           {{-- Summary Section (Right) --}}
           <td class="panel-box">
             <h3 class="panel-title panel-title--sm center">สรุปยอดเงิน</h3>
+            @php
+              // Extract financial data directly from database fields
+              $subtotal = (float) ($quotation->subtotal ?? 0);
+              $taxAmount = (float) ($quotation->tax_amount ?? 0);
+              $specialDiscountAmount = (float) ($quotation->special_discount_amount ?? 0);
+              $hasWithholdingTax = (bool) ($quotation->has_withholding_tax ?? false);
+              $withholdingTaxAmount = (float) ($quotation->withholding_tax_amount ?? 0);
+              $finalTotalAmount = (float) ($quotation->final_total_amount ?? 0);
+              
+              // Conditional display logic
+              $showSpecialDiscount = $specialDiscountAmount > 0;
+              $showWithholdingTax = $hasWithholdingTax && $withholdingTaxAmount > 0;
+            @endphp
+
             <table class="summary-table">
               <colgroup>
                 <col style="width: 45%;">
                 <col style="width: 55%;">
               </colgroup>
-              {{-- Subtotal --}}
+              
+              {{-- 1. Subtotal (ก่อน VAT) --}}
               <tr>
                 <td class="summary-label">รวมเป็นเงิน</td>
                 <td class="summary-amount">
                   <div class="amount-container">
-                    <span class="amount-main">{{ number_format($summary['subtotal'] ?? 0, 2) }} บาท</span>
+                    <span class="amount-main">{{ number_format($subtotal, 2) }}</span>
                   </div>
                 </td>
               </tr>
               
-              
-              
-              {{-- Special Discount (conditional: show only if amount > 0) --}}
-              @if(($summary['special_discount_amount'] ?? 0) > 0)
+              {{-- 3. Special Discount (conditional: show only if amount > 0) --}}
+              @if($showSpecialDiscount)
                 <tr class="discount-row">
-                  <td class="summary-label">
-                    ส่วนลดพิเศษ
-                    @if(($summary['special_discount_percentage'] ?? 0) > 0)
-                      ({{ number_format($summary['special_discount_percentage'], 2) }}%)
-                    @endif
-                  </td>
+                  <td class="summary-label">ส่วนลดพิเศษ</td>
                   <td class="summary-amount discount">
                     <div class="amount-container">
-                      <span class="amount-main">{{ number_format($summary['special_discount_amount'], 2) }} บาท</span>
+                      <span class="amount-main">{{ number_format($specialDiscountAmount, 2) }}</span>
                     </div>
                   </td>
                 </tr>
               @endif
-
-              {{-- Tax --}}
+              
+              {{-- 2. VAT --}}
               <tr>
-                <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
+                <td class="summary-label">ภาษีมูลค่าเพิ่ม (VAT 7%)</td>
                 <td class="summary-amount">
                   <div class="amount-container">
-                    <span class="amount-main">{{ number_format($summary['tax'] ?? 0, 2) }} บาท</span>
+                    <span class="amount-main">{{ number_format($taxAmount, 2) }}</span>
                   </div>
                 </td>
               </tr>
 
-              {{-- Withholding Tax (conditional: show only if flag true and amount > 0) --}}
-              @if(($summary['has_withholding_tax'] ?? false) && ($summary['withholding_tax_amount'] ?? 0) > 0)
+              
+
+              {{-- 4. Withholding Tax (conditional: show only if flag true AND amount > 0) --}}
+              @if($showWithholdingTax)
                 <tr class="withholding-tax-row">
-                  <td class="summary-label">
-                    หักภาษี ณ ที่จ่าย ({{ number_format($summary['withholding_tax_percentage'] ?? 0, 2) }}%)
-                  </td>
+                  <td class="summary-label">หักภาษี ณ ที่จ่าย</td>
                   <td class="summary-amount withholding-tax">
                     <div class="amount-container">
-                      <span class="amount-main">{{ number_format($summary['withholding_tax_amount'] ?? 0, 2) }} บาท</span>
+                      <span class="amount-main">{{ number_format($withholdingTaxAmount, 2) }}</span>
                     </div>
                   </td>
                 </tr>
@@ -242,18 +250,18 @@
                 <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
                 <td class="summary-amount">
                   <div class="amount-container">
-                    <span class="amount-main {{ ($summary['final_total'] ?? 0) > 999999 ? 'large-amount' : '' }}">
-                      {{ number_format($summary['final_total'] ?? 0, 2) }} บาท
+                    <span class="amount-main {{ $finalTotalAmount > 999999 ? 'large-amount' : '' }}">
+                      {{ number_format($finalTotalAmount, 2) }}
                     </span>
                   </div>
                 </td>
               </tr>
 
-              {{-- Thai text conversion using final_total --}}
+              {{-- Thai text conversion using final_total_amount --}}
               <tr class="reading-row">
                 <td colspan="2" class="reading-cell">
                   <div class="reading-full-width">
-                    ({{ $thaiBahtText($summary['final_total'] ?? 0) }})
+                    ({{ $thaiBahtText($finalTotalAmount) }})
                   </div>
                 </td>
               </tr>

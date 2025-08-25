@@ -194,6 +194,25 @@
                 </td>
               </tr>
               
+              
+              
+              {{-- Special Discount (conditional: show only if amount > 0) --}}
+              @if(($summary['special_discount_amount'] ?? 0) > 0)
+                <tr class="discount-row">
+                  <td class="summary-label">
+                    ส่วนลดพิเศษ
+                    @if(($summary['special_discount_percentage'] ?? 0) > 0)
+                      ({{ number_format($summary['special_discount_percentage'], 2) }}%)
+                    @endif
+                  </td>
+                  <td class="summary-amount discount">
+                    <div class="amount-container">
+                      <span class="amount-main">{{ number_format($summary['special_discount_amount'], 2) }} บาท</span>
+                    </div>
+                  </td>
+                </tr>
+              @endif
+
               {{-- Tax --}}
               <tr>
                 <td class="summary-label">ภาษีมูลค่าเพิ่ม 7%</td>
@@ -203,46 +222,19 @@
                   </div>
                 </td>
               </tr>
-              
-              {{-- Total before discount --}}
-              <tr>
-                <td class="summary-label">รวมก่อนส่วนลด</td>
-                <td class="summary-amount">
-                  <div class="amount-container">
-                    <span class="amount-main">{{ number_format($summary['total_before_discount'] ?? 0, 2) }} บาท</span>
-                  </div>
-                </td>
-              </tr>
 
-              {{-- Special Discount (conditional) --}}
-              @if(($summary['special_discount_amount'] ?? 0) > 0)
-              <tr class="discount-row">
-                <td class="summary-label">
-                  ส่วนลดพิเศษ
-                  @if(($summary['special_discount_percentage'] ?? 0) > 0)
-                    ({{ number_format($summary['special_discount_percentage'], 2) }}%)
-                  @endif
-                </td>
-                <td class="summary-amount discount">
-                  <div class="amount-container">
-                    <span class="amount-main">-{{ number_format($summary['special_discount_amount'], 2) }} บาท</span>
-                  </div>
-                </td>
-              </tr>
-              @endif
-
-              {{-- Withholding Tax (conditional) --}}
-              @if($summary['has_withholding_tax'] ?? false)
-              <tr class="withholding-tax-row">
-                <td class="summary-label">
-                  หักภาษี ณ ที่จ่าย ({{ number_format($summary['withholding_tax_percentage'] ?? 0, 2) }}%)
-                </td>
-                <td class="summary-amount withholding-tax">
-                  <div class="amount-container">
-                    <span class="amount-main">-{{ number_format($summary['withholding_tax_amount'] ?? 0, 2) }} บาท</span>
-                  </div>
-                </td>
-              </tr>
+              {{-- Withholding Tax (conditional: show only if flag true and amount > 0) --}}
+              @if(($summary['has_withholding_tax'] ?? false) && ($summary['withholding_tax_amount'] ?? 0) > 0)
+                <tr class="withholding-tax-row">
+                  <td class="summary-label">
+                    หักภาษี ณ ที่จ่าย ({{ number_format($summary['withholding_tax_percentage'] ?? 0, 2) }}%)
+                  </td>
+                  <td class="summary-amount withholding-tax">
+                    <div class="amount-container">
+                      <span class="amount-main">{{ number_format($summary['withholding_tax_amount'] ?? 0, 2) }} บาท</span>
+                    </div>
+                  </td>
+                </tr>
               @endif
               
               {{-- Final Total --}}
@@ -256,23 +248,6 @@
                   </div>
                 </td>
               </tr>
-
-              {{-- Deposit Information (conditional) --}}
-              @if(($summary['deposit_amount'] ?? 0) > 0)
-              <tr class="deposit-row">
-                <td class="summary-label">
-                  เงินมัดจำ
-                  @if(($summary['deposit_mode'] ?? 'percentage') === 'percentage')
-                    ({{ number_format($summary['deposit_percentage'] ?? 0, 0) }}%)
-                  @endif
-                </td>
-                <td class="summary-amount deposit">
-                  <div class="amount-container">
-                    <span class="amount-main">{{ number_format($summary['deposit_amount'], 2) }} บาท</span>
-                  </div>
-                </td>
-              </tr>
-              @endif
 
               {{-- Thai text conversion using final_total --}}
               <tr class="reading-row">

@@ -358,10 +358,7 @@ col.w-total { width:15%; }
   font-style: italic;
 }
 
-.summary-table .summary-amount.discount,
-.summary-table .summary-amount.withholding-tax {
-  color: #d32f2f;
-}
+
 
 .summary-table .summary-amount.deposit {
   color: #388e3c;

@@ -286,6 +286,15 @@ class QuotationPdfMasterService
 
             $sigHtml = View::make('pdf.partials.quotation-signature')->render();
 
+            // หากหน้านี้แทบไม่มีเนื้อหาเลย (เกิดจากการขึ้นหน้าใหม่อัตโนมัติ)
+            // ให้ถือว่าเป็นพื้นที่ว่างทั้งหมดและวางลายเซ็นในหน้านี้ทันที
+            if ($currentY <= 5) {
+                $mpdf->SetY(-($requiredHeight + $bottomPadding));
+                $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
+                Log::info('Signature adaptive: reused existing blank page', compact('currentY'));
+                return;
+            }
+
             if ($remaining >= ($requiredHeight + $bottomPadding)) {
                 // มีที่พอ: ใช้ block container ที่มี margin-top = (remaining - requiredHeight - bottomPadding)
                 $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);

@@ -84,7 +84,7 @@ class QuotationPdfMasterService
 
         $customer = CustomerInfoExtractor::fromQuotation($q);
         $groups   = $this->groupQuotationItems($q);
-        $summary  = $this->calculateSummary($q);
+        $summary  = $this->buildFinancialSummary($q);
 
         $isFinal  = in_array($q->status, ['approved', 'sent', 'completed'], true);
 
@@ -357,24 +357,26 @@ class QuotationPdfMasterService
     }
 
     /**
-     * คำนวณสรุปยอดเงิน
+     * สร้างสรุปยอดเงินจากข้อมูลฐานข้อมูลโดยตรง
      */
-    protected function calculateSummary(Quotation $quotation): array
+    protected function buildFinancialSummary(Quotation $quotation): array
     {
-        $subtotal     = (float) ($quotation->subtotal ?? 0);
-        $tax          = (float) ($quotation->tax_amount ?? 0);
-        $total        = (float) ($quotation->total_amount ?? ($subtotal + $tax));
-        $depositPct   = (float) ($quotation->deposit_percentage ?? 0);
-        $depositAmt   = $depositPct > 0 ? round(($total * $depositPct) / 100, 2) : 0.0;
-        $remainingAmt = max($total - $depositAmt, 0);
-
         return [
-            'subtotal'           => $subtotal,
-            'tax'                => $tax,
-            'total'              => $total,
-            'deposit_percentage' => $depositPct,
-            'deposit_amount'     => $depositAmt,
-            'remaining'          => $remainingAmt,
+            'subtotal' => (float) ($quotation->subtotal ?? 0),
+            'tax' => (float) ($quotation->tax_amount ?? 0),
+            'total_before_discount' => (float) ($quotation->total_amount ?? 0),
+            'special_discount_percentage' => (float) ($quotation->special_discount_percentage ?? 0),
+            'special_discount_amount' => (float) ($quotation->special_discount_amount ?? 0),
+            'has_withholding_tax' => (bool) ($quotation->has_withholding_tax ?? false),
+            'withholding_tax_percentage' => (float) ($quotation->withholding_tax_percentage ?? 0),
+            'withholding_tax_amount' => (float) ($quotation->withholding_tax_amount ?? 0),
+            'final_total' => (float) ($quotation->final_total_amount ?? 0),
+            'deposit_percentage' => (float) ($quotation->deposit_percentage ?? 0),
+            'deposit_amount' => (float) ($quotation->deposit_amount ?? 0),
+            'deposit_mode' => $quotation->deposit_mode ?? 'percentage',
+            // Keep backward compatibility fields
+            'total' => (float) ($quotation->final_total_amount ?? 0),
+            'remaining' => max((float) ($quotation->final_total_amount ?? 0) - (float) ($quotation->deposit_amount ?? 0), 0),
         ];
     }
 

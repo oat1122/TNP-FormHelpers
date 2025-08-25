@@ -344,6 +344,29 @@ col.w-total { width:15%; }
   hyphens: auto;
 }
 
+/* Financial row styling */
+.summary-table .discount-row {
+  color: #d32f2f; /* Red for discounts */
+}
+
+.summary-table .withholding-tax-row {
+  color: #f57c00; /* Orange for withholding tax */
+}
+
+.summary-table .deposit-row {
+  color: #388e3c; /* Green for deposits */
+  font-style: italic;
+}
+
+.summary-table .summary-amount.discount,
+.summary-table .summary-amount.withholding-tax {
+  color: #d32f2f;
+}
+
+.summary-table .summary-amount.deposit {
+  color: #388e3c;
+}
+
 /* Total row styling */
 .summary-table .total-row { 
   background: transparent; 

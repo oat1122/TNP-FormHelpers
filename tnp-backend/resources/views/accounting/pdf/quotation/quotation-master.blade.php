@@ -204,22 +204,81 @@
                 </td>
               </tr>
               
-              {{-- Total - แยกตัวเลขกับคำอ่าน --}}
+              {{-- Total before discount --}}
+              <tr>
+                <td class="summary-label">รวมก่อนส่วนลด</td>
+                <td class="summary-amount">
+                  <div class="amount-container">
+                    <span class="amount-main">{{ number_format($summary['total_before_discount'] ?? 0, 2) }} บาท</span>
+                  </div>
+                </td>
+              </tr>
+
+              {{-- Special Discount (conditional) --}}
+              @if(($summary['special_discount_amount'] ?? 0) > 0)
+              <tr class="discount-row">
+                <td class="summary-label">
+                  ส่วนลดพิเศษ
+                  @if(($summary['special_discount_percentage'] ?? 0) > 0)
+                    ({{ number_format($summary['special_discount_percentage'], 2) }}%)
+                  @endif
+                </td>
+                <td class="summary-amount discount">
+                  <div class="amount-container">
+                    <span class="amount-main">-{{ number_format($summary['special_discount_amount'], 2) }} บาท</span>
+                  </div>
+                </td>
+              </tr>
+              @endif
+
+              {{-- Withholding Tax (conditional) --}}
+              @if($summary['has_withholding_tax'] ?? false)
+              <tr class="withholding-tax-row">
+                <td class="summary-label">
+                  หักภาษี ณ ที่จ่าย ({{ number_format($summary['withholding_tax_percentage'] ?? 0, 2) }}%)
+                </td>
+                <td class="summary-amount withholding-tax">
+                  <div class="amount-container">
+                    <span class="amount-main">-{{ number_format($summary['withholding_tax_amount'] ?? 0, 2) }} บาท</span>
+                  </div>
+                </td>
+              </tr>
+              @endif
+              
+              {{-- Final Total --}}
               <tr class="total-row">
                 <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
                 <td class="summary-amount">
                   <div class="amount-container">
-                    <span class="amount-main {{ ($summary['total'] ?? 0) > 999999 ? 'large-amount' : '' }}">
-                      {{ number_format($summary['total'] ?? 0, 2) }} บาท
+                    <span class="amount-main {{ ($summary['final_total'] ?? 0) > 999999 ? 'large-amount' : '' }}">
+                      {{ number_format($summary['final_total'] ?? 0, 2) }} บาท
                     </span>
                   </div>
                 </td>
               </tr>
-              {{-- แถวคำอ่าน - แยกออกมา --}}
+
+              {{-- Deposit Information (conditional) --}}
+              @if(($summary['deposit_amount'] ?? 0) > 0)
+              <tr class="deposit-row">
+                <td class="summary-label">
+                  เงินมัดจำ
+                  @if(($summary['deposit_mode'] ?? 'percentage') === 'percentage')
+                    ({{ number_format($summary['deposit_percentage'] ?? 0, 0) }}%)
+                  @endif
+                </td>
+                <td class="summary-amount deposit">
+                  <div class="amount-container">
+                    <span class="amount-main">{{ number_format($summary['deposit_amount'], 2) }} บาท</span>
+                  </div>
+                </td>
+              </tr>
+              @endif
+
+              {{-- Thai text conversion using final_total --}}
               <tr class="reading-row">
                 <td colspan="2" class="reading-cell">
                   <div class="reading-full-width">
-                    ({{ $thaiBahtText($summary['total'] ?? 0) }})
+                    ({{ $thaiBahtText($summary['final_total'] ?? 0) }})
                   </div>
                 </td>
               </tr>

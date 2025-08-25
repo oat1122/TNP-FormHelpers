@@ -1,5 +1,5 @@
 {{-- resources/views/pdf/partials/quotation-signature.blade.php --}}
-<div class="signature-fixed-wrapper signature-fixed-bottom">
+<div class="signature-fixed-wrapper signature-inline">
   <table class="signature-table fixed" role="presentation">
     <tr>
       <td class="signature-cell">

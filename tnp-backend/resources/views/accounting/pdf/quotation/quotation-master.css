@@ -139,6 +139,18 @@ table{
 .signature-cell:not(:last-child) { border-right:none; }
 .signature-fixed-wrapper { border:none; border-radius:0; padding:10pt 6pt 6pt; background:transparent; }
 
+/* Signature fixed at bottom above footer (for quotation PDF) */
+.signature-fixed-bottom {
+  position: fixed; /* mPDF honors this */
+  left: 0;
+  right: 0;
+  bottom: 16mm; /* distance from physical page bottom; adjust if footer height changes */
+  z-index: 20;
+}
+
+/* Reserve vertical space in body equal to signature block height + gap so content doesn't overlap */
+body .signature-spacer { height: 40mm; }
+
 /* Spacer to reserve vertical space so body content doesn't collide with fixed signature */
 .signature-spacer { height:12mm; /* minimal reserve; bottom signature now absolute via SetY */ }
 

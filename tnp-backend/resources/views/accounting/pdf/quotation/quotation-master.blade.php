@@ -94,7 +94,7 @@
           @foreach($groupsData as $g)
             {{-- แถวหัวข้อกลุ่ม (parent) --}}
             <tr class="group-row">
-              <td class="desc">{!! $g['title'] !!}</td>
+              <td class="desc"><span class="group-no">{{ $g['no'] }}.</span> {!! $g['title'] !!}</td>
               <td class="num muted"></td>
               <td class="num muted"></td>
               <td class="num muted"></td>

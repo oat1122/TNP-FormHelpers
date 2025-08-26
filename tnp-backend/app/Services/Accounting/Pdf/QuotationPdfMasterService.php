@@ -269,39 +269,213 @@ class QuotationPdfMasterService
     }
 
     /**
-     * เรนเดอร์ลายเซ็นให้อยู่ชิดด้านล่างหน้าสุดท้ายแบบ adaptive:
-     * 1) วัดพื้นที่คงเหลือหลัง body (current Y)
+     * เรนเดอร์ลายเซ็นให้อยู่ชิดด้านล่างหน้าสุดท้ายแบบ adaptive พร้อม fallback mechanism:
+     * 1) วัดพื้นที่คงเหลือหลัง body (current Y) แบบแม่นยำ
      * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
      * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
+     * 4) มีระบบ fallback หากการวางแบบ adaptive ล้มเหลว
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
         try {
-            $requiredHeight = 45; // mm พื้นที่ที่อยากได้รวม heading + เว้น
-            $bottomPadding  = 6;  // mm เพิ่มเติมกันชนเหนือ footer
-
-            $pageHeight = $mpdf->h - $mpdf->tMargin - $mpdf->bMargin; // usable height
-            $currentY   = $mpdf->y - $mpdf->tMargin; // Y ภายใน usable
-            $remaining  = $pageHeight - $currentY;
+            // Calculate signature dimensions dynamically
+            $signatureDimensions = $this->calculateSignatureDimensions($mpdf);
+            $requiredHeight = $signatureDimensions['height'];
+            $bottomPadding = $signatureDimensions['padding'];
+            
+            // Get accurate page measurements
+            $pageInfo = $this->getAccuratePageInfo($mpdf);
+            $remaining = $pageInfo['remaining'];
+            
+            Log::info('Signature placement analysis', [
+                'required_height' => $requiredHeight,
+                'remaining_space' => $remaining,
+                'current_page' => $mpdf->page,
+                'current_y' => $mpdf->y
+            ]);
 
             $sigHtml = View::make('pdf.partials.quotation-signature')->render();
+            $signaturePlaced = false;
 
+            // Strategy 1: Try to place on current page
             if ($remaining >= ($requiredHeight + $bottomPadding)) {
-                // มีที่พอ: ใช้ block container ที่มี margin-top = (remaining - requiredHeight - bottomPadding)
-                $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
-                $wrapper  = '<div style="margin-top:'.$pushDown.'mm">'.$sigHtml.'</div>';
-                $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
-                Log::info('Signature adaptive: placed on same page', compact('remaining','pushDown'));
-            } else {
-                // ไม่พอ: สร้างหน้าใหม่ แล้ววางชิดล่างด้วย SetY(-height)
-                $mpdf->AddPage();
-                $heightBlock = 40; // mm จริงของบล็อก signature (ประมาณ)
-                $mpdf->SetY(-($heightBlock + $bottomPadding));
-                $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
-                Log::info('Signature adaptive: new page created', compact('remaining'));
+                $signaturePlaced = $this->placeSignatureOnCurrentPage($mpdf, $sigHtml, $remaining, $requiredHeight, $bottomPadding);
             }
+
+            // Strategy 2: Create new page if current page doesn't have enough space
+            if (!$signaturePlaced) {
+                $signaturePlaced = $this->placeSignatureOnNewPage($mpdf, $sigHtml, $requiredHeight, $bottomPadding);
+            }
+
+            // Fallback Strategy 3: Emergency placement
+            if (!$signaturePlaced) {
+                $this->emergencySignaturePlacement($mpdf, $sigHtml);
+            }
+
         } catch (\Throwable $e) {
-            Log::warning('Signature adaptive render failed: '.$e->getMessage());
+            Log::error('Signature adaptive render failed: '.$e->getMessage(), [
+                'quotation_id' => $data['quotation']->id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Emergency fallback
+            $this->emergencySignaturePlacement($mpdf, View::make('pdf.partials.quotation-signature')->render());
+        }
+    }
+
+    /**
+     * คำนวณขนาดที่ต้องการสำหรับลายเซ็นแบบ dynamic
+     */
+    protected function calculateSignatureDimensions(Mpdf $mpdf): array
+    {
+        // Base signature height calculation
+        $lineHeight = 4.5; // mm per line
+        $headerHeight = 8; // mm for signature headers
+        $paddingHeight = 12; // mm for internal padding and spacing
+        $signatureBoxHeight = 15; // mm for actual signature area
+        
+        $totalHeight = $headerHeight + $signatureBoxHeight + $paddingHeight + ($lineHeight * 3); // 3 lines for name/date
+        
+        // Dynamic adjustment based on content
+        $contentFactor = min($mpdf->page * 0.5, 5); // Increase requirement for multi-page docs
+        $adjustedHeight = $totalHeight + $contentFactor;
+        
+        return [
+            'height' => max($adjustedHeight, 35), // Minimum 35mm
+            'padding' => 8, // mm safety margin
+            'base_height' => $totalHeight
+        ];
+    }
+
+    /**
+     * รับข้อมูลหน้าที่แม่นยำ รวมถึงการตรวจสอบ floating elements
+     */
+    protected function getAccuratePageInfo(Mpdf $mpdf): array
+    {
+        $pageHeight = $mpdf->h - $mpdf->tMargin - $mpdf->bMargin;
+        $currentY = $mpdf->y - $mpdf->tMargin;
+        
+        // Check for potential floating content or unfinished blocks
+        $adjustedY = $currentY;
+        
+        // Add buffer for potential margin collapse or floating elements
+        $contentBuffer = 3; // mm
+        $adjustedY += $contentBuffer;
+        
+        $remaining = max($pageHeight - $adjustedY, 0);
+        
+        return [
+            'page_height' => $pageHeight,
+            'current_y' => $currentY,
+            'adjusted_y' => $adjustedY,
+            'remaining' => $remaining,
+            'usable_height' => $pageHeight
+        ];
+    }
+
+    /**
+     * พยายามวางลายเซ็นในหน้าปัจจุบัน
+     */
+    protected function placeSignatureOnCurrentPage(Mpdf $mpdf, string $sigHtml, float $remaining, float $requiredHeight, float $bottomPadding): bool
+    {
+        try {
+            $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
+            
+            // Add minimum spacing
+            $minSpacing = 5; // mm
+            $pushDown = max($pushDown, $minSpacing);
+            
+            $wrapper = sprintf(
+                '<div style="margin-top:%.2fmm; page-break-inside: avoid;" class="signature-current-page">%s</div>',
+                $pushDown,
+                $sigHtml
+            );
+            
+            $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+            
+            Log::info('Signature placed on current page', [
+                'remaining' => $remaining,
+                'push_down' => $pushDown,
+                'page' => $mpdf->page
+            ]);
+            
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to place signature on current page: '.$e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * สร้างหน้าใหม่และวางลายเซ็น
+     */
+    protected function placeSignatureOnNewPage(Mpdf $mpdf, string $sigHtml, float $requiredHeight, float $bottomPadding): bool
+    {
+        try {
+            $mpdf->AddPage();
+            
+            // Calculate safe position from bottom
+            $safeBottomPosition = $requiredHeight + $bottomPadding + 5; // 5mm extra safety
+            $maxBottomPosition = 60; // mm - maximum distance from bottom
+            $bottomPosition = min($safeBottomPosition, $maxBottomPosition);
+            
+            // Use relative positioning instead of absolute SetY
+            $pageHeight = $mpdf->h - $mpdf->tMargin - $mpdf->bMargin;
+            $targetY = $pageHeight - $bottomPosition;
+            
+            // Add spacer div to push signature down
+            $spacerHeight = max($targetY - 10, 0); // 10mm buffer
+            
+            $wrapper = sprintf(
+                '<div style="height:%.2fmm;"></div><div class="signature-new-page" style="page-break-inside: avoid;">%s</div>',
+                $spacerHeight,
+                $sigHtml
+            );
+            
+            $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+            
+            Log::info('Signature placed on new page', [
+                'new_page' => $mpdf->page,
+                'spacer_height' => $spacerHeight,
+                'bottom_position' => $bottomPosition
+            ]);
+            
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to place signature on new page: '.$e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * ระบบสำรองเมื่อการวางลายเซ็นล้มเหลว
+     */
+    protected function emergencySignaturePlacement(Mpdf $mpdf, string $sigHtml): void
+    {
+        try {
+            Log::warning('Using emergency signature placement', [
+                'page' => $mpdf->page,
+                'y_position' => $mpdf->y
+            ]);
+            
+            // Simple placement with basic styling
+            $emergencyWrapper = sprintf(
+                '<div style="margin-top:10mm; padding:5mm; border-top:1px solid #ccc;" class="signature-emergency">
+                    <div style="font-size:8pt; color:#666; margin-bottom:5mm;">ลายเซ็น (Emergency Placement)</div>
+                    %s
+                </div>',
+                $sigHtml
+            );
+            
+            $mpdf->WriteHTML($emergencyWrapper, HTMLParserMode::HTML_BODY);
+            
+        } catch (\Throwable $e) {
+            Log::error('Emergency signature placement failed: '.$e->getMessage());
+            
+            // Last resort: minimal signature
+            $mpdf->WriteHTML('<div style="margin-top:15mm; text-align:center; font-size:10pt;">
+                ผู้สั่งซื้อ: ________________________ &nbsp;&nbsp;&nbsp; ผู้อนุมัติ: ________________________
+            </div>', HTMLParserMode::HTML_BODY);
         }
     }
 

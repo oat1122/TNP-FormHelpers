@@ -273,6 +273,10 @@ class QuotationPdfMasterService
      * 1) วัดพื้นที่คงเหลือหลัง body (current Y)
      * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
      * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
+     *
+     * หากการคำนวณผิดพลาดจนเกิดการตัดหน้าอัตโนมัติของ mPDF ให้มี fallback
+     * กลับไปเรนเดอร์ด้วยการเปิดหน้าใหม่และใช้ตำแหน่งแบบคงที่ เพื่อให้มั่นใจว่า
+     * ลายเซ็นจะอยู่ในหน้าสุดท้ายเสมอ
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
@@ -290,8 +294,27 @@ class QuotationPdfMasterService
                 // มีที่พอ: ใช้ block container ที่มี margin-top = (remaining - requiredHeight - bottomPadding)
                 $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
                 $wrapper  = '<div style="margin-top:'.$pushDown.'mm">'.$sigHtml.'</div>';
+
+                // เก็บสถานะก่อนเขียนเผื่อเกิดการตัดหน้าอัตโนมัติ
+                $beforePage = $mpdf->page;
                 $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
-                Log::info('Signature adaptive: placed on same page', compact('remaining','pushDown'));
+
+                if ($mpdf->page > $beforePage) {
+                    // เขียนแล้วถูกตัดหน้า -> ลบหน้าที่เพิ่มและใช้ fallback หน้าใหม่
+                    Log::warning('Signature adaptive overflow, using fallback page.', compact('remaining'));
+
+                    if (method_exists($mpdf, 'DeletePages')) {
+                        $mpdf->DeletePages($beforePage + 1, $mpdf->page);
+                    }
+
+                    $mpdf->SetPage($beforePage);
+                    $mpdf->AddPage();
+                    $heightBlock = 40; // mm จริงของบล็อก signature (ประมาณ)
+                    $mpdf->SetY(-($heightBlock + $bottomPadding));
+                    $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
+                } else {
+                    Log::info('Signature adaptive: placed on same page', compact('remaining', 'pushDown'));
+                }
             } else {
                 // ไม่พอ: สร้างหน้าใหม่ แล้ววางชิดล่างด้วย SetY(-height)
                 $mpdf->AddPage();
@@ -302,6 +325,13 @@ class QuotationPdfMasterService
             }
         } catch (\Throwable $e) {
             Log::warning('Signature adaptive render failed: '.$e->getMessage());
+
+            // หากเกิดข้อผิดพลาด ให้ลองวาดด้วยวิธีคงที่เป็นการสำรอง
+            try {
+                $this->addSignatureBlock($mpdf, $data);
+            } catch (\Throwable $e2) {
+                Log::error('Signature fallback failed: ' . $e2->getMessage());
+            }
         }
     }
 

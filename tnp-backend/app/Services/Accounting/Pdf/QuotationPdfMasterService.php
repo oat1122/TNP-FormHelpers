@@ -328,21 +328,21 @@ class QuotationPdfMasterService
      */
     protected function calculateSignatureDimensions(Mpdf $mpdf): array
     {
-        // Base signature height calculation
-        $lineHeight = 4.5; // mm per line
-        $headerHeight = 8; // mm for signature headers
-        $paddingHeight = 12; // mm for internal padding and spacing
-        $signatureBoxHeight = 15; // mm for actual signature area
+        // Base signature height calculation - made more compact
+        $lineHeight = 4; // mm per line (reduced from 4.5)
+        $headerHeight = 6; // mm for signature headers (reduced from 8)
+        $paddingHeight = 8; // mm for internal padding and spacing (reduced from 12)
+        $signatureBoxHeight = 12; // mm for actual signature area (reduced from 15)
         
         $totalHeight = $headerHeight + $signatureBoxHeight + $paddingHeight + ($lineHeight * 3); // 3 lines for name/date
         
-        // Dynamic adjustment based on content
-        $contentFactor = min($mpdf->page * 0.5, 5); // Increase requirement for multi-page docs
+        // Reduced dynamic adjustment to keep signature compact
+        $contentFactor = min($mpdf->page * 0.3, 3); // Reduced from 0.5 and 5
         $adjustedHeight = $totalHeight + $contentFactor;
         
         return [
-            'height' => max($adjustedHeight, 35), // Minimum 35mm
-            'padding' => 8, // mm safety margin
+            'height' => max($adjustedHeight, 30), // Minimum 30mm (reduced from 35mm)
+            'padding' => 6, // mm safety margin (reduced from 8mm)
             'base_height' => $totalHeight
         ];
     }
@@ -379,10 +379,11 @@ class QuotationPdfMasterService
     protected function placeSignatureOnCurrentPage(Mpdf $mpdf, string $sigHtml, float $remaining, float $requiredHeight, float $bottomPadding): bool
     {
         try {
+            // Calculate push down more aggressively to bring signature closer to footer
             $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
             
-            // Add minimum spacing
-            $minSpacing = 5; // mm
+            // Minimum spacing reduced for tighter layout
+            $minSpacing = 3; // mm (reduced from 5mm)
             $pushDown = max($pushDown, $minSpacing);
             
             $wrapper = sprintf(
@@ -393,10 +394,12 @@ class QuotationPdfMasterService
             
             $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
             
-            Log::info('Signature placed on current page', [
+            Log::info('Signature placed on current page (optimized spacing)', [
                 'remaining' => $remaining,
                 'push_down' => $pushDown,
-                'page' => $mpdf->page
+                'page' => $mpdf->page,
+                'required_height' => $requiredHeight,
+                'bottom_padding' => $bottomPadding
             ]);
             
             return true;
@@ -414,17 +417,21 @@ class QuotationPdfMasterService
         try {
             $mpdf->AddPage();
             
-            // Calculate safe position from bottom
-            $safeBottomPosition = $requiredHeight + $bottomPadding + 5; // 5mm extra safety
-            $maxBottomPosition = 60; // mm - maximum distance from bottom
-            $bottomPosition = min($safeBottomPosition, $maxBottomPosition);
+            // Calculate position to place signature closer to footer
+            // Reduce the distance from footer significantly
+            $footerGap = 8; // mm - minimal gap above footer (reduced from previous large values)
+            $signatureToFooterDistance = $requiredHeight + $footerGap;
+            
+            // Maximum distance from bottom should be much smaller for better layout
+            $maxBottomPosition = 40; // mm - reduced from 60mm to bring signature closer
+            $bottomPosition = min($signatureToFooterDistance, $maxBottomPosition);
             
             // Use relative positioning instead of absolute SetY
             $pageHeight = $mpdf->h - $mpdf->tMargin - $mpdf->bMargin;
             $targetY = $pageHeight - $bottomPosition;
             
-            // Add spacer div to push signature down
-            $spacerHeight = max($targetY - 10, 0); // 10mm buffer
+            // Reduce buffer to minimize empty space above signature
+            $spacerHeight = max($targetY - 5, 0); // 5mm buffer (reduced from 10mm)
             
             $wrapper = sprintf(
                 '<div style="height:%.2fmm;"></div><div class="signature-new-page" style="page-break-inside: avoid;">%s</div>',
@@ -434,10 +441,11 @@ class QuotationPdfMasterService
             
             $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
             
-            Log::info('Signature placed on new page', [
+            Log::info('Signature placed on new page (closer to footer)', [
                 'new_page' => $mpdf->page,
                 'spacer_height' => $spacerHeight,
-                'bottom_position' => $bottomPosition
+                'bottom_position' => $bottomPosition,
+                'footer_gap' => $footerGap
             ]);
             
             return true;

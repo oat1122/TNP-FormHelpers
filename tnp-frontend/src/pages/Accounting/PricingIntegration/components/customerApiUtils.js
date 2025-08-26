@@ -213,7 +213,25 @@ export const customerApi = {
             });
 
             if (response.ok) {
-                return await response.json();
+                const data = await response.json();
+                
+                // Normalize manager data structure for consistency
+                if (data && data.cus_manage_by) {
+                    if (typeof data.cus_manage_by === 'object') {
+                        // Already in object format, ensure it has proper structure
+                        if (!data.cus_manage_by.username && data.sales_name) {
+                            data.cus_manage_by.username = data.sales_name;
+                        }
+                    } else if (data.cus_manage_by && !isNaN(data.cus_manage_by)) {
+                        // Convert numeric ID to object format
+                        data.cus_manage_by = {
+                            user_id: String(data.cus_manage_by),
+                            username: data.sales_name || 'กำลังโหลด...'
+                        };
+                    }
+                }
+                
+                return data;
             }
             
             const errorData = await response.json().catch(() => ({}));
@@ -270,6 +288,11 @@ export const validateCustomerData = (data) => {
     // Validate tax ID format (13 digits)
     if (data.cus_tax_id && !/^[0-9]{13}$/.test(data.cus_tax_id.replace(/[^0-9]/g, ''))) {
         errors.cus_tax_id = 'เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก';
+    }
+
+    // Validate manager assignment
+    if (!data.cus_manage_by || !data.cus_manage_by.user_id) {
+        errors.cus_manage_by = 'กรุณาเลือกผู้ดูแลลูกค้า';
     }
 
     return {

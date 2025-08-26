@@ -35,6 +35,14 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { customerApi, validateCustomerData, formatPhoneNumber, formatTaxId } from './customerApiUtils';
+import { 
+    normalizeManagerData, 
+    hydrateManagerUsername, 
+    getDefaultManagerAssignment,
+    validateManagerAssignment,
+    prepareManagerForApi,
+    mergeManagerData 
+} from './managerUtils';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { AddressService } from '../../../../services/AddressService';
 import { useGetUserByRoleQuery } from '../../../../features/globalApi';
@@ -197,16 +205,15 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             const initType = (customer.customer_type || customer.cus_type || (customer.cus_company ? 'company' : 'individual'));
             // Normalize manage_by into object { user_id, username }
             const rawManage = customer.cus_manage_by;
-            let initManageObj = { user_id: '', username: '' };
-            if (rawManage && typeof rawManage === 'object') {
-                const id = rawManage.user_id ?? rawManage.user_uuid ?? rawManage.id ?? '';
-                const name = rawManage.username || rawManage.user_nickname || rawManage.name || '';
-                initManageObj = { user_id: id ? String(id) : '', username: name };
-            } else if (rawManage != null && rawManage !== '') {
-                initManageObj = { user_id: String(rawManage), username: '' };
-            } else if (!isAdmin && currentUser?.user_id) {
-                // Default for non-admin: self-assign
-                initManageObj = { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' };
+            const fallbackUsername = customer.sales_name;
+            let initManageObj;
+            
+            if (!isAdmin && currentUser?.user_id) {
+                // For non-admin users, always assign to self
+                initManageObj = getDefaultManagerAssignment(isAdmin, currentUser);
+            } else {
+                // For admin users, use existing assignment or default
+                initManageObj = normalizeManagerData(rawManage, fallbackUsername);
             }
             setEditData({
                 cus_company: customer.cus_company || '',
@@ -239,9 +246,8 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                     if (customer.cus_id) {
                         const full = await customerApi.getCustomer(customer.cus_id);
                         // Merge, prefer full details
-                        // Some APIs may return nested data or alternate keys
                         const src = full?.data || full?.customer || full || {};
-                        const merged = { ...customer, ...src };
+                        const merged = mergeManagerData(customer, src);
                         setDisplayCustomer(merged);
                         // Autofill/normalize editable fields after hydration
                         setEditData((prev) => {
@@ -284,14 +290,24 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
 
     // Hydrate manager username from sales list when available
     useEffect(() => {
-        if (!editData?.cus_manage_by?.user_id) return;
-        if (editData.cus_manage_by.username) return;
-        const match = salesList.find(u => String(u.user_id) === String(editData.cus_manage_by.user_id));
-        if (match) {
-            setEditData(prev => ({ ...prev, cus_manage_by: { ...prev.cus_manage_by, username: match.username } }));
+        if (!editData?.cus_manage_by?.user_id || !salesList.length) return;
+        
+        const hydratedManager = hydrateManagerUsername(editData.cus_manage_by, salesList);
+        if (hydratedManager.username !== editData.cus_manage_by.username) {
+            setEditData(prev => ({ 
+                ...prev, 
+                cus_manage_by: hydratedManager
+            }));
+            
+            // Also update display customer for immediate feedback
+            setDisplayCustomer(prev => ({
+                ...prev,
+                cus_manage_by: hydratedManager,
+                sales_name: hydratedManager.username
+            }));
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userRoleData]);
+    }, [userRoleData, editData?.cus_manage_by?.user_id]);
 
     // 🔧 Function definitions (moved before useEffect to avoid hoisting issues)
     const loadMasterData = useCallback(async () => {
@@ -546,15 +562,15 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             const resetBt = (base.cus_bt_id ?? base.bt_id ?? base.business_type_id ?? base.business_type?.bt_id ?? null);
             // Reset manager
             const rawManage = base.cus_manage_by;
-            let resetManage = { user_id: '', username: '' };
-            if (rawManage && typeof rawManage === 'object') {
-                const id = rawManage.user_id ?? rawManage.user_uuid ?? rawManage.id ?? '';
-                const name = rawManage.username || rawManage.user_nickname || rawManage.name || '';
-                resetManage = { user_id: id ? String(id) : '', username: name };
-            } else if (rawManage != null && rawManage !== '') {
-                resetManage = { user_id: String(rawManage), username: '' };
-            } else if (!isAdmin && currentUser?.user_id) {
-                resetManage = { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' };
+            const fallbackUsername = base.sales_name;
+            let resetManage;
+            
+            if (!isAdmin && currentUser?.user_id) {
+                // For non-admin, always reset to self
+                resetManage = getDefaultManagerAssignment(isAdmin, currentUser);
+            } else {
+                // For admin, normalize existing data
+                resetManage = normalizeManagerData(rawManage, fallbackUsername);
             }
             setEditData({
                 cus_company: base.cus_company || '',
@@ -613,15 +629,23 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         }
 
         // Require manager assignment; non-admin will auto-assign to self, admin must select
-        const mgrId = editData?.cus_manage_by?.user_id || '';
-        if (!mgrId) {
-            if (isAdmin) {
-                nextErrors.cus_manage_by = 'กรุณาเลือกผู้ดูแลลูกค้า';
-                isValid = false;
-            } else if (currentUser?.user_id) {
-                // Auto-fix for non-admin
-                setEditData(prev => ({ ...prev, cus_manage_by: { user_id: String(currentUser.user_id), username: currentUser.username || currentUser.user_nickname || '' } }));
-            }
+        const managerValidation = validateManagerAssignment(
+            editData.cus_manage_by, 
+            isAdmin, 
+            salesList, 
+            currentUser
+        );
+        
+        if (!managerValidation.isValid) {
+            Object.assign(nextErrors, managerValidation.errors);
+            isValid = false;
+        } else if (!isAdmin && currentUser?.user_id && !editData.cus_manage_by?.user_id) {
+            // Auto-fix for non-admin users
+            const defaultManager = getDefaultManagerAssignment(isAdmin, currentUser);
+            setEditData(prev => ({
+                ...prev,
+                cus_manage_by: defaultManager
+            }));
         }
 
         setErrors(nextErrors);
@@ -681,11 +705,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             updateData.cus_channel = editData.cus_channel === '' ? null : parseInt(editData.cus_channel, 10);
             updateData.cus_bt_id = editData.cus_bt_id === '' ? null : isNaN(Number(editData.cus_bt_id)) ? editData.cus_bt_id : Number(editData.cus_bt_id);
             // Map manager assignment to backend field (bigint)
-            const selectedManagerId = isAdmin ? (editData?.cus_manage_by?.user_id || '') : (currentUser?.user_id || '');
-            // Send as object to align with backend's flexible extractor; keep numeric id only
-            updateData.cus_manage_by = (selectedManagerId && /^\d+$/.test(String(selectedManagerId)))
-                ? { user_id: Number(selectedManagerId) }
-                : null;
+            updateData.cus_manage_by = prepareManagerForApi(editData.cus_manage_by, isAdmin, currentUser);
 
             await customerApi.updateCustomer(customer.cus_id, updateData);
 
@@ -1108,6 +1128,20 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                                 <LocationIcon /> ข้อมูลที่อยู่
                             </Typography>
                         </Grid>
+
+                        {/* Display Manager for View Mode */}
+                        {!isEditing && (
+                            <Grid item xs={12} md={6}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">ผู้ดูแลลูกค้า</Typography>
+                                    <Typography variant="body2" sx={{ color: '#900F0F', fontWeight: 500 }}>
+                                        {viewCustomer.cus_manage_by?.username || 
+                                         viewCustomer.sales_name || 
+                                         'ไม่ได้กำหนด'}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+                        )}
 
                         <Grid item xs={12}>
                             {isEditing ? (

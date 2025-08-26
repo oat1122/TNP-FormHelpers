@@ -55,16 +55,44 @@ class CustomerResource extends JsonResource
             'cus_province_name' => $this->customerProvince?->pro_name_th ?? '',
             'cus_district_name' => $this->customerDistrict?->dis_name_th ?? '',
             'cus_subdistrict_name' => $this->customerSubdistrict?->sub_name_th ?? '',
-            'cus_manage_by' => $this->cus_manage_by ? $this->cusManageBy : '',
+            'cus_manage_by' => $this->formatManagerData(),
             'cus_is_use' => $this->cus_is_use,
             'cd_id' => $this->customerDetail?->cd_id,
             'cd_last_datetime' => $this->customerDetail?->cd_last_datetime ?? '',
             'cd_note' => $this->customerDetail?->cd_note ?? '',
             'cd_remark' => $this->customerDetail?->cd_remark ?? '',
             'cus_created_date' => $this->cus_created_date,
-            'sales_name' => $this->cus_manage_by ? $this->cusManageBy->username : '',
+            'sales_name' => $this->cus_manage_by ? $this->cusManageBy?->username : '',
             'province_sort_id' => $this->customerDistrict?->dis_pro_sort_id ?? '',
             'district_sort_id' => $this->customerSubdistrict?->sub_dis_sort_id ?? '',
+        ];
+    }
+
+    /**
+     * Format manager data consistently
+     * @return array|string
+     */
+    private function formatManagerData()
+    {
+        if (!$this->cus_manage_by) {
+            return [
+                'user_id' => '',
+                'username' => 'ไม่ได้กำหนด'
+            ];
+        }
+
+        $manager = $this->cusManageBy;
+        if ($manager) {
+            return [
+                'user_id' => (string) $this->cus_manage_by,
+                'username' => $manager->username ?? $manager->user_nickname ?? 'ไม่ทราบชื่อ'
+            ];
+        }
+
+        // Fallback: if relation load failed but we have user_id
+        return [
+            'user_id' => (string) $this->cus_manage_by,
+            'username' => 'ไม่สามารถโหลดข้อมูลได้'
         ];
     }
 }

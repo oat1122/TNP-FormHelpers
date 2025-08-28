@@ -310,7 +310,6 @@
             @if($u)
               <img src="{{ $u }}" alt="{{ $caption }}" />
             @endif
-            <div class="img-caption">{{ $caption }}</div>
           </div>
         @endforeach
       </div>

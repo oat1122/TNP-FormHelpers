@@ -163,8 +163,13 @@ class QuotationPdfMasterService
         $mpdf->curlExecutionTimeout = 5;    // total execution timeout seconds
         $mpdf->curlFollowLocation = true;   // allow redirects when fetching remote assets
         $mpdf->curlAllowUnsafeSslRequests = true; // dev-friendly HTTPS
-        // Reasonable image DPI to reduce scaling cost
+        // Reasonable image DPI and interpolation for better perceived sharpness when downscaling
         $mpdf->img_dpi = 96;
+        $mpdf->interpolateImages = true;
+        // Prefer higher JPEG quality when mPDF needs to re-encode
+        if (property_exists($mpdf, 'jpeg_quality')) {
+            $mpdf->jpeg_quality = 90; // default is ~75
+        }
 
         /* 1) โหลด CSS (สำคัญ: ให้มาก่อน Header/Footer/Body เสมอ) */
         $this->writeCss($mpdf, $this->cssFiles());

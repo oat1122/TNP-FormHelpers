@@ -289,6 +289,13 @@
       }
       return $url;
     };
+    // Pick only one image: prefer selected_for_pdf; else the first
+    if (!empty($sampleImages)) {
+      $sel = null;
+      foreach ($sampleImages as $it) { if (!empty($it['selected_for_pdf'])) { $sel = $it; break; } }
+      if (!$sel) { $sel = $sampleImages[0]; }
+      $sampleImages = [$sel];
+    }
   @endphp
   @if(count($sampleImages) > 0)
     <div class="sample-images-section">

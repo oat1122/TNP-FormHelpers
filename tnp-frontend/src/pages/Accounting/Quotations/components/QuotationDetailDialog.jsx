@@ -351,6 +351,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const canUploadSignatures = ['admin','sale'].includes(userData?.role) && q?.status === 'approved';
   const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
   const sampleImages = Array.isArray(q?.sample_images) ? q.sample_images : [];
+  // Optimistic local selection for faster radio response
+  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState('');
+  React.useEffect(() => {
+    const initial = (sampleImages.find?.(it => !!it.selected_for_pdf)?.filename) || '';
+    setSelectedSampleForPdfLocal(initial);
+  }, [q?.id, JSON.stringify(sampleImages)]);
   const handleUploadSignatures = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -848,6 +854,42 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                   }}
                   helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
                 />
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)</Typography>
+                  <Box sx={{ display:'flex', flexWrap:'wrap', gap: 1, mt: 1 }}>
+                    {(sampleImages || []).map((img) => {
+                      const value = img.filename || '';
+                      const src = img.url || '';
+                      const checked = selectedSampleForPdfLocal ? (selectedSampleForPdfLocal === value) : !!img.selected_for_pdf;
+                      return (
+                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: checked ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6 }}>
+                          <input
+                            type="radio"
+                            name="selectedSampleForPdf"
+                            checked={checked}
+                            onChange={async () => {
+                              try {
+                                // Optimistic local update for instant feedback
+                                setSelectedSampleForPdfLocal(value);
+                                const updated = (sampleImages || []).map(it => ({
+                                  ...it,
+                                  selected_for_pdf: (it.filename || '') === value,
+                                }));
+                                await updateQuotation({ id: q.id, sample_images: updated }).unwrap();
+                              } catch (err) {
+                                // ignore
+                              }
+                            }}
+                            style={{ margin: 0 }}
+                          />
+                          {src ? (
+                            <img src={src} alt="sample" style={{ width: 72, height: 72, objectFit: 'cover', display:'block' }} />
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </Box>
+                </Box>
               </Box>
             </Section>
 

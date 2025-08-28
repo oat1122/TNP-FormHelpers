@@ -79,6 +79,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
     hasWithholdingTax: false,
     withholdingTaxPercentage: 0,
     sampleImages: [], // [{ path, url, filename, original_filename }]
+    selectedSampleForPdf: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -258,8 +259,11 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         finalTotal,
         depositAmount,
         remainingAmount,
-        // Attach sample images to payload as-is (backend casts array)
-        sample_images: (formData.sampleImages || []),
+        // Attach sample images and flag the one to show on PDF
+        sample_images: (formData.sampleImages || []).map((img) => ({
+          ...img,
+          selected_for_pdf: img.filename && img.filename === formData.selectedSampleForPdf,
+        })),
         // normalize terms for caller
         paymentMethod: formData.paymentTermsType === 'other' ? formData.paymentTermsCustom : formData.paymentTermsType,
         depositMode: formData.depositMode,
@@ -694,10 +698,40 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                   onUpload={async (files) => {
                     const res = await uploadSamplesTemp({ files }).unwrap();
                     const list = res?.data?.sample_images || res?.sample_images || [];
-                    setFormData((p) => ({ ...p, sampleImages: [...(p.sampleImages||[]), ...list] }));
+                    setFormData((p) => {
+                      const updated = [...(p.sampleImages||[]), ...list];
+                      const currentSel = p.selectedSampleForPdf;
+                      const nextSel = currentSel && updated.some(it => (it.filename === currentSel))
+                        ? currentSel
+                        : (updated[0]?.filename || '');
+                      return { ...p, sampleImages: updated, selectedSampleForPdf: nextSel };
+                    });
                   }}
                   helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
                 />
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)</Typography>
+                  <Box sx={{ display:'flex', flexWrap:'wrap', gap: 1, mt: 1 }}>
+                    {(formData.sampleImages || []).map((img) => {
+                      const value = img.filename || '';
+                      const src = img.url || '';
+                      return (
+                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: (formData.selectedSampleForPdf||'')===value ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6 }}>
+                          <input
+                            type="radio"
+                            name="selectedSample"
+                            checked={(formData.selectedSampleForPdf || '') === value}
+                            onChange={() => setFormData((p) => ({ ...p, selectedSampleForPdf: value }))}
+                            style={{ margin: 0 }}
+                          />
+                          {src ? (
+                            <img src={src} alt="sample" style={{ width: 72, height: 72, objectFit: 'cover', display:'block' }} />
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </Box>
+                </Box>
               </Box>
             </Section>
           </Grid>

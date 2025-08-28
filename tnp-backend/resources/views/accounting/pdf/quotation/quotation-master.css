@@ -480,6 +480,39 @@ col.w-total { width:15%; }
   font-size: 9pt !important;
 }
 
+/* ===== Sample Images Section ===== */
+.sample-images-section {
+  margin: 10pt 0 14pt 0;
+  page-break-inside: avoid;
+}
+.sample-images-title {
+  font-weight: bold;
+  margin: 0 0 6pt 0;
+  color: #34495e;
+}
+.sample-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6pt;
+}
+.sample-images-grid .img-box {
+  width: 31%;
+  border: 1px solid #e5edf5;
+  background: #fafbfc;
+  padding: 4pt;
+  border-radius: 4pt;
+}
+.sample-images-grid .img-box img {
+  width: 100%;
+  height: auto;
+}
+.sample-images-grid .img-caption {
+  font-size: 8pt;
+  color: #666;
+  margin-top: 2pt;
+  word-break: break-all;
+}
+
 /* แก้ไขเพิ่มเติมสำหรับ mPDF ที่อาจมีปัญหากับ table layout */
 .summary-notes-table td {
   box-sizing: border-box;

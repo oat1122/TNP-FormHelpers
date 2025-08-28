@@ -21,7 +21,7 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
-import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation, useUploadQuotationSignaturesMutation, useDeleteQuotationSignatureImageMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetQuotationQuery, useGetPricingRequestAutofillQuery, useUpdateQuotationMutation, useGenerateQuotationPDFMutation, useUploadQuotationSignaturesMutation, useDeleteQuotationSignatureImageMutation, useUploadQuotationSampleImagesMutation } from '../../../../features/Accounting/accountingApi';
 import { apiConfig } from '../../../../api/apiConfig';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB } from '../utils/format';
@@ -40,6 +40,7 @@ import SpecialDiscountField from '../../PricingIntegration/components/quotation/
 import WithholdingTaxField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField';
 import Calculation from '../../shared/components/Calculation';
 import PaymentTerms from '../../shared/components/PaymentTerms';
+import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
@@ -344,10 +345,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [generateQuotationPDF] = useGenerateQuotationPDFMutation();
   const [uploadSignatures, { isLoading: isUploadingSignatures }] = useUploadQuotationSignaturesMutation();
   const [deleteSignatureImage, { isLoading: isDeletingSignature }] = useDeleteQuotationSignatureImageMutation();
+  const [uploadSampleImages, { isLoading: isUploadingSamples }] = useUploadQuotationSampleImagesMutation();
   const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem('userData') || '{}'), []);
   const canUploadSignatures = ['admin','sale'].includes(userData?.role) && q?.status === 'approved';
   const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
+  const sampleImages = Array.isArray(q?.sample_images) ? q.sample_images : [];
   const handleUploadSignatures = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -823,6 +826,31 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
               </Grid>
             </Grid>
 
+            {/* Sample Images (always visible) */}
+            <Section>
+              <SectionHeader>
+                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                  <AddIcon fontSize="small" />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>รูปภาพตัวอย่าง</Typography>
+                  <Typography variant="caption" color="text.secondary">ไฟล์จะถูกแทรกลงใน PDF ใบเสนอราคา</Typography>
+                </Box>
+              </SectionHeader>
+              <Box sx={{ p:2 }}>
+                <ImageUploadGrid
+                  title="รูปภาพตัวอย่าง"
+                  images={sampleImages}
+                  disabled={isUploadingSamples}
+                  onUpload={async (files) => {
+                    await uploadSampleImages({ id: q.id, files }).unwrap();
+                    // RTK invalidates Quotation tag; UI will refresh from server
+                  }}
+                  helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
+                />
+              </Box>
+            </Section>
+
               {q?.status === 'approved' && (
                 <Grid item xs={12}>
                   <Section>
@@ -955,6 +983,8 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
         <SecondaryButton onClick={() => setShowPdfViewer(false)}>ปิด</SecondaryButton>
       </DialogActions>
     </Dialog>
+
+    {/* Sample Images Section inside details (above footer actions) */}
 
     {/* Signature Image Preview Dialog */}
     <Dialog open={!!previewImage} onClose={()=>setPreviewImage(null)} maxWidth="md" fullWidth>

@@ -273,6 +273,33 @@
 
   {{-- Signature spacer: กันไม่ให้เนื้อหามาชนพื้นที่ลายเซ็นคงที่ด้านล่างหน้า --}}
   {{-- signature injected by service dynamically --}}
+  {{-- Sample Images (if provided) --}}
+  @php
+    $sampleImages = is_array($quotation->sample_images ?? null) ? $quotation->sample_images : [];
+  @endphp
+  @if(count($sampleImages) > 0)
+    <div class="sample-images-section">
+      <div class="sample-images-title">รูปภาพตัวอย่าง</div>
+      <div class="sample-images-grid">
+        @foreach($sampleImages as $img)
+          @php
+            $u = $img['url'] ?? '';
+            if (!$u && !empty($img['path'])) {
+              $u = url('storage/' . str_replace('public/', '', $img['path']));
+            }
+            $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
+          @endphp
+          <div class="img-box">
+            @if($u)
+              <img src="{{ $u }}" alt="{{ $caption }}" />
+            @endif
+            <div class="img-caption">{{ $caption }}</div>
+          </div>
+        @endforeach
+      </div>
+    </div>
+  @endif
+
   <div class="signature-spacer"></div>
 
   </div>

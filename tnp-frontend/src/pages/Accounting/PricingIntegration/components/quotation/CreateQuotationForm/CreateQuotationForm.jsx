@@ -40,6 +40,8 @@ import SpecialDiscountField from './components/SpecialDiscountField';
 import WithholdingTaxField from './components/WithholdingTaxField';
 import Calculation from '../../../../shared/components/Calculation';
 import PaymentTerms from '../../../../shared/components/PaymentTerms';
+import ImageUploadGrid from '../../../../shared/components/ImageUploadGrid';
+import { useUploadQuotationSampleImagesTempMutation } from '../../../../../../features/Accounting/accountingApi';
 
 // UTILS
 import { useQuotationFinancials } from '../../../../shared/hooks/useQuotationFinancials';
@@ -76,11 +78,13 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
     specialDiscountValue: 0,
     hasWithholdingTax: false,
     withholdingTaxPercentage: 0,
+    sampleImages: [], // [{ path, url, filename, original_filename }]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [isCalcEditing, setIsCalcEditing] = useState(!readOnly);
+  const [uploadSamplesTemp, { isLoading: isUploadingSamples }] = useUploadQuotationSampleImagesTempMutation();
 
   // ======== INIT FROM PR ========
   useEffect(() => {
@@ -254,6 +258,8 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         finalTotal,
         depositAmount,
         remainingAmount,
+        // Attach sample images to payload as-is (backend casts array)
+        sample_images: (formData.sampleImages || []),
         // normalize terms for caller
         paymentMethod: formData.paymentTermsType === 'other' ? formData.paymentTermsCustom : formData.paymentTermsType,
         depositMode: formData.depositMode,
@@ -670,8 +676,32 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
               </Box>
             </Section>
           </Grid>
-        </Grid>
 
+          {/* SECTION: SAMPLE IMAGES */}
+          <Grid item xs={12}>
+            <Section>
+              <SectionHeader>
+                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                  <AddIcon fontSize="small" />
+                </Avatar>
+                <Typography variant="subtitle1" fontWeight={700}>รูปภาพตัวอย่าง</Typography>
+              </SectionHeader>
+              <Box sx={{ p: 2 }}>
+                <ImageUploadGrid
+                  title="รูปภาพตัวอย่าง"
+                  images={formData.sampleImages}
+                  disabled={isUploadingSamples}
+                  onUpload={async (files) => {
+                    const res = await uploadSamplesTemp({ files }).unwrap();
+                    const list = res?.data?.sample_images || res?.sample_images || [];
+                    setFormData((p) => ({ ...p, sampleImages: [...(p.sampleImages||[]), ...list] }));
+                  }}
+                  helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
+                />
+              </Box>
+            </Section>
+          </Grid>
+        </Grid>
         {/* FOOTER ACTIONS */}
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
           <SecondaryButton onClick={onBack} startIcon={<ArrowBackIcon />}>ยกเลิก</SecondaryButton>

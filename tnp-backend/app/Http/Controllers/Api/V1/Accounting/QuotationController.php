@@ -85,6 +85,7 @@ class QuotationController extends Controller
                 'payment_terms' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
                 'notes' => 'nullable|string',
+                'sample_images' => 'nullable|array',
                 'items' => 'nullable|array',
                 'items.*.item_name' => 'required_with:items|string|max:255',
                 'items.*.quantity' => 'required_with:items|integer|min:1',
@@ -196,6 +197,7 @@ class QuotationController extends Controller
                 'payment_terms' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
                 'notes' => 'nullable|string',
+                'sample_images' => 'nullable|array',
                 // Optional: full replacement of quotation items when provided
                 'items' => 'nullable|array',
                 'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
@@ -909,6 +911,91 @@ class QuotationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload signatures: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload sample images and append to quotation->sample_images
+     * POST /api/v1/quotations/{id}/upload-sample-images
+     */
+    public function uploadSampleImages(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required',
+                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = auth()->user();
+            $rawFiles = $request->file('files');
+            if ($rawFiles === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No uploaded files found',
+                    'errors' => ['files' => ['No uploaded files found']]
+                ], 422);
+            }
+            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
+
+            $result = $this->quotationService->uploadSampleImages($id, $files, $user->user_uuid ?? null);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Sample images uploaded successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::uploadSampleImages error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload sample images: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload sample images without binding to quotation (for create form)
+     * POST /api/v1/quotations/upload-sample-images
+     */
+    public function uploadSampleImagesTemp(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required',
+                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $rawFiles = $request->file('files');
+            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
+            $user = auth()->user();
+
+            $result = $this->quotationService->uploadSampleImagesNoBind($files, $user->user_uuid ?? null);
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Sample images uploaded successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('QuotationController::uploadSampleImagesTemp error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload sample images: ' . $e->getMessage()
             ], 500);
         }
     }

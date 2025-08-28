@@ -77,6 +77,10 @@ class QuotationService
             $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
             $quotation->final_total_amount = $additionalData['final_total_amount'] ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $additionalData['total_amount'] ?? 0;
+            // Sample images from UI (optional on create-from-PR)
+            if (array_key_exists('sample_images', $additionalData)) {
+                $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];
+            }
             // Deposit logic: allow either percentage or explicit amount via deposit_mode
             $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
             if ($depositMode === 'amount' && isset($additionalData['deposit_amount'])) {
@@ -98,6 +102,10 @@ class QuotationService
             }
 
             $quotation->status = 'draft';
+            // Sample images from UI
+            if (array_key_exists('sample_images', $additionalData)) {
+                $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];
+            }
             // Ensure unique draft number to satisfy (company_id, number) unique index
             if (empty($quotation->number)) {
                 $suffix = substr(str_replace('-', '', (string)$quotation->id), -8);
@@ -293,6 +301,10 @@ class QuotationService
             $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
             $quotation->final_total_amount = $additionalData['final_total_amount'] ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $totalAmount;
+            // Sample images from UI
+            if (array_key_exists('sample_images', $additionalData)) {
+                $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];
+            }
 
             // ข้อมูลการชำระเงิน
             $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
@@ -1318,6 +1330,108 @@ class QuotationService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('QuotationService::deleteSignatureImage error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Upload sample images and append to quotation->sample_images
+     * Files are stored under storage/app/public/images/quotation-samples
+     */
+    public function uploadSampleImages($quotationId, $files, $uploadedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            /** @var Quotation $quotation */
+            $quotation = Quotation::findOrFail($quotationId);
+
+            $existing = is_array($quotation->sample_images) ? $quotation->sample_images : [];
+            $stored = [];
+
+            if (!is_array($files) && !($files instanceof \Traversable)) {
+                throw new \Exception('Invalid files payload (expected array)');
+            }
+
+            foreach ($files as $file) {
+                if (!$file) { continue; }
+                $ext = $file->getClientOriginalExtension();
+                $safeExt = strtolower($ext ?: 'jpg');
+                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                $path = $file->storeAs('public/images/quotation-samples', $filename);
+                $relative = str_replace('public/', '', $path); // images/quotation-samples/...
+                $publicUrl = url('storage/' . $relative);
+                $stored[] = [
+                    'filename' => $filename,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'url' => $publicUrl,
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                    'uploaded_at' => now()->toIso8601String(),
+                    'uploaded_by' => $uploadedBy,
+                ];
+            }
+
+            $quotation->sample_images = array_values(array_merge($existing, $stored));
+            $quotation->save();
+
+            DocumentHistory::logAction(
+                'quotation',
+                $quotationId,
+                'upload_sample_images',
+                $uploadedBy,
+                'อัปโหลดรูปภาพตัวอย่างจำนวน ' . count($stored) . ' ไฟล์'
+            );
+
+            DB::commit();
+
+            return [
+                'sample_images' => $quotation->sample_images,
+                'uploaded_count' => count($stored),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::uploadSampleImages error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Upload sample images without persisting to any quotation (for create form)
+     */
+    public function uploadSampleImagesNoBind($files, $uploadedBy = null)
+    {
+        try {
+            $stored = [];
+            if (!is_array($files) && !($files instanceof \Traversable)) {
+                throw new \Exception('Invalid files payload (expected array)');
+            }
+            foreach ($files as $file) {
+                if (!$file) { continue; }
+                $ext = $file->getClientOriginalExtension();
+                $safeExt = strtolower($ext ?: 'jpg');
+                $filename = date('Ymd_His') . '_' . \Illuminate\Support\Str::random(8) . '.' . $safeExt;
+                $path = $file->storeAs('public/images/quotation-samples', $filename);
+                $relative = str_replace('public/', '', $path);
+                $publicUrl = url('storage/' . $relative);
+                $stored[] = [
+                    'filename' => $filename,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'url' => $publicUrl,
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                    'uploaded_at' => now()->toIso8601String(),
+                    'uploaded_by' => $uploadedBy,
+                ];
+            }
+            return [
+                'sample_images' => $stored,
+                'uploaded_count' => count($stored),
+            ];
+        } catch (\Exception $e) {
+            Log::error('QuotationService::uploadSampleImagesNoBind error: ' . $e->getMessage());
             throw $e;
         }
     }

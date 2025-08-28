@@ -277,6 +277,9 @@ Route::prefix('v1')->group(function() {
         Route::get('/quotations/{id}/pdf/test', 'testMpdf');
         Route::post('/quotations/{id}/send-email', 'sendEmail');
         Route::post('/quotations/{id}/upload-evidence', 'uploadEvidence');
+        // Sample images upload for quotations
+        Route::post('/quotations/{id}/upload-sample-images', 'uploadSampleImages');
+        Route::post('/quotations/upload-sample-images', 'uploadSampleImagesTemp');
     Route::post('/quotations/{id}/upload-signatures', 'uploadSignatures');
     Route::delete('/quotations/{id}/signatures/{identifier}', 'deleteSignatureImage');
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');

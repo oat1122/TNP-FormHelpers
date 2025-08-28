@@ -292,6 +292,47 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Upload sample images to a quotation (append to sample_images)
+        uploadQuotationSampleImages: builder.mutation({
+            query: ({ id, files }) => {
+                const formData = new FormData();
+                if (Array.isArray(files)) {
+                    files.forEach(f => formData.append('files[]', f));
+                } else if (files) {
+                    formData.append('files[]', files);
+                }
+                return {
+                    url: `/quotations/${id}/upload-sample-images`,
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Skip-Json': '1' },
+                    formData: true,
+                };
+            },
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Quotation', id },
+            ],
+        }),
+
+        // Upload sample images without binding (for create form)
+        uploadQuotationSampleImagesTemp: builder.mutation({
+            query: ({ files }) => {
+                const formData = new FormData();
+                if (Array.isArray(files)) {
+                    files.forEach(f => formData.append('files[]', f));
+                } else if (files) {
+                    formData.append('files[]', files);
+                }
+                return {
+                    url: `/quotations/upload-sample-images`,
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Skip-Json': '1' },
+                    formData: true,
+                };
+            },
+        }),
+
         // Delete one signature image
         deleteQuotationSignatureImage: builder.mutation({
             query: ({ id, identifier }) => ({
@@ -664,6 +705,8 @@ export const {
     useMarkQuotationSentMutation,
     useUploadQuotationEvidenceMutation,
     useUploadQuotationSignaturesMutation,
+    useUploadQuotationSampleImagesMutation,
+    useUploadQuotationSampleImagesTempMutation,
     useDeleteQuotationSignatureImageMutation,
     useSendQuotationEmailMutation,
     useMarkQuotationCompletedMutation,

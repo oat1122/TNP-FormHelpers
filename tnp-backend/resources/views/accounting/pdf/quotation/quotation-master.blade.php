@@ -276,6 +276,19 @@
   {{-- Sample Images (if provided) --}}
   @php
     $sampleImages = is_array($quotation->sample_images ?? null) ? $quotation->sample_images : [];
+    // Prefer local filesystem path for mPDF to avoid slow HTTP fetches
+    $resolveImgSrc = function ($img) {
+      $url = $img['url'] ?? '';
+      $path = $img['path'] ?? '';
+      $relative = $path ? str_replace('public/', '', $path) : '';
+      if ($relative) {
+        $publicStorage = public_path('storage/' . $relative);
+        if (is_file($publicStorage)) return $publicStorage;
+        $absStorage = storage_path('app/' . $relative);
+        if (is_file($absStorage)) return $absStorage;
+      }
+      return $url;
+    };
   @endphp
   @if(count($sampleImages) > 0)
     <div class="sample-images-section">
@@ -283,10 +296,7 @@
       <div class="sample-images-grid">
         @foreach($sampleImages as $img)
           @php
-            $u = $img['url'] ?? '';
-            if (!$u && !empty($img['path'])) {
-              $u = url('storage/' . str_replace('public/', '', $img['path']));
-            }
+            $u = $resolveImgSrc($img);
             $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
           @endphp
           <div class="img-box">

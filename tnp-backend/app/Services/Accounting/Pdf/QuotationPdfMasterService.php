@@ -145,6 +145,8 @@ class QuotationPdfMasterService
             'fontdata'            => $hasThaiFonts ? ($fontData + $customFontData) : $fontData,
 
             'tempDir'             => storage_path('app/mpdf-temp'),
+            // Avoid SSL verification issues when fetching any remote assets (dev envs)
+            'curlAllowUnsafeSslRequests' => true,
             'useOTL'              => 0xFF,
             'useKerning'          => true,
             'autoLangToFont'      => true,
@@ -156,6 +158,13 @@ class QuotationPdfMasterService
         }
 
         $mpdf = new Mpdf($config);
+        // Conservative cURL settings (supported by mPDF)
+        $mpdf->curlTimeout = 5;             // connection timeout seconds
+        $mpdf->curlExecutionTimeout = 5;    // total execution timeout seconds
+        $mpdf->curlFollowLocation = true;   // allow redirects when fetching remote assets
+        $mpdf->curlAllowUnsafeSslRequests = true; // dev-friendly HTTPS
+        // Reasonable image DPI to reduce scaling cost
+        $mpdf->img_dpi = 96;
 
         /* 1) โหลด CSS (สำคัญ: ให้มาก่อน Header/Footer/Body เสมอ) */
         $this->writeCss($mpdf, $this->cssFiles());
@@ -174,8 +183,8 @@ class QuotationPdfMasterService
     }
 
     /**
-     * ระบุรายการไฟล์ CSS ที่ต้องโหลด (แก้ path ตามโปรเจกต์จริงของมดได้)
-     * แนะนำให้แยกไฟล์ตามหน้าที่ เพื่อจัดระเบียบและ override ได้ง่าย
+     * ระบุรายการไฟล์ CSS ที่ต้องโหลด (แก้ path ตามโปรเจกต์จริง)
+     * 
      *
      * ตัวอย่างไฟล์:
      * tnp-backend\resources\views\pdf\partials\quotation-header.css

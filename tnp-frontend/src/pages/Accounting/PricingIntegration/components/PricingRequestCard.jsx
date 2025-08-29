@@ -156,24 +156,60 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
 
                 <TNPDivider />
 
-                {/* 📋 List of Pricing Requests - ปรับปรุงให้อ่านง่ายขึ้น */}
-                <Stack spacing={1.5} component="ul" role="list">
+                {/*  List of Pricing Requests - ปรับปรุงให้อ่านง่ายขึ้น */}
+                <Stack spacing={0.5} component="ul" role="list" sx={{ px: 0, mx: 0 }}>
                     {latestThree.map((req) => {
                         const primaryStatus = getPrimaryStatus(req);
                         return (
-                            <TNPListItem key={req.pr_id} role="listitem">
-                                <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-                                    <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
+                            <TNPListItem key={req.pr_id} role="listitem" sx={{ px: 0, mx: 0 }}>
+                                <Box 
+                                    display="flex" 
+                                    alignItems="flex-start" 
+                                    justifyContent="space-between" 
+                                    minHeight="48px"
+                                    py={0.75}
+                                    px={1.25}
+                                    sx={{ width: '100%' }}
+                                >
+                                    <Box display="flex" flexDirection="column" flex={1} gap={0.25} sx={{ pr: 1.5 }}>
+                                        <TNPPRNumber 
+                                            sx={{ 
+                                                lineHeight: 1.2,
+                                                fontSize: '0.875rem',
+                                                fontWeight: 600,
+                                                margin: 0,
+                                                padding: 0
+                                            }}
+                                        >
+                                            #{getPRDisplayNumber(req)}
+                                        </TNPPRNumber>
+                                        <TNPBodyText 
+                                            sx={{ 
+                                                lineHeight: 1.3,
+                                                fontSize: '0.875rem',
+                                                color: 'text.secondary',
+                                                margin: 0,
+                                                padding: 0
+                                            }}
+                                        >
+                                            {req.pr_work_name || 'ไม่ระบุชื่องาน'}
+                                        </TNPBodyText>
+                                    </Box>
                                     {primaryStatus && (
                                         <TNPStatusChip
                                             label={primaryStatus.label}
                                             statuscolor={primaryStatus.color}
                                             size="small"
-                                            icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.875rem' }} /> : undefined}
+                                            icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.75rem' }} /> : undefined}
+                                            sx={{ 
+                                                flexShrink: 0,
+                                                height: 24,
+                                                fontSize: '0.75rem',
+                                                alignSelf: 'flex-start'
+                                            }}
                                         />
                                     )}
                                 </Box>
-                                <TNPBodyText>{req.pr_work_name || 'ไม่ระบุชื่องาน'}</TNPBodyText>
                             </TNPListItem>
                         );
                     })}
@@ -181,27 +217,63 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                     {/* Additional items with smooth animation */}
                     {hasMore && (
                         <Collapse in={expanded} timeout={250} unmountOnExit id={collapseId}>
-                            <Stack spacing={1.5} mt={0.5} component="ul" role="list">
+                            <Box mt={0.25} sx={{ px: 0, mx: 0 }}>
                                 {sortedRequests.slice(3).map((req) => {
                                     const primaryStatus = getPrimaryStatus(req);
                                     return (
-                                        <TNPListItem key={req.pr_id} role="listitem">
-                                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-                                                <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
+                                        <TNPListItem key={req.pr_id} role="listitem" sx={{ mb: 0.5, px: 0, mx: 0 }}>
+                                            <Box 
+                                                display="flex" 
+                                                alignItems="flex-start" 
+                                                justifyContent="space-between" 
+                                                minHeight="48px"
+                                                py={0.75}
+                                                px={1.25}
+                                                sx={{ width: '100%' }}
+                                            >
+                                                <Box display="flex" flexDirection="column" flex={1} gap={0.25} sx={{ pr: 1.5 }}>
+                                                    <TNPPRNumber 
+                                                        sx={{ 
+                                                            lineHeight: 1.2,
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                            margin: 0,
+                                                            padding: 0
+                                                        }}
+                                                    >
+                                                        #{getPRDisplayNumber(req)}
+                                                    </TNPPRNumber>
+                                                    <TNPBodyText 
+                                                        sx={{ 
+                                                            lineHeight: 1.3,
+                                                            fontSize: '0.875rem',
+                                                            color: 'text.secondary',
+                                                            margin: 0,
+                                                            padding: 0
+                                                        }}
+                                                    >
+                                                        {req.pr_work_name || 'ไม่ระบุชื่องาน'}
+                                                    </TNPBodyText>
+                                                </Box>
                                                 {primaryStatus && (
                                                     <TNPStatusChip
                                                         label={primaryStatus.label}
                                                         statuscolor={primaryStatus.color}
                                                         size="small"
-                                                        icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.875rem' }} /> : undefined}
+                                                        icon={primaryStatus.showIcon ? <CheckCircleIcon sx={{ fontSize: '0.75rem' }} /> : undefined}
+                                                        sx={{ 
+                                                            flexShrink: 0,
+                                                            height: 24,
+                                                            fontSize: '0.75rem',
+                                                            alignSelf: 'flex-start'
+                                                        }}
                                                     />
                                                 )}
                                             </Box>
-                                            <TNPBodyText>{req.pr_work_name || 'ไม่ระบุชื่องาน'}</TNPBodyText>
                                         </TNPListItem>
                                     );
                                 })}
-                            </Stack>
+                            </Box>
                         </Collapse>
                     )}
                 </Stack>

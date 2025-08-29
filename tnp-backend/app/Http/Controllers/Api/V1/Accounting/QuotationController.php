@@ -34,7 +34,10 @@ class QuotationController extends Controller
                 'created_by' => $request->query('created_by'),
                 'date_from' => $request->query('date_from'),
                 'date_to' => $request->query('date_to'),
-                'search' => $request->query('search')
+                'search' => $request->query('search'),
+                // New filter: show only quotations that have uploaded signature evidence
+                // Accepts: signature_uploaded=1|true or 0|false
+                'signature_uploaded' => $request->query('signature_uploaded')
             ];
 
             $perPage = min($request->query('per_page', 15), 50); // จำกัดไม่เกิน 50 รายการต่อหน้า

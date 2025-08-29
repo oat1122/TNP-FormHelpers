@@ -10,6 +10,13 @@ import {
   Grid,
   Alert,
   Button,
+  Stack,
+  ToggleButtonGroup,
+  ToggleButton,
+  FormControlLabel,
+  Checkbox,
+  Paper,
+  Typography,
 } from '@mui/material';
 import {
   Header,
@@ -45,8 +52,8 @@ const Quotations = () => {
   const dispatch = useDispatch();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [statusFilter, setStatusFilter] = useState('all');
+  const [signatureOnly, setSignatureOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
@@ -57,8 +64,7 @@ const Quotations = () => {
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
     search: searchQuery || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
-    date_from: dateRange.start || undefined,
-    date_to: dateRange.end || undefined,
+    signature_uploaded: signatureOnly ? 1 : undefined,
     page: 1,
     per_page: 1000,
   });
@@ -177,8 +183,8 @@ const Quotations = () => {
   }, [refetch, dispatch]);
   const handleResetFilters = () => {
     setSearchQuery('');
-    setDateRange({ start: null, end: null });
     setStatusFilter('all');
+    setSignatureOnly(false);
   };
 
   const handleSearch = useCallback((query) => {
@@ -215,11 +221,43 @@ const Quotations = () => {
             <FilterSection
               searchQuery={searchQuery}
               onSearchChange={handleSearch}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
               onRefresh={handleRefresh}
               onResetFilters={handleResetFilters}
             />
+
+            {/* Extra filters: status + signature evidence */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={8}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" sx={{ minWidth: 56 }}>สถานะ</Typography>
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      color="primary"
+                      value={statusFilter}
+                      onChange={(e, val) => { if (val) setStatusFilter(val); }}
+                    >
+                      <ToggleButton value="all">ทั้งหมด</ToggleButton>
+                      <ToggleButton value="draft">Draft</ToggleButton>
+                      <ToggleButton value="approved">Approved</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Stack>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={signatureOnly}
+                        onChange={(e) => setSignatureOnly(e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="แสดงเฉพาะใบที่มีหลักฐานการเซ็นแล้ว"
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
 
             {/* 🔐 Access Control Information */}
             {(() => {

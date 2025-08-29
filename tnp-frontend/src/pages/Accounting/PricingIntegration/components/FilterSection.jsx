@@ -13,20 +13,17 @@ import {
     FilterList as FilterIcon,
     Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const FilterSection = ({
     searchQuery,
     onSearchChange,
-    dateRange,
-    onDateRangeChange,
     onRefresh,
     onResetFilters
 }) => {
     return (
         <Paper sx={{ p: 3, mb: 4 }}>
             <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={8}>
                     <TextField
                         fullWidth
                         placeholder="ค้นหาด้วยชื่อบริษัท, หมายเลข PR, หรือชื่องาน"
@@ -42,25 +39,9 @@ const FilterSection = ({
                     />
                 </Grid>
 
-                <Grid item xs={12} md={3}>
-                    <DatePicker
-                        label="วันที่เริ่มต้น"
-                        value={dateRange.start}
-                        onChange={(date) => onDateRangeChange(prev => ({ ...prev, start: date }))}
-                        slotProps={{ textField: { fullWidth: true } }}
-                    />
-                </Grid>
 
-                <Grid item xs={12} md={3}>
-                    <DatePicker
-                        label="วันที่สิ้นสุด"
-                        value={dateRange.end}
-                        onChange={(date) => onDateRangeChange(prev => ({ ...prev, end: date }))}
-                        slotProps={{ textField: { fullWidth: true } }}
-                    />
-                </Grid>
 
-                <Grid item xs={12} md={2}>
+                <Grid item xs={12} md={4}>
                     <Stack direction="row" spacing={1}>
                         <Tooltip title="รีเฟรชข้อมูล">
                             <IconButton

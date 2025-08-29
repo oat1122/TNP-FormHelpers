@@ -831,6 +831,27 @@ class QuotationService
                 });
             }
 
+            // Filter by presence of uploaded signature evidence
+            // signature_uploaded: '1'|'true' => has signatures; '0'|'false' => no signatures
+            if (array_key_exists('signature_uploaded', $filters) && $filters['signature_uploaded'] !== null && $filters['signature_uploaded'] !== '') {
+                $val = strtolower((string)$filters['signature_uploaded']);
+                $wantHas = in_array($val, ['1','true','yes']);
+                if ($wantHas) {
+                    // JSON_VALID + JSON_LENGTH > 0 covers non-empty arrays
+                    $query->where(function($q){
+                        $q->whereNotNull('signature_images')
+                          ->whereRaw('JSON_VALID(signature_images)')
+                          ->whereRaw('JSON_LENGTH(signature_images) > 0');
+                    });
+                } else {
+                    $query->where(function($q){
+                        $q->whereNull('signature_images')
+                          ->orWhereRaw('NOT JSON_VALID(signature_images)')
+                          ->orWhereRaw('JSON_LENGTH(signature_images) = 0');
+                    });
+                }
+            }
+
             return $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         } catch (\Exception $e) {

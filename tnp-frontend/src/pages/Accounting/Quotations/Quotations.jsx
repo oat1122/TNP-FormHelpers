@@ -239,8 +239,8 @@ const Quotations = () => {
                       onChange={(e, val) => { if (val) setStatusFilter(val); }}
                     >
                       <ToggleButton value="all">ทั้งหมด</ToggleButton>
-                      <ToggleButton value="draft">Draft</ToggleButton>
-                      <ToggleButton value="approved">Approved</ToggleButton>
+                      <ToggleButton value="draft">กำลังรอดำเนินการ</ToggleButton>
+                      <ToggleButton value="approved">อนุมัติแล้ว</ToggleButton>
                     </ToggleButtonGroup>
                   </Stack>
                 </Grid>

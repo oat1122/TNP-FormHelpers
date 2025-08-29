@@ -363,6 +363,7 @@ const PricingIntegration = () => {
 
                 // หมายเหตุเพิ่มเติม
                 additional_notes: data.notes || '',
+                sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
             };
 
             console.log('📤 API Draft Data:', submitData);
@@ -459,6 +460,7 @@ const PricingIntegration = () => {
 
                 // หมายเหตุเพิ่มเติม
                 additional_notes: data.notes || '',
+                sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
             };
 
             console.log('📤 API Submit Data:', submitData);

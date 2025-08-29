@@ -5,7 +5,7 @@ import { adaptQuotationPayloadToPreview } from '../utils/quotationAdapter';
 import accountingHttp from '../../../../api/accountingApi';
 
 // A4 printable quotation preview with logo and size from quotation_items
-export default function QuotationPreview({ formData = {}, record = null, quotationNumber = '', showActions = false, onClose, previewData }) {
+function QuotationPreview({ formData = {}, record = null, quotationNumber = '', showActions = false, onClose, previewData }) {
   const [loading, setLoading] = useState(false);
   // Keep compatibility: prefer adapter when formData/record provided; otherwise accept previewData prop
   const data = useMemo(() => {
@@ -16,12 +16,14 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
   const customer = data.customer || {};
   const items = Array.isArray(data.items) ? data.items : [];
 
-  const fmtTHB = (n) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(n || 0));
+  // Reuse currency formatter for performance
+  const currencyFormatter = useMemo(() => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }), []);
+  const fmtTHB = (n) => currencyFormatter.format(Number(n || 0));
   const fmtDate = (d) => {
     try { return (d ? new Date(d) : new Date()).toLocaleDateString('th-TH'); } catch { return ''; }
   };
 
-  const computedSubtotal = items.reduce((sum, it) => {
+  const computedSubtotal = useMemo(() => items.reduce((sum, it) => {
     const rows = Array.isArray(it.sizeRows) ? it.sizeRows : [];
     const qty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0) || Number(it.quantity || 0) || 0;
     // Use DB unit_price directly, with fallback
@@ -33,7 +35,7 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
         }, 0)
       : unitPrice * qty;
     return sum + lineTotal;
-  }, 0);
+  }, 0), [items]);
 
   const subtotal = Number(data.subtotal ?? computedSubtotal);
   const vat = Number(data.vat ?? subtotal * 0.07);
@@ -64,11 +66,11 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
   };
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 2 }} aria-busy={loading}>
       {showActions && (
-        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-          <Button variant="contained" onClick={handlePrintPDF} disabled={loading}>{loading ? 'กำลังสร้าง PDF...' : 'พิมพ์'}</Button>
-          {!!onClose && <Button variant="outlined" onClick={onClose}>ปิด</Button>}
+        <Stack direction="row" spacing={1} sx={{ mb: 2 }} role="toolbar" aria-label="Quotation actions">
+          <Button variant="contained" onClick={handlePrintPDF} disabled={loading} aria-label={loading ? 'Generating PDF' : 'Generate quotation PDF'}>{loading ? 'กำลังสร้าง PDF...' : 'พิมพ์'}</Button>
+          {!!onClose && <Button variant="outlined" onClick={onClose} aria-label="Close preview">ปิด</Button>}
         </Stack>
       )}
 
@@ -76,7 +78,7 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <img src="/logo.png" alt="Company Logo" style={{ height: 50, objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Company Logo" width="150" height="50" style={{ height: 50, objectFit: 'contain' }} decoding="async" />
             <Box>
               <Typography variant="h6" fontWeight={800}>{company.name || 'บริษัทของคุณ'}</Typography>
               <Typography variant="body2" color="text.secondary">{company.address || 'ที่อยู่บริษัท'}</Typography>
@@ -107,7 +109,7 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
         </Box>
 
         {/* Items */}
-        <TableContainer sx={{ mt: 1 }}>
+        <TableContainer sx={{ mt: 1 }} aria-label="Quotation items">
           <Table size="small">
             <TableHead>
               <TableRow className="tnp-quotation--thead">
@@ -310,3 +312,5 @@ export default function QuotationPreview({ formData = {}, record = null, quotati
     </Box>
   );
 }
+
+export default React.memo(QuotationPreview);

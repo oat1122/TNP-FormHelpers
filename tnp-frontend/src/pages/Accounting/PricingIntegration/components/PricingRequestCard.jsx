@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useCallback } from 'react';
 import {
     Box,
     CardActions,
@@ -96,13 +96,18 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
     const sortedRequests = useMemo(() => sortPricingRequestsByLatest(group.requests || []), [group.requests]);
     const latestThree = useMemo(() => sortedRequests.slice(0, 3), [sortedRequests]);
     const hasMore = (group?.requests?.length || 0) > 3;
+    // A11y: link toggle button to collapsible content
+    const collapseId = useMemo(() => `pr-extra-${group?._customerId || group?.customer?.id || group?.customer_id || 'unknown'}`, [group]);
+    // Stable callbacks for actions
+    const handleEdit = useCallback(() => onEditCustomer?.(group), [onEditCustomer, group]);
+    const handleCreate = useCallback(() => onCreateQuotation(group), [onCreateQuotation, group]);
 
     return (
         <TNPCard>
             <TNPCardContent>
                 {/* 👤 Customer Info - ปรับปรุงให้อ่านง่ายและสวยงาม */}
                 <Box display="flex" alignItems="center" mb={2.5}>
-                    <Avatar
+                    <Avatar role="presentation" aria-hidden="true"
                         sx={{ 
                             bgcolor: 'secondary.main', 
                             width: 48, 
@@ -114,7 +119,7 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                         <BusinessIcon sx={{ fontSize: '1.5rem' }} />
                     </Avatar>
                     <Box flex={1}>
-                        <TNPHeading variant="h6">
+                        <TNPHeading variant="h6" component="h3">
                             {group.customer?.cus_company || 'ไม่ระบุบริษัท'}
                         </TNPHeading>
                         <TNPSubheading>
@@ -152,11 +157,11 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                 <TNPDivider />
 
                 {/* 📋 List of Pricing Requests - ปรับปรุงให้อ่านง่ายขึ้น */}
-                <Stack spacing={1.5}>
+                <Stack spacing={1.5} component="ul" role="list">
                     {latestThree.map((req) => {
                         const primaryStatus = getPrimaryStatus(req);
                         return (
-                            <TNPListItem key={req.pr_id}>
+                            <TNPListItem key={req.pr_id} role="listitem">
                                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
                                     <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
                                     {primaryStatus && (
@@ -175,12 +180,12 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
 
                     {/* Additional items with smooth animation */}
                     {hasMore && (
-                        <Collapse in={expanded} timeout={250} unmountOnExit>
-                            <Stack spacing={1.5} mt={0.5}>
+                        <Collapse in={expanded} timeout={250} unmountOnExit id={collapseId}>
+                            <Stack spacing={1.5} mt={0.5} component="ul" role="list">
                                 {sortedRequests.slice(3).map((req) => {
                                     const primaryStatus = getPrimaryStatus(req);
                                     return (
-                                        <TNPListItem key={req.pr_id}>
+                                        <TNPListItem key={req.pr_id} role="listitem">
                                             <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
                                                 <TNPPRNumber>#{getPRDisplayNumber(req)}</TNPPRNumber>
                                                 {primaryStatus && (
@@ -208,6 +213,9 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                         <Button
                             size="small"
                             onClick={() => setExpanded((v) => !v)}
+                            aria-controls={collapseId}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? 'Hide more requests' : 'Show more requests'}
                             sx={{
                                 mt: 0.5,
                                 textTransform: 'none',
@@ -227,7 +235,8 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                       <TNPSecondaryButton
                           size="medium"
                           startIcon={<EditIcon />}
-                          onClick={() => onEditCustomer?.(group)}
+                          onClick={handleEdit}
+                          aria-label="Edit customer"
                       >
                           แก้ไขลูกค้า
                       </TNPSecondaryButton>
@@ -236,7 +245,8 @@ const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
                       variant="contained"
                       size="medium"
                       startIcon={<AssignmentIcon />}
-                      onClick={() => onCreateQuotation(group)}
+                      onClick={handleCreate}
+                      aria-label="Create quotation"
                       disabled={group.is_quoted}
                   >
                       สร้างใบเสนอราคา

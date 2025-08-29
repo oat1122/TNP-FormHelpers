@@ -25,6 +25,40 @@
         โทร: {{ $quotation->company->phone ?? '-' }}<br>
         เลขประจำตัวผู้เสียภาษี: {{ $quotation->company->tax_id ?? '-' }}
       </div>
+
+
+      <div class="header-divider"></div>
+      <div class="company-meta">
+        ลูกค้า 
+      </div>
+
+      {{-- ข้อมูลลูกค้า --}}
+      @php
+        $name   = trim($customer['name'] ?? '-');
+        $addr   = trim($customer['address'] ?? '-');
+        $telRaw = $customer['tel'] ?? '';
+        // แยกเบอร์ด้วย , / | หรือช่องว่างหลายตัว
+        $phones = implode(', ', array_filter(preg_split('/[,\\s\\/|]+/', $telRaw)));
+        $taxId  = trim($customer['tax_id'] ?? '');
+        // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
+        if (preg_match('/^\\d{13}$/', $taxId)) {
+            $taxId = preg_replace('/(\\d{1})(\\d{4})(\\d{5})(\\d{2})(\\d{1})/', '$1-$2-$3-$4-$5', $taxId);
+        }
+      @endphp
+
+      <div class="customer-box">
+        <div class="customer-name">{{ $name }}</div>
+        <div class="customer-line">{!! nl2br(e($addr)) !!}</div>
+
+        @if($phones)
+          <div class="customer-line muted">โทร: {{ $phones }}</div>
+        @endif
+
+        @if($taxId !== '')
+          <div class="customer-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
+        @endif
+      </div>
+
     </td>
 
     <td class="header-right">
@@ -55,4 +89,3 @@
     </td>
   </tr>
 </table>
-

@@ -9,7 +9,9 @@
   <div class="document-content">
 
     {{-- ข้อมูลลูกค้า --}}
-    @php
+    {{-- ข้อมูลลูกค้าย้ายไปหัวเอกสาร (header) --}}
+
+    <!-- @php
       $name   = trim($customer['name'] ?? '-');
       $addr   = trim($customer['address'] ?? '-');
       $telRaw = $customer['tel'] ?? '';
@@ -20,9 +22,9 @@
       if (preg_match('/^\d{13}$/', $taxId)) {
           $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
       }
-    @endphp
+    @endphp -->
 
-    <div class="customer-box mb-4">
+    <!-- <div class="customer-box mb-4">
       <div class="customer-name">{{ $name }}</div>
       <div class="customer-line">{!! nl2br(e($addr)) !!}</div>
 
@@ -33,7 +35,8 @@
       @if($taxId !== '')
         <div class="customer-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
       @endif
-    </div>
+    </div> -->
+
 
     {{-- ตารางสินค้า/บริการ --}}
     <div class="mb-3">รายละเอียดสินค้า/บริการ</div>

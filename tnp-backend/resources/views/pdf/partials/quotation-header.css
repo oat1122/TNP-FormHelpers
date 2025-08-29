@@ -82,3 +82,15 @@
 .doc-title     { font-size: 11pt; }
 .doc-meta      { font-size: 8.5pt; }
 .badge-draft   { font-size: 9.5pt; }
+
+/* =======================================================================
+ | Spacing between company and customer info
+ * ======================================================================= */
+/* Increase gap below company section */
+.header-divider { margin: 16pt 0 12pt 0; }
+
+/* Add space for the label right after the divider ("ลูกค้า") */
+.header-divider + .company-meta { margin-top: 8pt; margin-bottom: 8pt; }
+
+/* Override global negative margin on customer-box when used in header */
+.pdf-header .customer-box { margin-top: 12pt !important; }

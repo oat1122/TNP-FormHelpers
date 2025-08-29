@@ -57,7 +57,7 @@
             $price=(float)($r['unit_price']??0); 
             $amount=$qty*$price; 
             $items[]=[
-              'desc'=>'ไซซ์: '.($r['size']?:'-'),
+              'desc'=> ($r['size']?:'-'),
               'qty'=>$qty,
               'unit'=>$unit,
               'price'=>$price,

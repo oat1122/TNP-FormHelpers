@@ -132,10 +132,10 @@ class QuotationPdfMasterService
             'format'              => $options['format']      ?? 'A4',
             'orientation'         => $options['orientation'] ?? 'P',
             // ระยะขอบ (mm)
-            'margin_left'         => 22,
-            'margin_right'        => 22,
-            'margin_top'          => 26,
-            'margin_bottom'       => 24,
+            'margin_left'         => 10,
+            'margin_right'        => 10,
+            'margin_top'          => 16,
+            'margin_bottom'       => 14,
             'setAutoTopMargin'    => 'stretch',
             'setAutoBottomMargin' => 'stretch',
 

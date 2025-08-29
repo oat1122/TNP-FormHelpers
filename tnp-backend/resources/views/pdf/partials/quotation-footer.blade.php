@@ -1,6 +1,6 @@
 {{-- resources/views/pdf/partials/quotation-footer.blade.php --}}
 <div style="border-top: 1pt solid #bdc3c7; margin-top: 5pt; padding-top: 8pt;">
-    <table style="width: 100%; border-collapse: collapse; font-family: 'thsarabun', sans-serif; font-size: 10pt; color: #7f8c8d;">
+    <table style="width: 100%; border-collapse: collapse; font-family: 'thsarabun', sans-serif; font-size: 9pt; color: #7f8c8d;">
         <tr>
             
             

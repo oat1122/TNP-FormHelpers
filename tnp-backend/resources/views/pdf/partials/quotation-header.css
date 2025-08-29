@@ -71,3 +71,14 @@
 
 /* ป้องกันผลกระทบจาก Bootstrap (ถ้ามี) */
 .pdf-header img { border: 0 !important; }
+
+/* =======================================================================
+ | Compact Typography Adjustments (FlowAccount-inspired)
+ | - Slightly smaller body text; headers a touch larger
+ * ======================================================================= */
+.company-name { font-size: 11pt; }
+.company-addr  { font-size: 8.5pt; }
+.company-meta  { font-size: 7.5pt; }
+.doc-title     { font-size: 11pt; }
+.doc-meta      { font-size: 8.5pt; }
+.badge-draft   { font-size: 9.5pt; }

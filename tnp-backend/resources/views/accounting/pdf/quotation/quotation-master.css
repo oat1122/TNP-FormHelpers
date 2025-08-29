@@ -589,3 +589,57 @@ col.w-total { width:15%; }
     font-size: 9.5pt;
   }
 }
+
+/* =======================================================================
+ | Compact Typography Adjustments (FlowAccount-inspired)
+ | - Make body slightly smaller for professional, clean look
+ | - Keep document/table headers relatively larger for hierarchy
+ * ======================================================================= */
+
+/* Base and Headings */
+body { font-size: 10pt; }
+h1 { font-size: 18pt; }
+h2 { font-size: 14pt; }
+h3 { font-size: 12pt; }
+
+/* Tables (items) */
+.items-table.slim td { font-size: 9.5pt; }
+.items-table.slim .group-row td { font-size: 10.5pt; }
+.items-table.slim .item-row td { font-size: 9.5pt; }
+.table-numbers-sm td.num,
+.table-numbers-sm th.text-right { font-size: 9.5pt !important; }
+.items-table.slim.table-numbers-sm td.desc { font-size: 10pt; }
+
+/* Customer block */
+.customer-name { font-size: 11pt; }
+.customer-line { font-size: 8.5pt; }
+
+/* Panels */
+.panel-title { font-size: 11pt; }
+.panel-title--sm { font-size: 10.5pt; }
+.panel-content { font-size: 9pt; }
+
+/* Summary table */
+.summary-table { font-size: 9.5pt; }
+.summary-table .summary-label { font-size: 9.5pt; }
+.summary-table .summary-amount { font-size: 9.5pt; }
+.summary-amount .amount-main { font-size: 9.5pt; }
+.reading { font-size: 7.5pt !important; }
+
+/* Sample captions */
+.sample-images-grid .img-caption { font-size: 8pt; }
+
+/* Fixed signature sizing tweaks */
+.signature-fixed-wrapper { font-size: 9.5pt; }
+.signature-table.fixed .signature-role { font-size: 10pt; }
+.signature-table.fixed .signature-name-placeholder { font-size: 8.5pt; }
+.signature-table.fixed .signature-date-line { font-size: 8pt; }
+.signature-hint { font-size: 7pt; }
+
+/* Print overrides for compact scale */
+@media print {
+  .summary-table .summary-label { font-size: 9pt; }
+  .summary-table .summary-amount { font-size: 9pt; }
+  .summary-amount .amount-main { font-size: 9pt; }
+  .reading { font-size: 7pt !important; }
+}

@@ -24,7 +24,7 @@
       <div class="company-meta">
         โทร: {{ $quotation->company->phone ?? '-' }}<br>
         เลขประจำตัวผู้เสียภาษี: {{ $quotation->company->tax_id ?? '-' }}
-      </div>
+      </div><br/>
 
 
       <div class="header-divider"></div>

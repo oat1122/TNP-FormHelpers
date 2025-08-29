@@ -11,8 +11,6 @@ export { default as EmptyState } from './EmptyState';
 export { default as Header } from './Header';
 export { default as FloatingActionButton } from './FloatingActionButton';
 export { default as CustomerEditDialog } from './CustomerEditDialog';
-export { default as ComponentTest } from './ComponentTest';
-export { default as TestMultipleJobs } from './TestMultipleJobs';
 
 // 🎨 Export Design System & Styled Components
 export * from './styles';

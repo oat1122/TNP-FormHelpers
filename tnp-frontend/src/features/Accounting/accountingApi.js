@@ -387,6 +387,15 @@ export const accountingApi = createApi({
 
         // ===================== INVOICES =====================
 
+        // List quotations that are signed and approved, and not yet invoiced
+        getQuotationsAwaitingInvoice: builder.query({
+            query: (params = {}) => ({
+                url: '/invoices/quotations-awaiting',
+                params,
+            }),
+            providesTags: ['Quotation'],
+        }),
+
         getInvoices: builder.query({
             query: (params = {}) => ({
                 url: '/invoices',
@@ -713,6 +722,7 @@ export const {
     useGenerateQuotationPDFMutation,
 
     // Invoices
+    useGetQuotationsAwaitingInvoiceQuery,
     useGetInvoicesQuery,
     useGetInvoiceQuery,
     useCreateInvoiceFromQuotationMutation,

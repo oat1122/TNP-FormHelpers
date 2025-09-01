@@ -297,6 +297,8 @@ Route::prefix('v1')->group(function() {
     Route::controller(InvoiceController::class)->group(function () {
         Route::get('/invoices', 'index');
         Route::post('/invoices', 'store');
+        // Static paths must come before parameterized routes
+        Route::get('/invoices/quotations-awaiting', 'quotationsAwaiting');
         Route::get('/invoices/{id}', 'show');
         Route::put('/invoices/{id}', 'update');
         Route::delete('/invoices/{id}', 'destroy');

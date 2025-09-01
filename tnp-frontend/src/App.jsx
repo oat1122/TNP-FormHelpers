@@ -28,6 +28,7 @@ const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"
 const AccountingDashboard = lazy(() => import("./pages/Accounting/AccountingDashboard/AccountingDashboard"));
 const PricingIntegration = lazy(() => import("./pages/Accounting/PricingIntegration/PricingIntegration"));
 import Quotations from "./pages/Accounting/Quotations/Quotations";
+const Invoices = lazy(() => import("./pages/Accounting/Invoices/Invoices"));
 
 // MaxSupply components
 const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));
@@ -72,7 +73,7 @@ function App() {
                 <Route index element={<AccountingDashboard />} />
                 <Route path="pricing-integration" element={<PricingIntegration />} />
                 <Route path="quotations" element={<Quotations />} />
-                <Route path="invoices" element={<div>Invoices (Coming Soon)</div>} />
+                <Route path="invoices" element={<Invoices />} />
                 <Route path="receipts" element={<div>Receipts (Coming Soon)</div>} />
                 <Route path="delivery-notes" element={<div>Delivery Notes (Coming Soon)</div>} />
               </Route>

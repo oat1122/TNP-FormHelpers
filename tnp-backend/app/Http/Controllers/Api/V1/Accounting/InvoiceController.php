@@ -19,6 +19,33 @@ class InvoiceController extends Controller
     }
 
     /**
+     * GET /api/v1/invoices/quotations-awaiting
+     * List quotations that are signed and approved, with no invoice yet
+     */
+    public function quotationsAwaiting(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'search' => $request->query('search'),
+            ];
+            $perPage = min($request->query('per_page', 20), 50);
+            $data = $this->invoiceService->getQuotationsAwaiting($filters, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'Quotations awaiting invoice retrieved successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::quotationsAwaiting error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve quotations: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * ดึงรายการ Invoice พร้อม Filter
      * GET /api/v1/invoices
      */

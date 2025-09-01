@@ -3,6 +3,7 @@ import { Box, Stack, Avatar, Typography, Collapse, Button, Chip, Grid, FormContr
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import { useGetPricingRequestAutofillQuery, useDeleteQuotationMutation, useGetCompaniesQuery, useUpdateQuotationMutation, useApproveQuotationMutation, useSubmitQuotationMutation } from '../../../../features/Accounting/accountingApi';
 import { formatUserDisplay } from '../../../../utils/formatUser';
 import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
@@ -27,7 +28,7 @@ const statusColor = {
   completed: 'success',
 };
 
-const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
+const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCreateInvoice, creatingInvoice }) => {
   const amountText = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0));
   const [showAll, setShowAll] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
@@ -205,6 +206,17 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail }) => {
             >
               {approving || submitting ? 'กำลังอนุมัติ…' : 'อนุมัติ'}
             </Button>
+          )}
+          {typeof onCreateInvoice === 'function' && (
+            <TNPPrimaryButton
+              size="medium"
+              variant="contained"
+              startIcon={<RequestQuoteIcon />}
+              disabled={creatingInvoice || data.status !== 'approved'}
+              onClick={onCreateInvoice}
+            >
+              สร้างใบแจ้งหนี้
+            </TNPPrimaryButton>
           )}
         </Box>
         <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>

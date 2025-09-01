@@ -22,6 +22,76 @@ class InvoiceService
     }
 
     /**
+     * Fetch quotations that are signed and approved, and have no invoice yet.
+     * Used by Invoices page to list candidates for invoice creation.
+     */
+    public function getQuotationsAwaiting($filters = [], $perPage = 20)
+    {
+        try {
+            // Keep consistent with QuotationService eager-loads so UI gets same shape
+            $with = ['customer', 'creator', 'pricingRequest', 'items', 'company'];
+            if (\Illuminate\Support\Facades\Schema::hasTable('quotation_pricing_requests')) {
+                $with[] = 'pricingRequests';
+            }
+
+            $query = \App\Models\Accounting\Quotation::with($with)
+                ->where('status', 'approved')
+                ->whereNotNull('signature_images')
+                ->whereRaw('JSON_VALID(signature_images)')
+                ->whereRaw('JSON_LENGTH(signature_images) > 0')
+                ->whereNotExists(function ($q) {
+                    $q->select(\DB::raw(1))
+                      ->from('invoices')
+                      ->whereColumn('invoices.quotation_id', 'quotations.id');
+                });
+
+            // Optional text search by number, work_name, customer fields
+            if (!empty($filters['search'])) {
+                $rawSearch = trim($filters['search']);
+                $like = '%' . $rawSearch . '%';
+
+                $hasCustomerCompany = \Illuminate\Support\Facades\Schema::hasColumn('quotations', 'customer_company');
+                $hasCustomerFirst = \Illuminate\Support\Facades\Schema::hasColumn('quotations', 'customer_firstname');
+                $hasCustomerLast = \Illuminate\Support\Facades\Schema::hasColumn('quotations', 'customer_lastname');
+
+                $joinedMaster = false;
+                if (\Illuminate\Support\Facades\Schema::hasTable('master_customers')) {
+                    $query->leftJoin('master_customers', 'quotations.customer_id', '=', 'master_customers.cus_id');
+                    $joinedMaster = true;
+                }
+
+                $query->select('quotations.*');
+
+                $query->where(function ($q) use ($like, $hasCustomerCompany, $hasCustomerFirst, $hasCustomerLast, $joinedMaster) {
+                    $q->where('quotations.number', 'like', $like)
+                      ->orWhere('quotations.work_name', 'like', $like);
+                    if ($hasCustomerCompany) {
+                        $q->orWhere('quotations.customer_company', 'like', $like);
+                    }
+                    if ($hasCustomerFirst) {
+                        $q->orWhere('quotations.customer_firstname', 'like', $like);
+                    }
+                    if ($hasCustomerLast) {
+                        $q->orWhere('quotations.customer_lastname', 'like', $like);
+                    }
+                    if ($joinedMaster) {
+                        foreach (['cus_company','cus_firstname','cus_lastname','cus_name'] as $col) {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('master_customers', $col)) {
+                                $q->orWhere("master_customers.$col", 'like', $like);
+                            }
+                        }
+                    }
+                });
+            }
+
+            return $query->orderBy('created_at', 'desc')->paginate(min($perPage, 50));
+        } catch (\Exception $e) {
+            \Log::error('InvoiceService::getQuotationsAwaiting error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * One-Click Conversion จาก Quotation เป็น Invoice
      */
     public function createFromQuotation($quotationId, $invoiceData, $createdBy = null)

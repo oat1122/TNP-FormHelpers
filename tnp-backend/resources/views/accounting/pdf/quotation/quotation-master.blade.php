@@ -164,6 +164,50 @@
     @endphp
 
     {{-- Summary and Notes Section - แยกคำอ่านออกมา --}}
+    {{-- Sample Images (moved under items table) --}}
+    @php
+      $sampleImages = is_array($quotation->sample_images ?? null) ? $quotation->sample_images : [];
+      // Prefer local filesystem path for mPDF to avoid slow HTTP fetches
+      $resolveImgSrc = function ($img) {
+        $url = $img['url'] ?? '';
+        $path = $img['path'] ?? '';
+        $relative = $path ? str_replace('public/', '', $path) : '';
+        if ($relative) {
+          $publicStorage = public_path('storage/' . $relative);
+          if (is_file($publicStorage)) return $publicStorage;
+          $absStorage = storage_path('app/' . $relative);
+          if (is_file($absStorage)) return $absStorage;
+        }
+        return $url;
+      };
+      // Pick only one image: show only if explicitly selected_for_pdf
+      if (!empty($sampleImages)) {
+        $sel = null;
+        foreach ($sampleImages as $it) {
+          if (!empty($it['selected_for_pdf'])) { $sel = $it; break; }
+        }
+        $sampleImages = $sel ? [$sel] : [];
+      }
+    @endphp
+    @if(count($sampleImages) > 0)
+      <div class="sample-images-section">
+        <div class="sample-images-title">รูปภาพตัวอย่าง</div>
+        <div class="sample-images-grid">
+          @foreach($sampleImages as $img)
+            @php
+              $u = $resolveImgSrc($img);
+              $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
+            @endphp
+            <div class="img-box">
+              @if($u)
+                <img src="{{ $u }}" alt="{{ $caption }}" />
+              @endif
+            </div>
+          @endforeach
+        </div>
+      </div>
+    @endif
+
     <div class="summary-notes-wrapper">
       <table class="summary-notes-table">
         <colgroup>
@@ -276,48 +320,6 @@
 
   {{-- Signature spacer: กันไม่ให้เนื้อหามาชนพื้นที่ลายเซ็นคงที่ด้านล่างหน้า --}}
   {{-- signature injected by service dynamically --}}
-  {{-- Sample Images (if provided) --}}
-  @php
-    $sampleImages = is_array($quotation->sample_images ?? null) ? $quotation->sample_images : [];
-    // Prefer local filesystem path for mPDF to avoid slow HTTP fetches
-    $resolveImgSrc = function ($img) {
-      $url = $img['url'] ?? '';
-      $path = $img['path'] ?? '';
-      $relative = $path ? str_replace('public/', '', $path) : '';
-      if ($relative) {
-        $publicStorage = public_path('storage/' . $relative);
-        if (is_file($publicStorage)) return $publicStorage;
-        $absStorage = storage_path('app/' . $relative);
-        if (is_file($absStorage)) return $absStorage;
-      }
-      return $url;
-    };
-    // Pick only one image: prefer selected_for_pdf; else the first
-    if (!empty($sampleImages)) {
-      $sel = null;
-      foreach ($sampleImages as $it) { if (!empty($it['selected_for_pdf'])) { $sel = $it; break; } }
-      if (!$sel) { $sel = $sampleImages[0]; }
-      $sampleImages = [$sel];
-    }
-  @endphp
-  @if(count($sampleImages) > 0)
-    <div class="sample-images-section">
-      <div class="sample-images-title">รูปภาพตัวอย่าง</div>
-      <div class="sample-images-grid">
-        @foreach($sampleImages as $img)
-          @php
-            $u = $resolveImgSrc($img);
-            $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
-          @endphp
-          <div class="img-box">
-            @if($u)
-              <img src="{{ $u }}" alt="{{ $caption }}" />
-            @endif
-          </div>
-        @endforeach
-      </div>
-    </div>
-  @endif
 
   <div class="signature-spacer"></div>
 

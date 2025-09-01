@@ -352,11 +352,39 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
   const sampleImages = Array.isArray(q?.sample_images) ? q.sample_images : [];
   // Optimistic local selection for faster radio response
-  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState('');
+  // null => no local override (use server state)
+  // ''   => explicitly none selected
+  // 'filename' => selected locally
+  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState(null);
+  const selDebounceRef = React.useRef(null);
+  const lastSyncedSelRef = React.useRef('');
+  const sampleImagesRef = React.useRef(sampleImages);
+  React.useEffect(() => { sampleImagesRef.current = sampleImages; }, [sampleImages]);
   React.useEffect(() => {
     const initial = (sampleImages.find?.(it => !!it.selected_for_pdf)?.filename) || '';
     setSelectedSampleForPdfLocal(initial);
+    lastSyncedSelRef.current = initial;
   }, [q?.id, JSON.stringify(sampleImages)]);
+  const scheduleSyncSelectedForPdf = React.useCallback((value) => {
+    if (selDebounceRef.current) {
+      clearTimeout(selDebounceRef.current);
+    }
+    selDebounceRef.current = setTimeout(async () => {
+      try {
+        // Avoid redundant sync if nothing changed
+        if (lastSyncedSelRef.current === value) return;
+        const current = sampleImagesRef.current || [];
+        const updated = current.map(it => ({
+          ...it,
+          selected_for_pdf: value ? ((it.filename || '') === value) : false,
+        }));
+        await updateQuotation({ id: q.id, sample_images: updated }).unwrap();
+        lastSyncedSelRef.current = value;
+      } catch (err) {
+        // keep local state; server will eventually refresh
+      }
+    }, 250);
+  }, [updateQuotation, q?.id]);
   const handleUploadSignatures = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -860,27 +888,30 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                     {(sampleImages || []).map((img) => {
                       const value = img.filename || '';
                       const src = img.url || '';
-                      const checked = selectedSampleForPdfLocal ? (selectedSampleForPdfLocal === value) : !!img.selected_for_pdf;
+                      const checked = (selectedSampleForPdfLocal !== null)
+                        ? (selectedSampleForPdfLocal === value)
+                        : !!img.selected_for_pdf;
                       return (
-                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: checked ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6 }}>
+                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: checked ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6, cursor:'pointer', userSelect:'none' }}>
                           <input
                             type="radio"
                             name="selectedSampleForPdf"
                             checked={checked}
-                            onChange={async () => {
-                              try {
-                                // Optimistic local update for instant feedback
-                                setSelectedSampleForPdfLocal(value);
-                                const updated = (sampleImages || []).map(it => ({
-                                  ...it,
-                                  selected_for_pdf: (it.filename || '') === value,
-                                }));
-                                await updateQuotation({ id: q.id, sample_images: updated }).unwrap();
-                              } catch (err) {
-                                // ignore
+                            onClick={(e) => {
+                              // Allow deselect by clicking the selected radio again
+                              if (checked) {
+                                e.preventDefault();
+                                setSelectedSampleForPdfLocal('');
+                                scheduleSyncSelectedForPdf('');
                               }
                             }}
+                            onChange={() => {
+                              // Optimistic local update for instant feedback
+                              setSelectedSampleForPdfLocal(value);
+                              scheduleSyncSelectedForPdf(value);
+                            }}
                             style={{ margin: 0 }}
+                            aria-busy={false}
                           />
                           {src ? (
                             <img src={src} alt="sample" style={{ width: 72, height: 72, objectFit: 'cover', display:'block' }} />

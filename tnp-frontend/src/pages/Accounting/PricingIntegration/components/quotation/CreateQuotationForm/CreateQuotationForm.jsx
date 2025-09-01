@@ -716,11 +716,18 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                       const value = img.filename || '';
                       const src = img.url || '';
                       return (
-                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: (formData.selectedSampleForPdf||'')===value ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6 }}>
+                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: (formData.selectedSampleForPdf||'')===value ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6, cursor:'pointer', userSelect:'none' }}>
                           <input
                             type="radio"
                             name="selectedSample"
                             checked={(formData.selectedSampleForPdf || '') === value}
+                            onClick={(e) => {
+                              // Allow deselect by clicking the selected radio again
+                              if ((formData.selectedSampleForPdf || '') === value) {
+                                e.preventDefault();
+                                setFormData((p) => ({ ...p, selectedSampleForPdf: '' }));
+                              }
+                            }}
                             onChange={() => setFormData((p) => ({ ...p, selectedSampleForPdf: value }))}
                             style={{ margin: 0 }}
                           />

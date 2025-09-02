@@ -84,11 +84,7 @@ const Invoices = () => {
                     <QuotationCard
                       data={q}
                       onDownloadPDF={() => handleDownloadPDF(q.id)}
-                      onViewDetail={() => {
-                        const prId = q.primary_pricing_request_id || (Array.isArray(q.primary_pricing_request_ids) ? q.primary_pricing_request_ids[0] : undefined);
-                        const url = prId ? `/pricing/view/${encodeURIComponent(prId)}` : '/accounting/quotations';
-                        window.open(url, '_blank');
-                      }}
+                      onViewDetail={() => { setSelectedQuotation(q); setCreateDialogOpen(true); }}
                       onCreateInvoice={() => { setSelectedQuotation(q); setCreateDialogOpen(true); }}
                     />
                   </Grid>

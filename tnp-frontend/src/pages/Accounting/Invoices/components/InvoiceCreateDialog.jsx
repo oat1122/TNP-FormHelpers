@@ -58,7 +58,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
 
   const q = pickQuotation(data);
   const prIdsAll = React.useMemo(() => getAllPrIdsFromQuotation(q), [q?.id]);
-  const [customer] = React.useState(() => normalizeCustomer(q));
+  const customer = React.useMemo(() => normalizeCustomer(q), [q]);
   const items = React.useMemo(() => normalizeAndGroupItems(q, prIdsAll), [q?.id]);
 
   // Groups editor state (size/qty/unit price rows)
@@ -75,16 +75,22 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
   } = useQuotationGroups(items);
 
   // Discount and withholding state (preload from quotation where possible)
-  const initialDiscountType = (Number(q?.special_discount_amount || 0) > 0 && Number(q?.special_discount_percentage || 0) === 0)
-    ? 'amount'
-    : 'percentage';
-  const initialDiscountValue = initialDiscountType === 'amount'
-    ? Number(q?.special_discount_amount || 0)
-    : Number(q?.special_discount_percentage || 0);
-  const [specialDiscountType, setSpecialDiscountType] = React.useState(initialDiscountType);
-  const [specialDiscountValue, setSpecialDiscountValue] = React.useState(initialDiscountValue);
-  const [hasWithholdingTax, setHasWithholdingTax] = React.useState(!!q?.has_withholding_tax);
-  const [withholdingTaxPercentage, setWithholdingTaxPercentage] = React.useState(Number(q?.withholding_tax_percentage || 0));
+  // Discount / withholding states, kept editable but synced with quotation on load/change
+  const [specialDiscountType, setSpecialDiscountType] = React.useState('percentage');
+  const [specialDiscountValue, setSpecialDiscountValue] = React.useState(0);
+  const [hasWithholdingTax, setHasWithholdingTax] = React.useState(false);
+  const [withholdingTaxPercentage, setWithholdingTaxPercentage] = React.useState(0);
+
+  React.useEffect(() => {
+    const qAmt = Number(q?.special_discount_amount || 0);
+    const qPct = Number(q?.special_discount_percentage || 0);
+    const nextType = (qAmt > 0 && qPct === 0) ? 'amount' : 'percentage';
+    const nextVal = nextType === 'amount' ? qAmt : qPct;
+    setSpecialDiscountType(nextType);
+    setSpecialDiscountValue(nextVal);
+    setHasWithholdingTax(!!q?.has_withholding_tax);
+    setWithholdingTaxPercentage(Number(q?.withholding_tax_percentage || 0));
+  }, [q?.id]);
 
   // Payment terms state
   const rawTerms = q?.payment_terms || 'cash';
@@ -96,6 +102,18 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
   const [depositPct, setDepositPct] = React.useState(Number(q?.deposit_percentage || 0));
   const [depositAmountInput, setDepositAmountInput] = React.useState(Number(q?.deposit_amount || 0));
   const [selectedDueDate, setSelectedDueDate] = React.useState(q?.due_date ? new Date(q.due_date) : null);
+
+  // Sync payment/deposit/due date from quotation when it changes
+  React.useEffect(() => {
+    const newRaw = q?.payment_terms || 'cash';
+    const newIsKnown = knownTerms.has(newRaw);
+    setPaymentTermsType(newIsKnown ? newRaw : 'other');
+    setPaymentTermsCustom(newIsKnown ? '' : (newRaw || ''));
+    setDepositMode(q?.deposit_mode || 'percentage');
+    setDepositPct(Number(q?.deposit_percentage || 0));
+    setDepositAmountInput(Number(q?.deposit_amount || 0));
+    setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
+  }, [q?.id]);
 
   // Attachments (local only for now)
   const [attachments, setAttachments] = React.useState([]); // File[]
@@ -269,106 +287,195 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
               </AccordionSummary>
               <AccordionDetails>
                 <Stack spacing={3}>
-                  {groups.map((g, gi) => (
-                    <Paper key={g.id} elevation={1} sx={{ p: 3 }}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                        <Box display="flex" alignItems="center" gap={2}>
-                          <Chip label={`กลุ่ม ${gi + 1}`} color="primary" variant="outlined" />
-                          <Typography variant="h6" fontWeight={600}>{g.name || '-'}</Typography>
+                  {groups.map((g, gi) => {
+                    const totalQty = (g.sizeRows || []).reduce((s, r) => s + Number(r.quantity || 0), 0);
+                    const itemTotal = (g.sizeRows || []).reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+                    const unit = g.unit || 'ชิ้น';
+                    
+                    return (
+                      <Paper key={g.id} elevation={1} sx={{ p: 3 }}>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                          <Box display="flex" alignItems="center" gap={2}>
+                            <Typography variant="subtitle1" fontWeight={700} color="primary">งานที่ {gi + 1}</Typography>
+                            <Typography variant="body2" color="text.secondary">{g.name || '-'}</Typography>
+                          </Box>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Chip label={`${totalQty} ${unit}`} size="small" variant="outlined" />
+                          </Box>
                         </Box>
-                        <Button variant="outlined" startIcon={<AddIcon />} onClick={() => onAddRow(g.id)}>
-                          เพิ่มแถว
-                        </Button>
-                      </Box>
-                      
-                      {/* Header Row */}
-                      <Grid container spacing={2} sx={{ mb: 1 }}>
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>ไซซ์</Typography>
-                        </Grid>
-                        <Grid item xs={6} md={3}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>จำนวน</Typography>
-                        </Grid>
-                        <Grid item xs={6} md={3}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>ราคา/หน่วย</Typography>
-                        </Grid>
-                        <Grid item xs={10} md={2}>
-                          <Typography variant="caption" color="text.secondary" fontWeight={600}>รวมย่อย</Typography>
-                        </Grid>
-                        <Grid item xs={2} md={1}></Grid>
-                      </Grid>
-                      
-                      {/* Data Rows */}
-                      {(g.sizeRows || []).map((row) => (
-                        <Grid container spacing={2} key={row.uuid} sx={{ mb: 2 }}>
+                        
+                        {/* Group Details */}
+                        <Grid container spacing={1.5} sx={{ mb: 2 }}>
                           <Grid item xs={12} md={3}>
-                            <TextField 
-                              fullWidth 
-                              size="small" 
-                              label="ไซซ์" 
-                              value={row.size || ''} 
-                              onChange={(e) => onChangeRow(g.id, row.uuid, 'size', e.target.value)} 
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="แพทเทิร์น"
+                              value={g.pattern || ''}
+                              disabled
                             />
                           </Grid>
-                          <Grid item xs={6} md={3}>
-                            <TextField 
-                              fullWidth 
-                              size="small" 
-                              type="text" 
-                              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} 
-                              label="จำนวน" 
-                              value={row.quantity ?? ''} 
-                              onChange={(e) => onChangeRow(g.id, row.uuid, 'quantity', e.target.value)} 
+                          <Grid item xs={12} md={3}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="ประเภทผ้า"
+                              value={g.fabricType || ''}
+                              disabled
                             />
                           </Grid>
-                          <Grid item xs={6} md={3}>
-                            <TextField 
-                              fullWidth 
-                              size="small" 
-                              type="text" 
-                              inputProps={{ inputMode: 'decimal' }} 
-                              label="ราคา/หน่วย" 
-                              value={row.unitPrice ?? ''} 
-                              onChange={(e) => onChangeRow(g.id, row.uuid, 'unitPrice', e.target.value)} 
+                          <Grid item xs={12} md={3}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="สี"
+                              value={g.color || ''}
+                              disabled
                             />
                           </Grid>
-                          <Grid item xs={10} md={2}>
+                          <Grid item xs={12} md={3}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="ขนาด (สรุป)"
+                              value={g.size || ''}
+                              disabled
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              select
+                              SelectProps={{ native: true }}
+                              label="หน่วย"
+                              value={unit}
+                              disabled
+                            >
+                              <option value="ชิ้น">ชิ้น</option>
+                              <option value="ตัว">ตัว</option>
+                              <option value="ชุด">ชุด</option>
+                              <option value="กล่อง">กล่อง</option>
+                              <option value="แพ็ค">แพ็ค</option>
+                              <option value="อื่นๆ">อื่นๆ</option>
+                            </TextField>
+                          </Grid>
+                        </Grid>
+
+                        {/* Size Breakdown */}
+                        <Grid item xs={12}>
+                          <Box sx={{ p: 1.5, border: '1px dashed #e0e0e0', borderRadius: 1, bgcolor: '#fafafa' }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                              <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
+                            </Box>
+                            
+                            {/* Header Row */}
+                            <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
+                              <Grid item xs={12} md={3}>
+                                <Typography variant="caption" color="text.secondary">ขนาด</Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">จำนวน</Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography>
+                              </Grid>
+                              <Grid item xs={10} md={2}>
+                                <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
+                              </Grid>
+                              <Grid item xs={2} md={1}></Grid>
+                            </Grid>
+                            
+                            {/* Data Rows */}
+                            <Grid container spacing={1}>
+                              {(g.sizeRows || []).map((row) => (
+                                <React.Fragment key={row.uuid}>
+                                  <Grid item xs={12} md={3}>
+                                    <TextField 
+                                      fullWidth 
+                                      size="small" 
+                                      inputProps={{ inputMode: 'text' }}
+                                      label="ขนาด" 
+                                      value={row.size || ''} 
+                                      disabled
+                                    />
+                                  </Grid>
+                                  <Grid item xs={6} md={3}>
+                                    <TextField 
+                                      fullWidth 
+                                      size="small" 
+                                      type="text" 
+                                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} 
+                                      label="จำนวน" 
+                                      value={row.quantity ?? ''} 
+                                      disabled
+                                    />
+                                  </Grid>
+                                  <Grid item xs={6} md={3}>
+                                    <TextField 
+                                      fullWidth 
+                                      size="small" 
+                                      type="text" 
+                                      inputProps={{ inputMode: 'decimal' }} 
+                                      label="ราคาต่อหน่วย" 
+                                      value={row.unitPrice ?? ''} 
+                                      disabled
+                                    />
+                                  </Grid>
+                                  <Grid item xs={10} md={2}>
+                                    <Box sx={{ 
+                                      p: 1, 
+                                      bgcolor: '#fff', 
+                                      border: '1px solid #e0e0e0', 
+                                      borderRadius: 1, 
+                                      textAlign: 'center'
+                                    }}>
+                                      <Typography variant="subtitle2" fontWeight={800}>
+                                        {(() => {
+                                          const qv = typeof row.quantity === 'string' ? parseFloat(row.quantity || '0') : Number(row.quantity || 0);
+                                          const pv = typeof row.unitPrice === 'string' ? parseFloat(row.unitPrice || '0') : Number(row.unitPrice || 0);
+                                          const val = (isNaN(qv) || isNaN(pv)) ? 0 : qv * pv;
+                                          return formatTHB(val);
+                                        })()}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                  <Grid item xs={2} md={1}></Grid>
+                                  <Grid item xs={12}>
+                                    <TextField
+                                      fullWidth
+                                      size="small"
+                                      label="หมายเหตุ (บรรทัดนี้)"
+                                      multiline
+                                      minRows={1}
+                                      value={row.notes || ''}
+                                      disabled
+                                    />
+                                  </Grid>
+                                </React.Fragment>
+                              ))}
+                            </Grid>
+                          </Box>
+                        </Grid>
+
+                        {/* Item Total */}
+                        <Grid container spacing={1} sx={{ mt: 1 }}>
+                          <Grid item xs={6} md={4}>
                             <Box sx={{ 
-                              p: 2, 
-                              bgcolor: 'primary.50', 
-                              border: '1px solid', 
-                              borderColor: 'primary.200', 
-                              borderRadius: 1, 
-                              textAlign: 'center',
-                              minHeight: 40,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
+                              p: 1.5, 
+                              border: '1px solid #e0e0e0', 
+                              borderRadius: 1.5, 
+                              textAlign: 'center', 
+                              bgcolor: '#fafafa' 
                             }}>
-                              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.9rem' }}>
-                                {(() => {
-                                  const qv = typeof row.quantity === 'string' ? parseFloat(row.quantity || '0') : Number(row.quantity || 0);
-                                  const pv = typeof row.unitPrice === 'string' ? parseFloat(row.unitPrice || '0') : Number(row.unitPrice || 0);
-                                  const val = (isNaN(qv) || isNaN(pv)) ? 0 : qv * pv;
-                                  return formatTHB(val);
-                                })()}
-                              </Typography>
+                              <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
+                              <Typography variant="h6" fontWeight={800}>{formatTHB(itemTotal)}</Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={2} md={1}>
-                            <Button 
-                              size="small" 
-                              color="error" 
-                              onClick={() => onRemoveRow(g.id, row.uuid)}
-                              sx={{ minWidth: 40 }}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </Button>
-                          </Grid>
                         </Grid>
-                      ))}
-                    </Paper>
-                  ))}
+                      </Paper>
+                    );
+                  })}
 
                   {/* Discount and Tax */}
                   <Grid container spacing={3}>

@@ -207,17 +207,6 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCrea
               {approving || submitting ? 'กำลังอนุมัติ…' : 'อนุมัติ'}
             </Button>
           )}
-          {typeof onCreateInvoice === 'function' && (
-            <TNPPrimaryButton
-              size="medium"
-              variant="contained"
-              startIcon={<RequestQuoteIcon />}
-              disabled={creatingInvoice || data.status !== 'approved'}
-              onClick={onCreateInvoice}
-            >
-              สร้างใบแจ้งหนี้
-            </TNPPrimaryButton>
-          )}
         </Box>
         <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>
           ดูรายละเอียด

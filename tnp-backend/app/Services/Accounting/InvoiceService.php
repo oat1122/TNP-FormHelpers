@@ -551,16 +551,38 @@ class InvoiceService
     public function getList($filters = [], $perPage = 20)
     {
         try {
-            $query = Invoice::with(['quotation', 'documentHistory'])
-                          ->select('invoices.*');
+            $query = Invoice::with(['quotation', 'customer', 'documentHistory'])
+                          ->select('invoices.*')
+                          // Join quotations to expose quotation number for easy consumption on FE
+                          ->leftJoin('quotations', 'quotations.id', '=', 'invoices.quotation_id')
+                          ->addSelect(DB::raw('quotations.number as quotation_number'));
 
             // Filters
             if (!empty($filters['search'])) {
-                $search = $filters['search'];
-                $query->where(function($q) use ($search) {
-                    $q->where('number', 'like', "%{$search}%")
-                      ->orWhere('customer_company', 'like', "%{$search}%")
-                      ->orWhere('work_name', 'like', "%{$search}%");
+                $search = trim($filters['search']);
+                $like = "%{$search}%";
+
+                // Optionally include master_customers in text search if table exists
+                $joinedMaster = false;
+                if (\Illuminate\Support\Facades\Schema::hasTable('master_customers')) {
+                    $query->leftJoin('master_customers', 'invoices.customer_id', '=', 'master_customers.cus_id');
+                    $joinedMaster = true;
+                }
+
+                $query->where(function($q) use ($like, $joinedMaster) {
+                    $q->where('invoices.number', 'like', $like)
+                      ->orWhere('invoices.customer_company', 'like', $like)
+                      ->orWhere('invoices.work_name', 'like', $like)
+                      // Search by referenced quotation number too
+                      ->orWhere('quotations.number', 'like', $like);
+
+                    if ($joinedMaster) {
+                        foreach (['cus_company','cus_firstname','cus_lastname','cus_name'] as $col) {
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('master_customers', $col)) {
+                                $q->orWhere("master_customers.$col", 'like', $like);
+                            }
+                        }
+                    }
                 });
             }
 
@@ -597,7 +619,7 @@ class InvoiceService
                       ->whereIn('status', ['sent', 'partial_paid']);
             }
 
-            return $query->orderBy('created_at', 'desc')->paginate($perPage);
+            return $query->orderBy('invoices.created_at', 'desc')->paginate($perPage);
 
         } catch (\Exception $e) {
             Log::error('InvoiceService::getList error: ' . $e->getMessage());

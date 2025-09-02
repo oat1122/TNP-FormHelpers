@@ -118,6 +118,21 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
   // Attachments (local only for now)
   const [attachments, setAttachments] = React.useState([]); // File[]
 
+  // Customer address editing state
+  const [isEditingAddress, setIsEditingAddress] = React.useState(false);
+  const [customAddress, setCustomAddress] = React.useState('');
+
+  // Document header type state
+  const [documentHeaderType, setDocumentHeaderType] = React.useState('ต้นฉบับ');
+  const [customHeaderType, setCustomHeaderType] = React.useState('');
+
+  // Initialize custom address when customer data changes
+  React.useEffect(() => {
+    if (customer?.cus_address) {
+      setCustomAddress(customer.cus_address);
+    }
+  }, [customer?.cus_address]);
+
   // Financials from groups + discount-before-VAT + withholding
   const financials = useQuotationFinancials({
     items: groups,
@@ -189,6 +204,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
         type: invoiceType,
         payment_terms: payTerms,
         notes: q?.notes || '',
+        custom_billing_address: isEditingAddress ? customAddress : undefined,
+        document_header_type: documentHeaderType === 'อื่นๆ' ? customHeaderType : documentHeaderType,
       };
       if (invoiceType === 'partial') {
         const amt = Number(partialAmount || 0);
@@ -268,8 +285,71 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>ที่อยู่สำหรับออกบิล</Typography>
-                    <Typography variant="body2" fontWeight={500} className="long-text">{customer?.cus_address || '-'}</Typography>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                      <Typography variant="caption" color="text.secondary">ที่อยู่สำหรับออกบิล</Typography>
+                      <Button
+                        size="small"
+                        variant={isEditingAddress ? "contained" : "outlined"}
+                        onClick={() => setIsEditingAddress(!isEditingAddress)}
+                        sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
+                      >
+                        {isEditingAddress ? 'ใช้ที่อยู่เดิม' : 'เปลี่ยนที่อยู่'}
+                      </Button>
+                    </Box>
+                    {isEditingAddress ? (
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        size="small"
+                        value={customAddress}
+                        onChange={(e) => setCustomAddress(e.target.value)}
+                        placeholder="กรอกที่อยู่ใหม่สำหรับออกใบแจ้งหนี้"
+                        sx={{ mt: 1 }}
+                      />
+                    ) : (
+                      <Typography variant="body2" fontWeight={500} className="long-text">{customer?.cus_address || '-'}</Typography>
+                    )}
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>เลขประจำตัวผู้เสียภาษี</Typography>
+                    <Typography variant="body2" fontWeight={500} className="long-text">{customer?.cus_tax_id || '-'}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>เบอร์โทรศัพท์</Typography>
+                    <Typography variant="body2" fontWeight={500} className="long-text">{customer?.cus_tel_1 || '-'}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>หัวกระดาษ</Typography>
+                    <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                      {['ต้นฉบับ', 'สำเนา', 'อื่นๆ'].map((type) => (
+                        <Button
+                          key={type}
+                          size="small"
+                          variant={documentHeaderType === type ? "contained" : "outlined"}
+                          onClick={() => setDocumentHeaderType(type)}
+                          sx={{ fontSize: '0.75rem', py: 0.5, px: 1.5, minWidth: 'auto' }}
+                        >
+                          {type}
+                        </Button>
+                      ))}
+                    </Box>
+                    {documentHeaderType === 'อื่นๆ' && (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={customHeaderType}
+                        onChange={(e) => setCustomHeaderType(e.target.value)}
+                        placeholder="ระบุประเภทหัวกระดาษ"
+                        sx={{ mt: 1 }}
+                      />
+                    )}
                   </Box>
                 </Grid>
               </Grid>

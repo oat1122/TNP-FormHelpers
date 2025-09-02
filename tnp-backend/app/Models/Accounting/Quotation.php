@@ -85,6 +85,7 @@ class Quotation extends Model
         'payment_terms',
         'due_date',
         'notes',
+        'document_header_type',
         'signature_images',
         'sample_images',
         'created_by',

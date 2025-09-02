@@ -37,6 +37,7 @@ use App\Models\User;
  * @property \Carbon\Carbon|null $due_date
  * @property string|null $payment_method
  * @property string|null $notes
+ * @property string|null $document_header_type
  * @property string|null $created_by
  * @property string|null $approved_by
  * @property \Carbon\Carbon|null $approved_at
@@ -79,6 +80,7 @@ class Invoice extends Model
         'payment_method',
         'payment_terms',
         'notes',
+        'document_header_type',
         'created_by',
         'submitted_by',
         'approved_by',

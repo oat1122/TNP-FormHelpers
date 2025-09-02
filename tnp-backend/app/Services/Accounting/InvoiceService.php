@@ -152,6 +152,7 @@ class InvoiceService
             
             // ข้อมูลเพิ่มเติม
             $invoice->notes = $invoiceData['notes'] ?? null;
+            $invoice->document_header_type = $invoiceData['document_header_type'] ?? $quotation->document_header_type ?? 'ต้นฉบับ';
             $invoice->status = 'draft';
             $invoice->created_by = $createdBy;
             $invoice->created_at = now();

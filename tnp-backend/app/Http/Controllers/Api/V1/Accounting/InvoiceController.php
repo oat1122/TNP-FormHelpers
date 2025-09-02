@@ -253,6 +253,7 @@ class InvoiceController extends Controller
                 'payment_terms' => 'nullable|string|max:100',
                 'due_date' => 'nullable|date',
                 'custom_billing_address' => 'nullable|string|max:1000',
+                'document_header_type' => 'nullable|string|max:50',
                 'notes' => 'nullable|string|max:1000'
             ]);
 

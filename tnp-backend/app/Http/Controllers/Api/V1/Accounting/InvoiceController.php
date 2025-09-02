@@ -250,6 +250,8 @@ class InvoiceController extends Controller
                 'type' => 'required|in:full_amount,remaining,deposit,partial',
                 'custom_amount' => 'required_if:type,partial|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:100',
+                'due_date' => 'nullable|date',
+                'custom_billing_address' => 'nullable|string|max:1000',
                 'notes' => 'nullable|string|max:1000'
             ]);
 

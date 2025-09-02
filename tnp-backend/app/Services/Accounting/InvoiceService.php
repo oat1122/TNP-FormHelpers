@@ -121,7 +121,7 @@ class InvoiceService
             $invoice->customer_id = $autofillData['customer_id'];
             $invoice->customer_company = $autofillData['customer_company'];
             $invoice->customer_tax_id = $autofillData['customer_tax_id'];
-            $invoice->customer_address = $autofillData['customer_address'];
+            $invoice->customer_address = $invoiceData['custom_billing_address'] ?? $autofillData['customer_address'];
             $invoice->customer_zip_code = $autofillData['customer_zip_code'];
             $invoice->customer_tel_1 = $autofillData['customer_tel_1'];
             $invoice->customer_email = $autofillData['customer_email'];
@@ -148,7 +148,7 @@ class InvoiceService
             $invoice->payment_terms = $invoiceData['payment_terms'] ?? $autofillData['payment_terms'];
             
             // คำนวณวันครบกำหนดชำระ
-            $invoice->due_date = $this->calculateDueDate($invoice->payment_terms);
+            $invoice->due_date = $invoiceData['due_date'] ?? $this->calculateDueDate($invoice->payment_terms);
             
             // ข้อมูลเพิ่มเติม
             $invoice->notes = $invoiceData['notes'] ?? null;

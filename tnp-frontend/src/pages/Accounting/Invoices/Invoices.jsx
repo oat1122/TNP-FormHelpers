@@ -68,6 +68,13 @@ const Invoices = () => {
     setSelectedQuotation(null);
   };
 
+  const handleInvoiceCreateCancel = () => {
+    setCreateDialogOpen(false);
+    setSelectedQuotation(null);
+    // เปิด QuotationSelectionDialog ขึ้นมาใหม่เมื่อผู้ใช้กดปิด
+    setQuotationSelectionOpen(true);
+  };
+
   return (
     <ThemeProvider theme={accountingTheme}>
       <Header 
@@ -198,6 +205,7 @@ const Invoices = () => {
         }}
         quotationId={selectedQuotation?.id}
         onCreated={handleInvoiceCreated}
+        onCancel={handleInvoiceCreateCancel}
       />
     </ThemeProvider>
   );

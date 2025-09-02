@@ -26,11 +26,13 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
   ExpandMore as ExpandMoreIcon,
+  Badge as BadgeIcon,
 } from '@mui/icons-material';
 import {
   useGetQuotationQuery,
   useCreateInvoiceFromQuotationMutation,
 } from '../../../../features/Accounting/accountingApi';
+import { apiConfig } from '../../../../api/apiConfig';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import SpecialDiscountField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField';
 import WithholdingTaxField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField';
@@ -52,7 +54,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
  * - Reuses the QuotationDetailDialog visual structure for consistency
  * - Preloads from an approved Quotation and lets user confirm terms before creating an invoice
  */
-const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
+const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }) => {
   const { data, isLoading, isFetching } = useGetQuotationQuery(quotationId, { skip: !quotationId });
   const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceFromQuotationMutation();
 
@@ -117,6 +119,10 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
 
   // Attachments (local only for now)
   const [attachments, setAttachments] = React.useState([]); // File[]
+
+  // Signature images preview state
+  const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
+  const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
 
   // Customer address editing state
   const [isEditingAddress, setIsEditingAddress] = React.useState(false);
@@ -248,7 +254,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper">
+    <>
+      <Dialog open={open} onClose={() => onCancel?.()} fullWidth maxWidth="lg" scroll="paper">
       <DialogTitle>สร้างใบแจ้งหนี้</DialogTitle>
       <DialogContent
         dividers
@@ -692,6 +699,96 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
               </AccordionDetails>
             </Accordion>
 
+            {/* Signature Images */}
+            <Paper elevation={1} sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center" gap={2} mb={2}>
+                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white }}>
+                  <BadgeIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>หลักฐานการเซ็น</Typography>
+                  <Typography variant="caption" color="text.secondary">รูปภาพหลักฐานการเซ็นจากใบเสนอราคา</Typography>
+                </Box>
+              </Box>
+              
+              {signatureImages.length === 0 && (
+                <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="body2" color="text.secondary">ยังไม่มีรูปหลักฐานการเซ็น</Typography>
+                </Box>
+              )}
+              
+              {signatureImages.length > 0 && (
+                <Grid container spacing={2}>
+                  {signatureImages.map((img, idx) => {
+                    const apiBase = apiConfig.baseUrl || '';
+                    // Derive origin root (strip /api/... if present)
+                    const origin = (() => {
+                      try {
+                        if (!apiBase) return '';
+                        const u = new URL(apiBase);
+                        return u.origin; // http://localhost:8000
+                      } catch { return apiBase.replace(/\/api\b.*$/, ''); }
+                    })();
+                    const normalize = (u) => {
+                      if (!u) return '';
+                      if (/^https?:/i.test(u)) return u; // absolute
+                      if (u.startsWith('//')) return window.location.protocol + u; // protocol-relative
+                      if (u.startsWith('/')) return origin + u; // backend relative root
+                      // maybe "storage/..." without leading slash
+                      if (u.startsWith('storage/')) return origin + '/' + u;
+                      return u; // fallback
+                    };
+                    let urlCandidate = img?.url || '';
+                    if (!urlCandidate && img?.path) {
+                      urlCandidate = 'storage/' + img.path.replace(/^public\//,'');
+                    }
+                    const finalUrl = normalize(urlCandidate);
+                    return (
+                      <Grid item key={idx} xs={6} md={3}>
+                        <Box 
+                          sx={{ 
+                            border: '1px solid ' + tokens.border, 
+                            borderRadius: 1, 
+                            p: 1, 
+                            bgcolor: '#fff', 
+                            cursor: 'pointer' 
+                          }} 
+                          onClick={() => setPreviewImage({ url: finalUrl, filename: img.original_filename || img.filename, idx })}
+                        >
+                          <Box 
+                            sx={{ 
+                              position: 'relative', 
+                              pb: '70%', 
+                              overflow: 'hidden', 
+                              borderRadius: 1, 
+                              mb: 1, 
+                              background: '#fafafa' 
+                            }}
+                          >
+                            <img 
+                              src={finalUrl} 
+                              alt={img.filename} 
+                              style={{ 
+                                position: 'absolute', 
+                                top: 0, 
+                                left: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'contain' 
+                              }} 
+                            />
+                          </Box>
+                          <Typography variant="caption" sx={{ display: 'block', wordBreak: 'break-all' }}>
+                            {img.original_filename || img.filename}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              )}
+            </Paper>
+
             {/* Attachments */}
             <Paper elevation={1} sx={{ p: 3 }}>
               <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -713,7 +810,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
         )}
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose} disabled={isCreating} variant="outlined" size="large">
+        <Button onClick={() => onCancel?.()} disabled={isCreating} variant="outlined" size="large">
           ปิด
         </Button>
         <Button 
@@ -727,6 +824,37 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated }) => {
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Image Preview Dialog */}
+    <Dialog
+      open={!!previewImage}
+      onClose={() => setPreviewImage(null)}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        {previewImage?.filename || 'ดูรูปภาพ'}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          {previewImage && (
+            <img
+              src={previewImage.url}
+              alt={previewImage.filename}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain'
+              }}
+            />
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setPreviewImage(null)}>ปิด</Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

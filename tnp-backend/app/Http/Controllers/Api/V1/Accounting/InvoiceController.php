@@ -55,6 +55,7 @@ class InvoiceController extends Controller
             $filters = [
                 'search' => $request->query('search'),
                 'status' => $request->query('status'),
+                'type' => $request->query('type'),
                 'customer_id' => $request->query('customer_id'),
                 'date_from' => $request->query('date_from'),
                 'date_to' => $request->query('date_to'),

@@ -567,6 +567,10 @@ class InvoiceService
                 $query->where('status', $filters['status']);
             }
 
+            if (!empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+
             if (!empty($filters['customer_id'])) {
                 $query->where('customer_id', $filters['customer_id']);
             }

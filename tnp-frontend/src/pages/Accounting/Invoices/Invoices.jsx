@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import accountingTheme from '../theme/accountingTheme';
-import { Box, Container, Grid, Alert, Stack, Button, Chip, Typography } from '@mui/material';
+import { Box, Container, Grid, Alert, Stack, Button, Chip, Typography, Fab } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import {
   Header,
   FilterSection,
@@ -10,35 +11,20 @@ import {
   ErrorState,
   EmptyState,
 } from '../PricingIntegration/components';
-import QuotationCard from '../Quotations/components/QuotationCard';
 import {
-  useGetQuotationsAwaitingInvoiceQuery,
-  useGenerateQuotationPDFMutation,
   useGetInvoicesQuery,
   useGenerateInvoicePDFMutation,
 } from '../../../features/Accounting/accountingApi';
 import InvoiceCreateDialog from './components/InvoiceCreateDialog';
+import QuotationSelectionDialog from './components/QuotationSelectionDialog';
 import InvoiceCard from './components/InvoiceCard';
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-
-  const { data, error, isLoading, isFetching, refetch } = useGetQuotationsAwaitingInvoiceQuery({
-    search: searchQuery || undefined,
-    page: currentPage,
-    per_page: itemsPerPage,
-  });
-
-  const quotations = useMemo(() => {
-    const arr = data?.data?.data || data?.data || [];
-    return Array.isArray(arr) ? arr : [];
-  }, [data]);
-
-  const total = data?.data?.total || quotations.length;
-  const [generatePDF] = useGenerateQuotationPDFMutation();
+  
+  // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [quotationSelectionOpen, setQuotationSelectionOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
 
   // Invoices: filter + pagination
@@ -67,54 +53,111 @@ const Invoices = () => {
   const invoicesTotal = invoicesResp?.data?.total || invoices.length;
   const [generateInvoicePDF] = useGenerateInvoicePDFMutation();
 
-  const handleDownloadPDF = async (id) => {
-    try {
-      await generatePDF(id).unwrap();
-    } catch (e) {
-      console.error('Generate PDF failed', e);
-    }
+  const handleSelectQuotation = (quotation) => {
+    setSelectedQuotation(quotation);
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateInvoiceClick = () => {
+    setQuotationSelectionOpen(true);
+  };
+
+  const handleInvoiceCreated = () => {
+    refetchInvoices();
+    setCreateDialogOpen(false);
+    setSelectedQuotation(null);
   };
 
   return (
     <ThemeProvider theme={accountingTheme}>
-      <Header title="สร้างใบแจ้งหนี้" subtitle="ใบเสนอราคาที่เซ็นแล้วและพร้อมออกใบแจ้งหนี้" />
+      <Header 
+        title="จัดการใบแจ้งหนี้" 
+        subtitle="รายการใบแจ้งหนี้ทั้งหมดในระบบ" 
+      />
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Header with Create Button */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h5" fontWeight={600}>
+            รายการใบแจ้งหนี้
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AddIcon />}
+            onClick={handleCreateInvoiceClick}
+            sx={{ px: 3, py: 1.5 }}
+          >
+            สร้างใบแจ้งหนี้
+          </Button>
+        </Box>
+
         <FilterSection
           searchQuery={searchQuery}
-          onSearchChange={(v) => { setSearchQuery(v); setCurrentPage(1); setInvoicePage(1); }}
-          onRefresh={() => { refetch(); refetchInvoices(); }}
-          onResetFilters={() => { setSearchQuery(''); setCurrentPage(1); setItemsPerPage(20); setInvoicePage(1); setInvoicePerPage(20); setInvoiceTypeFilter(''); }}
+          onSearchChange={(v) => { setSearchQuery(v); setInvoicePage(1); }}
+          onRefresh={refetchInvoices}
+          onResetFilters={() => { 
+            setSearchQuery(''); 
+            setInvoicePage(1); 
+            setInvoicePerPage(20); 
+            setInvoiceTypeFilter(''); 
+          }}
         />
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>เกิดข้อผิดพลาดในการดึงข้อมูล: {error.message}</Alert>
+        {/* Invoice Type Filter */}
+        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
+          {[
+            { value: '', label: 'ทั้งหมด' },
+            { value: 'full_amount', label: 'เต็มจำนวน' },
+            { value: 'remaining', label: 'ยอดคงเหลือ (หักมัดจำ)' },
+            { value: 'deposit', label: 'มัดจำ' },
+            { value: 'partial', label: 'บางส่วน (กำหนดเอง)' },
+          ].map((opt) => (
+            <Button
+              key={opt.value || 'all'}
+              size="small"
+              variant={(invoiceTypeFilter === opt.value) ? 'contained' : 'outlined'}
+              onClick={() => { setInvoiceTypeFilter(opt.value); setInvoicePage(1); }}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </Stack>
+
+        {invoicesError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            เกิดข้อผิดพลาดในการดึงรายการใบแจ้งหนี้: {invoicesError.message}
+          </Alert>
         )}
 
-        {isLoading ? (
+        {invoicesLoading ? (
           <LoadingState />
-        ) : quotations.length === 0 ? (
-          <EmptyState title="ยังไม่มีใบเสนอราคาให้สร้างใบแจ้งหนี้" />
+        ) : invoices.length === 0 ? (
+          <EmptyState title="ไม่พบรายการใบแจ้งหนี้" />
         ) : (
           <>
             <PaginationSection
-              title={`พร้อมออกใบแจ้งหนี้ (${total})`}
-              page={currentPage}
-              perPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onPerPageChange={setItemsPerPage}
-              loading={isFetching}
+              title={`รายการใบแจ้งหนี้ (${invoicesTotal})`}
+              page={invoicePage}
+              perPage={invoicePerPage}
+              onPageChange={setInvoicePage}
+              onPerPageChange={setInvoicePerPage}
+              loading={invoicesFetching}
             />
 
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={2}>
-                {quotations.map((q) => (
-                  <Grid item xs={12} md={6} lg={4} key={q.id}>
-                    <QuotationCard
-                      data={q}
-                      onDownloadPDF={() => handleDownloadPDF(q.id)}
-                      onViewDetail={() => { setSelectedQuotation(q); setCreateDialogOpen(true); }}
-                      onCreateInvoice={() => { setSelectedQuotation(q); setCreateDialogOpen(true); }}
+                {invoices.map((inv) => (
+                  <Grid item xs={12} md={6} lg={4} key={inv.id}>
+                    <InvoiceCard
+                      invoice={inv}
+                      onDownloadPDF={() => generateInvoicePDF(inv.id)}
+                      onView={() => {
+                        // TODO: Navigate to invoice detail page or open detail modal
+                        console.log('View invoice details:', inv);
+                        // You can add navigation logic here, e.g.:
+                        // navigate(`/accounting/invoices/${inv.id}`);
+                      }}
                     />
                   </Grid>
                 ))}
@@ -122,74 +165,39 @@ const Invoices = () => {
             </Box>
           </>
         )}
-        {/* Invoices List Section */}
-        <Box sx={{ mt: 6 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>รายการใบแจ้งหนี้</Typography>
-          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
-            {[
-              { value: '', label: 'ทั้งหมด' },
-              { value: 'full_amount', label: 'เต็มจำนวน' },
-              { value: 'remaining', label: 'ยอดคงเหลือ (หักมัดจำ)' },
-              { value: 'deposit', label: 'มัดจำ' },
-              { value: 'partial', label: 'บางส่วน (กำหนดเอง)' },
-            ].map((opt) => (
-              <Button
-                key={opt.value || 'all'}
-                size="small"
-                variant={(invoiceTypeFilter === opt.value) ? 'contained' : 'outlined'}
-                onClick={() => { setInvoiceTypeFilter(opt.value); setInvoicePage(1); }}
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </Stack>
-
-          {invoicesError && (
-            <Alert severity="error" sx={{ mb: 2 }}>เกิดข้อผิดพลาดในการดึงรายการใบแจ้งหนี้: {invoicesError.message}</Alert>
-          )}
-
-          {invoicesLoading ? (
-            <LoadingState />
-          ) : invoices.length === 0 ? (
-            <EmptyState title="ไม่พบรายการใบแจ้งหนี้" />
-          ) : (
-            <>
-              <PaginationSection
-                title={`รายการใบแจ้งหนี้ (${invoicesTotal})`}
-                page={invoicePage}
-                perPage={invoicePerPage}
-                onPageChange={setInvoicePage}
-                onPerPageChange={setInvoicePerPage}
-                loading={invoicesFetching}
-              />
-
-              <Box sx={{ mt: 2 }}>
-                <Grid container spacing={2}>
-                  {invoices.map((inv) => (
-                    <Grid item xs={12} md={6} lg={4} key={inv.id}>
-                      <InvoiceCard
-                        invoice={inv}
-                        onDownloadPDF={() => generateInvoicePDF(inv.id)}
-                        onView={() => {
-                          // TODO: Navigate to invoice detail page or open detail modal
-                          console.log('View invoice details:', inv);
-                          // You can add navigation logic here, e.g.:
-                          // navigate(`/accounting/invoices/${inv.id}`);
-                        }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            </>
-          )}
-        </Box>
       </Container>
+
+      {/* Floating Action Button for Mobile */}
+      <Fab
+        color="primary"
+        aria-label="สร้างใบแจ้งหนี้"
+        onClick={handleCreateInvoiceClick}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          display: { xs: 'flex', md: 'none' }, // Show only on mobile
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Quotation Selection Dialog */}
+      <QuotationSelectionDialog
+        open={quotationSelectionOpen}
+        onClose={() => setQuotationSelectionOpen(false)}
+        onSelectQuotation={handleSelectQuotation}
+      />
+
+      {/* Invoice Create Dialog */}
       <InvoiceCreateDialog
         open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
+        onClose={() => {
+          setCreateDialogOpen(false);
+          setSelectedQuotation(null);
+        }}
         quotationId={selectedQuotation?.id}
-        onCreated={() => refetch()}
+        onCreated={handleInvoiceCreated}
       />
     </ThemeProvider>
   );

@@ -28,7 +28,7 @@ const statusColor = {
   completed: 'success',
 };
 
-const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCreateInvoice, creatingInvoice }) => {
+const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCreateInvoice, creatingInvoice, actionButtonText }) => {
   const amountText = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(data.total_amount || 0));
   const [showAll, setShowAll] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
@@ -208,9 +208,22 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCrea
             </Button>
           )}
         </Box>
-        <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>
-          ดูรายละเอียด
-        </TNPPrimaryButton>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {onCreateInvoice && data.status === 'approved' && data.signature_image_url && (
+            <TNPPrimaryButton 
+              size="medium" 
+              variant="outlined" 
+              color="primary" 
+              onClick={onCreateInvoice}
+              disabled={creatingInvoice}
+            >
+              {creatingInvoice ? 'กำลังสร้าง...' : (actionButtonText || 'สร้างใบแจ้งหนี้')}
+            </TNPPrimaryButton>
+          )}
+          <TNPPrimaryButton size="medium" variant="contained" startIcon={<VisibilityIcon />} onClick={onViewDetail}>
+            ดูรายละเอียด
+          </TNPPrimaryButton>
+        </Box>
       </Box>
     </TNPCard>
   );

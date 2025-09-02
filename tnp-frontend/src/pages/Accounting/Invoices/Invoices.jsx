@@ -154,12 +154,14 @@ const Invoices = () => {
             <EmptyState title="ไม่พบรายการใบแจ้งหนี้" />
           ) : (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="subtitle1">ทั้งหมด</Typography>
-                  <Chip label={invoicesTotal} color="secondary" size="small" />
-                </Stack>
-              </Box>
+              <PaginationSection
+                title={`รายการใบแจ้งหนี้ (${invoicesTotal})`}
+                page={invoicePage}
+                perPage={invoicePerPage}
+                onPageChange={setInvoicePage}
+                onPerPageChange={setInvoicePerPage}
+                loading={invoicesFetching}
+              />
 
               <Box sx={{ mt: 2 }}>
                 <Grid container spacing={2}>
@@ -168,6 +170,12 @@ const Invoices = () => {
                       <InvoiceCard
                         invoice={inv}
                         onDownloadPDF={() => generateInvoicePDF(inv.id)}
+                        onView={() => {
+                          // TODO: Navigate to invoice detail page or open detail modal
+                          console.log('View invoice details:', inv);
+                          // You can add navigation logic here, e.g.:
+                          // navigate(`/accounting/invoices/${inv.id}`);
+                        }}
                       />
                     </Grid>
                   ))}

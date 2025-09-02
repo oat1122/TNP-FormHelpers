@@ -101,7 +101,7 @@ const QuotationCard = ({ data, onDownloadPDF, onViewLinked, onViewDetail, onCrea
                   <InputLabel id={`company-select-label-${data.id}`}>บริษัท</InputLabel>
                   <Select
                     labelId={`company-select-label-${data.id}`}
-                    value={data.company_id || ''}
+                    value={(companies.find(c => c.id === data.company_id) ? data.company_id : '')}
                     label="บริษัท"
                     onChange={async (e) => {
                       const newCompanyId = e.target.value;

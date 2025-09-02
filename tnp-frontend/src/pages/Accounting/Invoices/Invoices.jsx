@@ -13,9 +13,9 @@ import {
 import QuotationCard from '../Quotations/components/QuotationCard';
 import {
   useGetQuotationsAwaitingInvoiceQuery,
-  useCreateInvoiceFromQuotationMutation,
   useGenerateQuotationPDFMutation,
 } from '../../../features/Accounting/accountingApi';
+import InvoiceCreateDialog from './components/InvoiceCreateDialog';
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,18 +34,9 @@ const Invoices = () => {
   }, [data]);
 
   const total = data?.data?.total || quotations.length;
-  const [createInvoice, { isLoading: creating }] = useCreateInvoiceFromQuotationMutation();
   const [generatePDF] = useGenerateQuotationPDFMutation();
-
-  const handleCreateInvoice = async (quotationId) => {
-    try {
-      await createInvoice({ quotationId }).unwrap();
-      // After creating, refresh the list so the quotation disappears
-      refetch();
-    } catch (e) {
-      console.error('Create invoice failed', e);
-    }
-  };
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState(null);
 
   const handleDownloadPDF = async (id) => {
     try {
@@ -98,8 +89,7 @@ const Invoices = () => {
                         const url = prId ? `/pricing/view/${encodeURIComponent(prId)}` : '/accounting/quotations';
                         window.open(url, '_blank');
                       }}
-                      onCreateInvoice={() => handleCreateInvoice(q.id)}
-                      creatingInvoice={creating}
+                      onCreateInvoice={() => { setSelectedQuotation(q); setCreateDialogOpen(true); }}
                     />
                   </Grid>
                 ))}
@@ -108,6 +98,12 @@ const Invoices = () => {
           </>
         )}
       </Container>
+      <InvoiceCreateDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        quotationId={selectedQuotation?.id}
+        onCreated={() => refetch()}
+      />
     </ThemeProvider>
   );
 };

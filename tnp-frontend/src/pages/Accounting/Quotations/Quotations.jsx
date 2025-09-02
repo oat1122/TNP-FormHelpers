@@ -45,6 +45,7 @@ import LinkedPricingDialog from './components/LinkedPricingDialog';
 import QuotationDetailDialog from './components/QuotationDetailDialog';
 import usePagination from './hooks/usePagination';
 import CompanyManagerDialog from './components/CompanyManagerDialog';
+import InvoiceCreateDialog from '../Invoices/components/InvoiceCreateDialog';
 
 const statusOrder = ['draft','pending_review','approved','sent','completed','rejected'];
 
@@ -59,6 +60,7 @@ const Quotations = () => {
   const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
   const [linkedOpen, setLinkedOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
@@ -316,10 +318,11 @@ const Quotations = () => {
                   {(paginated || []).map((q) => (
                     <Grid item xs={12} sm={6} lg={4} key={q.id}>
                       <QuotationCard
-        data={q}
+                        data={q}
                         onDownloadPDF={() => handleDownloadPDF(q.id)}
                         onViewLinked={() => { setSelectedQuotation(q); setLinkedOpen(true); }}
                         onViewDetail={() => { setSelectedQuotation(q); setDetailOpen(true); }}
+                        onCreateInvoice={() => { setSelectedQuotation(q); setCreateInvoiceOpen(true); }}
                       />
                     </Grid>
                   ))}
@@ -346,6 +349,7 @@ const Quotations = () => {
           <LinkedPricingDialog open={linkedOpen} onClose={() => setLinkedOpen(false)} quotationId={selectedQuotation?.id} />
           <QuotationDetailDialog open={detailOpen} onClose={() => setDetailOpen(false)} quotationId={selectedQuotation?.id} />
           <CompanyManagerDialog open={companyDialogOpen} onClose={() => setCompanyDialogOpen(false)} />
+          <InvoiceCreateDialog open={createInvoiceOpen} onClose={() => setCreateInvoiceOpen(false)} quotationId={selectedQuotation?.id} />
           {/* Floating Action Button */}
           <FloatingActionButton onRefresh={handleRefresh} />
         </Box>

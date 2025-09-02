@@ -36,6 +36,7 @@ import { apiConfig } from '../../../../api/apiConfig';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import SpecialDiscountField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField';
 import WithholdingTaxField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField';
+import VatField from '../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField';
 import Calculation from '../../shared/components/Calculation';
 import PaymentTerms from '../../shared/components/PaymentTerms';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
@@ -82,6 +83,10 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   const [specialDiscountValue, setSpecialDiscountValue] = React.useState(0);
   const [hasWithholdingTax, setHasWithholdingTax] = React.useState(false);
   const [withholdingTaxPercentage, setWithholdingTaxPercentage] = React.useState(0);
+  
+  // VAT state (NEW)
+  const [hasVat, setHasVat] = React.useState(true);
+  const [vatPercentage, setVatPercentage] = React.useState(7);
 
   React.useEffect(() => {
     const qAmt = Number(q?.special_discount_amount || 0);
@@ -92,6 +97,10 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     setSpecialDiscountValue(nextVal);
     setHasWithholdingTax(!!q?.has_withholding_tax);
     setWithholdingTaxPercentage(Number(q?.withholding_tax_percentage || 0));
+    
+    // Initialize VAT from quotation or defaults
+    setHasVat(q?.has_vat !== false); // Default to true if not specified
+    setVatPercentage(Number(q?.vat_percentage || 7));
   }, [q?.id]);
 
   // Payment terms state
@@ -139,7 +148,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     }
   }, [customer?.cus_address]);
 
-  // Financials from groups + discount-before-VAT + withholding
+  // Financials from groups + discount-before-VAT + withholding + VAT
   const financials = useQuotationFinancials({
     items: groups,
     depositMode,
@@ -149,6 +158,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     specialDiscountValue,
     hasWithholdingTax,
     withholdingTaxPercentage,
+    hasVat,
+    vatPercentage,
   });
 
   const {
@@ -212,6 +223,17 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         notes: q?.notes || '',
         custom_billing_address: isEditingAddress ? customAddress : undefined,
         document_header_type: documentHeaderType === 'อื่นๆ' ? customHeaderType : documentHeaderType,
+        // VAT configuration
+        has_vat: hasVat,
+        vat_percentage: vatPercentage,
+        vat_amount: vat,
+        // Financial fields for backend calculation validation
+        subtotal,
+        discount_amount: discountAmountComputed,
+        net_after_discount: netAfterDiscount,
+        total_amount: total,
+        withholding_amount: withholdingTaxAmountComputed,
+        final_total: finalNetAmountComputed,
       };
       if (invoiceType === 'partial') {
         const amt = Number(partialAmount || 0);
@@ -236,6 +258,10 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         deposit_percentage: liveDepositPercentage,
         deposit_amount: depositAmount,
         remaining_amount: remainingAmount,
+        // VAT fields
+        has_vat: hasVat,
+        vat_percentage: vatPercentage,
+        vat_amount: vat,
       };
       payload.invoice_items = itemsPayload;
       if (attachments?.length) {
@@ -564,9 +590,19 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                     );
                   })}
 
-                  {/* Discount and Tax */}
+                  {/* VAT, Discount and Tax */}
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={4}>
+                      <VatField
+                        hasVat={hasVat}
+                        vatPercentage={vatPercentage}
+                        vatAmount={vat}
+                        subtotalAmount={netAfterDiscount}
+                        onToggleVat={setHasVat}
+                        onVatPercentageChange={setVatPercentage}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
                       <SpecialDiscountField
                         discountType={specialDiscountType}
                         discountValue={specialDiscountValue}
@@ -576,7 +612,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                         onDiscountValueChange={setSpecialDiscountValue}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={4}>
                       <WithholdingTaxField
                         hasWithholdingTax={hasWithholdingTax}
                         taxPercentage={withholdingTaxPercentage}
@@ -598,6 +634,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                       totalAfterVat={total}
                       withholdingAmount={withholdingTaxAmountComputed}
                       finalTotal={finalNetAmountComputed}
+                      vatPercentage={vatPercentage}
+                      hasVat={hasVat}
                     />
                   </Paper>
                 </Stack>

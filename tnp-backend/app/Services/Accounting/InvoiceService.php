@@ -147,6 +147,11 @@ class InvoiceService
             $invoice->total_amount = $amounts['total_amount'];
             $invoice->payment_terms = $invoiceData['payment_terms'] ?? $autofillData['payment_terms'];
             
+            // VAT configuration (NEW)
+            $invoice->has_vat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
+            $invoice->vat_percentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
+            $invoice->vat_amount = $amounts['tax_amount']; // This is the calculated VAT amount
+            
             // คำนวณวันครบกำหนดชำระ
             $invoice->due_date = $invoiceData['due_date'] ?? $this->calculateDueDate($invoice->payment_terms);
             
@@ -682,8 +687,21 @@ class InvoiceService
      */
     private function calculateInvoiceAmounts($quotation, $type, $invoiceData = [])
     {
+        // Use VAT configuration from invoice data or fallback to quotation/default
+        $hasVat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
+        $vatPercentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
+        $vatRate = $hasVat ? ($vatPercentage / 100) : 0;
+
         switch ($type) {
             case 'full_amount':
+                // Use provided financial data if available, otherwise calculate from quotation
+                if (isset($invoiceData['subtotal'], $invoiceData['vat_amount'], $invoiceData['total_amount'])) {
+                    return [
+                        'subtotal' => $invoiceData['subtotal'],
+                        'tax_amount' => $invoiceData['vat_amount'],
+                        'total_amount' => $invoiceData['total_amount']
+                    ];
+                }
                 return [
                     'subtotal' => $quotation->subtotal,
                     'tax_amount' => $quotation->tax_amount,
@@ -692,8 +710,13 @@ class InvoiceService
 
             case 'remaining':
                 $totalAmount = $quotation->total_amount - ($quotation->deposit_amount ?? 0);
-                $subtotal = $totalAmount / (1 + ($quotation->vat_rate ?? 0.07));
-                $taxAmount = $totalAmount - $subtotal;
+                if ($hasVat && $vatRate > 0) {
+                    $subtotal = $totalAmount / (1 + $vatRate);
+                    $taxAmount = $totalAmount - $subtotal;
+                } else {
+                    $subtotal = $totalAmount;
+                    $taxAmount = 0;
+                }
                 
                 return [
                     'subtotal' => round($subtotal, 2),
@@ -703,8 +726,13 @@ class InvoiceService
 
             case 'deposit':
                 $totalAmount = $quotation->deposit_amount ?? 0;
-                $subtotal = $totalAmount / (1 + ($quotation->vat_rate ?? 0.07));
-                $taxAmount = $totalAmount - $subtotal;
+                if ($hasVat && $vatRate > 0) {
+                    $subtotal = $totalAmount / (1 + $vatRate);
+                    $taxAmount = $totalAmount - $subtotal;
+                } else {
+                    $subtotal = $totalAmount;
+                    $taxAmount = 0;
+                }
                 
                 return [
                     'subtotal' => round($subtotal, 2),
@@ -714,8 +742,13 @@ class InvoiceService
 
             case 'partial':
                 $totalAmount = $invoiceData['custom_amount'] ?? 0;
-                $subtotal = $totalAmount / (1 + ($quotation->vat_rate ?? 0.07));
-                $taxAmount = $totalAmount - $subtotal;
+                if ($hasVat && $vatRate > 0) {
+                    $subtotal = $totalAmount / (1 + $vatRate);
+                    $taxAmount = $totalAmount - $subtotal;
+                } else {
+                    $subtotal = $totalAmount;
+                    $taxAmount = 0;
+                }
                 
                 return [
                     'subtotal' => round($subtotal, 2),

@@ -6,7 +6,7 @@ import { useMemo } from 'react';
  * 1. Subtotal = sum(items)
  * 2. Special Discount applied to subtotal (before VAT)
  * 3. Discounted Subtotal = subtotal - specialDiscountAmount (never < 0)
- * 4. VAT 7% computed on discounted subtotal
+ * 4. VAT computed on discounted subtotal (editable rate, default 7%)
  * 5. Withholding tax (if enabled) computed on discounted subtotal (pre-VAT base)
  * 6. Total (total_amount) = discountedSubtotal + vat
  * 7. Final total (final_total_amount) = Total - withholdingTaxAmount
@@ -21,6 +21,8 @@ export function useQuotationFinancials({
   specialDiscountValue = 0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
+  hasVat = true, // NEW: Enable/disable VAT
+  vatPercentage = 7, // NEW: Editable VAT rate
 }) {
   return useMemo(() => computeFinancials({
     items,
@@ -31,7 +33,9 @@ export function useQuotationFinancials({
     specialDiscountValue,
     hasWithholdingTax,
     withholdingTaxPercentage,
-  }), [items, depositMode, depositPercentage, depositAmountInput, specialDiscountType, specialDiscountValue, hasWithholdingTax, withholdingTaxPercentage]);
+    hasVat,
+    vatPercentage,
+  }), [items, depositMode, depositPercentage, depositAmountInput, specialDiscountType, specialDiscountValue, hasWithholdingTax, withholdingTaxPercentage, hasVat, vatPercentage]);
 }
 
 export function computeFinancials({
@@ -43,6 +47,8 @@ export function computeFinancials({
   specialDiscountValue = 0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
+  hasVat = true, // NEW: Enable/disable VAT
+  vatPercentage = 7, // NEW: Editable VAT rate
 }) {
   // 1. Subtotal
   const normalizedItems = (items || []).map(it => {
@@ -66,8 +72,9 @@ export function computeFinancials({
   // 3. Discounted subtotal
   const discountedSubtotal = subtotal - specialDiscountAmount;
 
-  // 4. VAT on discounted subtotal
-  const vat = +(discountedSubtotal * 0.07).toFixed(2);
+  // 4. VAT on discounted subtotal (editable rate)
+  const vatRate = hasVat ? (Number(vatPercentage || 0) / 100) : 0;
+  const vat = +(discountedSubtotal * vatRate).toFixed(2);
 
   // 5. Withholding tax (on discounted subtotal pre-VAT base)
   const withholdingTaxAmount = hasWithholdingTax ? +(discountedSubtotal * (Number(withholdingTaxPercentage || 0) / 100)).toFixed(2) : 0;
@@ -98,8 +105,12 @@ export function computeFinancials({
     total, // total_amount (discountedSubtotal + vat)
     withholdingTaxAmount,
     finalTotal, // final_total_amount
-  depositAmount,
-  depositPercentage: +depPct.toFixed(4),
-  remainingAmount,
+    depositAmount,
+    depositPercentage: +depPct.toFixed(4),
+    remainingAmount,
+    // VAT-related fields
+    hasVat,
+    vatPercentage: Number(vatPercentage || 0),
+    vatRate,
   };
 }

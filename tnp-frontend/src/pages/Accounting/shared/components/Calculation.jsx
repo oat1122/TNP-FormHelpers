@@ -16,7 +16,9 @@ export default function Calculation({
   totalAfterVat = 0, // discountedBase + vat
   withholdingAmount = 0,
   finalTotal = 0,
-  title = 'สรุปยอดเงิน'
+  title = 'สรุปยอดเงิน',
+  vatPercentage = 7, // NEW: Show actual VAT percentage
+  hasVat = true, // NEW: Show if VAT is enabled
 }) {
   return (
     <InfoCard sx={{ p: 2 }}>
@@ -35,7 +37,7 @@ export default function Calculation({
             <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(discountedBase)}</Typography></Grid>
           </>
         )}
-        <Grid item xs={6}><Typography>VAT 7%</Typography></Grid>
+        <Grid item xs={6}><Typography>VAT {hasVat ? `${vatPercentage}%` : '(ยกเว้น)'}</Typography></Grid>
         <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(vat)}</Typography></Grid>
         <Grid item xs={6}><Typography>ยอดหลัง VAT</Typography></Grid>
         <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatTHB(totalAfterVat)}</Typography></Grid>

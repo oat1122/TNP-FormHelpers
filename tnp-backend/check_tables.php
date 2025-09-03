@@ -1,1 +1,0 @@
-"<?php require 'vendor/autoload.php'; require 'bootstrap/app.php'; app()->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo '=== new_worksheets structure ===\\n'; var_dump(DB::select('DESCRIBE new_worksheets')); echo '\\n=== max_supplies worksheet_id column ===\\n'; var_dump(DB::select('DESCRIBE max_supplies worksheet_id'));"

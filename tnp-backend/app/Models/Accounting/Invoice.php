@@ -23,6 +23,7 @@ use App\Models\User;
  * @property string|null $customer_email
  * @property string|null $customer_firstname
  * @property string|null $customer_lastname
+ * @property string|null $customer_snapshot
  * @property string|null $work_name
  * @property string|null $fabric_type
  * @property string|null $pattern
@@ -55,6 +56,8 @@ class Invoice extends Model
         'company_id',
         'number',
         'quotation_id',
+        'primary_pricing_request_id',
+        'primary_pricing_request_ids',
         'customer_id',
         'customer_company',
         'customer_tax_id',
@@ -64,46 +67,64 @@ class Invoice extends Model
         'customer_email',
         'customer_firstname',
         'customer_lastname',
-        'work_name',
-        'fabric_type',
-        'pattern',
-        'color',
-        'sizes',
-        'quantity',
+        'customer_snapshot',
         'status',
         'type',
         'subtotal',
         'tax_amount',
         'total_amount',
-        'paid_amount',
+        'special_discount_percentage',
+        'special_discount_amount',
         'has_vat',
         'vat_percentage',
         'vat_amount',
+        'has_withholding_tax',
+        'withholding_tax_percentage',
+        'withholding_tax_amount',
+        'final_total_amount',
+        'deposit_percentage',
+        'deposit_amount',
+        'deposit_mode',
+        'paid_amount',
         'due_date',
         'payment_method',
         'payment_terms',
         'notes',
+        'signature_images',
+        'sample_images',
         'document_header_type',
         'created_by',
+        'updated_by',
         'submitted_by',
-        'approved_by',
-        'rejected_by',
-        'sent_by',
         'submitted_at',
+        'approved_by',
         'approved_at',
+        'rejected_by',
         'rejected_at',
+        'sent_by',
         'sent_at',
         'paid_at'
     ];
 
     protected $casts = [
+        'primary_pricing_request_ids' => 'array',
+        'customer_snapshot' => 'array',
+        'signature_images' => 'array',
+        'sample_images' => 'array',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
-        'has_vat' => 'boolean',
+        'special_discount_percentage' => 'decimal:2',
+        'special_discount_amount' => 'decimal:2',
         'vat_percentage' => 'decimal:2',
         'vat_amount' => 'decimal:2',
+        'withholding_tax_percentage' => 'decimal:2',
+        'withholding_tax_amount' => 'decimal:2',
+        'final_total_amount' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'has_vat' => 'boolean',
+        'has_withholding_tax' => 'boolean',
         'due_date' => 'date',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
@@ -138,6 +159,23 @@ class Invoice extends Model
     }
 
     /**
+     * Relationship: Invoice has many InvoiceItems
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class, 'invoice_id')
+                   ->orderBy('sequence_order');
+    }
+
+    /**
+     * Relationship: Invoice belongs to primary pricing request
+     */
+    public function primaryPricingRequest(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
+    }
+
+    /**
      * Relationship: Invoice belongs to Customer
      */
     public function customer(): BelongsTo
@@ -154,11 +192,43 @@ class Invoice extends Model
     }
 
     /**
+     * Relationship: Invoice belongs to Updater
+     */
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'user_uuid');
+    }
+
+    /**
+     * Relationship: Invoice belongs to Submitter
+     */
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by', 'user_uuid');
+    }
+
+    /**
      * Relationship: Invoice belongs to Approver
      */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by', 'user_uuid');
+    }
+
+    /**
+     * Relationship: Invoice belongs to Rejecter
+     */
+    public function rejecter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by', 'user_uuid');
+    }
+
+    /**
+     * Relationship: Invoice belongs to Sender
+     */
+    public function sender(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sent_by', 'user_uuid');
     }
 
     /**
@@ -234,7 +304,7 @@ class Invoice extends Model
      */
     public function getRemainingAmountAttribute()
     {
-        return $this->total_amount - $this->paid_amount;
+        return $this->final_total_amount - $this->paid_amount;
     }
 
     /**
@@ -242,7 +312,7 @@ class Invoice extends Model
      */
     public function isFullyPaid()
     {
-        return $this->paid_amount >= $this->total_amount;
+        return $this->paid_amount >= $this->final_total_amount;
     }
 
     /**

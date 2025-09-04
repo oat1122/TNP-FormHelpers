@@ -140,6 +140,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   // Document header type state
   const [documentHeaderType, setDocumentHeaderType] = React.useState('ต้นฉบับ');
   const [customHeaderType, setCustomHeaderType] = React.useState('');
+  
+  // Notes state
+  const [notes, setNotes] = React.useState('');
 
   // Initialize custom address when customer data changes
   React.useEffect(() => {
@@ -147,6 +150,13 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
       setCustomAddress(customer.cus_address);
     }
   }, [customer?.cus_address]);
+
+  // Initialize notes from quotation
+  React.useEffect(() => {
+    if (q?.notes) {
+      setNotes(q.notes);
+    }
+  }, [q?.notes]);
 
   // Financials from groups + discount-before-VAT + withholding + VAT
   const financials = useQuotationFinancials({
@@ -177,8 +187,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
 
   const isCredit = paymentTermsType === 'credit_30' || paymentTermsType === 'credit_60';
 
-  // Invoice type selection (full, remaining, deposit, partial)
-  const [invoiceType, setInvoiceType] = React.useState('remaining');
+  // Invoice type selection (full, deposit, partial)
+  const [invoiceType, setInvoiceType] = React.useState('deposit');
   const [partialAmount, setPartialAmount] = React.useState('');
 
   // Map groups → invoice items-like structure (kept for potential backend expansion)
@@ -220,21 +230,43 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         quotationId: q.id,
         type: invoiceType,
         payment_terms: payTerms,
-        notes: q?.notes || '',
-        custom_billing_address: isEditingAddress ? customAddress : undefined,
+        payment_method: q?.payment_method || null,
+        notes: notes || q?.notes || '',
+        
+        // ส่งที่อยู่ที่เลือกใช้ (ไม่ว่าจะเป็นที่อยู่เดิมหรือที่อยู่ใหม่)
+        custom_billing_address: isEditingAddress ? customAddress : customer?.cus_address,
+        
         document_header_type: documentHeaderType === 'อื่นๆ' ? customHeaderType : documentHeaderType,
+        
+        // Financial calculations from frontend
+        subtotal,
+        special_discount_percentage: specialDiscountType === 'percentage' ? specialDiscountValue : 0,
+        special_discount_amount: specialDiscountType === 'amount' ? specialDiscountValue : discountAmountComputed,
+        
         // VAT configuration
         has_vat: hasVat,
         vat_percentage: vatPercentage,
         vat_amount: vat,
-        // Financial fields for backend calculation validation
-        subtotal,
-        discount_amount: discountAmountComputed,
-        net_after_discount: netAfterDiscount,
+        
+        // Withholding Tax configuration
+        has_withholding_tax: hasWithholdingTax,
+        withholding_tax_percentage: withholdingTaxPercentage,
+        withholding_tax_amount: withholdingTaxAmountComputed,
+        
+        // Final amounts
         total_amount: total,
-        withholding_amount: withholdingTaxAmountComputed,
-        final_total: finalNetAmountComputed,
+        final_total_amount: finalNetAmountComputed,
+        
+        // Deposit information (from quotation)
+        deposit_mode: depositMode,
+        deposit_percentage: liveDepositPercentage,
+        deposit_amount: depositAmount,
+        
+        // Signature and sample images from quotation
+        signature_images: q?.signature_images || null,
+        sample_images: q?.sample_images || null,
       };
+
       if (invoiceType === 'partial') {
         const amt = Number(partialAmount || 0);
         if (!(amt > 0)) {
@@ -244,7 +276,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         }
         payload.custom_amount = amt;
       }
+      
       if (dueDateForSave) payload.due_date = dueDateForSave;
+      
       // Keep computed client-side summary for future server support
       payload.summary = {
         subtotal,
@@ -263,10 +297,15 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         vat_percentage: vatPercentage,
         vat_amount: vat,
       };
+      
       payload.invoice_items = itemsPayload;
+      
       if (attachments?.length) {
         payload.images = attachments.map((f) => ({ name: f.name, size: f.size, type: f.type }));
       }
+
+      // Debug payload before sending
+      console.log('Invoice creation payload:', JSON.stringify(payload, null, 2));
 
       const res = await createInvoice(payload).unwrap();
       dismissToast(loadingId);
@@ -693,7 +732,6 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                     <Grid container spacing={2}>
                       {[
                         { value: 'full_amount', label: 'เต็มจำนวน' },
-                        { value: 'remaining', label: 'ยอดคงเหลือ (หักมัดจำ)' },
                         { value: 'deposit', label: 'มัดจำ' },
                         { value: 'partial', label: 'บางส่วน (กำหนดเอง)' },
                       ].map(opt => (
@@ -730,7 +768,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                       multiline 
                       rows={4} 
                       label="หมายเหตุ" 
-                      defaultValue={q?.notes || ''} 
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="กรอกหมายเหตุเพิ่มเติม"
                     />
                   </Box>
                 </Stack>

@@ -251,13 +251,47 @@ class InvoiceController extends Controller
                 'type' => 'required|in:full_amount,remaining,deposit,partial',
                 'custom_amount' => 'required_if:type,partial|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:100',
+                'payment_method' => 'nullable|string|max:50',
                 'due_date' => 'nullable|date',
-                'custom_billing_address' => 'nullable|string|max:1000',
+                'custom_billing_address' => 'nullable|string|max:2000', // เพิ่มขนาดให้รองรับที่อยู่ยาว
                 'document_header_type' => 'nullable|string|max:50',
-                'notes' => 'nullable|string|max:1000'
+                'notes' => 'nullable|string|max:1000',
+                
+                // Financial fields from frontend calculation
+                'subtotal' => 'required|numeric|min:0',
+                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'special_discount_amount' => 'nullable|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'vat_amount' => 'nullable|numeric|min:0',
+                'has_withholding_tax' => 'nullable|boolean',
+                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:100',
+                'withholding_tax_amount' => 'nullable|numeric|min:0',
+                'total_amount' => 'required|numeric|min:0',
+                'final_total_amount' => 'required|numeric|min:0',
+                
+                // Deposit information
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_amount' => 'nullable|numeric|min:0',
+                
+                // Images
+                'signature_images' => 'nullable|array',
+                'sample_images' => 'nullable|array',
+                
+                // Items (optional for validation but will be created from quotation items)
+                'invoice_items' => 'nullable|array',
+                'invoice_items.*.item_name' => 'nullable|string|max:255',
+                'invoice_items.*.quantity' => 'nullable|integer|min:0',
+                'invoice_items.*.unit_price' => 'nullable|numeric|min:0',
             ]);
 
             if ($validator->fails()) {
+                Log::error('InvoiceController::createFromQuotation validation failed', [
+                    'errors' => $validator->errors()->toArray(),
+                    'request_data' => $request->all()
+                ]);
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',

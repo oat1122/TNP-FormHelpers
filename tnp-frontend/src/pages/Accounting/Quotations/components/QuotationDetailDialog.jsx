@@ -111,9 +111,22 @@ const PRGroupCalcCard = React.memo(function PRGroupCalcCard({ group, index, isEd
   return (
     <Box component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Box display="flex" alignItems="center" gap={1.5}>
+        <Box display="flex" alignItems="center" gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {index + 1}</Typography>
-          <Typography variant="body2" color="text.secondary">{name}</Typography>
+          {isEditing ? (
+            <TextField
+              size="small"
+              label="ชื่องาน"
+              value={name}
+              onChange={(e) => onChangeGroup(group.id, 'name', e.target.value)}
+              sx={{ flex: 1, minWidth: 200 }}
+              placeholder="กรุณาระบุชื่องาน"
+            />
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }} noWrap>
+              {name}
+            </Typography>
+          )}
         </Box>
         <Box display="flex" alignItems="center" gap={1}>
           <Chip label={`${totalQty} ${unit}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />

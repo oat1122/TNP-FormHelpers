@@ -99,7 +99,7 @@ class InvoiceService
         try {
             DB::beginTransaction();
 
-            $quotation = Quotation::findOrFail($quotationId);
+            $quotation = Quotation::with(['items', 'customer'])->findOrFail($quotationId);
 
             // ตรวจสอบสถานะ Quotation
             if ($quotation->status !== 'approved') {
@@ -117,52 +117,95 @@ class InvoiceService
             $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
             $invoice->quotation_id = $quotation->id;
             
-            // Auto-fill ข้อมูลจาก Quotation
+            // ข้อมูล Primary Pricing Request
+            $invoice->primary_pricing_request_id = $quotation->primary_pricing_request_id;
+            $invoice->primary_pricing_request_ids = $quotation->primary_pricing_request_ids;
+            
+            // Auto-fill ข้อมูลลูกค้า
             $invoice->customer_id = $autofillData['customer_id'];
             $invoice->customer_company = $autofillData['customer_company'];
             $invoice->customer_tax_id = $autofillData['customer_tax_id'];
+            
+            // ใช้ที่อยู่จาก form หากมีการแก้ไข ไม่เช่นนั้นใช้จาก autofill
             $invoice->customer_address = $invoiceData['custom_billing_address'] ?? $autofillData['customer_address'];
+            
             $invoice->customer_zip_code = $autofillData['customer_zip_code'];
             $invoice->customer_tel_1 = $autofillData['customer_tel_1'];
             $invoice->customer_email = $autofillData['customer_email'];
             $invoice->customer_firstname = $autofillData['customer_firstname'];
             $invoice->customer_lastname = $autofillData['customer_lastname'];
 
-            // ข้อมูลงาน
-            $invoice->work_name = $autofillData['work_name'];
-            $invoice->fabric_type = $autofillData['fabric_type'] ?? null;
-            $invoice->pattern = $autofillData['pattern'] ?? null;
-            $invoice->color = $autofillData['color'] ?? null;
-            $invoice->sizes = $autofillData['sizes'] ?? null;
-            $invoice->quantity = $autofillData['quantity'];
-            $invoice->due_date = $autofillData['due_date'];
+            // Snapshot ข้อมูลลูกค้า ณ เวลาที่สร้าง Invoice
+            $invoice->customer_snapshot = [
+                'customer_id' => $invoice->customer_id,
+                'customer_company' => $invoice->customer_company,
+                'customer_tax_id' => $invoice->customer_tax_id,
+                'customer_address' => $invoice->customer_address, // ใช้ที่อยู่ที่เลือกจริงใน form
+                'customer_zip_code' => $invoice->customer_zip_code,
+                'customer_tel_1' => $invoice->customer_tel_1,
+                'customer_email' => $invoice->customer_email,
+                'customer_firstname' => $invoice->customer_firstname,
+                'customer_lastname' => $invoice->customer_lastname,
+                'original_customer_address' => $autofillData['customer_address'], // เก็บที่อยู่เดิมไว้อ้างอิง
+                'custom_address_used' => !empty($invoiceData['custom_billing_address']), // บอกว่าใช้ที่อยู่กำหนดเองหรือไม่
+                'snapshot_at' => now()->toISOString()
+            ];
 
-            // คำนวณยอดตามประเภท Invoice
+            // คำนวณยอดตามประเภท Invoice และข้อมูลทางการเงินที่ส่งมาจาก Frontend
             $invoiceType = $invoiceData['type'] ?? 'remaining';
-            $amounts = $this->calculateInvoiceAmounts($quotation, $invoiceType, $invoiceData);
-            
             $invoice->type = $invoiceType;
-            $invoice->subtotal = $amounts['subtotal'];
-            $invoice->tax_amount = $amounts['tax_amount'];
-            $invoice->total_amount = $amounts['total_amount'];
-            $invoice->payment_terms = $invoiceData['payment_terms'] ?? $autofillData['payment_terms'];
+
+            // ใช้ข้อมูลการเงินที่ส่งมาจาก Frontend (ที่คำนวณแล้ว)
+            $invoice->subtotal = $invoiceData['subtotal'] ?? 0;
+            $invoice->special_discount_percentage = $invoiceData['special_discount_percentage'] ?? 0;
+            $invoice->special_discount_amount = $invoiceData['special_discount_amount'] ?? 0;
             
-            // VAT configuration (NEW)
+            // VAT configuration
             $invoice->has_vat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
             $invoice->vat_percentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
-            $invoice->vat_amount = $amounts['tax_amount']; // This is the calculated VAT amount
+            $invoice->vat_amount = $invoiceData['vat_amount'] ?? 0;
+            
+            // Withholding Tax configuration
+            $invoice->has_withholding_tax = $invoiceData['has_withholding_tax'] ?? false;
+            $invoice->withholding_tax_percentage = $invoiceData['withholding_tax_percentage'] ?? 0;
+            $invoice->withholding_tax_amount = $invoiceData['withholding_tax_amount'] ?? 0;
+            
+            // Amounts
+            $invoice->total_amount = $invoiceData['total_amount'] ?? 0;
+            $invoice->final_total_amount = $invoiceData['final_total_amount'] ?? $invoice->total_amount;
+            
+            // Deposit information
+            $invoice->deposit_mode = $invoiceData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
+            $invoice->deposit_percentage = $invoiceData['deposit_percentage'] ?? $quotation->deposit_percentage ?? 0;
+            $invoice->deposit_amount = $invoiceData['deposit_amount'] ?? $quotation->deposit_amount ?? 0;
+            
+            // Payment information
+            $invoice->payment_method = $invoiceData['payment_method'] ?? $quotation->payment_method ?? null;
+            $invoice->payment_terms = $invoiceData['payment_terms'] ?? $quotation->payment_terms ?? null;
             
             // คำนวณวันครบกำหนดชำระ
             $invoice->due_date = $invoiceData['due_date'] ?? $this->calculateDueDate($invoice->payment_terms);
             
             // ข้อมูลเพิ่มเติม
-            $invoice->notes = $invoiceData['notes'] ?? null;
+            $invoice->notes = $invoiceData['notes'] ?? $quotation->notes ?? null;
             $invoice->document_header_type = $invoiceData['document_header_type'] ?? $quotation->document_header_type ?? 'ต้นฉบับ';
+            
+            // Signature และ Sample images (copy จาก Quotation ถ้ามี)
+            $invoice->signature_images = $invoiceData['signature_images'] ?? $quotation->signature_images ?? null;
+            $invoice->sample_images = $invoiceData['sample_images'] ?? $quotation->sample_images ?? null;
+            
+            // Status และ Audit trail
             $invoice->status = 'draft';
+            $invoice->paid_amount = 0;
             $invoice->created_by = $createdBy;
             $invoice->created_at = now();
 
             $invoice->save();
+
+            // สร้าง Invoice Items จาก Quotation Items
+            if ($quotation->items && $quotation->items->count() > 0) {
+                $this->createInvoiceItemsFromQuotation($invoice->id, $quotation->items, $createdBy);
+            }
 
             // บันทึก History
             DocumentHistory::logAction(
@@ -175,11 +218,50 @@ class InvoiceService
 
             DB::commit();
 
-            return $invoice->load(['quotation', 'customer']);
+            return $invoice->load(['quotation', 'customer', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('InvoiceService::createFromQuotation error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้าง Invoice Items จาก Quotation Items
+     */
+    private function createInvoiceItemsFromQuotation($invoiceId, $quotationItems, $createdBy = null)
+    {
+        try {
+            foreach ($quotationItems as $index => $qItem) {
+                $invoiceItem = new \App\Models\Accounting\InvoiceItem();
+                $invoiceItem->id = \Illuminate\Support\Str::uuid();
+                $invoiceItem->invoice_id = $invoiceId;
+                $invoiceItem->quotation_item_id = $qItem->id;
+                $invoiceItem->pricing_request_id = $qItem->pricing_request_id;
+                
+                // Copy ข้อมูลจาก Quotation Item
+                $invoiceItem->item_name = $qItem->item_name;
+                $invoiceItem->item_description = $qItem->item_description;
+                $invoiceItem->sequence_order = $index + 1;
+                $invoiceItem->pattern = $qItem->pattern;
+                $invoiceItem->fabric_type = $qItem->fabric_type;
+                $invoiceItem->color = $qItem->color;
+                $invoiceItem->size = $qItem->size;
+                $invoiceItem->unit_price = $qItem->unit_price;
+                $invoiceItem->quantity = $qItem->quantity;
+                $invoiceItem->unit = $qItem->unit ?? 'ชิ้น';
+                $invoiceItem->discount_percentage = $qItem->discount_percentage ?? 0;
+                $invoiceItem->discount_amount = $qItem->discount_amount ?? 0;
+                $invoiceItem->item_images = $qItem->item_images;
+                $invoiceItem->notes = $qItem->notes;
+                $invoiceItem->status = 'draft';
+                $invoiceItem->created_by = $createdBy;
+                
+                $invoiceItem->save();
+            }
+        } catch (\Exception $e) {
+            Log::error('InvoiceService::createInvoiceItemsFromQuotation error: ' . $e->getMessage());
             throw $e;
         }
     }

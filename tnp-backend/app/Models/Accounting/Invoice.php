@@ -40,6 +40,7 @@ use App\Models\User;
  * @property string|null $notes
  * @property string|null $document_header_type
  * @property string|null $created_by
+ * @property string|null $inv_manage_by
  * @property string|null $approved_by
  * @property \Carbon\Carbon|null $approved_at
  * @property \Carbon\Carbon $created_at
@@ -94,6 +95,7 @@ class Invoice extends Model
         'sample_images',
         'document_header_type',
         'created_by',
+        'inv_manage_by',
         'updated_by',
         'submitted_by',
         'submitted_at',
@@ -147,6 +149,24 @@ class Invoice extends Model
             if (empty($model->company_id)) {
                 $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
+            
+            // Auto-set inv_manage_by from quotation's created_by if not set
+            if (empty($model->inv_manage_by) && !empty($model->quotation_id)) {
+                $quotation = \App\Models\Accounting\Quotation::find($model->quotation_id);
+                if ($quotation && !empty($quotation->created_by)) {
+                    $model->inv_manage_by = $quotation->created_by;
+                }
+            }
+        });
+        
+        static::updating(function ($model) {
+            // Auto-sync inv_manage_by if quotation_id changed and inv_manage_by is empty
+            if ($model->isDirty('quotation_id') && empty($model->inv_manage_by) && !empty($model->quotation_id)) {
+                $quotation = \App\Models\Accounting\Quotation::find($model->quotation_id);
+                if ($quotation && !empty($quotation->created_by)) {
+                    $model->inv_manage_by = $quotation->created_by;
+                }
+            }
         });
     }
 
@@ -197,6 +217,14 @@ class Invoice extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by', 'user_uuid');
+    }
+
+    /**
+     * Relationship: Invoice belongs to Manager
+     */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'inv_manage_by', 'user_uuid');
     }
 
     /**
@@ -352,5 +380,18 @@ class Invoice extends Model
     public function canConvertToReceipt()
     {
         return in_array($this->status, ['approved', 'sent', 'partial_paid', 'fully_paid']);
+    }
+
+    /**
+     * Sync inv_manage_by from related quotation's created_by
+     */
+    public function syncManagerFromQuotation()
+    {
+        if ($this->quotation_id && $this->quotation) {
+            $this->inv_manage_by = $this->quotation->created_by;
+            $this->save();
+            return true;
+        }
+        return false;
     }
 }

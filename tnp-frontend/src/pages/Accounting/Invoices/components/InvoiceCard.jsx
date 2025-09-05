@@ -6,6 +6,7 @@ import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
 import WorkIcon from '@mui/icons-material/Work';
+import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import PaletteIcon from '@mui/icons-material/Palette';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -71,6 +72,14 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
   const contactName = [invoice?.customer_firstname, invoice?.customer_lastname]
     .filter(Boolean).join(' ') || '-';
+
+  // ข้อมูลผู้ขาย/ผู้ดูแล
+  const managerUsername = invoice?.manager?.username || 'ไม่ระบุ';
+  const managerFullName = [invoice?.manager?.user_firstname, invoice?.manager?.user_lastname]
+    .filter(Boolean).join(' ') || null;
+  const managerDisplay = managerFullName 
+    ? `${managerUsername} (${managerFullName})`
+    : managerUsername;
 
   // ใช้ข้อมูลจาก customer_snapshot หากมี - ตรวจสอบประเภทข้อมูลก่อน
   let customerSnapshot = null;
@@ -140,6 +149,12 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
               <Stack direction="row" spacing={1} alignItems="center">
                 <PersonIcon fontSize="small" color="action" />
                 <TNPBodyText>{displayContactName}</TNPBodyText>
+              </Stack>
+            )}
+            {managerDisplay && managerDisplay !== 'ไม่ระบุ' && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <AccountBoxIcon fontSize="small" color="primary" />
+                <TNPBodyText><strong>ผู้ขาย:</strong> {managerDisplay}</TNPBodyText>
               </Stack>
             )}
             {displayTaxId && (

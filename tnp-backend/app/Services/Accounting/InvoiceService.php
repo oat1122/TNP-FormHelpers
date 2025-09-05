@@ -645,7 +645,7 @@ class InvoiceService
     public function getList($filters = [], $perPage = 20)
     {
         try {
-            $query = Invoice::with(['quotation', 'customer', 'documentHistory', 'manager'])
+            $query = Invoice::with(['quotation', 'customer', 'documentHistory', 'manager', 'items'])
                           ->select('invoices.*')
                           // Join quotations to expose quotation number for easy consumption on FE
                           ->leftJoin('quotations', 'quotations.id', '=', 'invoices.quotation_id')

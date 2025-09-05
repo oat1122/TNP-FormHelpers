@@ -42,37 +42,69 @@ const formatDate = (d) => {
   } catch { return '-'; }
 };
 
-// ฟังก์ชันสำหรับการแสดงรายการสินค้า/บริการ
+// ฟังก์ชันสำหรับการแสดงรายการสินค้า/บริการ (ใช้ข้อมูลจาก invoice_items.item_name)
 const formatItemsList = (invoice) => {
   if (!invoice) return null;
   
-  // ใช้ข้อมูลจาก items ถ้ามี
+  // ใช้ข้อมูลจาก invoice.items (ตาราง invoice_items)
   if (invoice.items && Array.isArray(invoice.items) && invoice.items.length > 0) {
-    const itemNames = invoice.items
-      .filter(item => item.item_name)
-      .map(item => item.item_name.replace(/\(.*?\)/, '').trim()) // ลบข้อความใน ()
-      .filter((name, index, array) => array.indexOf(name) === index); // ลบชื่อซ้ำ
+    // ดึงชื่อรายการจาก item_name และจัดกลุ่มเพื่อนับจำนวน
+    const itemGroups = new Map();
     
-    if (itemNames.length > 0) {
-      const count = invoice.items.length;
-      const displayNames = itemNames.slice(0, 3); // แสดงสูงสุด 3 รายการ
-      const hasMore = itemNames.length > 3;
+    invoice.items.forEach(item => {
+      if (item.item_name && item.item_name.trim() !== '') {
+        // ทำความสะอาดชื่อสินค้า - เก็บข้อความในวงเล็บไว้ และ normalize spaces
+        let cleanName = item.item_name
+          .replace(/\s+/g, ' ') // แปลง multiple spaces เป็น single space
+          .trim();
+        
+        if (cleanName.length > 0) {
+          if (itemGroups.has(cleanName)) {
+            itemGroups.set(cleanName, itemGroups.get(cleanName) + 1);
+          } else {
+            itemGroups.set(cleanName, 1);
+          }
+        }
+      }
+    });
+    
+    if (itemGroups.size > 0) {
+      const totalItems = invoice.items.length;
+      const uniqueItemNames = Array.from(itemGroups.keys());
+      const displayCount = Math.min(3, uniqueItemNames.length); // แสดงสูงสุด 3 รายการ
       
-      let itemsText = displayNames.join(', ');
-      if (hasMore) {
-        itemsText += `, และอีก ${itemNames.length - 3} รายการ`;
+      // สร้างข้อความแสดงรายการ
+      let itemsText = uniqueItemNames.slice(0, displayCount).map(name => {
+        const count = itemGroups.get(name);
+        return count > 1 ? `${name} (${count})` : name;
+      }).join(', ');
+      
+      // เพิ่มข้อความ "และอีก X รายการ" ถ้ามีมากกว่า 3 รายการ
+      if (uniqueItemNames.length > 3) {
+        const remainingCount = uniqueItemNames.length - 3;
+        itemsText += `, และอีก ${remainingCount} รายการ`;
       }
       
-      return `รายการสินค้า/บริการ (${count}) ${itemsText}`;
+      return `รายการสินค้า/บริการ (${totalItems} รายการ) ${itemsText}`;
     }
   }
   
-  // ถ้าไม่มี items ใช้ work_name แทน
-  if (invoice.work_name) {
-    return `งาน: ${invoice.work_name}`;
+  // ถ้าไม่มี items หรือไม่มี item_name ใช้ work_name แทน
+  if (invoice.work_name && invoice.work_name.trim() !== '') {
+    return `ชื่องาน: ${invoice.work_name}`;
   }
   
-  // ถ้าไม่มีข้อมูลใดๆ
+  // ถ้าไม่มีข้อมูลใดๆ แต่มี pattern, fabric_type, color
+  const workDetails = [];
+  if (invoice.pattern && invoice.pattern.trim() !== '') workDetails.push(`แพทเทิร์น: ${invoice.pattern}`);
+  if (invoice.fabric_type && invoice.fabric_type.trim() !== '') workDetails.push(`ชนิดผ้า: ${invoice.fabric_type}`);
+  if (invoice.color && invoice.color.trim() !== '') workDetails.push(`สี: ${invoice.color}`);
+  
+  if (workDetails.length > 0) {
+    return `รายละเอียดงาน: ${workDetails.join(', ')}`;
+  }
+  
+  // ถ้าไม่มีข้อมูลใดๆ เลย
   return null;
 };
 
@@ -126,7 +158,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
         customerSnapshot = invoice.customer_snapshot;
       }
     } catch (error) {
-      console.warn('Error parsing customer_snapshot:', error);
+      
       customerSnapshot = null;
     }
   }
@@ -226,47 +258,86 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
 
         <Box mb={2}>
           <Stack spacing={1}>
+            {/* แสดงรายการสินค้า/บริการจาก invoice_items */}
             {itemsListText && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <WorkIcon fontSize="small" color="primary" />
-                <TNPBodyText><strong>{itemsListText}</strong></TNPBodyText>
-              </Stack>
-            )}
-            {!itemsListText && invoice?.work_name && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <WorkIcon fontSize="small" color="primary" />
-                <TNPBodyText><strong>ชื่องาน:</strong> {invoice.work_name}</TNPBodyText>
-              </Stack>
-            )}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ ml: 3 }}>
-              {invoice?.fabric_type && (
-                <TNPBodyText variant="caption" color="text.secondary">
-                  ชนิดผ้า: {invoice.fabric_type}
-                </TNPBodyText>
-              )}
-              {invoice?.pattern && (
-                <TNPBodyText variant="caption" color="text.secondary">
-                  แพทเทิร์น: {invoice.pattern}
-                </TNPBodyText>
-              )}
-              {invoice?.color && (
-                <Stack direction="row" spacing={0.5} alignItems="center">
-                  <PaletteIcon sx={{ fontSize: '0.875rem' }} color="action" />
-                  <TNPBodyText variant="caption" color="text.secondary">
-                    {invoice.color}
-                  </TNPBodyText>
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <WorkIcon fontSize="small" color="primary" sx={{ mt: 0.2, flexShrink: 0 }} />
+                  <Box flex={1}>
+                    <TNPBodyText sx={{ fontWeight: 600, color: 'primary.main', lineHeight: 1.4 }}>
+                      {itemsListText}
+                    </TNPBodyText>
+                  </Box>
                 </Stack>
-              )}
-            </Stack>
-            {(invoice?.sizes || invoice?.quantity) && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <ChecklistIcon fontSize="small" color="action" />
-                <TNPBodyText variant="caption" color="text.secondary">
-                  {invoice?.sizes && `ไซซ์: ${invoice.sizes}`}
-                  {invoice?.sizes && invoice?.quantity ? ' | ' : ''}
-                  {invoice?.quantity && `จำนวน: ${invoice.quantity}`}
-                </TNPBodyText>
-              </Stack>
+              </Box>
+            )}
+            
+            {/* Fallback: แสดงชื่องานถ้าไม่มี items */}
+            {!itemsListText && invoice?.work_name && (
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <WorkIcon fontSize="small" color="action" sx={{ mt: 0.2, flexShrink: 0 }} />
+                  <Box flex={1}>
+                    <TNPBodyText sx={{ lineHeight: 1.4 }}>
+                      <Box component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>ชื่องาน:</Box>{' '}
+                      <Box component="span" sx={{ color: 'text.secondary' }}>{invoice.work_name}</Box>
+                    </TNPBodyText>
+                  </Box>
+                </Stack>
+              </Box>
+            )}
+            
+            {/* รายละเอียดเพิ่มเติม */}
+            {(invoice?.fabric_type || invoice?.pattern || invoice?.color || invoice?.sizes || invoice?.quantity) && (
+              <Box sx={{ ml: 4 }}>
+                <Stack spacing={0.5}>
+                  {/* บรรทัดแรก: ชนิดผ้า, แพทเทิร์น, สี */}
+                  {(invoice?.fabric_type || invoice?.pattern || invoice?.color) && (
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} flexWrap="wrap">
+                      {invoice?.fabric_type && (
+                        <TNPBodyText variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                          <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>ชนิดผ้า:</Box>
+                          {invoice.fabric_type}
+                        </TNPBodyText>
+                      )}
+                      {invoice?.pattern && (
+                        <TNPBodyText variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                          <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>แพทเทิร์น:</Box>
+                          {invoice.pattern}
+                        </TNPBodyText>
+                      )}
+                      {invoice?.color && (
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <PaletteIcon sx={{ fontSize: '0.75rem', color: 'text.disabled' }} />
+                          <TNPBodyText variant="caption" sx={{ color: 'text.secondary' }}>
+                            {invoice.color}
+                          </TNPBodyText>
+                        </Stack>
+                      )}
+                    </Stack>
+                  )}
+                  
+                  {/* บรรทัดสอง: ไซซ์, จำนวน */}
+                  {(invoice?.sizes || invoice?.quantity) && (
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <ChecklistIcon sx={{ fontSize: '0.75rem', color: 'text.disabled' }} />
+                      <TNPBodyText variant="caption" sx={{ color: 'text.secondary' }}>
+                        {invoice?.sizes && (
+                          <>
+                            <Box component="span" sx={{ fontWeight: 500 }}>ไซซ์:</Box> {invoice.sizes}
+                          </>
+                        )}
+                        {invoice?.sizes && invoice?.quantity && ' • '}
+                        {invoice?.quantity && (
+                          <>
+                            <Box component="span" sx={{ fontWeight: 500 }}>จำนวน:</Box> {invoice.quantity}
+                          </>
+                        )}
+                      </TNPBodyText>
+                    </Stack>
+                  )}
+                </Stack>
+              </Box>
             )}
           </Stack>
         </Box>

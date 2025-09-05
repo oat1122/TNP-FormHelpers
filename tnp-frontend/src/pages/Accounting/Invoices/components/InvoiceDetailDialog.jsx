@@ -62,21 +62,31 @@ const formatDate = (d) => {
   } catch { return '-'; }
 };
 
-// Normalize customer data
+// Normalize customer data from master_customers relationship
 const normalizeCustomer = (invoice) => {
   if (!invoice) return {};
+  
+  // Use customer relationship data from master_customers table
+  const customer = invoice.customer;
+  if (!customer) return {};
+  
   return {
-    customer_type: invoice.customer_type || 'company',
-    cus_name: invoice.customer_name,
-    cus_firstname: invoice.customer_firstname,
-    cus_lastname: invoice.customer_lastname,
-    cus_company: invoice.customer_company,
-    cus_tel_1: invoice.customer_phone,
-    cus_email: invoice.customer_email,
-    cus_tax_id: invoice.customer_tax_id,
-    cus_address: invoice.customer_address,
-    contact_name: invoice.contact_name,
-    contact_nickname: invoice.contact_nickname,
+    customer_type: customer.cus_company ? 'company' : 'individual',
+    cus_name: customer.cus_name,
+    cus_firstname: customer.cus_firstname,
+    cus_lastname: customer.cus_lastname,
+    cus_company: customer.cus_company,
+    cus_tel_1: customer.cus_tel_1,
+    cus_tel_2: customer.cus_tel_2,
+    cus_email: customer.cus_email,
+    cus_tax_id: customer.cus_tax_id,
+    cus_address: customer.cus_address,
+    cus_zip_code: customer.cus_zip_code,
+    cus_depart: customer.cus_depart,
+    contact_name: customer.cus_firstname && customer.cus_lastname 
+      ? `${customer.cus_firstname} ${customer.cus_lastname}`.trim() 
+      : customer.cus_name,
+    contact_nickname: customer.cus_name,
   };
 };
 

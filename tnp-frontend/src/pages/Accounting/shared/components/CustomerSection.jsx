@@ -51,6 +51,11 @@ const CustomerSection = ({
                   ? `${customer?.cus_firstname || ''} ${customer?.cus_lastname || ''}`.trim() || customer?.cus_name || '-'
                   : (customer?.cus_company || '-')}
               </Typography>
+              {customer?.cus_depart && (
+                <Typography variant="caption" color="text.secondary">
+                  แผนก: {customer.cus_depart}
+                </Typography>
+              )}
             </Box>
             <Box display="flex" alignItems="center" gap={1}>
               {customer?.cus_tel_1 && (
@@ -61,6 +66,14 @@ const CustomerSection = ({
                   sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} 
                 />
               )}
+              {customer?.cus_tel_2 && (
+                <Chip 
+                  size="small" 
+                  variant="outlined" 
+                  label={customer.cus_tel_2} 
+                  sx={{ borderColor: tokens.secondary, color: tokens.secondary }} 
+                />
+              )}
               {showEditButton && onEditCustomer && (
                 <SecondaryButton size="small" startIcon={<EditIcon />} onClick={onEditCustomer}>
                   แก้ไขลูกค้า
@@ -68,9 +81,9 @@ const CustomerSection = ({
               )}
             </Box>
           </Box>
-          {(customer?.contact_name || customer?.cus_email) && (
+          {(customer?.contact_name || customer?.cus_email || customer?.cus_tax_id || customer?.cus_address) && (
             <Grid container spacing={1}>
-              {customer?.contact_name && (
+              {customer?.contact_name && customer?.customer_type === 'company' && (
                 <Grid item xs={12} md={4}>
                   <Typography variant="caption" color="text.secondary">ผู้ติดต่อ</Typography>
                   <Typography variant="body2">
@@ -93,7 +106,10 @@ const CustomerSection = ({
               {customer?.cus_address && (
                 <Grid item xs={12}>
                   <Typography variant="caption" color="text.secondary">ที่อยู่</Typography>
-                  <Typography variant="body2">{customer.cus_address}</Typography>
+                  <Typography variant="body2">
+                    {customer.cus_address}
+                    {customer.cus_zip_code && ` ${customer.cus_zip_code}`}
+                  </Typography>
                 </Grid>
               )}
             </Grid>

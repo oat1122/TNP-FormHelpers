@@ -340,15 +340,22 @@ class InvoiceService
             $invoice->updated_by = $updatedBy;
             $invoice->save();
 
-            // บันทึก History การแก้ไข
-            $changes = array_diff_assoc($invoice->toArray(), $oldData);
-            if (!empty($changes)) {
+            // บันทึก History การแก้ไข - track only simple field changes
+            $updatedFields = array_keys($updateData);
+            $changedFields = array_filter($updatedFields, function($field) use ($invoice) {
+                return $invoice->isFillable($field) && !in_array($field, [
+                    'primary_pricing_request_ids', 'customer_snapshot', 
+                    'signature_images', 'sample_images'
+                ]);
+            });
+            
+            if (!empty($changedFields)) {
                 DocumentHistory::logAction(
                     'invoice',
                     $invoiceId,
                     'update',
                     $updatedBy,
-                    "แก้ไขใบแจ้งหนี้: " . implode(', ', array_keys($changes))
+                    "แก้ไขใบแจ้งหนี้: " . implode(', ', $changedFields)
                 );
             }
 

@@ -42,6 +42,7 @@ import {
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB, formatDateTH } from '../utils/format';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
+import { computeFinancials } from '../../shared/hooks/useQuotationFinancials';
 
 // Format invoice type labels
 const typeLabels = {
@@ -225,26 +226,60 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }
   }, [invoice]);
 
+  // Raw items for calculation (quantity * unit_price)
+  const rawCalcItems = React.useMemo(() => (invoice.items || []).map(it => ({
+    quantity: it.quantity,
+    unitPrice: it.unit_price,
+  })), [invoice.items]);
+
+  const specialDiscountType = formData.special_discount_percentage > 0
+    ? 'percentage'
+    : (formData.special_discount_amount > 0 ? 'amount' : 'percentage');
+
+  const calc = React.useMemo(() => computeFinancials({
+    items: rawCalcItems,
+    depositMode: formData.deposit_mode,
+    depositPercentage: formData.deposit_percentage,
+    depositAmountInput: formData.deposit_amount,
+    specialDiscountType,
+    specialDiscountValue: specialDiscountType === 'percentage' ? formData.special_discount_percentage : formData.special_discount_amount,
+    hasWithholdingTax: formData.has_withholding_tax,
+    withholdingTaxPercentage: formData.withholding_tax_percentage,
+    hasVat: formData.has_vat,
+    vatPercentage: formData.vat_percentage,
+  }), [rawCalcItems, formData, specialDiscountType]);
+
   const handleSave = async () => {
     try {
       const loadingId = showLoading('กำลังบันทึกใบแจ้งหนี้…');
-      
       const updateData = {
         id: invoice.id,
         notes: notes || '',
         ...formData,
+        // Persist computed numbers
+        subtotal: calc.subtotal,
+        special_discount_amount: calc.specialDiscountAmount,
+        special_discount_percentage: specialDiscountType === 'percentage' ? formData.special_discount_percentage : 0,
+        vat_amount: calc.vat,
+        tax_amount: calc.vat, // backward compatibility field if backend uses tax_amount
+        withholding_tax_amount: calc.withholdingTaxAmount,
+        total_amount: calc.total,
+        final_total_amount: calc.finalTotal,
+        deposit_amount: calc.depositAmount,
+        deposit_percentage: calc.depositPercentage,
       };
 
       // If using master customer data, clear invoice customer fields
       if (customerDataSource === 'master') {
-        updateData.customer_company = null;
-        updateData.customer_tax_id = null;
-        updateData.customer_address = null;
-        updateData.customer_zip_code = null;
-        updateData.customer_tel_1 = null;
-        updateData.customer_email = null;
-        updateData.customer_firstname = null;
-        updateData.customer_lastname = null;
+        // Remove keys so validation 'sometimes' won't evaluate them
+        delete updateData.customer_company;
+        delete updateData.customer_tax_id;
+        delete updateData.customer_address;
+        delete updateData.customer_zip_code;
+        delete updateData.customer_tel_1;
+        delete updateData.customer_email;
+        delete updateData.customer_firstname;
+        delete updateData.customer_lastname;
       }
 
       await updateInvoice(updateData).unwrap();
@@ -266,22 +301,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const handleCustomerDataSourceChange = (event) => {
     const newSource = event.target.value;
     setCustomerDataSource(newSource);
-    
-    // If switching to master, populate from customer relationship
-    if (newSource === 'master' && customer) {
-      setFormData(prev => ({
-        ...prev,
-        customer_company: customer.cus_company || '',
-        customer_tax_id: customer.cus_tax_id || '',
-        customer_address: customer.cus_address || '',
-        customer_zip_code: customer.cus_zip_code || '',
-        customer_tel_1: customer.cus_tel_1 || '',
-        customer_email: customer.cus_email || '',
-        customer_firstname: customer.cus_firstname || '',
-        customer_lastname: customer.cus_lastname || '',
-      }));
-    }
-    // If switching to invoice, keep current form data
+    // When switching to master we DO NOT overwrite invoice override fields; they stay in formData (hidden) until user switches back.
   };
 
   const handlePreviewPdf = async () => {
@@ -581,10 +601,25 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                 </Section>
               ) : (
                 <CustomerSection
-                  customer={customer}
+                  customer={customerDataSource === 'invoice' ? {
+                    // Build a synthetic customer object using invoice override fields
+                    customer_type: invoice.customer_company ? 'company' : 'individual',
+                    cus_company: invoice.customer_company || customer.cus_company,
+                    cus_tax_id: invoice.customer_tax_id || customer.cus_tax_id,
+                    cus_address: invoice.customer_address || customer.cus_address,
+                    cus_zip_code: invoice.customer_zip_code || customer.cus_zip_code,
+                    cus_tel_1: invoice.customer_tel_1 || customer.cus_tel_1,
+                    cus_tel_2: customer.cus_tel_2,
+                    cus_email: invoice.customer_email || customer.cus_email,
+                    cus_firstname: invoice.customer_firstname || customer.cus_firstname,
+                    cus_lastname: invoice.customer_lastname || customer.cus_lastname,
+                    contact_name: (invoice.customer_firstname || customer.cus_firstname || '') + ' ' + (invoice.customer_lastname || customer.cus_lastname || ''),
+                    contact_nickname: customer.contact_nickname,
+                    cus_depart: customer.cus_depart,
+                  } : customer}
                   quotationNumber={invoice.number}
                   workName={invoice.work_name}
-                  showEditButton={false} // No customer edit for invoices
+                  showEditButton={false}
                 />
               )}
             </Grid>
@@ -652,6 +687,43 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                     </Box>
                   </SectionHeader>
                   <Box sx={{ p: 2 }}>
+                    {/* Live summary */}
+                    <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
+                        <Typography variant="caption" color="text.secondary">ยอดก่อนส่วนลด</Typography>
+                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.subtotal)}</Typography>
+                      </InfoCard>
+                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
+                        <Typography variant="caption" color="text.secondary">ส่วนลดพิเศษ</Typography>
+                        <Typography variant="subtitle2" fontWeight={700}>- {formatTHB(calc.specialDiscountAmount)}</Typography>
+                      </InfoCard>
+                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
+                        <Typography variant="caption" color="text.secondary">VAT</Typography>
+                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.vat)}</Typography>
+                      </InfoCard>
+                      {formData.has_withholding_tax && (
+                        <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
+                          <Typography variant="caption" color="text.secondary">หัก ณ ที่จ่าย</Typography>
+                          <Typography variant="subtitle2" fontWeight={700}>- {formatTHB(calc.withholdingTaxAmount)}</Typography>
+                        </InfoCard>
+                      )}
+                      <InfoCard sx={{ p: 1.5, minWidth: 180, bgcolor: '#f5f5f5' }}>
+                        <Typography variant="caption" color="text.secondary">ยอดรวม (Total)</Typography>
+                        <Typography variant="subtitle1" fontWeight={800}>{formatTHB(calc.total)}</Typography>
+                      </InfoCard>
+                      <InfoCard sx={{ p: 1.5, minWidth: 200, bgcolor: '#e8f5e9' }}>
+                        <Typography variant="caption" color="text.secondary">ยอดสุทธิ (Final)</Typography>
+                        <Typography variant="subtitle1" fontWeight={800}>{formatTHB(calc.finalTotal)}</Typography>
+                      </InfoCard>
+                      <InfoCard sx={{ p: 1.5, minWidth: 200 }}>
+                        <Typography variant="caption" color="text.secondary">มัดจำ</Typography>
+                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.depositAmount)} ({calc.depositPercentage.toFixed(2)}%)</Typography>
+                      </InfoCard>
+                      <InfoCard sx={{ p: 1.5, minWidth: 200 }}>
+                        <Typography variant="caption" color="text.secondary">คงเหลือ (Remaining)</Typography>
+                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.remainingAmount)}</Typography>
+                      </InfoCard>
+                    </Box>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
                         <TextField

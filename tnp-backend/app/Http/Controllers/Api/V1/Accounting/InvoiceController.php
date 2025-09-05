@@ -170,15 +170,45 @@ class InvoiceController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'customer_company' => 'sometimes|string|max:255',
-                'customer_tax_id' => 'sometimes|string|max:13',
-                'customer_address' => 'sometimes|string|max:500',
-                'work_name' => 'sometimes|string|max:255',
+                // Customer override fields (nullable when not overriding)
+                'customer_company' => 'sometimes|nullable|string|max:255',
+                'customer_tax_id' => 'sometimes|nullable|string|max:13',
+                'customer_address' => 'sometimes|nullable|string|max:2000',
+                'customer_zip_code' => 'sometimes|nullable|string|max:10',
+                'customer_tel_1' => 'sometimes|nullable|string|max:50',
+                'customer_email' => 'sometimes|nullable|string|max:255',
+                'customer_firstname' => 'sometimes|nullable|string|max:100',
+                'customer_lastname' => 'sometimes|nullable|string|max:100',
+
+                // Basic invoice info
+                'work_name' => 'sometimes|nullable|string|max:255',
                 'quantity' => 'sometimes|integer|min:1',
+                'status' => 'sometimes|in:draft,pending,pending_review,approved,sent,partial_paid,fully_paid,overdue',
+                'type' => 'sometimes|in:full_amount,remaining,deposit,partial',
+
+                // Financial fields
                 'subtotal' => 'sometimes|numeric|min:0',
-                'tax_amount' => 'sometimes|numeric|min:0',
+                'special_discount_percentage' => 'sometimes|numeric|min:0|max:100',
+                'special_discount_amount' => 'sometimes|numeric|min:0',
+                'has_vat' => 'sometimes|boolean',
+                'vat_percentage' => 'sometimes|numeric|min:0|max:100',
+                'vat_amount' => 'sometimes|numeric|min:0',
+                'tax_amount' => 'sometimes|numeric|min:0', // alias for FE compatibility
+                'has_withholding_tax' => 'sometimes|boolean',
+                'withholding_tax_percentage' => 'sometimes|numeric|min:0|max:100',
+                'withholding_tax_amount' => 'sometimes|numeric|min:0',
                 'total_amount' => 'sometimes|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:100'
+                'final_total_amount' => 'sometimes|numeric|min:0',
+                'deposit_mode' => 'sometimes|in:percentage,amount',
+                'deposit_percentage' => 'sometimes|numeric|min:0|max:100',
+                'deposit_amount' => 'sometimes|numeric|min:0',
+
+                // Payment / terms
+                'due_date' => 'sometimes|date',
+                'payment_method' => 'sometimes|nullable|string|max:50',
+                'payment_terms' => 'nullable|string|max:100',
+                'document_header_type' => 'sometimes|nullable|string|max:50',
+                'notes' => 'sometimes|nullable|string|max:2000',
             ]);
 
             if ($validator->fails()) {

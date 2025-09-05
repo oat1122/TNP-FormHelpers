@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Stack, Chip, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -9,6 +9,8 @@ import WorkIcon from '@mui/icons-material/Work';
 import PaletteIcon from '@mui/icons-material/Palette';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import PaymentIcon from '@mui/icons-material/Payment';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 
 const typeLabels = {
@@ -39,24 +41,76 @@ const formatDate = (d) => {
   } catch { return '-'; }
 };
 
+// ฟังก์ชันสำหรับการแสดงมัดจำ
+const formatDepositInfo = (invoice) => {
+  if (!invoice) return null;
+  
+  const { deposit_percentage, deposit_amount, deposit_mode, total_amount } = invoice;
+  
+  if (deposit_mode === 'percentage' && deposit_percentage && deposit_percentage > 0) {
+    const calculatedAmount = (total_amount * deposit_percentage) / 100;
+    return `${deposit_percentage}% (${formatTHB(calculatedAmount)})`;
+  } else if (deposit_mode === 'amount' && deposit_amount && deposit_amount > 0) {
+    return formatTHB(deposit_amount);
+  }
+  
+  return null;
+};
+
 const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
-  const amountText = formatTHB(invoice?.total_amount);
+  const [showDetails, setShowDetails] = useState(false);
+  
+  const amountText = formatTHB(invoice?.final_total_amount || invoice?.total_amount);
   const subtotalText = formatTHB(invoice?.subtotal);
-  const taxText = formatTHB(invoice?.tax_amount);
+  const taxText = formatTHB(invoice?.vat_amount || invoice?.tax_amount);
   const paidAmount = formatTHB(invoice?.paid_amount || 0);
-  const remainingAmount = formatTHB((invoice?.total_amount || 0) - (invoice?.paid_amount || 0));
+  const remainingAmount = formatTHB((invoice?.final_total_amount || invoice?.total_amount || 0) - (invoice?.paid_amount || 0));
+  const depositInfo = formatDepositInfo(invoice);
 
   const companyName = invoice?.customer_company || invoice?.customer?.cus_company || '-';
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
   const contactName = [invoice?.customer_firstname, invoice?.customer_lastname]
-    .filter(Boolean).join(' ');
+    .filter(Boolean).join(' ') || '-';
+
+  // ใช้ข้อมูลจาก customer_snapshot หากมี - ตรวจสอบประเภทข้อมูลก่อน
+  let customerSnapshot = null;
+  if (invoice?.customer_snapshot) {
+    try {
+      if (typeof invoice.customer_snapshot === 'string') {
+        customerSnapshot = JSON.parse(invoice.customer_snapshot);
+      } else if (typeof invoice.customer_snapshot === 'object') {
+        customerSnapshot = invoice.customer_snapshot;
+      }
+    } catch (error) {
+      console.warn('Error parsing customer_snapshot:', error);
+      customerSnapshot = null;
+    }
+  }
+  
+  const displayCompanyName = customerSnapshot?.customer_company || companyName;
+  const displayAddress = customerSnapshot?.customer_address || invoice?.customer_address;
+  const displayTaxId = customerSnapshot?.customer_tax_id || invoice?.customer_tax_id;
+  const displayEmail = customerSnapshot?.customer_email || invoice?.customer_email;
+  const displayPhone = customerSnapshot?.customer_tel_1 || invoice?.customer_tel_1;
+  const displayFirstName = customerSnapshot?.customer_firstname || invoice?.customer_firstname;
+  const displayLastName = customerSnapshot?.customer_lastname || invoice?.customer_lastname;
+  const displayContactName = [displayFirstName, displayLastName].filter(Boolean).join(' ') || '-';
+
+  // คำนวณยอดเงินสำหรับรายละเอียด
+  const baseAmount = invoice?.subtotal || 0;
+  const specialDiscountAmount = invoice?.special_discount_amount || 0;
+  const baseAfterDiscount = baseAmount - specialDiscountAmount;
+  const vatAmount = invoice?.vat_amount || invoice?.tax_amount || 0;
+  const withholdingTaxAmount = invoice?.withholding_tax_amount || 0;
+  const totalAfterVat = baseAfterDiscount + vatAmount;
+  const finalTotal = invoice?.final_total_amount || (totalAfterVat - withholdingTaxAmount);
 
   return (
     <TNPCard>
       <TNPCardContent>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
           <Box flex={1}>
-            <TNPHeading variant="h6">{companyName}</TNPHeading>
+            <TNPHeading variant="h6">{displayCompanyName || displayAddress || 'บริษัท/ลูกค้า'}</TNPHeading>
             <Stack direction="row" spacing={1} alignItems="center" mt={0.5} flexWrap="wrap">
               {invoice?.number && (
                 <TNPCountChip 
@@ -82,31 +136,38 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
 
         <Box mb={2}>
           <Stack spacing={1}>
-            {!!contactName && (
+            {!!displayContactName && displayContactName !== '-' && (
               <Stack direction="row" spacing={1} alignItems="center">
                 <PersonIcon fontSize="small" color="action" />
-                <TNPBodyText>{contactName}</TNPBodyText>
+                <TNPBodyText>{displayContactName}</TNPBodyText>
               </Stack>
             )}
-            {invoice?.customer_tax_id && (
+            {displayTaxId && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
                 <BusinessIcon fontSize="small" color="action" />
                 <TNPBodyText variant="caption" color="text.secondary">
-                  เลขประจำตัวผู้เสียภาษี: {invoice.customer_tax_id}
+                  เลขประจำตัวผู้เสียภาษี: {displayTaxId}
                 </TNPBodyText>
               </Stack>
             )}
-            {invoice?.customer_email && (
+            {displayEmail && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
                 <TNPBodyText variant="caption" color="text.secondary">
-                  Email: {invoice.customer_email}
+                  Email: {displayEmail}
                 </TNPBodyText>
               </Stack>
             )}
-            {invoice?.customer_tel_1 && (
+            {displayPhone && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
                 <TNPBodyText variant="caption" color="text.secondary">
-                  โทร: {invoice.customer_tel_1}
+                  โทร: {displayPhone}
+                </TNPBodyText>
+              </Stack>
+            )}
+            {displayAddress && !displayCompanyName && (
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
+                <TNPBodyText variant="caption" color="text.secondary">
+                  ที่อยู่: {displayAddress}{invoice?.customer_zip_code ? ` ${invoice.customer_zip_code}` : ''}
                 </TNPBodyText>
               </Stack>
             )}
@@ -158,16 +219,11 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
           <Stack spacing={1}>
             <Stack direction="row" spacing={1} alignItems="center">
               <RequestQuoteIcon fontSize="small" color="primary" />
-              <TNPBodyText><strong>ราคารวม:</strong> {amountText}</TNPBodyText>
+              <TNPBodyText><strong>ยอดรวม:</strong> {amountText}</TNPBodyText>
             </Stack>
-            {invoice?.subtotal > 0 && (
+            {depositInfo && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText variant="caption" color="text.secondary">ราคาก่อนภาษี: {subtotalText}</TNPBodyText>
-              </Stack>
-            )}
-            {invoice?.tax_amount > 0 && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText variant="caption" color="text.secondary">ภาษีมูลค่าเพิ่ม: {taxText}</TNPBodyText>
+                <TNPBodyText color="info.main"><strong>มัดจำ:</strong> {depositInfo}</TNPBodyText>
               </Stack>
             )}
             {invoice?.paid_amount > 0 && (
@@ -177,9 +233,129 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
             )}
             {(invoice?.total_amount - (invoice?.paid_amount || 0)) > 0 && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText color="warning.main"><strong>คงเหลือ:</strong> {remainingAmount}</TNPBodyText>
+                <TNPBodyText color="warning.main"><strong>ยอดคงเหลือ:</strong> {remainingAmount}</TNPBodyText>
               </Stack>
             )}
+            
+            {/* ปุ่มแสดงเพิ่มเติม */}
+            <Button 
+              size="small" 
+              variant="text" 
+              onClick={() => setShowDetails(!showDetails)}
+              startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              sx={{ alignSelf: 'flex-start', ml: 3, mt: 1 }}
+            >
+              {showDetails ? 'ซ่อนรายละเอียด' : 'แสดงเพิ่มเติม'}
+            </Button>
+
+            {/* รายละเอียดการคำนวณ */}
+            <Collapse in={showDetails}>
+              <Card sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main' }}>
+                  สรุปยอดเงิน
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Grid container spacing={1}>
+                  {baseAmount > 0 && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2">ยอดก่อนภาษี (ก่อนส่วนลด)</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
+                          {formatTHB(baseAmount)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  {(invoice?.special_discount_percentage > 0 || invoice?.special_discount_amount > 0) && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="error.main">
+                          ส่วนลดพิเศษ
+                          {invoice?.special_discount_percentage > 0 && ` (${invoice.special_discount_percentage}%)`}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right', color: 'error.main' }}>
+                          - {formatTHB(specialDiscountAmount)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  {baseAfterDiscount > 0 && specialDiscountAmount > 0 && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2">ฐานภาษีหลังส่วนลด</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
+                          {formatTHB(baseAfterDiscount)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  {invoice?.has_vat && vatAmount > 0 && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2">VAT {invoice?.vat_percentage || 7}%</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
+                          {formatTHB(vatAmount)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  {invoice?.has_vat && vatAmount > 0 && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2">ยอดหลัง VAT</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
+                          {formatTHB(totalAfterVat)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  {invoice?.has_withholding_tax && withholdingTaxAmount > 0 && (
+                    <>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="warning.main">
+                          ภาษีหัก ณ ที่จ่าย ({invoice?.withholding_tax_percentage || 0}%)
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" sx={{ textAlign: 'right', color: 'warning.main' }}>
+                          - {formatTHB(withholdingTaxAmount)}
+                        </Typography>
+                      </Grid>
+                    </>
+                  )}
+                  
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                  </Grid>
+                  
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      ยอดรวมทั้งสิ้น
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" sx={{ textAlign: 'right', fontWeight: 'bold', color: 'primary.main' }}>
+                      {formatTHB(finalTotal)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Card>
+            </Collapse>
           </Stack>
         </Box>
 

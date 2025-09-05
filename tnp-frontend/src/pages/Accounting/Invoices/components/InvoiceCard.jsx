@@ -42,6 +42,40 @@ const formatDate = (d) => {
   } catch { return '-'; }
 };
 
+// ฟังก์ชันสำหรับการแสดงรายการสินค้า/บริการ
+const formatItemsList = (invoice) => {
+  if (!invoice) return null;
+  
+  // ใช้ข้อมูลจาก items ถ้ามี
+  if (invoice.items && Array.isArray(invoice.items) && invoice.items.length > 0) {
+    const itemNames = invoice.items
+      .filter(item => item.item_name)
+      .map(item => item.item_name.replace(/\(.*?\)/, '').trim()) // ลบข้อความใน ()
+      .filter((name, index, array) => array.indexOf(name) === index); // ลบชื่อซ้ำ
+    
+    if (itemNames.length > 0) {
+      const count = invoice.items.length;
+      const displayNames = itemNames.slice(0, 3); // แสดงสูงสุด 3 รายการ
+      const hasMore = itemNames.length > 3;
+      
+      let itemsText = displayNames.join(', ');
+      if (hasMore) {
+        itemsText += `, และอีก ${itemNames.length - 3} รายการ`;
+      }
+      
+      return `รายการสินค้า/บริการ (${count}) ${itemsText}`;
+    }
+  }
+  
+  // ถ้าไม่มี items ใช้ work_name แทน
+  if (invoice.work_name) {
+    return `งาน: ${invoice.work_name}`;
+  }
+  
+  // ถ้าไม่มีข้อมูลใดๆ
+  return null;
+};
+
 // ฟังก์ชันสำหรับการแสดงมัดจำ
 const formatDepositInfo = (invoice) => {
   if (!invoice) return null;
@@ -67,6 +101,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
   const paidAmount = formatTHB(invoice?.paid_amount || 0);
   const remainingAmount = formatTHB((invoice?.final_total_amount || invoice?.total_amount || 0) - (invoice?.paid_amount || 0));
   const depositInfo = formatDepositInfo(invoice);
+  const itemsListText = formatItemsList(invoice);
 
   const companyName = invoice?.customer_company || invoice?.customer?.cus_company || '-';
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
@@ -191,7 +226,13 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
 
         <Box mb={2}>
           <Stack spacing={1}>
-            {invoice?.work_name && (
+            {itemsListText && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <WorkIcon fontSize="small" color="primary" />
+                <TNPBodyText><strong>{itemsListText}</strong></TNPBodyText>
+              </Stack>
+            )}
+            {!itemsListText && invoice?.work_name && (
               <Stack direction="row" spacing={1} alignItems="center">
                 <WorkIcon fontSize="small" color="primary" />
                 <TNPBodyText><strong>ชื่องาน:</strong> {invoice.work_name}</TNPBodyText>

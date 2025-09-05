@@ -26,6 +26,7 @@ import {
   CustomerSection,
   WorkItemsSection,
   ActionsSection,
+  FinancialSummarySection,
   Calculation,
   PaymentTerms,
 } from '../../shared/components';
@@ -339,28 +340,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
 
             {/* Financial Summary */}
             <Grid item xs={12}>
-              <Section>
-                <SectionHeader>
-                  <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
-                    <CalculateIcon fontSize="small" />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>สรุปการเงิน</Typography>
-                    <Typography variant="caption" color="text.secondary">ยอดเงินและการคำนวณ</Typography>
-                  </Box>
-                </SectionHeader>
-                <Box sx={{ p: 2 }}>
-                  <Calculation
-                    subtotal={invoice.subtotal || 0}
-                    discountAmount={invoice.discount_amount || 0}
-                    discountedBase={(invoice.subtotal || 0) - (invoice.discount_amount || 0)}
-                    vat={invoice.tax_amount || 0}
-                    totalAfterVat={invoice.total_amount || 0}
-                    withholdingAmount={invoice.withholding_tax_amount || 0}
-                    finalTotal={invoice.final_total_amount || invoice.total_amount || 0}
-                  />
-                </Box>
-              </Section>
+              <FinancialSummarySection invoice={invoice} />
             </Grid>
 
             {/* Payment Information */}

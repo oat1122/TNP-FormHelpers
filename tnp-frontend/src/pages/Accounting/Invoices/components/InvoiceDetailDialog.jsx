@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -145,10 +145,13 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const [generateInvoicePDF, { isLoading: isGeneratingPdf }] = useGenerateInvoicePDFMutation();
   
   const [isEditing, setIsEditing] = useState(false);
+  const firstEditRef = useRef(false);
   const [notes, setNotes] = useState('');
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
   const [customerDataSource, setCustomerDataSource] = useState('master'); // 'master' or 'invoice'
+  const customerSourceManuallySet = useRef(false);
+  const prevInvoiceIdRef = useRef(null);
   
   // Form fields for editing
   const [formData, setFormData] = useState({
@@ -192,6 +195,18 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   // Update form data when invoice changes
   React.useEffect(() => {
     if (invoice && Object.keys(invoice).length > 0) {
+      // Normalize due_date to yyyy-MM-dd for date input
+      const normalizeDate = (d) => {
+        if (!d) return '';
+        if (typeof d === 'string') {
+          if (d.length >= 10) return d.substring(0, 10); // trims ISO 2025-09-27T...
+        }
+        try { return new Date(d).toISOString().substring(0, 10); } catch { return ''; }
+      };
+
+      const newInvoiceId = invoice.id;
+      const invoiceChanged = prevInvoiceIdRef.current !== newInvoiceId;
+
       setFormData({
         type: invoice.type || 'full_amount',
         status: invoice.status || 'draft',
@@ -212,17 +227,19 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         deposit_percentage: invoice.deposit_percentage || 0,
         deposit_amount: invoice.deposit_amount || 0,
         deposit_mode: invoice.deposit_mode || 'percentage',
-        due_date: invoice.due_date || '',
+        due_date: normalizeDate(invoice.due_date),
         payment_method: invoice.payment_method || '',
         payment_terms: invoice.payment_terms || '',
         document_header_type: invoice.document_header_type || 'ต้นฉบับ',
       });
 
-      // Check if invoice has customer override data
-      const hasCustomerOverride = invoice.customer_company || invoice.customer_tax_id || 
-                                  invoice.customer_address || invoice.customer_firstname || 
-                                  invoice.customer_lastname;
-      setCustomerDataSource(hasCustomerOverride ? 'invoice' : 'master');
+      // Only auto-set data source when invoice just loaded / changed and user hasn't manually toggled
+      if (invoiceChanged || !customerSourceManuallySet.current) {
+        const hasCustomerOverride = invoice.customer_company || invoice.customer_tax_id ||
+          invoice.customer_address || invoice.customer_firstname || invoice.customer_lastname;
+        setCustomerDataSource(hasCustomerOverride ? 'invoice' : 'master');
+      }
+      prevInvoiceIdRef.current = newInvoiceId;
     }
   }, [invoice]);
 
@@ -291,6 +308,22 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }
   };
 
+  // Force view mode every time dialog is opened
+  React.useEffect(() => {
+    if (open) {
+      setIsEditing(false);
+    }
+  }, [open]);
+
+  const enterEditMode = () => {
+    if (!firstEditRef.current) {
+      // First time editing -> default to master source per requirement
+      setCustomerDataSource('master');
+      firstEditRef.current = true;
+    }
+    setIsEditing(true);
+  };
+
   const handleFieldChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -300,8 +333,26 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
 
   const handleCustomerDataSourceChange = (event) => {
     const newSource = event.target.value;
+    customerSourceManuallySet.current = true;
     setCustomerDataSource(newSource);
-    // When switching to master we DO NOT overwrite invoice override fields; they stay in formData (hidden) until user switches back.
+    if (newSource === 'master') {
+      // Do nothing to formData; invoice override values are preserved invisibly
+      return;
+    }
+    if (newSource === 'invoice' && customer) {
+      // Autofill invoice override fields from master (only overwrite if empty to preserve existing manual edits)
+      setFormData(prev => ({
+        ...prev,
+        customer_company: prev.customer_company || customer.cus_company || '',
+        customer_tax_id: prev.customer_tax_id || customer.cus_tax_id || '',
+        customer_address: prev.customer_address || customer.cus_address || '',
+        customer_zip_code: prev.customer_zip_code || customer.cus_zip_code || '',
+        customer_tel_1: prev.customer_tel_1 || customer.cus_tel_1 || '',
+        customer_email: prev.customer_email || customer.cus_email || '',
+        customer_firstname: prev.customer_firstname || customer.cus_firstname || '',
+        customer_lastname: prev.customer_lastname || customer.cus_lastname || '',
+      }));
+    }
   };
 
   const handlePreviewPdf = async () => {
@@ -339,7 +390,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
           <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf}>
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
-          <SecondaryButton onClick={() => setIsEditing(true)}>แก้ไข</SecondaryButton>
+          <SecondaryButton onClick={enterEditMode}>แก้ไข</SecondaryButton>
           <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
         </>
       )}
@@ -943,10 +994,10 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                   </Avatar>
                   <Box display="flex" alignItems="center" gap={1}>
                     <Typography variant="subtitle1" fontWeight={700}>หมายเหตุ</Typography>
-                    {!isEditing && (
+          {!isEditing && (
                       <SecondaryButton 
                         size="small" 
-                        onClick={() => setIsEditing(!isEditing)}
+            onClick={enterEditMode}
                       >
                         แก้ไข
                       </SecondaryButton>

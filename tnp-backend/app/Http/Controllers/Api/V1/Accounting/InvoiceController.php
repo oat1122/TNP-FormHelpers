@@ -94,7 +94,9 @@ class InvoiceController extends Controller
             $invoice = \App\Models\Accounting\Invoice::with([
                 'quotation',
                 'documentHistory',
-                'documentAttachments'
+                'attachments',
+                'items',
+                'customer'
             ])->findOrFail($id);
 
             return response()->json([

@@ -18,6 +18,7 @@ import {
 import InvoiceCreateDialog from './components/InvoiceCreateDialog';
 import QuotationSelectionDialog from './components/QuotationSelectionDialog';
 import InvoiceCard from './components/InvoiceCard';
+import InvoiceDetailDialog from './components/InvoiceDetailDialog';
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +27,8 @@ const Invoices = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [quotationSelectionOpen, setQuotationSelectionOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
 
   // Invoices: filter + pagination
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState('');
@@ -73,6 +76,11 @@ const Invoices = () => {
     setSelectedQuotation(null);
     // เปิด QuotationSelectionDialog ขึ้นมาใหม่เมื่อผู้ใช้กดปิด
     setQuotationSelectionOpen(true);
+  };
+
+  const handleViewInvoice = (invoice) => {
+    setSelectedInvoiceId(invoice.id);
+    setDetailDialogOpen(true);
   };
 
   return (
@@ -159,12 +167,7 @@ const Invoices = () => {
                     <InvoiceCard
                       invoice={inv}
                       onDownloadPDF={() => generateInvoicePDF(inv.id)}
-                      onView={() => {
-                        // TODO: Navigate to invoice detail page or open detail modal
-                        console.log('View invoice details:', inv);
-                        // You can add navigation logic here, e.g.:
-                        // navigate(`/accounting/invoices/${inv.id}`);
-                      }}
+                      onView={() => handleViewInvoice(inv)}
                     />
                   </Grid>
                 ))}
@@ -206,6 +209,16 @@ const Invoices = () => {
         quotationId={selectedQuotation?.id}
         onCreated={handleInvoiceCreated}
         onCancel={handleInvoiceCreateCancel}
+      />
+
+      {/* Invoice Detail Dialog */}
+      <InvoiceDetailDialog
+        open={detailDialogOpen}
+        onClose={() => {
+          setDetailDialogOpen(false);
+          setSelectedInvoiceId(null);
+        }}
+        invoiceId={selectedInvoiceId}
       />
     </ThemeProvider>
   );

@@ -17,6 +17,7 @@ import {
   InputAdornment,
   RadioGroup,
   Radio,
+  Stack,
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -65,12 +66,12 @@ const statusColors = {
   overdue: 'error',
 };
 
-const formatDate = (d) => {
-  if (!d) return '-';
-  try {
-    const date = new Date(d);
-    return date.toLocaleDateString('th-TH');
-  } catch { return '-'; }
+// Local helpers
+const toMoney = (n) => formatTHB(n || 0);
+const sanitizeZipDup = (text) => {
+  if (!text) return '';
+  // collapse duplicated 5-digit zip e.g., "10240 10240" -> "10240"
+  return String(text).replace(/(\b\d{5}\b)\s+\1/g, '$1');
 };
 
 // Normalize customer data from master_customers relationship
@@ -266,6 +267,16 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     vatPercentage: formData.vat_percentage,
   }), [rawCalcItems, formData, specialDiscountType]);
 
+  // Derived summary numbers for dialog summary bar and sections
+  const subtotal = calc.subtotal || Number(invoice.subtotal || 0);
+  const vat = calc.vat || Number(invoice.vat_amount || invoice.tax_amount || 0);
+  const total = calc.finalTotal ?? (Number(invoice.final_total_amount || 0) || (calc.total ?? 0));
+  const paid = Number(invoice.paid_amount || 0);
+  const deposit = Number(invoice.deposit_amount || 0);
+  const remaining = Math.max((total || 0) - paid - deposit, 0);
+  const due = invoice?.due_date ? new Date(invoice.due_date) : null;
+  const isOverdue = !!(due && remaining > 0 && due < new Date());
+
   const handleSave = async () => {
     try {
       const loadingId = showLoading('กำลังบันทึกใบแจ้งหนี้…');
@@ -385,21 +396,21 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     <>
       {isEditing ? (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf}>
+          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf} aria-label="ดูตัวอย่าง PDF">
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
-          <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
-          <SecondaryButton onClick={handleSave} disabled={isSaving}>
+          <Button variant="contained" onClick={handleSave} disabled={isSaving} aria-label="บันทึกการเปลี่ยนแปลง">
             {isSaving ? 'กำลังบันทึก…' : 'บันทึก'}
-          </SecondaryButton>
+          </Button>
+          <Button variant="text" onClick={() => setIsEditing(false)} aria-label="ยกเลิก">ยกเลิก</Button>
         </>
       ) : (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf}>
+          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf} aria-label="ดูตัวอย่าง PDF">
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
-          <SecondaryButton onClick={enterEditMode}>แก้ไข</SecondaryButton>
-          <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
+          <Button variant="contained" onClick={enterEditMode} aria-label="แก้ไข">แก้ไข</Button>
+          <Button variant="text" onClick={onClose} aria-label="ปิด">ปิด</Button>
         </>
       )}
     </>
@@ -416,6 +427,37 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         actions={actions}
       >
         <Box>
+          {/* Sticky Financial Summary Bar */}
+          <Box sx={{
+            position: 'sticky', top: 0, zIndex: 2, bgcolor: 'background.paper',
+            borderBottom: 1, borderColor: 'divider', p: 1.5, mb: 2,
+          }}>
+            <Grid container spacing={1} alignItems="center">
+              {[
+                ['ยอดก่อนภาษี', subtotal],
+                ['VAT', vat],
+                ['รวมทั้งสิ้น', total, 'primary.main', 700],
+                ['ชำระแล้ว', paid],
+                ['คงเหลือ', remaining, remaining>0 ? (isOverdue ? 'error.main' : 'warning.main') : 'success.main', 700],
+              ].map(([label,val,color,fw]) => (
+                <Grid item key={label} xs="auto">
+                  <Stack spacing={0.25}>
+                    <Typography variant="caption" color="text.secondary">{label}</Typography>
+                    <Typography variant="body1" sx={{fontWeight: fw||500, color: color||'text.primary'}}>
+                      {toMoney(val)}
+                    </Typography>
+                  </Stack>
+                </Grid>
+              ))}
+              <Box sx={{flexGrow:1}} />
+              <Chip
+                size="small"
+                color={remaining>0 ? (isOverdue ? 'error':'warning') : 'success'}
+                label={remaining>0 ? (isOverdue?'เกินกำหนด':'ยังไม่ได้ชำระ') : 'ชำระครบ'}
+                aria-label="สถานะการชำระเงิน"
+              />
+            </Grid>
+          </Box>
           <Grid container spacing={2}>
             {/* Invoice Status & Info */}
             <Grid item xs={12}>
@@ -486,7 +528,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                       </Grid>
                       <Grid item xs={12} md={3}>
                         <Typography variant="caption" color="text.secondary">วันที่ออกใบแจ้งหนี้</Typography>
-                        <Typography variant="body1">{formatDate(invoice.invoice_date)}</Typography>
+                        <Typography variant="body1">{formatDateTH(invoice.invoice_date)}</Typography>
                       </Grid>
                       <Grid item xs={12} md={3}>
                         <Typography variant="caption" color="text.secondary">วันครบกำหนด</Typography>
@@ -500,8 +542,8 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                             sx={{ mt: 0.5 }}
                           />
                         ) : (
-                          <Typography variant="body1" color={invoice.status === 'overdue' ? 'error' : 'inherit'}>
-                            {formatDate(invoice.due_date)}
+                          <Typography variant="body1" color={isOverdue ? 'error.main' : 'inherit'}>
+                            {formatDateTH(invoice.due_date)}
                           </Typography>
                         )}
                       </Grid>
@@ -692,39 +734,34 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
               >
                 {items.map((item, idx) => (
                   <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                      <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="subtitle1" noWrap title={item.name} fontWeight={700} color={tokens.primary}>
                         รายการที่ {idx + 1}: {item.name}
                       </Typography>
-                      <Chip 
-                        label={`${item.quantity} ${item.unit}`} 
-                        size="small" 
-                        variant="outlined" 
-                        sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} 
-                      />
-                    </Box>
-                    <Grid container spacing={1}>
+                      <Chip size="small" label={`${item.quantity} ${item.unit}`} />
+                    </Stack>
+                    <Grid container spacing={1} sx={{ mt: 1 }}>
                       {item.pattern && (
                         <Grid item xs={6} md={3}>
                           <Typography variant="caption" color="text.secondary">แพทเทิร์น</Typography>
-                          <Typography variant="body2" fontWeight={500}>{item.pattern}</Typography>
+                          <Typography variant="body2">{item.pattern}</Typography>
                         </Grid>
                       )}
                       {item.fabric_type && (
                         <Grid item xs={6} md={3}>
                           <Typography variant="caption" color="text.secondary">ประเภทผ้า</Typography>
-                          <Typography variant="body2" fontWeight={500}>{item.fabric_type}</Typography>
+                          <Typography variant="body2">{item.fabric_type}</Typography>
                         </Grid>
                       )}
                       {item.color && (
                         <Grid item xs={6} md={3}>
                           <Typography variant="caption" color="text.secondary">สี</Typography>
-                          <Typography variant="body2" fontWeight={500}>{item.color}</Typography>
+                          <Typography variant="body2">{item.color}</Typography>
                         </Grid>
                       )}
-                      <Grid item xs={12} md={3}>
+                      <Grid item xs={6} md={3} sx={{ ml: 'auto', textAlign: 'right' }}>
                         <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
-                        <Typography variant="body1" fontWeight={800}>{formatTHB(item.total)}</Typography>
+                        <Typography variant="body1" fontWeight={600}>{toMoney(item.total)}</Typography>
                       </Grid>
                     </Grid>
                   </InfoCard>
@@ -899,7 +936,54 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                   </Box>
                 </Section>
               ) : (
-                <FinancialSummarySection invoice={invoice} />
+                <Section>
+                  <SectionHeader>
+                    <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                      <CalculateIcon fontSize="small" />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700}>สรุปการคำนวณ</Typography>
+                      <Typography variant="caption" color="text.secondary">รายการคำนวณตามใบแจ้งหนี้</Typography>
+                    </Box>
+                  </SectionHeader>
+                  <Box sx={{ p: 2 }}>
+                    <InfoCard variant="outlined" sx={{ p: 2 }}>
+                      <Stack spacing={0.5}>
+                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                          <Typography variant="body2" color="text.secondary">ยอดรวม (ไม่รวมภาษี)</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(subtotal)}</Typography>
+                        </Stack>
+                        {calc.specialDiscountAmount > 0 && (
+                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">ส่วนลดพิเศษ{formData.special_discount_percentage ? ` (${formData.special_discount_percentage}%)` : ''}</Typography>
+                            <Typography variant="body2" color="text.secondary">- {toMoney(calc.specialDiscountAmount)}</Typography>
+                          </Stack>
+                        )}
+                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                          <Typography variant="body2" color="text.secondary">ฐานภาษีหลังส่วนลด</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(calc.taxBase ?? (subtotal - (calc.specialDiscountAmount||0)))}</Typography>
+                        </Stack>
+                        {formData.has_vat && (
+                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">ภาษีมูลค่าเพิ่ม ({formData.vat_percentage?.toFixed?.(2) || 0}%)</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(vat)}</Typography>
+                          </Stack>
+                        )}
+                        {formData.has_withholding_tax && calc.withholdingTaxAmount > 0 && (
+                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">หัก ณ ที่จ่าย ({formData.withholding_tax_percentage?.toFixed?.(2) || 0}%)</Typography>
+                            <Typography variant="body2" color="text.secondary">- {toMoney(calc.withholdingTaxAmount)}</Typography>
+                          </Stack>
+                        )}
+                        <Divider sx={{ my: 1 }} />
+                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5, bgcolor: 'grey.50', borderRadius: 1, px: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>จำนวนเงินรวมทั้งสิ้น</Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>{toMoney(total)}</Typography>
+                        </Stack>
+                      </Stack>
+                    </InfoCard>
+                  </Box>
+                </Section>
               )}
             </Grid>
 
@@ -1019,9 +1103,10 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                     rows={3}
                     label="หมายเหตุ"
                     value={isEditing ? notes : (invoice.notes || '')}
-                    disabled={!isEditing}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="เพิ่มหมายเหตุสำหรับใบแจ้งหนี้นี้..."
+                    variant={isEditing ? 'outlined' : 'filled'}
+                    InputProps={{ readOnly: !isEditing }}
                   />
                 </Box>
               </Section>

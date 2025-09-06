@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse } from '@mui/material';
+import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse, Tooltip } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -33,13 +33,65 @@ const statusColor = {
   overdue: 'error',
 };
 
-const formatTHB = (n) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(n || 0));
+// ปรับปรุงการจัดรูปแบบเงินให้คงเส้นคงวา ฿129,028.50
+const formatTHB = (n) => {
+  const num = Number(n || 0);
+  return new Intl.NumberFormat('th-TH', { 
+    style: 'currency', 
+    currency: 'THB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(num);
+};
+
+// ปรับปรุงการจัดรูปแบบวันที่เป็น พ.ศ. DD/MM/YYYY
 const formatDate = (d) => {
   if (!d) return '-';
   try {
     const date = new Date(d);
-    return date.toLocaleDateString('th-TH');
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear() + 543; // แปลงเป็น พ.ศ.
+    return `${day}/${month}/${year}`;
   } catch { return '-'; }
+};
+
+// ฟังก์ชันสำหรับตัดข้อความที่ยาวเกินไป
+const truncateText = (text, maxLength = 35) => {
+  if (!text) return '';
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+};
+
+// ฟังก์ชันตรวจสอบสถานะตามวันครบกำหนด
+const getInvoiceStatus = (invoice) => {
+  if (!invoice) return { status: 'draft', color: 'default' };
+  
+  const today = new Date();
+  const dueDate = invoice.due_date ? new Date(invoice.due_date) : null;
+  const finalTotal = invoice?.final_total_amount || invoice?.total_amount || 0;
+  const paidAmount = invoice?.paid_amount || 0;
+  const depositAmount = invoice?.deposit_amount || 0;
+  const remaining = Math.max(finalTotal - paidAmount - depositAmount, 0);
+  
+  // ถ้าชำระครบแล้ว
+  if (remaining <= 0) {
+    return { status: 'ชำระแล้ว', color: 'success' };
+  }
+  
+  // ถ้าเกินกำหนด
+  if (dueDate && dueDate < today && remaining > 0) {
+    return { status: 'เกินกำหนด', color: 'error' };
+  }
+  
+  // ใช้สถานะปกติ
+  const originalStatus = invoice.status || 'draft';
+  return { 
+    status: originalStatus === 'draft' ? 'แบบร่าง' : 
+            originalStatus === 'pending' ? 'รอดำเนินการ' :
+            originalStatus === 'sent' ? 'ส่งแล้ว' :
+            originalStatus === 'partial_paid' ? 'ชำระบางส่วน' : originalStatus,
+    color: statusColor[originalStatus] || 'default' 
+  };
 };
 
 // ฟังก์ชันสำหรับการแสดงรายการสินค้า/บริการ (ใช้ข้อมูลจาก invoice_items.item_name)
@@ -127,13 +179,25 @@ const formatDepositInfo = (invoice) => {
 const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
   const [showDetails, setShowDetails] = useState(false);
   
-  const amountText = formatTHB(invoice?.final_total_amount || invoice?.total_amount);
-  const subtotalText = formatTHB(invoice?.subtotal);
-  const taxText = formatTHB(invoice?.vat_amount || invoice?.tax_amount);
-  const paidAmount = formatTHB(invoice?.paid_amount || 0);
-  const remainingAmount = formatTHB((invoice?.final_total_amount || invoice?.total_amount || 0) - (invoice?.paid_amount || 0));
+  // คำนวณยอดเงินอย่างถูกต้อง - แก้ไข logic การคำนวณ
+  const subtotal = Number(invoice?.subtotal || 0);
+  const specialDiscountAmount = Number(invoice?.special_discount_amount || 0);
+  const discounted = Math.max(subtotal - specialDiscountAmount, 0); // ป้องกันติดลบ
+  const vatRate = (invoice?.vat_percentage || 7) / 100;
+  const vat = invoice?.has_vat ? discounted * vatRate : 0;
+  const afterVat = discounted + vat;
+  const withholdingTaxRate = (invoice?.withholding_tax_percentage || 0) / 100;
+  const withholding = invoice?.has_withholding_tax ? discounted * withholdingTaxRate : 0;
+  const total = afterVat - withholding;
+  
+  // คำนวณยอดคงเหลือที่ถูกต้อง
+  const paidAmount = Number(invoice?.paid_amount || 0);
+  const depositAmount = Number(invoice?.deposit_amount || 0);
+  const remaining = Math.max(total - paidAmount - depositAmount, 0);
+  
   const depositInfo = formatDepositInfo(invoice);
   const itemsListText = formatItemsList(invoice);
+  const invoiceStatus = getInvoiceStatus(invoice);
 
   const companyName = invoice?.customer_company || invoice?.customer?.cus_company || '-';
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
@@ -158,7 +222,6 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
         customerSnapshot = invoice.customer_snapshot;
       }
     } catch (error) {
-      
       customerSnapshot = null;
     }
   }
@@ -173,156 +236,211 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
   const displayLastName = invoice?.customer_lastname || invoice?.customer?.cus_lastname || customerSnapshot?.customer_lastname || invoice?.customer_lastname;
   const displayContactName = [displayFirstName, displayLastName].filter(Boolean).join(' ') || '-';
 
-  // คำนวณยอดเงินสำหรับรายละเอียด
-  const baseAmount = invoice?.subtotal || 0;
-  const specialDiscountAmount = invoice?.special_discount_amount || 0;
-  const baseAfterDiscount = baseAmount - specialDiscountAmount;
-  const vatAmount = invoice?.vat_amount || invoice?.tax_amount || 0;
-  const withholdingTaxAmount = invoice?.withholding_tax_amount || 0;
-  const totalAfterVat = baseAfterDiscount + vatAmount;
-  const finalTotal = invoice?.final_total_amount || (totalAfterVat - withholdingTaxAmount);
+  // ชื่อบริษัทแบบตัดข้อความ - แก้ไขที่อยู่ซ้ำ
+  const rawCompanyName = displayCompanyName || displayAddress || 'บริษัท/ลูกค้า';
+  const cleanCompanyName = rawCompanyName.replace(/(\d+)\s+\1/g, '$1'); // แก้ "10240 10240" เป็น "10240"
+  const truncatedCompanyName = truncateText(cleanCompanyName, 35);
+
+  // Component สำหรับแถวในตารางสรุปยอดเงิน
+  const FinancialRow = ({ label, value, emphasis = false, negative = false, color = null }) => (
+    <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+        {label}
+      </Typography>
+      <Typography
+        variant={emphasis ? "subtitle2" : "body2"}
+        align="right"
+        sx={{ 
+          fontWeight: emphasis ? 700 : 400,
+          color: color || (negative ? 'error.main' : emphasis ? 'primary.main' : 'text.primary'),
+          fontSize: emphasis ? '1rem' : '0.9rem'
+        }}
+      >
+        {negative ? `- ${formatTHB(value)}` : formatTHB(value)}
+      </Typography>
+    </Stack>
+  );
 
   return (
     <TNPCard>
-      <TNPCardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
+      <TNPCardContent sx={{ p: 2.5 }}>
+        {/* Header Section - ปรับปรุง layout และ visual hierarchy */}
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box flex={1}>
-            <TNPHeading variant="h6">{displayCompanyName || displayAddress || 'บริษัท/ลูกค้า'}</TNPHeading>
-            <Stack direction="row" spacing={1} alignItems="center" mt={0.5} flexWrap="wrap">
-              {invoice?.number && (
-                <TNPCountChip 
-                  icon={<DescriptionIcon sx={{ fontSize: '1rem' }} />} 
-                  label={invoice.number} 
+            <Tooltip title={cleanCompanyName} placement="top-start">
+              <Typography 
+                variant="h6" 
+                noWrap 
+                sx={{ 
+                  fontWeight: 700, 
+                  mb: 1.25, 
+                  lineHeight: 1.45,
+                  fontSize: '1.1rem'
+                }}
+              >
+                {truncatedCompanyName}
+              </Typography>
+            </Tooltip>
+            
+            {/* จัดกลุ่ม Chips ใหม่ - แยกเป็น 2 กลุ่ม */}
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.25}>
+              {/* กลุ่มซ้าย: เลขที่เอกสาร + สถานะ */}
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                {invoice?.number && (
+                  <TNPCountChip 
+                    icon={<DescriptionIcon sx={{ fontSize: '0.9rem' }} aria-hidden="true" />} 
+                    label={invoice.number} 
+                    size="small"
+                    sx={{ fontWeight: 600 }}
+                    aria-label={`เลขที่เอกสาร ${invoice.number}`}
+                  />
+                )}
+                <TNPStatusChip 
+                  label={invoiceStatus.status} 
                   size="small" 
+                  statuscolor={invoiceStatus.color}
+                  sx={{ fontWeight: 500 }}
+                  aria-label={`สถานะ ${invoiceStatus.status}`}
+                />
+                <Chip 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                  label={typeLabels[invoice?.type] || invoice?.type || '-'} 
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              </Stack>
+              
+              {/* กลุ่มขวา: เงื่อนไขพิเศษ */}
+              {depositInfo && (
+                <Chip 
+                  size="small" 
+                  color="warning" 
+                  variant="outlined"
+                  label={`มัดจำ: ${depositInfo}`}
+                  sx={{ fontSize: '0.75rem' }}
                 />
               )}
-              <Chip 
-                size="small" 
-                color="primary" 
-                variant="outlined"
-                label={typeLabels[invoice?.type] || invoice?.type || '-'} 
-              />
             </Stack>
           </Box>
-          <TNPStatusChip 
-            label={invoice?.status || 'draft'} 
-            size="small" 
-            statuscolor={statusColor[invoice?.status] || 'default'} 
-          />
         </Box>
 
-        <Box mb={2}>
-          <Stack spacing={1}>
+        {/* Customer & Manager Info - ลดไอคอนที่ซ้ำความหมาย */}
+        <Box mb={2.5}>
+          <Stack spacing={1.25}>
             {!!displayContactName && displayContactName !== '-' && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <PersonIcon fontSize="small" color="action" />
-                <TNPBodyText>{displayContactName}</TNPBodyText>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <PersonIcon fontSize="small" color="primary" aria-hidden="true" />
+                <Typography sx={{ 
+                  fontWeight: 500, 
+                  fontSize: '0.95rem',
+                  lineHeight: 1.45
+                }}>
+                  {displayContactName}
+                </Typography>
               </Stack>
             )}
+            
             {managerDisplay && managerDisplay !== 'ไม่ระบุ' && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <AccountBoxIcon fontSize="small" color="primary" />
-                <TNPBodyText><strong>ผู้ขาย:</strong> {managerDisplay}</TNPBodyText>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <AccountBoxIcon fontSize="small" color="action" aria-hidden="true" />
+                <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.45 }}>
+                  <Box component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>ผู้ขาย:</Box>{' '}
+                  <Box component="span" sx={{ color: 'text.secondary' }}>{managerDisplay}</Box>
+                </Typography>
               </Stack>
             )}
-            {displayTaxId && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <BusinessIcon fontSize="small" color="action" />
-                <TNPBodyText variant="caption" color="text.secondary">
-                  เลขประจำตัวผู้เสียภาษี: {displayTaxId}
-                </TNPBodyText>
-              </Stack>
-            )}
-            {displayEmail && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText variant="caption" color="text.secondary">
-                  Email: {displayEmail}
-                </TNPBodyText>
-              </Stack>
-            )}
-            {displayPhone && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText variant="caption" color="text.secondary">
-                  โทร: {displayPhone}
-                </TNPBodyText>
-              </Stack>
-            )}
-            {displayAddress && !displayCompanyName && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText variant="caption" color="text.secondary">
-                  ที่อยู่: {displayAddress}{invoice?.customer_zip_code ? ` ${invoice.customer_zip_code}` : ''}
-                </TNPBodyText>
-              </Stack>
+            
+            {/* ข้อมูลเพิ่มเติม - ลดไอคอน ใช้ตัวหนังสือเป็นหลัก */}
+            {(displayTaxId || displayEmail || displayPhone) && (
+              <Box sx={{ ml: 4, mt: 1 }}>
+                <Stack spacing={0.5}>
+                  {displayTaxId && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                      เลขประจำตัวผู้เสียภาษี: {displayTaxId}
+                    </Typography>
+                  )}
+                  {displayEmail && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                      Email: {displayEmail}
+                    </Typography>
+                  )}
+                  {displayPhone && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                      โทร: {displayPhone}
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
             )}
           </Stack>
         </Box>
 
-        <Box mb={2}>
-          <Stack spacing={1}>
-            {/* แสดงรายการสินค้า/บริการจาก invoice_items */}
-            {itemsListText && (
-              <Box>
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <WorkIcon fontSize="small" color="primary" sx={{ mt: 0.2, flexShrink: 0 }} />
-                  <Box flex={1}>
-                    <TNPBodyText sx={{ fontWeight: 600, color: 'primary.main', lineHeight: 1.4 }}>
-                      {itemsListText}
-                    </TNPBodyText>
-                  </Box>
-                </Stack>
-              </Box>
-            )}
-            
-            {/* Fallback: แสดงชื่องานถ้าไม่มี items */}
-            {!itemsListText && invoice?.work_name && (
-              <Box>
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <WorkIcon fontSize="small" color="action" sx={{ mt: 0.2, flexShrink: 0 }} />
-                  <Box flex={1}>
-                    <TNPBodyText sx={{ lineHeight: 1.4 }}>
-                      <Box component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>ชื่องาน:</Box>{' '}
-                      <Box component="span" sx={{ color: 'text.secondary' }}>{invoice.work_name}</Box>
-                    </TNPBodyText>
-                  </Box>
-                </Stack>
-              </Box>
-            )}
-            
-            {/* รายละเอียดเพิ่มเติม */}
-            {(invoice?.fabric_type || invoice?.pattern || invoice?.color || invoice?.sizes || invoice?.quantity) && (
-              <Box sx={{ ml: 4 }}>
-                <Stack spacing={0.5}>
-                  {/* บรรทัดแรก: ชนิดผ้า, แพทเทิร์น, สี */}
-                  {(invoice?.fabric_type || invoice?.pattern || invoice?.color) && (
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} flexWrap="wrap">
-                      {invoice?.fabric_type && (
-                        <TNPBodyText variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
-                          <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>ชนิดผ้า:</Box>
-                          {invoice.fabric_type}
-                        </TNPBodyText>
-                      )}
-                      {invoice?.pattern && (
-                        <TNPBodyText variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
-                          <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>แพทเทิร์น:</Box>
-                          {invoice.pattern}
-                        </TNPBodyText>
-                      )}
-                      {invoice?.color && (
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <PaletteIcon sx={{ fontSize: '0.75rem', color: 'text.disabled' }} />
-                          <TNPBodyText variant="caption" sx={{ color: 'text.secondary' }}>
+        {/* Work Details - ลดไอคอนและปรับปรุงการแสดงผล */}
+        {(itemsListText || invoice?.work_name) && (
+          <Box mb={2.5}>
+            <Stack spacing={1.25}>
+              {itemsListText && (
+                <Box>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <WorkIcon fontSize="small" color="primary" sx={{ mt: 0.2, flexShrink: 0 }} aria-hidden="true" />
+                    <Box flex={1}>
+                      <Typography sx={{ 
+                        fontWeight: 600, 
+                        color: 'primary.main', 
+                        lineHeight: 1.45, 
+                        fontSize: '0.95rem' 
+                      }}>
+                        {itemsListText}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              )}
+              
+              {!itemsListText && invoice?.work_name && (
+                <Box>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <WorkIcon fontSize="small" color="action" sx={{ mt: 0.2, flexShrink: 0 }} aria-hidden="true" />
+                    <Box flex={1}>
+                      <Typography sx={{ lineHeight: 1.45, fontSize: '0.9rem' }}>
+                        <Box component="span" sx={{ fontWeight: 500, color: 'text.primary' }}>ชื่องาน:</Box>{' '}
+                        <Box component="span" sx={{ color: 'text.secondary' }}>{invoice.work_name}</Box>
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              )}
+              
+              {/* รายละเอียดเพิ่มเติม - ลดไอคอน */}
+              {(invoice?.fabric_type || invoice?.pattern || invoice?.color || invoice?.sizes || invoice?.quantity) && (
+                <Box sx={{ ml: 4.5 }}>
+                  <Stack spacing={0.5}>
+                    {(invoice?.fabric_type || invoice?.pattern || invoice?.color) && (
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} flexWrap="wrap">
+                        {invoice?.fabric_type && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                            <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>ชนิดผ้า:</Box>
+                            {invoice.fabric_type}
+                          </Typography>
+                        )}
+                        {invoice?.pattern && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                            <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>แพทเทิร์น:</Box>
+                            {invoice.pattern}
+                          </Typography>
+                        )}
+                        {invoice?.color && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                            <Box component="span" sx={{ fontWeight: 500, mr: 0.5 }}>สี:</Box>
                             {invoice.color}
-                          </TNPBodyText>
-                        </Stack>
-                      )}
-                    </Stack>
-                  )}
-                  
-                  {/* บรรทัดสอง: ไซซ์, จำนวน */}
-                  {(invoice?.sizes || invoice?.quantity) && (
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <ChecklistIcon sx={{ fontSize: '0.75rem', color: 'text.disabled' }} />
-                      <TNPBodyText variant="caption" sx={{ color: 'text.secondary' }}>
+                          </Typography>
+                        )}
+                      </Stack>
+                    )}
+                    
+                    {(invoice?.sizes || invoice?.quantity) && (
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem', lineHeight: 1.45 }}>
                         {invoice?.sizes && (
                           <>
                             <Box component="span" sx={{ fontWeight: 500 }}>ไซซ์:</Box> {invoice.sizes}
@@ -334,36 +452,68 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
                             <Box component="span" sx={{ fontWeight: 500 }}>จำนวน:</Box> {invoice.quantity}
                           </>
                         )}
-                      </TNPBodyText>
-                    </Stack>
-                  )}
-                </Stack>
-              </Box>
-            )}
-          </Stack>
-        </Box>
-
-        <Box mb={2}>
-          <Stack spacing={1}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <RequestQuoteIcon fontSize="small" color="primary" />
-              <TNPBodyText><strong>ยอดรวม:</strong> {amountText}</TNPBodyText>
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              )}
             </Stack>
-            {depositInfo && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText color="info.main"><strong>มัดจำ:</strong> {depositInfo}</TNPBodyText>
+          </Box>
+        )}
+
+        {/* Financial Summary - ปรับปรุงการแสดงผลให้ชัดเจน */}
+        <Box mb={2.5}>
+          <Stack spacing={1.25}>
+            {/* ยอดรวมหลัก - เน้นให้เด่น */}
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <RequestQuoteIcon fontSize="medium" color="primary" aria-hidden="true" />
+              <Typography sx={{ 
+                fontWeight: 700, 
+                fontSize: '1.1rem',
+                color: 'primary.main',
+                lineHeight: 1.45
+              }}>
+                ยอดรวม: {formatTHB(total)}
+              </Typography>
+            </Stack>
+            
+            {/* ข้อมูลการชำระเงิน */}
+            <Box sx={{ ml: 4.5 }}>
+              <Stack spacing={1}>
+                {paidAmount > 0 && (
+                  <Typography sx={{ 
+                    color: 'success.main', 
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    lineHeight: 1.45
+                  }}>
+                    ✓ ชำระแล้ว: {formatTHB(paidAmount)}
+                  </Typography>
+                )}
+                
+                {depositAmount > 0 && (
+                  <Typography sx={{ 
+                    color: 'warning.main', 
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    lineHeight: 1.45
+                  }}>
+                    💰 มัดจำ: {formatTHB(depositAmount)}
+                  </Typography>
+                )}
+                
+                {remaining > 0 && (
+                  <Typography sx={{ 
+                    color: 'error.main', 
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    lineHeight: 1.45
+                  }}>
+                    ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
+                  </Typography>
+                )}
               </Stack>
-            )}
-            {invoice?.paid_amount > 0 && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText color="success.main"><strong>ชำระแล้ว:</strong> {paidAmount}</TNPBodyText>
-              </Stack>
-            )}
-            {(invoice?.total_amount - (invoice?.paid_amount || 0)) > 0 && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 3 }}>
-                <TNPBodyText color="warning.main"><strong>ยอดคงเหลือ:</strong> {remainingAmount}</TNPBodyText>
-              </Stack>
-            )}
+            </Box>
             
             {/* ปุ่มแสดงเพิ่มเติม */}
             <Button 
@@ -371,180 +521,191 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
               variant="text" 
               onClick={() => setShowDetails(!showDetails)}
               startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              sx={{ alignSelf: 'flex-start', ml: 3, mt: 1 }}
+              sx={{ 
+                alignSelf: 'flex-start', 
+                ml: 4.5, 
+                mt: 0.5,
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+              tabIndex={0}
+              aria-label={showDetails ? 'ซ่อนรายละเอียดการคำนวณ' : 'แสดงรายละเอียดการคำนวณ'}
             >
-              {showDetails ? 'ซ่อนรายละเอียด' : 'แสดงเพิ่มเติม'}
+              {showDetails ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียดการคำนวณ'}
             </Button>
 
-            {/* รายละเอียดการคำนวณ */}
+            {/* รายละเอียดการคำนวณ - แก้ไข layout เป็นตาราง 2 คอลัมน์ */}
             <Collapse in={showDetails}>
-              <Card sx={{ mt: 2, p: 2, bgcolor: 'grey.50' }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ color: 'primary.main' }}>
+              <Card variant="outlined" sx={{ 
+                mt: 2, 
+                p: 2.5, 
+                bgcolor: 'grey.50', 
+                borderRadius: 2,
+                borderColor: 'primary.100'
+              }}>
+                <Typography variant="subtitle2" sx={{ 
+                  color: 'text.secondary',
+                  fontWeight: 600,
+                  mb: 1.25
+                }}>
                   สรุปยอดเงิน
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Grid container spacing={1}>
-                  {baseAmount > 0 && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2">ยอดก่อนภาษี (ก่อนส่วนลด)</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                          {formatTHB(baseAmount)}
-                        </Typography>
-                      </Grid>
-                    </>
+                <Divider sx={{ my: 1 }} />
+                
+                <Stack spacing={1}>
+                  {subtotal > 0 && (
+                    <FinancialRow label="ยอดก่อนภาษี (ก่อนส่วนลด)" value={subtotal} />
                   )}
                   
-                  {(invoice?.special_discount_percentage > 0 || invoice?.special_discount_amount > 0) && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" color="error.main">
-                          ส่วนลดพิเศษ
-                          {invoice?.special_discount_percentage > 0 && ` (${invoice.special_discount_percentage}%)`}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right', color: 'error.main' }}>
-                          - {formatTHB(specialDiscountAmount)}
-                        </Typography>
-                      </Grid>
-                    </>
+                  {specialDiscountAmount > 0 && (
+                    <FinancialRow 
+                      label={`ส่วนลดพิเศษ${invoice?.special_discount_percentage ? ` (${invoice.special_discount_percentage}%)` : ''}`}
+                      value={specialDiscountAmount} 
+                      negative={true}
+                    />
                   )}
                   
-                  {baseAfterDiscount > 0 && specialDiscountAmount > 0 && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2">ฐานภาษีหลังส่วนลด</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                          {formatTHB(baseAfterDiscount)}
-                        </Typography>
-                      </Grid>
-                    </>
+                  {specialDiscountAmount > 0 && (
+                    <FinancialRow label="ฐานภาษีหลังส่วนลด" value={discounted} />
                   )}
                   
-                  {invoice?.has_vat && vatAmount > 0 && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2">VAT {invoice?.vat_percentage || 7}%</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                          {formatTHB(vatAmount)}
-                        </Typography>
-                      </Grid>
-                    </>
+                  {invoice?.has_vat && vat > 0 && (
+                    <FinancialRow label={`VAT ${invoice?.vat_percentage || 7}%`} value={vat} />
                   )}
                   
-                  {invoice?.has_vat && vatAmount > 0 && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2">ยอดหลัง VAT</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                          {formatTHB(totalAfterVat)}
-                        </Typography>
-                      </Grid>
-                    </>
+                  {invoice?.has_vat && vat > 0 && (
+                    <FinancialRow label="ยอดหลัง VAT" value={afterVat} />
                   )}
                   
-                  {invoice?.has_withholding_tax && withholdingTaxAmount > 0 && (
-                    <>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" color="warning.main">
-                          ภาษีหัก ณ ที่จ่าย ({invoice?.withholding_tax_percentage || 0}%)
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="body2" sx={{ textAlign: 'right', color: 'warning.main' }}>
-                          - {formatTHB(withholdingTaxAmount)}
-                        </Typography>
-                      </Grid>
-                    </>
+                  {invoice?.has_withholding_tax && withholding > 0 && (
+                    <FinancialRow 
+                      label={`ภาษีหัก ณ ที่จ่าย (${invoice?.withholding_tax_percentage || 0}%)`}
+                      value={withholding} 
+                      negative={true}
+                      color="warning.main"
+                    />
                   )}
                   
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 1 }} />
-                  </Grid>
-                  
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      ยอดรวมทั้งสิ้น
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" sx={{ textAlign: 'right', fontWeight: 'bold', color: 'primary.main' }}>
-                      {formatTHB(finalTotal)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+                  <Divider sx={{ my: 1.5 }} />
+                  <FinancialRow label="ยอดรวมทั้งสิ้น" value={total} emphasis={true} />
+                </Stack>
               </Card>
             </Collapse>
           </Stack>
         </Box>
 
+        {/* Payment Info - ย่อให้เล็กลง */}
         {(invoice?.payment_method || invoice?.payment_terms) && (
           <Box mb={2}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <PaymentIcon fontSize="small" color="action" />
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <PaymentIcon fontSize="small" color="action" aria-hidden="true" />
               <Stack spacing={0.5}>
                 {invoice?.payment_method && (
-                  <TNPBodyText variant="caption" color="text.secondary">วิธีชำระเงิน: {invoice.payment_method}</TNPBodyText>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                    วิธีชำระเงิน: {invoice.payment_method}
+                  </Typography>
                 )}
                 {invoice?.payment_terms && (
-                  <TNPBodyText variant="caption" color="text.secondary">เงื่อนไขการชำระ: {invoice.payment_terms}</TNPBodyText>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                    เงื่อนไขการชำระ: {invoice.payment_terms}
+                  </Typography>
                 )}
               </Stack>
             </Stack>
           </Box>
         )}
 
+        {/* Dates - ปรับปรุงการแสดงผล */}
         <Box mb={2}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={{ xs: 0.5, sm: 3 }}
+            sx={{ fontSize: '0.85rem' }}
+          >
             <Stack direction="row" spacing={1} alignItems="center">
-              <EventIcon fontSize="small" color="action" />
-              <TNPBodyText>สร้างเมื่อ: {formatDate(invoice?.created_at)}</TNPBodyText>
+              <EventIcon fontSize="small" color="action" aria-hidden="true" />
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                สร้างเมื่อ: {formatDate(invoice?.created_at)}
+              </Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
-              <EventIcon fontSize="small" color="error" />
-              <TNPBodyText>วันครบกำหนด: {formatDate(invoice?.due_date)}</TNPBodyText>
+              <EventIcon fontSize="small" color="warning" aria-hidden="true" />
+              <Typography variant="caption" sx={{ 
+                color: invoiceStatus.status === 'เกินกำหนด' ? 'error.main' : 'warning.main',
+                fontWeight: 500,
+                fontSize: '0.8rem',
+                lineHeight: 1.45
+              }}>
+                วันครบกำหนด: {formatDate(invoice?.due_date)}
+              </Typography>
             </Stack>
           </Stack>
         </Box>
 
+        {/* Additional Info - ย่อให้เล็กลง */}
         {(quotationNumber || invoice?.customer_address || invoice?.notes || (invoice?.document_header_type && invoice.document_header_type !== 'ต้นฉบับ')) && (
-          <Box mb={2}>
+          <Box mb={2.5}>
             <Stack spacing={0.5}>
               {quotationNumber && (
-                <TNPBodyText variant="caption" color="text.secondary">อ้างอิงใบเสนอราคา: {quotationNumber}</TNPBodyText>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  อ้างอิงใบเสนอราคา: {quotationNumber}
+                </Typography>
               )}
               {invoice?.customer_address && (
-                <TNPBodyText variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
                   ที่อยู่ใบกำกับ: {invoice.customer_address}{invoice?.customer_zip_code ? ` ${invoice.customer_zip_code}` : ''}
-                </TNPBodyText>
+                </Typography>
               )}
               {invoice?.notes && (
-                <TNPBodyText variant="caption" color="text.secondary">หมายเหตุ: {invoice.notes}</TNPBodyText>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  หมายเหตุ: {invoice.notes}
+                </Typography>
               )}
               {invoice?.document_header_type && invoice.document_header_type !== 'ต้นฉบับ' && (
-                <TNPBodyText variant="caption" color="primary.main">ประเภทหัวกระดาษ: {invoice.document_header_type}</TNPBodyText>
+                <Typography variant="caption" color="primary.main" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  ประเภทหัวกระดาษ: {invoice.document_header_type}
+                </Typography>
               )}
             </Stack>
           </Box>
         )}
 
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
+        {/* Action Buttons - ปรับปรุง hierarchy และ spacing */}
+        <Stack direction="row" spacing={1.5} justifyContent="flex-end">
           {onDownloadPDF && (
-            <Button size="small" variant="outlined" onClick={onDownloadPDF} startIcon={<DescriptionIcon />}>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              onClick={onDownloadPDF} 
+              startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
+              sx={{ 
+                px: 2,
+                py: 1,
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+              tabIndex={0}
+              aria-label="ดาวน์โหลดไฟล์ PDF"
+            >
               ดาวน์โหลด PDF
             </Button>
           )}
           {onView && (
-            <Button size="small" variant="contained" onClick={onView} color="primary">
+            <Button 
+              size="small" 
+              variant="contained" 
+              onClick={onView} 
+              color="primary"
+              sx={{ 
+                px: 2.5,
+                py: 1,
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: 2
+              }}
+              tabIndex={0}
+              aria-label="ดูรายละเอียดใบแจ้งหนี้"
+            >
               ดูรายละเอียด
             </Button>
           )}
@@ -556,4 +717,3 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
 };
 
 export default InvoiceCard;
-

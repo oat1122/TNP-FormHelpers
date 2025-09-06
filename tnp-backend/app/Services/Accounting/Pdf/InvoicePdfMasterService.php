@@ -80,7 +80,7 @@ class InvoicePdfMasterService
      */
     protected function buildViewData(Invoice $invoice, array $options = []): array
     {
-        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items']);
+        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'creator', 'manager']);
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
         $items    = $this->getInvoiceItems($i);
@@ -240,29 +240,172 @@ class InvoicePdfMasterService
     }
 
     /**
-     * วาดกล่องลายเซ็นคงที่ (fixed) บนหน้าสุดท้าย เหนือ footer
+     * วาดกล่องลายเซ็นแบบ Adaptive (เลียนแบบจาก QuotationPdfMasterService)
+     * 1) ถ้าหน้าปัจจุบันมีพื้นที่เพียงพอ -> วางทันที
+     * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
+     * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
+     * 4) มีระบบ fallback หากการวางแบบ adaptive ล้มเหลว
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
-        $invoice = $data['invoice'];
-        
-        // ตรวจสอบว่ามีลายเซ็นหรือไม่
-        if (empty($invoice->signature_customer_image) && empty($invoice->signature_company_image)) {
-            return;
+        try {
+            // Calculate signature dimensions dynamically
+            $signatureDimensions = $this->calculateSignatureDimensions($mpdf);
+            $requiredHeight = $signatureDimensions['height'];
+            $bottomPadding = $signatureDimensions['padding'];
+            
+            // Get accurate page measurements
+            $pageInfo = $this->getAccuratePageInfo($mpdf);
+            $remaining = $pageInfo['remaining'];
+            
+            Log::info('Invoice Signature placement analysis', [
+                'required_height' => $requiredHeight,
+                'remaining_space' => $remaining,
+                'current_page' => $mpdf->page,
+                'current_y' => $mpdf->y
+            ]);
+
+            $sigHtml = View::make('accounting.pdf.invoice.partials.invoice-signature')->render();
+            $signaturePlaced = false;
+
+            // Strategy 1: Try to place on current page
+            if ($remaining >= ($requiredHeight + $bottomPadding)) {
+                $signaturePlaced = $this->placeSignatureOnCurrentPage($mpdf, $sigHtml, $remaining, $requiredHeight, $bottomPadding);
+            }
+
+            // Strategy 2: Create new page if current page doesn't have enough space
+            if (!$signaturePlaced) {
+                $signaturePlaced = $this->placeSignatureOnNewPage($mpdf, $sigHtml, $requiredHeight, $bottomPadding);
+            }
+
+            // Fallback Strategy 3: Emergency placement
+            if (!$signaturePlaced) {
+                $this->emergencySignaturePlacement($mpdf, $sigHtml);
+            }
+
+        } catch (\Throwable $e) {
+            Log::error('Invoice Signature adaptive render failed: '.$e->getMessage(), [
+                'invoice_id' => $data['invoice']->id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Emergency fallback
+            $this->emergencySignaturePlacement($mpdf, View::make('accounting.pdf.invoice.partials.invoice-signature')->render());
         }
+    }
 
-        $pageCount = $mpdf->page;
-        $marginBottom = 14; // จาก config margin_bottom
-        $footerHeight = 10; // ประมาณความสูงของ footer
-        $signatureHeight = 25; // ความสูงของกล่องลายเซ็น
-
-        // คำนวณตำแหน่ง Y ที่เหมาะสม
-        $yPosition = 297 - $marginBottom - $footerHeight - $signatureHeight; // A4 height = 297mm
-
-        // วาดลายเซ็นบนหน้าสุดท้าย
-        $signatureHtml = View::make('accounting.pdf.invoice.partials.invoice-signature', compact('invoice'))->render();
+    /**
+     * คำนวณขนาดที่ต้องการสำหรับลายเซ็นแบบ dynamic
+     */
+    protected function calculateSignatureDimensions(Mpdf $mpdf): array
+    {
+        // Base signature height calculation - made more compact
+        $lineHeight = 4; // mm per line (reduced from 4.5)
+        $headerHeight = 6; // mm for signature headers (reduced from 8)
+        $paddingHeight = 8; // mm for internal padding and spacing (reduced from 12)
+        $signatureBoxHeight = 12; // mm for actual signature area (reduced from 15)
         
-        $mpdf->WriteFixedPosHTML($signatureHtml, 0, $yPosition, 210, $signatureHeight, 'auto');
+        // Calculate total height needed
+        $totalHeight = $headerHeight + $signatureBoxHeight + ($lineHeight * 3) + $paddingHeight;
+        
+        return [
+            'height' => $totalHeight, // ~34mm total (was ~42mm)
+            'padding' => 8, // bottom padding
+        ];
+    }
+
+    /**
+     * รับข้อมูลหน้าที่แม่นยำ
+     */
+    protected function getAccuratePageInfo(Mpdf $mpdf): array
+    {
+        $pageHeight = $mpdf->h; // ความสูงของหน้าใน mm
+        $currentY = $mpdf->y;   // ตำแหน่ง Y ปัจจุบัน
+        $bottomMargin = $mpdf->bMargin; // margin ด้านล่าง
+        
+        $usableBottom = $pageHeight - $bottomMargin;
+        $remaining = $usableBottom - $currentY;
+        
+        return [
+            'height' => $pageHeight,
+            'current_y' => $currentY,
+            'bottom_margin' => $bottomMargin,
+            'usable_bottom' => $usableBottom,
+            'remaining' => max(0, $remaining)
+        ];
+    }
+
+    /**
+     * วางลายเซ็นในหน้าปัจจุบัน
+     */
+    protected function placeSignatureOnCurrentPage(Mpdf $mpdf, string $sigHtml, float $remaining, float $requiredHeight, float $bottomPadding): bool
+    {
+        try {
+            // Add some margin before signature
+            $marginTop = min(10, ($remaining - $requiredHeight) / 2);
+            $mpdf->WriteHTML('<div style="margin-top: ' . $marginTop . 'mm;"></div>');
+            
+            $mpdf->WriteHTML($sigHtml);
+            
+            Log::info('Invoice Signature placed on current page', [
+                'page' => $mpdf->page,
+                'margin_top' => $marginTop,
+                'remaining_space' => $remaining
+            ]);
+            
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to place invoice signature on current page: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * สร้างหน้าใหม่และวางลายเซ็นที่ด้านล่าง
+     */
+    protected function placeSignatureOnNewPage(Mpdf $mpdf, string $sigHtml, float $requiredHeight, float $bottomPadding): bool
+    {
+        try {
+            $mpdf->AddPage();
+            
+            // Calculate position from bottom
+            $pageInfo = $this->getAccuratePageInfo($mpdf);
+            $targetY = $pageInfo['usable_bottom'] - $requiredHeight - $bottomPadding;
+            
+            // Move to calculated position
+            $mpdf->SetY($targetY);
+            $mpdf->WriteHTML($sigHtml);
+            
+            Log::info('Invoice Signature placed on new page', [
+                'page' => $mpdf->page,
+                'target_y' => $targetY,
+                'page_height' => $pageInfo['height']
+            ]);
+            
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to place invoice signature on new page: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * การวางลายเซ็นแบบฉุกเฉิน
+     */
+    protected function emergencySignaturePlacement(Mpdf $mpdf, string $sigHtml): void
+    {
+        try {
+            // Simple fallback: just add signature at current position
+            $mpdf->WriteHTML('<div style="margin-top: 10mm;"></div>');
+            $mpdf->WriteHTML($sigHtml);
+            
+            Log::warning('Invoice Emergency signature placement used', [
+                'page' => $mpdf->page,
+                'y_position' => $mpdf->y
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Invoice Emergency signature placement failed: ' . $e->getMessage());
+        }
     }
 
     /**

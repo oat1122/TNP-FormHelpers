@@ -1,34 +1,23 @@
-{{-- ส่วนลายเซ็น --}}
+{{-- resources/views/accounting/pdf/invoice/partials/invoice-signature.blade.php --}}
 <div class="signature-section">
-  <div class="signature-container">
-    {{-- ลายเซ็นลูกค้า --}}
-    <div class="signature-box">
-      <div class="signature-title">ลายเซ็นลูกค้า</div>
-      @if(!empty($invoice->signature_customer_image))
-        <div class="signature-image">
-          <img src="{{ $invoice->signature_customer_image }}" alt="ลายเซ็นลูกค้า">
-        </div>
-      @else
-        <div class="signature-placeholder">
-          ( _________________________ )
-        </div>
-      @endif
-      <div class="signature-date">วันที่ ................................</div>
-    </div>
-
-    {{-- ลายเซ็นบริษัท --}}
-    <div class="signature-box">
-      <div class="signature-title">ผู้อนุมัติ</div>
-      @if(!empty($invoice->signature_company_image))
-        <div class="signature-image">
-          <img src="{{ $invoice->signature_company_image }}" alt="ลายเซ็นบริษัท">
-        </div>
-      @else
-        <div class="signature-placeholder">
-          ( _________________________ )
-        </div>
-      @endif
-      <div class="signature-date">วันที่ ................................</div>
-    </div>
-  </div>
+    <table class="signature-table">
+        <colgroup>
+            <col style="width: 50%;">
+            <col style="width: 50%;">
+        </colgroup>
+        <tr>
+            <td class="signature-cell">
+                <div class="signature-box"></div>
+                <div class="signature-role">ผู้รับเอกสาร</div>
+                <div class="signature-name-placeholder">( ลงชื่อ )</div>
+                <div class="signature-date-line">วันที่ ............................</div>
+            </td>
+            <td class="signature-cell">
+                <div class="signature-box"></div>
+                <div class="signature-role">ผู้ส่งเอกสาร</div>
+                <div class="signature-name-placeholder">( ลงชื่อ )</div>
+                <div class="signature-date-line">วันที่ ............................</div>
+            </td>
+        </tr>
+    </table>
 </div>

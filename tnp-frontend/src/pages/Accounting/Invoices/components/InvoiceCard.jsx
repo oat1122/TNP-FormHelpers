@@ -163,13 +163,14 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
     }
   }
   
-  const displayCompanyName = customerSnapshot?.customer_company || companyName;
-  const displayAddress = customerSnapshot?.customer_address || invoice?.customer_address;
-  const displayTaxId = customerSnapshot?.customer_tax_id || invoice?.customer_tax_id;
-  const displayEmail = customerSnapshot?.customer_email || invoice?.customer_email;
-  const displayPhone = customerSnapshot?.customer_tel_1 || invoice?.customer_tel_1;
-  const displayFirstName = customerSnapshot?.customer_firstname || invoice?.customer_firstname;
-  const displayLastName = customerSnapshot?.customer_lastname || invoice?.customer_lastname;
+  // Priority: invoice overrides -> master customer relation -> snapshot (fallback only)
+  const displayCompanyName = invoice?.customer_company || invoice?.customer?.cus_company || customerSnapshot?.customer_company || companyName;
+  const displayAddress = invoice?.customer_address || invoice?.customer?.cus_address || customerSnapshot?.customer_address || invoice?.customer_address;
+  const displayTaxId = invoice?.customer_tax_id || invoice?.customer?.cus_tax_id || customerSnapshot?.customer_tax_id || invoice?.customer_tax_id;
+  const displayEmail = invoice?.customer_email || invoice?.customer?.cus_email || customerSnapshot?.customer_email || invoice?.customer_email;
+  const displayPhone = invoice?.customer_tel_1 || invoice?.customer?.cus_tel_1 || customerSnapshot?.customer_tel_1 || invoice?.customer_tel_1;
+  const displayFirstName = invoice?.customer_firstname || invoice?.customer?.cus_firstname || customerSnapshot?.customer_firstname || invoice?.customer_firstname;
+  const displayLastName = invoice?.customer_lastname || invoice?.customer?.cus_lastname || customerSnapshot?.customer_lastname || invoice?.customer_lastname;
   const displayContactName = [displayFirstName, displayLastName].filter(Boolean).join(' ') || '-';
 
   // คำนวณยอดเงินสำหรับรายละเอียด

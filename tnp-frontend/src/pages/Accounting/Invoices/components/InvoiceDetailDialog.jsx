@@ -286,20 +286,25 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         deposit_percentage: calc.depositPercentage,
       };
 
-      // If using master customer data, clear invoice customer fields
+      // If using master customer data, explicitly clear invoice override fields in DB
+      // so subsequent refetch shows master values.
       if (customerDataSource === 'master') {
-        // Remove keys so validation 'sometimes' won't evaluate them
-        delete updateData.customer_company;
-        delete updateData.customer_tax_id;
-        delete updateData.customer_address;
-        delete updateData.customer_zip_code;
-        delete updateData.customer_tel_1;
-        delete updateData.customer_email;
-        delete updateData.customer_firstname;
-        delete updateData.customer_lastname;
+        updateData.customer_company = null;
+        updateData.customer_tax_id = null;
+        updateData.customer_address = null;
+        updateData.customer_zip_code = null;
+        updateData.customer_tel_1 = null;
+        updateData.customer_email = null;
+        updateData.customer_firstname = null;
+        updateData.customer_lastname = null;
       }
 
       await updateInvoice(updateData).unwrap();
+      // If switching to master, reset manual flag so effect can auto-sync on refetch
+      if (customerDataSource === 'master') {
+        customerSourceManuallySet.current = false;
+        setCustomerDataSource('master');
+      }
       setIsEditing(false);
       dismissToast(loadingId);
       showSuccess('บันทึกใบแจ้งหนี้เรียบร้อย');
@@ -331,8 +336,11 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }));
   };
 
-  const handleCustomerDataSourceChange = (event) => {
-    const newSource = event.target.value;
+  const handleCustomerDataSourceChange = (event, value) => {
+    // Use the value argument provided by MUI RadioGroup to avoid cases where event.target
+    // is not the input element (e.g., clicking label/span), which can make target.value undefined.
+    const newSource = value;
+    if (!newSource) return;
     customerSourceManuallySet.current = true;
     setCustomerDataSource(newSource);
     if (newSource === 'master') {

@@ -12,37 +12,90 @@
     <div class="mb-3">รายละเอียดสินค้า/บริการ</div>
     @php 
       $no = 1; 
+      
+      // ตรวจสอบประเภทใบแจ้งหนี้และสร้างรายการตามประเภท
+      $invoiceItems = [];
+      
+      if ($invoice->type === 'deposit' && !empty($invoice->quotation)) {
+          // กรณีเรียกเก็บเงินมัดจำ
+          $depositDescription = "รับมัดจำ";
+          if (!empty($invoice->quotation->number)) {
+              $depositDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+              if (!empty($invoice->quotation->final_total_amount)) {
+                  $depositDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+              }
+          }
+          
+          $invoiceItems[] = [
+              'description' => $depositDescription,
+              'quantity' => 1,
+              'unit' => 'รายการ',
+              'unit_price' => $invoice->deposit_amount ?? $invoice->final_total_amount,
+              'amount' => $invoice->deposit_amount ?? $invoice->final_total_amount
+          ];
+      } elseif ($invoice->type === 'remaining' && !empty($invoice->quotation)) {
+          // กรณีเรียกเก็บเงินส่วนที่เหลือ
+          $remainingDescription = "รับเงินส่วนที่เหลือ";
+          if (!empty($invoice->quotation->number)) {
+              $remainingDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+              if (!empty($invoice->quotation->final_total_amount)) {
+                  $remainingDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+              }
+              if (!empty($invoice->paid_amount)) {
+                  $remainingDescription .= "\nหักเงินมัดจำที่รับแล้ว " . number_format($invoice->paid_amount, 2) . " บาท";
+              }
+          }
+          
+          $invoiceItems[] = [
+              'description' => $remainingDescription,
+              'quantity' => 1,
+              'unit' => 'รายการ',
+              'unit_price' => $invoice->final_total_amount,
+              'amount' => $invoice->final_total_amount
+          ];
+      } elseif ($invoice->type === 'partial' && !empty($invoice->quotation)) {
+          // กรณีเรียกเก็บบางส่วน
+          $partialDescription = "รับชำระบางส่วน";
+          if (!empty($invoice->quotation->number)) {
+              $partialDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+              if (!empty($invoice->quotation->final_total_amount)) {
+                  $partialDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+              }
+          }
+          
+          $invoiceItems[] = [
+              'description' => $partialDescription,
+              'quantity' => 1,
+              'unit' => 'รายการ',
+              'unit_price' => $invoice->final_total_amount,
+              'amount' => $invoice->final_total_amount
+          ];
+      } else {
+          // กรณีปกติ ใช้ items ที่มีอยู่
+          $invoiceItems = $items;
+      }
     @endphp
     
-    @if(!empty($items))
+    @if(!empty($invoiceItems))
       <table class="items-table slim table-numbers-sm">
         <colgroup>
           <col class="w-no">
           <col class="w-desc">
-          <col class="w-qty">
-          <col class="w-unit">
-          <col class="w-unit-price">
           <col class="w-total">
         </colgroup>
         <thead>
           <tr>
             <th class="text-center">ลำดับ</th>
-            <th class="text-center">รายการ</th>
-            <th class="text-center">จำนวน</th>
-            <th class="text-center">หน่วย</th>
-            <th class="text-center">ราคาต่อหน่วย</th>
+            <th class="text-center">รายละเอียด</th>
             <th class="text-center">จำนวนเงิน</th>
           </tr>
         </thead>
         <tbody>
-          @foreach($items as $item)
+          @foreach($invoiceItems as $item)
             <tr>
               <td class="text-center">{{ $no++ }}</td>
-              <td class="desc">{{ $item['description'] ?? $item['item_description'] ?? '-' }}</td>
-              <td class="num">{{ number_format($item['quantity'] ?? 0) }}</td>
-              <td class="text-center">{{ $item['unit'] ?? 'ชิ้น' }}</td>
-              <td class="num">{{ number_format($item['unit_price'] ?? 0, 2) }}</td>
-              <td class="num">{{ number_format(($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0), 2) }}</td>
+              <td class="desc">{!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
+              <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
             </tr>
           @endforeach
         </tbody>

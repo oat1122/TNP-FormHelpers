@@ -151,6 +151,11 @@ table {
     font-size: 10pt;
 }
 
+/* Lock column layout so header/body align exactly */
+.items-table.slim { 
+    table-layout: fixed; 
+}
+
 .items-table.slim thead th {
     font-weight: bold;
     text-align: right;
@@ -160,7 +165,7 @@ table {
 }
 
 .items-table.slim thead th:first-child { 
-    text-align: left; 
+    text-align: center; 
 }
 
 .items-table.slim .desc { 
@@ -183,6 +188,16 @@ table {
 .w-unit { width: 12%; }
 .w-unit-price { width: 14%; }
 .w-total { width: 14%; }
+
+/* Ensure invoice items (slim) columns align with content */
+.items-table.slim thead th:nth-child(2) {
+    text-align: left; /* match description cell alignment */
+}
+
+/* Override widths for the 3-column slim table to sum to 100% */
+.items-table.slim col.w-no { width: 10%; }
+.items-table.slim col.w-desc { width: 70%; }
+.items-table.slim col.w-total { width: 20%; }
 
 /* ===== Summary and Notes ===== */
 .summary-notes-wrapper {

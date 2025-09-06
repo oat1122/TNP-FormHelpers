@@ -146,7 +146,6 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const [generateInvoicePDF, { isLoading: isGeneratingPdf }] = useGenerateInvoicePDFMutation();
   
   const [isEditing, setIsEditing] = useState(false);
-  const firstEditRef = useRef(false);
   const [notes, setNotes] = useState('');
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
@@ -208,7 +207,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
       const newInvoiceId = invoice.id;
       const invoiceChanged = prevInvoiceIdRef.current !== newInvoiceId;
 
-      setFormData({
+  setFormData({
         type: invoice.type || 'full_amount',
         status: invoice.status || 'draft',
         customer_company: invoice.customer_company || '',
@@ -236,9 +235,16 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
 
       // Only auto-set data source when invoice just loaded / changed and user hasn't manually toggled
       if (invoiceChanged || !customerSourceManuallySet.current) {
-        const hasCustomerOverride = invoice.customer_company || invoice.customer_tax_id ||
-          invoice.customer_address || invoice.customer_firstname || invoice.customer_lastname;
-        setCustomerDataSource(hasCustomerOverride ? 'invoice' : 'master');
+        // Prefer explicit field on record if exists (normalize legacy values), otherwise infer by overrides
+        const explicitSource = invoice.customer_data_source;
+        const normalized = explicitSource === 'master_customer' ? 'master' : explicitSource;
+        if (normalized === 'master' || normalized === 'invoice') {
+          setCustomerDataSource(normalized);
+        } else {
+          const hasCustomerOverride = invoice.customer_company || invoice.customer_tax_id ||
+            invoice.customer_address || invoice.customer_firstname || invoice.customer_lastname;
+          setCustomerDataSource(hasCustomerOverride ? 'invoice' : 'master');
+        }
       }
       prevInvoiceIdRef.current = newInvoiceId;
     }
@@ -280,7 +286,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const handleSave = async () => {
     try {
       const loadingId = showLoading('กำลังบันทึกใบแจ้งหนี้…');
-      const updateData = {
+  const updateData = {
         id: invoice.id,
         notes: notes || '',
         ...formData,
@@ -295,9 +301,11 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         final_total_amount: calc.finalTotal,
         deposit_amount: calc.depositAmount,
         deposit_percentage: calc.depositPercentage,
+        // Persist selected customer data source
+        customer_data_source: customerDataSource,
       };
 
-      // If using master customer data, explicitly clear invoice override fields in DB
+  // If using master customer data, explicitly clear invoice override fields in DB
       // so subsequent refetch shows master values.
       if (customerDataSource === 'master') {
         updateData.customer_company = null;
@@ -332,11 +340,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   }, [open]);
 
   const enterEditMode = () => {
-    if (!firstEditRef.current) {
-      // First time editing -> default to master source per requirement
-      setCustomerDataSource('master');
-      firstEditRef.current = true;
-    }
+    // Keep current selection; do not force reset to 'master'
     setIsEditing(true);
   };
 

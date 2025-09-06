@@ -151,6 +151,9 @@ class InvoiceService
                 'snapshot_at' => now()->toISOString()
             ];
 
+            // Default customer data source to 'master' unless FE specified otherwise
+            $invoice->customer_data_source = $invoiceData['customer_data_source'] ?? 'master';
+
             // คำนวณยอดตามประเภท Invoice และข้อมูลทางการเงินที่ส่งมาจาก Frontend
             $invoiceType = $invoiceData['type'] ?? 'remaining';
             $invoice->type = $invoiceType;

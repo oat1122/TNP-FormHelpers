@@ -108,6 +108,7 @@ class CustomerInfoExtractor
     public static function fromInvoice(Invoice $i): array
     {
         $snap = is_array($i->customer_snapshot ?? null) ? $i->customer_snapshot : [];
+        $source = $i->customer_data_source ?? 'master';
 
         try {
             if ($i->relationLoaded('customer')) {
@@ -120,24 +121,45 @@ class CustomerInfoExtractor
         }
         $live = optional($i->getRelation('customer') ?? $i->customer);
 
-        // Name (live -> invoice columns -> snapshot)
-        $name = $live->cus_company
-            ?? $i->customer_company
-            ?? $snap['cus_company']
-            ?? $snap['customer_company']
-            ?? '';
+        // เลือกลำดับความสำคัญตามแหล่งข้อมูลที่ผู้ใช้เลือก
+        $preferInvoice = ($source === 'invoice');
 
-        // Address + zip (live first)
-        $address = $live->cus_address
-            ?? $i->customer_address
-            ?? $snap['cus_address']
-            ?? $snap['customer_address']
-            ?? '';
-        $zip = $live->cus_zip_code
-            ?? $i->customer_zip_code
-            ?? $snap['cus_zip_code']
-            ?? $snap['customer_zip_code']
-            ?? '';
+        // Name
+        $name = $preferInvoice
+            ? ($i->customer_company
+                ?? $live->cus_company
+                ?? $snap['customer_company']
+                ?? $snap['cus_company']
+                ?? '')
+            : ($live->cus_company
+                ?? $i->customer_company
+                ?? $snap['cus_company']
+                ?? $snap['customer_company']
+                ?? '');
+
+        // Address + zip
+        $address = $preferInvoice
+            ? ($i->customer_address
+                ?? $live->cus_address
+                ?? $snap['customer_address']
+                ?? $snap['cus_address']
+                ?? '')
+            : ($live->cus_address
+                ?? $i->customer_address
+                ?? $snap['cus_address']
+                ?? $snap['customer_address']
+                ?? '');
+        $zip = $preferInvoice
+            ? ($i->customer_zip_code
+                ?? $live->cus_zip_code
+                ?? $snap['customer_zip_code']
+                ?? $snap['cus_zip_code']
+                ?? '')
+            : ($live->cus_zip_code
+                ?? $i->customer_zip_code
+                ?? $snap['cus_zip_code']
+                ?? $snap['customer_zip_code']
+                ?? '');
         if ($address && $zip) {
             $a = trim((string)$address);
             $z = trim((string)$zip);
@@ -146,28 +168,32 @@ class CustomerInfoExtractor
             $address = $hasZip ? $a : ($a . ' ' . $z);
         }
 
-        // Tax ID (live first)
-        $tax = $live->cus_tax_id
-            ?? $i->customer_tax_id
-            ?? $snap['cus_tax_id']
-            ?? $snap['customer_tax_id']
-            ?? '';
+        // Tax ID
+        $tax = $preferInvoice
+            ? ($i->customer_tax_id
+                ?? $live->cus_tax_id
+                ?? $snap['customer_tax_id']
+                ?? $snap['cus_tax_id']
+                ?? '')
+            : ($live->cus_tax_id
+                ?? $i->customer_tax_id
+                ?? $snap['cus_tax_id']
+                ?? $snap['customer_tax_id']
+                ?? '');
 
-        // Telephone: prefer live master customer primary tel
-        $tel = $live->cus_tel_1 ?? '';
+        // Telephone: base on source
+        $tel = $preferInvoice ? ($i->customer_tel_1 ?? '') : ($live->cus_tel_1 ?? '');
         // Normalize obvious invalids like '0' or all zeros
         $isInvalid = trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1;
         if ($isInvalid) {
             // Fallbacks if primary missing/invalid
-            $tel = $snap['cus_tel_1']
-                ?? $snap['customer_tel_1']
-                ?? $i->customer_tel_1
-                ?? '';
+            $tel = $preferInvoice
+                ? ($snap['customer_tel_1'] ?? $snap['cus_tel_1'] ?? $live->cus_tel_1 ?? '')
+                : ($snap['cus_tel_1'] ?? $snap['customer_tel_1'] ?? $i->customer_tel_1 ?? '');
             if (trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1) {
                 $tel = $snap['cus_tel_2']
                     ?? $snap['customer_tel_2']
-                    ?? $i->customer_tel_2
-                    ?? $live->cus_tel_2
+                    ?? ($preferInvoice ? $live->cus_tel_2 : $i->customer_tel_2)
                     ?? '';
             }
         }

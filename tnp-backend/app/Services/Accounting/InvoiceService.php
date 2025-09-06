@@ -724,51 +724,155 @@ class InvoiceService
     /**
      * สร้าง PDF ใบแจ้งหนี้
      */
-    public function generatePdf($invoiceId)
+    public function generatePdf($invoiceId, $options = [])
     {
         try {
-            $invoice = Invoice::with(['quotation', 'customer'])->findOrFail($invoiceId);
+            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])->findOrFail($invoiceId);
 
-            if (!in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid'])) {
-                throw new \Exception('Invoice must be approved before generating PDF');
+            // กำหนดสถานะเอกสาร
+            $isFinal = in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'completed']);
+
+            // ใช้ Invoice PDF Master Service (mPDF) เป็นหลัก
+            try {
+                $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+                $result = $masterService->generatePdf($invoice, $options);
+                
+                // บันทึก History
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'generate_pdf',
+                    auth()->user()->user_uuid ?? null,
+                    "สร้าง PDF (mPDF): {$result['filename']} ({$result['type']})"
+                );
+
+                // ระบุ engine ที่ใช้
+                $result['engine'] = 'mPDF';
+                return $result;
+                
+            } catch (\Throwable $e) {
+                Log::warning('InvoiceService::generatePdf mPDF failed, fallback to simple PDF: ' . $e->getMessage());
+                
+                // Fallback to simple PDF generation
+                $filename = "invoice-{$invoice->number}-" . now()->format('Y-m-d-His') . ".pdf";
+                $pdfPath = storage_path("app/public/pdfs/invoices/{$filename}");
+
+                // สร้าง directory ถ้าไม่มี
+                $directory = dirname($pdfPath);
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0755, true);
+                }
+
+                // สร้าง PDF แบบง่าย
+                $content = $this->generatePdfContent($invoice);
+                file_put_contents($pdfPath, $content);
+
+                $fileSize = filesize($pdfPath);
+                $pdfUrl = url("storage/pdfs/invoices/{$filename}");
+
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'generate_pdf',
+                    auth()->user()->user_uuid ?? null,
+                    "สร้าง PDF (fallback): {$filename} - " . $e->getMessage()
+                );
+
+                return [
+                    'url' => $pdfUrl,
+                    'filename' => $filename,
+                    'size' => $fileSize,
+                    'path' => $pdfPath,
+                    'type' => $isFinal ? 'final' : 'preview',
+                    'engine' => 'fallback'
+                ];
             }
-
-            $filename = "invoice-{$invoice->number}.pdf";
-            $pdfPath = storage_path("app/public/pdfs/invoices/{$filename}");
-
-            // สร้าง directory ถ้าไม่มี
-            $directory = dirname($pdfPath);
-            if (!file_exists($directory)) {
-                mkdir($directory, 0755, true);
-            }
-
-            // TODO: Implement actual PDF generation
-            $content = $this->generatePdfContent($invoice);
-            file_put_contents($pdfPath, $content);
-
-            $fileSize = filesize($pdfPath);
-            $pdfUrl = url("storage/pdfs/invoices/{$filename}");
-
-            // บันทึก History
-            DocumentHistory::logAction(
-                'invoice',
-                $invoiceId,
-                'generate_pdf',
-                auth()->user()->user_uuid ?? null,
-                "สร้าง PDF: {$filename}"
-            );
-
-            return [
-                'url' => $pdfUrl,
-                'filename' => $filename,
-                'size' => $fileSize,
-                'path' => $pdfPath
-            ];
 
         } catch (\Exception $e) {
             Log::error('InvoiceService::generatePdf error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Stream PDF สำหรับดู/ดาวน์โหลดทันที
+     */
+    public function streamPdf($invoiceId, $options = [])
+    {
+        try {
+            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])
+                              ->findOrFail($invoiceId);
+                              
+            // ใช้ Invoice PDF Master Service (mPDF) เป็นหลัก
+            $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+            return $masterService->streamPdf($invoice, $options);
+            
+        } catch (\Throwable $e) {
+            Log::warning('InvoiceService::streamPdf mPDF failed: ' . $e->getMessage());
+            
+            // Fallback to simple response
+            $invoice = Invoice::with(['quotation', 'customer'])->findOrFail($invoiceId);
+            $content = $this->generatePdfContent($invoice);
+            $filename = sprintf('invoice-%s.pdf', $invoice->number ?? $invoice->id);
+            
+            return response($content)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+        }
+    }
+
+    /**
+     * ตรวจสอบสถานะระบบ PDF
+     */
+    public function checkPdfSystemStatus()
+    {
+        try {
+            $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+            $status = $masterService->checkSystemStatus();
+            
+            return [
+                'system_ready' => $status['all_ready'],
+                'components' => $status,
+                'recommendations' => $this->getPdfRecommendations($status),
+                'preferred_engine' => $status['all_ready'] ? 'mPDF' : 'fallback'
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('InvoiceService::checkPdfSystemStatus error: ' . $e->getMessage());
+            
+            return [
+                'system_ready' => false,
+                'components' => ['error' => $e->getMessage()],
+                'recommendations' => ['ติดตั้ง mPDF package และ dependencies ที่จำเป็น'],
+                'preferred_engine' => 'fallback'
+            ];
+        }
+    }
+
+    /**
+     * คำแนะนำสำหรับการแก้ไขปัญหา PDF
+     */
+    private function getPdfRecommendations($status)
+    {
+        $recommendations = [];
+
+        if (!($status['mpdf'] ?? false)) {
+            $recommendations[] = 'ติดตั้ง mPDF: composer require mpdf/mpdf';
+        }
+
+        if (!($status['thai_fonts'] ?? false)) {
+            $recommendations[] = 'ดาวน์โหลดฟอนต์ Sarabun และวางไว้ใน public/fonts/thsarabun/';
+        }
+
+        if (!($status['temp_dir'] ?? false)) {
+            $recommendations[] = 'ตรวจสอบสิทธิ์การเขียนไฟล์ใน storage/app/mpdf-temp/';
+        }
+
+        if (!($status['output_dir'] ?? false)) {
+            $recommendations[] = 'ตรวจสอบสิทธิ์การเขียนไฟล์ใน storage/app/public/pdfs/invoices/';
+        }
+
+        return $recommendations;
     }
 
     /**

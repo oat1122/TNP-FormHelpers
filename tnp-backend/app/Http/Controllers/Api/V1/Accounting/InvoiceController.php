@@ -580,23 +580,87 @@ class InvoiceController extends Controller
      * สร้าง PDF ใบแจ้งหนี้
      * GET /api/v1/invoices/{id}/generate-pdf
      */
-    public function generatePdf($id): JsonResponse
+    public function generatePdf(Request $request, $id): JsonResponse
     {
         try {
-            $pdfData = $this->invoiceService->generatePdf($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $pdfData,
-                'message' => 'PDF generated successfully'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('InvoiceController::generatePdf error: ' . $e->getMessage());
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $result = $this->invoiceService->generatePdf($id, $options);
             
             return response()->json([
+                'success' => true,
+                'pdf_url' => $result['url'] ?? null,
+                'filename' => $result['filename'] ?? null,
+                'size' => $result['size'] ?? null,
+                'type' => $result['type'] ?? null,
+                'engine' => $result['engine'] ?? 'mPDF',
+                'data' => $result,
+                'message' => isset($result['engine']) && $result['engine'] === 'fallback' 
+                    ? 'PDF สร้างด้วย fallback method เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
+                    : 'PDF สร้างด้วย mPDF สำเร็จ'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate PDF: ' . $e->getMessage()
+                'message' => $e->getMessage(),
+                'error_type' => 'pdf_generation_failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * แสดง PDF ในเบราว์เซอร์ (ใช้ mPDF)
+     */
+    public function streamPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            return $this->invoiceService->streamPdf($id, $options);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to stream PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF (alias ของ streamPdf แต่ force download)
+     */
+    public function downloadPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $response = $this->invoiceService->streamPdf($id, $options);
+            
+            // เปลี่ยน Content-Disposition เป็น attachment แทน inline
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            $filename = sprintf('invoice-%s.pdf', $invoice->number ?? $invoice->id);
+            
+            return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ตรวจสอบสถานะระบบ PDF
+     */
+    public function checkPdfStatus(): JsonResponse
+    {
+        try {
+            $status = $this->invoiceService->checkPdfSystemStatus();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check PDF status: ' . $e->getMessage()
             ], 500);
         }
     }

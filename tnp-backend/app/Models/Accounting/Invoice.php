@@ -204,6 +204,14 @@ class Invoice extends Model
     }
 
     /**
+     * Relationship: Invoice belongs to Company
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Company::class, 'company_id', 'id');
+    }
+
+    /**
      * Relationship: Invoice belongs to Creator
      */
     public function creator(): BelongsTo

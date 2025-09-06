@@ -1,0 +1,124 @@
+/* Invoice Header CSS */
+
+/* Header Content */
+.header-content {
+    display: table;
+    width: 100%;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+.company-section {
+    display: table-cell;
+    vertical-align: top;
+    width: 60%;
+}
+
+.document-info {
+    display: table-cell;
+    vertical-align: top;
+    width: 40%;
+    text-align: right;
+}
+
+/* Company Info */
+.company-logo {
+    float: left;
+    margin-right: 15px;
+}
+
+.company-logo .logo {
+    max-width: 80px;
+    max-height: 60px;
+    width: auto;
+    height: auto;
+}
+
+.company-info {
+    overflow: hidden;
+}
+
+.company-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.company-address {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #555;
+}
+
+/* Document Info */
+.document-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #d32f2f;
+    margin-bottom: 5px;
+}
+
+.preview-label {
+    font-size: 14px;
+    color: #ff6b6b;
+    background-color: #ffe6e6;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 10px;
+}
+
+.document-number,
+.document-date,
+.due-date {
+    font-size: 13px;
+    margin-bottom: 3px;
+    color: #333;
+}
+
+.due-date {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+/* Customer Section */
+.customer-section {
+    clear: both;
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.customer-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.customer-details {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.customer-name {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.customer-address {
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.customer-phone,
+.customer-tax {
+    color: #555;
+    margin-bottom: 3px;
+    font-size: 12px;
+}

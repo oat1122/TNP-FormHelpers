@@ -314,11 +314,18 @@ Route::prefix('v1')->group(function() {
         Route::post('/invoices/{id}/record-payment', 'recordPayment');
         Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
         Route::post('/invoices/{id}/send-reminder', 'sendReminder');
-        Route::get('/invoices/{id}/generate-pdf', 'generatePdf');
+        
+        // PDF APIs (mPDF-first with fallback)
+        Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
+        Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
+        Route::get('/invoices/{id}/pdf/download', 'downloadPdf');
         
         // One-Click Conversion
         Route::post('/invoices/create-from-quotation', 'createFromQuotation');
     });
+
+    // System APIs
+    Route::get('/system/invoice-pdf-status', [InvoiceController::class, 'checkPdfStatus']);
 
     //---------- Receipt Controller (Step 3) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\ReceiptController::class)->group(function () {

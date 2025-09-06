@@ -26,6 +26,25 @@ class QuotationService
     }
 
     /**
+     * คำนวณฐานสำหรับมัดจำแบบก่อน VAT (Pre-VAT)
+     * ใช้ subtotal หักด้วยส่วนลดพิเศษ ถ้ามีข้อมูลไม่ครบจะ fallback เป็น (total_amount - vat_amount - special_discount_amount)
+     */
+    protected function computeDepositBasePreVat(Quotation $q, ?array $ref = null): float
+    {
+        $subtotal = (float) ($ref['subtotal'] ?? $q->subtotal ?? 0);
+        $special  = (float) ($ref['special_discount_amount'] ?? $q->special_discount_amount ?? 0);
+        $base     = max(0.0, round($subtotal - $special, 2));
+
+        if ($base <= 0.0) {
+            $total = (float) ($ref['total_amount'] ?? $q->total_amount ?? 0);
+            $vat   = (float) ($ref['vat_amount'] ?? $q->vat_amount ?? 0);
+            $base  = max(0.0, round(($total - $vat - $special), 2));
+        }
+
+        return $base;
+    }
+
+    /**
      * สร้าง Quotation จาก Pricing Request
      */
     public function createFromPricingRequest($pricingRequestId, $additionalData = [], $createdBy = null)
@@ -81,17 +100,17 @@ class QuotationService
             if (array_key_exists('sample_images', $additionalData)) {
                 $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];
             }
-            // Deposit logic: allow either percentage or explicit amount via deposit_mode
+            // Deposit logic: allow either percentage or explicit amount via deposit_mode (use pre-VAT base)
             $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
             if ($depositMode === 'amount' && isset($additionalData['deposit_amount'])) {
                 $quotation->deposit_amount = max(0, floatval($additionalData['deposit_amount']));
-                $baseFinal = $quotation->final_total_amount ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
-                $quotation->deposit_percentage = $baseFinal > 0 ? round(($quotation->deposit_amount / $baseFinal) * 100, 4) : 0;
+                $preVatBase = $this->computeDepositBasePreVat($quotation, $additionalData);
+                $quotation->deposit_percentage = $preVatBase > 0 ? round(($quotation->deposit_amount / $preVatBase) * 100, 4) : 0;
             } else {
                 $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 0;
-                $baseFinal = $quotation->final_total_amount ?? (($additionalData['total_amount'] ?? 0) - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
                 $pct = max(0, min(100, floatval($quotation->deposit_percentage)));
-                $quotation->deposit_amount = round($baseFinal * ($pct/100), 2);
+                $preVatBase = $this->computeDepositBasePreVat($quotation, $additionalData);
+                $quotation->deposit_amount = round($preVatBase * ($pct/100), 2);
             }
             $quotation->deposit_mode = $depositMode;
             $quotation->payment_terms = $additionalData['payment_terms'] ?? null;
@@ -116,17 +135,17 @@ class QuotationService
 
             // Recompute deposit if deposit_mode / amount provided (use $additionalData; avoid undefined $data)
             $recomputeDepositMode = $additionalData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
-            $finalBase = $quotation->final_total_amount ?? ($quotation->total_amount - $quotation->special_discount_amount - $quotation->withholding_tax_amount);
+            $preVatBase = $this->computeDepositBasePreVat($quotation);
             if ($recomputeDepositMode === 'amount' && array_key_exists('deposit_amount', $additionalData)) {
                 $amount = max(0, floatval($additionalData['deposit_amount']));
-                if ($finalBase > 0) {
-                    $quotation->deposit_percentage = round(($amount / $finalBase) * 100, 4);
+                if ($preVatBase > 0) {
+                    $quotation->deposit_percentage = round(($amount / $preVatBase) * 100, 4);
                 }
-                $quotation->deposit_amount = min($amount, $finalBase);
+                $quotation->deposit_amount = min($amount, $preVatBase);
             } elseif (array_key_exists('deposit_percentage', $additionalData)) {
                 $pct = max(0, min(100, floatval($additionalData['deposit_percentage'])));
                 $quotation->deposit_percentage = $pct;
-                $quotation->deposit_amount = round($finalBase * ($pct/100), 2);
+                $quotation->deposit_amount = round($preVatBase * ($pct/100), 2);
             }
             $quotation->deposit_mode = $recomputeDepositMode;
             $quotation->save();
@@ -306,17 +325,17 @@ class QuotationService
                 $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];
             }
 
-            // ข้อมูลการชำระเงิน
+            // ข้อมูลการชำระเงิน (ใช้ฐานก่อน VAT สำหรับมัดจำ)
             $depositMode = $additionalData['deposit_mode'] ?? 'percentage';
             if ($depositMode === 'amount' && isset($additionalData['deposit_amount'])) {
                 $quotation->deposit_amount = max(0, floatval($additionalData['deposit_amount']));
-                $finalBase = $quotation->final_total_amount ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
-                $quotation->deposit_percentage = $finalBase > 0 ? round(($quotation->deposit_amount / $finalBase) * 100, 4) : 0;
+                $preVatBase = $this->computeDepositBasePreVat($quotation, array_merge($additionalData, ['total_amount' => $totalAmount]));
+                $quotation->deposit_percentage = $preVatBase > 0 ? round(($quotation->deposit_amount / $preVatBase) * 100, 4) : 0;
             } else {
                 $quotation->deposit_percentage = $additionalData['deposit_percentage'] ?? 50;
                 $pct = max(0, min(100, floatval($quotation->deposit_percentage)));
-                $finalBase = $quotation->final_total_amount ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
-                $quotation->deposit_amount = round($finalBase * ($pct/100), 2);
+                $preVatBase = $this->computeDepositBasePreVat($quotation, array_merge($additionalData, ['total_amount' => $totalAmount]));
+                $quotation->deposit_amount = round($preVatBase * ($pct/100), 2);
             }
             $quotation->deposit_mode = $depositMode;
             $quotation->payment_terms = $additionalData['payment_terms'] ?? 'credit_30';

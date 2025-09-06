@@ -16,22 +16,40 @@
       // ตรวจสอบประเภทใบแจ้งหนี้และสร้างรายการตามประเภท
       $invoiceItems = [];
       
-      if ($invoice->type === 'deposit' && !empty($invoice->quotation)) {
+    if ($invoice->type === 'deposit' && !empty($invoice->quotation)) {
           // กรณีเรียกเก็บเงินมัดจำ
           $depositDescription = "รับมัดจำ";
-          if (!empty($invoice->quotation->number)) {
-              $depositDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
-              if (!empty($invoice->quotation->final_total_amount)) {
-                  $depositDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
-              }
-          }
+      if (!empty($invoice->quotation->number)) {
+        $depositDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+        if (!empty($invoice->quotation->final_total_amount)) {
+          // ปรับถ้อยคำให้ชัดเจนตามที่ต้องการ
+          $depositDescription .= "\nใบเสนอราคาดังกล่าวมีมูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+        }
+      }
+      // คำนวณยอดมัดจำเพื่อแสดง: ใช้ฐานก่อน VAT เมื่อโหมดเป็น percentage
+      $depositAmountDisplay = null;
+      $depositMode = $invoice->deposit_mode ?? 'percentage';
+      if ($depositMode === 'percentage') {
+        $subtotal = (float)($invoice->quotation->subtotal ?? 0);
+        $special  = (float)($invoice->quotation->special_discount_amount ?? 0);
+        $preVatBase = max(0, round($subtotal - $special, 2));
+        if ($preVatBase <= 0) {
+          $total = (float)($invoice->quotation->total_amount ?? 0);
+          $vat   = (float)($invoice->quotation->vat_amount ?? 0);
+          $preVatBase = max(0, round($total - $vat - $special, 2));
+        }
+        $pct = max(0, min(100, (float)($invoice->deposit_percentage ?? 0)));
+        $depositAmountDisplay = round($preVatBase * ($pct/100), 2);
+      } else {
+        $depositAmountDisplay = (float)($invoice->deposit_amount ?? $invoice->final_total_amount ?? 0);
+      }
           
-          $invoiceItems[] = [
+      $invoiceItems[] = [
               'description' => $depositDescription,
               'quantity' => 1,
               'unit' => 'รายการ',
-              'unit_price' => $invoice->deposit_amount ?? $invoice->final_total_amount,
-              'amount' => $invoice->deposit_amount ?? $invoice->final_total_amount
+        'unit_price' => $depositAmountDisplay,
+        'amount' => $depositAmountDisplay
           ];
       } elseif ($invoice->type === 'remaining' && !empty($invoice->quotation)) {
           // กรณีเรียกเก็บเงินส่วนที่เหลือ
@@ -85,15 +103,15 @@
         </colgroup>
         <thead>
           <tr>
-            <th class="text-center">ลำดับ</th>
-            <th class="text-center">รายละเอียด</th>
-            <th class="text-center">จำนวนเงิน</th>
+            <th class="text-left">ลำดับ</th>
+            <th class="text-left">รายละเอียด</th>
+            <th class="text-right">จำนวนเงิน</th>
           </tr>
         </thead>
         <tbody>
           @foreach($invoiceItems as $item)
             <tr>
-              <td class="text-center">{{ $no++ }}</td>
+              <td class="text-left">{{ $no++ }}</td>
               <td class="desc">{!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
               <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
             </tr>
@@ -205,6 +223,43 @@
                 <col style="width: 55%;">
               </colgroup>
               
+              @php
+                // หากเป็นใบมัดจำ ให้คำนวณสรุปใหม่จากยอดมัดจำก่อน VAT
+                if (($invoice->type ?? null) === 'deposit' && !empty($invoice->quotation)) {
+                  $depositMode = $invoice->deposit_mode ?? 'percentage';
+                  $vatPct = (float) ($summary['vat_percentage'] ?? $invoice->vat_percentage ?? 7);
+                  $hasVat = (bool) ($invoice->has_vat ?? true);
+                  $withholdingPct = (float) ($invoice->withholding_tax_percentage ?? 0);
+                  $hasWithholdingTax = (bool) ($invoice->has_withholding_tax ?? false);
+
+                  // base pre-VAT = subtotal - special discount; fallback total - vat - special
+                  $qSubtotal = (float) ($invoice->quotation->subtotal ?? 0);
+                  $qSpecial  = (float) ($invoice->quotation->special_discount_amount ?? 0);
+                  $preVatBase = max(0, round($qSubtotal - $qSpecial, 2));
+                  if ($preVatBase <= 0) {
+                    $qTotal = (float) ($invoice->quotation->total_amount ?? 0);
+                    $qVat   = (float) ($invoice->quotation->vat_amount ?? 0);
+                    $preVatBase = max(0, round($qTotal - $qVat - $qSpecial, 2));
+                  }
+
+                  if ($depositMode === 'percentage') {
+                    $pct = max(0, min(100, (float) ($invoice->deposit_percentage ?? 0)));
+                    $depositSubtotal = round($preVatBase * ($pct/100), 2);
+                  } else {
+                    // amount mode: ถือว่าเป็นยอดก่อน VAT ที่จะใช้คิด VAT ตรงๆ
+                    $depositSubtotal = (float) ($invoice->deposit_amount ?? 0);
+                  }
+
+                  // สร้างค่าใหม่เพื่อทับของเดิมสำหรับการแสดงผล
+                  $subtotal = $depositSubtotal;
+                  $specialDiscountAmount = 0; // ส่วนลดพิเศษได้รวมในฐาน pre-VAT แล้ว
+                  $showSpecialDiscount = false;
+                  $vatAmount = $hasVat ? round($depositSubtotal * ($vatPct/100), 2) : 0;
+                  $withholdingTaxAmount = $hasWithholdingTax ? round($depositSubtotal * ($withholdingPct/100), 2) : 0;
+                  $finalTotalAmount = max(0, round($depositSubtotal + $vatAmount - $withholdingTaxAmount, 2));
+                }
+              @endphp
+
               {{-- 1. Subtotal (ก่อน VAT) --}}
               <tr>
                 <td class="summary-label">รวมเป็นเงิน</td>

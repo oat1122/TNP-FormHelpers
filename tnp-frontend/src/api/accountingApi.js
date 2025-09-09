@@ -275,6 +275,15 @@ class AccountingAPI {
     }
 
     /**
+     * ส่งใบแจ้งหนี้ขออนุมัติ (draft -> pending)
+     */
+    async submitInvoice(id) {
+        return this.makeRequest(`/invoices/${id}/submit`, {
+            method: 'POST'
+        });
+    }
+
+    /**
      * สร้าง PDF ใบแจ้งหนี้
      */
     async generateInvoicePDF(id) {

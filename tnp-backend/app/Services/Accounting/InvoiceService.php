@@ -327,7 +327,7 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
 
             // ตรวจสอบสถานะ
-            if (!in_array($invoice->status, ['draft', 'pending_review'])) {
+            if (!in_array($invoice->status, ['draft', 'pending'])) {
                 throw new \Exception('Invoice cannot be updated in current status');
             }
 
@@ -384,10 +384,12 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
 
             if ($invoice->status !== 'draft') {
-                throw new \Exception('Invoice must be in draft status to submit');
+                // Already submitted or processed; return as-is (idempotent behavior)
+                DB::commit();
+                return $invoice;
             }
 
-            $invoice->status = 'pending_review';
+            $invoice->status = 'pending';
             $invoice->submitted_by = $submittedBy;
             $invoice->submitted_at = now();
             $invoice->save();
@@ -397,7 +399,7 @@ class InvoiceService
                 'invoice',
                 $invoiceId,
                 'draft',
-                'pending_review',
+                'pending',
                 'ส่งขออนุมัติ',
                 $submittedBy
             );
@@ -422,9 +424,16 @@ class InvoiceService
             DB::beginTransaction();
 
             $invoice = Invoice::findOrFail($invoiceId);
+            $fromStatus = $invoice->status;
 
-            if ($invoice->status !== 'pending_review') {
-                throw new \Exception('Invoice must be pending review to approve');
+            if (!in_array($invoice->status, ['pending','draft'])) {
+                throw new \Exception('Invoice must be pending or draft to approve');
+            }
+
+            // หากยังเป็น draft ให้ auto-submit ภายใน (ไม่ต้องยิง endpoint แยก)
+            if ($invoice->status === 'draft') {
+                $invoice->submitted_by = $approvedBy; // หรือผู้สร้าง ถ้าต้องการบันทึกที่มาชัดเจน
+                $invoice->submitted_at = now();
             }
 
             $invoice->status = 'approved';
@@ -432,11 +441,11 @@ class InvoiceService
             $invoice->approved_at = now();
             $invoice->save();
 
-            // บันทึก History
+            // บันทึก History: ถ้ามาจาก draft ใช้ fromStatus = draft
             DocumentHistory::logStatusChange(
                 'invoice',
                 $invoiceId,
-                'pending_review',
+                $fromStatus,
                 'approved',
                 'อนุมัติ',
                 $approvedBy,
@@ -464,7 +473,7 @@ class InvoiceService
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            if ($invoice->status !== 'pending_review') {
+            if ($invoice->status !== 'pending') {
                 throw new \Exception('Invoice must be pending review to reject');
             }
 
@@ -477,7 +486,7 @@ class InvoiceService
             DocumentHistory::logStatusChange(
                 'invoice',
                 $invoiceId,
-                'pending_review',
+                'pending',
                 'rejected',
                 'ปฏิเสธ',
                 $rejectedBy,
@@ -505,7 +514,7 @@ class InvoiceService
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            if ($invoice->status !== 'pending_review') {
+            if ($invoice->status !== 'pending') {
                 throw new \Exception('Invoice must be pending review to send back');
             }
 
@@ -516,7 +525,7 @@ class InvoiceService
             DocumentHistory::logStatusChange(
                 'invoice',
                 $invoiceId,
-                'pending_review',
+                'pending',
                 'draft',
                 'ส่งกลับแก้ไข',
                 $actionBy,

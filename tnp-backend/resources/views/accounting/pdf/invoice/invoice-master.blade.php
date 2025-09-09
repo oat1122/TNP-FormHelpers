@@ -8,6 +8,8 @@
 <body>
   <div class="document-content">
 
+      
+
     {{-- ตารางสินค้า/บริการ --}}
     <div class="mb-3">รายละเอียดสินค้า/บริการ</div>
     @php 

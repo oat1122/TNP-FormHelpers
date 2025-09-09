@@ -14,6 +14,8 @@ import {
 import {
   useGetInvoicesQuery,
   useGenerateInvoicePDFMutation,
+  useApproveInvoiceMutation,
+  useSubmitInvoiceMutation,
 } from '../../../features/Accounting/accountingApi';
 import InvoiceCreateDialog from './components/InvoiceCreateDialog';
 import QuotationSelectionDialog from './components/QuotationSelectionDialog';
@@ -55,6 +57,8 @@ const Invoices = () => {
 
   const invoicesTotal = invoicesResp?.data?.total || invoices.length;
   const [generateInvoicePDF] = useGenerateInvoicePDFMutation();
+  const [approveInvoice, { isLoading: approvingId }] = useApproveInvoiceMutation();
+  const [submitInvoice, { isLoading: submittingId }] = useSubmitInvoiceMutation();
 
   const handleSelectQuotation = (quotation) => {
     setSelectedQuotation(quotation);
@@ -168,6 +172,23 @@ const Invoices = () => {
                       invoice={inv}
                       onDownloadPDF={() => generateInvoicePDF(inv.id)}
                       onView={() => handleViewInvoice(inv)}
+                      onApprove={async (notes) => {
+                        try {
+                          if (inv.status === 'draft') await submitInvoice(inv.id).unwrap();
+                          await approveInvoice({ id: inv.id, notes }).unwrap();
+                          refetchInvoices();
+                        } catch (e) {
+                          console.error('Approve invoice failed', e);
+                        }
+                      }}
+                      onSubmit={async () => {
+                        try {
+                          if (inv.status === 'draft') await submitInvoice(inv.id).unwrap();
+                          refetchInvoices();
+                        } catch (e) {
+                          console.error('Submit invoice failed', e);
+                        }
+                      }}
                     />
                   </Grid>
                 ))}

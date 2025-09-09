@@ -310,7 +310,8 @@ class InvoicePdfMasterService
         
         return [
             'height' => $totalHeight, // ~34mm total (was ~42mm)
-            'padding' => 8, // bottom padding
+            // Reduce bottom padding so signature sits closer to footer
+            'padding' => 0, // was 8
         ];
     }
 
@@ -341,16 +342,28 @@ class InvoicePdfMasterService
     protected function placeSignatureOnCurrentPage(Mpdf $mpdf, string $sigHtml, float $remaining, float $requiredHeight, float $bottomPadding): bool
     {
         try {
-            // Add some margin before signature
-            $marginTop = min(10, ($remaining - $requiredHeight) / 2);
-            $mpdf->WriteHTML('<div style="margin-top: ' . $marginTop . 'mm;"></div>');
-            
-            $mpdf->WriteHTML($sigHtml);
-            
-            Log::info('Invoice Signature placed on current page', [
+            // Push signature down so it hugs the footer leaving only bottomPadding space
+            // remaining = free space from current Y to bottom margin
+            $pushDown = max($remaining - $requiredHeight - $bottomPadding, 0);
+
+            // Guarantee a minimum spacing so it doesn't collide with previous content
+            $minSpacing = 2; // mm (tighter than quotation's 3mm)
+            $pushDown = max($pushDown, $minSpacing);
+
+            $wrapper = sprintf(
+                '<div style="margin-top:%.2fmm; page-break-inside:avoid;" class="invoice-signature-current-page">%s</div>',
+                $pushDown,
+                $sigHtml
+            );
+
+            $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+
+            Log::info('Invoice Signature placed on current page (compressed layout)', [
                 'page' => $mpdf->page,
-                'margin_top' => $marginTop,
-                'remaining_space' => $remaining
+                'remaining_space' => $remaining,
+                'push_down' => $pushDown,
+                'required_height' => $requiredHeight,
+                'bottom_padding' => $bottomPadding
             ]);
             
             return true;
@@ -368,18 +381,31 @@ class InvoicePdfMasterService
         try {
             $mpdf->AddPage();
             
-            // Calculate position from bottom
+            // On a fresh page we can place the signature near the bottom using a spacer div
             $pageInfo = $this->getAccuratePageInfo($mpdf);
-            $targetY = $pageInfo['usable_bottom'] - $requiredHeight - $bottomPadding;
-            
-            // Move to calculated position
-            $mpdf->SetY($targetY);
-            $mpdf->WriteHTML($sigHtml);
-            
-            Log::info('Invoice Signature placed on new page', [
+            $available = $pageInfo['remaining']; // On new page this is almost full height
+
+            // Space we want to consume above signature so that only bottomPadding remains under it
+            $spacer = max($available - ($requiredHeight + $bottomPadding), 0);
+
+            // Avoid excessive whitespace: cap spacer so that signature never floats mid-page
+            $maxSpacer = 40; // mm (keep lower than half page)
+            $spacer = min($spacer, $maxSpacer);
+
+            $wrapper = sprintf(
+                '<div style="height:%.2fmm;"></div><div class="invoice-signature-new-page" style="page-break-inside:avoid;">%s</div>',
+                $spacer,
+                $sigHtml
+            );
+
+            $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+
+            Log::info('Invoice Signature placed on new page (compressed)', [
                 'page' => $mpdf->page,
-                'target_y' => $targetY,
-                'page_height' => $pageInfo['height']
+                'spacer' => $spacer,
+                'available' => $available,
+                'required_height' => $requiredHeight,
+                'bottom_padding' => $bottomPadding
             ]);
             
             return true;

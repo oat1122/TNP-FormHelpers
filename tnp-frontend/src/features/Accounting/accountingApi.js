@@ -455,6 +455,17 @@ export const accountingApi = createApi({
             ],
         }),
 
+        submitInvoice: builder.mutation({
+            query: (id) => ({
+                url: `/invoices/${id}/submit`,
+                method: 'POST',
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: 'Invoice', id },
+                'Invoice'
+            ],
+        }),
+
         generateInvoicePDF: builder.mutation({
             query: (id) => ({
                 url: `/invoices/${id}/generate-pdf`,
@@ -729,6 +740,7 @@ export const {
     useUpdateInvoiceMutation,
     useDeleteInvoiceMutation,
     useApproveInvoiceMutation,
+    useSubmitInvoiceMutation,
     useGenerateInvoicePDFMutation,
 
     // Receipts

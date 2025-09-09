@@ -24,7 +24,7 @@ const typeLabels = {
 const statusColor = {
   draft: 'default',
   pending: 'warning',
-  pending_review: 'warning',
+  pending: 'warning',
   approved: 'success',
   rejected: 'error',
   sent: 'info',
@@ -62,35 +62,43 @@ const truncateText = (text, maxLength = 35) => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 };
 
-// ฟังก์ชันตรวจสอบสถานะตามวันครบกำหนด
+// ฟังก์ชันตรวจสอบสถานะตามวันครบกำหนด (เพิ่ม mapping ภาษาไทยให้ครบ และรองรับสถานะจำลอง)
 const getInvoiceStatus = (invoice) => {
   if (!invoice) return { status: 'draft', color: 'default' };
-  
+
   const today = new Date();
   const dueDate = invoice.due_date ? new Date(invoice.due_date) : null;
   const finalTotal = invoice?.final_total_amount || invoice?.total_amount || 0;
   const paidAmount = invoice?.paid_amount || 0;
   const depositAmount = invoice?.deposit_amount || 0;
   const remaining = Math.max(finalTotal - paidAmount - depositAmount, 0);
-  
+
   // ถ้าชำระครบแล้ว
   if (remaining <= 0) {
     return { status: 'ชำระแล้ว', color: 'success' };
   }
-  
+
   // ถ้าเกินกำหนด
   if (dueDate && dueDate < today && remaining > 0) {
     return { status: 'เกินกำหนด', color: 'error' };
   }
-  
-  // ใช้สถานะปกติ
+
   const originalStatus = invoice.status || 'draft';
-  return { 
-    status: originalStatus === 'draft' ? 'แบบร่าง' : 
-            originalStatus === 'pending' ? 'รอดำเนินการ' :
-            originalStatus === 'sent' ? 'ส่งแล้ว' :
-            originalStatus === 'partial_paid' ? 'ชำระบางส่วน' : originalStatus,
-    color: statusColor[originalStatus] || 'default' 
+  const statusMap = {
+    draft: 'แบบร่าง',
+    pending: 'รอดำเนินการ',
+  pending: 'รออนุมัติ',
+    approved: 'อนุมัติแล้ว',
+    rejected: 'ถูกปฏิเสธ',
+    sent: 'ส่งแล้ว',
+    partial_paid: 'ชำระบางส่วน',
+    fully_paid: 'ชำระแล้ว',
+    overdue: 'เกินกำหนด'
+  };
+
+  return {
+    status: statusMap[originalStatus] || originalStatus,
+    color: statusColor[originalStatus] || 'default'
   };
 };
 
@@ -176,8 +184,10 @@ const formatDepositInfo = (invoice) => {
   return null;
 };
 
-const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
+const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
+  // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
+  const [localStatus, setLocalStatus] = useState(invoice?.status);
   
   // คำนวณยอดเงินอย่างถูกต้อง - แก้ไข logic การคำนวณ
   const subtotal = Number(invoice?.subtotal || 0);
@@ -197,7 +207,27 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
   
   const depositInfo = formatDepositInfo(invoice);
   const itemsListText = formatItemsList(invoice);
-  const invoiceStatus = getInvoiceStatus(invoice);
+  // ใช้สถานะจำลอง (ถ้ามี) เพื่อให้ UI อัปเดตได้ทันที
+  const invoiceStatus = getInvoiceStatus({ ...invoice, status: localStatus });
+
+  // Handler สำหรับปุ่มอนุมัติ (จำลอง)
+  const handleApprove = async () => {
+    if (onApprove) {
+      try {
+        // ถ้ายังเป็น draft และมี onSubmit ให้ส่งก่อน
+        if (invoice?.status === 'draft' && typeof onSubmit === 'function') {
+          await onSubmit();
+        }
+        await onApprove();
+        setLocalStatus('approved');
+      } catch (e) {
+        console.error('Approve action error', e);
+      }
+    } else {
+      // Fallback: simulation only
+      setLocalStatus('approved');
+    }
+  };
 
   const companyName = invoice?.customer_company || invoice?.customer?.cus_company || '-';
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
@@ -672,6 +702,19 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF }) => {
 
         {/* Action Buttons - ปรับปรุง hierarchy และ spacing */}
         <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+          {/* ปุ่มอนุมัติ (จำลอง) แสดงเมื่อยังไม่ได้อนุมัติ */}
+          {localStatus !== 'approved' && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+        onClick={handleApprove}
+              sx={{ px: 2, py: 1, fontSize: '0.8rem', fontWeight: 600, borderStyle: 'dashed' }}
+              aria-label="จำลองการอนุมัติใบแจ้งหนี้"
+            >
+        {onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)'}
+            </Button>
+          )}
           {onDownloadPDF && (
             <Button 
               size="small" 

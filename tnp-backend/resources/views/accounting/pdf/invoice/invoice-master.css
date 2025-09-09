@@ -45,8 +45,12 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 
 .header-right {
     width: 35%;
-    text-align: right;
+    /* remove global right alignment so title block can center */
 }
+
+/* keep meta values aligned left inside table, optionally right if needed per cell */
+.doc-header-block .doc-meta-table td.meta-label { text-align: left !important; }
+.doc-header-block .doc-meta-table td.meta-value { text-align: left !important; }
 
 .company-name {
     font-size: 16pt;

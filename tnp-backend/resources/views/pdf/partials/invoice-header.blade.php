@@ -3,12 +3,7 @@
   <tr>
     <td class="header-left">
       {{-- โลโก้บริษัท --}}
-      <x-company-logo 
-        :company-id="$invoice->company->id ?? null" 
-        css-class="logo-img" 
-        alt="logo" 
-        :for-pdf="true" 
-      />
+     
 
       {{-- ข้อมูลบริษัท --}}
       <div class="company-name">

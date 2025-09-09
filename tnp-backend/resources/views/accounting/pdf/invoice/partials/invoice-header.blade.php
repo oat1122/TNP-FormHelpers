@@ -94,16 +94,16 @@
       @endphp
 
       <div class="doc-header-block">
-        <div class="doc-title-combo" style="text-align:center; margin-bottom:4px;">
-          <span class="doc-title" style="display:inline-block; letter-spacing:.3px; white-space:nowrap;">{{ $docTitle }}</span><br>
-          <span class="doc-subtitle" style="display:inline-block; font-size:10pt; margin-top:1px; color:#333; white-space:nowrap; font-weight:500;">{{ $docSubTitle }}
+        <div class="doc-title-combo" style="text-align:center; margin-bottom:6px;">
+          <span class="doc-title" style="display:inline-block; font-size:20px; font-weight:600; letter-spacing:.5px; white-space:nowrap;">{{ $docTitle }}</span><br>
+          <span class="doc-subtitle" style="display:inline-block; font-size:12px; margin-top:2px; color:#333; white-space:nowrap;">{{ $docSubTitle }}
             @if(!($isFinal ?? true))
-              <br><span style="color:#e74c3c; font-weight:600; font-size:8.2pt;">PREVIEW - ไม่ใช่เอกสารจริง</span>
+              <br><span style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
             @endif
           </span>
         </div>
 
-  <table class="doc-meta-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%; margin-top:6px; border-collapse:collapse; font-size:9pt;">
+        <table class="doc-meta-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%; margin-top:10px; border-collapse:collapse; font-size:12px;">
           @foreach($metaRows as $row)
             <tr>
               <td class="meta-label" style="width:38%; padding:2px 0; font-weight:600; text-align:left; white-space:nowrap;">{{ $row['label'] }}</td>
@@ -112,10 +112,10 @@
           @endforeach
         </table>
 
-  <div class="meta-divider" style="border-top:1px solid #aaa; margin:6px 0 5px; width:100%;"></div>
+        <div class="meta-divider" style="border-top:1px solid #888; margin:8px 0 6px; width:100%;"></div>
 
         @if($jobName)
-          <table class="doc-extra-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:9pt;">
+          <table class="doc-extra-table" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:12px;">
             <tr>
               <td style="width:38%; padding:2px 0; font-weight:600; text-align:left; white-space:nowrap;">ชื่องาน</td>
               <td style="padding:2px 0; text-align:left;">{{ $jobName }}</td>

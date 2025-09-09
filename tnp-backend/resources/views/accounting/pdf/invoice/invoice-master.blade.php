@@ -219,114 +219,59 @@
               $showWithholdingTax = $hasWithholdingTax && $withholdingTaxAmount > 0;
             @endphp
 
-            <table class="summary-table">
-              <colgroup>
-                <col style="width: 45%;">
-                <col style="width: 55%;">
-              </colgroup>
-              
-              @php
-                // หากเป็นใบมัดจำ ให้คำนวณสรุปใหม่จากยอดมัดจำก่อน VAT
-                if (($invoice->type ?? null) === 'deposit' && !empty($invoice->quotation)) {
-                  $depositMode = $invoice->deposit_mode ?? 'percentage';
-                  $vatPct = (float) ($summary['vat_percentage'] ?? $invoice->vat_percentage ?? 7);
-                  $hasVat = (bool) ($invoice->has_vat ?? true);
-                  $withholdingPct = (float) ($invoice->withholding_tax_percentage ?? 0);
-                  $hasWithholdingTax = (bool) ($invoice->has_withholding_tax ?? false);
-
-                  // base pre-VAT = subtotal - special discount; fallback total - vat - special
-                  $qSubtotal = (float) ($invoice->quotation->subtotal ?? 0);
-                  $qSpecial  = (float) ($invoice->quotation->special_discount_amount ?? 0);
-                  $preVatBase = max(0, round($qSubtotal - $qSpecial, 2));
-                  if ($preVatBase <= 0) {
-                    $qTotal = (float) ($invoice->quotation->total_amount ?? 0);
-                    $qVat   = (float) ($invoice->quotation->vat_amount ?? 0);
-                    $preVatBase = max(0, round($qTotal - $qVat - $qSpecial, 2));
-                  }
-
-                  if ($depositMode === 'percentage') {
-                    $pct = max(0, min(100, (float) ($invoice->deposit_percentage ?? 0)));
-                    $depositSubtotal = round($preVatBase * ($pct/100), 2);
-                  } else {
-                    // amount mode: ถือว่าเป็นยอดก่อน VAT ที่จะใช้คิด VAT ตรงๆ
-                    $depositSubtotal = (float) ($invoice->deposit_amount ?? 0);
-                  }
-
-                  // สร้างค่าใหม่เพื่อทับของเดิมสำหรับการแสดงผล
-                  $subtotal = $depositSubtotal;
-                  $specialDiscountAmount = 0; // ส่วนลดพิเศษได้รวมในฐาน pre-VAT แล้ว
-                  $showSpecialDiscount = false;
-                  $vatAmount = $hasVat ? round($depositSubtotal * ($vatPct/100), 2) : 0;
-                  $withholdingTaxAmount = $hasWithholdingTax ? round($depositSubtotal * ($withholdingPct/100), 2) : 0;
-                  $finalTotalAmount = max(0, round($depositSubtotal + $vatAmount - $withholdingTaxAmount, 2));
+            @php
+              // Recalculate for deposit type (compact block)
+              if (($invoice->type ?? null) === 'deposit' && !empty($invoice->quotation)) {
+                $depositMode = $invoice->deposit_mode ?? 'percentage';
+                $vatPct = (float) ($summary['vat_percentage'] ?? $invoice->vat_percentage ?? 7);
+                $hasVat = (bool) ($invoice->has_vat ?? true);
+                $withholdingPct = (float) ($invoice->withholding_tax_percentage ?? 0);
+                $hasWithholdingTax = (bool) ($invoice->has_withholding_tax ?? false);
+                $qSubtotal = (float) ($invoice->quotation->subtotal ?? 0);
+                $qSpecial  = (float) ($invoice->quotation->special_discount_amount ?? 0);
+                $preVatBase = max(0, round($qSubtotal - $qSpecial, 2));
+                if ($preVatBase <= 0) {
+                  $qTotal = (float) ($invoice->quotation->total_amount ?? 0);
+                  $qVat   = (float) ($invoice->quotation->vat_amount ?? 0);
+                  $preVatBase = max(0, round($qTotal - $qVat - $qSpecial, 2));
                 }
-              @endphp
-
-              {{-- 1. Subtotal (ก่อน VAT) --}}
-              <tr>
-                <td class="summary-label">รวมเป็นเงิน</td>
-                <td class="summary-amount">
-                  <div class="amount-container">
-                    <span class="amount-main">{{ number_format($subtotal, 2) }}</span>
-                  </div>
-                </td>
-              </tr>
-              
-              {{-- 2. Special Discount (conditional) --}}
-              @if($showSpecialDiscount)
-                <tr class="discount-row">
-                  <td class="summary-label">ส่วนลดพิเศษ</td>
-                  <td class="summary-amount discount">
-                    <div class="amount-container">
-                      <span class="amount-main">{{ number_format($specialDiscountAmount, 2) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              @endif
-              
-              {{-- 3. VAT --}}
-              <tr>
-                <td class="summary-label">ภาษีมูลค่าเพิ่ม (VAT {{ $summary['vat_percentage'] ?? 7 }}%)</td>
-                <td class="summary-amount">
-                  <div class="amount-container">
-                    <span class="amount-main">{{ number_format($vatAmount, 2) }}</span>
-                  </div>
-                </td>
-              </tr>
-
-              {{-- 4. Withholding Tax (conditional) --}}
-              @if($showWithholdingTax)
-                <tr class="withholding-tax-row">
-                  <td class="summary-label">หักภาษี ณ ที่จ่าย</td>
-                  <td class="summary-amount withholding-tax">
-                    <div class="amount-container">
-                      <span class="amount-main">{{ number_format($withholdingTaxAmount, 2) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              @endif
-              
-              {{-- Final Total --}}
-              <tr class="total-row">
-                <td class="summary-label">รวมเป็นเงินทั้งสิ้น</td>
-                <td class="summary-amount">
-                  <div class="amount-container">
-                    <span class="amount-main {{ $finalTotalAmount > 999999 ? 'large-amount' : '' }}">
-                      {{ number_format($finalTotalAmount, 2) }}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-
-              {{-- Thai text conversion using final_total_amount --}}
-              <tr class="reading-row">
-                <td colspan="2" class="reading-cell">
-                  <div class="reading-full-width">
-                    ({{ $thaiBahtText($finalTotalAmount) }})
-                  </div>
-                </td>
-              </tr>
+                $depositSubtotal = $depositMode === 'percentage'
+                  ? round($preVatBase * (max(0,min(100,(float)($invoice->deposit_percentage ?? 0)))/100), 2)
+                  : (float) ($invoice->deposit_amount ?? 0);
+                $subtotal = $depositSubtotal;
+                $specialDiscountAmount = 0; $showSpecialDiscount = false;
+                $vatAmount = $hasVat ? round($depositSubtotal * ($vatPct/100), 2) : 0;
+                $withholdingTaxAmount = $hasWithholdingTax ? round($depositSubtotal * ($withholdingPct/100), 2) : 0;
+                $finalTotalAmount = max(0, round($depositSubtotal + $vatAmount - $withholdingTaxAmount, 2));
+              }
+            @endphp
+            <table class="summary-table">
+              <tbody>
+                <tr><td class="summary-label">รวมเป็นเงิน</td><td class="summary-amount"><span class="amount-main">{{ number_format($subtotal,2) }}</span></td></tr>
+                @if($showSpecialDiscount)
+                  <tr class="discount-row"><td class="summary-label">ส่วนลดพิเศษ</td><td class="summary-amount discount"><span class="amount-main">-{{ number_format($specialDiscountAmount,2) }}</span></td></tr>
+                @endif
+                <tr><td class="summary-label">ภาษีมูลค่าเพิ่ม ({{ $summary['vat_percentage'] ?? 7 }}%)</td><td class="summary-amount"><span class="amount-main">{{ number_format($vatAmount,2) }}</span></td></tr>
+                @if($showWithholdingTax)
+                  <tr class="withholding-tax-row"><td class="summary-label">หักภาษี ณ ที่จ่าย</td><td class="summary-amount withholding-tax"><span class="amount-main">-{{ number_format($withholdingTaxAmount,2) }}</span></td></tr>
+                @endif
+                <tr class="total-row"><td class="summary-label">รวมเป็นเงินทั้งสิ้น</td><td class="summary-amount"><span class="amount-main large-amount">{{ number_format($finalTotalAmount,2) }}</span></td></tr>
+                <tr class="reading-row"><td colspan="2" class="reading-cell">({{ $thaiBahtText($finalTotalAmount) }})</td></tr>
+              </tbody>
             </table>
+            @php
+              $paymentInfo = [];
+              if(!empty($invoice->payment_method)) $paymentInfo[] = 'วิธีชำระ: '.e($invoice->payment_method);
+              if(!empty($invoice->payment_terms)) $paymentInfo[] = 'เงื่อนไข: '.e($invoice->payment_terms);
+              if(!empty($invoice->due_date)) $paymentInfo[] = 'ครบกำหนด: '.date('d/m/Y', strtotime($invoice->due_date));
+            @endphp
+            @if($paymentInfo)
+              <ul class="payment-info-list">
+                @foreach($paymentInfo as $p)
+                  <li>{{ $p }}</li>
+                @endforeach
+              </ul>
+            @endif
           </td>
         </tr>
       </table>

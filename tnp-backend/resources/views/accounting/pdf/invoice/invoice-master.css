@@ -9,17 +9,17 @@
 
 body {
     font-family: 'thsarabun', 'DejaVu Sans', sans-serif;
-    font-size: 11pt;
-    line-height: 1.35;
-    color: #333;
+    font-size: 10pt; /* ลดขนาดตัวอักษรหลักให้ดูมืออาชีพขึ้น */
+    line-height: 1.32;
+    color: #2d2d2d;
     margin: 0;
-    padding: 20pt;
-    background: white;
+    padding: 18pt 18pt 16pt 18pt;
+    background: #fff;
 }
 
-h1 { font-size: 20pt; font-weight: bold; margin: 0 0 8pt; color: #2c3e50; }
-h2 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; color: #34495e; }
-h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
+h1 { font-size: 16pt; font-weight: 600; margin: 0 0 6pt; color: #22313f; }
+h2 { font-size: 13pt; font-weight: 600; margin: 10pt 0 5pt; color: #2c3e50; }
+h3 { font-size: 11.5pt; font-weight: 600; margin: 8pt 0 5pt; color: #2c3e50; }
 
 /* Document Content */
 .document-content {
@@ -53,22 +53,22 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 .doc-header-block .doc-meta-table td.meta-value { text-align: left !important; }
 
 .company-name {
-    font-size: 16pt;
-    font-weight: bold;
+    font-size: 13pt;
+    font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 6pt;
-}
-
-.company-addr {
-    font-size: 10pt;
-    color: #555;
     margin-bottom: 4pt;
 }
 
-.company-meta {
-    font-size: 10pt;
+.company-addr {
+    font-size: 9pt;
     color: #555;
-    line-height: 1.4;
+    margin-bottom: 3pt;
+}
+
+.company-meta {
+    font-size: 8.8pt;
+    color: #555;
+    line-height: 1.35;
 }
 
 .header-divider {
@@ -81,17 +81,17 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 }
 
 .customer-name {
-    font-size: 12pt;
-    font-weight: bold;
+    font-size: 11pt;
+    font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 3pt;
+    margin-bottom: 2pt;
 }
 
 .customer-line {
-    font-size: 10pt;
+    font-size: 8.8pt;
     color: #555;
     margin-bottom: 2pt;
-    line-height: 1.3;
+    line-height: 1.25;
 }
 
 .customer-line.muted {
@@ -99,16 +99,16 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 }
 
 .doc-title {
-    font-size: 18pt;
-    font-weight: bold;
+    font-size: 15pt;
+    font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 8pt;
+    margin-bottom: 4pt;
 }
 
 .preview-label {
-    font-size: 12pt;
+    font-size: 9pt;
     color: #e74c3c;
-    font-weight: normal;
+    font-weight: 600;
 }
 
 .doc-meta {
@@ -123,19 +123,19 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 
 .badge-draft {
     background: #f39c12;
-    color: white;
-    padding: 3pt 6pt;
+    color: #fff;
+    padding: 2pt 6pt;
     border-radius: 3pt;
-    font-size: 9pt;
-    font-weight: bold;
-    margin-top: 6pt;
+    font-size: 8pt;
+    font-weight: 600;
+    margin-top: 4pt;
     display: inline-block;
 }
 
 .logo-img {
-    max-width: 120pt;
-    max-height: 60pt;
-    margin-bottom: 8pt;
+    max-width: 105pt;
+    max-height: 48pt;
+    margin-bottom: 6pt;
 }
 
 /* ===== Tables ===== */
@@ -148,11 +148,11 @@ table {
 /* Items table - matching quotation style */
 .items-table.slim th,
 .items-table.slim td {
-    padding: 5pt 5pt;
+    padding: 4pt 4pt;
     border: none;
     background: transparent;
     vertical-align: top;
-    font-size: 10pt;
+    font-size: 9pt;
 }
 
 /* Lock column layout so header/body align exactly */
@@ -161,11 +161,12 @@ table {
 }
 
 .items-table.slim thead th {
-    font-weight: bold;
+    font-weight: 600;
     text-align: right;
-    font-size: 11pt;
-    background: #900F0F !important;
+    font-size: 9.8pt;
+    background: #7d0d0d !important; /* slightly softer */
     color: #fff !important;
+    letter-spacing: .3pt;
 }
 
 .items-table.slim thead th.text-left {
@@ -262,13 +263,15 @@ table {
 
 .summary-label {
     text-align: left;
-    font-size: 10pt;
-    color: #555;
+    font-size: 9pt;
+    color: #444;
+    white-space: nowrap;
 }
 
 .summary-amount {
     text-align: right;
-    font-size: 10pt;
+    font-size: 9pt;
+    white-space: nowrap;
 }
 
 .amount-container {
@@ -276,22 +279,22 @@ table {
 }
 
 .amount-main {
-    font-weight: bold;
+    font-weight: 600;
     color: #2c3e50;
 }
 
 .large-amount {
-    font-size: 11pt;
+    font-size: 10.5pt;
 }
 
 .total-row {
-    border-top: 2pt solid #2c3e50;
-    font-weight: bold;
+    border-top: 1.4pt solid #2c3e50;
+    font-weight: 600;
 }
 
 .total-row .summary-label,
 .total-row .amount-main {
-    font-size: 12pt;
+    font-size: 10.8pt;
     color: #2c3e50;
 }
 
@@ -309,10 +312,10 @@ table {
 
 .reading-cell {
     text-align: center;
-    padding: 8pt;
+    padding: 6pt 4pt 4pt;
     font-style: italic;
     color: #555;
-    font-size: 10pt;
+    font-size: 8.6pt;
 }
 
 .reading-full-width {
@@ -340,10 +343,10 @@ table {
 }
 
 .signature-box {
-    width: 200pt;
-    height: 60pt;
+    width: 180pt;
+    height: 52pt;
     border-bottom: 1pt solid #333;
-    margin-bottom: 8pt;
+    margin-bottom: 6pt;
     display: block;
     margin-left: auto;
     margin-right: auto;
@@ -351,31 +354,42 @@ table {
 
 .signature-role {
     font-weight: 600;
-    margin-top: 6pt;
-    font-size: 10.5pt;
+    margin-top: 4pt;
+    font-size: 9.2pt;
     color: #2c3e50;
-    line-height: 1.35;
+    line-height: 1.3;
 }
 
 .signature-name-placeholder {
-    margin-top: 8pt;
-    font-size: 9pt;
+    margin-top: 6pt;
+    font-size: 8.2pt;
     color: #555;
     font-style: italic;
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
 .signature-date-line {
-    margin-top: 8pt;
-    font-size: 8.5pt;
+    margin-top: 6pt;
+    font-size: 7.8pt;
     color: #444;
-    letter-spacing: .5pt;
-    line-height: 1.4;
+    letter-spacing: .4pt;
+    line-height: 1.25;
 }
 
 .signature-spacer {
-    height: 12mm;
+    height: 10mm;
 }
+
+/* Amount in words styling */
+.amount-reading-label { font-size: 8.2pt; color:#555; }
+.amount-reading-text { font-size: 8.4pt; font-style: italic; color:#2c3e50; }
+
+/* Payment info list */
+.payment-info-list { list-style: none; padding:0; margin: 2pt 0 0; }
+.payment-info-list li { font-size:8.4pt; margin:0 0 2pt; line-height:1.25; }
+
+/* Footer adjustments potential (if imported) */
+.pdf-footer-small { font-size:7.6pt; }
 
 /* ===== Utilities ===== */
 .mb-3 { margin-bottom: 15pt; }

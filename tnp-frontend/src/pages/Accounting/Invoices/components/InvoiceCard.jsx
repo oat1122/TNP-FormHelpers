@@ -14,6 +14,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
+import LabeledSwitch from '../../shared/components/LabeledSwitch';
 import { useUploadInvoiceEvidenceMutation } from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
@@ -25,7 +26,6 @@ const typeLabels = {
 
 const statusColor = {
   draft: 'default',
-  pending: 'warning',
   pending: 'warning',
   approved: 'success',
   rejected: 'error',
@@ -190,6 +190,8 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
   const [localStatus, setLocalStatus] = useState(invoice?.status);
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
+  // toggle สำหรับการสลับรูปแบบแสดงผลมัดจำ: false = แสดงมัดจำหลัง (ปัจจุบัน), true = แสดงก่อน
+  const [depositFirst, setDepositFirst] = useState(false);
   const [selectedHeaders, setSelectedHeaders] = useState(() => {
     // default select current header type if not ต้นฉบับ
     const base = ['ต้นฉบับ'];
@@ -449,15 +451,28 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               </Stack>
               
               {/* กลุ่มขวา: เงื่อนไขพิเศษ */}
-              {depositInfo && (
-                <Chip 
-                  size="small" 
-                  color="warning" 
-                  variant="outlined"
-                  label={`มัดจำ: ${depositInfo}`}
-                  sx={{ fontSize: '0.75rem' }}
-                />
-              )}
+              <Stack direction="row" spacing={1} alignItems="center">
+                {depositInfo && (
+                  <Chip 
+                    size="small" 
+                    color="warning" 
+                    variant="outlined"
+                    label={`มัดจำ: ${depositInfo}`}
+                    sx={{ fontSize: '0.75rem' }}
+                  />
+                )}
+                {/* Toggle มัดจำก่อน / มัดจำหลัง */}
+                {depositInfo && (
+                  <LabeledSwitch
+                    leftLabel="มัดจำหลัง"
+                    rightLabel="มัดจำก่อน"
+                    checked={depositFirst}
+                    onChange={setDepositFirst}
+                    size="small"
+                    sx={{ ml: 0.5 }}
+                  />
+                )}
+              </Stack>
             </Stack>
           </Box>
         </Box>
@@ -617,37 +632,73 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
             {/* ข้อมูลการชำระเงิน */}
             <Box sx={{ ml: 4.5 }}>
               <Stack spacing={1}>
-                {paidAmount > 0 && (
-                  <Typography sx={{ 
-                    color: 'success.main', 
-                    fontWeight: 500,
-                    fontSize: '0.9rem',
-                    lineHeight: 1.45
-                  }}>
-                    ✓ ชำระแล้ว: {formatTHB(paidAmount)}
-                  </Typography>
-                )}
-                
-                {depositAmount > 0 && (
-                  <Typography sx={{ 
-                    color: 'warning.main', 
-                    fontWeight: 500,
-                    fontSize: '0.9rem',
-                    lineHeight: 1.45
-                  }}>
-                    💰 มัดจำ: {formatTHB(depositAmount)}
-                  </Typography>
-                )}
-                
-                {remaining > 0 && (
-                  <Typography sx={{ 
-                    color: 'error.main', 
-                    fontWeight: 700,
-                    fontSize: '0.95rem',
-                    lineHeight: 1.45
-                  }}>
-                    ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
-                  </Typography>
+                {/* แสดงผลขึ้นอยู่กับ depositFirst */}
+                {depositFirst ? (
+                  <>
+                    {depositAmount > 0 && (
+                      <Typography sx={{ 
+                        color: 'warning.main', 
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45
+                      }}>
+                        💰 มัดจำ: {formatTHB(depositAmount)}
+                      </Typography>
+                    )}
+                    {paidAmount > 0 && (
+                      <Typography sx={{ 
+                        color: 'success.main', 
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45
+                      }}>
+                        ✓ ชำระแล้ว: {formatTHB(paidAmount)}
+                      </Typography>
+                    )}
+                    {remaining > 0 && (
+                      <Typography sx={{ 
+                        color: 'error.main', 
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        lineHeight: 1.45
+                      }}>
+                        ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {paidAmount > 0 && (
+                      <Typography sx={{ 
+                        color: 'success.main', 
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45
+                      }}>
+                        ✓ ชำระแล้ว: {formatTHB(paidAmount)}
+                      </Typography>
+                    )}
+                    {depositAmount > 0 && (
+                      <Typography sx={{ 
+                        color: 'warning.main', 
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        lineHeight: 1.45
+                      }}>
+                        💰 มัดจำ: {formatTHB(depositAmount)}
+                      </Typography>
+                    )}
+                    {remaining > 0 && (
+                      <Typography sx={{ 
+                        color: 'error.main', 
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        lineHeight: 1.45
+                      }}>
+                        ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
+                      </Typography>
+                    )}
+                  </>
                 )}
               </Stack>
             </Box>

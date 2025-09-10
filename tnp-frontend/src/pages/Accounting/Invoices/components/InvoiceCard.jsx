@@ -13,6 +13,8 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
+import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
+import { useUploadInvoiceEvidenceMutation } from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
   full_amount: 'เต็มจำนวน',
@@ -325,8 +327,79 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     </Stack>
   );
 
+  // ตรวจสอบว่ามีการอัพโหลดหลักฐานการชำระเงินหรือไม่ (เพิ่มรองรับ evidence_files ซึ่งตอนนี้เก็บ 'ชื่อไฟล์' เท่านั้น)
+  const hasEvidence = Boolean(
+    (Array.isArray(invoice?.evidence_files) && invoice.evidence_files.length > 0) ||
+    invoice?.payment_evidence ||
+    invoice?.payment_proof ||
+    invoice?.evidence_url ||
+    (invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.some(p => p?.proof_url || p?.attachment || p?.evidence))
+  );
+
+  // Hook สำหรับอัพโหลดหลักฐาน
+  const [uploadInvoiceEvidence, { isLoading: uploadingEvidence }] = useUploadInvoiceEvidenceMutation();
+
+  // เก็บหลักฐานหลังอัพโหลด (optimistic refresh เฉพาะ card นี้)
+  const [localEvidenceFiles, setLocalEvidenceFiles] = useState(null); // array ของชื่อไฟล์
+
+  // สร้าง backend origin จาก VITE_END_POINT_URL เพื่อป้องกัน dev server (5173) ดึง /storage แล้ว 404
+  let backendOrigin = '';
+  try {
+    const apiBase = import.meta.env.VITE_END_POINT_URL || '';
+    backendOrigin = new URL(apiBase).origin; // เช่น http://localhost:8000
+  } catch (e) {
+    backendOrigin = window.location.origin; // fallback
+  }
+
+  // แปลง evidence_files (array ของ 'ชื่อไฟล์') เป็น array object { url, filename }
+  const evidenceFilesFromInvoice = Array.isArray(invoice?.evidence_files)
+    ? invoice.evidence_files.map(fn => ({ url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, filename: fn }))
+    : [];
+
+  const evidenceImages = (() => {
+    if (localEvidenceFiles) {
+      return localEvidenceFiles.map(fn => ({ url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, filename: fn }));
+    }
+    if (evidenceFilesFromInvoice.length > 0) return evidenceFilesFromInvoice;
+    if (Array.isArray(invoice?.evidence_images)) return invoice.evidence_images; // legacy (expected already objects/paths)
+    if (Array.isArray(invoice?.payment_evidence)) return invoice.payment_evidence; // legacy
+    return [];
+  })();
+
+  const handleUploadEvidence = async (files) => {
+    if (!invoice?.id || !files?.length) return;
+    try {
+      const res = await uploadInvoiceEvidence({ id: invoice.id, files }).unwrap();
+      // ถ้า backend ส่ง evidence_files (array ของ filenames) กลับมา ใช้สำหรับอัพเดตเฉพาะ card นี้ทันที
+      if (res && Array.isArray(res.evidence_files)) {
+        setLocalEvidenceFiles(res.evidence_files);
+      }
+      // ถ้าไม่มี ให้พึ่ง parent refetch
+    } catch (e) {
+      console.error('Upload invoice evidence failed', e);
+    }
+  };
+
   return (
-    <TNPCard>
+    <TNPCard sx={{ position: 'relative' }}>
+      {(localStatus === 'approved' || hasEvidence) && (
+        <Tooltip title={hasEvidence ? 'มีหลักฐานการชำระเงินแล้ว' : 'อนุมัติแล้ว'} placement="left">
+          <Box
+            aria-label={hasEvidence ? 'มีหลักฐานการชำระเงินแล้ว' : 'ใบแจ้งหนี้อนุมัติแล้ว'}
+            sx={{
+              position: 'absolute',
+              top: 6,
+              right: 6,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              bgcolor: hasEvidence ? 'success.main' : 'warning.main',
+              border: '2px solid #fff',
+              boxShadow: 1
+            }}
+          />
+        </Tooltip>
+      )}
       <TNPCardContent sx={{ p: 2.5 }}>
         {/* Header Section - ปรับปรุง layout และ visual hierarchy */}
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -731,6 +804,21 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                 </Typography>
               )}
             </Stack>
+          </Box>
+        )}
+
+        {/* Evidence Upload Section (show only after approved) */}
+        { (localStatus === 'approved') && (
+          <Box mb={2.5}>
+            <ImageUploadGrid
+              images={evidenceImages}
+              onUpload={handleUploadEvidence}
+              title="หลักฐานการชำระเงิน"
+              helperText={uploadingEvidence ? 'กำลังอัปโหลด...' : 'อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)'}
+              disabled={uploadingEvidence}
+              previewMode="dialog"
+              showFilename={false}
+            />
           </Box>
         )}
 

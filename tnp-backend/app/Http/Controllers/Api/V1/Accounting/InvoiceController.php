@@ -19,6 +19,50 @@ class InvoiceController extends Controller
     }
 
     /**
+     * อัปโหลดหลักฐานการชำระ / หลักฐานอื่นๆ ของ Invoice
+     * POST /api/v1/invoices/{id}/upload-evidence
+     */
+    public function uploadEvidence(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required|array|min:1',
+                'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB
+                'description' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $result = $this->invoiceService->uploadEvidence(
+                $id,
+                $request->file('files'),
+                $request->description,
+                $uploadedBy
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Evidence uploaded successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::uploadEvidence error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload evidence: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * GET /api/v1/invoices/quotations-awaiting
      * List quotations that are signed and approved, with no invoice yet
      */

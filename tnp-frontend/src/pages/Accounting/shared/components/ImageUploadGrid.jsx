@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Typography } from '@mui/material';
+import { Box, Grid, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { SecondaryButton, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 
 /**
@@ -11,6 +11,10 @@ import { SecondaryButton, tokens } from '../../PricingIntegration/components/quo
  * - disabled?: boolean
  * - title?: string
  * - helperText?: string (shown under button)
+ * - previewMode?: 'overlay' | 'dialog' (default 'overlay')
+ * - showFilename?: boolean (default true)
+ * - thumbSize?: number (square size in px for thumbnail, default 110)
+ * - thumbFit?: 'contain' | 'cover' (default 'contain')
  */
 const ImageUploadGrid = ({
   images = [],
@@ -19,6 +23,10 @@ const ImageUploadGrid = ({
   disabled = false,
   title = 'รูปภาพ',
   helperText = 'รองรับ JPG / PNG ขนาดไม่เกิน 5MB ต่อไฟล์',
+  previewMode = 'overlay',
+  showFilename = true,
+  thumbSize = 110,
+  thumbFit = 'contain'
 }) => {
   const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef(null);
@@ -81,16 +89,18 @@ const ImageUploadGrid = ({
             const filename = img?.original_filename || img?.filename || (typeof img === 'string' ? img.split('/').pop() : `image_${idx+1}`);
             return (
               <Grid item key={idx} xs={6} md={3}>
-                <Box sx={{ border:'1px solid '+tokens.border, borderRadius:1, p:1, bgcolor:'#fff', cursor:'pointer', position:'relative', '&:hover .hover-actions':{opacity:1} }} onClick={() => setPreview({ url, filename })}>
-                  <Box sx={{ position:'relative', pb:'70%', overflow:'hidden', borderRadius:1, mb:1, background:'#fafafa' }}>
-                    <img src={url} alt={filename} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                <Box sx={{ border:'1px solid '+tokens.border, borderRadius:2, p:1, bgcolor:'#fff', cursor:'pointer', position:'relative', '&:hover .hover-actions':{opacity:1}, transition:'box-shadow .18s, transform .18s', '&:hover':{ boxShadow:3, transform:'translateY(-2px)' } }} onClick={() => setPreview({ url, filename })}>
+                  <Box sx={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', mb: showFilename ? 1 : 0, background:'#fafafa', borderRadius:1, overflow:'hidden', height: thumbSize, position:'relative' }}>
+                    <img src={url} alt={filename} draggable={false} style={{ maxWidth:'100%', maxHeight:'100%', objectFit: thumbFit, display:'block' }} />
                     {onDelete && (
                       <Box className="hover-actions" sx={{ position:'absolute', top:4, right:4, display:'flex', gap:0.5, opacity:0, transition:'opacity 0.2s' }} onClick={(e)=>e.stopPropagation()}>
                         <SecondaryButton size="small" color="error" onClick={() => onDelete(img)}>ลบ</SecondaryButton>
                       </Box>
                     )}
                   </Box>
-                  <Typography variant="caption" sx={{ display:'block', wordBreak:'break-all' }}>{filename}</Typography>
+                  {showFilename && (
+                    <Typography variant="caption" sx={{ display:'block', wordBreak:'break-all', textAlign:'center', fontSize:'.65rem', opacity:.85 }}>{filename}</Typography>
+                  )}
                 </Box>
               </Grid>
             );
@@ -99,13 +109,56 @@ const ImageUploadGrid = ({
       )}
 
       {/* Simple image preview */}
-      {preview && (
+      {preview && previewMode === 'overlay' && (
         <Box sx={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1300 }} onClick={()=>setPreview(null)}>
           <Box sx={{ maxWidth:'90vw', maxHeight:'85vh' }}>
             <img src={preview.url} alt={preview.filename} style={{ maxWidth:'100%', maxHeight:'85vh', objectFit:'contain', display:'block' }} />
             <Typography variant="caption" sx={{ color:'#fff' }}>{preview.filename}</Typography>
           </Box>
         </Box>
+      )}
+      {preview && previewMode === 'dialog' && (
+        <Dialog open onClose={() => setPreview(null)} maxWidth="lg" fullWidth>
+          <DialogTitle sx={{ fontSize: '0.9rem', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {preview.filename}
+          </DialogTitle>
+          <DialogContent 
+            dividers 
+            sx={{ 
+              bgcolor:'#000', 
+              p:0, 
+              display:'flex', 
+              alignItems:'center', 
+              justifyContent:'center', 
+              minHeight:'70vh'
+            }}
+          >
+            <Box sx={{ maxWidth:'85vw', maxHeight:'75vh', display:'flex', alignItems:'center', justifyContent:'center', m:'0 auto' }}>
+              <img 
+                src={preview.url} 
+                alt={preview.filename} 
+                style={{ 
+                  maxWidth:'100%', 
+                  maxHeight:'75vh', 
+                  objectFit:'contain', 
+                  display:'block', 
+                  margin:'0 auto'
+                }} 
+                draggable={false}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ justifyContent:'space-between', px:2 }}>
+            <Box>
+              {onDelete && (
+                <Button color="error" onClick={() => { onDelete(preview); setPreview(null); }} size="small">ลบรูปนี้</Button>
+              )}
+            </Box>
+            <Box>
+              <Button onClick={()=>setPreview(null)} size="small" variant="outlined">ปิด</Button>
+            </Box>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   );

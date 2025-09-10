@@ -466,6 +466,30 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Upload invoice payment evidence (slip images etc.)
+        uploadInvoiceEvidence: builder.mutation({
+            query: ({ id, files, description }) => {
+                const formData = new FormData();
+                if (Array.isArray(files)) {
+                    files.forEach(f => formData.append('files[]', f));
+                } else if (files) {
+                    formData.append('files[]', files);
+                }
+                if (description) formData.append('description', description);
+                return {
+                    url: `/invoices/${id}/upload-evidence`,
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Skip-Json': '1' },
+                    formData: true,
+                };
+            },
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Invoice', id },
+                'Invoice'
+            ],
+        }),
+
         generateInvoicePDF: builder.mutation({
             // Usage: trigger({ id, headerTypes: ['ต้นฉบับ','สำเนา'], showWatermark:false })
             query: ({ id, headerTypes, ...options }) => ({
@@ -748,6 +772,7 @@ export const {
     useApproveInvoiceMutation,
     useSubmitInvoiceMutation,
     useGenerateInvoicePDFMutation,
+    useUploadInvoiceEvidenceMutation,
 
     // Receipts
     useGetReceiptsQuery,

@@ -22,6 +22,100 @@ class InvoiceService
     }
 
     /**
+     * Upload evidence files for an invoice
+     */
+    public function uploadEvidence($invoiceId, $files, $description = null, $uploadedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+
+            if (!$files || !is_iterable($files)) {
+                throw new \Exception('No files received');
+            }
+
+            $stored = [];
+            foreach ($files as $file) {
+                if (!$file) continue;
+                $ext = $file->getClientOriginalExtension();
+                $original = $file->getClientOriginalName();
+                $filename = 'inv_' . $invoiceId . '_' . uniqid() . '.' . $ext;
+                // New target directory: storage/app/public/images/invoices/evidence
+                $path = $file->storeAs('images/invoices/evidence', $filename, 'public');
+                $stored[] = [
+                    'path' => $path,
+                    'original' => $original,
+                    'uploaded_at' => now()->toISOString(),
+                    'uploaded_by' => $uploadedBy
+                ];
+            }
+
+            // Save attachments (generic table) if exists
+            $uploadedFiles = [];
+            foreach ($stored as $item) {
+                $filenameOnly = basename($item['path']);
+                $path = $item['path'];
+                $full = storage_path('app/public/' . str_replace('public/', '', $path));
+                $size = file_exists($full) ? filesize($full) : null;
+                $mime = $size ? mime_content_type($full) : null;
+
+                $attachment = DocumentAttachment::create([
+                    'document_type' => 'invoice',
+                    'document_id' => $invoiceId,
+                    'filename' => $filenameOnly,
+                    'original_filename' => $item['original'],
+                    'file_path' => $path,
+                    'file_size' => $size,
+                    'mime_type' => $mime,
+                    'uploaded_by' => $uploadedBy
+                ]);
+
+                $uploadedFiles[] = [
+                    'id' => $attachment->id,
+                    'filename' => $filenameOnly,
+                    'original_filename' => $item['original'],
+                    'url' => Storage::url($path),
+                    'size' => $size
+                ];
+            }
+
+            // Log history
+            DocumentHistory::logAction(
+                'invoice',
+                $invoiceId,
+                'upload_evidence',
+                $uploadedBy,
+                'อัปโหลดหลักฐาน ' . count($stored) . ' ไฟล์'
+            );
+
+            DB::commit();
+
+            // Merge & persist into invoice.evidence_files JSON keeping only stored filenames (like Pricing module)
+            // Rationale: Frontend can build full URL via Storage::url('images/invoices/evidence/' . filename)
+            $currentEvidence = is_array($invoice->evidence_files) ? $invoice->evidence_files : [];
+            foreach ($uploadedFiles as $f) {
+                // Only keep filename to reduce JSON size and follow existing pricing convention
+                $currentEvidence[] = $f['filename'];
+            }
+            $invoice->evidence_files = $currentEvidence;
+            $invoice->save();
+
+            return [
+                'uploaded_files' => $uploadedFiles,
+                'evidence_files' => $invoice->evidence_files, // now array of filenames only
+                'description' => $description,
+                'uploaded_by' => $uploadedBy,
+                'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z')
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::uploadEvidence error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Fetch quotations that are signed and approved, and have no invoice yet.
      * Used by Invoices page to list candidates for invoice creation.
      */

@@ -379,16 +379,29 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   };
 
   const handlePreviewPdf = async () => {
-    if (!invoice?.id) return;
-    
+    // Use loaded invoice id or fallback to prop invoiceId
+    const id = invoice?.id || invoiceId;
+    if (!id) {
+      showError('ไม่พบรหัสใบแจ้งหนี้ (invoice id)');
+      return;
+    }
+
     try {
       const loadingId = showLoading('กำลังสร้าง PDF ใบแจ้งหนี้…');
-      const res = await generateInvoicePDF(invoice.id).unwrap();
+      // Pass object per accountingApi.generateInvoicePDF definition
+      const res = await generateInvoicePDF({ 
+        id, 
+        // send current header type if available (array expected for multi header feature)
+        headerTypes: formData?.document_header_type ? [formData.document_header_type] : undefined,
+        preview: true, // hint backend this is a preview (safe to ignore if not used)
+      }).unwrap();
       const url = res?.pdf_url || res?.url;
       if (url) {
         setPdfUrl(url);
         setShowPdfViewer(true);
         showSuccess('สร้าง PDF สำเร็จ');
+      } else {
+        showError('ไม่ได้รับลิงก์ PDF จากเซิร์ฟเวอร์');
       }
       dismissToast(loadingId);
     } catch (e) {
@@ -400,7 +413,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     <>
       {isEditing ? (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf} aria-label="ดูตัวอย่าง PDF">
+          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf || !invoice?.id} aria-label="ดูตัวอย่าง PDF">
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
           <Button variant="contained" onClick={handleSave} disabled={isSaving} aria-label="บันทึกการเปลี่ยนแปลง">
@@ -410,7 +423,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         </>
       ) : (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf} aria-label="ดูตัวอย่าง PDF">
+          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf || !invoice?.id} aria-label="ดูตัวอย่าง PDF">
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
           <Button variant="contained" onClick={enterEditMode} aria-label="แก้ไข">แก้ไข</Button>

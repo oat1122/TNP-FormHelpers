@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse, Tooltip } from '@mui/material';
+import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -87,7 +87,6 @@ const getInvoiceStatus = (invoice) => {
   const statusMap = {
     draft: 'แบบร่าง',
     pending: 'รอดำเนินการ',
-  pending: 'รออนุมัติ',
     approved: 'อนุมัติแล้ว',
     rejected: 'ถูกปฏิเสธ',
     sent: 'ส่งแล้ว',
@@ -188,6 +187,41 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   const [showDetails, setShowDetails] = useState(false);
   // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
   const [localStatus, setLocalStatus] = useState(invoice?.status);
+  const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
+  const [selectedHeaders, setSelectedHeaders] = useState(() => {
+    // default select current header type if not ต้นฉบับ
+    const base = ['ต้นฉบับ'];
+    if (invoice?.document_header_type && !base.includes(invoice.document_header_type)) {
+      base.push(invoice.document_header_type);
+    }
+    return base;
+  });
+
+  const headerOptions = [
+    'ต้นฉบับ',
+    'สำเนา',
+    'สำเนา-ลูกค้า',
+    ...(invoice?.document_header_type && !['ต้นฉบับ','สำเนา','สำเนา-ลูกค้า'].includes(invoice.document_header_type)
+      ? [invoice.document_header_type] : [])
+  ];
+
+  const toggleHeader = (h) => {
+    setSelectedHeaders(prev => prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h]);
+  };
+
+  const handleDownloadClick = (e) => {
+    if (!onDownloadPDF) return;
+    setDownloadAnchorEl(e.currentTarget);
+  };
+
+  const handleCloseMenu = () => setDownloadAnchorEl(null);
+
+  const handleConfirmDownload = () => {
+    handleCloseMenu();
+    if (onDownloadPDF) {
+      onDownloadPDF({ invoiceId: invoice?.id, headerTypes: selectedHeaders });
+    }
+  };
   
   // คำนวณยอดเงินอย่างถูกต้อง - แก้ไข logic การคำนวณ
   const subtotal = Number(invoice?.subtotal || 0);
@@ -716,22 +750,39 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
             </Button>
           )}
           {onDownloadPDF && (
-            <Button 
-              size="small" 
-              variant="outlined" 
-              onClick={onDownloadPDF} 
-              startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
-              sx={{ 
-                px: 2,
-                py: 1,
-                fontSize: '0.85rem',
-                fontWeight: 500
-              }}
-              tabIndex={0}
-              aria-label="ดาวน์โหลดไฟล์ PDF"
-            >
-              ดาวน์โหลด PDF
-            </Button>
+            <>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleDownloadClick}
+                startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
+                sx={{ px: 2, py: 1, fontSize: '0.85rem', fontWeight: 500 }}
+                tabIndex={0}
+                aria-label="ดาวน์โหลดไฟล์ PDF หลายประเภทหัวกระดาษ"
+              >
+                ดาวน์โหลด PDF
+              </Button>
+              <Menu
+                anchorEl={downloadAnchorEl}
+                open={Boolean(downloadAnchorEl)}
+                onClose={handleCloseMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              >
+                <Typography sx={{ px: 2, pt: 1, fontSize: '.8rem', fontWeight: 600 }}>เลือกประเภทหัวกระดาษ</Typography>
+                {headerOptions.map(opt => (
+                  <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
+                    <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
+                    <ListItemText primaryTypographyProps={{ fontSize: '.8rem' }} primary={opt} />
+                  </MenuItem>
+                ))}
+                <Divider sx={{ my: .5 }} />
+                <MenuItem disabled={selectedHeaders.length === 0} onClick={handleConfirmDownload} sx={{ justifyContent: 'center' }}>
+                  <Typography color={selectedHeaders.length ? 'primary.main' : 'text.disabled'} fontSize={'.8rem'} fontWeight={600}>
+                    ดาวน์โหลด {selectedHeaders.length > 1 ? '(.zip)' : '(PDF)'}
+                  </Typography>
+                </MenuItem>
+              </Menu>
+            </>
           )}
           {onView && (
             <Button 

@@ -747,6 +747,7 @@ class InvoiceService
             // ใช้ Invoice PDF Master Service (mPDF) เป็นหลัก
             try {
                 $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+                // Support runtime override for document_header_type (no DB write)
                 $result = $masterService->generatePdf($invoice, $options);
                 
                 // บันทึก History

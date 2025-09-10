@@ -586,19 +586,87 @@ class InvoiceController extends Controller
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
-            $result = $this->invoiceService->generatePdf($id, $options);
-            
+            $headerTypes = $request->input('headerTypes');
+
+            // Normal single generation if no multi-select
+            if (empty($headerTypes) || !is_array($headerTypes)) {
+                $result = $this->invoiceService->generatePdf($id, $options);
+                return response()->json([
+                    'success' => true,
+                    'pdf_url' => $result['url'] ?? null,
+                    'filename' => $result['filename'] ?? null,
+                    'size' => $result['size'] ?? null,
+                    'type' => $result['type'] ?? null,
+                    'engine' => $result['engine'] ?? 'mPDF',
+                    'data' => $result,
+                    'message' => isset($result['engine']) && $result['engine'] === 'fallback' 
+                        ? 'PDF สร้างด้วย fallback method เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
+                        : 'PDF สร้างด้วย mPDF สำเร็จ'
+                ]);
+            }
+
+            // Multi-header generation: create multiple PDFs then bundle zip
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            $master = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+            $files = [];
+            foreach ($headerTypes as $ht) {
+                if (!is_string($ht) || trim($ht) === '') continue;
+                $localOptions = $options + ['document_header_type' => $ht];
+                $pdfData = $master->generatePdf($invoice->replicate(), $localOptions); // replicate เพื่อไม่แก้ state เดิมระหว่าง loop
+                $files[] = [
+                    'type' => $ht,
+                    'path' => $pdfData['path'],
+                    'filename' => $pdfData['filename'],
+                    'size' => $pdfData['size'],
+                    'url' => $pdfData['url']
+                ];
+            }
+
+            if (count($files) === 0) {
+                throw new \Exception('No valid header types generated');
+            }
+
+            if (count($files) === 1) {
+                $f = $files[0];
+                return response()->json([
+                    'success' => true,
+                    'mode' => 'single',
+                    'pdf_url' => $f['url'],
+                    'filename' => $f['filename'],
+                    'size' => $f['size'],
+                    'header_type' => $f['type'],
+                    'files' => $files,
+                    'message' => 'PDF เดี่ยวสร้างสำเร็จ'
+                ]);
+            }
+
+            // สร้าง zip
+            $zipDir = storage_path('app/public/pdfs/invoices/zips');
+            if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
+            $zipName = sprintf('invoice-%s-multi-%s.zip', $invoice->number ?? $invoice->id, now()->format('YmdHis'));
+            $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
+            }
+            foreach ($files as $f) {
+                if (is_file($f['path'])) {
+                    $baseName = $f['filename'];
+                    $zip->addFile($f['path'], $baseName);
+                }
+            }
+            $zip->close();
+            $zipUrl = url('storage/pdfs/invoices/zips/' . $zipName);
+
             return response()->json([
                 'success' => true,
-                'pdf_url' => $result['url'] ?? null,
-                'filename' => $result['filename'] ?? null,
-                'size' => $result['size'] ?? null,
-                'type' => $result['type'] ?? null,
-                'engine' => $result['engine'] ?? 'mPDF',
-                'data' => $result,
-                'message' => isset($result['engine']) && $result['engine'] === 'fallback' 
-                    ? 'PDF สร้างด้วย fallback method เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
-                    : 'PDF สร้างด้วย mPDF สำเร็จ'
+                'mode' => 'zip',
+                'zip_url' => $zipUrl,
+                'zip_filename' => $zipName,
+                'zip_size' => is_file($zipPath) ? filesize($zipPath) : 0,
+                'files' => $files,
+                'count' => count($files),
+                'message' => 'สร้าง ZIP รวมหลายไฟล์ PDF สำเร็จ'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -632,13 +700,48 @@ class InvoiceController extends Controller
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
-            $response = $this->invoiceService->streamPdf($id, $options);
-            
-            // เปลี่ยน Content-Disposition เป็น attachment แทน inline
+            $headerTypes = $request->input('headerTypes');
+
+            if (empty($headerTypes) || !is_array($headerTypes)) {
+                $response = $this->invoiceService->streamPdf($id, $options);
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $filename = sprintf('invoice-%s.pdf', $invoice->number ?? $invoice->id);
+                return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+            }
+
+            // Multi header direct download: create PDFs and zip
             $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
-            $filename = sprintf('invoice-%s.pdf', $invoice->number ?? $invoice->id);
-            
-            return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+            $master = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+            $tmpFiles = [];
+            foreach ($headerTypes as $ht) {
+                if (!is_string($ht) || trim($ht) === '') continue;
+                $pdfData = $master->generatePdf($invoice->replicate(), $options + ['document_header_type' => $ht]);
+                $tmpFiles[] = $pdfData['path'];
+            }
+            if (count($tmpFiles) === 0) {
+                throw new \Exception('No files generated');
+            }
+            if (count($tmpFiles) === 1) {
+                $single = $tmpFiles[0];
+                return response()->download($single, basename($single), [
+                    'Content-Type' => 'application/pdf'
+                ]);
+            }
+            $zipDir = storage_path('app/public/pdfs/invoices/zips');
+            if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
+            $zipName = sprintf('invoice-%s-multi-%s.zip', $invoice->number ?? $invoice->id, now()->format('YmdHis'));
+            $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
+            }
+            foreach ($tmpFiles as $f) {
+                if (is_file($f)) { $zip->addFile($f, basename($f)); }
+            }
+            $zip->close();
+            return response()->download($zipPath, $zipName, [
+                'Content-Type' => 'application/zip'
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -35,7 +35,7 @@ class InvoicePdfMasterService
             $mpdf = $this->createMpdf($viewData);
 
             // 2) บันทึกลงไฟล์
-            $filePath = $this->savePdfFile($mpdf, $viewData['invoice']);
+            $filePath = $this->savePdfFile($mpdf, $viewData['invoice'], $viewData['options'] ?? []);
 
             return [
                 'path'     => $filePath,
@@ -81,6 +81,11 @@ class InvoicePdfMasterService
     protected function buildViewData(Invoice $invoice, array $options = []): array
     {
         $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'creator', 'manager']);
+
+        // Allow runtime override of document header type (ไม่บันทึกลง DB)
+        if (!empty($options['document_header_type'])) {
+            $i->document_header_type = $options['document_header_type'];
+        }
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
         $items    = $this->getInvoiceItems($i);
@@ -437,11 +442,14 @@ class InvoicePdfMasterService
     /**
      * บันทึกไฟล์ PDF
      */
-    protected function savePdfFile(Mpdf $mpdf, Invoice $invoice): string
+    protected function savePdfFile(Mpdf $mpdf, Invoice $invoice, array $options = []): string
     {
         $timestamp = now()->format('Y-m-d-His');
-        $filename = sprintf('invoice-%s-%s.pdf', 
-            $invoice->number ?? $invoice->id, 
+        $headerType = $options['document_header_type'] ?? $invoice->document_header_type ?? 'ต้นฉบับ';
+        $headerSlug = $this->slugHeaderType($headerType);
+        $filename = sprintf('invoice-%s-%s-%s.pdf',
+            $invoice->number ?? $invoice->id,
+            $headerSlug,
             $timestamp
         );
 
@@ -454,6 +462,21 @@ class InvoicePdfMasterService
         $mpdf->Output($filePath, 'F');
 
         return $filePath;
+    }
+
+    /**
+     * สร้าง slug สำหรับใส่ในชื่อไฟล์ (อนุญาตตัวอักษรไทย/อังกฤษ/ตัวเลข แทนที่อย่างอื่นด้วย -)
+     */
+    protected function slugHeaderType(string $label): string
+    {
+        $label = trim($label);
+        // จำกัดความยาวเพื่อกันชื่อไฟล์ยาวเกิน
+        $label = mb_substr($label, 0, 30, 'UTF-8');
+        // แทนช่องว่างด้วย -
+        $label = preg_replace('/\s+/u', '-', $label);
+        // กรองอักขระที่ไม่ใช่ ตัวอักษรไทย อังกฤษ ตัวเลข หรือ -
+        $label = preg_replace('/[^ก-๙A-Za-z0-9\-]+/u', '', $label);
+        return $label === '' ? 'doc' : mb_strtolower($label);
     }
 
     /**

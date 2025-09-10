@@ -20,6 +20,7 @@ import {
 import InvoiceCreateDialog from './components/InvoiceCreateDialog';
 import QuotationSelectionDialog from './components/QuotationSelectionDialog';
 import InvoiceCard from './components/InvoiceCard';
+import { apiConfig } from '../../../api/apiConfig';
 import InvoiceDetailDialog from './components/InvoiceDetailDialog';
 
 const Invoices = () => {
@@ -85,6 +86,34 @@ const Invoices = () => {
   const handleViewInvoice = (invoice) => {
     setSelectedInvoiceId(invoice.id);
     setDetailDialogOpen(true);
+  };
+
+  // Multi-header PDF generation handler
+  const handleDownloadMultiHeader = async ({ invoiceId, headerTypes }) => {
+    try {
+      if (!invoiceId || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
+      const data = await generateInvoicePDF({ id: invoiceId, headerTypes }).unwrap();
+      if (data.mode === 'single' && data.pdf_url) {
+        const a = document.createElement('a');
+        a.href = data.pdf_url;
+        a.download = data.filename || 'invoice.pdf';
+        document.body.appendChild(a); a.click(); a.remove();
+      } else if (data.mode === 'zip' && data.zip_url) {
+        const a = document.createElement('a');
+        a.href = data.zip_url;
+        a.download = data.zip_filename || 'invoices.zip';
+        document.body.appendChild(a); a.click(); a.remove();
+      } else if (data.pdf_url) {
+        const a = document.createElement('a');
+        a.href = data.pdf_url;
+        a.download = data.filename || 'invoice.pdf';
+        document.body.appendChild(a); a.click(); a.remove();
+      } else {
+        console.warn('Unexpected generateInvoicePDF response', data);
+      }
+    } catch (e) {
+      console.error('Multi-header download failed', e);
+    }
   };
 
   return (
@@ -170,7 +199,7 @@ const Invoices = () => {
                   <Grid item xs={12} md={6} lg={4} key={inv.id}>
                     <InvoiceCard
                       invoice={inv}
-                      onDownloadPDF={() => generateInvoicePDF(inv.id)}
+                      onDownloadPDF={handleDownloadMultiHeader}
                       onView={() => handleViewInvoice(inv)}
                       onApprove={async (notes) => {
                         try {

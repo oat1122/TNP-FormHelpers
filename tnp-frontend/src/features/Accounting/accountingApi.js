@@ -467,9 +467,15 @@ export const accountingApi = createApi({
         }),
 
         generateInvoicePDF: builder.mutation({
-            query: (id) => ({
+            // Usage: trigger({ id, headerTypes: ['ต้นฉบับ','สำเนา'], showWatermark:false })
+            query: ({ id, headerTypes, ...options }) => ({
                 url: `/invoices/${id}/generate-pdf`,
-                method: 'GET',
+                method: 'POST',
+                body: {
+                    // send only if array & length
+                    ...(Array.isArray(headerTypes) && headerTypes.length ? { headerTypes } : {}),
+                    ...options,
+                },
             }),
         }),
 

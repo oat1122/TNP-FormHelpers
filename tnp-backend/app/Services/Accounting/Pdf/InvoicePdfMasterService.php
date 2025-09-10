@@ -198,6 +198,8 @@ class InvoicePdfMasterService
     protected function cssFiles(): array
     {
         return [
+            // Shared base styles (keep first)
+            resource_path('views\\accounting\\pdf\\shared\\pdf-shared-base.css'),
             resource_path('views\accounting\pdf\invoice\invoice-master.css'),
             resource_path('views\pdf\partials\invoice-header.css'),
         ];

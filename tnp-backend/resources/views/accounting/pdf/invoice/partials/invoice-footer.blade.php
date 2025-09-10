@@ -1,32 +1,22 @@
 {{-- resources/views/accounting/pdf/invoice/partials/invoice-footer.blade.php --}}
-<div style="border-top: 1pt solid #bdc3c7; margin-top: 5pt; padding-top: 8pt;">
-    <table style="width: 100%; border-collapse: collapse; font-family: 'thsarabun', sans-serif; font-size: 9pt; color: #7f8c8d;">
+<div class="pdf-footer" style="border-top:1pt solid #bdc3c7; margin-top:6pt; padding-top:6pt;">
+    <table class="footer-table" role="presentation" style="width:100%; border-collapse:collapse; font-family:'thsarabun',sans-serif; font-size:8.5pt; color:#555;">
         <tr>
-            <td style="width: 33%; text-align: left; vertical-align: top;">
-                {{-- ข้อมูลบัญชีธนาคาร --}}
+            <td style="width:34%; text-align:left; vertical-align:top;">
                 @if(!empty($invoice->company->bank_account))
-                  <div style="font-size: 8pt; color: #555;">
-                    <strong>ข้อมูลบัญชีธนาคาร:</strong><br>
-                    {{ $invoice->company->bank_account }}
-                  </div>
+                    <div><strong>บัญชีธนาคาร:</strong><br>{{ $invoice->company->bank_account }}</div>
                 @endif
             </td>
-            
-            <td style="width: 33%; text-align: center; vertical-align: top;">
-                {{-- สถานะเอกสาร --}}
-                <div style="color: #2c3e50;">
+            <td style="width:32%; text-align:center; vertical-align:top;">
+                <div>
                     {{ $invoice->document_header_type ?? 'ต้นฉบับ' }}
                     @if(!($isFinal ?? true))
-                      <br><span style="color: #e74c3c; font-weight: bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
+                        <br><span style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
                     @endif
                 </div>
             </td>
-            
-            <td style="width: 33%; text-align: right; vertical-align: top;">
-                {{-- เลขหน้าและข้อมูลเอกสาร --}}
-                <div style="font-weight: bold; color: #2c3e50;">
-                    หน้า {PAGENO} จาก {nbpg}
-                </div>
+            <td style="width:34%; text-align:right; vertical-align:top;">
+                <div style="font-weight:600; color:#2c3e50;">หน้า {PAGENO} จาก {nbpg}</div>
             </td>
         </tr>
     </table>

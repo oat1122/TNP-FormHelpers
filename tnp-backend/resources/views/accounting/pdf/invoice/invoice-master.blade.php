@@ -97,7 +97,7 @@
     @endphp
     
     @if(!empty($invoiceItems))
-      <table class="items-table slim table-numbers-sm">
+      <table class="items-table slim table-numbers-sm invoice-items">
         <colgroup>
           <col class="w-no">
           <col class="w-desc">
@@ -105,7 +105,7 @@
         </colgroup>
         <thead>
           <tr>
-            <th class="text-left">ลำดับ</th>
+            <th class="desc-head text-left">ลำดับ</th>
             <th class="text-left">รายละเอียด</th>
             <th class="text-right">จำนวนเงิน</th>
           </tr>
@@ -113,7 +113,7 @@
         <tbody>
           @foreach($invoiceItems as $item)
             <tr>
-              <td class="text-left">{{ $no++ }}</td>
+              <td class="num">{{ $no++ }}</td>
               <td class="desc">{!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
               <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
             </tr>
@@ -321,9 +321,7 @@
               {{-- Thai text conversion using final_total_amount --}}
               <tr class="reading-row">
                 <td colspan="2" class="reading-cell">
-                  <div class="reading-full-width">
-                    ({{ $thaiBahtText($finalTotalAmount) }})
-                  </div>
+                  <div class="reading-full-width">({{ $thaiBahtText($finalTotalAmount) }})</div>
                 </td>
               </tr>
             </table>

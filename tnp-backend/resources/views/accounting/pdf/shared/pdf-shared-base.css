@@ -1,0 +1,357 @@
+/* Shared PDF Base Styles (Quotation + Invoice)
+   Keep typography + utility classes consistent to avoid duplication.
+*/
+body {
+   font-family: 'thsarabun', 'DejaVu Sans', sans-serif;
+   font-size: 9.5pt;
+   line-height: 1.35;
+   color: #333;
+   margin: 0;
+   padding: 20pt;
+   background: #fff;
+}
+
+h1 {
+   font-size: 17pt;
+   font-weight: bold;
+   margin: 0 0 8pt;
+   color: #2c3e50
+}
+
+h2 {
+   font-size: 13pt;
+   font-weight: bold;
+   margin: 12pt 0 6pt;
+   color: #34495e
+}
+
+h3 {
+   font-size: 11pt;
+   font-weight: bold;
+   margin: 10pt 0 6pt;
+   color: #34495e
+}
+
+* {
+   box-sizing: border-box;
+}
+
+.text-right {
+   text-align: right
+}
+
+.text-center {
+   text-align: center
+}
+
+.text-left {
+   text-align: left
+}
+
+.mb-3 {
+   margin-bottom: 12pt
+}
+
+.mb-4 {
+   margin-bottom: 16pt
+}
+
+.mt-4 {
+   margin-top: 16pt
+}
+
+.no-items-box {
+   text-align: center;
+   padding: 20pt;
+   border: 1px solid #dee2e6;
+   background: #f8f9fa;
+   font-size: 9pt;
+   font-style: italic
+}
+
+/* Items table slim variant (shared) */
+.items-table.slim {
+   width: 100%;
+   border-collapse: collapse;
+   table-layout: fixed;
+   margin-bottom: 14pt;
+}
+
+.items-table.slim th,
+.items-table.slim td {
+   padding: 5pt 5pt;
+   border: none;
+   background: transparent;
+   vertical-align: top;
+   font-size: 9pt;
+}
+
+.items-table.slim thead th {
+   font-weight: bold;
+   text-align: right;
+   font-size: 10pt;
+   background: #900F0F !important;
+   color: #fff !important;
+}
+
+.items-table.slim thead th:first-child {
+   text-align: left
+}
+
+.items-table.slim .desc {
+   text-align: left
+}
+
+.items-table.slim .num {
+   text-align: right;
+   white-space: nowrap
+}
+
+.items-table.slim .muted {
+   color: #ffffff
+}
+
+/* Group rows (quotation) */
+.items-table.slim .group-row td {
+   font-weight: bold;
+   padding-top: 8pt;
+   padding-bottom: 5pt;
+   border-bottom: 0.6pt solid #670000;
+   font-size: 10pt;
+   background: #fcd4d4;
+}
+
+.items-table.slim .item-row td {
+   padding-top: 6pt;
+   padding-bottom: 6pt;
+   border-bottom: 0.6pt solid #ddd;
+   font-size: 9pt;
+}
+
+.items-table.slim .desc.child {
+   padding-left: 16pt;
+}
+
+/* Summary + Notes shared structure */
+.summary-notes-wrapper {
+   page-break-inside: auto;
+   margin-top: 15pt;
+   width: 100%;
+}
+
+.summary-notes-table {
+   width: 100%;
+   border-collapse: separate;
+   border-spacing: 8pt 0;
+   table-layout: fixed;
+}
+
+.panel-box {
+   vertical-align: top;
+   padding: 6pt 4pt;
+   background: transparent;
+   overflow: hidden;
+}
+
+.panel-title {
+   font-size: 10pt;
+   font-weight: 600;
+   margin: 0 0 4pt;
+   color: #2f3d48;
+}
+
+.panel-title--sm {
+   font-size: 10pt;
+}
+
+.panel-content {
+   font-size: 8.5pt;
+   line-height: 1.35;
+   color: #555;
+}
+
+/* Summary table */
+.summary-table {
+   width: 100%;
+   border-collapse: collapse;
+   font-size: 9pt;
+   table-layout: fixed;
+}
+
+.summary-table td {
+   padding: 5pt 6pt;
+   border-bottom: 1px solid #dee2e6;
+   vertical-align: top;
+   word-wrap: break-word;
+}
+
+.summary-table .summary-label {
+   text-align: left;
+   width: 45% !important;
+   font-size: 9pt;
+}
+
+.summary-table .summary-amount {
+   text-align: right;
+   width: 55% !important;
+   font-weight: bold;
+   font-size: 9pt;
+   padding-left: 8pt;
+}
+
+.summary-amount .amount-main {
+   white-space: nowrap !important;
+   display: block;
+   font-size: 9pt;
+   overflow: hidden;
+}
+
+.summary-table .total-row {
+   background: transparent;
+   border-top: 1.5pt solid #d0d7dd;
+}
+
+.summary-table .total-row td {
+   font-weight: 600;
+   color: #000;
+   padding: 8pt 6pt;
+   font-size: 9.5pt;
+}
+
+.summary-table .total-row .summary-amount {
+   font-size: 9.5pt;
+}
+
+.summary-table .reading-row td {
+   padding: 4pt 6pt 8pt 6pt;
+   border-bottom: none;
+}
+
+.reading-full-width {
+   color: #000;
+   font-size: 7.5pt;
+   font-style: italic;
+   text-align: center;
+   line-height: 1.2;
+   margin: 0;
+   padding: 0;
+   width: 100%;
+   white-space: normal;
+}
+
+.large-amount {
+   font-size: 8.8pt !important;
+}
+
+/* Signature shared */
+.signature-fixed-wrapper {
+   font-size: 9.5pt;
+}
+
+.signature-table.fixed {
+   width: 100%;
+   border-collapse: collapse;
+}
+
+.signature-table.fixed .signature-cell {
+   padding: 6pt 12pt;
+}
+
+.signature-table.fixed .signature-role {
+   font-weight: 600;
+   margin-top: 6pt;
+   font-size: 10pt;
+   color: #2c3e50;
+   line-height: 1.35;
+}
+
+.signature-table.fixed .signature-name-placeholder {
+   margin-top: 8pt;
+   font-size: 8.5pt;
+   color: #555;
+   font-style: italic;
+   line-height: 1.4;
+}
+
+.signature-table.fixed .signature-date-line {
+   margin-top: 8pt;
+   font-size: 8pt;
+   color: #444;
+   letter-spacing: .5pt;
+   line-height: 1.4;
+}
+
+.signature-box {
+   position: relative;
+   width: 200pt;
+   height: 60pt;
+}
+
+.signature-box:after {
+   content: "";
+   position: absolute;
+   left: 0;
+   right: 0;
+   bottom: -2pt;
+   height: 0;
+   border-bottom: 1pt solid #555;
+}
+
+.signature-inline {
+   page-break-inside: avoid;
+   margin-top: 18pt;
+   padding-top: 6pt;
+}
+
+.signature-spacer {
+   height: 6mm;
+}
+
+/* Utilities */
+col.w-desc {
+   width: 60%;
+}
+
+col.w-unit-price {
+   width: 15%;
+}
+
+col.w-qty {
+   width: 10%;
+}
+
+col.w-total {
+   width: 15%;
+}
+
+.w-no,
+col.w-no {
+   width: 10%;
+}
+
+.group-no {
+   display: inline-block;
+   min-width: 10pt;
+   font-weight: 600;
+   margin-right: 4pt;
+}
+
+.table-numbers-sm td.num,
+.table-numbers-sm th.text-right {
+   font-size: 9pt !important;
+}
+
+.items-table.slim.table-numbers-sm td.desc {
+   font-size: 9.5pt;
+}
+
+@media print {
+   .summary-notes-table {
+      border-spacing: 6pt 0;
+   }
+
+   .reading-full-width {
+      font-size: 7pt !important;
+      line-height: 1.1;
+   }
+}

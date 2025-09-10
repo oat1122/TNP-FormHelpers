@@ -1,25 +1,6 @@
 /* Invoice PDF Master CSS - Updated to match quotation style */
 
-/* ===== Base ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'thsarabun', 'DejaVu Sans', sans-serif;
-    font-size: 11pt;
-    line-height: 1.35;
-    color: #333;
-    margin: 0;
-    padding: 20pt;
-    background: white;
-}
-
-h1 { font-size: 20pt; font-weight: bold; margin: 0 0 8pt; color: #2c3e50; }
-h2 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; color: #34495e; }
-h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
+/* Base typography & utilities now provided by shared pdf-shared-base.css */
 
 /* Document Content */
 .document-content {
@@ -49,8 +30,13 @@ h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 6pt; color: #34495e; }
 }
 
 /* keep meta values aligned left inside table, optionally right if needed per cell */
-.doc-header-block .doc-meta-table td.meta-label { text-align: left !important; }
-.doc-header-block .doc-meta-table td.meta-value { text-align: left !important; }
+.doc-header-block .doc-meta-table td.meta-label {
+    text-align: left !important;
+}
+
+.doc-header-block .doc-meta-table td.meta-value {
+    text-align: left !important;
+}
 
 .company-name {
     font-size: 16pt;
@@ -145,245 +131,93 @@ table {
     margin-bottom: 15pt;
 }
 
-/* Items table - matching quotation style */
-.items-table.slim th,
-.items-table.slim td {
-    padding: 5pt 5pt;
-    border: none;
-    background: transparent;
-    vertical-align: top;
-    font-size: 10pt;
-}
-
-/* Lock column layout so header/body align exactly */
-.items-table.slim { 
-    table-layout: fixed; 
-}
-
-.items-table.slim thead th {
-    font-weight: bold;
-    text-align: right;
-    font-size: 11pt;
-    background: #900F0F !important;
-    color: #fff !important;
-}
-
-.items-table.slim thead th.text-left {
-    text-align: left;
-}
-
-.items-table.slim thead th.text-right {
-    text-align: right;
-}
-
-.items-table.slim thead th:first-child { 
-    text-align: left; 
-}
-
-.items-table.slim .desc { 
-    text-align: left; 
-}
-
-.items-table.slim .num { 
-    text-align: right; 
-    white-space: nowrap; 
-}
-
-.items-table.slim .muted { 
-    color: #ffffff; 
-}
+/* Items table core styling inherited; only invoice-specific width overrides below */
 
 /* Column widths */
-.w-no { width: 8%; }
-.w-desc { width: 40%; }
-.w-qty { width: 12%; }
-.w-unit { width: 12%; }
-.w-unit-price { width: 14%; }
-.w-total { width: 14%; }
+.w-no {
+    width: 8%;
+}
+
+.w-desc {
+    width: 40%;
+}
+
+.w-qty {
+    width: 12%;
+}
+
+.w-unit {
+    width: 12%;
+}
+
+.w-unit-price {
+    width: 14%;
+}
+
+.w-total {
+    width: 14%;
+}
 
 /* Ensure invoice items (slim) columns align with content */
 .items-table.slim thead th:nth-child(2) {
-    text-align: left; /* match description cell alignment */
+    text-align: left;
+    /* match description cell alignment */
 }
 
 /* Override widths for the 3-column slim table to sum to 100% */
-.items-table.slim col.w-no { width: 10%; }
-.items-table.slim col.w-desc { width: 70%; }
-.items-table.slim col.w-total { width: 20%; }
+.items-table.slim col.w-no {
+    width: 10%;
+}
+
+.items-table.slim col.w-desc {
+    width: 70%;
+}
+
+.items-table.slim col.w-total {
+    width: 20%;
+}
 
 /* ===== Summary and Notes ===== */
-.summary-notes-wrapper {
-    margin-top: 20pt;
-    width: 100%;
-}
-
-.summary-notes-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.panel-box {
-    vertical-align: top;
-    padding: 12pt;
-}
-
+/* Notes/Summary panels align to shared styling; keep optional border variant */
 .panel-notes {
     border-right: 1pt solid #e9ecef;
 }
 
-.panel-title {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 6pt;
-}
-
-.panel-title--sm {
-    font-size: 11pt;
-}
-
-.panel-content {
-    font-size: 10pt;
-    color: #555;
-    line-height: 1.4;
-}
-
-/* Summary table */
-.summary-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.summary-table td {
-    padding: 5pt 8pt;
-    border-bottom: 1pt solid #e9ecef;
-    vertical-align: top;
-}
-
-.summary-label {
-    text-align: left;
-    font-size: 10pt;
-    color: #555;
-}
-
-.summary-amount {
-    text-align: right;
-    font-size: 10pt;
-}
-
-.amount-container {
-    text-align: right;
-}
-
-.amount-main {
-    font-weight: bold;
-    color: #2c3e50;
-}
-
-.large-amount {
-    font-size: 11pt;
-}
-
-.total-row {
-    border-top: 2pt solid #2c3e50;
-    font-weight: bold;
-}
-
-.total-row .summary-label,
-.total-row .amount-main {
-    font-size: 12pt;
-    color: #2c3e50;
-}
-
+/* Summary table specifics use shared base; only color tweaks below */
 .discount-row .summary-amount.discount .amount-main {
-    color: #e74c3c;
+    color: #d32f2f;
 }
 
 .withholding-tax-row .summary-amount.withholding-tax .amount-main {
-    color: #e74c3c;
+    color: #f57c00;
 }
 
-.reading-row {
-    border-top: 1pt solid #bdc3c7;
-}
-
-.reading-cell {
-    text-align: center;
-    padding: 8pt;
-    font-style: italic;
-    color: #555;
-    font-size: 10pt;
-}
-
-.reading-full-width {
-    width: 100%;
-    text-align: center;
-}
-
-/* ===== Signature Section ===== */
-.signature-section {
-    margin-top: 36pt;
-    page-break-inside: avoid;
-    width: 100%;
-}
-
-.signature-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.signature-cell {
-    width: 50%;
-    text-align: center;
-    vertical-align: top;
-    padding: 12pt;
-}
-
-.signature-box {
-    width: 200pt;
-    height: 60pt;
-    border-bottom: 1pt solid #333;
-    margin-bottom: 8pt;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.signature-role {
-    font-weight: 600;
-    margin-top: 6pt;
-    font-size: 10.5pt;
-    color: #2c3e50;
-    line-height: 1.35;
-}
-
-.signature-name-placeholder {
-    margin-top: 8pt;
-    font-size: 9pt;
-    color: #555;
-    font-style: italic;
-    line-height: 1.4;
-}
-
-.signature-date-line {
-    margin-top: 8pt;
-    font-size: 8.5pt;
-    color: #444;
-    letter-spacing: .5pt;
-    line-height: 1.4;
-}
-
-.signature-spacer {
-    height: 12mm;
-}
+/* Signature block styling moved to shared base */
 
 /* ===== Utilities ===== */
-.mb-3 { margin-bottom: 15pt; }
-.mb-4 { margin-bottom: 20pt; }
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-.muted { color: #666; }
+.mb-3 {
+    margin-bottom: 15pt;
+}
+
+.mb-4 {
+    margin-bottom: 20pt;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.muted {
+    color: #666;
+}
 
 .no-items-box {
     text-align: center;
@@ -394,14 +228,30 @@ table {
 }
 
 /* Page Break Utilities */
-.page-break-before { page-break-before: always; }
-.page-break-after { page-break-after: always; }
-.no-page-break { page-break-inside: avoid; }
+.page-break-before {
+    page-break-before: always;
+}
+
+.page-break-after {
+    page-break-after: always;
+}
+
+.no-page-break {
+    page-break-inside: avoid;
+}
 
 /* Prevent page breaks in critical sections */
-thead { display: table-header-group; }
-tfoot { display: table-footer-group; }
-tr { page-break-inside: avoid; }
+thead {
+    display: table-header-group;
+}
+
+tfoot {
+    display: table-footer-group;
+}
+
+tr {
+    page-break-inside: avoid;
+}
 
 /* Print Specific */
 @media print {
@@ -409,7 +259,7 @@ tr { page-break-inside: avoid; }
         margin: 0;
         padding: 0;
     }
-    
+
     .document-content {
         margin: 0;
         padding: 0;

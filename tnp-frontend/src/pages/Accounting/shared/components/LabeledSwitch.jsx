@@ -1,45 +1,86 @@
-import React, { useState } from "react";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import React, { useState } from 'react';
+import { ToggleButtonGroup, ToggleButton } from '@mui/material';
 
-export default function LabeledSwitch() {
-  const [type, setType] = useState("hotels");
+/*
+ * Reusable pill-style two/ multi option toggle
+ * Props:
+ *  - value: current selected value (string)
+ *  - onChange: (newValue)=>void
+ *  - options: [{ value, label }]
+ *  - size: 'small' | 'medium'
+ *  - color: palette key (primary | secondary | warning | success ... ) OR custom hex via customColor
+ *  - customColor: override base background color (string)
+ *  - exclusive: boolean (default true)
+ *  - sx: style overrides
+ */
+const LabeledSwitch = ({
+  value,
+  onChange = () => {},
+  options = [],
+  size = 'small',
+  color = 'primary',
+  customColor,
+  selectedTextColor, // override text color when selected
+  disabled = false,
+  exclusive = true,
+  sx = {}
+}) => {
+  // fallback internal state if component used uncontrolled
+  const [internal, setInternal] = useState(options[0]?.value);
+  const current = value !== undefined ? value : internal;
 
-  const handleChange = (event, newType) => {
-    if (newType !== null) {
-      setType(newType);
-    }
+  const handleChange = (_e, newVal) => {
+    if (newVal === null) return; // keep old when clicking same
+    if (value === undefined) setInternal(newVal);
+    onChange(newVal);
   };
+
+  const bgColorSx = customColor ? customColor : (theme) => theme.palette[color]?.main || theme.palette.primary.main;
+  const activeColor = customColor ? '#ffffff' : bgColorSx;
 
   return (
     <ToggleButtonGroup
-      value={type}
-      exclusive
+      value={current}
+      exclusive={exclusive}
       onChange={handleChange}
+      size={size}
+      disabled={disabled}
       sx={{
-        borderRadius: "999px", // pill shape
-        overflow: "hidden",
-        bgcolor: "#a333ff", // พื้นหลังม่วง
-        p: "2px", // เว้นขอบเล็กน้อย
-        "& .MuiToggleButton-root": {
+        borderRadius: '999px',
+        overflow: 'hidden',
+        bgcolor: (theme)=> disabled ? theme.palette.action.disabledBackground : (typeof bgColorSx === 'function' ? bgColorSx(theme) : bgColorSx),
+        p: '2px',
+        minHeight: size === 'small' ? 28 : 34,
+        '& .MuiToggleButton-root': {
           flex: 1,
-          textTransform: "none",
+          textTransform: 'none',
           fontWeight: 500,
-          color: "white",
-          border: "none",
-          borderRadius: "999px",
-          "&.Mui-selected": {
-            bgcolor: "white",
-            color: "#a333ff",
-            fontWeight: "bold",
-            "&:hover": {
-              bgcolor: "white",
-            },
+          color: disabled ? 'rgba(255,255,255,0.6)' : '#fff',
+          border: 'none',
+          lineHeight: 1.1,
+          px: 1.5,
+          borderRadius: '999px !important',
+          fontSize: size === 'small' ? '.65rem' : '.75rem',
+          '&.Mui-selected': {
+            bgcolor: '#fff',
+            color: disabled ? 'text.disabled' : (selectedTextColor || activeColor),
+            fontWeight: 700,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.18)',
+            '&:hover': { bgcolor: '#fff' },
+            '&:active': { transform: 'scale(.96)' }
           },
+          '&:hover': { bgcolor: disabled ? 'inherit' : 'rgba(255,255,255,0.15)' }
         },
+        ...sx
       }}
     >
-      <ToggleButton value="hotels">Hotels</ToggleButton>
-      <ToggleButton value="apartments">Apartments</ToggleButton>
+      {options.map(opt => (
+        <ToggleButton key={opt.value} value={opt.value} aria-label={opt.label} disabled={disabled}>
+          {opt.label}
+        </ToggleButton>
+      ))}
     </ToggleButtonGroup>
   );
-}
+};
+
+export default LabeledSwitch;

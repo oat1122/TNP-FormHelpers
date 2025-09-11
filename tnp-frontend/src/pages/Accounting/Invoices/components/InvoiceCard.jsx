@@ -3,19 +3,19 @@ import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse, To
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import BusinessIcon from '@mui/icons-material/Business';
+// Removed unused icons
 import PersonIcon from '@mui/icons-material/Person';
 import WorkIcon from '@mui/icons-material/Work';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
-import PaletteIcon from '@mui/icons-material/Palette';
-import ChecklistIcon from '@mui/icons-material/Checklist';
+// import PaletteIcon from '@mui/icons-material/Palette';
+// import ChecklistIcon from '@mui/icons-material/Checklist';
 import PaymentIcon from '@mui/icons-material/Payment';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
 import LabeledSwitch from '../../shared/components/LabeledSwitch';
-import { useUploadInvoiceEvidenceMutation } from '../../../../features/Accounting/accountingApi';
+import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation } from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
   full_amount: 'เต็มจำนวน',
@@ -191,7 +191,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   const [localStatus, setLocalStatus] = useState(invoice?.status);
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
   // toggle สำหรับการสลับรูปแบบแสดงผลมัดจำ: false = แสดงมัดจำหลัง (ปัจจุบัน), true = แสดงก่อน
-  const [depositFirst, setDepositFirst] = useState(false);
+  const [depositFirst, setDepositFirst] = useState(invoice?.deposit_display_order === 'before');
   const [selectedHeaders, setSelectedHeaders] = useState(() => {
     // default select current header type if not ต้นฉบับ
     const base = ['ต้นฉบับ'];
@@ -340,6 +340,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
 
   // Hook สำหรับอัพโหลดหลักฐาน
   const [uploadInvoiceEvidence, { isLoading: uploadingEvidence }] = useUploadInvoiceEvidenceMutation();
+  const [updateDepositOrder] = useUpdateInvoiceDepositDisplayOrderMutation();
 
   // เก็บหลักฐานหลังอัพโหลด (optimistic refresh เฉพาะ card นี้)
   const [localEvidenceFiles, setLocalEvidenceFiles] = useState(null); // array ของชื่อไฟล์
@@ -459,17 +460,6 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                     variant="outlined"
                     label={`มัดจำ: ${depositInfo}`}
                     sx={{ fontSize: '0.75rem' }}
-                  />
-                )}
-                {/* Toggle มัดจำก่อน / มัดจำหลัง */}
-                {depositInfo && (
-                  <LabeledSwitch
-                    leftLabel="มัดจำหลัง"
-                    rightLabel="มัดจำก่อน"
-                    checked={depositFirst}
-                    onChange={setDepositFirst}
-                    size="small"
-                    sx={{ ml: 0.5 }}
                   />
                 )}
               </Stack>
@@ -627,6 +617,34 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               }}>
                 ยอดรวม: {formatTHB(total)}
               </Typography>
+              {/* Toggle moved here for clearer financial context */}
+              {depositAmount > 0 && (
+                <Box sx={{ ml: 'auto' }}>
+                  <LabeledSwitch
+                    value={depositFirst ? 'before' : 'after'}
+                    onChange={async (val)=> {
+                      const targetBefore = val === 'before';
+                      setDepositFirst(targetBefore); // optimistic UI
+                      try {
+                        if (invoice?.id) {
+                          await updateDepositOrder({ id: invoice.id, order: targetBefore ? 'before' : 'after' });
+                        }
+                      } catch (e) {
+                        console.error('Failed to persist deposit display order', e);
+                      }
+                    }}
+                    options={[
+                      { value: 'after', label: 'มัดจำก่อน' },
+                      { value: 'before', label: 'มัดจำหลัง' }
+                    ]}
+                    size="small"
+                    customColor={(theme)=> theme.palette.warning.main}
+                    selectedTextColor="#f1c40f"
+                    disabled={!hasEvidence && !localEvidenceFiles}
+                    sx={{ ml: 1 }}
+                  />
+                </Box>
+              )}
             </Stack>
             
             {/* ข้อมูลการชำระเงิน */}

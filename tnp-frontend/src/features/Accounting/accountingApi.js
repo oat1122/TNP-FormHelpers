@@ -466,6 +466,19 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Update deposit display order (presentation preference persistence)
+        updateInvoiceDepositDisplayOrder: builder.mutation({
+            query: ({ id, order }) => ({
+                url: `/invoices/${id}/deposit-display-order`,
+                method: 'POST',
+                body: { order },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Invoice', id },
+                'Invoice'
+            ],
+        }),
+
         // Upload invoice payment evidence (slip images etc.)
         uploadInvoiceEvidence: builder.mutation({
             query: ({ id, files, description }) => {
@@ -771,6 +784,7 @@ export const {
     useDeleteInvoiceMutation,
     useApproveInvoiceMutation,
     useSubmitInvoiceMutation,
+    useUpdateInvoiceDepositDisplayOrderMutation,
     useGenerateInvoicePDFMutation,
     useUploadInvoiceEvidenceMutation,
 

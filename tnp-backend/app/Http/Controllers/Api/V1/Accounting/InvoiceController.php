@@ -623,6 +623,42 @@ class InvoiceController extends Controller
     }
 
     /**
+     * ปรับการแสดงผลลำดับมัดจำ (presentation only)
+     * POST /api/v1/invoices/{id}/deposit-display-order
+     */
+    public function updateDepositDisplayOrder(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'order' => 'required|in:before,after'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $updatedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->updateDepositDisplayOrder($id, $request->order, $updatedBy);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoice,
+                'message' => 'Deposit display order updated'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('InvoiceController::updateDepositDisplayOrder error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update deposit display order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * สร้าง PDF ใบแจ้งหนี้
      * GET /api/v1/invoices/{id}/generate-pdf
      */

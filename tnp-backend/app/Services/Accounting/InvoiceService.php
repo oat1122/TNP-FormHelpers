@@ -22,6 +22,42 @@ class InvoiceService
     }
 
     /**
+     * Update deposit display order (presentation preference)
+     */
+    public function updateDepositDisplayOrder(string $invoiceId, string $order, ?string $updatedBy = null)
+    {
+        if (!in_array($order, ['before','after'])) {
+            throw new \InvalidArgumentException('Invalid deposit display order');
+        }
+
+        try {
+            DB::beginTransaction();
+            $invoice = Invoice::findOrFail($invoiceId);
+            $prev = $invoice->deposit_display_order ?? 'after';
+            $invoice->deposit_display_order = $order;
+            $invoice->updated_by = $updatedBy;
+            $invoice->save();
+
+            if ($prev !== $order) {
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'update_deposit_display_order',
+                    $updatedBy,
+                    "เปลี่ยนรูปแบบแสดงมัดจำ: {$prev} -> {$order}"
+                );
+            }
+
+            DB::commit();
+            return $invoice->fresh();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::updateDepositDisplayOrder error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Upload evidence files for an invoice
      */
     public function uploadEvidence($invoiceId, $files, $description = null, $uploadedBy = null)

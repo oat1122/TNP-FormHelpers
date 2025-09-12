@@ -470,8 +470,8 @@ export const accountingApi = createApi({
         updateInvoiceDepositDisplayOrder: builder.mutation({
             query: ({ id, order }) => ({
                 url: `/invoices/${id}/deposit-display-order`,
-                method: 'POST',
-                body: { order },
+                method: 'PATCH',
+                body: { deposit_display_order: order },
             }),
             invalidatesTags: (result, error, { id }) => [
                 { type: 'Invoice', id },
@@ -479,9 +479,9 @@ export const accountingApi = createApi({
             ],
         }),
 
-        // Upload invoice payment evidence (slip images etc.)
+        // Upload invoice payment evidence (slip images etc.) - now supports mode-specific uploads
         uploadInvoiceEvidence: builder.mutation({
-            query: ({ id, files, description }) => {
+            query: ({ id, files, description, mode = 'before' }) => {
                 const formData = new FormData();
                 if (Array.isArray(files)) {
                     files.forEach(f => formData.append('files[]', f));
@@ -489,8 +489,9 @@ export const accountingApi = createApi({
                     formData.append('files[]', files);
                 }
                 if (description) formData.append('description', description);
+                if (mode) formData.append('mode', mode);
                 return {
-                    url: `/invoices/${id}/upload-evidence`,
+                    url: `/invoices/${id}/evidence/${mode}`,
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Skip-Json': '1' },

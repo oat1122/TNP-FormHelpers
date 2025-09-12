@@ -111,6 +111,14 @@ class Invoice extends Model
         'paid_at'
     ];
 
+    /**
+     * Default attribute values
+     */
+    protected $attributes = [
+        'deposit_display_order' => 'before',
+        'status' => 'draft',
+    ];
+
     protected $casts = [
         'primary_pricing_request_ids' => 'array',
         'customer_snapshot' => 'array',

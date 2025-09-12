@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         if (Schema::hasTable('invoices') && !Schema::hasColumn('invoices', 'deposit_display_order')) {
             Schema::table('invoices', function (Blueprint $table) {
-                $table->string('deposit_display_order', 10)->default('after')->comment('การแสดงมัดจำ: before = มัดจำก่อน, after = มัดจำหลัง')->after('deposit_amount');
+                $table->string('deposit_display_order', 10)->default('before')->comment('การแสดงมัดจำ: before = มัดจำก่อน, after = มัดจำหลัง')->after('deposit_amount');
             });
         }
     }

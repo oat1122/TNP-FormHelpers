@@ -27,6 +27,7 @@ const typeLabels = {
 const statusColor = {
   draft: 'default',
   pending: 'warning',
+  pending_after: 'warning',
   approved: 'success',
   rejected: 'error',
   sent: 'info',
@@ -89,6 +90,7 @@ const getInvoiceStatus = (invoice) => {
   const statusMap = {
     draft: 'แบบร่าง',
     pending: 'รอดำเนินการ',
+    pending_after: 'รออนุมัติมัดจำหลัง',
     approved: 'อนุมัติแล้ว',
     rejected: 'ถูกปฏิเสธ',
     sent: 'ส่งแล้ว',
@@ -190,8 +192,8 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
   const [localStatus, setLocalStatus] = useState(invoice?.status);
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
-  // toggle สำหรับการสลับรูปแบบแสดงผลมัดจำ: false = แสดงมัดจำหลัง (ปัจจุบัน), true = แสดงก่อน
-  const [depositFirst, setDepositFirst] = useState(invoice?.deposit_display_order === 'before');
+  // Current deposit display mode: 'before' | 'after'
+  const [depositMode, setDepositMode] = useState(invoice?.deposit_display_order || 'after');
   const [selectedHeaders, setSelectedHeaders] = useState(() => {
     // default select current header type if not ต้นฉบับ
     const base = ['ต้นฉบับ'];
@@ -263,7 +265,17 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
       }
     } else {
       // Fallback: simulation only
-      setLocalStatus('approved');
+      // Handle different approval flows based on current status and deposit mode
+      if (localStatus === 'pending_after') {
+        // Approve after deposit mode
+        setLocalStatus('approved');
+      } else if (depositMode === 'after' && localStatus !== 'approved') {
+        // Switch to pending_after when in after mode
+        setLocalStatus('pending_after');
+      } else {
+        // Standard approval
+        setLocalStatus('approved');
+      }
     }
   };
 
@@ -329,21 +341,17 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     </Stack>
   );
 
-  // ตรวจสอบว่ามีการอัพโหลดหลักฐานการชำระเงินหรือไม่ (เพิ่มรองรับ evidence_files ซึ่งตอนนี้เก็บ 'ชื่อไฟล์' เท่านั้น)
-  const hasEvidence = Boolean(
-    (Array.isArray(invoice?.evidence_files) && invoice.evidence_files.length > 0) ||
-    invoice?.payment_evidence ||
-    invoice?.payment_proof ||
-    invoice?.evidence_url ||
-    (invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.some(p => p?.proof_url || p?.attachment || p?.evidence))
-  );
+
 
   // Hook สำหรับอัพโหลดหลักฐาน
   const [uploadInvoiceEvidence, { isLoading: uploadingEvidence }] = useUploadInvoiceEvidenceMutation();
   const [updateDepositOrder] = useUpdateInvoiceDepositDisplayOrderMutation();
 
-  // เก็บหลักฐานหลังอัพโหลด (optimistic refresh เฉพาะ card นี้)
-  const [localEvidenceFiles, setLocalEvidenceFiles] = useState(null); // array ของชื่อไฟล์
+  // เก็บหลักฐานหลังอัพโหลด (optimistic refresh เฉพาะ card นี้) แยกตาม mode
+  const [localEvidenceFiles, setLocalEvidenceFiles] = useState({
+    before: null, // array ของชื่อไฟล์สำหรับ mode before
+    after: null   // array ของชื่อไฟล์สำหรับ mode after
+  });
 
   // สร้าง backend origin จาก VITE_END_POINT_URL เพื่อป้องกัน dev server (5173) ดึง /storage แล้ว 404
   let backendOrigin = '';
@@ -354,28 +362,129 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     backendOrigin = window.location.origin; // fallback
   }
 
-  // แปลง evidence_files (array ของ 'ชื่อไฟล์') เป็น array object { url, filename }
-  const evidenceFilesFromInvoice = Array.isArray(invoice?.evidence_files)
-    ? invoice.evidence_files.map(fn => ({ url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, filename: fn }))
-    : [];
-
-  const evidenceImages = (() => {
-    if (localEvidenceFiles) {
-      return localEvidenceFiles.map(fn => ({ url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, filename: fn }));
+  // แปลง evidence_files แยกตาม mode: { before: [...], after: [...] } 
+  const getEvidenceForMode = (mode) => {
+    // Check local evidence first
+    if (localEvidenceFiles[mode]) {
+      return localEvidenceFiles[mode].map(fn => ({ 
+        url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, 
+        filename: fn 
+      }));
     }
-    if (evidenceFilesFromInvoice.length > 0) return evidenceFilesFromInvoice;
-    if (Array.isArray(invoice?.evidence_images)) return invoice.evidence_images; // legacy (expected already objects/paths)
-    if (Array.isArray(invoice?.payment_evidence)) return invoice.payment_evidence; // legacy
-    return [];
-  })();
 
-  const handleUploadEvidence = async (files) => {
+    // Normalize and extract evidence from corrupted structure
+    const normalizedEvidence = normalizeEvidenceStructure(invoice?.evidence_files);
+    
+    if (normalizedEvidence[mode] && Array.isArray(normalizedEvidence[mode])) {
+      return normalizedEvidence[mode]
+        .filter(fn => typeof fn === 'string' && fn.includes('inv_'))
+        .map(fn => ({ 
+          url: `${backendOrigin}/storage/images/invoices/evidence/${fn}`, 
+          filename: fn 
+        }));
+    }
+
+    return [];
+  };
+
+  // Normalize evidence structure to handle corrupted nested data
+  const normalizeEvidenceStructure = (evidenceData) => {
+    const normalized = { before: [], after: [] };
+    
+    if (!evidenceData) return normalized;
+
+    // Handle string JSON
+    if (typeof evidenceData === 'string') {
+      try {
+        evidenceData = JSON.parse(evidenceData);
+      } catch (e) {
+        return normalized;
+      }
+    }
+
+    // Handle array (legacy format)
+    if (Array.isArray(evidenceData)) {
+      normalized.before = evidenceData.filter(item => typeof item === 'string' && item.includes('inv_'));
+      return normalized;
+    }
+
+    // Handle object with potential nested corruption
+    if (typeof evidenceData === 'object' && evidenceData !== null) {
+      // Extract files recursively from corrupted structure
+      const extractFilesFromNested = (data, targetMode) => {
+        const files = [];
+        
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            if (typeof item === 'string' && item.includes('inv_') && item.includes(`_${targetMode}_`)) {
+              files.push(item);
+            } else if (typeof item === 'object' && item !== null) {
+              files.push(...extractFilesFromNested(item, targetMode));
+            }
+          });
+        } else if (typeof data === 'object' && data !== null) {
+          Object.entries(data).forEach(([key, value]) => {
+            if (typeof value === 'string' && value.includes('inv_') && value.includes(`_${targetMode}_`)) {
+              files.push(value);
+            } else if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+              files.push(...extractFilesFromNested(value, targetMode));
+            }
+          });
+        }
+        
+        return files;
+      };
+
+      // Extract files for both modes
+      normalized.before = [...new Set(extractFilesFromNested(evidenceData, 'before'))];
+      normalized.after = [...new Set(extractFilesFromNested(evidenceData, 'after'))];
+
+      // Direct access if structure is clean
+      if (evidenceData.before && Array.isArray(evidenceData.before)) {
+        normalized.before = [...new Set([...normalized.before, ...evidenceData.before.filter(f => typeof f === 'string')])];
+      }
+      if (evidenceData.after && Array.isArray(evidenceData.after)) {
+        normalized.after = [...new Set([...normalized.after, ...evidenceData.after.filter(f => typeof f === 'string')])];
+      }
+    }
+
+    return normalized;
+  };
+
+  // ตรวจสอบว่ามีการอัพโหลดหลักฐานการชำระเงินหรือไม่ (รองรับ mode-specific evidence)
+  const hasEvidenceForMode = (mode) => {
+    const evidenceFiles = getEvidenceForMode(mode);
+    return evidenceFiles.length > 0;
+  };
+
+  const hasEvidence = Boolean(
+    hasEvidenceForMode('before') || 
+    hasEvidenceForMode('after') ||
+    invoice?.payment_evidence ||
+    invoice?.payment_proof ||
+    invoice?.evidence_url ||
+    (invoice?.payments && Array.isArray(invoice.payments) && invoice.payments.some(p => p?.proof_url || p?.attachment || p?.evidence))
+  );
+
+  const handleUploadEvidence = async (files, mode = 'before') => {
     if (!invoice?.id || !files?.length) return;
     try {
-      const res = await uploadInvoiceEvidence({ id: invoice.id, files }).unwrap();
-      // ถ้า backend ส่ง evidence_files (array ของ filenames) กลับมา ใช้สำหรับอัพเดตเฉพาะ card นี้ทันที
-      if (res && Array.isArray(res.evidence_files)) {
-        setLocalEvidenceFiles(res.evidence_files);
+      const res = await uploadInvoiceEvidence({ id: invoice.id, files, mode }).unwrap();
+      // ถ้า backend ส่ง evidence_files กลับมา ใช้สำหรับอัพเดตเฉพาะ card นี้ทันที
+      if (res && res.evidence_files) {
+        if (typeof res.evidence_files === 'object' && !Array.isArray(res.evidence_files)) {
+          // New structure: { before: [...], after: [...] }
+          setLocalEvidenceFiles(prev => ({
+            ...prev,
+            [mode]: res.evidence_files[mode] || prev[mode]
+          }));
+        } else if (Array.isArray(res.evidence_files)) {
+          // Legacy structure: assume it's for the current mode
+          setLocalEvidenceFiles(prev => ({
+            ...prev,
+            [mode]: res.evidence_files
+          }));
+        }
       }
       // ถ้าไม่มี ให้พึ่ง parent refetch
     } catch (e) {
@@ -617,42 +726,54 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               }}>
                 ยอดรวม: {formatTHB(total)}
               </Typography>
-              {/* Toggle moved here for clearer financial context */}
+              {/* Deposit Mode Toggle */}
               {depositAmount > 0 && (
                 <Box sx={{ ml: 'auto' }}>
                   <LabeledSwitch
-                    value={depositFirst ? 'before' : 'after'}
+                    value={depositMode}
                     onChange={async (val)=> {
-                      const targetBefore = val === 'before';
-                      setDepositFirst(targetBefore); // optimistic UI
+                      setDepositMode(val); // optimistic UI
                       try {
                         if (invoice?.id) {
-                          await updateDepositOrder({ id: invoice.id, order: targetBefore ? 'before' : 'after' });
+                          await updateDepositOrder({ id: invoice.id, order: val });
+                          // If switching to 'after' mode and not yet approved for after deposit, set status to pending_after
+                          if (val === 'after' && localStatus !== 'approved' && !hasEvidenceForMode('after')) {
+                            setLocalStatus('pending_after');
+                          }
                         }
                       } catch (e) {
                         console.error('Failed to persist deposit display order', e);
+                        setDepositMode(depositMode); // revert on error
                       }
                     }}
                     options={[
-                      { value: 'after', label: 'มัดจำก่อน' },
-                      { value: 'before', label: 'มัดจำหลัง' }
+                      { value: 'before', label: 'มัดจำก่อน' },
+                      { value: 'after', label: 'มัดจำหลัง' }
                     ]}
                     size="small"
                     customColor={(theme)=> theme.palette.warning.main}
                     selectedTextColor="#f1c40f"
-                    disabled={!hasEvidence && !localEvidenceFiles}
                     sx={{ ml: 1 }}
                   />
                 </Box>
               )}
             </Stack>
             
-            {/* ข้อมูลการชำระเงิน */}
+            {/* Deposit Cards - Conditional Rendering Based on Mode */}
             <Box sx={{ ml: 4.5 }}>
-              <Stack spacing={1}>
-                {/* แสดงผลขึ้นอยู่กับ depositFirst */}
-                {depositFirst ? (
-                  <>
+              {depositMode === 'before' ? (
+                /* Deposit Before Card - Original Style */
+                <Card sx={{ 
+                  p: 2, 
+                  mb: 2, 
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}>
+                  <Typography variant="h6" sx={{ mb: 1.5, color: 'text.primary', fontSize: '1rem' }}>
+                    💰 มัดจำก่อน
+                  </Typography>
+                  <Stack spacing={1}>
                     {depositAmount > 0 && (
                       <Typography sx={{ 
                         color: 'warning.main', 
@@ -660,7 +781,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                         fontSize: '0.9rem',
                         lineHeight: 1.45
                       }}>
-                        💰 มัดจำ: {formatTHB(depositAmount)}
+                        มัดจำ: {formatTHB(depositAmount)}
                       </Typography>
                     )}
                     {paidAmount > 0 && (
@@ -683,12 +804,24 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                         ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
                       </Typography>
                     )}
-                  </>
-                ) : (
-                  <>
+                  </Stack>
+                </Card>
+              ) : (
+                /* Deposit After Card - Special #E36264 Background */
+                <Card sx={{ 
+                  p: 2, 
+                  mb: 2, 
+                  bgcolor: '#E36264',
+                  color: 'white',
+                  '& .MuiTypography-root': { color: 'white' }
+                }}>
+                  <Typography variant="h6" sx={{ mb: 1.5, color: 'white !important', fontSize: '1rem' }}>
+                    💰 มัดจำหลัง
+                  </Typography>
+                  <Stack spacing={1}>
                     {paidAmount > 0 && (
                       <Typography sx={{ 
-                        color: 'success.main', 
+                        color: 'rgba(255,255,255,0.9) !important', 
                         fontWeight: 500,
                         fontSize: '0.9rem',
                         lineHeight: 1.45
@@ -698,17 +831,17 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                     )}
                     {depositAmount > 0 && (
                       <Typography sx={{ 
-                        color: 'warning.main', 
+                        color: 'rgba(255,255,255,0.9) !important', 
                         fontWeight: 500,
                         fontSize: '0.9rem',
                         lineHeight: 1.45
                       }}>
-                        💰 มัดจำ: {formatTHB(depositAmount)}
+                        มัดจำ: {formatTHB(depositAmount)}
                       </Typography>
                     )}
                     {remaining > 0 && (
                       <Typography sx={{ 
-                        color: 'error.main', 
+                        color: 'white !important', 
                         fontWeight: 700,
                         fontSize: '0.95rem',
                         lineHeight: 1.45
@@ -716,9 +849,19 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                         ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
                       </Typography>
                     )}
-                  </>
-                )}
-              </Stack>
+                    {localStatus === 'pending_after' && (
+                      <Typography sx={{ 
+                        color: 'rgba(255,255,255,0.8) !important', 
+                        fontWeight: 400,
+                        fontSize: '0.85rem',
+                        fontStyle: 'italic'
+                      }}>
+                        สถานะ: รออนุมัติมัดจำหลัง
+                      </Typography>
+                    )}
+                  </Stack>
+                </Card>
+              )}
             </Box>
             
             {/* ปุ่มแสดงเพิ่มเติม */}
@@ -876,15 +1019,19 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
           </Box>
         )}
 
-        {/* Evidence Upload Section (show only after approved) */}
-        { (localStatus === 'approved') && (
+        {/* Evidence Upload Section - Mode-Specific */}
+        { (localStatus === 'approved' || (depositMode === 'after' && localStatus === 'pending_after')) && (
           <Box mb={2.5}>
             <ImageUploadGrid
-              images={evidenceImages}
-              onUpload={handleUploadEvidence}
-              title="หลักฐานการชำระเงิน"
-              helperText={uploadingEvidence ? 'กำลังอัปโหลด...' : 'อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)'}
-              disabled={uploadingEvidence}
+              images={getEvidenceForMode(depositMode)}
+              onUpload={(files) => handleUploadEvidence(files, depositMode)}
+              title={`หลักฐานการชำระเงิน (${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'})`}
+              helperText={
+                uploadingEvidence ? 'กำลังอัปโหลด...' : 
+                (depositMode === 'after' && localStatus === 'pending_after') ? 'รอการอนุมัติมัดจำหลังก่อนอัปโหลดหลักฐาน' :
+                'อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)'
+              }
+              disabled={uploadingEvidence || (depositMode === 'after' && localStatus === 'pending_after')}
               previewMode="dialog"
               showFilename={false}
             />
@@ -899,11 +1046,16 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               size="small"
               variant="outlined"
               color="success"
-        onClick={handleApprove}
+              onClick={handleApprove}
               sx={{ px: 2, py: 1, fontSize: '0.8rem', fontWeight: 600, borderStyle: 'dashed' }}
-              aria-label="จำลองการอนุมัติใบแจ้งหนี้"
+              aria-label={
+                localStatus === 'pending_after' ? 'อนุมัติมัดจำหลัง' : 'จำลองการอนุมัติใบแจ้งหนี้'
+              }
             >
-        {onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)'}
+              {localStatus === 'pending_after' 
+                ? 'อนุมัติมัดจำหลัง'
+                : (onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)')
+              }
             </Button>
           )}
           {onDownloadPDF && (

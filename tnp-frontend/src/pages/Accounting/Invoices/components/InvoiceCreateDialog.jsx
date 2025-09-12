@@ -261,6 +261,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         deposit_mode: depositMode,
         deposit_percentage: liveDepositPercentage,
         deposit_amount: depositAmount,
+        deposit_display_order: 'before', // Default to 'before' for new invoices
         
         // Signature and sample images from quotation
         signature_images: q?.signature_images || null,

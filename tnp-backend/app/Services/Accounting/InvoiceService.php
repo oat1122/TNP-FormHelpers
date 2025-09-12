@@ -33,8 +33,22 @@ class InvoiceService
         try {
             DB::beginTransaction();
             $invoice = Invoice::findOrFail($invoiceId);
-            $prev = $invoice->deposit_display_order ?? 'after';
+            $prev = $invoice->deposit_display_order ?? 'before'; // Default to 'before' instead of 'after'
             $invoice->deposit_display_order = $order;
+            
+            // Status management for deposit display order changes
+            if ($order === 'after') {
+                // When switching to 'after' mode: set pending_after if not already approved or fully processed
+                if (!in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
+                    $invoice->status = 'pending_after';
+                }
+            } else if ($order === 'before') {
+                // When switching back to 'before' mode: revert from pending_after if needed
+                if ($invoice->status === 'pending_after') {
+                    $invoice->status = 'pending'; // or 'draft' based on business rules
+                }
+            }
+            
             $invoice->updated_by = $updatedBy;
             $invoice->save();
 
@@ -44,7 +58,7 @@ class InvoiceService
                     $invoiceId,
                     'update_deposit_display_order',
                     $updatedBy,
-                    "เปลี่ยนรูปแบบแสดงมัดจำ: {$prev} -> {$order}"
+                    "เปลี่ยนรูปแบบแสดงมัดจำ: {$prev} -> {$order}" . ($invoice->status === 'pending_after' ? ', สถานะเป็น pending_after' : '')
                 );
             }
 
@@ -147,6 +161,261 @@ class InvoiceService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('InvoiceService::uploadEvidence error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Check if invoice has evidence for specific mode
+     */
+    private function hasEvidenceForMode($invoice, $mode)
+    {
+        if (!$invoice->evidence_files) {
+            return false;
+        }
+
+        // Use the same normalization logic as upload function
+        $normalizedEvidence = $this->normalizeEvidenceStructure($invoice->evidence_files);
+        
+        return isset($normalizedEvidence[$mode]) && 
+               is_array($normalizedEvidence[$mode]) && 
+               count($normalizedEvidence[$mode]) > 0;
+    }
+
+    /**
+     * Generate proper file URL for both development and production
+     */
+    private function generateFileUrl($path)
+    {
+        // Clean up the path
+        $cleanPath = str_replace(['public/', 'public\\'], '', $path);
+        $cleanPath = str_replace('\\', '/', $cleanPath);
+        
+        // Use Laravel's Storage facade for consistent URL generation
+        try {
+            return Storage::url($path);
+        } catch (\Exception $e) {
+            // Fallback for manual URL construction
+            $appUrl = rtrim(config('app.url', request()->getSchemeAndHttpHost()), '/');
+            return $appUrl . '/storage/' . $cleanPath;
+        }
+    }
+
+    /**
+     * Normalize evidence_files structure to prevent nested corruption
+     */
+    private function normalizeEvidenceStructure($evidenceData)
+    {
+        // Start with clean structure
+        $normalized = ['before' => [], 'after' => []];
+
+        if (!$evidenceData) {
+            return $normalized;
+        }
+
+        // Handle string JSON
+        if (is_string($evidenceData)) {
+            $evidenceData = json_decode($evidenceData, true) ?: [];
+        }
+
+        // Handle array (legacy format)
+        if (is_array($evidenceData) && !isset($evidenceData['before']) && !isset($evidenceData['after'])) {
+            // Legacy array - treat as 'before' mode
+            $normalized['before'] = array_values(array_filter($evidenceData, 'is_string'));
+            return $normalized;
+        }
+
+        // Handle object/array with structure
+        if (is_array($evidenceData) || is_object($evidenceData)) {
+            $data = (array) $evidenceData;
+            
+            // Extract files from nested/corrupted structure
+            $beforeFiles = $this->extractFilesFromNestedStructure($data, 'before');
+            $afterFiles = $this->extractFilesFromNestedStructure($data, 'after');
+            
+            $normalized['before'] = array_values(array_unique(array_filter($beforeFiles, 'is_string')));
+            $normalized['after'] = array_values(array_unique(array_filter($afterFiles, 'is_string')));
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Recursively extract files from nested/corrupted evidence structure
+     */
+    private function extractFilesFromNestedStructure($data, $mode)
+    {
+        $files = [];
+        
+        if (!is_array($data) && !is_object($data)) {
+            return $files;
+        }
+
+        $data = (array) $data;
+
+        // Direct mode access
+        if (isset($data[$mode])) {
+            if (is_array($data[$mode])) {
+                foreach ($data[$mode] as $item) {
+                    if (is_string($item) && strpos($item, 'inv_') === 0) {
+                        $files[] = $item;
+                    } elseif (is_array($item)) {
+                        // Recursive extraction for nested arrays
+                        $files = array_merge($files, $this->extractFilesFromNestedStructure($item, $mode));
+                    }
+                }
+            } elseif (is_string($data[$mode]) && strpos($data[$mode], 'inv_') === 0) {
+                $files[] = $data[$mode];
+            }
+        }
+
+        // Look for files in numeric keys (corruption artifacts)
+        foreach ($data as $key => $value) {
+            if (is_numeric($key) && is_string($value) && strpos($value, 'inv_') === 0) {
+                // Determine mode from filename pattern
+                if (strpos($value, "_{$mode}_") !== false) {
+                    $files[] = $value;
+                }
+            }
+        }
+
+        // Recursive search in nested objects
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $files = array_merge($files, $this->extractFilesFromNestedStructure($value, $mode));
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * Upload evidence files for an invoice (mode-specific)
+     */
+    public function uploadEvidenceByMode($invoiceId, $files, $mode = 'before', $description = null, $uploadedBy = null)
+    {
+        if (!in_array($mode, ['before', 'after'])) {
+            throw new \InvalidArgumentException('Invalid evidence mode');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+
+            if (!$files || !is_iterable($files)) {
+                throw new \Exception('No files received');
+            }
+
+            $stored = [];
+            foreach ($files as $file) {
+                if (!$file) continue;
+                $ext = $file->getClientOriginalExtension();
+                $original = $file->getClientOriginalName();
+                $filename = 'inv_' . $invoiceId . '_' . $mode . '_' . uniqid() . '.' . $ext;
+                
+                // Store in evidence directory with proper path handling
+                $storagePath = 'images/invoices/evidence';
+                $path = $file->storeAs($storagePath, $filename, 'public');
+                
+                // Normalize path for consistency
+                $normalizedPath = str_replace('\\', '/', $path);
+                
+                $stored[] = [
+                    'path' => $normalizedPath,
+                    'original' => $original,
+                    'uploaded_at' => now()->toISOString(),
+                    'uploaded_by' => $uploadedBy,
+                    'mode' => $mode
+                ];
+            }
+
+            // Save attachments (generic table) if exists
+            $uploadedFiles = [];
+            foreach ($stored as $item) {
+                $filenameOnly = basename($item['path']);
+                $path = $item['path'];
+                
+                // Build storage path properly for both Windows and Unix
+                $storagePath = storage_path('app/public/' . str_replace(['public/', 'public\\'], '', $path));
+                $size = file_exists($storagePath) ? filesize($storagePath) : null;
+                $mime = $size ? mime_content_type($storagePath) : null;
+
+                $attachment = DocumentAttachment::create([
+                    'document_type' => 'invoice',
+                    'document_id' => $invoiceId,
+                    'filename' => $filenameOnly,
+                    'original_filename' => $item['original'],
+                    'file_path' => $path,
+                    'file_size' => $size,
+                    'mime_type' => $mime,
+                    'uploaded_by' => $uploadedBy,
+                    'metadata' => json_encode(['mode' => $mode])
+                ]);
+
+                // Generate proper URL for both dev and production
+                $fileUrl = $this->generateFileUrl($path);
+
+                $uploadedFiles[] = [
+                    'id' => $attachment->id,
+                    'filename' => $filenameOnly,
+                    'original_filename' => $item['original'],
+                    'url' => $fileUrl,
+                    'size' => $size,
+                    'mode' => $mode
+                ];
+            }
+
+            // Log history
+            DocumentHistory::logAction(
+                'invoice',
+                $invoiceId,
+                'upload_evidence_' . $mode,
+                $uploadedBy,
+                'อัปโหลดหลักฐาน ' . count($stored) . ' ไฟล์ (โหมด: ' . $mode . ')'
+            );
+
+            DB::commit();
+
+            // Normalize and clean evidence_files structure
+            $currentEvidence = $this->normalizeEvidenceStructure($invoice->evidence_files);
+
+            // Add new files to the appropriate mode
+            foreach ($uploadedFiles as $f) {
+                $currentEvidence[$mode][] = $f['filename'];
+            }
+
+            // Remove duplicates
+            $currentEvidence[$mode] = array_values(array_unique($currentEvidence[$mode]));
+
+            $invoice->evidence_files = $currentEvidence;
+            
+            // Status transition logic for evidence upload
+            if ($mode === 'after' && $invoice->status === 'pending_after') {
+                // When evidence is uploaded for after mode while pending, ready for approval
+                // Keep status as pending_after - requires manual approval
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'evidence_uploaded_pending_after',
+                    $uploadedBy,
+                    'อัปโหลดหลักฐานมัดจำหลัง - รอการอนุมัติ'
+                );
+            }
+            
+            $invoice->save();
+
+            return [
+                'uploaded_files' => $uploadedFiles,
+                'evidence_files' => $invoice->evidence_files,
+                'mode' => $mode,
+                'description' => $description,
+                'uploaded_by' => $uploadedBy,
+                'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z')
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::uploadEvidenceByMode error: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -311,6 +580,7 @@ class InvoiceService
             $invoice->deposit_mode = $invoiceData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
             $invoice->deposit_percentage = $invoiceData['deposit_percentage'] ?? $quotation->deposit_percentage ?? 0;
             $invoice->deposit_amount = $invoiceData['deposit_amount'] ?? $quotation->deposit_amount ?? 0;
+            $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before'; // Default to 'before' for new invoices
             
             // Payment information
             $invoice->payment_method = $invoiceData['payment_method'] ?? $quotation->payment_method ?? null;
@@ -457,7 +727,7 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
 
             // ตรวจสอบสถานะ
-            if (!in_array($invoice->status, ['draft', 'pending'])) {
+            if (!in_array($invoice->status, ['draft', 'pending', 'pending_after'])) {
                 throw new \Exception('Invoice cannot be updated in current status');
             }
 
@@ -556,8 +826,8 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
             $fromStatus = $invoice->status;
 
-            if (!in_array($invoice->status, ['pending','draft'])) {
-                throw new \Exception('Invoice must be pending or draft to approve');
+            if (!in_array($invoice->status, ['pending','draft','pending_after'])) {
+                throw new \Exception('Invoice must be pending, draft, or pending_after to approve');
             }
 
             // หากยังเป็น draft ให้ auto-submit ภายใน (ไม่ต้องยิง endpoint แยก)

@@ -228,7 +228,7 @@ class InvoiceController extends Controller
                 // Basic invoice info
                 'work_name' => 'sometimes|nullable|string|max:255',
                 'quantity' => 'sometimes|integer|min:1',
-                'status' => 'sometimes|in:draft,pending,pending_review,approved,sent,partial_paid,fully_paid,overdue',
+                'status' => 'sometimes|in:draft,pending,pending_after,approved,sent,partial_paid,fully_paid,overdue',
                 'type' => 'sometimes|in:full_amount,remaining,deposit,partial',
 
                 // Financial fields
@@ -624,13 +624,13 @@ class InvoiceController extends Controller
 
     /**
      * ปรับการแสดงผลลำดับมัดจำ (presentation only)
-     * POST /api/v1/invoices/{id}/deposit-display-order
+     * PATCH /api/v1/invoices/{id}/deposit-display-order
      */
     public function updateDepositDisplayOrder(Request $request, $id): JsonResponse
     {
         try {
             $validator = Validator::make($request->all(), [
-                'order' => 'required|in:before,after'
+                'deposit_display_order' => 'required|in:before,after'
             ]);
 
             if ($validator->fails()) {
@@ -642,7 +642,7 @@ class InvoiceController extends Controller
             }
 
             $updatedBy = auth()->user()->user_uuid ?? null;
-            $invoice = $this->invoiceService->updateDepositDisplayOrder($id, $request->order, $updatedBy);
+            $invoice = $this->invoiceService->updateDepositDisplayOrder($id, $request->deposit_display_order, $updatedBy);
 
             return response()->json([
                 'success' => true,
@@ -654,6 +654,52 @@ class InvoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update deposit display order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * อัปโหลดหลักฐานการชำระ / หลักฐานอื่นๆ ของ Invoice (mode-specific)
+     * POST /api/v1/invoices/{id}/evidence/{mode}
+     */
+    public function uploadEvidenceByMode(Request $request, $id, $mode): JsonResponse
+    {
+        try {
+            $validator = Validator::make(array_merge($request->all(), ['mode' => $mode]), [
+                'files' => 'required|array|min:1|max:10',
+                'files.*' => 'file|mimes:jpeg,jpg,png,pdf|max:10240', // 10MB per file
+                'description' => 'nullable|string|max:500',
+                'mode' => 'required|in:before,after'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $result = $this->invoiceService->uploadEvidenceByMode(
+                $id,
+                $request->file('files'),
+                $mode,
+                $request->description,
+                $uploadedBy
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Evidence uploaded successfully for ' . $mode . ' mode'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::uploadEvidenceByMode error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload evidence: ' . $e->getMessage()
             ], 500);
         }
     }

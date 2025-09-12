@@ -314,8 +314,9 @@ Route::prefix('v1')->group(function() {
         Route::post('/invoices/{id}/record-payment', 'recordPayment');
         Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
         Route::post('/invoices/{id}/send-reminder', 'sendReminder');
-    Route::post('/invoices/{id}/deposit-display-order', 'updateDepositDisplayOrder');
+    Route::patch('/invoices/{id}/deposit-display-order', 'updateDepositDisplayOrder');
     Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
+    Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
         
         // PDF APIs (mPDF-first with fallback)
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');

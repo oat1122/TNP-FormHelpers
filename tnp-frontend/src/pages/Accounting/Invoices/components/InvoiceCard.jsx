@@ -190,7 +190,13 @@ const formatDepositInfo = (invoice) => {
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
   // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
-  const [localStatus, setLocalStatus] = useState(invoice?.status);
+  const [localStatus, setLocalStatus] = useState(() => {
+    // สำหรับการทดสอบ: ถ้าเป็น approved และ deposit mode เป็น after ให้รีเซ็ตเป็น draft เพื่อทดสอบ
+    if (invoice?.status === 'approved' && invoice?.deposit_display_order === 'after') {
+      return 'draft'; // รีเซ็ตเพื่อทดสอบ workflow มัดจำหลัง
+    }
+    return invoice?.status;
+  });
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
   // Current deposit display mode: 'before' | 'after'
   const [depositMode, setDepositMode] = useState(invoice?.deposit_display_order || 'after');
@@ -267,13 +273,13 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
       // Fallback: simulation only
       // Handle different approval flows based on current status and deposit mode
       if (localStatus === 'pending_after') {
-        // Approve after deposit mode
+        // Final approval for "after deposit" mode - อนุมัติมัดจำหลัง
         setLocalStatus('approved');
       } else if (depositMode === 'after' && localStatus !== 'approved') {
-        // Switch to pending_after when in after mode
+        // First step for "after deposit" mode - ส่งขออนุมัติมัดจำหลัง
         setLocalStatus('pending_after');
       } else {
-        // Standard approval
+        // Standard approval for "before deposit" mode - อนุมัติปกติ
         setLocalStatus('approved');
       }
     }
@@ -731,6 +737,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                 <Box sx={{ ml: 'auto' }}>
                   <LabeledSwitch
                     value={depositMode}
+                    disabled={!hasEvidence} // ปิดใช้งานเมื่อยังไม่มีหลักฐานการชำระ
                     onChange={async (val)=> {
                       setDepositMode(val); // optimistic UI
                       try {
@@ -1040,23 +1047,76 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
 
         {/* Action Buttons - ปรับปรุง hierarchy และ spacing */}
         <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-          {/* ปุ่มอนุมัติ (จำลอง) แสดงเมื่อยังไม่ได้อนุมัติ */}
-          {localStatus !== 'approved' && (
+          {/* ปุ่มอนุมัติสำหรับ มัดจำก่อน */}
+          {depositMode === 'before' && localStatus !== 'approved' && (
             <Button
               size="small"
               variant="outlined"
               color="success"
               onClick={handleApprove}
-              sx={{ px: 2, py: 1, fontSize: '0.8rem', fontWeight: 600, borderStyle: 'dashed' }}
-              aria-label={
-                localStatus === 'pending_after' ? 'อนุมัติมัดจำหลัง' : 'จำลองการอนุมัติใบแจ้งหนี้'
-              }
+              sx={{ 
+                px: 2, 
+                py: 1, 
+                fontSize: '0.8rem', 
+                fontWeight: 600, 
+                borderStyle: 'dashed'
+              }}
+              aria-label="อนุมัติใบแจ้งหนี้"
             >
-              {localStatus === 'pending_after' 
-                ? 'อนุมัติมัดจำหลัง'
-                : (onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)')
-              }
+              {onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)'}
             </Button>
+          )}
+          
+          {/* ปุ่มอนุมัติสำหรับ มัดจำหลัง - 2 ขั้นตอน */}
+          {depositMode === 'after' && (
+            <>
+              {/* ขั้นตอนที่ 1: ส่งขออนุมัติมัดจำหลัง */}
+              {(localStatus === 'draft' || localStatus === 'pending') && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  onClick={handleApprove}
+                  sx={{ 
+                    px: 2, 
+                    py: 1, 
+                    fontSize: '0.8rem', 
+                    fontWeight: 600, 
+                    borderStyle: 'dashed',
+                    borderColor: 'warning.main',
+                    color: 'warning.main',
+                    '&:hover': {
+                      borderColor: 'warning.dark',
+                      backgroundColor: 'warning.light',
+                      color: 'warning.dark'
+                    }
+                  }}
+                  aria-label="ส่งขออนุมัติมัดจำหลัง"
+                >
+                  ส่งขออนุมัติมัดจำหลัง
+                </Button>
+              )}
+              
+              {/* ขั้นตอนที่ 2: อนุมัติมัดจำหลัง */}
+              {localStatus === 'pending_after' && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  onClick={handleApprove}
+                  sx={{ 
+                    px: 2, 
+                    py: 1, 
+                    fontSize: '0.8rem', 
+                    fontWeight: 600, 
+                    borderStyle: 'solid'
+                  }}
+                  aria-label="อนุมัติมัดจำหลัง"
+                >
+                  อนุมัติมัดจำหลัง
+                </Button>
+              )}
+            </>
           )}
           {onDownloadPDF && (
             <>

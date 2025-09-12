@@ -830,6 +830,29 @@ class InvoiceService
                 throw new \Exception('Invoice must be pending, draft, or pending_after to approve');
             }
 
+            // สำหรับ deposit mode "after" - ถ้ายังไม่ได้ส่งขออนุมัติมัดจำหลัง
+            if ($invoice->deposit_display_order === 'after' && in_array($invoice->status, ['draft', 'pending'])) {
+                // เปลี่ยนเป็น pending_after แทน approved โดยตรง
+                $invoice->status = 'pending_after';
+                $invoice->submitted_by = $approvedBy;
+                $invoice->submitted_at = now();
+                $invoice->save();
+
+                // บันทึก History
+                DocumentHistory::logStatusChange(
+                    'invoice',
+                    $invoiceId,
+                    $fromStatus,
+                    'pending_after',
+                    'ส่งขออนุมัติมัดจำหลัง',
+                    $approvedBy,
+                    $notes
+                );
+
+                DB::commit();
+                return $invoice->fresh();
+            }
+
             // หากยังเป็น draft ให้ auto-submit ภายใน (ไม่ต้องยิง endpoint แยก)
             if ($invoice->status === 'draft') {
                 $invoice->submitted_by = $approvedBy; // หรือผู้สร้าง ถ้าต้องการบันทึกที่มาชัดเจน
@@ -900,6 +923,100 @@ class InvoiceService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('InvoiceService::reject error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * ส่งขออนุมัติมัดจำหลัง (เปลี่ยนสถานะเป็น pending_after)
+     */
+    public function submitAfterDeposit($invoiceId, $submittedBy = null, $notes = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+            $fromStatus = $invoice->status;
+
+            if (!in_array($invoice->status, ['draft', 'pending'])) {
+                throw new \Exception('Invoice must be draft or pending to submit for after-deposit approval');
+            }
+
+            // ตรวจสอบว่าเป็น deposit mode "after"
+            if ($invoice->deposit_display_order !== 'after') {
+                throw new \Exception('Invoice must have deposit_display_order = "after" to use this workflow');
+            }
+
+            $invoice->status = 'pending_after';
+            $invoice->submitted_by = $submittedBy;
+            $invoice->submitted_at = now();
+            $invoice->save();
+
+            // บันทึก History
+            DocumentHistory::logStatusChange(
+                'invoice',
+                $invoiceId,
+                $fromStatus,
+                'pending_after',
+                'ส่งขออนุมัติมัดจำหลัง',
+                $submittedBy,
+                $notes
+            );
+
+            DB::commit();
+
+            return $invoice->fresh();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::submitAfterDeposit error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * อนุมัติมัดจำหลัง (เปลี่ยนจาก pending_after เป็น approved)
+     */
+    public function approveAfterDeposit($invoiceId, $approvedBy = null, $notes = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+            $fromStatus = $invoice->status;
+
+            if ($invoice->status !== 'pending_after') {
+                throw new \Exception('Invoice must be pending_after to approve after-deposit');
+            }
+
+            // ตรวจสอบว่าเป็น deposit mode "after"
+            if ($invoice->deposit_display_order !== 'after') {
+                throw new \Exception('Invoice must have deposit_display_order = "after" to use this workflow');
+            }
+
+            $invoice->status = 'approved';
+            $invoice->approved_by = $approvedBy;
+            $invoice->approved_at = now();
+            $invoice->save();
+
+            // บันทึก History
+            DocumentHistory::logStatusChange(
+                'invoice',
+                $invoiceId,
+                $fromStatus,
+                'approved',
+                'อนุมัติมัดจำหลัง',
+                $approvedBy,
+                $notes
+            );
+
+            DB::commit();
+
+            return $invoice->fresh();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::approveAfterDeposit error: ' . $e->getMessage());
             throw $e;
         }
     }

@@ -503,6 +503,82 @@ class InvoiceController extends Controller
     }
 
     /**
+     * ส่งขออนุมัติมัดจำหลัง (เปลี่ยนจาก draft/pending เป็น pending_after)
+     * POST /api/v1/invoices/{id}/submit-after-deposit
+     */
+    public function submitAfterDeposit(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $submittedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->submitAfterDeposit($id, $submittedBy, $request->notes);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoice,
+                'message' => 'Invoice submitted for after-deposit approval successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::submitAfterDeposit error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit invoice for after-deposit approval: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * อนุมัติมัดจำหลัง (เปลี่ยนจาก pending_after เป็น approved)
+     * POST /api/v1/invoices/{id}/approve-after-deposit
+     */
+    public function approveAfterDeposit(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $approvedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->approveAfterDeposit($id, $approvedBy, $request->notes);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoice,
+                'message' => 'Invoice after-deposit approved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::approveAfterDeposit error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve invoice after-deposit: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * ส่งกลับแก้ไข
      * POST /api/v1/invoices/{id}/send-back
      */

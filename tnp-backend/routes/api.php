@@ -309,6 +309,10 @@ Route::prefix('v1')->group(function() {
         Route::post('/invoices/{id}/reject', 'reject');
         Route::post('/invoices/{id}/send-back', 'sendBack');
         
+        // Deposit Mode Specific Actions
+        Route::post('/invoices/{id}/submit-after-deposit', 'submitAfterDeposit');
+        Route::post('/invoices/{id}/approve-after-deposit', 'approveAfterDeposit');
+        
         // Step 2 Workflow APIs
         Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
         Route::post('/invoices/{id}/record-payment', 'recordPayment');

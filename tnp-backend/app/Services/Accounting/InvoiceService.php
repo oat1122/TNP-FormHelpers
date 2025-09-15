@@ -141,19 +141,22 @@ class InvoiceService
 
             DB::commit();
 
-            // Merge & persist into invoice.evidence_files JSON keeping only stored filenames (like Pricing module)
-            // Rationale: Frontend can build full URL via Storage::url('images/invoices/evidence/' . filename)
-            $currentEvidence = is_array($invoice->evidence_files) ? $invoice->evidence_files : [];
+            // Merge & persist into invoice.evidence_files JSON with structured modes
+            // Default non-mode upload to 'before' to keep consistent presentation
+            $currentEvidence = $this->normalizeEvidenceStructure($invoice->evidence_files);
             foreach ($uploadedFiles as $f) {
-                // Only keep filename to reduce JSON size and follow existing pricing convention
-                $currentEvidence[] = $f['filename'];
+                $currentEvidence['before'][] = $f['filename'];
             }
+            // Deduplicate to avoid corruption/dup entries
+            $currentEvidence['before'] = array_values(array_unique($currentEvidence['before']));
+            $currentEvidence['after'] = array_values(array_unique($currentEvidence['after']));
+
             $invoice->evidence_files = $currentEvidence;
             $invoice->save();
 
             return [
                 'uploaded_files' => $uploadedFiles,
-                'evidence_files' => $invoice->evidence_files, // now array of filenames only
+                'evidence_files' => $invoice->evidence_files,
                 'description' => $description,
                 'uploaded_by' => $uploadedBy,
                 'uploaded_at' => now()->format('Y-m-d\TH:i:s\Z')

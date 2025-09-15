@@ -15,7 +15,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
 import LabeledSwitch from '../../shared/components/LabeledSwitch';
-import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation } from '../../../../features/Accounting/accountingApi';
+import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation, useApproveInvoiceMutation, useSubmitInvoiceMutation, useSubmitInvoiceAfterDepositMutation, useApproveInvoiceAfterDepositMutation } from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
   full_amount: 'เต็มจำนวน',
@@ -256,32 +256,49 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   // ใช้สถานะจำลอง (ถ้ามี) เพื่อให้ UI อัปเดตได้ทันที
   const invoiceStatus = getInvoiceStatus({ ...invoice, status: localStatus });
 
-  // Handler สำหรับปุ่มอนุมัติ (จำลอง)
-  const handleApprove = async () => {
-    if (onApprove) {
-      try {
-        // ถ้ายังเป็น draft และมี onSubmit ให้ส่งก่อน
-        if (invoice?.status === 'draft' && typeof onSubmit === 'function') {
-          await onSubmit();
-        }
-        await onApprove();
-        setLocalStatus('approved');
-      } catch (e) {
-        console.error('Approve action error', e);
+  // API hooks for approval flows
+  const [submitInvoice] = useSubmitInvoiceMutation();
+  const [approveInvoice] = useApproveInvoiceMutation();
+  const [submitAfterDeposit] = useSubmitInvoiceAfterDepositMutation();
+  const [approveAfterDeposit] = useApproveInvoiceAfterDepositMutation();
+
+  // Handlers: split by deposit mode
+  const handleApproveBefore = async () => {
+    try {
+      if (!invoice?.id) return;
+      // If draft -> submit first
+      if (localStatus === 'draft') {
+        await submitInvoice(invoice.id).unwrap();
+        setLocalStatus('pending');
       }
-    } else {
-      // Fallback: simulation only
-      // Handle different approval flows based on current status and deposit mode
-      if (localStatus === 'pending_after') {
-        // Final approval for "after deposit" mode - อนุมัติมัดจำหลัง
-        setLocalStatus('approved');
-      } else if (depositMode === 'after' && localStatus !== 'approved') {
-        // First step for "after deposit" mode - ส่งขออนุมัติมัดจำหลัง
-        setLocalStatus('pending_after');
-      } else {
-        // Standard approval for "before deposit" mode - อนุมัติปกติ
-        setLocalStatus('approved');
-      }
+      await approveInvoice({ id: invoice.id }).unwrap();
+      setLocalStatus('approved');
+    } catch (e) {
+      console.error('Approve before-deposit failed', e);
+    }
+  };
+
+  const handleSubmitAfter = async () => {
+    try {
+      if (!invoice?.id) return;
+      await submitAfterDeposit(invoice.id).unwrap();
+      setLocalStatus('pending_after');
+    } catch (e) {
+      console.error('Submit after-deposit failed', e);
+      // fallback simulate
+      setLocalStatus('pending_after');
+    }
+  };
+
+  const handleApproveAfter = async () => {
+    try {
+      if (!invoice?.id) return;
+      await approveAfterDeposit({ id: invoice.id }).unwrap();
+      setLocalStatus('approved');
+    } catch (e) {
+      console.error('Approve after-deposit failed', e);
+      // fallback simulate
+      setLocalStatus('approved');
     }
   };
 
@@ -1053,7 +1070,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               size="small"
               variant="outlined"
               color="success"
-              onClick={handleApprove}
+              onClick={handleApproveBefore}
               sx={{ 
                 px: 2, 
                 py: 1, 
@@ -1063,7 +1080,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               }}
               aria-label="อนุมัติใบแจ้งหนี้"
             >
-              {onApprove ? 'อนุมัติ' : 'อนุมัติ (จำลอง)'}
+              อนุมัติ
             </Button>
           )}
           
@@ -1076,7 +1093,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                   size="small"
                   variant="outlined"
                   color="warning"
-                  onClick={handleApprove}
+                  onClick={handleSubmitAfter}
                   sx={{ 
                     px: 2, 
                     py: 1, 
@@ -1103,7 +1120,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                   size="small"
                   variant="outlined"
                   color="success"
-                  onClick={handleApprove}
+                  onClick={handleApproveAfter}
                   sx={{ 
                     px: 2, 
                     py: 1, 

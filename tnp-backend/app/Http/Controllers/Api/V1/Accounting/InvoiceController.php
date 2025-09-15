@@ -140,7 +140,9 @@ class InvoiceController extends Controller
                 'documentHistory',
                 'attachments',
                 'items',
-                'customer'
+                'customer',
+                'manager',
+                'company'
             ])->findOrFail($id);
 
             return response()->json([

@@ -466,6 +466,31 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // After-deposit specific workflow
+        submitInvoiceAfterDeposit: builder.mutation({
+            query: (id) => ({
+                url: `/invoices/${id}/submit-after-deposit`,
+                method: 'POST',
+            }),
+            invalidatesTags: (result, error, id) => [
+                { type: 'Invoice', id },
+                'Invoice'
+            ],
+        }),
+
+        approveInvoiceAfterDeposit: builder.mutation({
+            query: ({ id, ...approvalData }) => ({
+                url: `/invoices/${id}/approve-after-deposit`,
+                method: 'POST',
+                body: approvalData,
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Invoice', id },
+                'Invoice',
+                'Dashboard'
+            ],
+        }),
+
         // Update deposit display order (presentation preference persistence)
         updateInvoiceDepositDisplayOrder: builder.mutation({
             query: ({ id, order }) => ({
@@ -785,6 +810,8 @@ export const {
     useDeleteInvoiceMutation,
     useApproveInvoiceMutation,
     useSubmitInvoiceMutation,
+    useSubmitInvoiceAfterDepositMutation,
+    useApproveInvoiceAfterDepositMutation,
     useUpdateInvoiceDepositDisplayOrderMutation,
     useGenerateInvoicePDFMutation,
     useUploadInvoiceEvidenceMutation,

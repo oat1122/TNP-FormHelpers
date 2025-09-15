@@ -36,18 +36,8 @@ class InvoiceService
             $prev = $invoice->deposit_display_order ?? 'before'; // Default to 'before' instead of 'after'
             $invoice->deposit_display_order = $order;
             
-            // Status management for deposit display order changes
-            if ($order === 'after') {
-                // When switching to 'after' mode: set pending_after if not already approved or fully processed
-                if (!in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
-                    $invoice->status = 'pending_after';
-                }
-            } else if ($order === 'before') {
-                // When switching back to 'before' mode: revert from pending_after if needed
-                if ($invoice->status === 'pending_after') {
-                    $invoice->status = 'pending'; // or 'draft' based on business rules
-                }
-            }
+            // Do NOT change status on display order changes.
+            // Separation rule: approval workflows for 'before' and 'after' are user-driven, not auto-switched by toggling.
             
             $invoice->updated_by = $updatedBy;
             $invoice->save();
@@ -58,7 +48,7 @@ class InvoiceService
                     $invoiceId,
                     'update_deposit_display_order',
                     $updatedBy,
-                    "เปลี่ยนรูปแบบแสดงมัดจำ: {$prev} -> {$order}" . ($invoice->status === 'pending_after' ? ', สถานะเป็น pending_after' : '')
+                    "เปลี่ยนรูปแบบแสดงมัดจำ: {$prev} -> {$order}"
                 );
             }
 
@@ -955,6 +945,13 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
             $fromStatus = $invoice->status;
 
+            // Idempotency: if already submitted for after-deposit or beyond, return as-is
+            if (in_array($invoice->status, ['pending_after', 'approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
+                // No changes needed; ensure deposit mode is correct for clarity
+                DB::commit();
+                return $invoice->fresh();
+            }
+
             if (!in_array($invoice->status, ['draft', 'pending'])) {
                 throw new \Exception('Invoice must be draft or pending to submit for after-deposit approval');
             }
@@ -1001,6 +998,38 @@ class InvoiceService
 
             $invoice = Invoice::findOrFail($invoiceId);
             $fromStatus = $invoice->status;
+
+            // If already approved or further, make it idempotent (no-op)
+            if (in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'approve_after_noop',
+                    $approvedBy,
+                    'ข้ามการอนุมัติมัดจำหลังเนื่องจากสถานะปัจจุบันคือ ' . $invoice->status
+                );
+                DB::commit();
+                return $invoice;
+            }
+
+            // ยอมรับการกดอนุมัติทันทีแม้อยู่ใน draft/pending โดยจะ submit ภายในให้เอง
+            if (in_array($invoice->status, ['draft', 'pending']) && $invoice->deposit_display_order === 'after') {
+                // เปลี่ยนเป็น pending_after ก่อน แล้วอนุมัติ
+                DocumentHistory::logStatusChange(
+                    'invoice',
+                    $invoiceId,
+                    $fromStatus,
+                    'pending_after',
+                    'ส่งขออนุมัติมัดจำหลัง (โดย approve-after-deposit)',
+                    $approvedBy,
+                    $notes
+                );
+                $invoice->status = 'pending_after';
+                $invoice->submitted_by = $approvedBy;
+                $invoice->submitted_at = now();
+                $invoice->save();
+                $fromStatus = 'pending_after';
+            }
 
             if ($invoice->status !== 'pending_after') {
                 throw new \Exception('Invoice must be pending_after to approve after-deposit');

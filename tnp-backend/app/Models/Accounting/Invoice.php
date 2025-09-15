@@ -115,7 +115,7 @@ class Invoice extends Model
      * Default attribute values
      */
     protected $attributes = [
-        'deposit_display_order' => 'before',
+        'deposit_display_order' => 'after',
         'status' => 'draft',
     ];
 

@@ -15,7 +15,14 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
 import LabeledSwitch from '../../shared/components/LabeledSwitch';
-import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation, useApproveInvoiceMutation, useSubmitInvoiceMutation } from '../../../../features/Accounting/accountingApi';
+import { 
+  useUploadInvoiceEvidenceMutation, 
+  useUpdateInvoiceDepositDisplayOrderMutation, 
+  useApproveInvoiceMutation, 
+  useSubmitInvoiceMutation,
+  useSubmitInvoiceAfterDepositMutation,
+  useApproveInvoiceAfterDepositMutation
+} from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
   full_amount: 'เต็มจำนวน',
@@ -189,14 +196,8 @@ const formatDepositInfo = (invoice) => {
 
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
-  // เก็บสถานะภายในเพื่อ "จำลอง" การอนุมัติ โดยไม่กระทบข้อมูลจริงจาก backend
-  const [localStatus, setLocalStatus] = useState(() => {
-    // สำหรับการทดสอบ: ถ้าเป็น approved และ deposit mode เป็น after ให้รีเซ็ตเป็น draft เพื่อทดสอบ
-    if (invoice?.status === 'approved' && invoice?.deposit_display_order === 'after') {
-      return 'draft'; // รีเซ็ตเพื่อทดสอบ workflow มัดจำหลัง
-    }
-    return invoice?.status;
-  });
+  // เก็บสถานะภายในเพื่อสะท้อนผลจาก backend (ไม่จำลองสถานะ)
+  const [localStatus, setLocalStatus] = useState(invoice?.status);
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
   // Current deposit display mode: 'before' | 'after'
   const [depositMode, setDepositMode] = useState(invoice?.deposit_display_order || 'after');
@@ -235,20 +236,22 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     }
   };
   
-  // คำนวณยอดเงินอย่างถูกต้อง - แก้ไข logic การคำนวณ
-  const subtotal = Number(invoice?.subtotal || 0);
-  const specialDiscountAmount = Number(invoice?.special_discount_amount || 0);
-  const discounted = Math.max(subtotal - specialDiscountAmount, 0); // ป้องกันติดลบ
+  // คำนวณยอดเงินให้สอดคล้องกับฝั่ง DB (ใช้ค่าที่ server คำนวณไว้ก่อนเป็นหลัก)
+  const toNumber = (v) => Number(v || 0);
+  const subtotal = toNumber(invoice?.subtotal);
+  const specialDiscountAmount = toNumber(invoice?.special_discount_amount);
+  // ฝั่ง DB คำนวณ vat_amount จาก subtotal โดยตรง (ไม่ใช่จากยอดหลังหักส่วนลด)
+  const vatAmount = toNumber(invoice?.vat_amount);
+  const withholding = toNumber(invoice?.withholding_tax_amount);
+  // ใช้ค่า final_total_amount จาก DB เป็นหลัก ถ้าไม่มีค่อย fallback ตามสูตรเดียวกับ trigger
   const vatRate = (invoice?.vat_percentage || 7) / 100;
-  const vat = invoice?.has_vat ? discounted * vatRate : 0;
-  const afterVat = discounted + vat;
-  const withholdingTaxRate = (invoice?.withholding_tax_percentage || 0) / 100;
-  const withholding = invoice?.has_withholding_tax ? discounted * withholdingTaxRate : 0;
-  const total = afterVat - withholding;
+  const fallbackTotal = subtotal + (invoice?.has_vat ? subtotal * vatRate : 0) - specialDiscountAmount - withholding;
+  const total = toNumber(invoice?.final_total_amount ?? fallbackTotal);
+  const afterVat = subtotal + vatAmount; // เพื่อแสดง breakdown ให้ตรงกับ DB
   
   // คำนวณยอดคงเหลือที่ถูกต้อง
-  const paidAmount = Number(invoice?.paid_amount || 0);
-  const depositAmount = Number(invoice?.deposit_amount || 0);
+  const paidAmount = toNumber(invoice?.paid_amount);
+  const depositAmount = toNumber(invoice?.deposit_amount);
   const remaining = Math.max(total - paidAmount - depositAmount, 0);
   
   const depositInfo = formatDepositInfo(invoice);
@@ -259,21 +262,49 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   // API hooks for approval flows
   const [submitInvoice] = useSubmitInvoiceMutation();
   const [approveInvoice] = useApproveInvoiceMutation();
+  const [submitInvoiceAfterDeposit] = useSubmitInvoiceAfterDepositMutation();
+  const [approveInvoiceAfterDeposit] = useApproveInvoiceAfterDepositMutation();
 
   // Handlers: split by deposit mode
   // Single approve handler (role-gated in UI)
   const handleApprove = async () => {
     try {
       if (!invoice?.id) return;
-      // If draft -> submit first
-      if (localStatus === 'draft') {
-        const submitted = await submitInvoice(invoice.id).unwrap();
-        const submittedStatus = submitted?.data?.status || 'pending';
-        setLocalStatus(submittedStatus);
+      const activeDepositOrder = depositMode || invoice?.deposit_display_order || 'after';
+      // ใช้สถานะจาก server เป็นหลัก เพื่อตัดสินใจ flow
+      let currentStatus = invoice?.status || localStatus;
+
+      if (activeDepositOrder === 'after') {
+        // After-deposit flow uses dedicated endpoints
+        if (currentStatus === 'approved') {
+          setLocalStatus('approved');
+          return; // nothing to do
+        }
+        if (currentStatus === 'draft' || currentStatus === 'pending') {
+          const submitted = await submitInvoiceAfterDeposit(invoice.id).unwrap();
+          currentStatus = submitted?.data?.status || 'pending_after';
+          setLocalStatus(currentStatus);
+        }
+        if (currentStatus === 'pending_after') {
+          const res = await approveInvoiceAfterDeposit({ id: invoice.id }).unwrap();
+          const newStatus = res?.data?.status || 'approved';
+          setLocalStatus(newStatus);
+        }
+      } else {
+        // Normal flow (deposit before or no deposit)
+        if (currentStatus === 'approved') {
+          setLocalStatus('approved');
+          return;
+        }
+        if (currentStatus === 'draft') {
+          const submitted = await submitInvoice(invoice.id).unwrap();
+          currentStatus = submitted?.data?.status || 'pending';
+          setLocalStatus(currentStatus);
+        }
+        const res = await approveInvoice({ id: invoice.id }).unwrap();
+        const newStatus = res?.data?.status || 'approved';
+        setLocalStatus(newStatus);
       }
-      const res = await approveInvoice({ id: invoice.id }).unwrap();
-      const newStatus = res?.data?.status || 'approved';
-      setLocalStatus(newStatus);
     } catch (e) {
       console.error('Approve invoice failed', e);
     }
@@ -733,18 +764,16 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                     value={depositMode}
                     disabled={!hasEvidence} // ปิดใช้งานเมื่อยังไม่มีหลักฐานการชำระ
                     onChange={async (val)=> {
-                      setDepositMode(val); // optimistic UI
+                      const prev = depositMode;
+                      setDepositMode(val); // optimistic UI for switch only
                       try {
                         if (invoice?.id) {
                           await updateDepositOrder({ id: invoice.id, order: val });
-                          // If switching to 'after' mode and not yet approved for after deposit, set status to pending_after
-                          if (val === 'after' && localStatus !== 'approved' && !hasEvidenceForMode('after')) {
-                            setLocalStatus('pending_after');
-                          }
+                          // ไม่ auto-submit หรือเปลี่ยนสถานะเมื่อสลับโหมด เพื่อให้ผู้ใช้กดอนุมัติเองในแต่ละโหมด
                         }
                       } catch (e) {
                         console.error('Failed to persist deposit display order', e);
-                        setDepositMode(depositMode); // revert on error
+                        setDepositMode(prev); // revert on error
                       }
                     }}
                     options={[
@@ -915,15 +944,11 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                     />
                   )}
                   
-                  {specialDiscountAmount > 0 && (
-                    <FinancialRow label="ฐานภาษีหลังส่วนลด" value={discounted} />
+                  {invoice?.has_vat && vatAmount > 0 && (
+                    <FinancialRow label={`VAT ${invoice?.vat_percentage || 7}%`} value={vatAmount} />
                   )}
                   
-                  {invoice?.has_vat && vat > 0 && (
-                    <FinancialRow label={`VAT ${invoice?.vat_percentage || 7}%`} value={vat} />
-                  )}
-                  
-                  {invoice?.has_vat && vat > 0 && (
+                  {invoice?.has_vat && vatAmount > 0 && (
                     <FinancialRow label="ยอดหลัง VAT" value={afterVat} />
                   )}
                   

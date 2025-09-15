@@ -16,6 +16,9 @@ class InvoiceController extends Controller
     public function __construct(InvoiceService $invoiceService)
     {
         $this->invoiceService = $invoiceService;
+        // Require authentication for all invoice endpoints so auth()->user() is populated
+        // and controller-level role checks function correctly.
+        $this->middleware('auth:sanctum');
     }
 
     /**
@@ -435,6 +438,16 @@ class InvoiceController extends Controller
     public function approve(Request $request, $id): JsonResponse
     {
         try {
+            // Authorization: only admin/account can approve
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can approve invoices'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'notes' => 'nullable|string|max:1000'
             ]);
@@ -511,6 +524,16 @@ class InvoiceController extends Controller
     public function submitAfterDeposit(Request $request, $id): JsonResponse
     {
         try {
+            // Authorization: only admin/account can submit after-deposit
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can submit after-deposit'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'notes' => 'nullable|string|max:1000'
             ]);
@@ -549,6 +572,16 @@ class InvoiceController extends Controller
     public function approveAfterDeposit(Request $request, $id): JsonResponse
     {
         try {
+            // Authorization: only admin/account can approve after-deposit
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can approve after-deposit'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'notes' => 'nullable|string|max:1000'
             ]);

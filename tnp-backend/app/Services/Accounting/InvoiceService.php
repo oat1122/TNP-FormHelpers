@@ -829,6 +829,20 @@ class InvoiceService
             $invoice = Invoice::findOrFail($invoiceId);
             $fromStatus = $invoice->status;
 
+            // Idempotent/benign handling for already-processed invoices
+            if (in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
+                // No-op: already beyond approval stage
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'approve_noop',
+                    $approvedBy,
+                    'ข้ามการอนุมัติเนื่องจากสถานะปัจจุบันคือ ' . $invoice->status
+                );
+                DB::commit();
+                return $invoice;
+            }
+
             if (!in_array($invoice->status, ['pending','draft','pending_after'])) {
                 throw new \Exception('Invoice must be pending, draft, or pending_after to approve');
             }

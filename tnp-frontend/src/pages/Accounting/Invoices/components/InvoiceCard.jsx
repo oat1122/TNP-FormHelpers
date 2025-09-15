@@ -15,7 +15,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { TNPCard, TNPCardContent, TNPHeading, TNPBodyText, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
 import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
 import LabeledSwitch from '../../shared/components/LabeledSwitch';
-import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation, useApproveInvoiceMutation, useSubmitInvoiceMutation, useSubmitInvoiceAfterDepositMutation, useApproveInvoiceAfterDepositMutation } from '../../../../features/Accounting/accountingApi';
+import { useUploadInvoiceEvidenceMutation, useUpdateInvoiceDepositDisplayOrderMutation, useApproveInvoiceMutation, useSubmitInvoiceMutation } from '../../../../features/Accounting/accountingApi';
 
 const typeLabels = {
   full_amount: 'เต็มจำนวน',
@@ -259,46 +259,23 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   // API hooks for approval flows
   const [submitInvoice] = useSubmitInvoiceMutation();
   const [approveInvoice] = useApproveInvoiceMutation();
-  const [submitAfterDeposit] = useSubmitInvoiceAfterDepositMutation();
-  const [approveAfterDeposit] = useApproveInvoiceAfterDepositMutation();
 
   // Handlers: split by deposit mode
-  const handleApproveBefore = async () => {
+  // Single approve handler (role-gated in UI)
+  const handleApprove = async () => {
     try {
       if (!invoice?.id) return;
       // If draft -> submit first
       if (localStatus === 'draft') {
-        await submitInvoice(invoice.id).unwrap();
-        setLocalStatus('pending');
+        const submitted = await submitInvoice(invoice.id).unwrap();
+        const submittedStatus = submitted?.data?.status || 'pending';
+        setLocalStatus(submittedStatus);
       }
-      await approveInvoice({ id: invoice.id }).unwrap();
-      setLocalStatus('approved');
+      const res = await approveInvoice({ id: invoice.id }).unwrap();
+      const newStatus = res?.data?.status || 'approved';
+      setLocalStatus(newStatus);
     } catch (e) {
-      console.error('Approve before-deposit failed', e);
-    }
-  };
-
-  const handleSubmitAfter = async () => {
-    try {
-      if (!invoice?.id) return;
-      await submitAfterDeposit(invoice.id).unwrap();
-      setLocalStatus('pending_after');
-    } catch (e) {
-      console.error('Submit after-deposit failed', e);
-      // fallback simulate
-      setLocalStatus('pending_after');
-    }
-  };
-
-  const handleApproveAfter = async () => {
-    try {
-      if (!invoice?.id) return;
-      await approveAfterDeposit({ id: invoice.id }).unwrap();
-      setLocalStatus('approved');
-    } catch (e) {
-      console.error('Approve after-deposit failed', e);
-      // fallback simulate
-      setLocalStatus('approved');
+      console.error('Approve invoice failed', e);
     }
   };
 
@@ -1062,79 +1039,33 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
           </Box>
         )}
 
-        {/* Action Buttons - ปรับปรุง hierarchy และ spacing */}
+        {/* Action Buttons - Single Approve (admin/account only) */}
         <Stack direction="row" spacing={1.5} justifyContent="flex-end">
-          {/* ปุ่มอนุมัติสำหรับ มัดจำก่อน */}
-          {depositMode === 'before' && localStatus !== 'approved' && (
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              onClick={handleApproveBefore}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                fontSize: '0.8rem', 
-                fontWeight: 600, 
-                borderStyle: 'dashed'
-              }}
-              aria-label="อนุมัติใบแจ้งหนี้"
-            >
-              อนุมัติ
-            </Button>
-          )}
-          
-          {/* ปุ่มอนุมัติสำหรับ มัดจำหลัง - 2 ขั้นตอน */}
-          {depositMode === 'after' && (
-            <>
-              {/* ขั้นตอนที่ 1: ส่งขออนุมัติมัดจำหลัง */}
-              {(localStatus === 'draft' || localStatus === 'pending') && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="warning"
-                  onClick={handleSubmitAfter}
-                  sx={{ 
-                    px: 2, 
-                    py: 1, 
-                    fontSize: '0.8rem', 
-                    fontWeight: 600, 
-                    borderStyle: 'dashed',
-                    borderColor: 'warning.main',
-                    color: 'warning.main',
-                    '&:hover': {
-                      borderColor: 'warning.dark',
-                      backgroundColor: 'warning.light',
-                      color: 'warning.dark'
-                    }
-                  }}
-                  aria-label="ส่งขออนุมัติมัดจำหลัง"
-                >
-                  ส่งขออนุมัติมัดจำหลัง
-                </Button>
-              )}
-              
-              {/* ขั้นตอนที่ 2: อนุมัติมัดจำหลัง */}
-              {localStatus === 'pending_after' && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="success"
-                  onClick={handleApproveAfter}
-                  sx={{ 
-                    px: 2, 
-                    py: 1, 
-                    fontSize: '0.8rem', 
-                    fontWeight: 600, 
-                    borderStyle: 'solid'
-                  }}
-                  aria-label="อนุมัติมัดจำหลัง"
-                >
-                  อนุมัติมัดจำหลัง
-                </Button>
-              )}
-            </>
-          )}
+          {(() => {
+            // Role-based visibility: only admin/account can see Approve
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const canApprove = userData?.role === 'admin' || userData?.role === 'account';
+            if (!canApprove) return null;
+            if (localStatus === 'approved') return null;
+            return (
+              <Button
+                size="small"
+                variant="outlined"
+                color="success"
+                onClick={handleApprove}
+                sx={{ 
+                  px: 2, 
+                  py: 1, 
+                  fontSize: '0.8rem', 
+                  fontWeight: 600, 
+                  borderStyle: 'dashed'
+                }}
+                aria-label="อนุมัติใบแจ้งหนี้"
+              >
+                อนุมัติ
+              </Button>
+            );
+          })()}
           {onDownloadPDF && (
             <>
               <Button

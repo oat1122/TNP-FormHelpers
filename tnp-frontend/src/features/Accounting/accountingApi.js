@@ -542,6 +542,10 @@ export const accountingApi = createApi({
             }),
         }),
 
+        // Note: previewInvoicePDF removed - handled directly via fetch to avoid storing Blob in Redux
+
+        // Note: downloadInvoicePDF removed - handled directly via fetch to avoid storing Blob in Redux
+
         // ===================== RECEIPTS =====================
 
         getReceipts: builder.query({

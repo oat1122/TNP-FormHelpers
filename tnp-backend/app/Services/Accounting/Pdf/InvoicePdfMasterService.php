@@ -183,7 +183,13 @@ class InvoicePdfMasterService
         $this->addHeaderFooter($mpdf, $viewData);
 
         /* 3) เขียน HTML ของเนื้อหา */
-        $html = View::make('accounting.pdf.invoice.invoice-master', $viewData)->render();
+        // Select template based on deposit mode
+        $depositMode = $options['deposit_mode'] ?? 'before';
+        $templateName = ($depositMode === 'after') 
+            ? 'accounting.pdf.invoice.invoice-deposit-after' 
+            : 'accounting.pdf.invoice.invoice-master';
+        
+        $html = View::make($templateName, $viewData)->render();
         $mpdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 
         /* 4) เพิ่มลายเซ็นแบบ fixed ที่ท้ายหน้าสุดท้าย (ต้องมา AFTER body) */

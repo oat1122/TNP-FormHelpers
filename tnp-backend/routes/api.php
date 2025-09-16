@@ -327,10 +327,13 @@ Route::prefix('v1')->group(function() {
         Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
     Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
         
-        // PDF APIs (mPDF-first with fallback)
+        // PDF APIs (mPDF-first with fallback) - Mode-specific
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
-        Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
+        Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // Renamed for clarity
         Route::get('/invoices/{id}/pdf/download', 'downloadPdf');
+        
+        // Legacy support (will use deposit_display_order as default mode)
+        Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
         
         // One-Click Conversion
         Route::post('/invoices/create-from-quotation', 'createFromQuotation');

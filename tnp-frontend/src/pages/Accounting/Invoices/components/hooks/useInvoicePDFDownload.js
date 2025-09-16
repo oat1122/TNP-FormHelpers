@@ -1,11 +1,11 @@
 /**
- * Custom hook for PDF download functionality with multi-header support
+ * Custom hook for PDF download functionality with multi-header support and mode separation
  */
 
 import { useState } from 'react';
 import { headerOptions } from '../utils/invoiceFormatters';
 
-export const useInvoicePDFDownload = (invoice, onDownloadPDF) => {
+export const useInvoicePDFDownload = (invoice, onDownloadPDF, onPreviewPDF) => {
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
   const [selectedHeaders, setSelectedHeaders] = useState(() => {
     // default select current header type if not ต้นฉบับ
@@ -31,12 +31,22 @@ export const useInvoicePDFDownload = (invoice, onDownloadPDF) => {
     setDownloadAnchorEl(e.currentTarget);
   };
 
+  const handlePreviewClick = (mode) => {
+    if (onPreviewPDF) {
+      onPreviewPDF({ invoiceId: invoice?.id, mode });
+    }
+  };
+
   const handleCloseMenu = () => setDownloadAnchorEl(null);
 
-  const handleConfirmDownload = () => {
+  const handleConfirmDownload = (mode) => {
     handleCloseMenu();
     if (onDownloadPDF) {
-      onDownloadPDF({ invoiceId: invoice?.id, headerTypes: selectedHeaders });
+      onDownloadPDF({ 
+        invoiceId: invoice?.id, 
+        headerTypes: selectedHeaders,
+        mode // Pass the current mode (before/after)
+      });
     }
   };
 
@@ -46,6 +56,7 @@ export const useInvoicePDFDownload = (invoice, onDownloadPDF) => {
     extendedHeaderOptions,
     toggleHeader,
     handleDownloadClick,
+    handlePreviewClick,
     handleCloseMenu,
     handleConfirmDownload
   };

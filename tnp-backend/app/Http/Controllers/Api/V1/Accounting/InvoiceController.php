@@ -915,12 +915,22 @@ class InvoiceController extends Controller
     }
 
     /**
-     * แสดง PDF ในเบราว์เซอร์ (ใช้ mPDF)
+     * แสดง PDF ในเบราว์เซอร์ (ใช้ mPDF) - รองรับ mode parameter
      */
     public function streamPdf(Request $request, $id)
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
+            
+            // Get mode from query parameter, fallback to invoice's deposit_display_order
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            
+            $options['deposit_mode'] = $mode;
+            
             return $this->invoiceService->streamPdf($id, $options);
         } catch (\Exception $e) {
             return response()->json([
@@ -931,18 +941,28 @@ class InvoiceController extends Controller
     }
 
     /**
-     * ดาวน์โหลด PDF (alias ของ streamPdf แต่ force download)
+     * ดาวน์โหลด PDF (alias ของ streamPdf แต่ force download) - รองรับ mode parameter
      */
     public function downloadPdf(Request $request, $id)
     {
         try {
             $options = $request->only(['format', 'orientation', 'showWatermark']);
             $headerTypes = $request->input('headerTypes');
+            
+            // Get mode from query parameter, fallback to invoice's deposit_display_order
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            
+            $options['deposit_mode'] = $mode;
 
             if (empty($headerTypes) || !is_array($headerTypes)) {
                 $response = $this->invoiceService->streamPdf($id, $options);
                 $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
-                $filename = sprintf('invoice-%s.pdf', $invoice->number ?? $invoice->id);
+                $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+                $filename = sprintf('invoice-%s-%s.pdf', $invoice->number ?? $invoice->id, $modeLabel);
                 return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
             }
 
@@ -966,7 +986,8 @@ class InvoiceController extends Controller
             }
             $zipDir = storage_path('app/public/pdfs/invoices/zips');
             if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
-            $zipName = sprintf('invoice-%s-multi-%s.zip', $invoice->number ?? $invoice->id, now()->format('YmdHis'));
+            $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+            $zipName = sprintf('invoice-%s-multi-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel, now()->format('YmdHis'));
             $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
             $zip = new \ZipArchive();
             if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {

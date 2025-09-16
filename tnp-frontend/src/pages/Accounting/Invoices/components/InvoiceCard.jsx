@@ -28,13 +28,13 @@ import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo } from 
 
 
 
-const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) => {
+const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
   const evidenceHook = useInvoiceEvidence(invoice);
-  const pdfHook = useInvoicePDFDownload(invoice, onDownloadPDF);
+  const pdfHook = useInvoicePDFDownload(invoice, onDownloadPDF, onPreviewPDF);
 
   const {
     localStatus,
@@ -59,6 +59,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     extendedHeaderOptions,
     toggleHeader,
     handleDownloadClick,
+    handlePreviewClick,
     handleCloseMenu,
     handleConfirmDownload
   } = pdfHook;
@@ -358,6 +359,20 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               อนุมัติ ({depositMode === 'before' ? 'ก่อน' : 'หลัง'})
             </Button>
           )}
+          {/* PDF Actions - Mode-specific */}
+          {onPreviewPDF && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => handlePreviewClick(depositMode)}
+              startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
+              sx={{ px: 2, py: 1, fontSize: '0.85rem', fontWeight: 500 }}
+              tabIndex={0}
+              aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
+            >
+              ดูตัวอย่าง PDF
+            </Button>
+          )}
           {onDownloadPDF && (
             <>
               <Button
@@ -367,7 +382,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                 startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
                 sx={{ px: 2, py: 1, fontSize: '0.85rem', fontWeight: 500 }}
                 tabIndex={0}
-                aria-label="ดาวน์โหลดไฟล์ PDF หลายประเภทหัวกระดาษ"
+                aria-label={`ดาวน์โหลดไฟล์ PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
               >
                 ดาวน์โหลด PDF
               </Button>
@@ -377,14 +392,18 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                 onClose={handleCloseMenu}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               >
-                <Typography sx={{ px: 2, pt: 1, fontSize: '.8rem', fontWeight: 600 }}>เลือกประเภทหัวกระดาษ</Typography>
+                <Typography sx={{ px: 2, pt: 1, fontSize: '.8rem', fontWeight: 600 }}>
+                  เลือกประเภทหัวกระดาษ ({depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'})
+                </Typography>
+                <Divider />
                 {extendedHeaderOptions.map(opt => (
                   <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
                     <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
                     <ListItemText primaryTypographyProps={{ fontSize: '.8rem' }} primary={opt} />
                   </MenuItem>
                 ))}
-                <MenuItem disabled={selectedHeaders.length === 0} onClick={handleConfirmDownload} sx={{ justifyContent: 'center' }}>
+                <Divider />
+                <MenuItem disabled={selectedHeaders.length === 0} onClick={() => handleConfirmDownload(depositMode)} sx={{ justifyContent: 'center' }}>
                   <Typography color={selectedHeaders.length ? 'primary.main' : 'text.disabled'} fontSize={'.8rem'} fontWeight={600}>
                     ดาวน์โหลด {selectedHeaders.length > 1 ? '(.zip)' : '(PDF)'}
                   </Typography>

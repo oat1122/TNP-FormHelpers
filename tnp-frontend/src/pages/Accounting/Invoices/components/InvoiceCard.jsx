@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Stack, Chip, Button, Card, Typography, Grid, Divider, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
@@ -196,8 +196,10 @@ const formatDepositInfo = (invoice) => {
 
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
-  // เก็บสถานะภายในเพื่อสะท้อนผลจาก backend (ไม่จำลองสถานะ)
-  const [localStatus, setLocalStatus] = useState(invoice?.status);
+  // เพิ่ม state สำหรับสถานะแยกฝั่ง
+  const [localStatusBefore, setLocalStatusBefore] = useState(invoice?.status_before || 'draft');
+  const [localStatusAfter, setLocalStatusAfter] = useState(invoice?.status_after || 'draft');
+  const [localStatus, setLocalStatus] = useState(invoice?.status); // เก็บไว้เพื่อ backward compatibility
   const [downloadAnchorEl, setDownloadAnchorEl] = useState(null);
   // Current deposit display mode: 'before' | 'after'
   const [depositMode, setDepositMode] = useState(invoice?.deposit_display_order || 'after');
@@ -209,6 +211,14 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
     }
     return base;
   });
+
+  // Sync local state with invoice prop changes
+  useEffect(() => {
+    setLocalStatusBefore(invoice?.status_before || 'draft');
+    setLocalStatusAfter(invoice?.status_after || 'draft');  
+    setLocalStatus(invoice?.status);
+    setDepositMode(invoice?.deposit_display_order || 'after');
+  }, [invoice?.status_before, invoice?.status_after, invoice?.status, invoice?.deposit_display_order]);
 
   const headerOptions = [
     'ต้นฉบับ',
@@ -256,8 +266,6 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   
   const depositInfo = formatDepositInfo(invoice);
   const itemsListText = formatItemsList(invoice);
-  // ใช้สถานะจำลอง (ถ้ามี) เพื่อให้ UI อัปเดตได้ทันที
-  const invoiceStatus = getInvoiceStatus({ ...invoice, status: localStatus });
 
   // API hooks for approval flows
   const [submitInvoice] = useSubmitInvoiceMutation();
@@ -265,45 +273,65 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
   const [submitInvoiceAfterDeposit] = useSubmitInvoiceAfterDepositMutation();
   const [approveInvoiceAfterDeposit] = useApproveInvoiceAfterDepositMutation();
 
-  // Handlers: split by deposit mode
-  // Single approve handler (role-gated in UI)
+  // Helper function to get current side status
+  const getActiveSideStatus = () => {
+    return depositMode === 'before' ? localStatusBefore : localStatusAfter;
+  };
+
+  // Helper function to check if can approve current side
+  const canApproveActiveSide = () => {
+    const status = getActiveSideStatus();
+    return status === 'draft' || status === 'pending';
+  };
+
+  // ใช้สถานะของฝั่งที่กำลังดูสำหรับแสดงผล
+  const activeSideStatus = getActiveSideStatus();
+  const invoiceStatus = getInvoiceStatus({ ...invoice, status: activeSideStatus });
+
+  // Approve handler for current side
   const handleApprove = async () => {
     try {
       if (!invoice?.id) return;
-      const activeDepositOrder = depositMode || invoice?.deposit_display_order || 'after';
-      // ใช้สถานะจาก server เป็นหลัก เพื่อตัดสินใจ flow
-      let currentStatus = invoice?.status || localStatus;
 
-      if (activeDepositOrder === 'after') {
-        // After-deposit flow uses dedicated endpoints
-        if (currentStatus === 'approved') {
-          setLocalStatus('approved');
-          return; // nothing to do
+      if (depositMode === 'after') {
+        // After-deposit flow
+        if (localStatusAfter === 'approved') {
+          return; // Already approved
         }
-        if (currentStatus === 'draft' || currentStatus === 'pending') {
+        
+        // Auto-submit if still draft
+        if (localStatusAfter === 'draft') {
           const submitted = await submitInvoiceAfterDeposit(invoice.id).unwrap();
-          currentStatus = submitted?.data?.status || 'pending_after';
-          setLocalStatus(currentStatus);
+          const newStatus = submitted?.data?.status_after || 'pending';
+          setLocalStatusAfter(newStatus);
         }
-        if (currentStatus === 'pending_after') {
-          const res = await approveInvoiceAfterDeposit({ id: invoice.id }).unwrap();
-          const newStatus = res?.data?.status || 'approved';
-          setLocalStatus(newStatus);
-        }
+        
+        // Approve after deposit
+        const res = await approveInvoiceAfterDeposit({ id: invoice.id }).unwrap();
+        const newStatus = res?.data?.status_after || 'approved';
+        setLocalStatusAfter(newStatus);
+        // Update overall status for backward compatibility
+        setLocalStatus(res?.data?.status || 'approved');
+        
       } else {
-        // Normal flow (deposit before or no deposit)
-        if (currentStatus === 'approved') {
-          setLocalStatus('approved');
-          return;
+        // Before-deposit flow
+        if (localStatusBefore === 'approved') {
+          return; // Already approved
         }
-        if (currentStatus === 'draft') {
+        
+        // Auto-submit if still draft
+        if (localStatusBefore === 'draft') {
           const submitted = await submitInvoice(invoice.id).unwrap();
-          currentStatus = submitted?.data?.status || 'pending';
-          setLocalStatus(currentStatus);
+          const newStatus = submitted?.data?.status_before || 'pending';
+          setLocalStatusBefore(newStatus);
         }
+        
+        // Approve before deposit
         const res = await approveInvoice({ id: invoice.id }).unwrap();
-        const newStatus = res?.data?.status || 'approved';
-        setLocalStatus(newStatus);
+        const newStatus = res?.data?.status_before || 'approved';
+        setLocalStatusBefore(newStatus);
+        // Update overall status for backward compatibility
+        setLocalStatus(res?.data?.status || 'approved');
       }
     } catch (e) {
       console.error('Approve invoice failed', e);
@@ -879,14 +907,14 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                         ⚠ ยอดคงเหลือ: {formatTHB(remaining)}
                       </Typography>
                     )}
-                    {localStatus === 'pending_after' && (
+                    {activeSideStatus === 'pending' && (
                       <Typography sx={{ 
                         color: 'rgba(255,255,255,0.8) !important', 
                         fontWeight: 400,
                         fontSize: '0.85rem',
                         fontStyle: 'italic'
                       }}>
-                        สถานะ: รออนุมัติมัดจำหลัง
+                        สถานะ: รออนุมัติ{depositMode === 'after' ? 'มัดจำหลัง' : ''}
                       </Typography>
                     )}
                   </Stack>
@@ -1046,7 +1074,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
         )}
 
         {/* Evidence Upload Section - Mode-Specific */}
-        { (localStatus === 'approved' || (depositMode === 'after' && localStatus === 'pending_after')) && (
+        { activeSideStatus === 'approved' && (
           <Box mb={2.5}>
             <ImageUploadGrid
               images={getEvidenceForMode(depositMode)}
@@ -1054,24 +1082,25 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
               title={`หลักฐานการชำระเงิน (${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'})`}
               helperText={
                 uploadingEvidence ? 'กำลังอัปโหลด...' : 
-                (depositMode === 'after' && localStatus === 'pending_after') ? 'รอการอนุมัติมัดจำหลังก่อนอัปโหลดหลักฐาน' :
                 'อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)'
               }
-              disabled={uploadingEvidence || (depositMode === 'after' && localStatus === 'pending_after')}
+              disabled={uploadingEvidence}
               previewMode="dialog"
               showFilename={false}
             />
           </Box>
         )}
 
-        {/* Action Buttons - Single Approve (admin/account only) */}
+        {/* Action Buttons - Side-specific Approve (admin/account only) */}
         <Stack direction="row" spacing={1.5} justifyContent="flex-end">
           {(() => {
             // Role-based visibility: only admin/account can see Approve
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             const canApprove = userData?.role === 'admin' || userData?.role === 'account';
             if (!canApprove) return null;
-            if (localStatus === 'approved') return null;
+            
+            // Check if current side can be approved
+            if (!canApproveActiveSide()) return null;
             return (
               <Button
                 size="small"
@@ -1085,9 +1114,9 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onApprove, onSubmit }) =>
                   fontWeight: 600, 
                   borderStyle: 'dashed'
                 }}
-                aria-label="อนุมัติใบแจ้งหนี้"
+                aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
               >
-                อนุมัติ
+                อนุมัติ ({depositMode === 'before' ? 'ก่อน' : 'หลัง'})
               </Button>
             );
           })()}

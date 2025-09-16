@@ -406,23 +406,23 @@ class InvoiceController extends Controller
     }
 
     /**
-     * ส่งใบแจ้งหนี้เพื่อขออนุมัติ
+     * ส่งใบแจ้งหนี้เพื่อขออนุมัติฝั่ง Before Deposit (Sales → Account)
      * POST /api/v1/invoices/{id}/submit
      */
-    public function submit($id): JsonResponse
+    public function submitBefore($id): JsonResponse
     {
         try {
             $submittedBy = auth()->user()->user_uuid ?? null;
-            $invoice = $this->invoiceService->submit($id, $submittedBy);
+            $invoice = $this->invoiceService->submitBefore($id, $submittedBy);
 
             return response()->json([
                 'success' => true,
-                'data' => $invoice,
-                'message' => 'Invoice submitted for approval successfully'
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Invoice submitted for approval (before deposit) successfully'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('InvoiceController::submit error: ' . $e->getMessage());
+            Log::error('InvoiceController::submitBefore error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -432,10 +432,10 @@ class InvoiceController extends Controller
     }
 
     /**
-     * อนุมัติใบแจ้งหนี้
+     * อนุมัติใบแจ้งหนี้ฝั่ง Before Deposit
      * POST /api/v1/invoices/{id}/approve
      */
-    public function approve(Request $request, $id): JsonResponse
+    public function approveBefore(Request $request, $id): JsonResponse
     {
         try {
             // Authorization: only admin/account can approve
@@ -461,16 +461,16 @@ class InvoiceController extends Controller
             }
 
             $approvedBy = auth()->user()->user_uuid ?? null;
-            $invoice = $this->invoiceService->approve($id, $approvedBy, $request->notes);
+            $invoice = $this->invoiceService->approveBefore($id, $approvedBy, $request->notes);
 
             return response()->json([
                 'success' => true,
-                'data' => $invoice,
-                'message' => 'Invoice approved successfully'
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Invoice approved (before deposit) successfully'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('InvoiceController::approve error: ' . $e->getMessage());
+            Log::error('InvoiceController::approveBefore error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -518,10 +518,10 @@ class InvoiceController extends Controller
     }
 
     /**
-     * ส่งขออนุมัติมัดจำหลัง (เปลี่ยนจาก draft/pending เป็น pending_after)
+     * ส่งขออนุมัติฝั่ง After Deposit
      * POST /api/v1/invoices/{id}/submit-after-deposit
      */
-    public function submitAfterDeposit(Request $request, $id): JsonResponse
+    public function submitAfter(Request $request, $id): JsonResponse
     {
         try {
             // Authorization: only admin/account can submit after-deposit
@@ -547,16 +547,16 @@ class InvoiceController extends Controller
             }
 
             $submittedBy = auth()->user()->user_uuid ?? null;
-            $invoice = $this->invoiceService->submitAfterDeposit($id, $submittedBy, $request->notes);
+            $invoice = $this->invoiceService->submitAfter($id, $submittedBy);
 
             return response()->json([
                 'success' => true,
-                'data' => $invoice,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
                 'message' => 'Invoice submitted for after-deposit approval successfully'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('InvoiceController::submitAfterDeposit error: ' . $e->getMessage());
+            Log::error('InvoiceController::submitAfter error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -566,10 +566,10 @@ class InvoiceController extends Controller
     }
 
     /**
-     * อนุมัติมัดจำหลัง (เปลี่ยนจาก pending_after เป็น approved)
+     * อนุมัติฝั่ง After Deposit
      * POST /api/v1/invoices/{id}/approve-after-deposit
      */
-    public function approveAfterDeposit(Request $request, $id): JsonResponse
+    public function approveAfter(Request $request, $id): JsonResponse
     {
         try {
             // Authorization: only admin/account can approve after-deposit
@@ -595,16 +595,16 @@ class InvoiceController extends Controller
             }
 
             $approvedBy = auth()->user()->user_uuid ?? null;
-            $invoice = $this->invoiceService->approveAfterDeposit($id, $approvedBy, $request->notes);
+            $invoice = $this->invoiceService->approveAfter($id, $approvedBy, $request->notes);
 
             return response()->json([
                 'success' => true,
-                'data' => $invoice,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
                 'message' => 'Invoice after-deposit approved successfully'
             ]);
 
         } catch (\Exception $e) {
-            Log::error('InvoiceController::approveAfterDeposit error: ' . $e->getMessage());
+            Log::error('InvoiceController::approveAfter error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -1137,5 +1137,143 @@ class InvoiceController extends Controller
             return trim($matches[1]);
         }
         return null;
+    }
+
+    /**
+     * ปฏิเสธใบแจ้งหนี้ฝั่ง Before Deposit
+     * POST /api/v1/invoices/{id}/reject
+     */
+    public function rejectBefore(Request $request, $id): JsonResponse
+    {
+        try {
+            // Authorization: only admin/account can reject
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can reject invoices'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $rejectedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->rejectBefore($id, $request->reason, $rejectedBy);
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Invoice rejected (before deposit) successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::rejectBefore error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject invoice: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ปฏิเสธใบแจ้งหนี้ฝั่ง After Deposit  
+     * POST /api/v1/invoices/{id}/reject-after-deposit
+     */
+    public function rejectAfter(Request $request, $id): JsonResponse
+    {
+        try {
+            // Authorization: only admin/account can reject
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can reject invoices'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $rejectedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->rejectAfter($id, $request->reason, $rejectedBy);
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Invoice rejected (after deposit) successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::rejectAfter error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject invoice: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * เปลี่ยนโหมดการแสดงผล (deposit_display_order)
+     * PATCH /api/v1/invoices/{id}/deposit-display-order
+     */
+    public function setDepositMode(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'deposit_display_order' => 'required|string|in:before,after'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $updatedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->setDepositMode(
+                $id, 
+                $request->deposit_display_order, 
+                $updatedBy
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Deposit mode updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::setDepositMode error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update deposit mode: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

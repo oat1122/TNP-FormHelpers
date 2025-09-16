@@ -303,23 +303,28 @@ Route::prefix('v1')->group(function() {
         Route::put('/invoices/{id}', 'update');
         Route::delete('/invoices/{id}', 'destroy');
         
-        // Invoice Actions
-        Route::post('/invoices/{id}/submit', 'submit');
-        Route::post('/invoices/{id}/approve', 'approve');
-        Route::post('/invoices/{id}/reject', 'reject');
+        // Invoice Actions - Before Deposit Mode
+        Route::post('/invoices/{id}/submit', 'submitBefore');
+        Route::post('/invoices/{id}/approve', 'approveBefore');
+        Route::post('/invoices/{id}/reject', 'rejectBefore');
+        
+        // Invoice Actions - After Deposit Mode  
+        Route::post('/invoices/{id}/submit-after-deposit', 'submitAfter');
+        Route::post('/invoices/{id}/approve-after-deposit', 'approveAfter');
+        Route::post('/invoices/{id}/reject-after-deposit', 'rejectAfter');
+        
+        // General Actions (not side-specific)
         Route::post('/invoices/{id}/send-back', 'sendBack');
         
-        // Deposit Mode Specific Actions
-        Route::post('/invoices/{id}/submit-after-deposit', 'submitAfterDeposit');
-        Route::post('/invoices/{id}/approve-after-deposit', 'approveAfterDeposit');
+        // Deposit Mode Management
+        Route::patch('/invoices/{id}/deposit-display-order', 'setDepositMode');
         
         // Step 2 Workflow APIs
         Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
         Route::post('/invoices/{id}/record-payment', 'recordPayment');
         Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
         Route::post('/invoices/{id}/send-reminder', 'sendReminder');
-    Route::patch('/invoices/{id}/deposit-display-order', 'updateDepositDisplayOrder');
-    Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
+        Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
     Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
         
         // PDF APIs (mPDF-first with fallback)

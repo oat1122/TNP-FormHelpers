@@ -767,33 +767,47 @@ class InvoiceService
     }
 
     /**
-     * ส่งใบแจ้งหนี้เพื่อขออนุมัติ (Sales → Account)
+     * ส่งใบแจ้งหนี้เพื่อขออนุมัติฝั่ง Before Deposit (Sales → Account)
      */
     public function submit($invoiceId, $submittedBy = null)
+    {
+        return $this->submitForSide($invoiceId, 'before', $submittedBy);
+    }
+
+    /**
+     * Submit invoice for specific side (before/after)
+     */
+    public function submitForSide($invoiceId, $side, $submittedBy = null)
     {
         try {
             DB::beginTransaction();
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            if ($invoice->status !== 'draft') {
+            if (!$invoice->canSubmitForSide($side)) {
                 // Already submitted or processed; return as-is (idempotent behavior)
                 DB::commit();
                 return $invoice;
             }
 
-            $invoice->status = 'pending';
-            $invoice->submitted_by = $submittedBy;
-            $invoice->submitted_at = now();
+            $invoice->setStatusForSide($side, 'pending');
+            
+            // Only update submitted metadata for before side to maintain existing behavior
+            if ($side === 'before') {
+                $invoice->submitted_by = $submittedBy;
+                $invoice->submitted_at = now();
+            }
+            
             $invoice->save();
 
             // บันทึก History
+            $oldStatus = $side === 'before' ? 'draft' : 'draft';
             DocumentHistory::logStatusChange(
                 'invoice',
                 $invoiceId,
-                'draft',
+                $oldStatus,
                 'pending',
-                'ส่งขออนุมัติ',
+                "ส่งขออนุมัติฝั่ง {$side}",
                 $submittedBy
             );
 
@@ -803,81 +817,73 @@ class InvoiceService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('InvoiceService::submit error: ' . $e->getMessage());
+            Log::error("InvoiceService::submitForSide({$side}) error: " . $e->getMessage());
             throw $e;
         }
     }
 
     /**
-     * อนุมัติใบแจ้งหนี้ (Account)
+     * อนุมัติใบแจ้งหนี้ฝั่ง Before Deposit (Account)
      */
     public function approve($invoiceId, $approvedBy = null, $notes = null)
+    {
+        return $this->approveForSide($invoiceId, 'before', $approvedBy, $notes);
+    }
+
+    /**
+     * Approve invoice for specific side (before/after)
+     */
+    public function approveForSide($invoiceId, $side, $approvedBy = null, $notes = null)
     {
         try {
             DB::beginTransaction();
 
             $invoice = Invoice::findOrFail($invoiceId);
-            $fromStatus = $invoice->status;
+            $currentStatus = $invoice->getStatusForSide($side);
 
             // Idempotent/benign handling for already-processed invoices
-            if (in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'overdue'])) {
-                // No-op: already beyond approval stage
+            if ($currentStatus === 'approved') {
+                // No-op: already approved
                 DocumentHistory::logAction(
                     'invoice',
                     $invoiceId,
-                    'approve_noop',
+                    "approve_{$side}_noop",
                     $approvedBy,
-                    'ข้ามการอนุมัติเนื่องจากสถานะปัจจุบันคือ ' . $invoice->status
+                    "ข้ามการอนุมัติฝั่ง {$side} เนื่องจากอนุมัติแล้ว"
                 );
                 DB::commit();
                 return $invoice;
             }
 
-            if (!in_array($invoice->status, ['pending','draft','pending_after'])) {
-                throw new \Exception('Invoice must be pending, draft, or pending_after to approve');
+            if (!$invoice->canApproveForSide($side)) {
+                throw new \Exception("Cannot approve invoice for {$side} side in current status: {$currentStatus}");
             }
 
-            // สำหรับ deposit mode "after" - ถ้ายังไม่ได้ส่งขออนุมัติมัดจำหลัง
-            if ($invoice->deposit_display_order === 'after' && in_array($invoice->status, ['draft', 'pending'])) {
-                // เปลี่ยนเป็น pending_after แทน approved โดยตรง
-                $invoice->status = 'pending_after';
-                $invoice->submitted_by = $approvedBy;
-                $invoice->submitted_at = now();
-                $invoice->save();
-
-                // บันทึก History
-                DocumentHistory::logStatusChange(
-                    'invoice',
-                    $invoiceId,
-                    $fromStatus,
-                    'pending_after',
-                    'ส่งขออนุมัติมัดจำหลัง',
-                    $approvedBy,
-                    $notes
-                );
-
-                DB::commit();
-                return $invoice->fresh();
+            // Auto-submit if still draft
+            if ($currentStatus === 'draft') {
+                $invoice->setStatusForSide($side, 'pending');
+                if ($side === 'before') {
+                    $invoice->submitted_by = $approvedBy;
+                    $invoice->submitted_at = now();
+                }
             }
 
-            // หากยังเป็น draft ให้ auto-submit ภายใน (ไม่ต้องยิง endpoint แยก)
-            if ($invoice->status === 'draft') {
-                $invoice->submitted_by = $approvedBy; // หรือผู้สร้าง ถ้าต้องการบันทึกที่มาชัดเจน
-                $invoice->submitted_at = now();
-            }
-
-            $invoice->status = 'approved';
+            // Approve the specific side
+            $invoice->setStatusForSide($side, 'approved');
+            
+            // Update approval metadata
             $invoice->approved_by = $approvedBy;
             $invoice->approved_at = now();
+            
             $invoice->save();
 
-            // บันทึก History: ถ้ามาจาก draft ใช้ fromStatus = draft
+            // บันทึก History
             DocumentHistory::logStatusChange(
                 'invoice',
                 $invoiceId,
-                $fromStatus,
+                $currentStatus,
                 'approved',
-                'อนุมัติ',
+                "อนุมัติฝั่ง {$side}",
                 $approvedBy,
                 $notes
             );
@@ -888,7 +894,7 @@ class InvoiceService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('InvoiceService::approve error: ' . $e->getMessage());
+            Log::error("InvoiceService::approveForSide({$side}) error: " . $e->getMessage());
             throw $e;
         }
     }
@@ -1574,5 +1580,157 @@ TNP GROUP
 
 วันที่: " . now()->format('d/m/Y') . "
 ";
+    }
+
+    /**
+     * Submit for Before Deposit mode
+     */
+    public function submitBefore($invoiceId, $submittedBy = null)
+    {
+        return $this->submitForSide($invoiceId, 'before', $submittedBy);
+    }
+
+    /**
+     * Approve for Before Deposit mode 
+     */
+    public function approveBefore($invoiceId, $approvedBy = null, $notes = null)
+    {
+        return $this->approveForSide($invoiceId, 'before', $approvedBy, $notes);
+    }
+
+    /**
+     * Reject for Before Deposit mode
+     */
+    public function rejectBefore($invoiceId, $reason, $rejectedBy = null)
+    {
+        return $this->rejectForSide($invoiceId, 'before', $reason, $rejectedBy);
+    }
+
+    /**
+     * Submit for After Deposit mode
+     */
+    public function submitAfter($invoiceId, $submittedBy = null)
+    {
+        return $this->submitForSide($invoiceId, 'after', $submittedBy);
+    }
+
+    /**
+     * Approve for After Deposit mode
+     */
+    public function approveAfter($invoiceId, $approvedBy = null, $notes = null)
+    {
+        return $this->approveForSide($invoiceId, 'after', $approvedBy, $notes);
+    }
+
+    /**
+     * Reject for After Deposit mode
+     */
+    public function rejectAfter($invoiceId, $reason, $rejectedBy = null)
+    {
+        return $this->rejectForSide($invoiceId, 'after', $reason, $rejectedBy);
+    }
+
+    /**
+     * Reject invoice for specific side (before/after)
+     */
+    public function rejectForSide($invoiceId, $side, $reason, $rejectedBy = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+            $currentStatus = $invoice->getStatusForSide($side);
+
+            if (!$invoice->canRejectForSide($side)) {
+                throw new \Exception("Cannot reject invoice for {$side} side in current status: {$currentStatus}");
+            }
+
+            $invoice->setStatusForSide($side, 'rejected');
+            $invoice->rejected_by = $rejectedBy;
+            $invoice->rejected_at = now();
+            $invoice->save();
+
+            // บันทึก History
+            DocumentHistory::logStatusChange(
+                'invoice',
+                $invoiceId,
+                $currentStatus,
+                'rejected',
+                "ปฏิเสธฝั่ง {$side}",
+                $rejectedBy,
+                $reason
+            );
+
+            DB::commit();
+
+            return $invoice->fresh();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("InvoiceService::rejectForSide({$side}) error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Set deposit display mode (presentation only)
+     */
+    public function setDepositMode($invoiceId, $mode, $updatedBy = null)
+    {
+        if (!in_array($mode, ['before', 'after'])) {
+            throw new \InvalidArgumentException('Invalid mode. Must be "before" or "after".');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+            $oldMode = $invoice->deposit_display_order;
+            
+            $invoice->forceFill(['deposit_display_order' => $mode]);
+            if ($updatedBy) {
+                $invoice->updated_by = $updatedBy;
+            }
+            $invoice->save();
+
+            // Log history if mode changed
+            if ($oldMode !== $mode) {
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'change_deposit_mode',
+                    $updatedBy,
+                    "เปลี่ยนโหมดจาก {$oldMode} เป็น {$mode}"
+                );
+            }
+
+            DB::commit();
+
+            return $invoice->fresh();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('InvoiceService::setDepositMode error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get invoice data with UI status for current mode
+     */
+    public function getInvoiceWithUiStatus(Invoice $invoice): array
+    {
+        $data = $invoice->toArray();
+        
+        // Add UI-specific fields
+        $data['ui_status'] = $invoice->ui_status;
+        $data['can_submit_before'] = $invoice->canSubmitForSide('before');
+        $data['can_approve_before'] = $invoice->canApproveForSide('before');
+        $data['can_reject_before'] = $invoice->canRejectForSide('before');
+        $data['can_submit_after'] = $invoice->canSubmitForSide('after');
+        $data['can_approve_after'] = $invoice->canApproveForSide('after');
+        $data['can_reject_after'] = $invoice->canRejectForSide('after');
+        
+        return $data;
     }
 }

@@ -71,6 +71,8 @@ class Invoice extends Model
     'customer_data_source',
         'customer_snapshot',
         'status',
+        'status_before',
+        'status_after',
         'type',
         'subtotal',
         'tax_amount',
@@ -117,6 +119,8 @@ class Invoice extends Model
     protected $attributes = [
         'deposit_display_order' => 'after',
         'status' => 'draft',
+        'status_before' => 'draft',
+        'status_after' => 'draft',
     ];
 
     protected $casts = [
@@ -415,5 +419,98 @@ class Invoice extends Model
             return true;
         }
         return false;
+    }
+
+    /**
+     * Get UI status based on current deposit_display_order mode
+     */
+    public function getUiStatusAttribute(): string
+    {
+        $mode = $this->deposit_display_order === 'before' ? 'before' : 'after';
+        return $mode === 'before' ? $this->status_before : $this->status_after;
+    }
+
+    /**
+     * Get status for specific side
+     */
+    public function getStatusForSide(string $side): string
+    {
+        if (!in_array($side, ['before', 'after'])) {
+            throw new \InvalidArgumentException('Invalid side. Must be "before" or "after".');
+        }
+        
+        return $side === 'before' ? $this->status_before : $this->status_after;
+    }
+
+    /**
+     * Set status for specific side
+     */
+    public function setStatusForSide(string $side, string $status): void
+    {
+        if (!in_array($side, ['before', 'after'])) {
+            throw new \InvalidArgumentException('Invalid side. Must be "before" or "after".');
+        }
+        
+        if (!in_array($status, ['draft', 'pending', 'approved', 'rejected'])) {
+            throw new \InvalidArgumentException('Invalid status.');
+        }
+
+        $column = $side === 'before' ? 'status_before' : 'status_after';
+        $this->forceFill([$column => $status]);
+        
+        // Update overall status based on both sides
+        $this->status = $this->deriveOverallStatus();
+    }
+
+    /**
+     * Derive overall status from both sides
+     */
+    protected function deriveOverallStatus(): string
+    {
+        // If both sides are approved, overall is approved
+        if ($this->status_before === 'approved' && $this->status_after === 'approved') {
+            return 'approved';
+        }
+        
+        // If any side is pending, overall is pending
+        if ($this->status_before === 'pending' || $this->status_after === 'pending') {
+            return 'pending';
+        }
+        
+        // If any side is rejected, overall is rejected
+        if ($this->status_before === 'rejected' || $this->status_after === 'rejected') {
+            return 'rejected';
+        }
+        
+        // Default to the status of the current active side
+        $activeSide = $this->deposit_display_order === 'before' ? 'before' : 'after';
+        return $this->getStatusForSide($activeSide);
+    }
+
+    /**
+     * Check if can submit for specific side
+     */
+    public function canSubmitForSide(string $side): bool
+    {
+        $status = $this->getStatusForSide($side);
+        return $status === 'draft';
+    }
+
+    /**
+     * Check if can approve for specific side
+     */
+    public function canApproveForSide(string $side): bool
+    {
+        $status = $this->getStatusForSide($side);
+        return in_array($status, ['draft', 'pending']);
+    }
+
+    /**
+     * Check if can reject for specific side
+     */
+    public function canRejectForSide(string $side): bool
+    {
+        $status = $this->getStatusForSide($side);
+        return in_array($status, ['pending']);
     }
 }

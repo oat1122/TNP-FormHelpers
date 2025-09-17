@@ -8,127 +8,100 @@
 <body>
   <div class="document-content">
 
-    {{-- ตารางสินค้า/บริการ - After Deposit Mode --}}
+    {{-- ตารางสินค้า/บริการ --}}
     <div class="mb-3">รายละเอียดสินค้า/บริการ</div>
     @php 
-      $no = 1; 
+      $groupsData=[]; 
+      $no=1; 
       
-      // ตรวจสอบประเภทใบแจ้งหนี้และสร้างรายการตามประเภท
-      $invoiceItems = [];
-      
-      if ($invoice->type === 'deposit' && !empty($invoice->quotation)) {
-          // กรณีเรียกเก็บเงินมัดจำ (After Deposit Mode - เน้นที่ยอดคงเหลือ)
-          $depositDescription = "รับมัดจำ (ส่วนที่เหลือหลังจากมัดจำ)";
-          if (!empty($invoice->quotation->number)) {
-            $depositDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
-            if (!empty($invoice->quotation->final_total_amount)) {
-              $depositDescription .= "\nใบเสนอราคาดังกล่าวมีมูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
-              
-              // คำนวณยอดมัดจำเพื่อแสดงยอดคงเหลือ
-              $depositAmountDisplay = 0;
-              $depositMode = $invoice->deposit_mode ?? 'percentage';
-              if ($depositMode === 'percentage') {
-                $subtotal = (float)($invoice->quotation->subtotal ?? 0);
-                $special  = (float)($invoice->quotation->special_discount_amount ?? 0);
-                $preVatBase = max(0, round($subtotal - $special, 2));
-                if ($preVatBase <= 0) {
-                  $total = (float)($invoice->quotation->total_amount ?? 0);
-                  $vat   = (float)($invoice->quotation->vat_amount ?? 0);
-                  $preVatBase = max(0, round($total - $vat - $special, 2));
-                }
-                $pct = max(0, min(100, (float)($invoice->deposit_percentage ?? 0)));
-                $depositAmountDisplay = round($preVatBase * ($pct/100), 2);
-              } else {
-                $depositAmountDisplay = (float)($invoice->deposit_amount ?? 0);
-              }
-              
-              // แสดงยอดมัดจำที่ชำระไปแล้ว
-              if ($depositAmountDisplay > 0) {
-                $depositDescription .= "\nหักเงินมัดจำที่ชำระไปแล้ว " . number_format($depositAmountDisplay, 2) . " บาท";
-              }
-              
-              // คำนวณยอดคงเหลือ
-              $remainingAmount = max(0, $invoice->quotation->final_total_amount - $depositAmountDisplay);
-              if ($remainingAmount > 0) {
-                $depositDescription .= "\nยอดคงเหลือที่ต้องชำระ " . number_format($remainingAmount, 2) . " บาท";
-              }
-            }
-          }
-          
-          // ใช้ยอดคงเหลือเป็นยอดที่เรียกเก็บ
-          $finalAmount = $invoice->final_total_amount ?? 0;
-          
-          $invoiceItems[] = [
-              'description' => $depositDescription,
-              'quantity' => 1,
-              'unit' => 'รายการ',
-              'unit_price' => $finalAmount,
-              'amount' => $finalAmount
-          ];
-      } elseif ($invoice->type === 'remaining' && !empty($invoice->quotation)) {
-          // กรณีเรียกเก็บเงินส่วนที่เหลือ
-          $remainingDescription = "รับเงินส่วนที่เหลือ";
-          if (!empty($invoice->quotation->number)) {
-              $remainingDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
-              if (!empty($invoice->quotation->final_total_amount)) {
-                  $remainingDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
-              }
-              if (!empty($invoice->paid_amount)) {
-                  $remainingDescription .= "\nหักเงินมัดจำที่รับแล้ว " . number_format($invoice->paid_amount, 2) . " บาท";
-              }
-          }
-          
-          $invoiceItems[] = [
-              'description' => $remainingDescription,
-              'quantity' => 1,
-              'unit' => 'รายการ',
-              'unit_price' => $invoice->final_total_amount,
-              'amount' => $invoice->final_total_amount
-          ];
-      } elseif ($invoice->type === 'partial' && !empty($invoice->quotation)) {
-          // กรณีเรียกเก็บบางส่วน
-          $partialDescription = "รับชำระบางส่วน";
-          if (!empty($invoice->quotation->number)) {
-              $partialDescription .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
-              if (!empty($invoice->quotation->final_total_amount)) {
-                  $partialDescription .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
-              }
-          }
-          
-          $invoiceItems[] = [
-              'description' => $partialDescription,
-              'quantity' => 1,
-              'unit' => 'รายการ',
-              'unit_price' => $invoice->final_total_amount,
-              'amount' => $invoice->final_total_amount
-          ];
-      } else {
-          // กรณีปกติ ใช้ items ที่มีอยู่
-          $invoiceItems = $items;
-      }
+      // ใช้ข้อมูลจาก groups ที่สร้างจาก invoice_items
+      $invoiceGroups = $groups ?? [];
     @endphp
     
-    @if(!empty($invoiceItems))
-      <table class="items-table slim table-numbers-sm invoice-items">
+    @if(!empty($invoiceGroups))
+      @foreach($invoiceGroups as $g)
+        @php
+          $unit=$g['unit']??'ชิ้น';
+          $meta=array_filter([$g['pattern']?:null,$g['fabric']?:null,$g['color']?:null]);
+          $title=($g['name']?:'ไม่ระบุชื่องาน'); 
+          if($meta){
+            $title.=' <span class="meta-light">'.implode(', ',$meta).'</span>';
+          }
+          $items=[]; 
+          foreach($g['rows'] as $r){ 
+            $qty=(float)($r['quantity']??0); 
+            $price=(float)($r['unit_price']??0); 
+            $amount=$qty*$price; 
+            $discountAmount = (float)($r['discount_amount'] ?? 0);
+            $finalAmount = max(0, $amount - $discountAmount);
+            
+            $items[]=[
+              'desc'=> ($r['size']?:'-'),
+              'qty'=>$qty,
+              'unit'=>$unit,
+              'price'=>$price,
+              'amount'=>$amount,
+              'discount_amount'=>$discountAmount,
+              'final_amount'=>$finalAmount,
+              'item_description'=>$r['item_description'] ?? null
+            ]; 
+          }
+          $groupsData[]=[
+            'no'=>$no,
+            'title'=>$title,
+            'items'=>$items
+          ]; 
+          $no++;
+        @endphp
+      @endforeach
+
+      <table class="items-table slim table-numbers-sm">
         <colgroup>
-          <col class="w-no">
-          <col class="w-desc">
-          <col class="w-total">
+          <col class="w-desc">  {{-- รายละเอียด --}}
+          <col class="w-unit-price">  {{-- Unit Price --}}
+          <col class="w-qty">  {{-- Qnt --}}
+          <col class="w-total">  {{-- Total --}}
         </colgroup>
         <thead>
           <tr>
-            <th class="desc-head text-left">ลำดับ</th>
-            <th class="text-left">รายละเอียด</th>
-            <th class="text-right">จำนวนเงิน</th>
+            <th class="desc-head text-center">รายละเอียด</th>
+            <th class="text-right">ราคาต่อหน่วย</th>
+            <th class="text-right">จำนวน</th>
+            <th class="text-right">ยอดรวม</th>
           </tr>
         </thead>
         <tbody>
-          @foreach($invoiceItems as $item)
-            <tr>
-              <td class="num">{{ $no++ }}</td>
-              <td class="desc">{!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
-              <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
+          @foreach($groupsData as $g)
+            {{-- แถวหัวข้อกลุ่ม (parent) --}}
+            <tr class="group-row">
+              <td class="desc"><span class="group-no">{{ $g['no'] }}.</span> {!! $g['title'] !!}</td>
+              <td class="num muted"></td>
+              <td class="num muted"></td>
+              <td class="num muted"></td>
             </tr>
+
+            {{-- แถวรายการย่อย (child) --}}
+            @foreach($g['items'] as $it)
+              <tr class="item-row">
+                <td class="desc child">
+                  {{ $it['desc'] }}
+                  @if(!empty($it['item_description']))
+                    <br/><small class="item-description">{{ $it['item_description'] }}</small>
+                  @endif
+                </td>
+                <td class="num">{{ number_format($it['price'], 2) }}</td>
+                <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
+                <td class="num">
+                  @if($it['discount_amount'] > 0)
+                    <div>{{ number_format($it['amount'], 2) }}</div>
+                    <div class="discount-line">หัก {{ number_format($it['discount_amount'], 2) }}</div>
+                    <div class="final-amount">{{ number_format($it['final_amount'], 2) }}</div>
+                  @else
+                    {{ number_format($it['final_amount'], 2) }}
+                  @endif
+                </td>
+              </tr>
+            @endforeach
           @endforeach
         </tbody>
       </table>
@@ -201,27 +174,95 @@
               {!! nl2br(e($afterDepositNotes)) !!}
             </div>
 
-            {{-- ข้อมูลการชำระเงิน --}}
-            @if(!empty($invoice->payment_method) || !empty($invoice->payment_terms) || !empty($invoice->due_date))
-              <h3 class="panel-title panel-title--sm" style="margin-top: 15pt;">ข้อมูลการชำระเงิน</h3> <br/>
-              <div class="panel-content">
-                @if(!empty($invoice->payment_method))
-                  <div>วิธีการชำระเงิน: {{ $invoice->payment_method }}</div>
-                @endif
-                
-                @if(!empty($invoice->payment_terms))
-                  <div>เงื่อนไขการชำระ: {{ $invoice->payment_terms }}</div>
-                @endif
-                
-                @if(!empty($invoice->due_date))
-                  <div>กำหนดชำระ: {{ date('d/m/Y', strtotime($invoice->due_date)) }}</div>
-                @endif
-              </div>
-            @endif
+
           </td>
           
           {{-- Summary Section (Right) - เน้นยอดคงเหลือ --}}
           <td class="panel-box">
+            
+            {{-- ข้อมูลการชำระเงิน --}}
+            <h3 class="panel-title panel-title--sm">ข้อมูลการชำระเงิน</h3>
+            <div class="panel-content" style="margin-bottom: 15pt;">
+              @php
+                // สร้างข้อมูลการเรียกเก็บเงินมัดจำหลัง
+                $depositChargeInfo = '';
+                if ($invoice->type === 'deposit' && !empty($invoice->quotation)) {
+                  $depositChargeInfo = "รับเงินส่วนที่เหลือหลังจากชำระมัดจำ";
+                  if (!empty($invoice->quotation->number)) {
+                    $depositChargeInfo .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+                    if (!empty($invoice->quotation->final_total_amount)) {
+                      $depositChargeInfo .= "\nใบเสนอราคาดังกล่าวมีมูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+                      
+                      // คำนวณยอดมัดจำเพื่อแสดงยอดคงเหลือ
+                      $depositAmountDisplay = 0;
+                      $depositMode = $invoice->deposit_mode ?? 'percentage';
+                      if ($depositMode === 'percentage') {
+                        $subtotal = (float)($invoice->quotation->subtotal ?? 0);
+                        $special  = (float)($invoice->quotation->special_discount_amount ?? 0);
+                        $preVatBase = max(0, round($subtotal - $special, 2));
+                        if ($preVatBase <= 0) {
+                          $total = (float)($invoice->quotation->total_amount ?? 0);
+                          $vat   = (float)($invoice->quotation->vat_amount ?? 0);
+                          $preVatBase = max(0, round($total - $vat - $special, 2));
+                        }
+                        $pct = max(0, min(100, (float)($invoice->deposit_percentage ?? 0)));
+                        $depositAmountDisplay = round($preVatBase * ($pct/100), 2);
+                      } else {
+                        $depositAmountDisplay = (float)($invoice->deposit_amount ?? 0);
+                      }
+                      
+                      // แสดงยอดมัดจำที่ชำระไปแล้ว
+                      if ($depositAmountDisplay > 0) {
+                        $depositChargeInfo .= "\nหักเงินมัดจำที่ชำระไปแล้ว " . number_format($depositAmountDisplay, 2) . " บาท";
+                      }
+                      
+                      // คำนวณยอดคงเหลือ
+                      $remainingAmount = max(0, $invoice->quotation->final_total_amount - $depositAmountDisplay);
+                      if ($remainingAmount > 0) {
+                        $depositChargeInfo .= "\nยอดคงเหลือที่ต้องชำระ " . number_format($remainingAmount, 2) . " บาท";
+                      }
+                    }
+                  }
+                } elseif ($invoice->type === 'remaining' && !empty($invoice->quotation)) {
+                  $depositChargeInfo = "รับเงินส่วนที่เหลือ";
+                  if (!empty($invoice->quotation->number)) {
+                    $depositChargeInfo .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+                    if (!empty($invoice->quotation->final_total_amount)) {
+                      $depositChargeInfo .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+                    }
+                    if (!empty($invoice->paid_amount)) {
+                      $depositChargeInfo .= "\nหักเงินมัดจำที่รับแล้ว " . number_format($invoice->paid_amount, 2) . " บาท";
+                    }
+                  }
+                } elseif ($invoice->type === 'partial' && !empty($invoice->quotation)) {
+                  $depositChargeInfo = "รับชำระบางส่วน";
+                  if (!empty($invoice->quotation->number)) {
+                    $depositChargeInfo .= "\nอ้างอิงจากใบเสนอราคาเลขที่ " . $invoice->quotation->number;
+                    if (!empty($invoice->quotation->final_total_amount)) {
+                      $depositChargeInfo .= "\nใบเสนอราคามูลค่า " . number_format($invoice->quotation->final_total_amount, 2) . " บาท";
+                    }
+                  }
+                }
+              @endphp
+              
+              @if(!empty($depositChargeInfo))
+                <div><strong>รายการ:</strong> {!! nl2br(e($depositChargeInfo)) !!}</div>
+                <div><strong>จำนวนเงิน:</strong> {{ number_format($invoice->final_total_amount ?? 0, 2) }} บาท</div>
+                <br/>
+              @endif
+              
+              @if(!empty($invoice->payment_method))
+                <div>วิธีการชำระเงิน: {{ $invoice->payment_method }}</div>
+              @endif
+              
+              @if(!empty($invoice->payment_terms))
+                <div>เงื่อนไขการชำระ: {{ $invoice->payment_terms }}</div>
+              @endif
+              
+              @if(!empty($invoice->due_date))
+                <div>กำหนดชำระ: {{ date('d/m/Y', strtotime($invoice->due_date)) }}</div>
+              @endif
+            </div>
             
             @php
               // Extract financial data from summary array

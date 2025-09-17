@@ -22,7 +22,23 @@ class InvoicePdfMasterService
     /**
      * สร้าง PDF ใบแจ้งหนี้เป็นไฟล์ พร้อม URL
      *
-     * @param  Invoice $invoice
+     *     /**
+     * สร้าง key สำหรับจัดกลุ่มรายการสินค้า
+     */
+    protected function generateItemGroupKey(array $itemData): string
+    {
+        $keyParts = [
+            $itemData['item_name'] ?? '',
+            $itemData['pattern'] ?? '',
+            $itemData['fabric_type'] ?? '',
+            $itemData['color'] ?? ''
+        ];
+        
+        return md5(implode('|', $keyParts));
+    }
+    
+    /**
+     * @param Invoice $invoice
      * @param  array $options ['format'=>'A4','orientation'=>'P','showPageNumbers'=>true,'showWatermark'=>bool]
      * @return array{path:string,url:string,filename:string,size:int,type:string}
      */
@@ -80,7 +96,7 @@ class InvoicePdfMasterService
      */
     protected function buildViewData(Invoice $invoice, array $options = []): array
     {
-        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'creator', 'manager']);
+        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager']);
 
         // Allow runtime override of document header type (ไม่บันทึกลง DB)
         if (!empty($options['document_header_type'])) {
@@ -90,6 +106,9 @@ class InvoicePdfMasterService
         $customer = CustomerInfoExtractor::fromInvoice($i);
         $items    = $this->getInvoiceItems($i);
         $summary  = $this->buildFinancialSummary($i);
+        
+        // สร้างข้อมูล groups สำหรับ deposit-after mode
+        $groups = $this->groupInvoiceItems($i);
 
         $isFinal  = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
@@ -97,6 +116,7 @@ class InvoicePdfMasterService
             'invoice'   => $i,
             'customer'  => $customer,
             'items'     => $items,
+            'groups'    => $groups,
             'summary'   => $summary,
             'isFinal'   => $isFinal,
             'options'   => array_merge([
@@ -525,18 +545,92 @@ class InvoicePdfMasterService
      */
     protected function getInvoiceItems(Invoice $invoice): array
     {
-        // หาก Invoice มี items ของตัวเอง ให้ใช้ของ Invoice
+        // หาก Invoice มี items ของตัวเอง ให้ใช้ของ Invoice (จาก invoice_items table)
         if ($invoice->items && $invoice->items->count() > 0) {
-            return $invoice->items->toArray();
+            return $invoice->items->sortBy('sequence_order')->values()->toArray();
         }
 
-        // หากไม่มี ให้ดึงจาก Quotation
+        // หากไม่มี ให้ดึงจาก Quotation (สำหรับใบแจ้งหนี้เก่าที่ไม่มี invoice_items)
         if ($invoice->quotation && $invoice->quotation->items) {
             return $invoice->quotation->items->toArray();
         }
 
         return [];
     }
+
+    /**
+     * จัดกลุ่มรายการสินค้าจาก invoice_items สำหรับแสดงในตารางแบบ quotation
+     */
+    protected function groupInvoiceItems(Invoice $invoice): array
+    {
+        $items = $this->getInvoiceItems($invoice);
+        
+        if (empty($items)) {
+            return [];
+        }
+
+        $groups = [];
+        
+        foreach ($items as $item) {
+            // แปลงข้อมูลจาก invoice_items หรือ quotation_items
+            $itemData = $this->normalizeItemData($item);
+            
+            // สร้าง key สำหรับจัดกลุ่มโดยใช้ item_name + pattern + fabric_type + color
+            $groupKey = $this->generateItemGroupKey($itemData);
+            
+            if (!isset($groups[$groupKey])) {
+                $groups[$groupKey] = [
+                    'name' => $itemData['item_name'],
+                    'pattern' => $itemData['pattern'],
+                    'fabric' => $itemData['fabric_type'],
+                    'color' => $itemData['color'],
+                    'unit' => $itemData['unit'],
+                    'rows' => []
+                ];
+            }
+            
+            // เพิ่มรายการลงในกลุ่ม
+            $groups[$groupKey]['rows'][] = [
+                'size' => $itemData['size'],
+                'quantity' => $itemData['quantity'],
+                'unit_price' => $itemData['unit_price'],
+                'discount_amount' => $itemData['discount_amount'],
+                'item_description' => $itemData['item_description'],
+            ];
+        }
+
+        return array_values($groups);
+    }
+
+    /**
+     * แปลงข้อมูล item ให้เป็นรูปแบบเดียวกัน
+     */
+    protected function normalizeItemData($item): array
+    {
+        // ตรวจสอบว่าเป็นข้อมูลจาก invoice_items หรือ quotation_items
+        $isInvoiceItem = isset($item['item_name']);
+        
+        return [
+            'item_name' => $isInvoiceItem 
+                ? ($item['item_name'] ?? 'ไม่ระบุชื่องาน')
+                : ($item['name'] ?? 'ไม่ระบุชื่องาน'),
+            'pattern' => $item['pattern'] ?? null,
+            'fabric_type' => $isInvoiceItem 
+                ? ($item['fabric_type'] ?? null)
+                : ($item['fabric'] ?? null),
+            'color' => $item['color'] ?? null,
+            'unit' => $item['unit'] ?? 'ชิ้น',
+            'size' => $item['size'] ?? '-',
+            'quantity' => (float)($item['quantity'] ?? 0),
+            'unit_price' => (float)($item['unit_price'] ?? 0),
+            'discount_amount' => (float)($item['discount_amount'] ?? 0),
+            'item_description' => $isInvoiceItem
+                ? ($item['item_description'] ?? null)
+                : ($item['description'] ?? null),
+        ];
+    }
+
+
 
     /**
      * สร้างสรุปทางการเงิน

@@ -9,6 +9,7 @@ class DocumentNumberService
 {
     /**
      * Generate next document number per company, doc type and month.
+     * Ensures consistent numbering across all companies by using global sequences.
      * @param string $companyId
      * @param string $docType one of: quotation, invoice, receipt, delivery_note, tax_invoice
      * @param string|null $date Y-m-d date string (defaults to today)
@@ -33,8 +34,9 @@ class DocumentNumberService
         $prefix = $customPrefix ?? ($prefixMap[$docType] ?? strtoupper(substr($docType, 0, 3)));
         $prefix .= $year . $month;
 
-    // transaction + lock row to avoid race; fill gaps by choosing the smallest unused sequence for this month/company
+    // transaction + lock row to avoid race; use global sequence to ensure consistency across companies
     return DB::transaction(function () use ($companyId, $docType, $year, $month, $prefix, $pad) {
+            // Find or create sequence record for this company
             $row = DocumentSequence::where([
                 'company_id' => $companyId,
                 'doc_type' => $docType,
@@ -52,6 +54,13 @@ class DocumentNumberService
                 ]);
             }
 
+            // Find the global maximum sequence number across all companies for this doc type, year, month
+            $globalMaxSeq = DocumentSequence::where([
+                'doc_type' => $docType,
+                'year' => (int)$year,
+                'month' => (int)$month,
+            ])->max('last_number') ?? 0;
+
             // Map docType to model/table for existence check
             $tableMap = [
                 'quotation' => 'quotations',
@@ -63,24 +72,50 @@ class DocumentNumberService
             ];
             $table = $tableMap[$docType] ?? null;
 
-            // Compute the smallest unused running number for this prefix within the target table (gap filling)
-            $seqNumber = 1;
+            // Auto-healing: Check if sequences are out of sync with actual data
             if ($table) {
-                $numbers = DB::table($table)
-                    ->where('company_id', $companyId)
+                $actualMaxNumber = DB::table($table)
+                    ->where('number', 'like', $prefix . '-%')
+                    ->selectRaw('MAX(CAST(SUBSTRING(number, -4) AS UNSIGNED)) as max_num')
+                    ->first()->max_num ?? 0;
+                
+                // If sequence is ahead of actual data, it means documents were deleted
+                // Reset sequences to match reality to avoid gaps
+                if ($globalMaxSeq > $actualMaxNumber) {
+                    \Log::info("DocumentNumberService: Auto-healing sequences for {$docType} {$year}/{$month}", [
+                        'old_sequence' => $globalMaxSeq,
+                        'actual_max' => $actualMaxNumber,
+                        'prefix' => $prefix
+                    ]);
+                    
+                    DocumentSequence::where([
+                        'doc_type' => $docType,
+                        'year' => (int)$year,
+                        'month' => (int)$month,
+                    ])->update(['last_number' => $actualMaxNumber]);
+                    
+                    $globalMaxSeq = $actualMaxNumber;
+                }
+            }
+
+            // Find next available number starting from global max + 1
+            $seqNumber = $globalMaxSeq + 1;
+            
+            if ($table) {
+                // Check across ALL companies to ensure global uniqueness
+                $allNumbers = DB::table($table)
                     ->where('number', 'like', $prefix . '-%')
                     ->pluck('number')
                     ->all();
 
                 $used = [];
-                foreach ($numbers as $num) {
+                foreach ($allNumbers as $num) {
                     if (is_string($num) && preg_match('/-(\d+)$/', $num, $m)) {
                         $used[(int)$m[1]] = true;
                     }
                 }
 
-                // Find the smallest positive integer not in $used
-                $seqNumber = 1;
+                // Find the smallest positive integer >= seqNumber that is not in $used
                 while (isset($used[$seqNumber])) {
                     $seqNumber++;
                     // Hard cap to avoid pathological loops
@@ -91,9 +126,17 @@ class DocumentNumberService
             // Build candidate with padding
             $candidate = $prefix . '-' . str_pad((string)$seqNumber, $pad, '0', STR_PAD_LEFT);
 
-            // Keep last_number as the max ever issued (do not decrease)
-            $row->last_number = max((int)$row->last_number, (int)$seqNumber);
+            // Update this company's last_number
+            $row->last_number = $seqNumber;
             $row->save();
+
+            // Update all other companies' sequences for this doc_type/year/month to maintain consistency
+            DocumentSequence::where([
+                'doc_type' => $docType,
+                'year' => (int)$year,
+                'month' => (int)$month,
+            ])->where('company_id', '!=', $companyId)
+            ->update(['last_number' => DB::raw("GREATEST(last_number, $seqNumber)")]);
 
             return $candidate;
         });

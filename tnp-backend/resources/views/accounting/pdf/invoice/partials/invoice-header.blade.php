@@ -41,7 +41,7 @@
     </td>
     <td class="header-right">
       @php
-        $docTitle    = 'ใบวางบิล / ใบแจ้งหนี้';
+        $docTitle    = 'ใบวางบิล/ใบแจ้งหนี้';
         $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
         $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
         $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
@@ -63,7 +63,10 @@
         if ($quotationNo)  $metaRows[] = ['label'=>'อ้างอิง','value'=>$quotationNo];
       @endphp
 
-      <div class="doc-title">{{ $docTitle }}</div>
+      <div class="doc-header-section">
+        <div class="doc-title">{{ $docTitle }}</div>
+        <div class="doc-header-type">{{ $invoice->document_header_type ?? 'ต้นฉบับ' }}</div>
+      </div>
       <div class="doc-meta">
         @foreach($metaRows as $row)
           <div><strong>{{ $row['label'] }}:</strong> {{ $row['value'] }}</div>

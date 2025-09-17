@@ -243,43 +243,7 @@ h3 {
    font-size: 8.8pt !important;
 }
 
-/* Signature shared */
-.signature-fixed-wrapper {
-   font-size: 9.5pt;
-}
-
-.signature-table.fixed {
-   width: 100%;
-   border-collapse: collapse;
-}
-
-.signature-table.fixed .signature-cell {
-   padding: 6pt 12pt;
-}
-
-.signature-table.fixed .signature-role {
-   font-weight: 600;
-   margin-top: 6pt;
-   font-size: 10pt;
-   color: #2c3e50;
-   line-height: 1.35;
-}
-
-.signature-table.fixed .signature-name-placeholder {
-   margin-top: 8pt;
-   font-size: 8.5pt;
-   color: #555;
-   font-style: italic;
-   line-height: 1.4;
-}
-
-.signature-table.fixed .signature-date-line {
-   margin-top: 8pt;
-   font-size: 8pt;
-   color: #444;
-   letter-spacing: .5pt;
-   line-height: 1.4;
-}
+/* Signature shared - Invoice overrides in invoice-master.css */
 
 .signature-box {
    position: relative;

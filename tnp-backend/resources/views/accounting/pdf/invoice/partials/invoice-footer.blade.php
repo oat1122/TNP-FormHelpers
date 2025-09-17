@@ -9,9 +9,8 @@
             </td>
             <td style="width:32%; text-align:center; vertical-align:top;">
                 <div>
-                    {{ $invoice->document_header_type ?? 'ต้นฉบับ' }}
                     @if(!($isFinal ?? true))
-                        <br><span style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
+                        <span style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
                     @endif
                 </div>
             </td>

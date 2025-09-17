@@ -206,6 +206,20 @@ table {
 /* Notes/Summary panels align to shared styling; keep optional border variant */
 .panel-notes {
     border-right: 1pt solid #e9ecef;
+    width: 42% !important;
+}
+
+.panel-box:last-child {
+    width: 58% !important;
+}
+
+/* Summary table column widths - consistent with quotation */
+.summary-table .summary-label {
+    width: 42% !important;
+}
+
+.summary-table .summary-amount {
+    width: 58% !important;
 }
 
 /* Summary table specifics use shared base; only color tweaks below */

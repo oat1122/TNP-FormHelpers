@@ -172,8 +172,8 @@
     <div class="summary-notes-wrapper">
       <table class="summary-notes-table">
         <colgroup>
-          <col style="width: 40%;">
-          <col style="width: 55%;">
+          <col style="width: 42%;">
+          <col style="width: 58%;">
         </colgroup>
         <tr>
           {{-- Notes Section (Left) --}}

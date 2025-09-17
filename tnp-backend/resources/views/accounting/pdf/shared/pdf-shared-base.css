@@ -187,13 +187,13 @@ h3 {
 
 .summary-table .summary-label {
    text-align: left;
-   width: 45% !important;
+   width: 42% !important;
    font-size: 9pt;
 }
 
 .summary-table .summary-amount {
    text-align: right;
-   width: 55% !important;
+   width: 58% !important;
    font-weight: bold;
    font-size: 9pt;
    padding-left: 8pt;

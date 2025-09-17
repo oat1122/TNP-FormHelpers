@@ -277,11 +277,11 @@ col.w-total { width:15%; }
 
 .panel-notes { 
   background: transparent; 
-  width: 40% !important;
+  width: 42% !important;
 }
 
 .panel-box:last-child {
-  width: 55% !important;
+  width: 58% !important;
 }
 
 .panel-title { 
@@ -353,13 +353,13 @@ col.w-total { width:15%; }
 /* ปรับสัดส่วน column ใหม่สำหรับ mPDF */
 .summary-table .summary-label {
   text-align: left;
-  width: 45% !important;
+  width: 42% !important;
   font-size: 10pt;
 }
 
 .summary-table .summary-amount {
   text-align: right;
-  width: 55% !important;
+  width: 58% !important;
   font-weight: bold;
   font-size: 10pt;
   padding-left: 8pt;
@@ -563,20 +563,20 @@ col.w-total { width:15%; }
   }
   
   .panel-notes {
-    width: 38% !important;
+    width: 40% !important;
   }
   
   .panel-box:last-child {
-    width: 57% !important;
+    width: 60% !important;
   }
   
   .summary-table .summary-label {
-    width: 42% !important;
+    width: 40% !important;
     font-size: 9.5pt;
   }
   
   .summary-table .summary-amount {
-    width: 58% !important;
+    width: 60% !important;
     font-size: 9.5pt;
   }
   

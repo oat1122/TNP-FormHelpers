@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider } from '@mui/material';
+import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -30,6 +30,8 @@ import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo } from 
 
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
 
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
@@ -94,7 +96,83 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
 
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
 
+  // Handle PDF Preview - Create blob URL for iframe
+  const handlePreviewPDFDialog = async (mode) => {
+    try {
+      console.log('🔍 PDF Preview clicked:', { invoice: invoice?.id, mode, onPreviewPDF: !!onPreviewPDF });
+      
+      if (!invoice?.id) {
+        console.error('❌ No invoice ID found');
+        return;
+      }
+      
+      // Show dialog immediately with loading state
+      setPreviewDialogOpen(true);
+      setPreviewPdfUrl(''); // Clear previous URL
+      
+      // Build PDF URL
+      const apiConfig = { baseUrl: process.env.NODE_ENV === 'production' ? '/api/v1' : 'http://localhost:8000/api/v1' };
+      const url = `${apiConfig.baseUrl}/invoices/${invoice.id}/pdf/preview?mode=${mode || 'before'}`;
+      
+      // Get auth token
+      const authToken = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
+      const finalToken = authToken || token;
+      
+      if (!finalToken) {
+        console.error('❌ No authentication token found');
+        return;
+      }
+      
+      console.log('📥 Fetching PDF from:', url);
+      
+      // Fetch PDF as blob
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${finalToken}`,
+          'Accept': 'application/pdf',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Convert to blob and create object URL
+      const blob = await response.blob();
+      if (blob.type === 'application/pdf') {
+        const objectUrl = URL.createObjectURL(blob);
+        console.log('✅ PDF loaded successfully, setting URL:', objectUrl);
+        setPreviewPdfUrl(objectUrl);
+      } else {
+        console.error('❌ Unexpected response type for PDF preview:', blob.type);
+        throw new Error(`Expected PDF but got ${blob.type}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error previewing PDF:', error);
+      // Close dialog on error
+      setPreviewDialogOpen(false);
+      setPreviewPdfUrl('');
+    }
+  };
 
+  const handleClosePreviewDialog = () => {
+    // Clean up object URL to prevent memory leaks
+    if (previewPdfUrl && previewPdfUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewPdfUrl);
+    }
+    setPreviewDialogOpen(false);
+    setPreviewPdfUrl('');
+  };
+
+  const handleOpenInNewTab = () => {
+    if (previewPdfUrl) {
+      window.open(previewPdfUrl, '_blank');
+    }
+  };
 
 
 
@@ -340,19 +418,24 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         )}
 
         {/* Action Buttons - Side-specific Approve (admin/account only) */}
-        <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
           {canUserApprove() && canApproveActiveSide() && (
             <Button
-              size="small"
-              variant="outlined"
+              size="medium"
+              variant="contained"
               color="success"
               onClick={handleApprove}
               sx={{ 
                 px: 2, 
                 py: 1, 
                 fontSize: '0.8rem', 
-                fontWeight: 600, 
-                borderStyle: 'dashed'
+                fontWeight: 500, 
+                borderRadius: 2,
+                boxShadow: 'none',
+                minHeight: 36,
+                '&:hover': {
+                  boxShadow: 1
+                }
               }}
               aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
             >
@@ -362,11 +445,24 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
           {/* PDF Actions - Mode-specific */}
           {onPreviewPDF && (
             <Button
-              size="small"
-              variant="text"
-              onClick={() => handlePreviewClick(depositMode)}
+              size="medium"
+              variant="outlined"
+              onClick={() => handlePreviewPDFDialog(depositMode)}
               startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
-              sx={{ px: 2, py: 1, fontSize: '0.85rem', fontWeight: 500 }}
+              sx={{ 
+                px: 2, 
+                py: 1, 
+                fontSize: '0.8rem', 
+                fontWeight: 500, 
+                borderRadius: 2,
+                minHeight: 36,
+                borderColor: 'grey.300',
+                color: 'text.primary',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: 'primary.50'
+                }
+              }}
               tabIndex={0}
               aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
             >
@@ -376,11 +472,24 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
           {onDownloadPDF && (
             <>
               <Button
-                size="small"
+                size="medium"
                 variant="outlined"
                 onClick={handleDownloadClick}
                 startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
-                sx={{ px: 2, py: 1, fontSize: '0.85rem', fontWeight: 500 }}
+                sx={{ 
+                  px: 2, 
+                  py: 1, 
+                  fontSize: '0.8rem', 
+                  fontWeight: 500, 
+                  borderRadius: 2,
+                  minHeight: 36,
+                  borderColor: 'grey.300',
+                  color: 'text.primary',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'primary.50'
+                  }
+                }}
                 tabIndex={0}
                 aria-label={`ดาวน์โหลดไฟล์ PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
               >
@@ -413,7 +522,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
           )}
           {onView && (
             <Button 
-              size="small" 
+              size="medium" 
               variant="contained" 
               onClick={onView} 
               color="primary"
@@ -421,8 +530,13 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
                 px: 2.5,
                 py: 1,
                 fontSize: '0.85rem',
-                fontWeight: 600,
-                boxShadow: 2
+                fontWeight: 500,
+                borderRadius: 2,
+                boxShadow: 'none',
+                minHeight: 36,
+                '&:hover': {
+                  boxShadow: 2
+                }
               }}
               tabIndex={0}
               aria-label="ดูรายละเอียดใบแจ้งหนี้"
@@ -433,6 +547,79 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         </Stack>
       </TNPCardContent>
       <TNPDivider />
+
+      {/* PDF Preview Dialog */}
+      <Dialog
+        open={previewDialogOpen}
+        onClose={handleClosePreviewDialog}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '90vh',
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            py: 2
+          }}
+        >
+          ดูตัวอย่าง PDF ใบแจ้งหนี้
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            p: 0,
+            height: '80vh'
+          }}
+        >
+          {previewPdfUrl ? (
+            <iframe
+              title="invoice-pdf"
+              src={previewPdfUrl}
+              style={{
+                width: '100%',
+                height: '80vh',
+                border: '0px'
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '80vh',
+                color: 'text.secondary',
+                gap: 2
+              }}
+            >
+              <CircularProgress size={40} />
+              <Typography>กำลังโหลด PDF...</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions className="MuiDialogActions-root MuiDialogActions-spacing">
+          <Button
+            className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium"
+            onClick={handleOpenInNewTab}
+            disabled={!previewPdfUrl}
+          >
+            เปิดในแท็บใหม่
+          </Button>
+          <Button
+            className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium"
+            onClick={handleClosePreviewDialog}
+          >
+            ปิด
+          </Button>
+        </DialogActions>
+      </Dialog>
     </TNPCard>
   );
 };

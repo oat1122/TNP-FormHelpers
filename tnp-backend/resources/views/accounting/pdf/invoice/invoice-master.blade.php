@@ -178,14 +178,14 @@
         <tr>
           {{-- Notes Section (Left) --}}
           <td class="panel-box panel-notes">
-            <h3 class="panel-title panel-title--sm">หมายเหตุ</h3> <br/>  
+            <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>   
             <div class="panel-content">
               {!! !empty($invoice->notes) ? nl2br(e($invoice->notes)) : 'ไม่มีหมายเหตุ' !!}
-            </div>
+            </div><br/>
 
             {{-- ข้อมูลการชำระเงิน --}}
             @if(!empty($invoice->payment_method) || !empty($invoice->payment_terms) || !empty($invoice->due_date))
-              <h3 class="panel-title panel-title--sm" style="margin-top: 15pt;">ข้อมูลการชำระเงิน</h3> <br/>
+              <h3 class="panel-title panel-title--sm" style="margin-top: 15pt;">ข้อมูลการชำระเงิน</h3> 
               <div class="panel-content">
                 @if(!empty($invoice->payment_method))
                   <div>วิธีการชำระเงิน: {{ $invoice->payment_method }}</div>

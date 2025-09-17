@@ -3,8 +3,8 @@
 */
 body {
    font-family: 'thsarabun', 'DejaVu Sans', sans-serif;
-   font-size: 9.5pt;
-   line-height: 1.35;
+   font-size: 9pt;
+   line-height: 1.3;
    color: #333;
    margin: 0;
    padding: 20pt;
@@ -12,23 +12,23 @@ body {
 }
 
 h1 {
-   font-size: 17pt;
+   font-size: 16pt;
    font-weight: bold;
-   margin: 0 0 8pt;
+   margin: 0 0 6pt;
    color: #2c3e50
 }
 
 h2 {
-   font-size: 13pt;
+   font-size: 12pt;
    font-weight: bold;
-   margin: 12pt 0 6pt;
+   margin: 10pt 0 5pt;
    color: #34495e
 }
 
 h3 {
-   font-size: 11pt;
+   font-size: 10pt;
    font-weight: bold;
-   margin: 10pt 0 6pt;
+   margin: 8pt 0 4pt;
    color: #34495e
 }
 
@@ -79,17 +79,17 @@ h3 {
 
 .items-table.slim th,
 .items-table.slim td {
-   padding: 5pt 5pt;
+   padding: 4pt 4pt;
    border: none;
    background: transparent;
    vertical-align: top;
-   font-size: 9pt;
+   font-size: 8.5pt;
 }
 
 .items-table.slim thead th {
    font-weight: bold;
    text-align: right;
-   font-size: 10pt;
+   font-size: 9pt;
    background: #900F0F !important;
    color: #fff !important;
 }

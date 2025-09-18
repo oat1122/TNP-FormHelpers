@@ -506,7 +506,11 @@ class InvoiceService
             $invoice->id = \Illuminate\Support\Str::uuid();
             $invoice->company_id = $quotation->company_id
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
+            
+            // กำหนด deposit_display_order ก่อน generate เลขเอกสาร
+            $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before'; // Default to 'before' for new invoices
+            $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
+            
             $invoice->quotation_id = $quotation->id;
             
             // ข้อมูล Primary Pricing Request
@@ -573,7 +577,7 @@ class InvoiceService
             $invoice->deposit_mode = $invoiceData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
             $invoice->deposit_percentage = $invoiceData['deposit_percentage'] ?? $quotation->deposit_percentage ?? 0;
             $invoice->deposit_amount = $invoiceData['deposit_amount'] ?? $quotation->deposit_amount ?? 0;
-            $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before'; // Default to 'before' for new invoices
+            // deposit_display_order already set above before generating number
             
             // Payment information
             $invoice->payment_method = $invoiceData['payment_method'] ?? $quotation->payment_method ?? null;
@@ -674,7 +678,10 @@ class InvoiceService
             $invoice->id = \Illuminate\Support\Str::uuid();
             $invoice->company_id = $invoiceData['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
+            
+            // กำหนด deposit_display_order ก่อน generate เลขเอกสาร
+            $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before';
+            $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
             
             // กรอกข้อมูลจาก input
             foreach ($invoiceData as $key => $value) {

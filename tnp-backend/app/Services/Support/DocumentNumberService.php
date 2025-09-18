@@ -25,6 +25,8 @@ class DocumentNumberService
         $prefixMap = [
             'quotation' => 'QT',
             'invoice' => 'INV',
+            'invoice_before' => 'INVB',  // มัดจำก่อน
+            'invoice_after' => 'INVA',   // มัดจำหลัง
             'receipt' => 'RCPT',
             'tax_invoice' => 'TAX',
             'full_tax_invoice' => 'FTAX',
@@ -65,6 +67,8 @@ class DocumentNumberService
             $tableMap = [
                 'quotation' => 'quotations',
                 'invoice' => 'invoices',
+                'invoice_before' => 'invoices',  // มัดจำก่อนใช้ตาราง invoices เหมือนกัน
+                'invoice_after' => 'invoices',   // มัดจำหลังใช้ตาราง invoices เหมือนกัน
                 'receipt' => 'receipts',
                 'tax_invoice' => 'receipts',
                 'full_tax_invoice' => 'receipts',

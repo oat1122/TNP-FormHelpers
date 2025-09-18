@@ -346,6 +346,16 @@ class Invoice extends Model
     }
 
     /**
+     * Auto-generate invoice number based on deposit display order
+     */
+    public static function generateInvoiceNumberByDepositMode(string $companyId, string $depositDisplayOrder = 'before')
+    {
+        $docType = $depositDisplayOrder === 'after' ? 'invoice_after' : 'invoice_before';
+        return app(\App\Services\Support\DocumentNumberService::class)
+            ->next($companyId, $docType);
+    }
+
+    /**
      * Get customer full name
      */
     public function getCustomerFullNameAttribute()

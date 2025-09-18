@@ -90,3 +90,35 @@
 .pdf-header .customer-box {
     margin-top: 12pt !important;
 }
+
+/* Ensure consistent table column widths - final override */
+.items-table.slim {
+    table-layout: fixed !important;
+    width: 100% !important;
+}
+
+.items-table.slim col.w-desc {
+    width: 50% !important;
+}
+
+.items-table.slim col.w-unit-price {
+    width: 18% !important;
+}
+
+.items-table.slim col.w-qty {
+    width: 15% !important;
+}
+
+.items-table.slim col.w-total {
+    width: 17% !important;
+}
+
+/* Ensure text alignment consistency */
+.items-table.slim th.text-right,
+.items-table.slim td.num {
+    text-align: right !important;
+}
+
+.items-table.slim th.desc-head {
+    text-align: center !important;
+}

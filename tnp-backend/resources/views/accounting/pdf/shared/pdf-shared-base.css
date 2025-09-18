@@ -271,21 +271,21 @@ h3 {
    height: 6mm;
 }
 
-/* Utilities */
+/* Utilities - Base column widths (can be overridden by specific templates) */
 col.w-desc {
-   width: 60%;
+   width: 50%;  /* รายละเอียด - base default */
 }
 
 col.w-unit-price {
-   width: 15%;
+   width: 18%;  /* ราคาต่อหน่วย */
 }
 
 col.w-qty {
-   width: 10%;
+   width: 15%;  /* จำนวน */
 }
 
 col.w-total {
-   width: 15%;
+   width: 17%;  /* ยอดรวม */
 }
 
 .w-no,

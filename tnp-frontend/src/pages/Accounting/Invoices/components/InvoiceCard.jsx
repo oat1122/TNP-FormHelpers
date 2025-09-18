@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import React from 'react';
+import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, FormControl, Select, InputLabel } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -26,9 +26,13 @@ import { useInvoicePDFDownload } from './hooks/useInvoicePDFDownload';
 import { formatTHB, formatDate, typeLabels, truncateText } from './utils/invoiceFormatters';
 import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo } from './utils/invoiceLogic';
 
+// Hooks
+import { useState, useEffect, useCallback } from 'react';
 
+// API
+import { useGetCompaniesQuery, useUpdateInvoiceMutation } from '../../../../features/Accounting/accountingApi';
 
-const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit }) => {
+const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit, onUpdateCompany }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewPdfUrl, setPreviewPdfUrl] = useState('');
@@ -47,6 +51,16 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     handleApprove,
     handleDepositModeChange
   } = approvalHook;
+
+  // ใช้สถานะของฝั่งที่กำลังดูสำหรับแสดงผล
+  const activeSideStatus = getActiveSideStatus();
+
+  // RTK Query hooks (หลังจาก get variables แล้ว)
+  const { data: companiesResp, isLoading: loadingCompanies } = useGetCompaniesQuery(undefined, { 
+    refetchOnMountOrArgChange: false,
+    skip: !canUserApprove || activeSideStatus !== 'draft' 
+  });
+  const [updateInvoice, { isLoading: updatingCompany }] = useUpdateInvoiceMutation();
 
   const {
     getEvidenceForMode,
@@ -70,8 +84,6 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
   const financials = calculateInvoiceFinancials(invoice);
   const depositInfo = formatDepositInfo(invoice);
   
-  // ใช้สถานะของฝั่งที่กำลังดูสำหรับแสดงผล
-  const activeSideStatus = getActiveSideStatus();
   const invoiceStatus = getInvoiceStatus({ ...invoice, status: activeSideStatus });
 
   // Company name processing
@@ -95,6 +107,31 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
   const truncatedCompanyName = truncateText(cleanCompanyName, 35);
 
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
+
+  // Process companies data
+  const companies = React.useMemo(() => {
+    const list = companiesResp?.data ?? companiesResp ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [companiesResp]);
+
+  // Handle company change
+  const handleCompanyChange = useCallback(async (newCompanyId) => {
+    if (!newCompanyId || updatingCompany) return;
+
+    try {
+      if (onUpdateCompany) {
+        await onUpdateCompany(invoice.id, newCompanyId);
+      } else {
+        // Use RTK Query mutation as fallback
+        await updateInvoice({ id: invoice.id, company_id: newCompanyId }).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to update company:', error);
+    }
+  }, [invoice.id, onUpdateCompany, updateInvoice, updatingCompany]);
+
+  // Get current company
+  const currentCompany = companies.find(c => c.id === invoice.company_id);
 
   // Handle PDF Preview - Create blob URL for iframe
   const handlePreviewPDFDialog = async (mode) => {
@@ -396,6 +433,62 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
                 </Typography>
               )}
             </Stack>
+          </Box>
+        )}
+
+        {/* Company Selector - แสดงเฉพาะก่อนอนุมัติและผู้ใช้มีสิทธิ์ */}
+        {activeSideStatus === 'draft' && canUserApprove && invoice.status !== 'approved' && (
+          <Box mb={2.5}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+              เลือกบริษัทที่ออกเอกสาร
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <FormControl size="small" sx={{ minWidth: 200 }} disabled={loadingCompanies || updatingCompany}>
+                <InputLabel id={`company-select-label-${invoice.id}`}>บริษัท</InputLabel>
+                <Select
+                  labelId={`company-select-label-${invoice.id}`}
+                  value={companies.find(c => c.id === invoice.company_id) ? invoice.company_id : ''}
+                  label="บริษัท"
+                  onChange={(e) => handleCompanyChange(e.target.value)}
+                  renderValue={(val) => {
+                    const found = companies.find(c => c.id === val);
+                    return found ? (found.short_code || found.name) : 'ไม่ระบุ';
+                  }}
+                >
+                  {companies.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {c.short_code || c.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {c.name}
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              {/* แสดงบริษัทปัจจุบัน */}
+              {currentCompany && (
+                <Tooltip title={`บริษัทปัจจุบัน: ${currentCompany.name}`}>
+                  <Chip 
+                    size="small" 
+                    color="primary" 
+                    variant="outlined"
+                    label={currentCompany.short_code || currentCompany.name} 
+                  />
+                </Tooltip>
+              )}
+              
+              {/* Loading indicator */}
+              {(loadingCompanies || updatingCompany) && <CircularProgress size={18} />}
+            </Box>
+            
+            <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5, display: 'block' }}>
+              หมายเหตุ: เลขที่เอกสารจะถูกสร้างหลังจากกดอนุมัติ และสามารถเปลี่ยนบริษัทได้เฉพาะก่อนอนุมัติเท่านั้น
+            </Typography>
           </Box>
         )}
 

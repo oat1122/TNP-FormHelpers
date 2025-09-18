@@ -219,6 +219,9 @@ class InvoiceController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
+                // Company selection (can be changed before approval)
+                'company_id' => 'sometimes|nullable|string|exists:companies,id',
+                
                 // Customer override fields (nullable when not overriding)
                 'customer_company' => 'sometimes|nullable|string|max:255',
                 'customer_tax_id' => 'sometimes|nullable|string|max:13',
@@ -1294,6 +1297,33 @@ class InvoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update deposit mode: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดึงรายการบริษัทสำหรับ dropdown
+     * GET /api/v1/invoices/companies
+     */
+    public function getCompanies(): JsonResponse
+    {
+        try {
+            $companies = \App\Models\Company::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'legal_name', 'short_code']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $companies,
+                'message' => 'Companies retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::getCompanies error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve companies: ' . $e->getMessage()
             ], 500);
         }
     }

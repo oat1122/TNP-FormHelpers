@@ -507,9 +507,11 @@ class InvoiceService
             $invoice->company_id = $quotation->company_id
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             
-            // กำหนด deposit_display_order ก่อน generate เลขเอกสาร
+            // กำหนด deposit_display_order ก่อน
             $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before'; // Default to 'before' for new invoices
-            $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
+            
+            // ใช้เลขชั่วคราวสำหรับ draft (เหมือน Quotation pattern)
+            $invoice->number = 'DRAFT-' . now()->format('YmdHis') . '-' . substr($invoice->id, 0, 8);
             
             $invoice->quotation_id = $quotation->id;
             
@@ -679,9 +681,11 @@ class InvoiceService
             $invoice->company_id = $invoiceData['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             
-            // กำหนด deposit_display_order ก่อน generate เลขเอกสาร
+            // กำหนด deposit_display_order ก่อน
             $invoice->deposit_display_order = $invoiceData['deposit_display_order'] ?? 'before';
-            $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
+            
+            // ใช้เลขชั่วคราวสำหรับ draft (เหมือน Quotation pattern)
+            $invoice->number = 'DRAFT-' . now()->format('YmdHis') . '-' . substr($invoice->id, 0, 8);
             
             // กรอกข้อมูลจาก input
             foreach ($invoiceData as $key => $value) {
@@ -877,6 +881,11 @@ class InvoiceService
 
             // Approve the specific side
             $invoice->setStatusForSide($side, 'approved');
+            
+            // Generate actual invoice number upon approval (like Quotation pattern)
+            if (empty($invoice->number) || \Illuminate\Support\Str::startsWith($invoice->number, 'DRAFT-')) {
+                $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
+            }
             
             // Update approval metadata
             $invoice->approved_by = $approvedBy;

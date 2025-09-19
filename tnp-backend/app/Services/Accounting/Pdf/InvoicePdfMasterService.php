@@ -637,18 +637,107 @@ class InvoicePdfMasterService
      */
     protected function buildFinancialSummary(Invoice $invoice): array
     {
+        // Basic financial data
+        $subtotal = (float) ($invoice->subtotal ?? 0);
+        $specialDiscountAmount = (float) ($invoice->special_discount_amount ?? 0);
+        $hasVat = (bool) ($invoice->has_vat ?? true);
+        $vatPercentage = (float) ($invoice->vat_percentage ?? 7.00);
+        $hasWithholdingTax = (bool) ($invoice->has_withholding_tax ?? false);
+        $withholdingTaxPercentage = (float) ($invoice->withholding_tax_percentage ?? 0);
+        $withholdingTaxAmount = (float) ($invoice->withholding_tax_amount ?? 0);
+
+        // Calculate deposit-after specific amounts
+        $depositAfterCalculations = $this->calculateDepositAfterAmounts($invoice);
+
         return [
-            'subtotal' => $invoice->subtotal ?? 0,
+            'subtotal' => $subtotal,
             'special_discount_percentage' => $invoice->special_discount_percentage ?? 0,
-            'special_discount_amount' => $invoice->special_discount_amount ?? 0,
-            'has_vat' => $invoice->has_vat ?? true,
-            'vat_percentage' => $invoice->vat_percentage ?? 7,
+            'special_discount_amount' => $specialDiscountAmount,
+            'has_vat' => $hasVat,
+            'vat_percentage' => $vatPercentage,
             'vat_amount' => $invoice->vat_amount ?? 0,
-            'has_withholding_tax' => $invoice->has_withholding_tax ?? false,
-            'withholding_tax_percentage' => $invoice->withholding_tax_percentage ?? 0,
-            'withholding_tax_amount' => $invoice->withholding_tax_amount ?? 0,
+            'has_withholding_tax' => $hasWithholdingTax,
+            'withholding_tax_percentage' => $withholdingTaxPercentage,
+            'withholding_tax_amount' => $withholdingTaxAmount,
             'total_amount' => $invoice->total_amount ?? 0,
             'final_total_amount' => $invoice->final_total_amount ?? $invoice->total_amount ?? 0,
+            
+            // New deposit-after calculations
+            'deposit_after' => $depositAfterCalculations,
+        ];
+    }
+
+    /**
+     * คำนวณยอดเงินสำหรับใบวางบิลหลังมัดจำ
+     */
+    protected function calculateDepositAfterAmounts(Invoice $invoice): array
+    {
+        // ตรวจสอบว่าเป็นใบวางบิลหลังมัดจำหรือไม่
+        // ใบวางบิลหลังมัดจำคือ type = 'remaining' หรือ deposit_display_order = 'after'
+        $isDepositAfter = (
+            ($invoice->type ?? '') === 'remaining' || 
+            ($invoice->deposit_display_order ?? '') === 'after'
+        );
+        
+        if (!$isDepositAfter) {
+            return [
+                'is_deposit_after' => false,
+                'total_before_vat' => 0,
+                'deposit_paid_before_vat' => 0,
+                'amount_after_deposit_deduction' => 0,
+                'vat_on_remaining' => 0,
+                'final_total_with_vat' => 0,
+                'reference_invoice_number' => '',
+            ];
+        }
+
+        // 1. รวมเป็นเงิน = เงินทั้งหมด (ก่อนคำนวน vat7%)
+        $totalBeforeVat = 0;
+        if ($invoice->quotation) {
+            // ใช้ยอดจากใบเสนอราคา (subtotal ก่อน VAT)
+            $totalBeforeVat = (float) ($invoice->quotation->subtotal ?? 0);
+        } else {
+            // fallback ใช้ยอดจาก invoice เอง
+            $totalBeforeVat = (float) ($invoice->subtotal ?? 0);
+        }
+
+        // 2. หักเงินมัดจำ(รหัสใบวางบิล ก่อน) = เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%)
+        $depositPaidBeforeVat = 0;
+        $referenceInvoiceNumber = '';
+        
+        // หาใบแจ้งหนี้มัดจำก่อนหน้า (ที่เป็น type = 'deposit' และอ้างอิงใบเสนอราคาเดียวกัน)
+        if ($invoice->quotation_id) {
+            $depositInvoice = \App\Models\Accounting\Invoice::where('quotation_id', $invoice->quotation_id)
+                ->where('type', 'deposit')
+                ->where('status_before', 'approved')
+                ->where('id', '!=', $invoice->id)
+                ->first();
+                
+            if ($depositInvoice) {
+                // ใช้ subtotal ของใบมัดจำ (ก่อน VAT)
+                $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
+                $referenceInvoiceNumber = $depositInvoice->number ?? '';
+            }
+        }
+
+        // 3. จำนวนเงินหลังหักมัดจำ = เงินทั้งหมด (ก่อนคำนวน vat7%) - เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%)
+        $amountAfterDepositDeduction = max(0, $totalBeforeVat - $depositPaidBeforeVat);
+
+        // 4. ภาษีมูลค่าเพิ่ม 7% = จำนวนเงินหลังหักมัดจำ * 7%
+        $vatPercentage = (float) ($invoice->vat_percentage ?? 7.00);
+        $vatOnRemaining = ($invoice->has_vat ?? true) ? round($amountAfterDepositDeduction * ($vatPercentage / 100), 2) : 0;
+
+        // 5. จำนวนเงินรวมทั้งสิ้น = จำนวนเงินหลังหักมัดจำ * 7% + จำนวนเงินหลังหักมัดจำ
+        $finalTotalWithVat = $amountAfterDepositDeduction + $vatOnRemaining;
+
+        return [
+            'is_deposit_after' => true,
+            'total_before_vat' => $totalBeforeVat,
+            'deposit_paid_before_vat' => $depositPaidBeforeVat,
+            'amount_after_deposit_deduction' => $amountAfterDepositDeduction,
+            'vat_on_remaining' => $vatOnRemaining,
+            'final_total_with_vat' => $finalTotalWithVat,
+            'reference_invoice_number' => $referenceInvoiceNumber,
         ];
     }
 

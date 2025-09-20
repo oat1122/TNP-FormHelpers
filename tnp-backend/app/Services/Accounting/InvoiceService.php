@@ -22,6 +22,39 @@ class InvoiceService
     }
 
     /**
+     * Calculate subtotal_before_vat and deposit_amount_before_vat based on business logic
+     */
+    private function calculateBeforeVatFields(array $data): array
+    {
+        // Extract values with proper defaults
+        $subtotal = round(floatval($data['subtotal'] ?? 0), 2);
+        $hasVat = $data['has_vat'] ?? true;
+        $vatRate = $hasVat ? floatval($data['vat_percentage'] ?? 7) : 0;
+        
+        // subtotal_before_vat = subtotal (by definition, subtotal is before VAT)
+        $subtotalBeforeVat = $subtotal;
+        
+        // Calculate deposit_amount_before_vat
+        $depositMode = $data['deposit_mode'] ?? 'percentage';
+        $depositPct = floatval($data['deposit_percentage'] ?? 0);
+        $depositAmount = round(floatval($data['deposit_amount'] ?? 0), 2);
+        
+        if ($depositMode === 'percentage') {
+            $depositBeforeVat = round($subtotalBeforeVat * ($depositPct / 100), 2);
+        } else { // amount mode
+            // Assume deposit_amount comes as "before VAT" value
+            // If it comes as "including VAT", uncomment the line below:
+            // $depositBeforeVat = $hasVat ? round($depositAmount / (1 + $vatRate/100), 2) : $depositAmount;
+            $depositBeforeVat = $depositAmount;
+        }
+        
+        return [
+            'subtotal_before_vat' => $subtotalBeforeVat,
+            'deposit_amount_before_vat' => $depositBeforeVat
+        ];
+    }
+
+    /**
      * Update deposit display order (presentation preference)
      */
     public function updateDepositDisplayOrder(string $invoiceId, string $order, ?string $updatedBy = null)
@@ -575,14 +608,24 @@ class InvoiceService
             $invoice->total_amount = $invoiceData['total_amount'] ?? 0;
             $invoice->final_total_amount = $invoiceData['final_total_amount'] ?? $invoice->total_amount;
             
-            // Pre-VAT tracking fields
-            $invoice->subtotal_before_vat = $invoiceData['subtotal_before_vat'] ?? null;
-            
             // Deposit information
             $invoice->deposit_mode = $invoiceData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
             $invoice->deposit_percentage = $invoiceData['deposit_percentage'] ?? $quotation->deposit_percentage ?? 0;
             $invoice->deposit_amount = $invoiceData['deposit_amount'] ?? $quotation->deposit_amount ?? 0;
-            $invoice->deposit_amount_before_vat = $invoiceData['deposit_amount_before_vat'] ?? null;
+            
+            // Calculate Pre-VAT tracking fields using business logic
+            $beforeVatData = array_merge($invoiceData, [
+                'subtotal' => $invoice->subtotal,
+                'has_vat' => $invoice->has_vat,
+                'vat_percentage' => $invoice->vat_percentage,
+                'deposit_mode' => $invoice->deposit_mode,
+                'deposit_percentage' => $invoice->deposit_percentage,
+                'deposit_amount' => $invoice->deposit_amount
+            ]);
+            
+            $calculatedFields = $this->calculateBeforeVatFields($beforeVatData);
+            $invoice->subtotal_before_vat = $calculatedFields['subtotal_before_vat'];
+            $invoice->deposit_amount_before_vat = $calculatedFields['deposit_amount_before_vat'];
             
             // Reference invoice information for after-deposit invoices
             $invoice->reference_invoice_id = $invoiceData['reference_invoice_id'] ?? null;
@@ -750,6 +793,25 @@ class InvoiceService
                 if ($invoice->isFillable($key)) {
                     $invoice->$key = $value;
                 }
+            }
+            
+            // Recalculate before VAT fields if financial data was updated
+            $financialFields = ['subtotal', 'has_vat', 'vat_percentage', 'deposit_mode', 'deposit_percentage', 'deposit_amount'];
+            $hasFinancialUpdates = !empty(array_intersect(array_keys($updateData), $financialFields));
+            
+            if ($hasFinancialUpdates) {
+                $beforeVatData = [
+                    'subtotal' => $invoice->subtotal,
+                    'has_vat' => $invoice->has_vat,
+                    'vat_percentage' => $invoice->vat_percentage,
+                    'deposit_mode' => $invoice->deposit_mode,
+                    'deposit_percentage' => $invoice->deposit_percentage,
+                    'deposit_amount' => $invoice->deposit_amount
+                ];
+                
+                $calculatedFields = $this->calculateBeforeVatFields($beforeVatData);
+                $invoice->subtotal_before_vat = $calculatedFields['subtotal_before_vat'];
+                $invoice->deposit_amount_before_vat = $calculatedFields['deposit_amount_before_vat'];
             }
 
             $invoice->updated_by = $updatedBy;

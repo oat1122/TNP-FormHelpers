@@ -575,10 +575,18 @@ class InvoiceService
             $invoice->total_amount = $invoiceData['total_amount'] ?? 0;
             $invoice->final_total_amount = $invoiceData['final_total_amount'] ?? $invoice->total_amount;
             
+            // Pre-VAT tracking fields
+            $invoice->subtotal_before_vat = $invoiceData['subtotal_before_vat'] ?? null;
+            
             // Deposit information
             $invoice->deposit_mode = $invoiceData['deposit_mode'] ?? $quotation->deposit_mode ?? 'percentage';
             $invoice->deposit_percentage = $invoiceData['deposit_percentage'] ?? $quotation->deposit_percentage ?? 0;
             $invoice->deposit_amount = $invoiceData['deposit_amount'] ?? $quotation->deposit_amount ?? 0;
+            $invoice->deposit_amount_before_vat = $invoiceData['deposit_amount_before_vat'] ?? null;
+            
+            // Reference invoice information for after-deposit invoices
+            $invoice->reference_invoice_id = $invoiceData['reference_invoice_id'] ?? null;
+            $invoice->reference_invoice_number = $invoiceData['reference_invoice_number'] ?? null;
             // deposit_display_order already set above before generating number
             
             // Payment information
@@ -854,16 +862,32 @@ class InvoiceService
 
             // Idempotent/benign handling for already-processed invoices
             if ($currentStatus === 'approved') {
-                // No-op: already approved
-                DocumentHistory::logAction(
-                    'invoice',
-                    $invoiceId,
-                    "approve_{$side}_noop",
-                    $approvedBy,
-                    "ข้ามการอนุมัติฝั่ง {$side} เนื่องจากอนุมัติแล้ว"
-                );
+                // Check if we need to assign number_after for already-approved after-deposit invoices
+                if ($side === 'after' && empty($invoice->number_after)) {
+                    $documentService = app(\App\Services\Support\DocumentNumberService::class);
+                    $invoice->number_after = $documentService->nextInvoiceNumber($invoice->company_id, 'after');
+                    $invoice->number = $invoice->number_after; // Use after number as main number
+                    $invoice->save();
+                    
+                    DocumentHistory::logAction(
+                        'invoice',
+                        $invoiceId,
+                        "assign_number_after",
+                        $approvedBy,
+                        "กำหนด number_after สำหรับใบแจ้งหนี้ที่อนุมัติแล้ว: {$invoice->number_after}"
+                    );
+                } else {
+                    // No-op: already approved
+                    DocumentHistory::logAction(
+                        'invoice',
+                        $invoiceId,
+                        "approve_{$side}_noop",
+                        $approvedBy,
+                        "ข้ามการอนุมัติฝั่ง {$side} เนื่องจากอนุมัติแล้ว"
+                    );
+                }
                 DB::commit();
-                return $invoice;
+                return $invoice->fresh();
             }
 
             if (!$invoice->canApproveForSide($side)) {
@@ -882,9 +906,14 @@ class InvoiceService
             // Approve the specific side
             $invoice->setStatusForSide($side, 'approved');
             
-            // Generate actual invoice number upon approval (like Quotation pattern)
+            // Generate actual invoice numbers upon approval (like Quotation pattern)
             if (empty($invoice->number) || \Illuminate\Support\Str::startsWith($invoice->number, 'DRAFT-')) {
-                $invoice->number = Invoice::generateInvoiceNumberByDepositMode($invoice->company_id, $invoice->deposit_display_order);
+                $invoice->assignInvoiceNumbers();
+            } else if ($side === 'after' && empty($invoice->number_after)) {
+                // Ensure number_after is assigned when approving after-deposit side
+                $documentService = app(\App\Services\Support\DocumentNumberService::class);
+                $invoice->number_after = $documentService->nextInvoiceNumber($invoice->company_id, 'after');
+                $invoice->number = $invoice->number_after; // Use after number as main number for after-deposit invoices
             }
             
             // Update approval metadata

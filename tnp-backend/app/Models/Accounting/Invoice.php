@@ -56,7 +56,11 @@ class Invoice extends Model
         'id',
         'company_id',
         'number',
+        'number_before',
+        'number_after',
         'quotation_id',
+        'reference_invoice_id',
+        'reference_invoice_number',
         'primary_pricing_request_id',
         'primary_pricing_request_ids',
         'customer_id',
@@ -75,6 +79,7 @@ class Invoice extends Model
         'status_after',
         'type',
         'subtotal',
+        'subtotal_before_vat',
         'tax_amount',
         'total_amount',
         'special_discount_percentage',
@@ -88,6 +93,7 @@ class Invoice extends Model
         'final_total_amount',
         'deposit_percentage',
         'deposit_amount',
+        'deposit_amount_before_vat',
     'deposit_display_order',
         'deposit_mode',
         'paid_amount',
@@ -130,6 +136,7 @@ class Invoice extends Model
         'sample_images' => 'array',
     'evidence_files' => 'array',
         'subtotal' => 'decimal:2',
+        'subtotal_before_vat' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'special_discount_percentage' => 'decimal:2',
@@ -140,6 +147,7 @@ class Invoice extends Model
         'withholding_tax_amount' => 'decimal:2',
         'final_total_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
+        'deposit_amount_before_vat' => 'decimal:2',
     'deposit_display_order' => 'string',
         'paid_amount' => 'decimal:2',
         'has_vat' => 'boolean',
@@ -227,6 +235,22 @@ class Invoice extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Company::class, 'company_id', 'id');
+    }
+
+    /**
+     * Relationship: Invoice belongs to Reference Invoice (before-deposit invoice)
+     */
+    public function referenceInvoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'reference_invoice_id', 'id');
+    }
+
+    /**
+     * Relationship: Invoice has many after-deposit invoices
+     */
+    public function afterDepositInvoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'reference_invoice_id', 'id');
     }
 
     /**
@@ -353,6 +377,27 @@ class Invoice extends Model
         $docType = $depositDisplayOrder === 'after' ? 'invoice_after' : 'invoice_before';
         return app(\App\Services\Support\DocumentNumberService::class)
             ->next($companyId, $docType);
+    }
+
+    /**
+     * Generate and assign appropriate invoice numbers based on deposit mode
+     */
+    public function assignInvoiceNumbers()
+    {
+        $documentService = app(\App\Services\Support\DocumentNumberService::class);
+        
+        // Generate number for before-deposit
+        $this->number_before = $documentService->nextInvoiceNumber($this->company_id, 'before');
+        
+        // If this is an after-deposit invoice, also generate after number
+        if ($this->deposit_display_order === 'after' || $this->type === 'remaining') {
+            $this->number_after = $documentService->nextInvoiceNumber($this->company_id, 'after');
+            // Use the after number as the main number for after-deposit invoices
+            $this->number = $this->number_after;
+        } else {
+            // Use the before number as the main number for before-deposit invoices
+            $this->number = $this->number_before;
+        }
     }
 
     /**

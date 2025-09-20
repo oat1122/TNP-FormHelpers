@@ -62,3 +62,51 @@ export const headerOptions = [
   'สำเนา',
   'สำเนา-ลูกค้า'
 ];
+
+/**
+ * ฟังก์ชันจัดรูปแบบเลขที่เอกสารพร้อม label
+ */
+export const formatInvoiceNumber = (invoice, depositMode, showLabel = false) => {
+  if (!invoice) return '';
+  
+  const getNumber = () => {
+    if (depositMode === 'before' && invoice?.number_before) {
+      return invoice.number_before;
+    } else if (depositMode === 'after' && invoice?.number_after) {
+      return invoice.number_after;
+    } else {
+      return invoice?.number || '';
+    }
+  };
+  
+  const number = getNumber();
+  if (!number) return '';
+  
+  if (showLabel) {
+    const modeLabel = depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง';
+    return `${number} (${modeLabel})`;
+  }
+  
+  return number;
+};
+
+/**
+ * ฟังก์ชันจัดรูปแบบยอดเงินตามประเภท
+ */
+export const formatAmountByType = (amount, type = 'currency') => {
+  if (!amount) return formatTHB(0);
+  
+  switch (type) {
+    case 'currency':
+      return formatTHB(amount);
+    case 'number':
+      return new Intl.NumberFormat('th-TH', { 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(Number(amount || 0));
+    case 'percentage':
+      return `${Number(amount || 0).toFixed(2)}%`;
+    default:
+      return formatTHB(amount);
+  }
+};

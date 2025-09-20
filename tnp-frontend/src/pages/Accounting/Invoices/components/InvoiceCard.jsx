@@ -23,8 +23,8 @@ import { useInvoiceApproval } from './hooks/useInvoiceApproval';
 import { useInvoicePDFDownload } from './hooks/useInvoicePDFDownload';
 
 // Utilities
-import { formatTHB, formatDate, typeLabels, truncateText } from './utils/invoiceFormatters';
-import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo } from './utils/invoiceLogic';
+import { formatTHB, formatDate, typeLabels, truncateText, formatInvoiceNumber } from './utils/invoiceFormatters';
+import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo, getDisplayInvoiceNumber } from './utils/invoiceLogic';
 
 // Hooks
 import { useState, useEffect, useCallback } from 'react';
@@ -256,15 +256,19 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
             <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.25}>
               {/* กลุ่มซ้าย: เลขที่เอกสาร + สถานะ */}
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                {invoice?.number && (
-                  <TNPCountChip 
-                    icon={<DescriptionIcon sx={{ fontSize: '0.9rem' }} aria-hidden="true" />} 
-                    label={invoice.number} 
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                    aria-label={`เลขที่เอกสาร ${invoice.number}`}
-                  />
-                )}
+                {(() => {
+                  const displayNumber = getDisplayInvoiceNumber(invoice, depositMode);
+                  
+                  return displayNumber ? (
+                    <TNPCountChip 
+                      icon={<DescriptionIcon sx={{ fontSize: '0.9rem' }} aria-hidden="true" />} 
+                      label={displayNumber} 
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                      aria-label={`เลขที่เอกสาร ${displayNumber}`}
+                    />
+                  ) : null;
+                })()}
                 <TNPStatusChip 
                   label={invoiceStatus.status} 
                   size="small" 

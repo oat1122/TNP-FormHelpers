@@ -5,6 +5,21 @@
 
 import { statusColor } from './invoiceFormatters';
 
+/**
+ * ฟังก์ชันเลือกเลขที่เอกสารที่เหมาะสมตาม deposit mode
+ */
+export const getDisplayInvoiceNumber = (invoice, depositMode) => {
+  if (!invoice) return '';
+  
+  if (depositMode === 'before' && invoice?.number_before) {
+    return invoice.number_before;
+  } else if (depositMode === 'after' && invoice?.number_after) {
+    return invoice.number_after;
+  } else {
+    return invoice?.number || ''; // fallback to main number
+  }
+};
+
 // ฟังก์ชันตรวจสอบสถานะตามวันครบกำหนด
 export const getInvoiceStatus = (invoice) => {
   if (!invoice) return { status: 'draft', color: 'default' };
@@ -159,5 +174,49 @@ export const calculateInvoiceFinancials = (invoice) => {
     paidAmount,
     depositAmount,
     remaining
+  };
+};
+
+/**
+ * ฟังก์ชันดึงข้อมูลยอดเงินที่เหมาะสมสำหรับการแสดงผล
+ */
+export const getDisplayAmounts = (invoice, depositMode) => {
+  if (!invoice) return {};
+  
+  const amounts = {
+    subtotalBeforeVat: invoice?.subtotal_before_vat || invoice?.subtotal || 0,
+    subtotal: invoice?.subtotal || 0,
+    depositAmountBeforeVat: invoice?.deposit_amount_before_vat || 0,
+    depositAmount: invoice?.deposit_amount || 0,
+    vatAmount: invoice?.vat_amount || 0,
+    total: invoice?.final_total_amount || invoice?.total_amount || 0
+  };
+
+  return amounts;
+};
+
+/**
+ * ฟังก์ชันตรวจสอบว่าเป็นใบแจ้งหนี้มัดจำหลังหรือไม่
+ */
+export const isAfterDepositInvoice = (invoice) => {
+  if (!invoice) return false;
+  
+  return (
+    invoice?.type === 'remaining' || 
+    invoice?.deposit_display_order === 'after' ||
+    Boolean(invoice?.reference_invoice_id)
+  );
+};
+
+/**
+ * ฟังก์ชันดึงข้อมูลใบแจ้งหนี้อ้างอิง (สำหรับมัดจำหลัง)
+ */
+export const getReferenceInvoiceInfo = (invoice) => {
+  if (!invoice) return null;
+  
+  return {
+    id: invoice?.reference_invoice_id,
+    number: invoice?.reference_invoice_number,
+    hasReference: Boolean(invoice?.reference_invoice_id || invoice?.reference_invoice_number)
   };
 };

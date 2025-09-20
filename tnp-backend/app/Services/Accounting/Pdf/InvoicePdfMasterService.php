@@ -693,7 +693,11 @@ class InvoicePdfMasterService
 
         // 1. รวมเป็นเงิน = เงินทั้งหมด (ก่อนคำนวน vat7%)
         $totalBeforeVat = 0;
-        if ($invoice->quotation) {
+        
+        // Use subtotal_before_vat if available, otherwise fallback to existing logic
+        if (!empty($invoice->subtotal_before_vat)) {
+            $totalBeforeVat = (float) $invoice->subtotal_before_vat;
+        } elseif ($invoice->quotation) {
             // ใช้ยอดจากใบเสนอราคา (subtotal ก่อน VAT)
             $totalBeforeVat = (float) ($invoice->quotation->subtotal ?? 0);
         } else {
@@ -705,18 +709,38 @@ class InvoicePdfMasterService
         $depositPaidBeforeVat = 0;
         $referenceInvoiceNumber = '';
         
-        // หาใบแจ้งหนี้มัดจำก่อนหน้า (ที่เป็น type = 'deposit' และอ้างอิงใบเสนอราคาเดียวกัน)
-        if ($invoice->quotation_id) {
-            $depositInvoice = \App\Models\Accounting\Invoice::where('quotation_id', $invoice->quotation_id)
-                ->where('type', 'deposit')
-                ->where('status_before', 'approved')
-                ->where('id', '!=', $invoice->id)
-                ->first();
-                
-            if ($depositInvoice) {
-                // ใช้ subtotal ของใบมัดจำ (ก่อน VAT)
+        // First, try to use reference_invoice_id if available
+        if ($invoice->reference_invoice_id && $invoice->referenceInvoice) {
+            $depositInvoice = $invoice->referenceInvoice;
+            // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
+            if (!empty($depositInvoice->deposit_amount_before_vat)) {
+                $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
+            } elseif (!empty($depositInvoice->subtotal_before_vat)) {
+                $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
+            } else {
                 $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
-                $referenceInvoiceNumber = $depositInvoice->number ?? '';
+            }
+            $referenceInvoiceNumber = $invoice->reference_invoice_number ?: ($depositInvoice->number_before ?: $depositInvoice->number);
+        } else {
+            // Fallback: หาใบแจ้งหนี้มัดจำก่อนหน้า (ที่เป็น type = 'deposit' และอ้างอิงใบเสนอราคาเดียวกัน)
+            if ($invoice->quotation_id) {
+                $depositInvoice = \App\Models\Accounting\Invoice::where('quotation_id', $invoice->quotation_id)
+                    ->where('type', 'deposit')
+                    ->where('status_before', 'approved')
+                    ->where('id', '!=', $invoice->id)
+                    ->first();
+                    
+                if ($depositInvoice) {
+                    // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
+                    if (!empty($depositInvoice->deposit_amount_before_vat)) {
+                        $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
+                    } elseif (!empty($depositInvoice->subtotal_before_vat)) {
+                        $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
+                    } else {
+                        $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
+                    }
+                    $referenceInvoiceNumber = $depositInvoice->number_before ?: ($depositInvoice->number ?? '');
+                }
             }
         }
 

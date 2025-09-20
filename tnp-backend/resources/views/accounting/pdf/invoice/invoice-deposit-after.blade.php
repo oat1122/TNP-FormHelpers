@@ -269,7 +269,7 @@
               {{-- 2. หักเงินมัดจำ = เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%) --}}
               @if($isDepositAfter)
                 <tr class="deposit-deduction-row">
-                  <td class="summary-label">หักเงินมัดจำ {{ $referenceInvoiceNumber }}</td>
+                  <td class="summary-label">หักเงินมัดจำ @if(!empty($referenceInvoiceNumber))({{ $referenceInvoiceNumber }})@endif</td>
                   <td class="summary-amount discount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($depositPaidBeforeVat, 2) }}</span>

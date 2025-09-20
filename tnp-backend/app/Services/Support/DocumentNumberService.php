@@ -145,4 +145,17 @@ class DocumentNumberService
             return $candidate;
         });
     }
+
+    /**
+     * Generate invoice number based on deposit mode
+     * @param string $companyId
+     * @param string $depositMode 'before' or 'after'
+     * @param string|null $date Y-m-d date string (defaults to today)
+     * @return string
+     */
+    public function nextInvoiceNumber(string $companyId, string $depositMode, ?string $date = null): string
+    {
+        $docType = $depositMode === 'before' ? 'invoice_before' : 'invoice_after';
+        return $this->next($companyId, $docType, $date);
+    }
 }

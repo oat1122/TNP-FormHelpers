@@ -145,7 +145,9 @@ class InvoiceController extends Controller
                 'items',
                 'customer',
                 'manager',
-                'company'
+                'company',
+                'referenceInvoice',
+                'afterDepositInvoices'
             ])->findOrFail($id);
 
             return response()->json([
@@ -179,9 +181,17 @@ class InvoiceController extends Controller
                 'work_name' => 'required|string|max:255',
                 'quantity' => 'required|integer|min:1',
                 'subtotal' => 'required|numeric|min:0',
+                'subtotal_before_vat' => 'nullable|numeric|min:0',
                 'tax_amount' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:100'
+                'payment_terms' => 'nullable|string|max:100',
+                
+                // Deposit fields
+                'deposit_amount_before_vat' => 'nullable|numeric|min:0',
+                
+                // Reference invoice information
+                'reference_invoice_id' => 'nullable|string|exists:invoices,id',
+                'reference_invoice_number' => 'nullable|string|max:50'
             ]);
 
             if ($validator->fails()) {
@@ -241,6 +251,7 @@ class InvoiceController extends Controller
 
                 // Financial fields
                 'subtotal' => 'sometimes|numeric|min:0',
+                'subtotal_before_vat' => 'sometimes|nullable|numeric|min:0',
                 'special_discount_percentage' => 'sometimes|numeric|min:0|max:100',
                 'special_discount_amount' => 'sometimes|numeric|min:0',
                 'has_vat' => 'sometimes|boolean',
@@ -255,6 +266,11 @@ class InvoiceController extends Controller
                 'deposit_mode' => 'sometimes|in:percentage,amount',
                 'deposit_percentage' => 'sometimes|numeric|min:0|max:100',
                 'deposit_amount' => 'sometimes|numeric|min:0',
+                'deposit_amount_before_vat' => 'sometimes|nullable|numeric|min:0',
+                
+                // Reference invoice information
+                'reference_invoice_id' => 'sometimes|nullable|string|exists:invoices,id',
+                'reference_invoice_number' => 'sometimes|nullable|string|max:50',
 
                 // Payment / terms
                 'due_date' => 'sometimes|date',
@@ -345,6 +361,7 @@ class InvoiceController extends Controller
                 
                 // Financial fields from frontend calculation
                 'subtotal' => 'required|numeric|min:0',
+                'subtotal_before_vat' => 'nullable|numeric|min:0',
                 'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
                 'special_discount_amount' => 'nullable|numeric|min:0',
                 'has_vat' => 'nullable|boolean',
@@ -360,6 +377,11 @@ class InvoiceController extends Controller
                 'deposit_mode' => 'nullable|in:percentage,amount',
                 'deposit_percentage' => 'nullable|numeric|min:0|max:100',
                 'deposit_amount' => 'nullable|numeric|min:0',
+                'deposit_amount_before_vat' => 'nullable|numeric|min:0',
+                
+                // Reference invoice information
+                'reference_invoice_id' => 'nullable|string|exists:invoices,id',
+                'reference_invoice_number' => 'nullable|string|max:50',
                 
                 // Images
                 'signature_images' => 'nullable|array',

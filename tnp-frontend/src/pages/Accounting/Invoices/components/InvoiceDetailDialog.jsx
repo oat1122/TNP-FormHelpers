@@ -40,10 +40,12 @@ import {
   Calculation,
   PaymentTerms,
 } from '../../shared/components';
+import { useInvoiceApproval } from './hooks/useInvoiceApproval';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB, formatDateTH } from '../utils/format';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
 import { computeFinancials } from '../../shared/hooks/useQuotationFinancials';
+import { getDisplayInvoiceNumber } from './utils/invoiceLogic';
 
 // Format invoice type labels
 const typeLabels = {
@@ -184,6 +186,9 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const invoice = data?.data || data || {};
   const customer = normalizeCustomer(invoice);
   const items = normalizeItems(invoice);
+  
+  // Use invoice approval hook for deposit mode
+  const { depositMode } = useInvoiceApproval(invoice);
 
   // Update notes when invoice changes
   React.useEffect(() => {
@@ -493,7 +498,9 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={3}>
                         <Typography variant="caption" color="text.secondary">เลขที่ใบแจ้งหนี้</Typography>
-                        <Typography variant="body1" fontWeight={700}>{invoice.number || '-'}</Typography>
+                        <Typography variant="body1" fontWeight={700}>
+                          {getDisplayInvoiceNumber(invoice, depositMode) || '-'}
+                        </Typography>
                       </Grid>
                       <Grid item xs={12} md={3}>
                         <Typography variant="caption" color="text.secondary">ประเภท</Typography>

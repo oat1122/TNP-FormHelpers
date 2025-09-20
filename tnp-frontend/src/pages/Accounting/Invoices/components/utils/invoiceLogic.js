@@ -183,13 +183,22 @@ export const calculateInvoiceFinancials = (invoice) => {
 export const getDisplayAmounts = (invoice, depositMode) => {
   if (!invoice) return {};
   
+  // Prioritize calculated before VAT fields from backend, with proper fallbacks
+  const subtotalBeforeVat = invoice?.subtotal_before_vat ?? invoice?.subtotal ?? 0;
+  const depositAmountBeforeVat = invoice?.deposit_amount_before_vat ?? 0;
+  
   const amounts = {
-    subtotalBeforeVat: invoice?.subtotal_before_vat || invoice?.subtotal || 0,
+    subtotalBeforeVat,
     subtotal: invoice?.subtotal || 0,
-    depositAmountBeforeVat: invoice?.deposit_amount_before_vat || 0,
+    depositAmountBeforeVat,
     depositAmount: invoice?.deposit_amount || 0,
     vatAmount: invoice?.vat_amount || 0,
-    total: invoice?.final_total_amount || invoice?.total_amount || 0
+    total: invoice?.final_total_amount || invoice?.total_amount || 0,
+    
+    // Additional computed values for after-deposit calculations
+    netAfterDeposit: depositMode === 'after' && depositAmountBeforeVat > 0 
+      ? Math.max(subtotalBeforeVat - depositAmountBeforeVat, 0) 
+      : subtotalBeforeVat
   };
 
   return amounts;

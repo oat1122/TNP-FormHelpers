@@ -21,8 +21,8 @@
 
 /* ===== Company text ===== */
 .company-name {
-  font-size: 12pt;                   /* ลดลงอีก ยังชัดสำหรับหัวเรื่อง */
-  font-weight: bold;
+  font-size: 10pt;                   /* ลดลงอีก ยังชัดสำหรับหัวเรื่อง */
+  font-weight: normal;
   color: #2c3e50;
   line-height: 1.18;                 /* เพิ่ม line-height นิดเพราะตัวเล็กลง */
   margin: 1pt 0 3pt 0;
@@ -37,6 +37,14 @@
   font-size: 8pt;                    /* เมตา เล็กกว่าที่อยู่ 1 จุด */
   color: #7f8c8d;
   line-height: 1.3;
+}
+
+/* Customer name styling */
+.customer-name {
+  font-size: 9pt;
+  font-weight: normal;
+  color: #2c3e50;
+  margin-bottom: 2pt;
 }
 
 /* ===== Document right side ===== */
@@ -76,7 +84,7 @@
  | Compact Typography Adjustments (FlowAccount-inspired)
  | - Slightly smaller body text; headers a touch larger
  * ======================================================================= */
-.company-name { font-size: 11pt; }
+.company-name { font-size: 10pt; font-weight: normal; }
 .company-addr  { font-size: 8.5pt; }
 .company-meta  { font-size: 7.5pt; }
 .doc-title     { font-size: 11pt; }

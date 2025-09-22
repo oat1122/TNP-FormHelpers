@@ -219,13 +219,13 @@ tr{page-break-inside:avoid}
   margin-top:-6pt;        /* ยกกล่องขึ้นเล็กน้อย ลดช่องว่างหลัง header */
 }
 .customer-name{
-  font-weight:bold;
-  font-size:12pt;          /* ให้ตามหัวบริษัทใหม่ */
+  font-weight:normal;
+  font-size:9pt;          /* ให้ตามหัวบริษัทใหม่ */
   color:#2c3e50;
   margin-bottom:2pt;
 }
 .customer-line{
-  font-size:9pt;           /* ให้ตาม company-addr */
+  font-size:8.5pt;           /* ให้ตาม company-addr */
   color:#34495e;
   margin:2pt 0;
   line-height:1.34;
@@ -613,7 +613,7 @@ h3 { font-size: 11pt; }
 .items-table.slim thead th { font-size: 10pt; }
 
 /* Customer block */
-.customer-name { font-size: 10pt; }
+.customer-name { font-size: 9pt; font-weight: normal; }
 .customer-line { font-size: 8pt; }
 
 /* Panels */

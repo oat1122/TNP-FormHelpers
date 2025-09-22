@@ -197,19 +197,19 @@
             </div><br/>
 
             {{-- ข้อมูลการชำระเงิน --}}
-            @if(!empty($invoice->payment_method) || !empty($invoice->payment_terms) || !empty($invoice->due_date))
+            @if(!empty($invoice->company->account_name) || !empty($invoice->company->bank_name) || !empty($invoice->company->account_number))
               <h3 class="panel-title panel-title--sm" style="margin-top: 15pt;">ข้อมูลการชำระเงิน</h3> 
               <div class="panel-content">
-                @if(!empty($invoice->payment_method))
-                  <div>วิธีการชำระเงิน: {{ $invoice->payment_method }}</div>
+                @if(!empty($invoice->company->account_name))
+                  <div>ชื่อบัญชี: {{ $invoice->company->account_name }}</div>
                 @endif
                 
-                @if(!empty($invoice->payment_terms))
-                  <div>เงื่อนไขการชำระ: {{ $invoice->payment_terms }}</div>
+                @if(!empty($invoice->company->bank_name))
+                  <div>ชื่อธนาคาร: {{ $invoice->company->bank_name }}</div>
                 @endif
                 
-                @if(!empty($invoice->due_date))
-                  <div>กำหนดชำระ: {{ date('d/m/Y', strtotime($invoice->due_date)) }}</div>
+                @if(!empty($invoice->company->account_number))
+                  <div>เลขบัญชี: {{ $invoice->company->account_number }}</div>
                 @endif
               </div>
             @endif
@@ -292,7 +292,7 @@
 
               {{-- 1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat --}}
               <tr>
-                <td class="summary-label">รวมเป็นเงิน (ก่อน VAT)</td>
+                <td class="summary-label">รวมเป็นเงิน </td>
                 <td class="summary-amount">
                   <div class="amount-container">
                     <span class="amount-main">{{ number_format($isDepositAfter ? $totalBeforeVat : $subtotal, 2) }}</span>
@@ -303,24 +303,19 @@
               {{-- 2. หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT) = deposit_amount_before_vat --}}
               @if($isDepositAfter)
                 <tr class="deposit-deduction-row">
-                  <td class="summary-label">หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT)@if(!empty($referenceInvoiceNumber)) ({{ $referenceInvoiceNumber }})@endif</td>
-                  <td class="summary-amount discount">
+                  <td class="summary-label">หักเงินมัดจำ@if(!empty($referenceInvoiceNumber)) {{ $referenceInvoiceNumber }}@endif</td>
+                  <td class="summary-amount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($depositPaidBeforeVat, 2) }}</span>
                       {{-- Debug: แสดงข้อมูลเพิ่มเติม --}}
-                      @if(config('app.debug'))
-                        <small style="display:block;color:#666;">
-                          Debug: Type={{ $invoice->type ?? 'NULL' }}, Order={{ $invoice->deposit_display_order ?? 'NULL' }}, 
-                          DepositBV={{ $invoice->deposit_amount_before_vat ?? 'NULL' }}
-                        </small>
-                      @endif
+                      
                     </div>
                   </td>
                 </tr>
                 
                 {{-- 3. จำนวนเงินหลังหักมัดจำ (ก่อน VAT) = subtotal_before_vat - deposit_amount_before_vat --}}
                 <tr class="after-deposit-row">
-                  <td class="summary-label">จำนวนเงินหลังหักมัดจำ (ก่อน VAT)</td>
+                  <td class="summary-label">จำนวนเงินหลังหักมัดจำ</td>
                   <td class="summary-amount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($amountAfterDepositDeduction, 2) }}</span>

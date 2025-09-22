@@ -226,37 +226,98 @@ table {
     width: 58% !important;
 }
 
-/* Summary table specifics use shared base; only color tweaks below */
+/* Summary table specifics use shared base; consistent styling for all rows */
+
+/* Override bold font-weight from shared base for consistency */
+.summary-table .summary-amount {
+    font-weight: normal !important;
+}
+
+.summary-table .summary-amount .amount-main {
+    font-weight: normal !important;
+    color: #333;
+}
+
+.summary-table .summary-label {
+    color: #555;
+    font-weight: normal;
+}
+
 .discount-row .summary-amount.discount .amount-main {
     color: #d32f2f;
+    font-weight: normal !important;
 }
 
 .withholding-tax-row .summary-amount.withholding-tax .amount-main {
     color: #f57c00;
+    font-weight: normal !important;
 }
 
-/* Special styling for after-deposit summary rows */
+/* Consistent styling for all deposit-after summary rows */
 .reference-row .summary-label {
-    font-size: 8pt;
-    color: #666;
-    font-style: italic;
+    font-size: 9pt;
+    color: #555;
+    font-style: normal;
+    font-weight: normal;
+}
+
+.reference-row .summary-amount {
+    font-weight: normal !important;
+}
+
+.reference-row .summary-amount .amount-main {
+    font-size: 9pt;
+    color: #333;
+    font-weight: normal !important;
 }
 
 .deposit-deduction-row .summary-label {
-    color: #e74c3c;
+    font-size: 9pt;
+    color: #555;
+    font-weight: normal;
 }
 
-.deposit-deduction-row .summary-amount.discount .amount-main {
-    color: #e74c3c;
+.deposit-deduction-row .summary-amount {
+    font-weight: normal !important;
+}
+
+.deposit-deduction-row .summary-amount .amount-main {
+    font-size: 9pt;
+    color: #333;
+    font-weight: normal !important;
 }
 
 .after-deposit-row .summary-label {
-    font-weight: bold;
-    color: #2c3e50;
+    font-size: 9pt;
+    color: #555;
+    font-weight: normal;
+}
+
+.after-deposit-row .summary-amount {
+    font-weight: normal !important;
 }
 
 .after-deposit-row .summary-amount .amount-main {
-    font-weight: bold;
+    font-size: 9pt;
+    color: #333;
+    font-weight: normal !important;
+}
+
+/* Ensure VAT row also follows consistent styling */
+.summary-table tr:not(.total-row):not(.reading-row) .summary-label {
+    font-size: 9pt;
+    color: #555;
+    font-weight: normal;
+}
+
+.summary-table tr:not(.total-row):not(.reading-row) .summary-amount {
+    font-weight: normal !important;
+}
+
+.summary-table tr:not(.total-row):not(.reading-row) .summary-amount .amount-main {
+    font-size: 9pt;
+    color: #333;
+    font-weight: normal !important;
 }
 
 /* ===== Signature Section ===== */

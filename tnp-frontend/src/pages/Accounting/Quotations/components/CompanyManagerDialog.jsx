@@ -6,13 +6,12 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import SaveIcon from '@mui/icons-material/Save';
 import {
   useGetCompaniesQuery,
   useCreateCompanyMutation,
   useUpdateCompanyMutation,
-  useDeleteCompanyMutation,
 } from '../../../../features/Accounting/accountingApi';
 
 const emptyForm = {
@@ -24,13 +23,15 @@ const emptyForm = {
   phone: '',
   short_code: '',
   is_active: true,
+  account_name: '',
+  bank_name: '',
+  account_number: '',
 };
 
 const CompanyManagerDialog = ({ open, onClose }) => {
   const { data: companiesResp, isFetching, refetch } = useGetCompaniesQuery();
   const [createCompany, { isLoading: creating }] = useCreateCompanyMutation();
   const [updateCompany, { isLoading: updating }] = useUpdateCompanyMutation();
-  const [deleteCompany, { isLoading: deleting }] = useDeleteCompanyMutation();
 
   const companies = React.useMemo(() => {
     const list = companiesResp?.data ?? companiesResp ?? [];
@@ -73,19 +74,13 @@ const CompanyManagerDialog = ({ open, onClose }) => {
       phone: c.phone || '',
       short_code: c.short_code || '',
       is_active: Boolean(c.is_active),
+      account_name: c.account_name || '',
+      bank_name: c.bank_name || '',
+      account_number: c.account_number || '',
     });
   };
 
-  const handleDelete = async (id) => {
-    if (!id) return;
-    if (!window.confirm('ลบบริษัทนี้หรือไม่?')) return;
-    try {
-      await deleteCompany(id).unwrap();
-      refetch();
-    } catch (e) {
-      console.error('Delete company failed', e);
-    }
-  };
+
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -110,12 +105,44 @@ const CompanyManagerDialog = ({ open, onClose }) => {
                 <TextField size="small" label="โค้ดสั้น (เช่น TNP)" value={form.short_code} onChange={(e) => setForm(f => ({ ...f, short_code: e.target.value }))} fullWidth />
                 <FormControlLabel control={<Switch checked={!!form.is_active} onChange={(e) => setForm(f => ({ ...f, is_active: e.target.checked }))} />} label="ใช้งานอยู่" />
               </Stack>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main', mt: 1.5, mb: 0.5 }}>ข้อมูลการชำระเงิน</Typography>
+              <TextField 
+                size="small" 
+                label="ชื่อเจ้าของบัญชี" 
+                value={form.account_name || ''} 
+                onChange={(e) => setForm(f => ({ ...f, account_name: e.target.value }))} 
+                placeholder="เช่น นายสมชาย ใจดี"
+                fullWidth 
+              />
+              <TextField 
+                size="small" 
+                label="ชื่อธนาคาร" 
+                value={form.bank_name || ''} 
+                onChange={(e) => setForm(f => ({ ...f, bank_name: e.target.value }))} 
+                placeholder="เช่น ธนาคารกสิกรไทย"
+                fullWidth 
+              />
+              <TextField 
+                size="small" 
+                label="หมายเลขบัญชี" 
+                value={form.account_number || ''} 
+                onChange={(e) => setForm(f => ({ ...f, account_number: e.target.value }))} 
+                placeholder="เช่น 123-4-56789-0"
+                fullWidth 
+              />
               <Stack direction="row" spacing={1}>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={handleSubmit} disabled={creating || updating}>
+                <Button 
+                  variant="contained" 
+                  startIcon={editingId ? <SaveIcon /> : <AddIcon />} 
+                  onClick={handleSubmit} 
+                  disabled={creating || updating}
+                >
                   {editingId ? 'บันทึกการแก้ไข' : 'เพิ่มบริษัท'}
                 </Button>
                 {editingId && (
-                  <Button variant="text" onClick={() => { setEditingId(null); setForm(emptyForm); }}>ยกเลิกแก้ไข</Button>
+                  <Button variant="outlined" color="secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
+                    ยกเลิก
+                  </Button>
                 )}
               </Stack>
             </Stack>
@@ -135,7 +162,6 @@ const CompanyManagerDialog = ({ open, onClose }) => {
                   />
                   <ListItemSecondaryAction>
                     <IconButton edge="end" size="small" onClick={() => handleEdit(c)}><EditIcon fontSize="small" /></IconButton>
-                    <IconButton edge="end" size="small" color="error" onClick={() => handleDelete(c.id)} sx={{ ml: 0.5 }}><DeleteIcon fontSize="small" /></IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>
               ))}

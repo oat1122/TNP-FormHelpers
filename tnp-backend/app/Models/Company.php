@@ -21,6 +21,9 @@ class Company extends Model
         'phone',
         'is_active',
         'short_code',
+        'account_name',
+        'bank_name',
+        'account_number',
     ];
 
     protected $casts = [

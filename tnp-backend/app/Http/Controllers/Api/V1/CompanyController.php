@@ -25,6 +25,9 @@ class CompanyController extends Controller
             'phone' => 'nullable|string|max:100',
             'short_code' => 'nullable|string|max:20',
             'is_active' => 'boolean',
+            'account_name' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'account_number' => 'nullable|string|max:50',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -53,6 +56,9 @@ class CompanyController extends Controller
             'phone' => 'nullable|string|max:100',
             'short_code' => 'nullable|string|max:20',
             'is_active' => 'boolean',
+            'account_name' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'account_number' => 'nullable|string|max:50',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);

@@ -14,9 +14,24 @@ const DepositCard = ({
   remaining, 
   activeSideStatus,
   hasEvidence,
-  onModeChange
+  onModeChange,
+  invoice,
+  hasEvidenceForMode
 }) => {
   if (depositAmount <= 0) return null;
+
+  // เงื่อนไขการเปิด/ปิดปุ่มสลับ deposit mode
+  // เปิดเมื่อ: status_before = approved และมี evidence_files ของ before mode
+  // ปิดเมื่อ: status_before = draft หรือไม่มี evidence_files ของ before mode
+  const canSwitchMode = () => {
+    const statusBefore = invoice?.status_before;
+    const hasBeforeEvidence = hasEvidenceForMode ? hasEvidenceForMode('before') : false;
+    
+    // เปิดใช้งานได้เมื่อ status_before เป็น approved และมี evidence ของ before mode
+    return statusBefore === 'approved' && hasBeforeEvidence;
+  };
+
+  const isSwitchDisabled = !canSwitchMode();
 
   return (
     <Box sx={{ ml: 4.5 }}>
@@ -24,7 +39,7 @@ const DepositCard = ({
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <LabeledSwitch
           value={mode}
-          disabled={!hasEvidence} // ปิดใช้งานเมื่อยังไม่มีหลักฐานการชำระ
+          disabled={isSwitchDisabled} // เปิดเมื่อ status_before = approved และมี evidence_files ของ before mode
           onChange={onModeChange}
           options={[
             { value: 'before', label: 'มัดจำก่อน' },

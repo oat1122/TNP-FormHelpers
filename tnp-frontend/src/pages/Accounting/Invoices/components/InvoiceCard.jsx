@@ -68,6 +68,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
   const {
     getEvidenceForMode,
     hasEvidence,
+    hasEvidenceForMode,
     handleUploadEvidence,
     uploadingEvidence
   } = evidenceHook;
@@ -337,6 +338,8 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               remaining={financials?.remaining || 0}
               activeSideStatus={activeSideStatus}
               hasEvidence={hasEvidence}
+              invoice={invoice}
+              hasEvidenceForMode={hasEvidenceForMode}
               onModeChange={(val) => handleDepositModeChange(val, hasEvidence)}
             />
             

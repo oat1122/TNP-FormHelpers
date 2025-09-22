@@ -316,6 +316,7 @@ Route::prefix('v1')->group(function() {
         
         // General Actions (not side-specific)
         Route::post('/invoices/{id}/send-back', 'sendBack');
+        Route::post('/invoices/{id}/revert-to-draft', 'revertToDraft');
         
         // Deposit Mode Management
         Route::patch('/invoices/{id}/deposit-display-order', 'setDepositMode');

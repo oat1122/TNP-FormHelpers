@@ -677,6 +677,60 @@ class InvoiceController extends Controller
     }
 
     /**
+     * ย้อนสถานะใบแจ้งหนี้กลับเป็น draft
+     * POST /api/v1/invoices/{id}/revert-to-draft
+     */
+    public function revertToDraft(Request $request, $id): JsonResponse
+    {
+        try {
+            // Authorization: only admin/account can revert
+            $user = auth()->user();
+            $role = $user->role ?? null;
+            if (!in_array($role, ['admin','account'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: only admin/account can revert invoice status'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'side' => 'nullable|in:before,after',
+                'reason' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $revertedBy = auth()->user()->user_uuid ?? null;
+            $invoice = $this->invoiceService->revertToDraft(
+                $id, 
+                $request->side, 
+                $revertedBy, 
+                $request->reason
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->invoiceService->getInvoiceWithUiStatus($invoice),
+                'message' => 'Invoice status reverted to draft successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::revertToDraft error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to revert invoice status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * ส่งใบแจ้งหนี้ให้ลูกค้า
      * POST /api/v1/invoices/{id}/send-to-customer
      */

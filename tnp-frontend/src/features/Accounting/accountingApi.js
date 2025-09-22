@@ -491,6 +491,20 @@ export const accountingApi = createApi({
             ],
         }),
 
+        // Revert invoice status from approved back to draft
+        revertInvoiceToDraft: builder.mutation({
+            query: ({ id, side, reason }) => ({
+                url: `/invoices/${id}/revert-to-draft`,
+                method: 'POST',
+                body: { side, reason },
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Invoice', id },
+                'Invoice',
+                'Dashboard'
+            ],
+        }),
+
         // Update deposit display order (presentation preference persistence)
         updateInvoiceDepositDisplayOrder: builder.mutation({
             query: ({ id, order }) => ({
@@ -816,6 +830,7 @@ export const {
     useSubmitInvoiceMutation,
     useSubmitInvoiceAfterDepositMutation,
     useApproveInvoiceAfterDepositMutation,
+    useRevertInvoiceToDraftMutation,
     useUpdateInvoiceDepositDisplayOrderMutation,
     useGenerateInvoicePDFMutation,
     useUploadInvoiceEvidenceMutation,

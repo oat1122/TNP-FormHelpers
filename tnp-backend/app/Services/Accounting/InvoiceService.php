@@ -1781,6 +1781,130 @@ TNP GROUP
     }
 
     /**
+     * Revert invoice status from approved back to draft
+     * แก้ไข status กลับมา จาก approved -> draft
+     * 
+     * @param string $invoiceId
+     * @param string|null $side ('before'|'after'|null for both sides)
+     * @param string|null $revertedBy
+     * @param string|null $reason
+     * @return \App\Models\Accounting\Invoice
+     */
+    public function revertToDraft($invoiceId, $side = null, $revertedBy = null, $reason = null)
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoice = Invoice::findOrFail($invoiceId);
+            $changes = [];
+            $historyEntries = [];
+
+            // ถ้าไม่ระบุ side จะจัดการทั้ง before และ after
+            $sidesToProcess = $side ? [$side] : ['before', 'after'];
+
+            foreach ($sidesToProcess as $currentSide) {
+                $currentStatus = $invoice->getStatusForSide($currentSide);
+
+                // ตรวจสอบว่าสามารถ revert ได้หรือไม่
+                if ($currentStatus === 'approved') {
+                    // ทำการ revert
+                    $invoice->setStatusForSide($currentSide, 'draft');
+                    $changes[$currentSide] = $currentStatus . ' -> draft';
+
+                    // Reset approval metadata เฉพาะฝั่งที่ revert
+                    if ($currentSide === 'before' && $invoice->status === 'approved') {
+                        $invoice->approved_by = null;
+                        $invoice->approved_at = null;
+                    }
+                    
+                    // บันทึก History entry
+                    $historyEntries[] = [
+                        'side' => $currentSide,
+                        'from' => $currentStatus,
+                        'to' => 'draft',
+                        'description' => "ยกเลิกการอนุมัติฝั่ง {$currentSide}",
+                    ];
+                } elseif (in_array($currentStatus, ['draft', 'pending'])) {
+                    // ถ้าเป็น draft หรือ pending แล้วก็ไม่ต้องทำอะไร
+                    continue;
+                } elseif ($currentStatus === 'rejected') {
+                    // ถ้าเป็น rejected อาจจะ revert กลับเป็น draft ได้
+                    $invoice->setStatusForSide($currentSide, 'draft');
+                    $changes[$currentSide] = $currentStatus . ' -> draft';
+
+                    // Reset rejection metadata
+                    $invoice->rejected_by = null;
+                    $invoice->rejected_at = null;
+
+                    $historyEntries[] = [
+                        'side' => $currentSide,
+                        'from' => $currentStatus,
+                        'to' => 'draft',
+                        'description' => "ยกเลิกการปฏิเสธฝั่ง {$currentSide} และกลับมาเป็น draft",
+                    ];
+                } else {
+                    // สถานะอื่นๆ เช่น sent, paid ไม่สามารถ revert ได้
+                    if ($side === $currentSide) {
+                        // ถ้าระบุ side เฉพาะ แต่ไม่สามารถ revert ได้
+                        throw new \Exception("Cannot revert invoice from status '{$currentStatus}' on {$currentSide} side");
+                    }
+                    // ถ้าเป็นการ revert ทั้งสองฝั่ง ข้ามฝั่งที่ไม่สามารถ revert ได้
+                    continue;
+                }
+            }
+
+            // ถ้าไม่มีการเปลี่ยนแปลงเลย
+            if (empty($changes)) {
+                $message = $side ? 
+                    "Invoice ฝั่ง {$side} อยู่ในสถานะที่ไม่จำเป็นต้อง revert แล้ว" :
+                    "Invoice อยู่ในสถานะที่ไม่จำเป็นต้อง revert แล้ว";
+                    
+                DB::rollBack();
+                throw new \Exception($message);
+            }
+
+            // อัพเดต updated_by
+            if ($revertedBy) {
+                $invoice->updated_by = $revertedBy;
+            }
+            
+            $invoice->save();
+
+            // บันทึก History สำหรับแต่ละฝั่งที่มีการเปลี่ยนแปลง
+            foreach ($historyEntries as $entry) {
+                DocumentHistory::logStatusChange(
+                    'invoice',
+                    $invoiceId,
+                    $entry['from'],
+                    $entry['to'],
+                    $entry['description'],
+                    $revertedBy,
+                    $reason
+                );
+            }
+
+            // บันทึก History รวม
+            $changesText = implode(', ', $changes);
+            DocumentHistory::logAction(
+                'invoice',
+                $invoiceId,
+                'revert_to_draft',
+                $revertedBy,
+                "ย้อนสถานะกลับเป็น draft: {$changesText}" . ($reason ? " (เหตุผล: {$reason})" : "")
+            );
+
+            DB::commit();
+
+            return $invoice->fresh();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("InvoiceService::revertToDraft error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Set deposit display mode (presentation only)
      */
     public function setDepositMode($invoiceId, $mode, $updatedBy = null)

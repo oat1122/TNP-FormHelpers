@@ -184,19 +184,19 @@
             </div><br/>
 
             {{-- ข้อมูลการชำระเงิน --}}
-            @if(!empty($invoice->payment_method) || !empty($invoice->payment_terms) || !empty($invoice->due_date))
+            @if(!empty($invoice->company->account_name) || !empty($invoice->company->bank_name) || !empty($invoice->company->account_number))
               <h3 class="panel-title panel-title--sm" style="margin-top: 15pt;">ข้อมูลการชำระเงิน</h3> 
               <div class="panel-content">
-                @if(!empty($invoice->payment_method))
-                  <div>วิธีการชำระเงิน: {{ $invoice->payment_method }}</div>
+                @if(!empty($invoice->company->account_name))
+                  <div>ชื่อบัญชี: {{ $invoice->company->account_name }}</div>
                 @endif
                 
-                @if(!empty($invoice->payment_terms))
-                  <div>เงื่อนไขการชำระ: {{ $invoice->payment_terms }}</div>
+                @if(!empty($invoice->company->bank_name))
+                  <div>ชื่อธนาคาร: {{ $invoice->company->bank_name }}</div>
                 @endif
                 
-                @if(!empty($invoice->due_date))
-                  <div>กำหนดชำระ: {{ date('d/m/Y', strtotime($invoice->due_date)) }}</div>
+                @if(!empty($invoice->company->account_number))
+                  <div>เลขบัญชี: {{ $invoice->company->account_number }}</div>
                 @endif
               </div>
             @endif

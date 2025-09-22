@@ -113,7 +113,7 @@ class DocumentHistory extends Model
      */
     public static function logStatusChange($documentType, $documentId, $previousStatus, $newStatus, $actionBy, $notes = null)
     {
-        return static::create([
+        return static::safeCreate([
             'document_type' => $documentType,
             'document_id' => $documentId,
             'previous_status' => $previousStatus,
@@ -122,6 +122,68 @@ class DocumentHistory extends Model
             'notes' => $notes,
             'action_by' => $actionBy
         ]);
+    }
+
+    /**
+     * Create history record for invoice revert action (consolidated version)
+     */
+    public static function logInvoiceRevert($documentId, $actionBy, $changes, $reason = null)
+    {
+        $changesText = is_array($changes) ? implode(', ', $changes) : $changes;
+        $notesText = "ย้อนสถานะกลับเป็น draft: {$changesText}";
+        
+        if ($reason) {
+            $notesText .= " (เหตุผล: {$reason})";
+        }
+
+        return static::safeCreate([
+            'document_type' => 'invoice',
+            'document_id' => $documentId,
+            'previous_status' => null, // Multiple sides may have different previous statuses
+            'new_status' => null,      // Multiple sides may have different new statuses
+            'action' => 'revert_to_draft',
+            'notes' => $notesText,
+            'action_by' => $actionBy
+        ]);
+    }
+
+    /**
+     * Check if a similar history entry exists within the last few seconds
+     * This helps prevent duplicate entries during rapid operations
+     */
+    public static function hasDuplicateEntry($documentType, $documentId, $action, $actionBy, $timeWindowSeconds = 5)
+    {
+        $cutoff = now()->subSeconds($timeWindowSeconds);
+        
+        return static::where('document_type', $documentType)
+            ->where('document_id', $documentId)
+            ->where('action', $action)
+            ->where('action_by', $actionBy)
+            ->where('created_at', '>=', $cutoff)
+            ->exists();
+    }
+
+    /**
+     * Safe create - prevents duplicate entries
+     */
+    public static function safeCreate(array $attributes)
+    {
+        // Check for potential duplicates for critical actions
+        if (in_array($attributes['action'] ?? '', ['revert_to_draft', 'status_change'])) {
+            $isDuplicate = static::hasDuplicateEntry(
+                $attributes['document_type'],
+                $attributes['document_id'],
+                $attributes['action'],
+                $attributes['action_by'] ?? null
+            );
+            
+            if ($isDuplicate) {
+                \Log::warning('DocumentHistory: Prevented duplicate entry', $attributes);
+                return null; // Don't create duplicate
+            }
+        }
+
+        return static::create($attributes);
     }
 
     /**
@@ -177,6 +239,19 @@ class DocumentHistory extends Model
      */
     public static function logAction($documentType, $documentId, $action, $actionBy, $notes = null)
     {
+        // Use safe create for critical actions that might be duplicated
+        $criticalActions = ['revert_to_draft', 'status_change', 'approved', 'rejected'];
+        
+        if (in_array($action, $criticalActions)) {
+            return static::safeCreate([
+                'document_type' => $documentType,
+                'document_id' => $documentId,
+                'action' => $action,
+                'notes' => $notes,
+                'action_by' => $actionBy
+            ]);
+        }
+
         return static::create([
             'document_type' => $documentType,
             'document_id' => $documentId,
@@ -220,5 +295,65 @@ class DocumentHistory extends Model
         ];
         
         return $labels[$this->document_type] ?? $this->document_type;
+    }
+
+    /**
+     * Clean up duplicate revert_to_draft entries for a document
+     * This is a maintenance method to clean existing duplicates
+     */
+    public static function cleanupDuplicateReverts($documentType, $documentId)
+    {
+        $duplicates = static::where('document_type', $documentType)
+            ->where('document_id', $documentId)
+            ->where('action', 'revert_to_draft')
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->created_at->format('Y-m-d H:i:s');
+            })
+            ->filter(function ($group) {
+                return $group->count() > 1;
+            });
+
+        $deletedCount = 0;
+        foreach ($duplicates as $group) {
+            // Keep the first entry, delete the rest
+            $toDelete = $group->skip(1);
+            foreach ($toDelete as $duplicate) {
+                $duplicate->delete();
+                $deletedCount++;
+            }
+        }
+
+        return $deletedCount;
+    }
+
+    /**
+     * Get formatted history timeline for a document
+     */
+    public static function getTimeline($documentType, $documentId, $limit = 50)
+    {
+        return static::where('document_type', $documentType)
+            ->where('document_id', $documentId)
+            ->with('actionBy')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($entry) {
+                return [
+                    'id' => $entry->id,
+                    'action' => $entry->action,
+                    'action_label' => $entry->action_label,
+                    'previous_status' => $entry->previous_status,
+                    'new_status' => $entry->new_status,
+                    'notes' => $entry->notes,
+                    'created_at' => $entry->created_at,
+                    'action_by' => $entry->actionBy ? [
+                        'id' => $entry->actionBy->user_uuid,
+                        'name' => $entry->actionBy->name,
+                        'email' => $entry->actionBy->email,
+                    ] : null,
+                ];
+            });
     }
 }

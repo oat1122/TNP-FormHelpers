@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, FormControl, Select, InputLabel, TextField } from '@mui/material';
+import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, FormControl, Select, InputLabel } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
@@ -16,11 +16,13 @@ import { CustomerInfoSection } from './subcomponents/CustomerInfoSection';
 import WorkDetailsSection from './subcomponents/WorkDetailsSection';
 import DepositCard from './subcomponents/DepositCard';
 import FinancialSummaryCard from './subcomponents/FinancialSummaryCard';
+import StatusReversalDialog from './subcomponents/StatusReversalDialog';
 
 // Custom Hooks
 import { useInvoiceEvidence } from './hooks/useInvoiceEvidence';
 import { useInvoiceApproval } from './hooks/useInvoiceApproval';
 import { useInvoicePDFDownload } from './hooks/useInvoicePDFDownload';
+import { useInvoiceStatusReversal } from './hooks/useInvoiceStatusReversal';
 
 // Utilities
 import { formatTHB, formatDate, typeLabels, truncateText, formatInvoiceNumber } from './utils/invoiceFormatters';
@@ -30,21 +32,18 @@ import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo, getDis
 import { useState, useEffect, useCallback } from 'react';
 
 // API
-import { useGetCompaniesQuery, useUpdateInvoiceMutation, useRevertInvoiceToDraftMutation } from '../../../../features/Accounting/accountingApi';
+import { useGetCompaniesQuery, useUpdateInvoiceMutation } from '../../../../features/Accounting/accountingApi';
 
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit, onUpdateCompany }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewPdfUrl, setPreviewPdfUrl] = useState('');
   
-  // Reason Dialog states
-  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
-  const [pendingRevertSide, setPendingRevertSide] = useState(null);
-
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
   const evidenceHook = useInvoiceEvidence(invoice);
   const pdfHook = useInvoicePDFDownload(invoice, onDownloadPDF, onPreviewPDF);
+  const statusReversalHook = useInvoiceStatusReversal(invoice);
 
   const {
     localStatus,
@@ -65,7 +64,6 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     skip: !canUserApprove || activeSideStatus !== 'draft' 
   });
   const [updateInvoice, { isLoading: updatingCompany }] = useUpdateInvoiceMutation();
-  const [revertInvoiceToDraft, { isLoading: isReverting }] = useRevertInvoiceToDraftMutation();
 
   const {
     getEvidenceForMode,
@@ -216,131 +214,10 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     }
   };
 
-  // Handle revert to draft - Open dialog instead of prompt
-  const handleRevertToDraft = (side = null) => {
-    setPendingRevertSide(side);
-    setReasonDialogOpen(true);
-  };
 
-  // Handle reason dialog submission
-  const handleReasonSubmit = async (reason) => {
-    try {
-      await revertInvoiceToDraft({ 
-        id: invoice.id, 
-        side: pendingRevertSide,
-        reason: reason || undefined 
-      }).unwrap();
-      
-      console.log('✅ Invoice reverted to draft successfully');
-      
-    } catch (error) {
-      console.error('❌ Failed to revert invoice:', error);
-      alert('เกิดข้อผิดพลาดในการย้อนสถานะ: ' + (error?.data?.message || error.message || 'ไม่ทราบสาเหตุ'));
-    } finally {
-      // Reset states
-      setPendingRevertSide(null);
-      setReasonDialogOpen(false);
-    }
-  };
-
-  // Handle reason dialog close
-  const handleReasonDialogClose = () => {
-    setPendingRevertSide(null);
-    setReasonDialogOpen(false);
-  };
 
   // ReasonDialog Component
-  const ReasonDialog = ({ open, onClose, onSubmit }) => {
-    const [selectedReason, setSelectedReason] = React.useState("");
-    const [customReason, setCustomReason] = React.useState("");
 
-    // Predefined reasons
-    const predefinedReasons = [
-      "ข้อมูลลูกค้าไม่ถูกต้อง",
-      "ราคาผิดพลาด",
-      "รายการสินค้าไม่ถูกต้อง",
-      "เงื่อนไขการชำระเงินต้องแก้ไข",
-      "เอกสารแนบไม่ครบถ้วน",
-      "ลูกค้าขอแก้ไขข้อมูล",
-      "พบข้อผิดพลาดในการคำนวณ",
-      "ต้องอัพเดทข้อมูลจาก Quotation",
-      "อื่นๆ (โปรดระบุ)"
-    ];
-
-    const isOther = selectedReason === "อื่นๆ (โปรดระบุ)";
-    const finalReason = isOther ? customReason : selectedReason;
-
-    const handleSubmit = () => {
-      if (finalReason.trim()) {
-        onSubmit(finalReason.trim());
-        setSelectedReason("");
-        setCustomReason("");
-      }
-    };
-
-    const handleClose = () => {
-      setSelectedReason("");
-      setCustomReason("");
-      onClose();
-    };
-
-    return (
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          เลือกเหตุผลสำหรับการย้อนสถานะ
-          {pendingRevertSide && (
-            <Typography variant="body2" color="text.secondary">
-              ฝั่ง{pendingRevertSide === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'} กลับเป็น draft
-            </Typography>
-          )}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel>เลือกเหตุผล</InputLabel>
-            <Select
-              value={selectedReason}
-              onChange={(e) => setSelectedReason(e.target.value)}
-              label="เลือกเหตุผล"
-            >
-              {predefinedReasons.map((reason) => (
-                <MenuItem key={reason} value={reason}>
-                  {reason}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Show custom reason input when "อื่นๆ" is selected */}
-          {isOther && (
-            <TextField
-              autoFocus
-              fullWidth
-              multiline
-              minRows={2}
-              label="กรุณาระบุเหตุผล"
-              value={customReason}
-              onChange={(e) => setCustomReason(e.target.value)}
-              placeholder="โปรดระบุเหตุผลอื่นๆ..."
-              sx={{ mt: 2 }}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} color="secondary">
-            ยกเลิก
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="warning"
-            disabled={!finalReason.trim()}
-          >
-            ย้อนสถานะ
-          </Button>
-        </DialogActions>
-      </Dialog>
-    );
-  };
 
   return (
     <TNPCard sx={{ position: 'relative' }}>
@@ -675,8 +552,8 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               size="medium"
               variant="outlined"
               color="warning"
-              onClick={() => handleRevertToDraft(depositMode)}
-              disabled={isReverting}
+              onClick={() => statusReversalHook.handleRevertToDraft(depositMode)}
+              disabled={statusReversalHook.isReverting}
               sx={{ 
                 px: 2, 
                 py: 1, 
@@ -690,7 +567,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               }}
               aria-label={`ย้อนสถานะใบแจ้งหนี้ฝั่ง ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'} กลับเป็น draft`}
             >
-              {isReverting ? 'กำลังย้อนสถานะ...' : `ย้อนเป็น Draft (${depositMode === 'before' ? 'ก่อน' : 'หลัง'})`}
+              {statusReversalHook.isReverting ? 'กำลังย้อนสถานะ...' : `ย้อนเป็น Draft (${depositMode === 'before' ? 'ก่อน' : 'หลัง'})`}
             </Button>
           )}
           {/* PDF Actions - Mode-specific */}
@@ -872,11 +749,13 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         </DialogActions>
       </Dialog>
 
-      {/* Reason Dialog for Revert */}
-      <ReasonDialog 
-        open={reasonDialogOpen} 
-        onClose={handleReasonDialogClose} 
-        onSubmit={handleReasonSubmit} 
+      {/* Status Reversal Dialog */}
+      <StatusReversalDialog 
+        open={statusReversalHook.isDialogOpen} 
+        onClose={statusReversalHook.handleDialogClose} 
+        onSubmit={statusReversalHook.handleReasonSubmit}
+        pendingRevertSide={statusReversalHook.pendingRevertSide}
+        isLoading={statusReversalHook.isReverting}
       />
     </TNPCard>
   );

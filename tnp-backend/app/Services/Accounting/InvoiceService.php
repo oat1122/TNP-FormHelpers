@@ -1870,27 +1870,13 @@ TNP GROUP
             
             $invoice->save();
 
-            // บันทึก History สำหรับแต่ละฝั่งที่มีการเปลี่ยนแปลง
-            foreach ($historyEntries as $entry) {
-                DocumentHistory::logStatusChange(
-                    'invoice',
-                    $invoiceId,
-                    $entry['from'],
-                    $entry['to'],
-                    $entry['description'],
-                    $revertedBy,
-                    $reason
-                );
-            }
-
-            // บันทึก History รวม
-            $changesText = implode(', ', $changes);
-            DocumentHistory::logAction(
-                'invoice',
+            // บันทึก History แบบรวมเฉพาะครั้งเดียวสำหรับการ revert
+            // ไม่สร้าง individual status changes เพื่อหลีกเลี่ยงการซ้ำซ้อน
+            DocumentHistory::logInvoiceRevert(
                 $invoiceId,
-                'revert_to_draft',
                 $revertedBy,
-                "ย้อนสถานะกลับเป็น draft: {$changesText}" . ($reason ? " (เหตุผล: {$reason})" : "")
+                $changes,
+                $reason
             );
 
             DB::commit();

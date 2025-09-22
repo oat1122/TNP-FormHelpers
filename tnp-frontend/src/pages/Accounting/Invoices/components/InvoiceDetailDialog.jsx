@@ -333,7 +333,20 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
       dismissToast(loadingId);
       showSuccess('บันทึกใบแจ้งหนี้เรียบร้อย');
     } catch (e) {
-      showError(e?.data?.message || e?.message || 'บันทึกใบแจ้งหนี้ไม่สำเร็จ');
+      console.error('Failed to update invoice:', e);
+      let errorMessage = 'บันทึกใบแจ้งหนี้ไม่สำเร็จ';
+      
+      if (e?.data?.message) {
+        errorMessage = e.data.message;
+      } else if (e?.message) {
+        errorMessage = e.message;
+        // แปลข้อผิดพลาดเป็นภาษาไทย
+        if (errorMessage.includes('cannot be updated in current status')) {
+          errorMessage = `ไม่สามารถแก้ไขใบแจ้งหนี้ได้ในสถานะปัจจุบัน (${invoice?.status || 'unknown'})`;
+        }
+      }
+      
+      showError(errorMessage);
     }
   };
 

@@ -22,6 +22,7 @@ import QuotationSelectionDialog from './components/QuotationSelectionDialog';
 import InvoiceCard from './components/InvoiceCard';
 import { apiConfig } from '../../../api/apiConfig';
 import InvoiceDetailDialog from './components/InvoiceDetailDialog';
+import CompanyManagerDialog from '../Quotations/components/CompanyManagerDialog';
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +33,7 @@ const Invoices = () => {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   // Invoices: filter + pagination
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState('');
@@ -263,15 +265,24 @@ const Invoices = () => {
           <Typography variant="h5" fontWeight={600}>
             รายการใบแจ้งหนี้
           </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<AddIcon />}
-            onClick={handleCreateInvoiceClick}
-            sx={{ px: 3, py: 1.5 }}
-          >
-            สร้างใบแจ้งหนี้
-          </Button>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setCompanyDialogOpen(true)}
+            >
+              จัดการบริษัท
+            </Button>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={handleCreateInvoiceClick}
+              sx={{ px: 3, py: 1.5 }}
+            >
+              สร้างใบแจ้งหนี้
+            </Button>
+          </Stack>
         </Box>
 
         <FilterSection
@@ -404,6 +415,12 @@ const Invoices = () => {
           setSelectedInvoiceId(null);
         }}
         invoiceId={selectedInvoiceId}
+      />
+
+      {/* Company Manager Dialog */}
+      <CompanyManagerDialog
+        open={companyDialogOpen}
+        onClose={() => setCompanyDialogOpen(false)}
       />
     </ThemeProvider>
   );

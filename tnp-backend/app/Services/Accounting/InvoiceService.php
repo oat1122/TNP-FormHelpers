@@ -781,9 +781,10 @@ class InvoiceService
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            // ตรวจสอบสถานะ
-            if (!in_array($invoice->status, ['draft', 'pending', 'pending_after'])) {
-                throw new \Exception('Invoice cannot be updated in current status');
+            // ตรวจสอบสถานะ - อนุญาตให้แก้ไขได้ในสถานะที่ยังไม่ได้ส่งให้ลูกค้าหรือชำระเงิน
+            $editableStatuses = ['draft', 'pending', 'pending_after', 'approved'];
+            if (!in_array($invoice->status, $editableStatuses)) {
+                throw new \Exception('Invoice cannot be updated in current status: ' . $invoice->status);
             }
 
             $oldData = $invoice->toArray();

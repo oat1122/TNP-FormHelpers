@@ -1,3 +1,25 @@
+{{-- 
+  ========================================
+  Invoice Deposit After Template (Updated)
+  ========================================
+  
+  การคำนวณและแสดงผลสำหรับเอกสารมัดจำหลัง (after):
+  
+  แหล่งข้อมูล (จากตาราง invoices):
+  - subtotal_before_vat : ยอดก่อน VAT
+  - deposit_amount_before_vat : ยอดมัดจำก่อน VAT (จากใบมัดจำก่อน)
+  - has_vat (0/1), vat_percentage (ปกติ 7)
+  
+  สูตรการคำนวณ:
+  1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat
+  2. หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT) = deposit_amount_before_vat
+  3. จำนวนเงินหลังหักมัดจำ (ก่อน VAT) = subtotal_before_vat - deposit_amount_before_vat
+  4. ภาษีมูลค่าเพิ่ม (VAT %) = has_vat ? (จำนวนเงินหลังหักมัดจำ * vat_percentage/100) : 0
+  5. จำนวนเงินรวมทั้งสิ้น = จำนวนเงินหลังหักมัดจำ + ภาษีมูลค่าเพิ่ม
+  
+  หมายเหตุ: การคำนวณทำที่ InvoicePdfMasterService->calculateDepositAfterAmounts()
+  View นี้แสดงผลเท่านั้น ไม่คำนวณซ้ำ
+--}}
 <!doctype html>
 <html lang="th">
 <head>
@@ -205,17 +227,29 @@
               $withholdingTaxAmount = (float) ($summary['withholding_tax_amount'] ?? 0);
               $finalTotalAmount = (float) ($summary['final_total_amount'] ?? 0);
               
-              // Extract new deposit-after calculations
+              // Extract deposit-after calculations from Service
+              // InvoicePdfMasterService->calculateDepositAfterAmounts() ส่งมาให้
               $depositAfter = $summary['deposit_after'] ?? [];
               $isDepositAfter = (bool) ($depositAfter['is_deposit_after'] ?? false);
               
               if ($isDepositAfter) {
-                // Use new calculation structure for deposit-after invoices
+                // ใช้ข้อมูลจาก Service (ไม่คำนวณซ้ำใน View)
+                // สูตรการคำนวณ:
+                // 1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat
                 $totalBeforeVat = (float) ($depositAfter['total_before_vat'] ?? 0);
+                
+                // 2. หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT) = deposit_amount_before_vat
                 $depositPaidBeforeVat = (float) ($depositAfter['deposit_paid_before_vat'] ?? 0);
+                
+                // 3. จำนวนเงินหลังหักมัดจำ (ก่อน VAT) = subtotal_before_vat - deposit_amount_before_vat
                 $amountAfterDepositDeduction = (float) ($depositAfter['amount_after_deposit_deduction'] ?? 0);
+                
+                // 4. ภาษีมูลค่าเพิ่ม (VAT %) = has_vat ? (จำนวนเงินหลังหักมัดจำ * vat_percentage/100) : 0
                 $vatOnRemaining = (float) ($depositAfter['vat_on_remaining'] ?? 0);
+                
+                // 5. จำนวนเงินรวมทั้งสิ้น = จำนวนเงินหลังหักมัดจำ + ภาษีมูลค่าเพิ่ม
                 $finalTotalWithVat = (float) ($depositAfter['final_total_with_vat'] ?? 0);
+                
                 $referenceInvoiceNumber = (string) ($depositAfter['reference_invoice_number'] ?? '');
                 
                 // Override display values for deposit-after
@@ -256,9 +290,9 @@
                 </tr>
               @endif
 
-              {{-- 1. รวมเป็นเงิน = เงินทั้งหมด (ก่อนคำนวน vat7%) --}}
+              {{-- 1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat --}}
               <tr>
-                <td class="summary-label">รวมเป็นเงิน</td>
+                <td class="summary-label">รวมเป็นเงิน (ก่อน VAT)</td>
                 <td class="summary-amount">
                   <div class="amount-container">
                     <span class="amount-main">{{ number_format($isDepositAfter ? $totalBeforeVat : $subtotal, 2) }}</span>
@@ -266,20 +300,27 @@
                 </td>
               </tr>
               
-              {{-- 2. หักเงินมัดจำ = เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%) --}}
+              {{-- 2. หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT) = deposit_amount_before_vat --}}
               @if($isDepositAfter)
                 <tr class="deposit-deduction-row">
-                  <td class="summary-label">หักเงินมัดจำ @if(!empty($referenceInvoiceNumber))({{ $referenceInvoiceNumber }})@endif</td>
+                  <td class="summary-label">หักเงินมัดจำ (จากใบมัดจำก่อน, ก่อน VAT)@if(!empty($referenceInvoiceNumber)) ({{ $referenceInvoiceNumber }})@endif</td>
                   <td class="summary-amount discount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($depositPaidBeforeVat, 2) }}</span>
+                      {{-- Debug: แสดงข้อมูลเพิ่มเติม --}}
+                      @if(config('app.debug'))
+                        <small style="display:block;color:#666;">
+                          Debug: Type={{ $invoice->type ?? 'NULL' }}, Order={{ $invoice->deposit_display_order ?? 'NULL' }}, 
+                          DepositBV={{ $invoice->deposit_amount_before_vat ?? 'NULL' }}
+                        </small>
+                      @endif
                     </div>
                   </td>
                 </tr>
                 
-                {{-- 3. จำนวนเงินหลังหักมัดจำ = เงินทั้งหมด (ก่อนคำนวน vat7%) - เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%) --}}
+                {{-- 3. จำนวนเงินหลังหักมัดจำ (ก่อน VAT) = subtotal_before_vat - deposit_amount_before_vat --}}
                 <tr class="after-deposit-row">
-                  <td class="summary-label">จำนวนเงินหลังหักมัดจำ</td>
+                  <td class="summary-label">จำนวนเงินหลังหักมัดจำ (ก่อน VAT)</td>
                   <td class="summary-amount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($amountAfterDepositDeduction, 2) }}</span>
@@ -288,17 +329,15 @@
                 </tr>
               @endif
               
-              {{-- 4. ภาษีมูลค่าเพิ่ม 7% = จำนวนเงินหลังหักมัดจำ*7% --}}
-              @if($isDepositAfter || $vatAmount > 0)
-                <tr>
-                  <td class="summary-label">ภาษีมูลค่าเพิ่ม {{ $summary['vat_percentage'] ?? 7 }}%</td>
-                  <td class="summary-amount">
-                    <div class="amount-container">
-                      <span class="amount-main">{{ number_format($vatAmount, 2) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              @endif
+              {{-- 4. ภาษีมูลค่าเพิ่ม (VAT %) = has_vat ? (จำนวนเงินหลังหักมัดจำ * vat_percentage/100) : 0 --}}
+              <tr>
+                <td class="summary-label">ภาษีมูลค่าเพิ่ม (VAT {{ $isDepositAfter ? ($depositAfter['vat_rate'] ?? 7) : ($summary['vat_percentage'] ?? 7) }}%)</td>
+                <td class="summary-amount">
+                  <div class="amount-container">
+                    <span class="amount-main">{{ number_format($vatAmount, 2) }}</span>
+                  </div>
+                </td>
+              </tr>
 
               {{-- 4. Withholding Tax (conditional - only for non-deposit-after invoices) --}}
               @if(!$isDepositAfter && $showWithholdingTax)
@@ -312,7 +351,7 @@
                 </tr>
               @endif
               
-              {{-- 5. จำนวนเงินรวมทั้งสิ้น = จำนวนเงินหลังหักมัดจำ*7% + จำนวนเงินหลังหักมัดจำ --}}
+              {{-- 5. จำนวนเงินรวมทั้งสิ้น = จำนวนเงินหลังหักมัดจำ + ภาษีมูลค่าเพิ่ม --}}
               <tr class="total-row">
                 <td class="summary-label">จำนวนเงินรวมทั้งสิ้น</td>
                 <td class="summary-amount">

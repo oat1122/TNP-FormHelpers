@@ -673,7 +673,9 @@ class InvoicePdfMasterService
     protected function calculateDepositAfterAmounts(Invoice $invoice): array
     {
         // ตรวจสอบว่าเป็นใบวางบิลหลังมัดจำหรือไม่
-        // ใบวางบิลหลังมัดจำคือ type = 'remaining' หรือ deposit_display_order = 'after'
+        // ใบวางบิลหลังมัดจำคือ:
+        // 1. type = 'remaining' (ใบวางบิลคงเหลือ)
+        // 2. deposit_display_order = 'after' (แสดงยอดหลังหักมัดจำ)
         $isDepositAfter = (
             ($invoice->type ?? '') === 'remaining' || 
             ($invoice->deposit_display_order ?? '') === 'after'
@@ -709,8 +711,14 @@ class InvoicePdfMasterService
         $depositPaidBeforeVat = 0;
         $referenceInvoiceNumber = '';
         
+        // กรณีพิเศษ: ถ้าเป็น deposit แต่แสดงผลแบบ after (ใบมัดจำเดียวที่แสดงยอดคงเหลือ)
+        if (($invoice->type ?? '') === 'deposit' && ($invoice->deposit_display_order ?? '') === 'after') {
+            // ใช้ deposit_amount_before_vat ของตัวเองเป็นยอดที่หัก
+            $depositPaidBeforeVat = (float) ($invoice->deposit_amount_before_vat ?? 0);
+            $referenceInvoiceNumber = $invoice->number_before ?: ($invoice->number ?? '');
+        }
         // First, try to use reference_invoice_id if available
-        if ($invoice->reference_invoice_id && $invoice->referenceInvoice) {
+        elseif ($invoice->reference_invoice_id && $invoice->referenceInvoice) {
             $depositInvoice = $invoice->referenceInvoice;
             // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
             if (!empty($depositInvoice->deposit_amount_before_vat)) {
@@ -722,25 +730,40 @@ class InvoicePdfMasterService
             }
             $referenceInvoiceNumber = $invoice->reference_invoice_number ?: ($depositInvoice->number_before ?: $depositInvoice->number);
         } else {
-            // Fallback: หาใบแจ้งหนี้มัดจำก่อนหน้า (ที่เป็น type = 'deposit' และอ้างอิงใบเสนอราคาเดียวกัน)
+            // Fallback: หาใบแจ้งหนี้มัดจำก่อนหน้า
+            $depositInvoice = null;
+            
             if ($invoice->quotation_id) {
+                // หาใบมัดจำที่อ้างอิงใบเสนอราคาเดียวกัน
                 $depositInvoice = \App\Models\Accounting\Invoice::where('quotation_id', $invoice->quotation_id)
                     ->where('type', 'deposit')
                     ->where('status_before', 'approved')
                     ->where('id', '!=', $invoice->id)
+                    ->orderBy('created_at', 'asc') // เอาใบแรกสุด
                     ->first();
+            }
+            
+            // ถ้ายังไม่เจอ ลองหาจาก customer เดียวกันและวันที่ใกล้เคียง
+            if (!$depositInvoice && $invoice->customer_id) {
+                $depositInvoice = \App\Models\Accounting\Invoice::where('customer_id', $invoice->customer_id)
+                    ->where('type', 'deposit')
+                    ->where('status_before', 'approved')
+                    ->where('id', '!=', $invoice->id)
+                    ->where('created_at', '<=', $invoice->created_at)
+                    ->orderBy('created_at', 'desc') // เอาใบล่าสุด
+                    ->first();
+            }
                     
-                if ($depositInvoice) {
-                    // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
-                    if (!empty($depositInvoice->deposit_amount_before_vat)) {
-                        $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
-                    } elseif (!empty($depositInvoice->subtotal_before_vat)) {
-                        $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
-                    } else {
-                        $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
-                    }
-                    $referenceInvoiceNumber = $depositInvoice->number_before ?: ($depositInvoice->number ?? '');
+            if ($depositInvoice) {
+                // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
+                if (!empty($depositInvoice->deposit_amount_before_vat)) {
+                    $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
+                } elseif (!empty($depositInvoice->subtotal_before_vat)) {
+                    $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
+                } else {
+                    $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
                 }
+                $referenceInvoiceNumber = $depositInvoice->number_before ?: ($depositInvoice->number ?? '');
             }
         }
 
@@ -762,6 +785,15 @@ class InvoicePdfMasterService
             'vat_on_remaining' => $vatOnRemaining,
             'final_total_with_vat' => $finalTotalWithVat,
             'reference_invoice_number' => $referenceInvoiceNumber,
+            
+            // Alternative variable names for template convenience
+            'subtotal_before_vat' => $totalBeforeVat,
+            'deposit_before_vat' => $depositPaidBeforeVat,
+            'net_after_deposit_before_vat' => $amountAfterDepositDeduction,
+            'vat_rate' => $vatPercentage,
+            'vat_amount' => $vatOnRemaining,
+            'grand_total' => $finalTotalWithVat,
+            'ref_before_number' => $referenceInvoiceNumber,
         ];
     }
 

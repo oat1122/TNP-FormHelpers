@@ -253,8 +253,9 @@ class InvoicePdfMasterService
         $isFinal  = $data['isFinal'];
 
         // Header
+        $summary = $data['summary'] ?? [];
         $headerHtml = View::make('accounting.pdf.invoice.partials.invoice-header', compact(
-            'invoice', 'customer', 'isFinal'
+            'invoice', 'customer', 'isFinal', 'summary'
         ))->render();
 
         // Footer

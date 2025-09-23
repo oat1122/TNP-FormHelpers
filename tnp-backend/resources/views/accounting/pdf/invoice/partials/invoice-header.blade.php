@@ -53,20 +53,25 @@
                          !empty($invoice->reference_invoice_id);
         
         if ($isDepositAfter) {
-            // For deposit-after invoices, show reference to the before-deposit invoice
-            // Priority order: reference_invoice_number -> referenceInvoice->number_before -> referenceInvoice->number
-            $referenceNo = $invoice->reference_invoice_number ?? null;
-            
-            // If no direct reference number, try to get from reference invoice relationship
-            if (!$referenceNo && !empty($invoice->reference_invoice_id)) {
-                if (isset($invoice->referenceInvoice) && $invoice->referenceInvoice) {
-                    $referenceNo = $invoice->referenceInvoice->number_before ?? $invoice->referenceInvoice->number ?? null;
+            // For deposit-after invoices, use the reference calculated by the service
+            // Check if we have summary data with calculated reference
+            if (isset($summary) && isset($summary['deposit_after']) && !empty($summary['deposit_after']['reference_invoice_number'])) {
+                $referenceNo = $summary['deposit_after']['reference_invoice_number'];
+            } else {
+                // Fallback: try direct fields if service data not available
+                $referenceNo = $invoice->reference_invoice_number ?? null;
+                
+                // If no direct reference number, try to get from reference invoice relationship
+                if (!$referenceNo && !empty($invoice->reference_invoice_id)) {
+                    if (isset($invoice->referenceInvoice) && $invoice->referenceInvoice) {
+                        $referenceNo = $invoice->referenceInvoice->number_before ?? $invoice->referenceInvoice->number ?? null;
+                    }
                 }
-            }
-            
-            // Fallback: if still no reference but has quotation, use quotation number
-            if (!$referenceNo && !empty($invoice->quotation) && !empty($invoice->quotation->number)) {
-                $referenceNo = $invoice->quotation->number;
+                
+                // Last fallback: if still no reference but has quotation, use quotation number
+                if (!$referenceNo && !empty($invoice->quotation) && !empty($invoice->quotation->number)) {
+                    $referenceNo = $invoice->quotation->number;
+                }
             }
         } else {
             // For regular/before invoices, show quotation number as reference
@@ -91,18 +96,7 @@
         if ($sellerDisplay) $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
         if ($referenceNo)  $metaRows[] = ['label'=>'อ้างอิง','value'=>$referenceNo,'format'=>'inline'];
         
-        // Debug information (remove in production) - only shows when no reference found
-        if (!$referenceNo) {
-            $debugInfo = [];
-            $debugInfo[] = 'deposit_display_order: ' . ($invoice->deposit_display_order ?? 'null');
-            $debugInfo[] = 'type: ' . ($invoice->type ?? 'null');
-            $debugInfo[] = 'reference_invoice_id: ' . ($invoice->reference_invoice_id ?? 'null');
-            $debugInfo[] = 'reference_invoice_number: ' . ($invoice->reference_invoice_number ?? 'null');
-            $debugInfo[] = 'quotation_exists: ' . (!empty($invoice->quotation) ? 'yes' : 'no');
-            $debugInfo[] = 'quotation_number: ' . ($invoice->quotation->number ?? 'null');
-            $debugInfo[] = 'isDepositAfter: ' . ($isDepositAfter ? 'true' : 'false');
-            $metaRows[] = ['label'=>'DEBUG','value'=>implode(' | ', $debugInfo)];
-        }
+        
       @endphp
 
       <div class="doc-header-section">

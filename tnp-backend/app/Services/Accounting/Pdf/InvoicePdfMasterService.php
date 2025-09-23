@@ -96,7 +96,7 @@ class InvoicePdfMasterService
      */
     protected function buildViewData(Invoice $invoice, array $options = []): array
     {
-        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager']);
+        $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager', 'referenceInvoice']);
 
         // Allow runtime override of document header type (ไม่บันทึกลง DB)
         if (!empty($options['document_header_type'])) {

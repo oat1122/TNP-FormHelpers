@@ -45,7 +45,36 @@
         $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
         $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
         $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
-        $quotationNo = (!empty($invoice->quotation) && !empty($invoice->quotation->number)) ? $invoice->quotation->number : null;
+        
+        // Determine reference number based on invoice type and deposit mode
+        $referenceNo = null;
+        $isDepositAfter = ($invoice->deposit_display_order ?? '') === 'after' || 
+                         ($invoice->type ?? '') === 'remaining' || 
+                         !empty($invoice->reference_invoice_id);
+        
+        if ($isDepositAfter) {
+            // For deposit-after invoices, show reference to the before-deposit invoice
+            // Priority order: reference_invoice_number -> referenceInvoice->number_before -> referenceInvoice->number
+            $referenceNo = $invoice->reference_invoice_number ?? null;
+            
+            // If no direct reference number, try to get from reference invoice relationship
+            if (!$referenceNo && !empty($invoice->reference_invoice_id)) {
+                if (isset($invoice->referenceInvoice) && $invoice->referenceInvoice) {
+                    $referenceNo = $invoice->referenceInvoice->number_before ?? $invoice->referenceInvoice->number ?? null;
+                }
+            }
+            
+            // Fallback: if still no reference but has quotation, use quotation number
+            if (!$referenceNo && !empty($invoice->quotation) && !empty($invoice->quotation->number)) {
+                $referenceNo = $invoice->quotation->number;
+            }
+        } else {
+            // For regular/before invoices, show quotation number as reference
+            if (!empty($invoice->quotation) && !empty($invoice->quotation->number)) {
+                $referenceNo = $invoice->quotation->number;
+            }
+        }
+        
         $seller      = $invoice->manager ?? $invoice->creator;
         $sellerFirst = optional($seller)->user_firstname;
         $sellerLast  = optional($seller)->user_lastname;
@@ -60,7 +89,20 @@
         ];
         if ($dueDate)      $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];
         if ($sellerDisplay) $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
-        if ($quotationNo)  $metaRows[] = ['label'=>'อ้างอิง','value'=>$quotationNo];
+        if ($referenceNo)  $metaRows[] = ['label'=>'อ้างอิง','value'=>$referenceNo,'format'=>'inline'];
+        
+        // Debug information (remove in production) - only shows when no reference found
+        if (!$referenceNo) {
+            $debugInfo = [];
+            $debugInfo[] = 'deposit_display_order: ' . ($invoice->deposit_display_order ?? 'null');
+            $debugInfo[] = 'type: ' . ($invoice->type ?? 'null');
+            $debugInfo[] = 'reference_invoice_id: ' . ($invoice->reference_invoice_id ?? 'null');
+            $debugInfo[] = 'reference_invoice_number: ' . ($invoice->reference_invoice_number ?? 'null');
+            $debugInfo[] = 'quotation_exists: ' . (!empty($invoice->quotation) ? 'yes' : 'no');
+            $debugInfo[] = 'quotation_number: ' . ($invoice->quotation->number ?? 'null');
+            $debugInfo[] = 'isDepositAfter: ' . ($isDepositAfter ? 'true' : 'false');
+            $metaRows[] = ['label'=>'DEBUG','value'=>implode(' | ', $debugInfo)];
+        }
       @endphp
 
       <div class="doc-header-section">
@@ -69,7 +111,11 @@
       </div>
       <div class="doc-meta">
         @foreach($metaRows as $row)
-          <div><strong>{{ $row['label'] }}:</strong> {{ $row['value'] }}</div>
+          @if(isset($row['format']) && $row['format'] === 'inline')
+            <div><strong>{{ $row['label'] }} {{ $row['value'] }}</strong></div>
+          @else
+            <div><strong>{{ $row['label'] }}:</strong> {{ $row['value'] }}</div>
+          @endif
         @endforeach
         @if($jobName)
           <div><strong>ชื่องาน:</strong> {{ $jobName }}</div>

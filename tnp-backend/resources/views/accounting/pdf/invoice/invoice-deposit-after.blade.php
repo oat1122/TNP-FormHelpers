@@ -278,17 +278,7 @@
                 <col style="width: 55%;">
               </colgroup>
 
-              {{-- แสดงข้อมูลอ้างอิงใบเสนอราคา --}}
-              @if($isDepositAfter && !empty($invoice->quotation))
-                <tr class="reference-row">
-                  <td class="summary-label">อ้างอิง</td>
-                  <td class="summary-amount">
-                    <div class="amount-container">
-                      <span class="amount-main">{{ $invoice->quotation->number ?? 'N/A' }}</span>
-                    </div>
-                  </td>
-                </tr>
-              @endif
+              
 
               {{-- 1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat --}}
               <tr>
@@ -307,7 +297,7 @@
                   <td class="summary-amount">
                     <div class="amount-container">
                       <span class="amount-main">{{ number_format($depositPaidBeforeVat, 2) }}</span>
-                      {{-- Debug: แสดงข้อมูลเพิ่มเติม --}}
+                      
                       
                     </div>
                   </td>

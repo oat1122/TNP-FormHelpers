@@ -44,7 +44,11 @@ import { useInvoiceApproval } from './hooks/useInvoiceApproval';
 import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
 import { formatTHB, formatDateTH } from '../utils/format';
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/accountingToast';
-import { computeFinancials } from '../../shared/hooks/useQuotationFinancials';
+import { useInvoiceCalculation } from './calculation/useInvoiceCalculation';
+import { useInvoiceValidation } from './calculation/useInvoiceValidation';
+import InvoiceFinancialCalcBox from './calculation/InvoiceFinancialCalcBox';
+import InvoiceSummaryCard from './calculation/InvoiceSummaryCard';
+import InvoiceWarningsBanner from './calculation/InvoiceWarningsBanner';
 import { getDisplayInvoiceNumber } from './utils/invoiceLogic';
 
 // Format invoice type labels
@@ -155,6 +159,10 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const customerSourceManuallySet = useRef(false);
   const prevInvoiceIdRef = useRef(null);
   
+  // New state for the enhanced calculation section
+  const [expandedItems, setExpandedItems] = useState({});
+  const [editableItems, setEditableItems] = useState([]);
+  
   // Form fields for editing
   const [formData, setFormData] = useState({
     type: '',
@@ -173,9 +181,11 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     vat_percentage: 7.00,
     has_withholding_tax: false,
     withholding_tax_percentage: 0,
+    withholding_tax_base: 'subtotal', // 'subtotal' | 'total_after_vat'
     deposit_percentage: 0,
     deposit_amount: 0,
     deposit_mode: 'percentage',
+    deposit_display_order: 'before', // 'before' | 'after'
     due_date: '',
     payment_method: '',
     payment_terms: '',
@@ -255,33 +265,50 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }
   }, [invoice]);
 
-  // Raw items for calculation (quantity * unit_price)
-  const rawCalcItems = React.useMemo(() => (invoice.items || []).map(it => ({
-    quantity: it.quantity,
-    unitPrice: it.unit_price,
-  })), [invoice.items]);
+  // Initialize editable items from invoice items
+  React.useEffect(() => {
+    if (invoice?.items && invoice.items.length > 0) {
+      const processedItems = invoice.items.map(item => ({
+        ...item,
+        sizeRows: item.size_details || [],
+        originalQuantity: item.quantity,
+      }));
+      setEditableItems(processedItems);
+    }
+  }, [invoice?.items]);
 
+  // Calculate special discount type
   const specialDiscountType = formData.special_discount_percentage > 0
     ? 'percentage'
     : (formData.special_discount_amount > 0 ? 'amount' : 'percentage');
 
-  const calc = React.useMemo(() => computeFinancials({
-    items: rawCalcItems,
+  // Use Invoice calculation hook
+  const calculation = useInvoiceCalculation({
+    items: isEditing ? editableItems : (invoice?.items || []),
+    specialDiscountType,
+    specialDiscountValue: specialDiscountType === 'percentage' ? formData.special_discount_percentage : formData.special_discount_amount,
+    hasVat: formData.has_vat,
+    vatPercentage: formData.vat_percentage,
+    hasWithholdingTax: formData.has_withholding_tax,
+    withholdingTaxPercentage: formData.withholding_tax_percentage,
+    withholdingTaxBase: formData.withholding_tax_base,
     depositMode: formData.deposit_mode,
     depositPercentage: formData.deposit_percentage,
     depositAmountInput: formData.deposit_amount,
-    specialDiscountType,
-    specialDiscountValue: specialDiscountType === 'percentage' ? formData.special_discount_percentage : formData.special_discount_amount,
-    hasWithholdingTax: formData.has_withholding_tax,
-    withholdingTaxPercentage: formData.withholding_tax_percentage,
-    hasVat: formData.has_vat,
-    vatPercentage: formData.vat_percentage,
-  }), [rawCalcItems, formData, specialDiscountType]);
+    depositDisplayOrder: formData.deposit_display_order,
+  });
+
+  // Use Invoice validation hook
+  const validation = useInvoiceValidation({
+    items: isEditing ? editableItems : (invoice?.items || []),
+    originalInvoice: invoice,
+    formData,
+  });
 
   // Derived summary numbers for dialog summary bar and sections
-  const subtotal = calc.subtotal || Number(invoice.subtotal || 0);
-  const vat = calc.vat || Number(invoice.vat_amount || invoice.tax_amount || 0);
-  const total = calc.finalTotal ?? (Number(invoice.final_total_amount || 0) || (calc.total ?? 0));
+  const subtotal = calculation.subtotal || Number(invoice.subtotal || 0);
+  const vat = calculation.vatAmount || Number(invoice.vat_amount || invoice.tax_amount || 0);
+  const total = calculation.finalTotalAmount ?? (Number(invoice.final_total_amount || 0) || 0);
   const paid = Number(invoice.paid_amount || 0);
   const deposit = Number(invoice.deposit_amount || 0);
   const remaining = Math.max((total || 0) - paid - deposit, 0);
@@ -295,17 +322,20 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         id: invoice.id,
         notes: notes || '',
         ...formData,
-        // Persist computed numbers
-        subtotal: calc.subtotal,
-        special_discount_amount: calc.specialDiscountAmount,
+        // Include updated items if edited
+        items: isEditing ? editableItems : undefined,
+        // Persist computed numbers from new calculation
+        subtotal: calculation.subtotal,
+        special_discount_amount: calculation.discountUsed,
         special_discount_percentage: specialDiscountType === 'percentage' ? formData.special_discount_percentage : 0,
-        vat_amount: calc.vat,
-        tax_amount: calc.vat, // backward compatibility field if backend uses tax_amount
-        withholding_tax_amount: calc.withholdingTaxAmount,
-        total_amount: calc.total,
-        final_total_amount: calc.finalTotal,
-        deposit_amount: calc.depositAmount,
-        deposit_percentage: calc.depositPercentage,
+        vat_amount: calculation.vatAmount,
+        tax_amount: calculation.vatAmount, // backward compatibility field if backend uses tax_amount
+        withholding_tax_amount: calculation.withholdingTaxAmount,
+        total_amount: calculation.totalAmount,
+        final_total_amount: calculation.finalTotalAmount,
+        deposit_amount: calculation.depositAmount,
+        deposit_amount_before_vat: calculation.depositAmountBeforeVat,
+        deposit_percentage: calculation.depositPercentage,
         // Persist selected customer data source
         customer_data_source: customerDataSource,
       };
@@ -427,28 +457,164 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }
   };
 
+  // Enhanced calculation handlers
+  const handleToggleItemExpanded = (itemIndex) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemIndex]: !prev[itemIndex]
+    }));
+  };
+
+  const handleAddSizeRow = (itemIndex, newRow = { size: '', quantity: 0, unitPrice: 0 }) => {
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx === itemIndex) {
+        const sizeRows = Array.isArray(item.sizeRows) ? [...item.sizeRows] : [];
+        sizeRows.push(newRow);
+        return { ...item, sizeRows };
+      }
+      return item;
+    }));
+  };
+
+  const handleChangeSizeRow = (itemIndex, rowIndex, field, value) => {
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx === itemIndex && Array.isArray(item.sizeRows)) {
+        const sizeRows = [...item.sizeRows];
+        if (sizeRows[rowIndex]) {
+          sizeRows[rowIndex] = { ...sizeRows[rowIndex], [field]: value };
+        }
+        return { ...item, sizeRows };
+      }
+      return item;
+    }));
+  };
+
+  const handleRemoveSizeRow = (itemIndex, rowIndex) => {
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx === itemIndex && Array.isArray(item.sizeRows)) {
+        const sizeRows = [...item.sizeRows];
+        sizeRows.splice(rowIndex, 1);
+        return { ...item, sizeRows };
+      }
+      return item;
+    }));
+  };
+
+  const handleDeleteItem = (itemIndex) => {
+    setEditableItems(prev => prev.filter((_, idx) => idx !== itemIndex));
+  };
+
+  const handleChangeItem = (itemIndex, field, value) => {
+    setEditableItems(prev => prev.map((item, idx) => {
+      if (idx === itemIndex) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    }));
+  };
+
+  const handleResetCalculation = () => {
+    // Reset to original data from server
+    if (invoice?.items) {
+      const processedItems = invoice.items.map(item => ({
+        ...item,
+        sizeRows: item.size_details || [],
+        originalQuantity: item.quantity,
+      }));
+      setEditableItems(processedItems);
+    }
+    
+    // Reset form data to original invoice values
+    setFormData(prev => ({
+      ...prev,
+      special_discount_percentage: Number(invoice.special_discount_percentage || 0),
+      special_discount_amount: Number(invoice.special_discount_amount || 0),
+      has_vat: Boolean(invoice.has_vat ?? true),
+      vat_percentage: Number(invoice.vat_percentage || 7.00),
+      has_withholding_tax: Boolean(invoice.has_withholding_tax),
+      withholding_tax_percentage: Number(invoice.withholding_tax_percentage || 0),
+      withholding_tax_base: invoice.withholding_tax_base || 'subtotal',
+      deposit_percentage: Number(invoice.deposit_percentage || 0),
+      deposit_amount: Number(invoice.deposit_amount || 0),
+      deposit_mode: invoice.deposit_mode || 'percentage',
+      deposit_display_order: invoice.deposit_display_order || 'before',
+    }));
+  };
+
   const actions = (
-    <>
+    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
       {isEditing ? (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf || !invoice?.id} aria-label="ดูตัวอย่าง PDF">
+          <SecondaryButton 
+            onClick={handlePreviewPdf} 
+            disabled={isGeneratingPdf || !invoice?.id || !validation.isValid} 
+            aria-label="ดูตัวอย่าง PDF"
+          >
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
-          <Button variant="contained" onClick={handleSave} disabled={isSaving} aria-label="บันทึกการเปลี่ยนแปลง">
+          <Button 
+            variant="outlined" 
+            onClick={handleResetCalculation}
+            disabled={isSaving}
+            sx={{ borderColor: tokens.primary, color: tokens.primary }}
+            aria-label="รีเซ็ตการคำนวณ"
+          >
+            รีเซ็ต
+          </Button>
+          <Button 
+            variant="text" 
+            onClick={() => setIsEditing(false)} 
+            disabled={isSaving}
+            aria-label="ยกเลิกการแก้ไข"
+          >
+            ยกเลิก
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSave} 
+            disabled={isSaving || !validation.isValid}
+            sx={{ 
+              bgcolor: tokens.primary, 
+              '&:hover': { bgcolor: '#7A0E0E' },
+              '&:disabled': { bgcolor: 'grey.300' }
+            }}
+            aria-label="บันทึกการเปลี่ยนแปลง"
+          >
             {isSaving ? 'กำลังบันทึก…' : 'บันทึก'}
           </Button>
-          <Button variant="text" onClick={() => setIsEditing(false)} aria-label="ยกเลิก">ยกเลิก</Button>
         </>
       ) : (
         <>
-          <SecondaryButton onClick={handlePreviewPdf} disabled={isGeneratingPdf || !invoice?.id} aria-label="ดูตัวอย่าง PDF">
+          <SecondaryButton 
+            onClick={handlePreviewPdf} 
+            disabled={isGeneratingPdf || !invoice?.id} 
+            aria-label="ดูตัวอย่าง PDF"
+          >
             {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
           </SecondaryButton>
-          <Button variant="contained" onClick={enterEditMode} aria-label="แก้ไข">แก้ไข</Button>
-          <Button variant="text" onClick={onClose} aria-label="ปิด">ปิด</Button>
+          <Button 
+            variant="contained" 
+            onClick={enterEditMode} 
+            disabled={validation.isReadOnly}
+            sx={{ 
+              bgcolor: tokens.primary, 
+              '&:hover': { bgcolor: '#7A0E0E' },
+              '&:disabled': { bgcolor: 'grey.300' }
+            }}
+            aria-label={validation.isReadOnly ? 'ไม่สามารถแก้ไขได้ในสถานะปัจจุบัน' : 'แก้ไขใบแจ้งหนี้'}
+          >
+            แก้ไข
+          </Button>
+          <Button 
+            variant="text" 
+            onClick={onClose} 
+            aria-label="ปิดหน้าต่าง"
+          >
+            ปิด
+          </Button>
         </>
       )}
-    </>
+    </Box>
   );
 
   return (
@@ -806,222 +972,138 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
               </WorkItemsSection>
             </Grid>
 
-            {/* Financial Summary */}
+            {/* Enhanced Validation Warnings */}
+            {(validation.hasWarnings || !validation.isValid) && (
+              <Grid item xs={12}>
+                <InvoiceWarningsBanner 
+                  validation={validation}
+                  collapsible={validation.warnings.length > 1}
+                />
+              </Grid>
+            )}
+
+            {/* Enhanced Work Items with Summary Cards */}
             <Grid item xs={12}>
-              {isEditing ? (
-                <Section>
-                  <SectionHeader>
-                    <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
-                      <CalculateIcon fontSize="small" />
-                    </Avatar>
+              <Section>
+                <SectionHeader>
+                  <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                    <ReceiptIcon fontSize="small" />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      รายการงาน ({(isEditing ? editableItems : items).length})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      รายละเอียดงานและการคำนวณ
+                    </Typography>
+                  </Box>
+                </SectionHeader>
+                <Box sx={{ p: 2 }}>
+                  {(isEditing ? editableItems : items).length === 0 ? (
+                    <InfoCard sx={{ p: 3, textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">ไม่พบรายการงาน</Typography>
+                    </InfoCard>
+                  ) : (
+                    (isEditing ? editableItems : items).map((item, idx) => (
+                      <InvoiceSummaryCard
+                        key={`${item.id || idx}-${isEditing ? 'edit' : 'view'}`}
+                        item={item}
+                        index={idx}
+                        isEditing={isEditing && !validation.isReadOnly}
+                        onAddRow={handleAddSizeRow}
+                        onChangeRow={handleChangeSizeRow}
+                        onRemoveRow={handleRemoveSizeRow}
+                        onDeleteItem={handleDeleteItem}
+                        onChangeItem={handleChangeItem}
+                        expanded={expandedItems[idx] || false}
+                        onToggleExpanded={handleToggleItemExpanded}
+                      />
+                    ))
+                  )}
+                </Box>
+              </Section>
+            </Grid>
+
+            {/* Enhanced Financial Calculation */}
+            <Grid item xs={12}>
+              <Section>
+                <SectionHeader>
+                  <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                    <CalculateIcon fontSize="small" />
+                  </Avatar>
+                  <Box display="flex" alignItems="center" gap={1}>
                     <Box>
                       <Typography variant="subtitle1" fontWeight={700}>การคำนวณทางการเงิน</Typography>
-                      <Typography variant="caption" color="text.secondary">แก้ไขข้อมูลการคำนวณ</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {isEditing ? 'แก้ไขข้อมูลการคำนวณ' : 'สรุปการคำนวณตามใบแจ้งหนี้'}
+                      </Typography>
                     </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {/* Live summary */}
-                    <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
-                        <Typography variant="caption" color="text.secondary">ยอดก่อนส่วนลด</Typography>
-                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.subtotal)}</Typography>
-                      </InfoCard>
-                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
-                        <Typography variant="caption" color="text.secondary">ส่วนลดพิเศษ</Typography>
-                        <Typography variant="subtitle2" fontWeight={700}>- {formatTHB(calc.specialDiscountAmount)}</Typography>
-                      </InfoCard>
-                      <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
-                        <Typography variant="caption" color="text.secondary">VAT</Typography>
-                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.vat)}</Typography>
-                      </InfoCard>
-                      {formData.has_withholding_tax && (
-                        <InfoCard sx={{ p: 1.5, minWidth: 180 }}>
-                          <Typography variant="caption" color="text.secondary">หัก ณ ที่จ่าย</Typography>
-                          <Typography variant="subtitle2" fontWeight={700}>- {formatTHB(calc.withholdingTaxAmount)}</Typography>
-                        </InfoCard>
-                      )}
-                      <InfoCard sx={{ p: 1.5, minWidth: 180, bgcolor: '#f5f5f5' }}>
-                        <Typography variant="caption" color="text.secondary">ยอดรวม (Total)</Typography>
-                        <Typography variant="subtitle1" fontWeight={800}>{formatTHB(calc.total)}</Typography>
-                      </InfoCard>
-                      <InfoCard sx={{ p: 1.5, minWidth: 200, bgcolor: '#e8f5e9' }}>
-                        <Typography variant="caption" color="text.secondary">ยอดสุทธิ (Final)</Typography>
-                        <Typography variant="subtitle1" fontWeight={800}>{formatTHB(calc.finalTotal)}</Typography>
-                      </InfoCard>
-                      <InfoCard sx={{ p: 1.5, minWidth: 200 }}>
-                        <Typography variant="caption" color="text.secondary">มัดจำ</Typography>
-                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.depositAmount)} ({calc.depositPercentage.toFixed(2)}%)</Typography>
-                      </InfoCard>
-                      <InfoCard sx={{ p: 1.5, minWidth: 200 }}>
-                        <Typography variant="caption" color="text.secondary">คงเหลือ (Remaining)</Typography>
-                        <Typography variant="subtitle2" fontWeight={700}>{formatTHB(calc.remainingAmount)}</Typography>
-                      </InfoCard>
-                    </Box>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="ส่วนลดพิเศษ (%)"
-                          type="number"
-                          value={formData.special_discount_percentage}
-                          onChange={(e) => handleFieldChange('special_discount_percentage', parseFloat(e.target.value) || 0)}
+                    {isEditing && !validation.isReadOnly && (
+                      <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                        <Button
                           size="small"
-                          InputProps={{
-                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="ส่วนลดพิเศษ (บาท)"
-                          type="number"
-                          value={formData.special_discount_amount}
-                          onChange={(e) => handleFieldChange('special_discount_amount', parseFloat(e.target.value) || 0)}
-                          size="small"
-                          InputProps={{
-                            endAdornment: <InputAdornment position="end">บาท</InputAdornment>,
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={formData.has_vat}
-                              onChange={(e) => handleFieldChange('has_vat', e.target.checked)}
-                            />
-                          }
-                          label="มีภาษีมูลค่าเพิ่ม"
-                        />
-                        {formData.has_vat && (
-                          <TextField
-                            fullWidth
-                            label="อัตราภาษีมูลค่าเพิ่ม"
-                            type="number"
-                            value={formData.vat_percentage}
-                            onChange={(e) => handleFieldChange('vat_percentage', parseFloat(e.target.value) || 0)}
-                            size="small"
-                            sx={{ mt: 1 }}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                            }}
-                          />
-                        )}
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={formData.has_withholding_tax}
-                              onChange={(e) => handleFieldChange('has_withholding_tax', e.target.checked)}
-                            />
-                          }
-                          label="มีหักภาษี ณ ที่จ่าย"
-                        />
-                        {formData.has_withholding_tax && (
-                          <TextField
-                            fullWidth
-                            label="อัตราภาษีหัก ณ ที่จ่าย"
-                            type="number"
-                            value={formData.withholding_tax_percentage}
-                            onChange={(e) => handleFieldChange('withholding_tax_percentage', parseFloat(e.target.value) || 0)}
-                            size="small"
-                            sx={{ mt: 1 }}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                            }}
-                          />
-                        )}
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth size="small">
-                          <InputLabel>รูปแบบมัดจำ</InputLabel>
-                          <Select
-                            value={formData.deposit_mode}
-                            onChange={(e) => handleFieldChange('deposit_mode', e.target.value)}
-                            label="รูปแบบมัดจำ"
-                          >
-                            <MenuItem value="percentage">เปอร์เซ็นต์</MenuItem>
-                            <MenuItem value="amount">จำนวนเงิน</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label={formData.deposit_mode === 'percentage' ? 'เปอร์เซ็นต์มัดจำ' : 'จำนวนเงินมัดจำ'}
-                          type="number"
-                          value={formData.deposit_mode === 'percentage' ? formData.deposit_percentage : formData.deposit_amount}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            if (formData.deposit_mode === 'percentage') {
-                              handleFieldChange('deposit_percentage', value);
-                            } else {
-                              handleFieldChange('deposit_amount', value);
-                            }
-                          }}
-                          size="small"
-                          InputProps={{
-                            endAdornment: <InputAdornment position="end">
-                              {formData.deposit_mode === 'percentage' ? '%' : 'บาท'}
-                            </InputAdornment>,
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
+                          variant="outlined"
+                          onClick={handleResetCalculation}
+                          sx={{ borderColor: tokens.primary, color: tokens.primary }}
+                        >
+                          รีเซ็ต
+                        </Button>
+                      </Box>
+                    )}
                   </Box>
-                </Section>
-              ) : (
-                <Section>
-                  <SectionHeader>
-                    <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
-                      <CalculateIcon fontSize="small" />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>สรุปการคำนวณ</Typography>
-                      <Typography variant="caption" color="text.secondary">รายการคำนวณตามใบแจ้งหนี้</Typography>
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    <InfoCard variant="outlined" sx={{ p: 2 }}>
-                      <Stack spacing={0.5}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                          <Typography variant="body2" color="text.secondary">ยอดรวม (ไม่รวมภาษี)</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(subtotal)}</Typography>
-                        </Stack>
-                        {calc.specialDiscountAmount > 0 && (
-                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">ส่วนลดพิเศษ{formData.special_discount_percentage ? ` (${formData.special_discount_percentage}%)` : ''}</Typography>
-                            <Typography variant="body2" color="text.secondary">- {toMoney(calc.specialDiscountAmount)}</Typography>
-                          </Stack>
-                        )}
-                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                          <Typography variant="body2" color="text.secondary">ฐานภาษีหลังส่วนลด</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(calc.taxBase ?? (subtotal - (calc.specialDiscountAmount||0)))}</Typography>
-                        </Stack>
-                        {formData.has_vat && (
-                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">ภาษีมูลค่าเพิ่ม ({formData.vat_percentage?.toFixed?.(2) || 0}%)</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{toMoney(vat)}</Typography>
-                          </Stack>
-                        )}
-                        {formData.has_withholding_tax && calc.withholdingTaxAmount > 0 && (
-                          <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">หัก ณ ที่จ่าย ({formData.withholding_tax_percentage?.toFixed?.(2) || 0}%)</Typography>
-                            <Typography variant="body2" color="text.secondary">- {toMoney(calc.withholdingTaxAmount)}</Typography>
-                          </Stack>
-                        )}
-                        <Divider sx={{ my: 1 }} />
-                        <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5, bgcolor: 'grey.50', borderRadius: 1, px: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>จำนวนเงินรวมทั้งสิ้น</Typography>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main' }}>{toMoney(total)}</Typography>
-                        </Stack>
-                      </Stack>
-                    </InfoCard>
-                  </Box>
-                </Section>
-              )}
+                </SectionHeader>
+                <Box sx={{ p: 0 }}>
+                  <InvoiceFinancialCalcBox
+                    isEditing={isEditing && !validation.isReadOnly}
+                    
+                    // Special discount
+                    specialDiscountType={specialDiscountType}
+                    specialDiscountValue={specialDiscountType === 'percentage' ? formData.special_discount_percentage : formData.special_discount_amount}
+                    onSpecialDiscountTypeChange={(type) => {
+                      if (type === 'percentage') {
+                        handleFieldChange('special_discount_amount', 0);
+                      } else {
+                        handleFieldChange('special_discount_percentage', 0);
+                      }
+                    }}
+                    onSpecialDiscountValueChange={(value) => {
+                      const numValue = Math.max(0, Number(value) || 0);
+                      if (specialDiscountType === 'percentage') {
+                        handleFieldChange('special_discount_percentage', numValue);
+                      } else {
+                        handleFieldChange('special_discount_amount', numValue);
+                      }
+                    }}
+                    
+                    // VAT
+                    hasVat={formData.has_vat}
+                    vatPercentage={formData.vat_percentage}
+                    onHasVatChange={(checked) => handleFieldChange('has_vat', checked)}
+                    onVatPercentageChange={(value) => handleFieldChange('vat_percentage', Math.max(0, Number(value) || 0))}
+                    
+                    // Withholding tax
+                    hasWithholdingTax={formData.has_withholding_tax}
+                    withholdingTaxPercentage={formData.withholding_tax_percentage}
+                    withholdingTaxBase={formData.withholding_tax_base}
+                    onHasWithholdingTaxChange={(checked) => handleFieldChange('has_withholding_tax', checked)}
+                    onWithholdingTaxPercentageChange={(value) => handleFieldChange('withholding_tax_percentage', Math.max(0, Number(value) || 0))}
+                    onWithholdingTaxBaseChange={(base) => handleFieldChange('withholding_tax_base', base)}
+                    
+                    // Deposit
+                    depositMode={formData.deposit_mode}
+                    depositPercentage={formData.deposit_percentage}
+                    depositAmountInput={formData.deposit_amount}
+                    depositDisplayOrder={formData.deposit_display_order}
+                    onDepositModeChange={(mode) => handleFieldChange('deposit_mode', mode)}
+                    onDepositPercentageChange={(value) => handleFieldChange('deposit_percentage', Math.max(0, Math.min(100, Number(value) || 0)))}
+                    onDepositAmountInputChange={(value) => handleFieldChange('deposit_amount', Math.max(0, Number(value) || 0))}
+                    onDepositDisplayOrderChange={(order) => handleFieldChange('deposit_display_order', order)}
+                    
+                    // Calculated values
+                    calculation={calculation}
+                  />
+                </Box>
+              </Section>
             </Grid>
 
             {/* Payment Information */}

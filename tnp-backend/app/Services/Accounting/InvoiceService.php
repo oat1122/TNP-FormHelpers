@@ -720,6 +720,93 @@ class InvoiceService
     }
 
     /**
+     * อัพเดต Invoice Items
+     * รับข้อมูล items จาก Frontend และแปลงเป็น invoice_items ในฐานข้อมูล
+     */
+    private function updateInvoiceItems($invoiceId, $items, $updatedBy = null)
+    {
+        try {
+            // ลบ items เก่าทั้งหมดก่อน
+            \App\Models\Accounting\InvoiceItem::where('invoice_id', $invoiceId)->delete();
+
+            // สร้าง items ใหม่จากข้อมูลที่ส่งมา
+            foreach ($items as $groupIndex => $group) {
+                // ถ้ามี sizeRows ให้สร้าง item แยกตามแต่ละ size
+                if (isset($group['sizeRows']) && is_array($group['sizeRows']) && count($group['sizeRows']) > 0) {
+                    foreach ($group['sizeRows'] as $rowIndex => $sizeRow) {
+                        $invoiceItem = new \App\Models\Accounting\InvoiceItem();
+                        $invoiceItem->id = \Illuminate\Support\Str::uuid();
+                        $invoiceItem->invoice_id = $invoiceId;
+                        $invoiceItem->quotation_item_id = $group['quotation_item_id'] ?? null;
+                        $invoiceItem->pricing_request_id = $group['pricing_request_id'] ?? null;
+                        
+                        // ข้อมูลหลักจาก group
+                        $invoiceItem->item_name = $group['name'] ?? "งานที่ " . ($groupIndex + 1);
+                        $invoiceItem->item_description = $group['item_description'] ?? null;
+                        $invoiceItem->sequence_order = ($groupIndex * 100) + ($rowIndex + 1); // เรียงลำดับแบบ group
+                        $invoiceItem->pattern = $group['pattern'] ?? null;
+                        $invoiceItem->fabric_type = $group['fabric_type'] ?? $group['fabricType'] ?? null;
+                        $invoiceItem->color = $group['color'] ?? null;
+                        
+                        // ข้อมูลเฉพาะจาก sizeRow
+                        $invoiceItem->size = $sizeRow['size'] ?? null;
+                        $invoiceItem->quantity = (int)($sizeRow['quantity'] ?? 0);
+                        $invoiceItem->unit_price = (float)($sizeRow['unitPrice'] ?? 0);
+                        $invoiceItem->unit = $group['unit'] ?? 'ชิ้น';
+                        $invoiceItem->notes = $sizeRow['notes'] ?? null;
+                        
+                        // ส่วนลดและสถานะ
+                        $invoiceItem->discount_percentage = (float)($group['discount_percentage'] ?? 0);
+                        $invoiceItem->discount_amount = (float)($group['discount_amount'] ?? 0);
+                        $invoiceItem->status = $group['status'] ?? 'draft';
+                        $invoiceItem->updated_by = $updatedBy;
+                        
+                        $invoiceItem->save();
+                    }
+                } else {
+                    // ถ้าไม่มี sizeRows ให้สร้าง item เดียวจาก group data
+                    $invoiceItem = new \App\Models\Accounting\InvoiceItem();
+                    $invoiceItem->id = \Illuminate\Support\Str::uuid();
+                    $invoiceItem->invoice_id = $invoiceId;
+                    $invoiceItem->quotation_item_id = $group['quotation_item_id'] ?? null;
+                    $invoiceItem->pricing_request_id = $group['pricing_request_id'] ?? null;
+                    
+                    $invoiceItem->item_name = $group['name'] ?? "งานที่ " . ($groupIndex + 1);
+                    $invoiceItem->item_description = $group['item_description'] ?? null;
+                    $invoiceItem->sequence_order = $groupIndex + 1;
+                    $invoiceItem->pattern = $group['pattern'] ?? null;
+                    $invoiceItem->fabric_type = $group['fabric_type'] ?? $group['fabricType'] ?? null;
+                    $invoiceItem->color = $group['color'] ?? null;
+                    $invoiceItem->size = $group['size'] ?? null;
+                    $invoiceItem->quantity = (int)($group['quantity'] ?? 0);
+                    $invoiceItem->unit_price = (float)($group['unit_price'] ?? $group['unitPrice'] ?? 0);
+                    $invoiceItem->unit = $group['unit'] ?? 'ชิ้น';
+                    $invoiceItem->notes = $group['notes'] ?? null;
+                    $invoiceItem->discount_percentage = (float)($group['discount_percentage'] ?? 0);
+                    $invoiceItem->discount_amount = (float)($group['discount_amount'] ?? 0);
+                    $invoiceItem->status = $group['status'] ?? 'draft';
+                    $invoiceItem->updated_by = $updatedBy;
+                    
+                    $invoiceItem->save();
+                }
+            }
+
+            // Log การอัพเดต items
+            DocumentHistory::logAction(
+                'invoice',
+                $invoiceId,
+                'update_items',
+                $updatedBy,
+                "อัพเดตรายการสินค้า: " . count($items) . " รายการ"
+            );
+
+        } catch (\Exception $e) {
+            Log::error('InvoiceService::updateInvoiceItems error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * สร้าง Invoice แบบ Manual
      */
     public function create($invoiceData, $createdBy = null)
@@ -789,6 +876,13 @@ class InvoiceService
 
             $oldData = $invoice->toArray();
 
+            // Handle items update if provided
+            if (isset($updateData['items']) && is_array($updateData['items'])) {
+                $this->updateInvoiceItems($invoice->id, $updateData['items'], $updatedBy);
+                // Remove items from updateData as we handle it separately
+                unset($updateData['items']);
+            }
+
             // อัปเดตข้อมูล
             foreach ($updateData as $key => $value) {
                 if ($invoice->isFillable($key)) {
@@ -839,7 +933,7 @@ class InvoiceService
 
             DB::commit();
 
-            return $invoice->fresh();
+            return $invoice->fresh(['items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

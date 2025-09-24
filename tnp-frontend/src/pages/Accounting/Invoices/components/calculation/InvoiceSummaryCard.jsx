@@ -19,6 +19,7 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import InvoiceSizeRowsEditor from './InvoiceSizeRowsEditor';
 
 const tokens = {
   primary: '#900F0F',
@@ -57,6 +58,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
   item,
   index,
   isEditing = false,
+  expanded = false,
+  onToggleExpanded,
   onAddRow,
   onChangeRow,
   onRemoveRow,
@@ -103,18 +106,6 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
 
   const handleItemChange = (field, value) => {
     onChangeItem?.(index, field, value);
-  };
-
-  const handleAddSizeRow = () => {
-    onAddRow?.(index, { size: '', quantity: 0, unitPrice: 0 });
-  };
-
-  const handleRemoveSizeRow = (rowIndex) => {
-    onRemoveRow?.(index, rowIndex);
-  };
-
-  const handleChangeSizeRow = (rowIndex, field, value) => {
-    onChangeRow?.(index, rowIndex, field, value);
   };
 
   return (
@@ -227,130 +218,18 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
           </Grid>
         </Grid>
 
-        {/* Size Details Section */}
-        {(hasDetailedRows || isEditing) && (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                แยกตามขนาด
-              </Typography>
-              {isEditing && (
-                <Button
-                  size="small"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddSizeRow}
-                >
-                  เพิ่มแถว
-                </Button>
-              )}
-            </Box>
-
-            {/* Column Headers */}
-            <Grid container spacing={1} sx={{ mb: 1 }}>
-              <Grid item xs={12} md={3}>
-                <Typography variant="caption" color="text.secondary">ขนาด</Typography>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Typography variant="caption" color="text.secondary">จำนวน</Typography>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography>
-              </Grid>
-              <Grid item xs={10} md={2}>
-                <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
-              </Grid>
-              <Grid item xs={2} md={1}></Grid>
-            </Grid>
-
-            {/* Size Rows */}
-            {(item.sizeRows || []).map((row, rowIndex) => {
-              const qty = Number(row.quantity || 0);
-              const unitPrice = Number(row.unitPrice || 0);
-              const lineTotal = qty * unitPrice;
-
-              return (
-                <Grid container spacing={1} key={rowIndex} sx={{ mb: 1, alignItems: 'center' }}>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="ขนาด"
-                      value={row.size || ''}
-                      onChange={(e) => handleChangeSizeRow(rowIndex, 'size', e.target.value)}
-                      disabled={!isEditing}
-                      inputProps={{ inputMode: 'text' }}
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="จำนวน"
-                      value={qty}
-                      onChange={(e) => handleChangeSizeRow(rowIndex, 'quantity', Number(e.target.value) || 0)}
-                      disabled={!isEditing}
-                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="ราคาต่อหน่วย"
-                      value={unitPrice}
-                      onChange={(e) => handleChangeSizeRow(rowIndex, 'unitPrice', Number(e.target.value) || 0)}
-                      disabled={!isEditing}
-                      inputProps={{ inputMode: 'decimal' }}
-                    />
-                  </Grid>
-                  <Grid item xs={10} md={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: tokens.primary }}>
-                        {formatTHB(lineTotal)}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={2} md={1}>
-                    {isEditing && (
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveSizeRow(rowIndex)}
-                        sx={{ minWidth: 'auto', p: 0.5 }}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </Button>
-                    )}
-                  </Grid>
-                  
-                  {/* Row Notes */}
-                  {isEditing && (
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="หมายเหตุ (บรรทัดนี้)"
-                        multiline
-                        value={row.notes || ''}
-                        onChange={(e) => handleChangeSizeRow(rowIndex, 'notes', e.target.value)}
-                      />
-                    </Grid>
-                  )}
-
-                  {/* Quantity Mismatch Warning */}
-                  {hasQuantityMismatch && rowIndex === (item.sizeRows || []).length - 1 && (
-                    <Grid item xs={12}>
-                      <Typography variant="caption" color="warning.main">
-                        จำนวนรวมทุกขนาด ({totalQuantity.toLocaleString()} {unit}) {totalQuantity > originalQuantity ? 'มากกว่า' : 'น้อยกว่า'} จำนวนในงาน Pricing ({originalQuantity.toLocaleString()} {unit})
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              );
-            })}
-          </Box>
-        )}
+        {/* Size Details Section - Use InvoiceSizeRowsEditor */}
+        <Box sx={{ mt: 2 }}>
+          <InvoiceSizeRowsEditor
+            rows={item.sizeRows || []}
+            isEditing={isEditing}
+            onAddRow={onAddRow}
+            onChangeRow={onChangeRow}
+            onRemoveRow={onRemoveRow}
+            itemIndex={index}
+            unit={unit}
+          />
+        </Box>
 
         {/* Total Summary */}
         <Grid container spacing={2} sx={{ mt: 1 }}>

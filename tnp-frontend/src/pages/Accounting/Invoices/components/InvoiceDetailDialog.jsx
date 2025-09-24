@@ -124,25 +124,43 @@ const normalizeItems = (invoice) => {
         name: item.item_name,
         pattern: item.pattern,
         fabric_type: item.fabric_type,
+        fabricType: item.fabric_type, // Also provide camelCase for frontend consistency
         color: item.color,
+        size: item.size, // Summary size from first item
         unit: item.unit || 'ชิ้น',
+        sizeRows: [], // Array for detailed size breakdown
         items: [],
       });
     }
     
-    groups.get(groupKey).items.push({
+    const group = groups.get(groupKey);
+    
+    // Add to items array for reference
+    group.items.push({
       ...item,
       size: item.size,
       quantity: item.quantity,
       unit_price: item.unit_price,
       total: (item.quantity || 0) * (item.unit_price || 0),
     });
+
+    // Create size row from item data
+    if (item.size && item.quantity > 0) {
+      group.sizeRows.push({
+        size: item.size,
+        quantity: item.quantity || 0,
+        unitPrice: item.unit_price || 0,
+        notes: item.notes || '',
+      });
+    }
   });
 
   return Array.from(groups.values()).map(group => ({
     ...group,
     quantity: group.items.reduce((sum, item) => sum + (item.quantity || 0), 0),
     total: group.items.reduce((sum, item) => sum + (item.total || 0), 0),
+    // If no detailed size rows, create summary from group data
+    sizeRows: group.sizeRows.length > 0 ? group.sizeRows : [],
   }));
 };
 
@@ -268,9 +286,15 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   // Initialize editable items from invoice items
   React.useEffect(() => {
     if (invoice?.items && invoice.items.length > 0) {
-      const processedItems = invoice.items.map(item => ({
+      const processedItems = normalizeItems(invoice).map(item => ({
         ...item,
-        sizeRows: item.size_details || [],
+        // Preserve Backend fields for update
+        quotation_item_id: item.items?.[0]?.quotation_item_id || null,
+        pricing_request_id: item.items?.[0]?.pricing_request_id || null,
+        item_description: item.items?.[0]?.item_description || null,
+        discount_percentage: item.items?.[0]?.discount_percentage || 0,
+        discount_amount: item.items?.[0]?.discount_amount || 0,
+        status: item.items?.[0]?.status || 'draft',
         originalQuantity: item.quantity,
       }));
       setEditableItems(processedItems);

@@ -60,14 +60,44 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
     }).format(amount);
   };
 
+  // Helper function to format number for display in input
+  const formatNumberForInput = (value, isPrice = false) => {
+    if (value === 0 || value === '0') return '';
+    if (isPrice) {
+      return value.toString();
+    }
+    return value.toString();
+  };
+
+  // Helper function to parse input value
+  const parseInputValue = (value, isPrice = false) => {
+    if (!value || value === '') return 0;
+    
+    // Remove any non-numeric characters except decimal point for prices
+    let cleanValue;
+    if (isPrice) {
+      cleanValue = value.toString().replace(/[^\d.]/g, '');
+      // Ensure only one decimal point
+      const parts = cleanValue.split('.');
+      if (parts.length > 2) {
+        cleanValue = parts[0] + '.' + parts.slice(1).join('');
+      }
+    } else {
+      cleanValue = value.toString().replace(/[^\d]/g, '');
+    }
+    
+    const numValue = cleanValue === '' ? 0 : Number(cleanValue);
+    return Math.max(0, numValue || 0);
+  };
+
   const handleQuantityChange = (rowIndex, value) => {
-    const sanitizedValue = Math.max(0, Number(value) || 0);
-    onChangeRow?.(itemIndex, rowIndex, 'quantity', sanitizedValue);
+    const numValue = parseInputValue(value, false);
+    onChangeRow?.(itemIndex, rowIndex, 'quantity', numValue);
   };
 
   const handleUnitPriceChange = (rowIndex, value) => {
-    const sanitizedValue = Math.max(0, Number(value) || 0);
-    onChangeRow?.(itemIndex, rowIndex, 'unitPrice', sanitizedValue);
+    const numValue = parseInputValue(value, true);
+    onChangeRow?.(itemIndex, rowIndex, 'unitPrice', numValue);
   };
 
   const handleSizeChange = (rowIndex, value) => {
@@ -139,11 +169,21 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                     {isEditing ? (
                       <TextField
                         size="small"
-                        type="number"
-                        value={qty}
+                        type="text"
+                        value={formatNumberForInput(qty)}
                         onChange={(e) => handleQuantityChange(rowIndex, e.target.value)}
-                        inputProps={{ min: 0, step: 1 }}
-                        sx={{ width: 100 }}
+                        placeholder="จำนวน"
+                        inputProps={{
+                          inputMode: 'numeric',
+                          pattern: '[0-9]*',
+                          style: { textAlign: 'right' }
+                        }}
+                        sx={{ 
+                          width: 100,
+                          '& .MuiOutlinedInput-input': {
+                            padding: '8.5px 14px',
+                          }
+                        }}
                       />
                     ) : (
                       <Typography variant="body2">
@@ -155,11 +195,20 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                     {isEditing ? (
                       <TextField
                         size="small"
-                        type="number"
-                        value={unitPrice}
+                        type="text"
+                        value={formatNumberForInput(unitPrice, true)}
                         onChange={(e) => handleUnitPriceChange(rowIndex, e.target.value)}
-                        inputProps={{ min: 0, step: 0.01 }}
-                        sx={{ width: 120 }}
+                        placeholder="ราคา"
+                        inputProps={{
+                          inputMode: 'decimal',
+                          style: { textAlign: 'right' }
+                        }}
+                        sx={{ 
+                          width: 120,
+                          '& .MuiOutlinedInput-input': {
+                            padding: '8.5px 14px',
+                          }
+                        }}
                       />
                     ) : (
                       <Typography variant="body2">

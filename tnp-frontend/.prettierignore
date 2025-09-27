@@ -1,0 +1,30 @@
+# builds / caches
+dist/
+build/
+.vite/
+.cache/
+coverage/
+
+# deps / locks / logs
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.log
+
+# public assets (เสิร์ฟอย่างเดียว)
+public/**
+
+# binary assets ใน src (ไม่ต้อง format)
+src/**/*.{png,jpg,jpeg,webp,gif,ico,svg}
+src/**/*.{mp4,webm,mp3,wav,glb,gltf}
+src/**/*.{woff,woff2,ttf,otf,eot}
+src/**/*.{z}
+
+# misc / generated
+.eslintcache
+vite.config.js.timestamp-*.mjs
+
+# env
+.env
+.env.*

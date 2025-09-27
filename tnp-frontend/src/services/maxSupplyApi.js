@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_END_POINT_URL || '/api/v1';
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // Increased timeout for slower networks
+  timeout: 30000, // Increased timeout for slower networks and complex queries
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json', // Explicitly request JSON responses
@@ -156,6 +156,18 @@ export const calendarApi = {
       return response.data;
     } catch (error) {
       console.error('Calendar API error:', error.message);
+      
+      // Enhanced error logging for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Full Calendar API error details:', {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          url: url,
+          config: error.config
+        });
+      }
+      
       if (error.response) {
         console.error('Error response data:', error.response.data);
         console.error('Error response status:', error.response.status);

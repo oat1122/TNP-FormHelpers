@@ -145,8 +145,8 @@ export const useMaxSupplyData = (filters = {}) => {
       
       // More user-friendly error messages
       let errorMessage = 'Failed to load data';
-      if (err.message.includes('timeout')) {
-        errorMessage = 'Request timed out. Please check if the server is running.';
+      if (err.message.includes('timeout') || err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out after 30 seconds. Server may be overloaded or network is slow.';
       } else if (err.message.includes('Network Error') || err.code === 'ERR_NETWORK') {
         errorMessage = 'Cannot connect to server. Please check if the backend is running on localhost:8000.';
       } else if (err.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
@@ -155,6 +155,18 @@ export const useMaxSupplyData = (filters = {}) => {
         errorMessage = 'Authentication failed. Please login again.';
       } else if (err.response?.status === 404) {
         errorMessage = 'API endpoint not found. Please check backend configuration.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again later.';
+      }
+      
+      // Add detailed error info for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Full error details:', {
+          message: err.message,
+          code: err.code,
+          status: err.response?.status,
+          response: err.response?.data
+        });
       }
       
       setError(errorMessage);

@@ -1,19 +1,155 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "Test TNP Backend - Step 4 Delivery APIs",
-			"type": "shell",
-			"command": "cd c:\\worke\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes",
-			"group": "test",
-			"isBackground": false
-		},
-		{
-			"label": "Run the Step 4 Delivery APIs test",
-			"type": "shell",
-			"command": "echo START && cd c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes --no-ansi && echo DONE",
-			"isBackground": false,
-			"group": "test"
-		}
-	]
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "BASE_URL",
+      "type": "promptString",
+      "default": "http://127.0.0.1:8000",
+      "description": "Backend base URL (เช่น http://127.0.0.1:8000)"
+    },
+    {
+      "id": "EMAIL",
+      "type": "promptString",
+      "default": "admin@example.com",
+      "description": "อีเมลสำหรับล็อกอิน API"
+    },
+    {
+      "id": "PASSWORD",
+      "type": "promptString",
+      "password": true,
+      "default": "password",
+      "description": "รหัสผ่านสำหรับล็อกอิน API"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Test TNP Backend - Step 4 Delivery APIs",
+      "type": "shell",
+      "command": "cd c:\\worke\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes",
+      "group": "test",
+      "isBackground": false
+    },
+    {
+      "label": "Run the Step 4 Delivery APIs test",
+      "type": "shell",
+      "command": "echo START && cd c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend && php artisan route:list --name=delivery-notes --no-ansi && echo DONE",
+      "isBackground": false,
+      "group": "test"
+    },
+
+    // -----------------------------
+    // AI-Friendly API Smoke Tests
+    // -----------------------------
+
+    {
+      "label": "API: Login & Save Token",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$body=@{ email='${input:EMAIL}'; password='${input:PASSWORD}' } | ConvertTo-Json; $resp=Invoke-RestMethod -Method Post -Uri '${input:BASE_URL}/api/login' -ContentType 'application/json' -Body $body; New-Item -ItemType Directory -Force -Path '.vscode' | Out-Null; Set-Content -Path '.vscode/tmp_token.txt' -Value $resp.access_token; if([string]::IsNullOrWhiteSpace($resp.access_token)){ throw 'Login failed: empty token' } ; Write-Host 'TOKEN_SAVED'\"",
+      "group": "test",
+      "presentation": { "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "API: GET Customers",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/customers' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_customers.json $j; Write-Host 'OK: customers -> .vscode/out_customers.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+    {
+      "label": "API: GET Pricing Requests",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/pricing/requests' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_pricing_requests.json $j; Write-Host 'OK: pricing -> .vscode/out_pricing_requests.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+    {
+      "label": "API: GET Quotations",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/accounting/quotations' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_quotations.json $j; Write-Host 'OK: quotations -> .vscode/out_quotations.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+    {
+      "label": "API: GET Invoices",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/accounting/invoices' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_invoices.json $j; Write-Host 'OK: invoices -> .vscode/out_invoices.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+    {
+      "label": "API: GET Receipts",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/accounting/receipts' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_receipts.json $j; Write-Host 'OK: receipts -> .vscode/out_receipts.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+    {
+      "label": "API: GET Delivery Notes",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-backend"
+      },
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$t=Get-Content .vscode/tmp_token.txt; $h=@{ Authorization='Bearer ' + $t }; $r=Invoke-RestMethod -Headers $h -Uri '${input:BASE_URL}/api/v1/accounting/delivery-notes' -Method Get; $j=$r | ConvertTo-Json -Depth 10; Set-Content .vscode/out_delivery_notes.json $j; Write-Host 'OK: delivery-notes -> .vscode/out_delivery_notes.json'\"",
+      "group": "test",
+      "dependsOn": "API: Login & Save Token"
+    },
+
+    {
+      "label": "API: Smoke Test (All)",
+      "dependsOn": [
+        "API: Login & Save Token",
+        "API: GET Customers",
+        "API: GET Pricing Requests",
+        "API: GET Quotations",
+        "API: GET Invoices",
+        "API: GET Receipts",
+        "API: GET Delivery Notes"
+      ],
+      "group": "test"
+    },
+
+    // -----------------------------
+    // Frontend helpers (optional)
+    // -----------------------------
+
+    {
+      "label": "FE: Dev Server",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-frontend"
+      },
+      "command": "npm run dev",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "FE: Format",
+      "type": "shell",
+      "options": {
+        "cwd": "c:\\Users\\thana\\Documents\\TNP-FormHelpers\\tnp-frontend"
+      },
+      "command": "npm run format",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
 }

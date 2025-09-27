@@ -4,10 +4,19 @@ import { Controller } from "react-hook-form";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import initImage from "../../../../assets/img/t-shirt_mockup-v2.jpg";
 import { setImagePreviewForm } from "../../../../features/Pricing/pricingSlice";
-import { Box, Button, CardMedia, Dialog, DialogActions, DialogContent, DialogTitle, Grid2 as Grid, IconButton, styled } from "@mui/material";
+import {
+  Box,
+  Button,
+  CardMedia,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid2 as Grid,
+  IconButton,
+  styled,
+} from "@mui/material";
 import { fileToBase64 } from "../../../../utils/utilityFunction";
-
-
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -45,10 +54,8 @@ function ImagesDialog(props) {
   };
 
   useEffect(() => {
-
     setImagePreviewInDialog(imagePreview);
-
-  }, [props.openDialog])
+  }, [props.openDialog]);
 
   return (
     <>
@@ -78,7 +85,7 @@ function ImagesDialog(props) {
                     <VisuallyHiddenInput
                       type="file"
                       accept="image/*"
-                      onChange={ async (e) => {
+                      onChange={async (e) => {
                         const file = e.target.files[0];
                         const fileBase64 = await fileToBase64(file);
                         if (fileBase64) {
@@ -90,35 +97,21 @@ function ImagesDialog(props) {
                   </Button>
                 )}
               />
-              
             </Box>
           </DialogContent>
-          <DialogActions
-            disableSpacing
-            sx={{ paddingInline: { xs: 4, sm: 2, md: 0 } }}
-          >
+          <DialogActions disableSpacing sx={{ paddingInline: { xs: 4, sm: 2, md: 0 } }}>
             <Grid
               container
               spacing={{ xs: 0, sm: 1 }}
               sx={{ width: "100%", justifyContent: "center" }}
             >
               <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
-                <Button
-                  fullWidth
-                  onClick={handleSubmit}
-                  variant="contained"
-                  color="error"
-                >
+                <Button fullWidth onClick={handleSubmit} variant="contained" color="error">
                   บันทึก
                 </Button>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="error"
-                  onClick={handleClose}
-                >
+                <Button fullWidth variant="outlined" color="error" onClick={handleClose}>
                   ยกเลิก
                 </Button>
               </Grid>
@@ -126,11 +119,7 @@ function ImagesDialog(props) {
           </DialogActions>
         </Dialog>
       ) : (
-        <Dialog
-          open={props.openDialog}
-          onClose={props.handleClose}
-          maxWidth="lg"
-        >
+        <Dialog open={props.openDialog} onClose={props.handleClose} maxWidth="lg">
           <DialogTitle>
             <label>รูปภาพ</label>
             <IconButton
@@ -147,11 +136,7 @@ function ImagesDialog(props) {
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <CardMedia
-              component="img"
-              image={renderedImage}
-              alt={`${renderedImage}-images`}
-            />
+            <CardMedia component="img" image={renderedImage} alt={`${renderedImage}-images`} />
           </DialogContent>
           <DialogActions></DialogActions>
         </Dialog>

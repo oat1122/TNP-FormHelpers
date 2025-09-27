@@ -1,15 +1,11 @@
-import {
-  useSelector,
-  TextField,
-  Grid,
-} from "../../../utils/import_lib";
+import { useSelector, TextField, Grid } from "../../../utils/import_lib";
 
 function ScreenSect({ handleInputChange }) {
   const inputList = useSelector((state) => state.worksheet.inputList);
 
   return (
     <Grid container spacing={0}>
-      <Grid size={{ xs: 4, md: "grow", }} p={1}>
+      <Grid size={{ xs: 4, md: "grow" }} p={1}>
         <TextField
           type="text"
           fullWidth
@@ -20,7 +16,7 @@ function ScreenSect({ handleInputChange }) {
           onChange={handleInputChange}
         />
       </Grid>
-      <Grid size={{ xs: 4, md: "grow", }} p={1}>
+      <Grid size={{ xs: 4, md: "grow" }} p={1}>
         <TextField
           type="text"
           fullWidth
@@ -31,7 +27,7 @@ function ScreenSect({ handleInputChange }) {
           onChange={handleInputChange}
         />
       </Grid>
-      <Grid size={{ xs: 4, md: "grow", }} p={1}>
+      <Grid size={{ xs: 4, md: "grow" }} p={1}>
         <TextField
           type="text"
           fullWidth
@@ -42,7 +38,7 @@ function ScreenSect({ handleInputChange }) {
           onChange={handleInputChange}
         />
       </Grid>
-      <Grid size={{ xs: 6, md: "grow", }} p={1}>
+      <Grid size={{ xs: 6, md: "grow" }} p={1}>
         <TextField
           type="text"
           fullWidth
@@ -53,7 +49,7 @@ function ScreenSect({ handleInputChange }) {
           onChange={handleInputChange}
         />
       </Grid>
-      <Grid size={{ xs: 6, md: "grow", }} p={1}>
+      <Grid size={{ xs: 6, md: "grow" }} p={1}>
         <TextField
           type="text"
           fullWidth

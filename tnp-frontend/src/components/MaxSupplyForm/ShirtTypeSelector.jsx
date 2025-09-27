@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -7,25 +7,23 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from '@mui/material';
-import {
-  Category,
-} from '@mui/icons-material';
+} from "@mui/material";
+import { Category } from "@mui/icons-material";
 
 const ShirtTypeSelector = ({ formData, errors, shirtTypes, onInputChange }) => {
   return (
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          <Category sx={{ mr: 1, verticalAlign: 'middle' }} />
-          ประเภทเสื้อ 
+          <Category sx={{ mr: 1, verticalAlign: "middle" }} />
+          ประเภทเสื้อ
         </Typography>
-        
+
         <FormControl fullWidth error={!!errors.shirt_type}>
           <InputLabel>ประเภทเสื้อ</InputLabel>
           <Select
             value={formData.shirt_type}
-            onChange={(e) => onInputChange('shirt_type', e.target.value)}
+            onChange={(e) => onInputChange("shirt_type", e.target.value)}
             label="ประเภทเสื้อ"
           >
             {shirtTypes.map((type) => (
@@ -45,4 +43,4 @@ const ShirtTypeSelector = ({ formData, errors, shirtTypes, onInputChange }) => {
   );
 };
 
-export default ShirtTypeSelector; 
+export default ShirtTypeSelector;

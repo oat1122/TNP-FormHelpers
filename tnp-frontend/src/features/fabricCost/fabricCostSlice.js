@@ -1,21 +1,24 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { tnpApi } from "../../services/tnpApi";
 
-export const submitForm = createAsyncThunk('fabricCost/submitForm', async (fabrics, { rejectWithValue }) => {
-  try {
-    const response = await tnpApi.endpoints.editFabricById(fabrics)
-    return response.data.message;
-  } catch (error) {
-    return rejectWithValue(error.response.data.message);
+export const submitForm = createAsyncThunk(
+  "fabricCost/submitForm",
+  async (fabrics, { rejectWithValue }) => {
+    try {
+      const response = await tnpApi.endpoints.editFabricById(fabrics);
+      return response.data.message;
+    } catch (error) {
+      return rejectWithValue(error.response.data.message);
+    }
   }
-});
+);
 
 export const fabricCostSlice = createSlice({
   name: "fabricCost",
   initialState: {
     pattern: {
       id: 1,
-      shirtCate: 0
+      shirtCate: 0,
     },
     fabrics: [],
     user: JSON.parse(localStorage.getItem("userData")),
@@ -64,7 +67,7 @@ export const {
   setInputFabric,
   updateFabric,
   addFabric,
-  removeFabric
+  removeFabric,
 } = fabricCostSlice.actions;
 
 export default fabricCostSlice.reducer;

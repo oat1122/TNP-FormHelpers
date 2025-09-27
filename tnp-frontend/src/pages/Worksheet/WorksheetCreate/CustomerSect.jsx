@@ -18,30 +18,30 @@ function CustomerSect({ handleInputChange }) {
   };
 
   const handleDisableInput = () => {
-    if (String(inputList.work_id).length > 8 || (inputList.is_duplicate)) {
-      return true
+    if (String(inputList.work_id).length > 8 || inputList.is_duplicate) {
+      return true;
     } else {
-      return false
+      return false;
     }
-  }
+  };
 
   return (
     <>
       <CustomerSectDialog open={openDialog} close={handleClose} />
 
       <Typography variant="h5" color="error" ml={1}>
-        ข้อมูลลูกค้า 
-        <Button 
+        ข้อมูลลูกค้า
+        <Button
           variant="contained"
           color="grey"
           disabled={handleDisableInput()}
-          onClick={() => setOpenDialog(true)} 
+          onClick={() => setOpenDialog(true)}
           sx={{
             marginLeft: 2,
             minWidth: "fit-content",
           }}
         >
-          <MdManageSearch style={{ fontSize: '1.5rem' }} />
+          <MdManageSearch style={{ fontSize: "1.5rem" }} />
         </Button>
       </Typography>
       <Grid container spacing={1}>
@@ -65,7 +65,7 @@ function CustomerSect({ handleInputChange }) {
             value={inputList.cus_company}
             onChange={handleInputChange}
             disabled
-            />
+          />
         </Grid>
       </Grid>
       <Grid container spacing={1}>
@@ -79,7 +79,7 @@ function CustomerSect({ handleInputChange }) {
             onChange={handleInputChange}
             maxRows={3}
             disabled
-            />
+          />
         </Grid>
       </Grid>
       <Grid container spacing={1}>
@@ -93,7 +93,7 @@ function CustomerSect({ handleInputChange }) {
             value={inputList.cus_tel_1}
             onChange={handleInputChange}
             disabled
-            />
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }} p={1} mt={{ xs: 0, sm: 1 }}>
           <TextField

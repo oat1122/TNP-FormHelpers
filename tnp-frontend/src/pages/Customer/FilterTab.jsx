@@ -21,7 +21,7 @@ import { apiConfig } from "../../api/apiConfig";
 function FilterTab() {
   const dispatch = useDispatch();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const groupList = useSelector((state) => state.customer.groupList);
   const totalCount = useSelector((state) => state.customer.totalCount);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
@@ -101,7 +101,7 @@ function FilterTab() {
   const handleSelectGroup = (event, newVal) => {
     // Handle both ToggleButton and Select events
     const value = newVal || event.target.value;
-    
+
     if (value !== null && value !== undefined) {
       console.log(`เปลี่ยนกลุ่มเป็น: ${value}, คงตัวกรองเดิมไว้:`, filters);
 
@@ -126,44 +126,42 @@ function FilterTab() {
   };
 
   // Sort groups by mcg_sort to ensure they're shown in the right order: A, B, C, D
-  const sortedGroupList = [...groupList].sort(
-    (a, b) => a.mcg_sort - b.mcg_sort
-  );
+  const sortedGroupList = [...groupList].sort((a, b) => a.mcg_sort - b.mcg_sort);
 
   // Mobile Dropdown Component
   const MobileDropdown = () => (
     <Box sx={{ width: "100%" }}>
-      <FormControl 
-        fullWidth 
+      <FormControl
+        fullWidth
         sx={{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '8px',
-            backgroundColor: '#fffaf9',
-            border: '1px solid rgba(158, 0, 0, 0.3)',
-            fontFamily: 'Kanit',
-            fontSize: '0.875rem',
-            '&:hover': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#9e0000',
+          "& .MuiOutlinedInput-root": {
+            borderRadius: "8px",
+            backgroundColor: "#fffaf9",
+            border: "1px solid rgba(158, 0, 0, 0.3)",
+            fontFamily: "Kanit",
+            fontSize: "0.875rem",
+            "&:hover": {
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#9e0000",
               },
             },
-            '&.Mui-focused': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#9e0000',
-                borderWidth: '2px',
+            "&.Mui-focused": {
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#9e0000",
+                borderWidth: "2px",
               },
             },
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(158, 0, 0, 0.3)',
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "rgba(158, 0, 0, 0.3)",
             },
           },
-          '& .MuiSelect-select': {
-            color: '#9e0000',
+          "& .MuiSelect-select": {
+            color: "#9e0000",
             fontWeight: 500,
-            padding: '10px 14px',
+            padding: "10px 14px",
           },
-          '& .MuiSelect-icon': {
-            color: '#9e0000',
+          "& .MuiSelect-icon": {
+            color: "#9e0000",
           },
         }}
       >
@@ -172,94 +170,103 @@ function FilterTab() {
           onChange={handleSelectGroup}
           displayEmpty
           renderValue={(selected) => {
-            if (selected === 'all') {
+            if (selected === "all") {
               const totalCount = hasActiveFilters
                 ? Object.values(allGroupCounts).reduce((sum, count) => sum + count, 0) || 0
                 : groupList.reduce((sum, item) => sum + (item.customer_group_count || 0), 0);
               return `ทั้งหมด (${totalCount})`;
             }
-            
-            const selectedGroup = sortedGroupList.find(item => item.mcg_id === selected);
+
+            const selectedGroup = sortedGroupList.find((item) => item.mcg_id === selected);
             if (selectedGroup) {
               const count = hasActiveFilters
                 ? allGroupCounts[selectedGroup.mcg_id] || 0
                 : selectedGroup.customer_group_count || 0;
               return `${selectedGroup.mcg_name} (${count})`;
             }
-            
-            return 'เลือกกลุ่มลูกค้า';
+
+            return "เลือกกลุ่มลูกค้า";
           }}
         >
-          <MenuItem 
+          <MenuItem
             value="all"
             sx={{
-              fontFamily: 'Kanit',
-              fontSize: '0.875rem',
-              color: '#9e0000',
-              '&:hover': {
-                backgroundColor: 'rgba(158, 0, 0, 0.08)',
+              fontFamily: "Kanit",
+              fontSize: "0.875rem",
+              color: "#9e0000",
+              "&:hover": {
+                backgroundColor: "rgba(158, 0, 0, 0.08)",
               },
-              '&.Mui-selected': {
-                backgroundColor: 'rgba(158, 0, 0, 0.12)',
-                '&:hover': {
-                  backgroundColor: 'rgba(158, 0, 0, 0.16)',
+              "&.Mui-selected": {
+                backgroundColor: "rgba(158, 0, 0, 0.12)",
+                "&:hover": {
+                  backgroundColor: "rgba(158, 0, 0, 0.16)",
                 },
               },
             }}
           >
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              width: '100%',
-              justifyContent: 'space-between'
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                width: "100%",
+                justifyContent: "space-between",
+              }}
+            >
               <span>ทั้งหมด</span>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <span>
-                  ({hasActiveFilters
-                    ? Object.values(allGroupCounts).reduce((sum, count) => sum + count, 0) || totalCount
-                    : totalCount})
+                  (
+                  {hasActiveFilters
+                    ? Object.values(allGroupCounts).reduce((sum, count) => sum + count, 0) ||
+                      totalCount
+                    : totalCount}
+                  )
                 </span>
-                {isLoadingCounts && <CircularProgress size={12} sx={{ color: '#9e0000' }} />}
+                {isLoadingCounts && <CircularProgress size={12} sx={{ color: "#9e0000" }} />}
               </Box>
             </Box>
           </MenuItem>
-          
+
           {sortedGroupList.map((item, index) => (
-            <MenuItem 
+            <MenuItem
               key={index}
               value={item.mcg_id}
               sx={{
-                fontFamily: 'Kanit',
-                fontSize: '0.875rem',
-                color: '#9e0000',
-                '&:hover': {
-                  backgroundColor: 'rgba(158, 0, 0, 0.08)',
+                fontFamily: "Kanit",
+                fontSize: "0.875rem",
+                color: "#9e0000",
+                "&:hover": {
+                  backgroundColor: "rgba(158, 0, 0, 0.08)",
                 },
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(158, 0, 0, 0.12)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(158, 0, 0, 0.16)',
+                "&.Mui-selected": {
+                  backgroundColor: "rgba(158, 0, 0, 0.12)",
+                  "&:hover": {
+                    backgroundColor: "rgba(158, 0, 0, 0.16)",
                   },
                 },
               }}
             >
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                width: '100%',
-                justifyContent: 'space-between'
-              }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  width: "100%",
+                  justifyContent: "space-between",
+                }}
+              >
                 <span>{item.mcg_name}</span>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <span>
-                    ({hasActiveFilters
+                    (
+                    {hasActiveFilters
                       ? allGroupCounts[item.mcg_id] || 0
-                      : item.customer_group_count || 0})
+                      : item.customer_group_count || 0}
+                    )
                   </span>
-                  {isLoadingCounts && <CircularProgress size={12} sx={{ color: '#9e0000' }} />}
+                  {isLoadingCounts && <CircularProgress size={12} sx={{ color: "#9e0000" }} />}
                 </Box>
               </Box>
             </MenuItem>
@@ -298,8 +305,10 @@ function FilterTab() {
           alignItems: "center",
           justifyContent: "center",
           "&.MuiToggleButton-root": {
-            backgroundColor: groupSelected === "all" ? "#8B0000 !important" : "transparent !important",
-            color: groupSelected === "all" ? "#fff !important" : "rgba(211, 47, 47, 0.8) !important",
+            backgroundColor:
+              groupSelected === "all" ? "#8B0000 !important" : "transparent !important",
+            color:
+              groupSelected === "all" ? "#fff !important" : "rgba(211, 47, 47, 0.8) !important",
             border: "1px solid rgba(211, 47, 47, 0.3) !important",
           },
           "&:hover": {
@@ -327,10 +336,7 @@ function FilterTab() {
           <span>
             ทั้งหมด (
             {hasActiveFilters
-              ? Object.values(allGroupCounts).reduce(
-                  (sum, count) => sum + count,
-                  0
-                ) || totalCount
+              ? Object.values(allGroupCounts).reduce((sum, count) => sum + count, 0) || totalCount
               : totalCount}
             )
           </span>
@@ -351,8 +357,7 @@ function FilterTab() {
             padding: "6px 10px",
             borderRadius: "6px",
             border: "1px solid rgba(211, 47, 47, 0.3)",
-            backgroundColor:
-              groupSelected === item.mcg_id ? "#8B0000" : "transparent",
+            backgroundColor: groupSelected === item.mcg_id ? "#8B0000" : "transparent",
             color: groupSelected === item.mcg_id ? "#fff" : "rgba(211, 47, 47, 0.8)",
             fontWeight: groupSelected === item.mcg_id ? 600 : 400,
             minHeight: "36px",
@@ -360,12 +365,17 @@ function FilterTab() {
             alignItems: "center",
             justifyContent: "center",
             "&.MuiToggleButton-root": {
-              backgroundColor: groupSelected === item.mcg_id ? "#8B0000 !important" : "transparent !important",
-              color: groupSelected === item.mcg_id ? "#fff !important" : "rgba(211, 47, 47, 0.8) !important",
+              backgroundColor:
+                groupSelected === item.mcg_id ? "#8B0000 !important" : "transparent !important",
+              color:
+                groupSelected === item.mcg_id
+                  ? "#fff !important"
+                  : "rgba(211, 47, 47, 0.8) !important",
               border: "1px solid rgba(211, 47, 47, 0.3) !important",
             },
             "&:hover": {
-              backgroundColor: groupSelected === item.mcg_id ? "#8B0000 !important" : "#a91c1c !important",
+              backgroundColor:
+                groupSelected === item.mcg_id ? "#8B0000 !important" : "#a91c1c !important",
               color: "#fff !important",
             },
             "&.Mui-selected": {
@@ -388,9 +398,7 @@ function FilterTab() {
           >
             <span>
               {item.mcg_name} (
-              {hasActiveFilters
-                ? allGroupCounts[item.mcg_id] || 0
-                : item.customer_group_count || 0}
+              {hasActiveFilters ? allGroupCounts[item.mcg_id] || 0 : item.customer_group_count || 0}
               )
             </span>
             {isLoadingCounts && <CircularProgress size={8} color="inherit" />}
@@ -400,11 +408,7 @@ function FilterTab() {
     </Box>
   );
 
-  return (
-    <>
-      {isMobile ? <MobileDropdown /> : <DesktopToggleButtons />}
-    </>
-  );
+  return <>{isMobile ? <MobileDropdown /> : <DesktopToggleButtons />}</>;
 }
 
 export default FilterTab;

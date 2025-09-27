@@ -109,10 +109,7 @@ function SelectProcess({ data }) {
           checked={dft !== "" ? true : false}
           onChange={handleSelect}
         />
-        <label
-          className="btn btn-toggle my-1 py-1 px-4"
-          htmlFor={`check-dft-${data.pd_id}`}
-        >
+        <label className="btn btn-toggle my-1 py-1 px-4" htmlFor={`check-dft-${data.pd_id}`}>
           มี DFT
         </label>
         <input
@@ -125,10 +122,7 @@ function SelectProcess({ data }) {
           checked={embroid !== "" ? true : false}
           onChange={handleSelect}
         />
-        <label
-          className="btn btn-toggle my-1 py-1 px-4"
-          htmlFor={`check-embroid-${data.pd_id}`}
-        >
+        <label className="btn btn-toggle my-1 py-1 px-4" htmlFor={`check-embroid-${data.pd_id}`}>
           มีปัก
         </label>
       </div>
@@ -151,10 +145,7 @@ function SelectProcess({ data }) {
               name="checked_1"
               value="1"
             />
-            <label
-              className="btn btn-choose p-2 p-lg-3"
-              htmlFor={`btn-check-1-${data.pd_id}`}
-            >
+            <label className="btn btn-choose p-2 p-lg-3" htmlFor={`btn-check-1-${data.pd_id}`}>
               <h1 className="mb-0">1</h1>
               ตัดเย็บเป็นตัว
               <br />
@@ -173,10 +164,7 @@ function SelectProcess({ data }) {
               name="checked_2"
               value="2"
             />
-            <label
-              className="btn btn-choose p-2 p-lg-3"
-              htmlFor={`btn-check-2-${data.pd_id}`}
-            >
+            <label className="btn btn-choose p-2 p-lg-3" htmlFor={`btn-check-2-${data.pd_id}`}>
               <h1 className="mb-0">2</h1>
               ตัด นำมาปัก/สกรีน
               <br />
@@ -186,22 +174,14 @@ function SelectProcess({ data }) {
         </Row>
         <Row>
           <Col className="pe-0">
-            {checked_1 === data.pd_id ? (
-              <ScreenPoint handleChecked={handleChecked} />
-            ) : null}
+            {checked_1 === data.pd_id ? <ScreenPoint handleChecked={handleChecked} /> : null}
           </Col>
           <Col className="ps-0">
-            {checked_2 === data.pd_id ? (
-              <ScreenPoint handleChecked={handleChecked} />
-            ) : null}
+            {checked_2 === data.pd_id ? <ScreenPoint handleChecked={handleChecked} /> : null}
           </Col>
         </Row>
         {checked_1 || checked_2 ? (
-          <Button
-            type="submit"
-            variant="outlined"
-            className="col-5 btn-start mt-3"
-          >
+          <Button type="submit" variant="outlined" className="col-5 btn-start mt-3">
             START
           </Button>
         ) : null}

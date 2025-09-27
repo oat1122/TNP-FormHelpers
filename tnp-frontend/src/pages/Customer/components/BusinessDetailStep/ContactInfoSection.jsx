@@ -40,18 +40,10 @@ const ContactInfoSection = ({
       >
         <MdPhone size={24} color={PRIMARY_RED} />
         <Box>
-          <Typography
-            fontWeight={600}
-            fontFamily="Kanit"
-            color={PRIMARY_RED}
-          >
+          <Typography fontWeight={600} fontFamily="Kanit" color={PRIMARY_RED}>
             ข้อมูลติดต่อ
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            fontFamily="Kanit"
-          >
+          <Typography variant="caption" color="text.secondary" fontFamily="Kanit">
             เบอร์โทรศัพท์และอีเมล (บังคับกรอก)
           </Typography>
         </Box>

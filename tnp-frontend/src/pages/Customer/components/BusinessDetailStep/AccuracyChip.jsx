@@ -7,13 +7,7 @@ const AccuracyChip = ({ accuracy }) => {
   return (
     <Chip
       label={`ความแม่นยำ: ±${roundedAccuracy}m`}
-      color={
-        roundedAccuracy <= 20
-          ? "success"
-          : roundedAccuracy <= 100
-          ? "warning"
-          : "error"
-      }
+      color={roundedAccuracy <= 20 ? "success" : roundedAccuracy <= 100 ? "warning" : "error"}
       size="small"
       sx={{ fontFamily: "Kanit" }}
     />

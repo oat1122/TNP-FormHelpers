@@ -35,13 +35,7 @@ import "dayjs/locale/th";
 import toast from "react-hot-toast";
 import { useGetWorksheetQuery } from "../../features/Worksheet/worksheetApi";
 
-const MaxSupplyEditForm = ({
-  open,
-  onClose,
-  item,
-  onSave,
-  loading = false,
-}) => {
+const MaxSupplyEditForm = ({ open, onClose, item, onSave, loading = false }) => {
   console.log("🔧 MaxSupplyEditForm props:", { open, item, loading });
   const [formData, setFormData] = useState({
     title: "",
@@ -154,8 +148,7 @@ const MaxSupplyEditForm = ({
 
     if (formData.start_date && formData.expected_completion_date) {
       if (formData.expected_completion_date.isBefore(formData.start_date)) {
-        newErrors.expected_completion_date =
-          "วันที่คาดว่าจะเสร็จต้องมาหลังวันที่เริ่มงาน";
+        newErrors.expected_completion_date = "วันที่คาดว่าจะเสร็จต้องมาหลังวันที่เริ่มงาน";
       }
     }
 
@@ -235,8 +228,7 @@ const MaxSupplyEditForm = ({
   // Handle form reset
   const handleReset = () => {
     if (item) {
-      const resetCustomerName =
-        item.customer_name || worksheetData?.data?.customer_name || "";
+      const resetCustomerName = item.customer_name || worksheetData?.data?.customer_name || "";
 
       setFormData({
         title: item.title || "",
@@ -317,9 +309,7 @@ const MaxSupplyEditForm = ({
                 fullWidth
                 label="ชื่องาน"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, title: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                 error={!!errors.title}
                 helperText={errors.title}
                 required
@@ -339,8 +329,7 @@ const MaxSupplyEditForm = ({
                 }
                 error={!!errors.customer_name}
                 helperText={
-                  errors.customer_name ||
-                  "สามารถแก้ไขได้อย่างอิสระ หากไม่มีข้อมูลจาก worksheet"
+                  errors.customer_name || "สามารถแก้ไขได้อย่างอิสระ หากไม่มีข้อมูลจาก worksheet"
                 }
                 required
                 placeholder="กรอกชื่อลูกค้า"
@@ -371,9 +360,7 @@ const MaxSupplyEditForm = ({
               <DatePicker
                 label="วันที่เริ่มงาน"
                 value={formData.start_date}
-                onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, start_date: date }))
-                }
+                onChange={(date) => setFormData((prev) => ({ ...prev, start_date: date }))}
                 slotProps={{
                   textField: {
                     fullWidth: true,
@@ -441,9 +428,7 @@ const MaxSupplyEditForm = ({
                 >
                   {productionTypes.map((type) => (
                     <MenuItem key={type.value} value={type.value}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <span>{type.icon}</span>
                         {type.label}
                       </Box>
@@ -451,11 +436,7 @@ const MaxSupplyEditForm = ({
                   ))}
                 </Select>
                 {errors.production_type && (
-                  <Typography
-                    variant="caption"
-                    color="error"
-                    sx={{ mt: 0.5, ml: 1.5 }}
-                  >
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
                     {errors.production_type}
                   </Typography>
                 )}
@@ -482,11 +463,7 @@ const MaxSupplyEditForm = ({
                   ))}
                 </Select>
                 {errors.shirt_type && (
-                  <Typography
-                    variant="caption"
-                    color="error"
-                    sx={{ mt: 0.5, ml: 1.5 }}
-                  >
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
                     {errors.shirt_type}
                   </Typography>
                 )}
@@ -509,9 +486,7 @@ const MaxSupplyEditForm = ({
                 >
                   {priorities.map((priority) => (
                     <MenuItem key={priority.value} value={priority.value}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Box
                           sx={{
                             width: 12,
@@ -572,9 +547,7 @@ const MaxSupplyEditForm = ({
                 multiline
                 rows={3}
                 value={formData.notes}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
                 placeholder="หมายเหตุเพิ่มเติมสำหรับงานนี้..."
               />
             </Grid>
@@ -582,10 +555,7 @@ const MaxSupplyEditForm = ({
             {/* Preview Section */}
             <Grid item xs={12}>
               {item?.worksheet_id && (
-                <Alert
-                  severity={worksheetData ? "success" : "info"}
-                  sx={{ mb: 2 }}
-                >
+                <Alert severity={worksheetData ? "success" : "info"} sx={{ mb: 2 }}>
                   <Typography variant="body2">
                     {worksheetData
                       ? `✅ ข้อมูลลูกค้าได้รับการอัปเดตจาก Worksheet ID: ${item.worksheet_id}`
@@ -596,13 +566,11 @@ const MaxSupplyEditForm = ({
 
               <Alert severity="info">
                 <Typography variant="body2">
-                  <strong>หมายเหตุ:</strong>{" "}
-                  คุณสามารถแก้ไขได้เฉพาะข้อมูลที่แสดงในฟอร์มนี้เท่านั้น
-                  ข้อมูลอื่นๆ เช่น จำนวนสินค้า, การคำนวณงาน,
-                  และสถานะจะไม่สามารถแก้ไขได้
+                  <strong>หมายเหตุ:</strong> คุณสามารถแก้ไขได้เฉพาะข้อมูลที่แสดงในฟอร์มนี้เท่านั้น
+                  ข้อมูลอื่นๆ เช่น จำนวนสินค้า, การคำนวณงาน, และสถานะจะไม่สามารถแก้ไขได้
                   <br />
-                  <strong>ชื่อลูกค้า:</strong> สามารถแก้ไขได้อย่างอิสระ
-                  ระบบจะอัปเดตจาก Worksheet หากมีข้อมูล
+                  <strong>ชื่อลูกค้า:</strong> สามารถแก้ไขได้อย่างอิสระ ระบบจะอัปเดตจาก Worksheet
+                  หากมีข้อมูล
                 </Typography>
               </Alert>
             </Grid>

@@ -24,16 +24,16 @@ export default {
     pr_other_screen: "",
     pr_image: "",
     pr_created_date: null,
-		pr_created_by: "",
-		pr_updated_date: null,
-		pr_updated_by: "",
+    pr_created_by: "",
+    pr_updated_date: null,
+    pr_updated_by: "",
 
     // customer section
     cus_company: "",
     cus_name: "",
     cus_tel_1: "",
     cus_email: "",
-    cus_fullname: "",  // cus_firstname + cus_lastname;
+    cus_fullname: "", // cus_firstname + cus_lastname;
 
     // note pricing
     note_sales: [],

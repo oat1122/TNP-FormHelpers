@@ -43,11 +43,7 @@ const AddressFormSection = ({
           <Typography fontWeight={600} fontFamily="Kanit" color={PRIMARY_RED}>
             ที่อยู่ติดต่อ (ไม่บังคับ)
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            fontFamily="Kanit"
-          >
+          <Typography variant="caption" color="text.secondary" fontFamily="Kanit">
             ที่อยู่สำหรับการติดต่อและจัดส่ง (สามารถใช้ GPS ช่วยเติมได้)
           </Typography>
         </Box>

@@ -42,7 +42,8 @@ export default {
       salesName: [],
       channel: [],
     };
-  },  resetInputList: (state) => {
+  },
+  resetInputList: (state) => {
     // Make sure to include the default object structure for cus_manage_by
     state.inputList = {
       cus_mcg_id: "",

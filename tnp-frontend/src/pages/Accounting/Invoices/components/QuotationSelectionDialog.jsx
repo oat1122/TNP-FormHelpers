@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,27 +10,27 @@ import {
   Alert,
   Typography,
   CircularProgress,
-} from '@mui/material';
+} from "@mui/material";
 import {
   FilterSection,
   PaginationSection,
   LoadingState,
   EmptyState,
-} from '../../PricingIntegration/components';
-import QuotationCard from '../../Quotations/components/QuotationCard';
+} from "../../PricingIntegration/components";
+import QuotationCard from "../../Quotations/components/QuotationCard";
 import {
   useGetQuotationsAwaitingInvoiceQuery,
   useGenerateQuotationPDFMutation,
-} from '../../../../features/Accounting/accountingApi';
+} from "../../../../features/Accounting/accountingApi";
 
-const QuotationSelectionDialog = ({ 
-  open, 
-  onClose, 
+const QuotationSelectionDialog = ({
+  open,
+  onClose,
   onSelectQuotation,
   title = "เลือกใบเสนอราคาเพื่อสร้างใบแจ้งหนี้",
-  subtitle = "เลือกใบเสนอราคาที่เซ็นแล้วและพร้อมออกใบแจ้งหนี้"
+  subtitle = "เลือกใบเสนอราคาที่เซ็นแล้วและพร้อมออกใบแจ้งหนี้",
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
 
@@ -52,7 +52,7 @@ const QuotationSelectionDialog = ({
     try {
       await generatePDF(id).unwrap();
     } catch (e) {
-      console.error('Generate PDF failed', e);
+      console.error("Generate PDF failed", e);
     }
   };
 
@@ -62,7 +62,7 @@ const QuotationSelectionDialog = ({
   };
 
   const handleReset = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setCurrentPage(1);
     setItemsPerPage(12);
   };
@@ -77,11 +77,14 @@ const QuotationSelectionDialog = ({
           {subtitle}
         </Typography>
       </DialogTitle>
-      
-      <DialogContent dividers sx={{ minHeight: '60vh' }}>
+
+      <DialogContent dividers sx={{ minHeight: "60vh" }}>
         <FilterSection
           searchQuery={searchQuery}
-          onSearchChange={(v) => { setSearchQuery(v); setCurrentPage(1); }}
+          onSearchChange={(v) => {
+            setSearchQuery(v);
+            setCurrentPage(1);
+          }}
           onRefresh={refetch}
           onResetFilters={handleReset}
         />
@@ -125,7 +128,7 @@ const QuotationSelectionDialog = ({
           </>
         )}
       </DialogContent>
-      
+
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" size="large">
           ยกเลิก

@@ -75,23 +75,7 @@ export const CALENDAR_CONFIG = {
 export const PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 // Day names in Thai
-export const DAY_NAMES = [
-  "จันทร์",
-  "อังคาร",
-  "พุธ",
-  "พฤหัสบดี",
-  "ศุกร์",
-  "เสาร์",
-  "อาทิตย์",
-];
+export const DAY_NAMES = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 
 // Day names abbreviations in Thai for mobile
-export const DAY_NAMES_SHORT = [
-  "จ.",
-  "อ.",
-  "พ.",
-  "พฤ.",
-  "ศ.",
-  "ส.",
-  "อา.",
-];
+export const DAY_NAMES_SHORT = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];

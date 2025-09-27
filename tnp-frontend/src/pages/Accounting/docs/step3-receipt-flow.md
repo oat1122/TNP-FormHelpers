@@ -1,9 +1,12 @@
 # Step 3: ใบเสร็จ/ใบกำกับภาษี (Receipt/Tax Invoice Flow)
 
 ## 🎯 วัตถุประสงค์
-สร้างระบบบันทึกการชำระเงินและออกใบเสร็จ/ใบกำกับภาษีอัตโนมัติ พร้อมการคำนวณ VAT และ running number ตามมาตรฐาน
+
+สร้างระบบบันทึกการชำระเงินและออกใบเสร็จ/ใบกำกับภาษีอัตโนมัติ พร้อมการคำนวณ VAT
+และ running number ตามมาตรฐาน
 
 ## 🔄 Flow การทำงาน
+
 ```
 Invoice (Payment) → Record Payment → Auto Generate Receipt/Tax Invoice → Account Approve
 ```
@@ -11,6 +14,7 @@ Invoice (Payment) → Record Payment → Auto Generate Receipt/Tax Invoice → A
 ## 🎨 UI Design
 
 ### ขั้นตอน 3.1: บันทึกการชำระเงิน
+
 ```
 Payment Recording Interface:
 ┌─────────────────────────────────────────────────────────────┐
@@ -50,6 +54,7 @@ Payment Recording Interface:
 ```
 
 ### ขั้นตอน 3.2: สร้างใบเสร็จ/ใบกำกับภาษีอัตโนมัติ
+
 ```
 Auto Receipt Generation:
 ┌─────────────────────────────────────────────────────────────┐
@@ -88,6 +93,7 @@ Auto Receipt Generation:
 ```
 
 ### ขั้นตอน 3.3: Account ตรวจสอบและอนุมัติ
+
 ```
 Final Receipt Approval:
 ┌─────────────────────────────────────────────────────────────┐
@@ -125,18 +131,19 @@ Final Receipt Approval:
 ## 🔧 Technical Implementation
 
 ### Cascade Auto-fill สำหรับ Receipt
+
 ```javascript
 // Auto-fill Receipt จาก Invoice ตาม technical-implementation.md
 const createReceiptFromInvoice = async (invoiceId, paymentData) => {
   const invoiceData = await invoiceApi.getDetail(invoiceId);
-  
+
   // Cascade Auto-fill ตาม AutofillWorkflow
   const receiptData = {
     // ข้อมูลอ้างอิง
     invoice_id: invoiceData.id,
     quotation_id: invoiceData.quotation_id,
     pricing_request_id: invoiceData.pricing_request_id,
-    
+
     // Auto-fill ข้อมูลลูกค้าจาก CustomerAutofillDTO
     customer_id: invoiceData.customer_id,
     customer_company: invoiceData.customer_company,
@@ -145,85 +152,93 @@ const createReceiptFromInvoice = async (invoiceId, paymentData) => {
     customer_zip_code: invoiceData.customer_zip_code,
     customer_tel_1: invoiceData.customer_tel_1,
     customer_email: invoiceData.customer_email,
-    
+
     // Auto-fill รายละเอียดงาน
     work_name: invoiceData.work_name,
     pattern: invoiceData.pattern,
     fabric_type: invoiceData.fabric_type,
     color: invoiceData.color,
-    
+
     // ข้อมูลการชำระ
     payment_date: paymentData.payment_date,
     payment_method: paymentData.payment_method,
     payment_amount: paymentData.amount,
     payment_reference: paymentData.reference,
     bank_name: paymentData.bank_name,
-    
+
     // การคำนวณ VAT
     receipt_type: determineReceiptType(invoiceData),
     subtotal: invoiceData.subtotal,
     vat_rate: invoiceData.vat_rate,
     vat_amount: invoiceData.vat_amount,
     total_amount: paymentData.amount,
-    
-    status: 'draft'
+
+    status: "draft",
   };
-  
+
   return receiptApi.create(receiptData);
 };
 
 const determineReceiptType = (invoiceData) => {
   // ตรวจสอบว่าลูกค้ามีเลขภาษีหรือไม่
-  if (invoiceData.customer_tax_id && invoiceData.customer_tax_id.length === 13) {
-    return 'tax_invoice'; // ใบกำกับภาษี
+  if (
+    invoiceData.customer_tax_id &&
+    invoiceData.customer_tax_id.length === 13
+  ) {
+    return "tax_invoice"; // ใบกำกับภาษี
   }
-  return 'receipt'; // ใบเสร็จธรรมดา
+  return "receipt"; // ใบเสร็จธรรมดา
 };
 ```
 
 ### Auto Generate Document Number
+
 ```javascript
 const generateDocumentNumber = (type, date = new Date()) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const sequence = getNextSequenceNumber(type, year, month);
-  
+
   const formats = {
-    receipt: `RCPT${year}${month}-${sequence.toString().padStart(4, '0')}`,
-    tax_invoice: `TAX${year}${month}-${sequence.toString().padStart(4, '0')}`,
-    delivery_note: `DN${year}${month}-${sequence.toString().padStart(4, '0')}`
+    receipt: `RCPT${year}${month}-${sequence.toString().padStart(4, "0")}`,
+    tax_invoice: `TAX${year}${month}-${sequence.toString().padStart(4, "0")}`,
+    delivery_note: `DN${year}${month}-${sequence.toString().padStart(4, "0")}`,
   };
-  
+
   return formats[type];
 };
 ```
 
 ### Receipt Types
+
 ```javascript
 const RECEIPT_TYPES = {
-  SIMPLE: 'receipt',               // ใบเสร็จธรรมดา
-  TAX_INVOICE: 'tax_invoice',      // ใบกำกับภาษี
-  FULL_TAX_INVOICE: 'full_tax_invoice' // ใบกำกับภาษี/ใบเสร็จ
+  SIMPLE: "receipt", // ใบเสร็จธรรมดา
+  TAX_INVOICE: "tax_invoice", // ใบกำกับภาษี
+  FULL_TAX_INVOICE: "full_tax_invoice", // ใบกำกับภาษี/ใบเสร็จ
 };
 ```
 
 ### Payment Methods
+
 ```javascript
 const PAYMENT_METHODS = {
-  CASH: 'cash',                    // เงินสด
-  TRANSFER: 'transfer',            // โอนเงิน
-  CHECK: 'check',                  // เช็ค
-  CREDIT_CARD: 'credit_card'       // บัตรเครดิต
+  CASH: "cash", // เงินสด
+  TRANSFER: "transfer", // โอนเงิน
+  CHECK: "check", // เช็ค
+  CREDIT_CARD: "credit_card", // บัตรเครดิต
 };
 ```
 
 ## 📋 Required APIs
 
 ### POST /api/invoices/:id/record-payment
+
 **Request:**
+
 ```json
 {
-  "amount": 26750.00,
+  "amount": 26750.0,
   "payment_date": "2025-01-20",
   "payment_method": "transfer",
   "bank": "กสิกรไทย",
@@ -234,14 +249,18 @@ const PAYMENT_METHODS = {
 ```
 
 ### POST /api/invoices/:id/convert-to-receipt
+
 ### POST /api/receipts/:id/generate-tax-number
+
 ### GET /api/receipts/:id/pdf
 
 ## 🔐 Permissions
+
 - **Sales**: ดูข้อมูลได้เท่านั้น
 - **Account**: บันทึกการชำระ สร้างใบเสร็จ อนุมัติ
 
 ## ✅ Acceptance Criteria
+
 1. บันทึกการชำระเงินด้วยวิธีต่างๆ ได้
 2. อัปโหลดหลักฐานการชำระได้
 3. สร้างใบเสร็จ/ใบกำกับภาษีอัตโนมัติ
@@ -251,6 +270,7 @@ const PAYMENT_METHODS = {
 7. อัปเดตสถานะใบแจ้งหนี้เป็น "ชำระแล้ว"
 
 ## 🚀 AI Command
+
 ```bash
 สร้างระบบบันทึกการชำระเงินและออกใบเสร็จ/ใบกำกับภาษีอัตโนมัติ
 พร้อมการคำนวณ VAT และ running number ตามมาตรฐาน

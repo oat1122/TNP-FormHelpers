@@ -1,21 +1,6 @@
 import React from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Tooltip,
-  Avatar,
-  Chip,
-} from "@mui/material";
-import {
-  Assignment,
-  Inventory,
-  Speed,
-  TrendingUp,
-  Info,
-} from "@mui/icons-material";
+import { Box, Typography, Grid, Card, CardContent, Tooltip, Avatar, Chip } from "@mui/material";
+import { Assignment, Inventory, Speed, TrendingUp, Info } from "@mui/icons-material";
 import TimePeriodSelector from "./TimePeriodSelector";
 
 const CapacitySummary = ({
@@ -30,20 +15,15 @@ const CapacitySummary = ({
     return new Intl.NumberFormat("th-TH").format(number);
   };
 
-  const totalJobs = Object.values(workCalc.job_count || {}).reduce(
-    (sum, val) => sum + val,
-    0
-  );
-  const totalWorkload = Object.values(workCalc.current_workload).reduce(
-    (sum, val) => sum + val,
-    0
-  );
+  const totalJobs = Object.values(workCalc.job_count || {}).reduce((sum, val) => sum + val, 0);
+  const totalWorkload = Object.values(workCalc.current_workload).reduce((sum, val) => sum + val, 0);
   const totalCapacity = Object.values(
     workCalc.capacity?.total || workCalc.capacity?.daily || {}
   ).reduce((sum, val) => sum + val, 0);
-  const totalDailyCapacity = Object.values(
-    workCalc.capacity?.daily || {}
-  ).reduce((sum, val) => sum + val, 0);
+  const totalDailyCapacity = Object.values(workCalc.capacity?.daily || {}).reduce(
+    (sum, val) => sum + val,
+    0
+  );
   const averageUtilization =
     totalCapacity > 0 ? Math.round((totalWorkload / totalCapacity) * 100) : 0;
 
@@ -87,18 +67,18 @@ const CapacitySummary = ({
         utilizationLevel.color === "error"
           ? "#d32f2f"
           : utilizationLevel.color === "warning"
-          ? "#ed6c02"
-          : utilizationLevel.color === "info"
-          ? "#0288d1"
-          : "#2e7d32",
+            ? "#ed6c02"
+            : utilizationLevel.color === "info"
+              ? "#0288d1"
+              : "#2e7d32",
       bgColor:
         utilizationLevel.color === "error"
           ? "#ffebee"
           : utilizationLevel.color === "warning"
-          ? "#fff3e0"
-          : utilizationLevel.color === "info"
-          ? "#e1f5fe"
-          : "#e8f5e8",
+            ? "#fff3e0"
+            : utilizationLevel.color === "info"
+              ? "#e1f5fe"
+              : "#e8f5e8",
     },
   ];
 
@@ -116,9 +96,7 @@ const CapacitySummary = ({
           <Typography variant="h5" fontWeight="bold" sx={{ mr: 1 }}>
             สรุปงานและกำลังการผลิต
           </Typography>
-          <Tooltip
-            title={`แสดงงานที่ "กำลังผลิต" เฉพาะช่วงเวลา: ${periodLabel}`}
-          >
+          <Tooltip title={`แสดงงานที่ "กำลังผลิต" เฉพาะช่วงเวลา: ${periodLabel}`}>
             <Info color="action" sx={{ fontSize: 20 }} />
           </Tooltip>
         </Box>
@@ -162,22 +140,11 @@ const CapacitySummary = ({
                   {item.icon}
                 </Avatar>
 
-                <Typography
-                  variant="h3"
-                  fontWeight="bold"
-                  color={item.color}
-                  sx={{ mb: 1 }}
-                >
-                  {typeof item.value === "number"
-                    ? formatNumber(item.value)
-                    : item.value}
+                <Typography variant="h3" fontWeight="bold" color={item.color} sx={{ mb: 1 }}>
+                  {typeof item.value === "number" ? formatNumber(item.value) : item.value}
                 </Typography>
 
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 1 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   {item.title}
                 </Typography>
 

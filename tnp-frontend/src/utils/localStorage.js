@@ -34,8 +34,8 @@ export const validateCustomerTablePreferences = () => {
     if (savedVisibility) {
       result.columnVisibility.exists = true;
       const parsed = JSON.parse(savedVisibility);
-      const requiredColumns = ['cus_channel', 'cd_note', 'business_type'];
-      result.columnVisibility.valid = requiredColumns.every(col => col in parsed.model);
+      const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+      result.columnVisibility.valid = requiredColumns.every((col) => col in parsed.model);
     }
 
     // Check column order preferences
@@ -43,8 +43,8 @@ export const validateCustomerTablePreferences = () => {
     if (savedOrder) {
       result.columnOrder.exists = true;
       const parsed = JSON.parse(savedOrder);
-      const requiredColumns = ['cus_channel', 'cd_note', 'business_type'];
-      result.columnOrder.valid = requiredColumns.every(col => parsed.order.includes(col));
+      const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+      result.columnOrder.valid = requiredColumns.every((col) => parsed.order.includes(col));
     }
   } catch (error) {
     console.error("Error validating localStorage preferences:", error);
@@ -61,7 +61,7 @@ export const exportCustomerTablePreferences = () => {
   try {
     const visibility = localStorage.getItem("customerTableColumnVisibility");
     const order = localStorage.getItem("customerTableColumnOrder");
-    
+
     return {
       columnVisibility: visibility ? JSON.parse(visibility) : null,
       columnOrder: order ? JSON.parse(order) : null,
@@ -86,14 +86,11 @@ export const importCustomerTablePreferences = (preferences) => {
         JSON.stringify(preferences.columnVisibility)
       );
     }
-    
+
     if (preferences.columnOrder) {
-      localStorage.setItem(
-        "customerTableColumnOrder",
-        JSON.stringify(preferences.columnOrder)
-      );
+      localStorage.setItem("customerTableColumnOrder", JSON.stringify(preferences.columnOrder));
     }
-    
+
     console.log("Customer table preferences imported successfully");
     return true;
   } catch (error) {

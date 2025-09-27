@@ -18,12 +18,7 @@ import {
   styled,
   Divider,
 } from "../../../utils/import_lib";
-import { 
-  MdAdd,
-  MdDelete,
-  MdExpandLess,
-  MdExpandMore 
-} from "react-icons/md";
+import { MdAdd, MdDelete, MdExpandLess, MdExpandMore } from "react-icons/md";
 import {
   collarList,
   collarTypeList,
@@ -407,9 +402,7 @@ function PoloSect({ handleInputChange }) {
         <Grid container spacing={1} alignItems="center">
           <Grid size={{ xs: 12, md: 3 }} p={1}>
             <FormControl fullWidth>
-              <InputLabel id="demo-simple-select-label">
-                รูปแบบกระเป๋า
-              </InputLabel>
+              <InputLabel id="demo-simple-select-label">รูปแบบกระเป๋า</InputLabel>
               <Select
                 fullWidth
                 variant="outlined"
@@ -543,11 +536,7 @@ function PoloSect({ handleInputChange }) {
             />
           </Grid>
 
-          <Grid
-            size={{ xs: 12 }}
-            p={1}
-            sx={{ display: { xs: "block", md: "none" } }}
-          >
+          <Grid size={{ xs: 12 }} p={1} sx={{ display: { xs: "block", md: "none" } }}>
             <VerticalDivider variant="middle" />
           </Grid>
 
@@ -581,10 +570,11 @@ function PoloSect({ handleInputChange }) {
                     p={1}
                     // mt={{ xs: 0 }}
                     textAlign="center"
-                    alignItems="center"                  >
+                    alignItems="center"
+                  >
                     <Typography variant="h6">{index + 1}</Typography>
                   </Grid>
-                  <Grid size={{ xs: 10, sm: 4, }} p={1}>
+                  <Grid size={{ xs: 10, sm: 4 }} p={1}>
                     <FormControl fullWidth>
                       <InputLabel>ตำแหน่ง</InputLabel>
                       <Select
@@ -618,18 +608,18 @@ function PoloSect({ handleInputChange }) {
                   </Grid>
 
                   {poloEmbroider.length > 1 && (
-                  <Grid size={{ xs: 12, sm: 1 }} p={1} textAlign="center">
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => deleteRow(index)}
-                      sx={{
-                        minWidth: { xs: "100%", md: "60%", },
-                      }}
-                    >
-                      <MdDelete style={{ fontSize: '1.45rem' }} />
-                    </Button>
-                  </Grid>
+                    <Grid size={{ xs: 12, sm: 1 }} p={1} textAlign="center">
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => deleteRow(index)}
+                        sx={{
+                          minWidth: { xs: "100%", md: "60%" },
+                        }}
+                      >
+                        <MdDelete style={{ fontSize: "1.45rem" }} />
+                      </Button>
+                    </Grid>
                   )}
                 </Grid>
 
@@ -638,7 +628,10 @@ function PoloSect({ handleInputChange }) {
                   p={1}
                   sx={{
                     display: {
-                      xs: poloEmbroider.length > 1 && poloEmbroider.length !== index + 1  ? "block" : "none",
+                      xs:
+                        poloEmbroider.length > 1 && poloEmbroider.length !== index + 1
+                          ? "block"
+                          : "none",
                       sm: "none",
                     },
                   }}
@@ -648,7 +641,6 @@ function PoloSect({ handleInputChange }) {
               </div>
             ))}
           </Grid>
-
         </Grid>
       </Collapse>
     </>

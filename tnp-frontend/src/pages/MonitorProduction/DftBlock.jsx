@@ -18,11 +18,9 @@ function ScreenBlock({ data }) {
   const handleCloseModal = () => {
     setShowModal(false);
     setRadioDFT(data.dft_block);
-  }
+  };
 
-  const saveDate = data.dft_date
-    ? moment(data.dft_date).format("DD/MM/yy")
-    : null;
+  const saveDate = data.dft_date ? moment(data.dft_date).format("DD/MM/yy") : null;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -62,7 +60,9 @@ function ScreenBlock({ data }) {
   return (
     <div className={`screen-block my-2 ${data.dft === null && `text-secondary`}`}>
       <Stack direction="horizontal" gap={0}>
-        <Button className="btn btn-modal-factory-disabled py-1" disabled>0</Button>
+        <Button className="btn btn-modal-factory-disabled py-1" disabled>
+          0
+        </Button>
         <div className="content-date text-start rounded-start ms-2 ps-2 w-50">
           <label className="title">ไฟล์ DFT</label>
         </div>
@@ -70,12 +70,12 @@ function ScreenBlock({ data }) {
           {data.dft === 1 && (
             <>
               <label>{saveDate === "Invalid date" ? "" : saveDate}</label>
-              <label className="title ps-1 pe-3">{data.dft_block !== null && ` | ${data.dft_block}`}</label>
+              <label className="title ps-1 pe-3">
+                {data.dft_block !== null && ` | ${data.dft_block}`}
+              </label>
             </>
           )}
-          {user.role !== "graphic" ||
-          data.status === 2 ||
-          data.dft === null ? null : (
+          {user.role !== "graphic" || data.status === 2 || data.dft === null ? null : (
             <>
               <input
                 type="checkbox"
@@ -95,12 +95,7 @@ function ScreenBlock({ data }) {
           )}
         </div>
       </Stack>
-      <Modal
-        show={showModal}
-        onHide={handleCloseModal}
-        size="md"
-        className="modal-embroid"
-      >
+      <Modal show={showModal} onHide={handleCloseModal} size="md" className="modal-embroid">
         <form onSubmit={handleSubmit}>
           <Modal.Header className="py-1">
             <Modal.Title className="mx-auto">DFT File</Modal.Title>
@@ -123,18 +118,14 @@ function ScreenBlock({ data }) {
                     {radio === "IN"
                       ? "ทำเสร็จแล้ว"
                       : radio === "OUT"
-                      ? "ส่งออกไม่ได้ทำ"
-                      : radio === "EDIT" && "กำลังแก้ไข"}
+                        ? "ส่งออกไม่ได้ทำ"
+                        : radio === "EDIT" && "กำลังแก้ไข"}
                   </ToggleButton>
                 </Col>
               ))}
           </Modal.Body>
           <Modal.Footer className="text-center col-12 py-3">
-            <Button
-              type="submit"
-              variant="danger"
-              className="col-12 col-md-5 mx-md-2"
-            >
+            <Button type="submit" variant="danger" className="col-12 col-md-5 mx-md-2">
               save
             </Button>
             <Button

@@ -14,12 +14,8 @@ export const useFilterState = () => {
   // Create working draft of filter values
   const [draftFilters, setDraftFilters] = useState({
     dateRange: {
-      startDate: filters.dateRange.startDate
-        ? dayjs(filters.dateRange.startDate)
-        : null,
-      endDate: filters.dateRange.endDate
-        ? dayjs(filters.dateRange.endDate)
-        : null,
+      startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
+      endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
     },
     salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
     channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
@@ -30,16 +26,10 @@ export const useFilterState = () => {
     try {
       setDraftFilters({
         dateRange: {
-          startDate: filters.dateRange.startDate
-            ? dayjs(filters.dateRange.startDate)
-            : null,
-          endDate: filters.dateRange.endDate
-            ? dayjs(filters.dateRange.endDate)
-            : null,
+          startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
+          endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
         },
-        salesName: Array.isArray(filters.salesName)
-          ? [...filters.salesName]
-          : [],
+        salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
         channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
       });
     } catch (error) {
@@ -108,9 +98,9 @@ export const useFilterState = () => {
     activeFilterCount,
     formattedStartDate,
     formattedEndDate,
-    
+
     // Actions
     prepareFiltersForAPI,
     resetDraftFilters,
   };
-}; 
+};

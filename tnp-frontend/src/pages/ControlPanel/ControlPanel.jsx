@@ -84,9 +84,7 @@ function ControlPanel() {
                         SCREEN
                       </span>
                       <span className="production-count">
-                        {maxSupplyStats.work_calculations.current_workload
-                          .screen || 0}{" "}
-                        ชิ้น
+                        {maxSupplyStats.work_calculations.current_workload.screen || 0} ชิ้น
                       </span>
                     </div>
                   </button>
@@ -107,9 +105,7 @@ function ControlPanel() {
                         DTF
                       </span>
                       <span className="production-count">
-                        {maxSupplyStats.work_calculations.current_workload
-                          .dtf || 0}{" "}
-                        ชิ้น
+                        {maxSupplyStats.work_calculations.current_workload.dtf || 0} ชิ้น
                       </span>
                     </div>
                   </button>
@@ -132,9 +128,7 @@ function ControlPanel() {
                         SUB
                       </span>
                       <span className="production-count">
-                        {maxSupplyStats.work_calculations.current_workload
-                          .sublimation || 0}{" "}
-                        ชิ้น
+                        {maxSupplyStats.work_calculations.current_workload.sublimation || 0} ชิ้น
                       </span>
                     </div>
                   </button>
@@ -155,9 +149,7 @@ function ControlPanel() {
                         EM
                       </span>
                       <span className="production-count">
-                        {maxSupplyStats.work_calculations.current_workload
-                          .embroidery || 0}{" "}
-                        ชิ้น
+                        {maxSupplyStats.work_calculations.current_workload.embroidery || 0} ชิ้น
                       </span>
                     </div>
                   </button>
@@ -278,22 +270,14 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaTshirt />
             </IconContext.Provider>
-            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
-              WORK SHEET V.1
-            </label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>WORK SHEET V.1</label>
           </a>
           <div className="vr vr-home"></div>
-          <a
-            className="btn btn-outline-danger pt-3"
-            href="/worksheet"
-            style={{ width: "5.8rem" }}
-          >
+          <a className="btn btn-outline-danger pt-3" href="/worksheet" style={{ width: "5.8rem" }}>
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaShirt />
             </IconContext.Provider>
-            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
-              WORK SHEET V.2
-            </label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>WORK SHEET V.2</label>
           </a>
           <div className="vr vr-home"></div>
           <a className="btn btn-outline-danger pt-3" href="/pricing">
@@ -328,17 +312,11 @@ function ControlPanel() {
         <h3>MAX SUPPLY TOOLS</h3>
         <hr />
         <div className="col-3 col-md-2 col-lg-3 ms-md-1 ms-xl-2 me-1 me-md-0 mb-0 mb-md-0 mb-lg-0 col-basic">
-          <a
-            className="btn btn-outline-danger pt-3"
-            href="/max-supply"
-            style={{ width: "5.8rem" }}
-          >
+          <a className="btn btn-outline-danger pt-3" href="/max-supply" style={{ width: "5.8rem" }}>
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaIndustry />
             </IconContext.Provider>
-            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
-              MAX SUPPLY HOME
-            </label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>MAX SUPPLY HOME</label>
           </a>
           <div className="vr vr-home"></div>
           <a
@@ -349,9 +327,7 @@ function ControlPanel() {
             <IconContext.Provider value={{ className: "icon-control-panel" }}>
               <FaList />
             </IconContext.Provider>
-            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>
-              JOB LIST
-            </label>
+            <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>JOB LIST</label>
           </a>
           <div className="vr vr-home"></div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -6,24 +6,12 @@ import {
   DialogActions,
   Button,
   Typography,
-} from '@mui/material';
+} from "@mui/material";
 
-const DeleteDialog = ({ 
-  open, 
-  onClose, 
-  job, 
-  onConfirm 
-}) => {
+const DeleteDialog = ({ open, onClose, job, onConfirm }) => {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        ยืนยันการลบงาน
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>ยืนยันการลบงาน</DialogTitle>
       <DialogContent>
         <Typography>
           คุณแน่ใจหรือไม่ที่จะลบงาน "{job?.title}" ของลูกค้า "{job?.customer_name}"?
@@ -33,9 +21,7 @@ const DeleteDialog = ({
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
-          ยกเลิก
-        </Button>
+        <Button onClick={onClose}>ยกเลิก</Button>
         <Button onClick={onConfirm} color="error" variant="contained">
           ลบงาน
         </Button>
@@ -44,4 +30,4 @@ const DeleteDialog = ({
   );
 };
 
-export default DeleteDialog; 
+export default DeleteDialog;

@@ -38,14 +38,12 @@ export class AdapterBuddhistDayjs extends AdapterDayjs {
       if (formatString.includes(yearFormat)) {
         const gregorianYear = value.year();
         const buddhistYear = gregorianYear + filterValidation.buddhistYearOffset;
-        
+
         if (yearFormat === "YYYY") {
           formattedDate = formattedDate.replace(gregorianYear, buddhistYear);
         } else {
           const shortYear = (gregorianYear % 100).toString().padStart(2, "0");
-          const shortBuddhistYear = (buddhistYear % 100)
-            .toString()
-            .padStart(2, "0");
+          const shortBuddhistYear = (buddhistYear % 100).toString().padStart(2, "0");
           formattedDate = formattedDate.replace(shortYear, shortBuddhistYear);
         }
       }
@@ -171,4 +169,4 @@ export const formatDateDisplay = (date) => {
 export const isValidDateRange = (startDate, endDate) => {
   if (!startDate || !endDate) return true; // Allow partial ranges
   return startDate.isSameOrBefore(endDate);
-}; 
+};

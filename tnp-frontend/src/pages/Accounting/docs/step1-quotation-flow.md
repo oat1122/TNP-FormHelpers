@@ -1,9 +1,12 @@
 # Step 1: ใบเสนอราคา (Quotation Flow)
 
 ## 🎯 วัตถุประสงค์
-สร้าง Quotation Flow ที่มี 3 ขั้นตอน: Sales สร้างและแก้ไข → Account ตรวจสอบและอนุมัติ → Sales ส่งให้ลูกค้าและอัปโหลดหลักฐาน
+
+สร้าง Quotation Flow ที่มี 3 ขั้นตอน: Sales สร้างและแก้ไข → Account
+ตรวจสอบและอนุมัติ → Sales ส่งให้ลูกค้าและอัปโหลดหลักฐาน
 
 ## 🔄 Flow การทำงาน
+
 ```
 Draft → Pending Review → Approved → Sent → Completed
   ↑         ↑              ↑         ↑        ↑
@@ -13,6 +16,7 @@ Sales    Account       Account   Sales   Sales
 ## 🎨 UI Design
 
 ### ขั้นตอน 1.1: Sales สร้างใบเสนอราคา
+
 ```
 Create Quotation Form:
 ┌─────────────────────────────────────────────────────────────┐
@@ -67,6 +71,7 @@ Create Quotation Form:
 ```
 
 ### ขั้นตอน 1.2: Account ตรวจสอบและอนุมัติ
+
 ```
 Approval Interface:
 ┌─────────────────────────────────────────────────────────────┐
@@ -95,6 +100,7 @@ Approval Interface:
 ```
 
 ### ขั้นตอน 1.3: Sales ส่งเอกสารให้ลูกค้า
+
 ```
 Send Document Interface:
 ┌─────────────────────────────────────────────────────────────┐
@@ -123,41 +129,48 @@ Send Document Interface:
 ## 🔧 Technical Implementation
 
 ### Status Flow
+
 ```javascript
 const QUOTATION_STATUSES = {
-  DRAFT: 'draft',                    // ร่าง (Sales สร้าง)
-  PENDING_REVIEW: 'pending_review',  // รอตรวจสอบ (ส่งให้ Account)
-  APPROVED: 'approved',              // อนุมัติแล้ว (Account อนุมัติ)
-  REJECTED: 'rejected',              // ปฏิเสธ (Account ปฏิเสธ)
-  SENT: 'sent',                      // ส่งลูกค้าแล้ว (Sales ส่ง)
-  COMPLETED: 'completed'             // สำเร็จ (ลูกค้าตอบรับ)
+  DRAFT: "draft", // ร่าง (Sales สร้าง)
+  PENDING_REVIEW: "pending_review", // รอตรวจสอบ (ส่งให้ Account)
+  APPROVED: "approved", // อนุมัติแล้ว (Account อนุมัติ)
+  REJECTED: "rejected", // ปฏิเสธ (Account ปฏิเสธ)
+  SENT: "sent", // ส่งลูกค้าแล้ว (Sales ส่ง)
+  COMPLETED: "completed", // สำเร็จ (ลูกค้าตอบรับ)
 };
 ```
 
 ### Role-Based Actions
+
 ```javascript
 const getAvailableActions = (status, userRole) => {
   const actions = {
     [QUOTATION_STATUSES.DRAFT]: {
-      sales: ['edit', 'delete', 'submit_for_review'],
-      account: ['edit', 'delete', 'approve', 'reject']
+      sales: ["edit", "delete", "submit_for_review"],
+      account: ["edit", "delete", "approve", "reject"],
     },
     [QUOTATION_STATUSES.PENDING_REVIEW]: {
-      sales: ['view'],
-      account: ['approve', 'reject', 'send_back_for_edit']
+      sales: ["view"],
+      account: ["approve", "reject", "send_back_for_edit"],
     },
     [QUOTATION_STATUSES.APPROVED]: {
-      sales: ['download_pdf', 'send_email', 'upload_evidence', 'mark_completed'],
-      account: ['view', 'revoke_approval', 'create_invoice']
+      sales: [
+        "download_pdf",
+        "send_email",
+        "upload_evidence",
+        "mark_completed",
+      ],
+      account: ["view", "revoke_approval", "create_invoice"],
     },
     [QUOTATION_STATUSES.SENT]: {
-      sales: ['mark_completed'],
-      account: ['view', 'create_invoice']
+      sales: ["mark_completed"],
+      account: ["view", "create_invoice"],
     },
     [QUOTATION_STATUSES.COMPLETED]: {
-      sales: ['view'],
-      account: ['view', 'create_invoice']
-    }
+      sales: ["view"],
+      account: ["view", "create_invoice"],
+    },
   };
   return actions[status]?.[userRole] || [];
 };
@@ -166,7 +179,9 @@ const getAvailableActions = (status, userRole) => {
 ## 📋 Required APIs
 
 ### POST /api/quotations (with Auto-fill support)
+
 **Request:**
+
 ```json
 {
   "pricing_request_id": 1001,
@@ -188,34 +203,41 @@ const getAvailableActions = (status, userRole) => {
     {
       "description": "โบรชัวร์ A4 4 สี",
       "quantity": 2,
-      "unit_price": 25000.00,
-      "total": 50000.00
+      "unit_price": 25000.0,
+      "total": 50000.0
     }
   ],
-  "subtotal": 50000.00,
+  "subtotal": 50000.0,
   "vat_rate": 7,
-  "vat_amount": 3500.00,
-  "total_amount": 53500.00,
+  "vat_amount": 3500.0,
+  "total_amount": 53500.0,
   "payment_terms": "credit_30_days",
   "deposit_percentage": 50,
-  "deposit_amount": 26750.00,
-  "remaining_amount": 26750.00,
+  "deposit_amount": 26750.0,
+  "remaining_amount": 26750.0,
   "notes": "[Sale Note] ลูกค้าต้องการคุณภาพพิเศษ\nราคานี้รวมค่าจัดส่งและติดตั้งแล้ว"
 }
 ```
 
 ### PUT /api/quotations/:id
+
 ### POST /api/quotations/:id/submit
+
 ### POST /api/quotations/:id/approve
+
 ### POST /api/quotations/:id/reject
+
 ### GET /api/quotations/:id/pdf
+
 ### POST /api/quotations/:id/send-email
 
 ## 🔐 Permissions
+
 - **Sales**: สร้าง แก้ไข ส่งตรวจสอบ ส่งลูกค้า (เฉพาะที่ตัวเองสร้าง)
 - **Account**: ตรวจสอบ อนุมัติ ปฏิเสธ แก้ไขได้ทุกอัน
 
 ## ✅ Acceptance Criteria
+
 1. Sales สร้างใบเสนอราคาจาก Pricing Request ได้ด้วย Auto-fill
 2. Auto-fill ข้อมูลลูกค้าและรายละเอียดงานตาม technical-implementation.md
 3. แก้ไขเงื่อนไขการชำระและเงินมัดจำได้
@@ -227,10 +249,11 @@ const getAvailableActions = (status, userRole) => {
 9. รองรับการนำ Notes จาก Pricing Request มาแสดง
 
 ## 🚀 AI Command
+
 ```bash
 สร้าง Quotation Flow ที่มี 3 ขั้นตอน:
 1. Sales สร้างและแก้ไขด้วย Auto-fill จาก Pricing Request
-2. Account ตรวจสอบและอนุมัติ  
+2. Account ตรวจสอบและอนุมัติ
 3. Sales ส่งให้ลูกค้าและอัปโหลดหลักฐาน
 โดยใช้ข้อมูลตาม technical-implementation.md
 ```

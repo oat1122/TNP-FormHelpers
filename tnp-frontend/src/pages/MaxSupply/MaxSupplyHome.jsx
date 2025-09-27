@@ -1,53 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import { Box, Container, Typography, Grid, Button, LinearProgress, Alert } from "@mui/material";
+import { maxSupplyApi, calendarApi } from "../../services/maxSupplyApi";
+import toast from "react-hot-toast";
+import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
+import { useFallbackData } from "../../hooks/useFallbackData";
 import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  Button,
-  LinearProgress,
-  Alert,
-} from '@mui/material';
-import { 
-  maxSupplyApi, 
-  calendarApi 
-} from '../../services/maxSupplyApi';
-import toast from 'react-hot-toast';
-import { useMaxSupplyData } from '../../hooks/useMaxSupplyData';
-import { useFallbackData } from '../../hooks/useFallbackData';
-import { StatisticsCards, WorkCapacityCard, KanbanBoard, EnhancedDashboard } from '../../components/MaxSupply';
+  StatisticsCards,
+  WorkCapacityCard,
+  KanbanBoard,
+  EnhancedDashboard,
+} from "../../components/MaxSupply";
+import { NavigationTabs, DeadlineSection, JobStatusSection } from "./components";
+import EnhancedCalendarView from "./components/CalendarView";
 import {
-  NavigationTabs,
-  DeadlineSection,
-  JobStatusSection,
-} from './components';
-import EnhancedCalendarView from './components/CalendarView';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  eachDayOfInterval, 
-  addMonths, 
-  subMonths, 
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  addMonths,
+  subMonths,
   startOfWeek,
   endOfWeek,
-  } from 'date-fns';
+} from "date-fns";
 
 const MaxSupplyHome = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('month'); 
+  const [viewMode, setViewMode] = useState("month");
   const [currentTab, setCurrentTab] = useState(0); // 0=Dashboard, 1=Calendar, 2=Manager (default to Dashboard for better UX)
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState('today'); // Shared time period state
-  
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState("today"); // Shared time period state
+
   // Use custom hook for data management
-  const { 
-    data: realMaxSupplies, 
-    loading, 
-    error, 
-    statistics: realStatistics, 
-    refetch, 
+  const {
+    data: realMaxSupplies,
+    loading,
+    error,
+    statistics: realStatistics,
+    refetch,
     getEventsForDate: getRealEventsForDate,
-    getUpcomingDeadlines: getRealUpcomingDeadlines 
+    getUpcomingDeadlines: getRealUpcomingDeadlines,
   } = useMaxSupplyData({
     view: viewMode,
     date: currentDate,
@@ -62,34 +52,34 @@ const MaxSupplyHome = () => {
   } = useFallbackData();
 
   // Fallback mode when backend is unavailable
-  const isBackendUnavailable = error && (
-    error.includes('Cannot connect to server') || 
-    error.includes('Network Error') ||
-    error.includes('timeout')
-  );
+  const isBackendUnavailable =
+    error &&
+    (error.includes("Cannot connect to server") ||
+      error.includes("Network Error") ||
+      error.includes("timeout"));
 
   // Use fallback data only when backend is unavailable
   const maxSupplies = isBackendUnavailable ? fallbackMaxSupplies : realMaxSupplies;
   const statistics = isBackendUnavailable ? fallbackStatistics : realStatistics;
   const getEventsForDate = isBackendUnavailable ? getFallbackEventsForDate : getRealEventsForDate;
-  const getUpcomingDeadlines = isBackendUnavailable ? getFallbackUpcomingDeadlines : getRealUpcomingDeadlines;
-
-
+  const getUpcomingDeadlines = isBackendUnavailable
+    ? getFallbackUpcomingDeadlines
+    : getRealUpcomingDeadlines;
 
   // Handler for status change
   const handleStatusChange = async (jobId, newStatus) => {
     try {
       if (isBackendUnavailable) {
-        toast.error('ไม่สามารถเปลี่ยนสถานะได้ในโหมดสาธิต');
+        toast.error("ไม่สามารถเปลี่ยนสถานะได้ในโหมดสาธิต");
         return;
       }
 
       await maxSupplyApi.updateStatus(jobId, newStatus);
-      toast.success('เปลี่ยนสถานะงานสำเร็จ');
+      toast.success("เปลี่ยนสถานะงานสำเร็จ");
       refetch(); // Refresh data
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('เกิดข้อผิดพลาดในการเปลี่ยนสถานะงาน');
+      console.error("Error updating status:", error);
+      toast.error("เกิดข้อผิดพลาดในการเปลี่ยนสถานะงาน");
     }
   };
 
@@ -97,26 +87,26 @@ const MaxSupplyHome = () => {
   const handleDeleteJob = async (jobId) => {
     try {
       if (isBackendUnavailable) {
-        toast.error('ไม่สามารถลบงานได้ในโหมดสาธิต');
+        toast.error("ไม่สามารถลบงานได้ในโหมดสาธิต");
         return;
       }
 
       await maxSupplyApi.delete(jobId);
-      toast.success('ลบงานสำเร็จ');
+      toast.success("ลบงานสำเร็จ");
       refetch(); // Refresh data
     } catch (error) {
-      console.error('Error deleting job:', error);
-      toast.error('เกิดข้อผิดพลาดในการลบงาน');
+      console.error("Error deleting job:", error);
+      toast.error("เกิดข้อผิดพลาดในการลบงาน");
     }
   };
 
   // Navigate months
   const navigateMonth = (direction) => {
-    if (direction === 'prev') {
+    if (direction === "prev") {
       setCurrentDate(subMonths(currentDate, 1));
-    } else if (direction === 'next') {
+    } else if (direction === "next") {
       setCurrentDate(addMonths(currentDate, 1));
-    } else if (direction === 'today') {
+    } else if (direction === "today") {
       setCurrentDate(new Date());
     }
   };
@@ -130,16 +120,6 @@ const MaxSupplyHome = () => {
     return () => clearTimeout(timer);
   }, [currentDate, viewMode]); // Remove refetch from dependencies
 
-
-
-
-
-
-
-
-
-
-
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -152,26 +132,16 @@ const MaxSupplyHome = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Navigation Tabs */}
-      <NavigationTabs 
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-      />
-
-
+      <NavigationTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
 
       {/* Error Alert or Demo Mode Alert */}
       {error && isBackendUnavailable && (
-        <Alert 
-          severity="info" 
+        <Alert
+          severity="info"
           sx={{ mb: 3 }}
           action={
-            <Button 
-              size="small" 
-              onClick={refetch} 
-              disabled={loading}
-              sx={{ color: 'inherit' }}
-            >
-              {loading ? 'กำลังลอง...' : 'เชื่อมต่อ Backend'}
+            <Button size="small" onClick={refetch} disabled={loading} sx={{ color: "inherit" }}>
+              {loading ? "กำลังลอง..." : "เชื่อมต่อ Backend"}
             </Button>
           }
         >
@@ -181,24 +151,20 @@ const MaxSupplyHome = () => {
           <Typography variant="body2" sx={{ mt: 0.5 }}>
             ไม่สามารถเชื่อมต่อกับ Backend ได้ แต่คุณยังสามารถดู UI และ Layout ได้ปกติ
           </Typography>
-          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            💡 <strong>วิธีแก้ไข:</strong> เปิด Laravel server ที่ <code>localhost:8000</code> แล้วคลิก "เชื่อมต่อ Backend"
+          <Typography variant="body2" sx={{ mt: 1, fontSize: "0.875rem" }}>
+            💡 <strong>วิธีแก้ไข:</strong> เปิด Laravel server ที่ <code>localhost:8000</code>{" "}
+            แล้วคลิก "เชื่อมต่อ Backend"
           </Typography>
         </Alert>
       )}
 
       {error && !isBackendUnavailable && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mb: 3 }}
           action={
-            <Button 
-              size="small" 
-              onClick={refetch} 
-              disabled={loading}
-              sx={{ color: 'inherit' }}
-            >
-              {loading ? 'กำลังลอง...' : 'ลองใหม่'}
+            <Button size="small" onClick={refetch} disabled={loading} sx={{ color: "inherit" }}>
+              {loading ? "กำลังลอง..." : "ลองใหม่"}
             </Button>
           }
         >
@@ -213,7 +179,7 @@ const MaxSupplyHome = () => {
         <Grid container spacing={3}>
           {/* Calendar */}
           <Grid item xs={12} lg={9}>
-            <EnhancedCalendarView 
+            <EnhancedCalendarView
               currentDate={currentDate}
               navigateMonth={navigateMonth}
               maxSupplies={maxSupplies}
@@ -226,15 +192,12 @@ const MaxSupplyHome = () => {
 
           {/* Sidebar */}
           <Grid item xs={12} lg={3}>
-            <DeadlineSection 
+            <DeadlineSection
               jobs={maxSupplies}
               getUpcomingDeadlines={getUpcomingDeadlines}
               loading={loading}
             />
-            <JobStatusSection 
-              statistics={statistics}
-              loading={loading}
-            />
+            <JobStatusSection statistics={statistics} loading={loading} />
           </Grid>
         </Grid>
       )}
@@ -243,7 +206,7 @@ const MaxSupplyHome = () => {
       {currentTab === 0 && (
         <Box>
           <EnhancedDashboard
-            statistics={statistics} 
+            statistics={statistics}
             loading={loading}
             allData={maxSupplies}
             selectedTimePeriod={selectedTimePeriod}
@@ -253,7 +216,7 @@ const MaxSupplyHome = () => {
       )}
 
       {currentTab === 2 && (
-        <KanbanBoard 
+        <KanbanBoard
           maxSupplies={maxSupplies}
           onStatusChange={handleStatusChange}
           onDeleteJob={handleDeleteJob}

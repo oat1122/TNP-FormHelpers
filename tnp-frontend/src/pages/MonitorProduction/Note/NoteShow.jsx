@@ -8,9 +8,7 @@ function NoteShow({ note, onDel }) {
   const user = JSON.parse(localStorage.getItem("userData"));
 
   const handleDelete = async () => {
-    const confirm = await dialog_delete_by_id(
-      `ยืนยันการลบบันทึก ${note.note_descr} ?`
-    );
+    const confirm = await dialog_delete_by_id(`ยืนยันการลบบันทึก ${note.note_descr} ?`);
 
     if (confirm) {
       onDel(note.note_id);
@@ -36,9 +34,7 @@ function NoteShow({ note, onDel }) {
             </Col>
           </Row>
         </Col>
-        {(user.role === "manager" ||
-          user.role === "production" ||
-          user.role === "graphic") && (
+        {(user.role === "manager" || user.role === "production" || user.role === "graphic") && (
           <>
             <Col md={1} className="d-none d-lg-inline">
               <button className="btn" variant="outlined" onClick={handleDelete}>

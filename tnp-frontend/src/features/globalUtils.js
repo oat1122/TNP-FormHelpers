@@ -24,13 +24,12 @@ export async function handlelogout() {
 
 // เช็คค่าที่จำเป็นต่อการใช้งาน ที่ส่งมาจากหลังบ้าน
 export async function handleCheckUpdate(userData) {
-
-  const authToken = localStorage.getItem('authToken');
+  const authToken = localStorage.getItem("authToken");
 
   // if (!userData.user_nickname) {
   if (!authToken) {
-    const res = await open_dialog_warning('มีการอัพเดตฟีเจอร์ใหม่ กรุณาลงชื่อเข้าใช้ใหม่อีกครั้ง');
-  
+    const res = await open_dialog_warning("มีการอัพเดตฟีเจอร์ใหม่ กรุณาลงชื่อเข้าใช้ใหม่อีกครั้ง");
+
     if (res) {
       handlelogout();
     }
@@ -40,7 +39,7 @@ export async function handleCheckUpdate(userData) {
 // ตรวจสอบ Session หมดอายุ - ปิดการใช้งานเพื่อป้องกันการ refresh หน้าซ้ำๆ
 export async function handleCheckSessionExpires() {
   // Token expiry checking disabled to prevent infinite refresh loops
-  console.log('Session expiry check disabled');
+  console.log("Session expiry check disabled");
   return;
 
   /* Original code commented out to prevent token expiry issues

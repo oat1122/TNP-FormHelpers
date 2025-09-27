@@ -1,12 +1,12 @@
-export { default as StatisticsCards } from './StatisticsCards';
-export { default as WorkCapacityCard } from './WorkCapacityCard';
-export { default as KanbanBoard } from './KanbanBoard';
-export { default as EnhancedDashboard } from './EnhancedDashboard';
+export { default as StatisticsCards } from "./StatisticsCards";
+export { default as WorkCapacityCard } from "./WorkCapacityCard";
+export { default as KanbanBoard } from "./KanbanBoard";
+export { default as EnhancedDashboard } from "./EnhancedDashboard";
 
 // Kanban components
-export * from './Kanban';
+export * from "./Kanban";
 
 // WorkCapacity components
-export { default as ProductionTypeCapacityCard } from './ProductionTypeCapacityCard';
-export { default as CapacitySummary } from './CapacitySummary';
-export { default as TimePeriodSelector } from './TimePeriodSelector'; 
+export { default as ProductionTypeCapacityCard } from "./ProductionTypeCapacityCard";
+export { default as CapacitySummary } from "./CapacitySummary";
+export { default as TimePeriodSelector } from "./TimePeriodSelector";

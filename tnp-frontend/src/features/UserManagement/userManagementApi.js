@@ -14,14 +14,14 @@ export const userManagementApi = createApi({
           per_page: payload?.per_page,
           search: payload?.search,
         };
-          
+
         const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString ? `/users?${queryString}` : '/users';
+        const url = queryString ? `/users?${queryString}` : "/users";
 
         return {
           url: url,
-          method: "GET"
-        }
+          method: "GET",
+        };
       },
       providesTags: ["UserManagement"],
     }),

@@ -80,12 +80,12 @@
 //     console.log(data);
 
 //     // await axios.put(`http://localhost:8000/api/production/${id}`, production_type).then( () => {
-      
-//     //  console.log(data.message); 
-     
+
+//     //  console.log(data.message);
+
 //     // }).catch(({ response }) => {
 
-//     //   console.log(response.data.message); 
+//     //   console.log(response.data.message);
 //     // })
 
 //   };

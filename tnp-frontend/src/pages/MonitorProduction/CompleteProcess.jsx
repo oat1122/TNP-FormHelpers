@@ -66,13 +66,8 @@ function CompleteProcess({ data }) {
             COMPLETE
           </Button>
         </>
-      ) : (user.role === "manager" || user.role === "admin") &&
-        data.status === 2 ? (
-        <Button
-          variant="outlined"
-          className="col-6 btn-edit"
-          onClick={handleEditProduction}
-        >
+      ) : (user.role === "manager" || user.role === "admin") && data.status === 2 ? (
+        <Button variant="outlined" className="col-6 btn-edit" onClick={handleEditProduction}>
           BACK TO EDIT
         </Button>
       ) : null}

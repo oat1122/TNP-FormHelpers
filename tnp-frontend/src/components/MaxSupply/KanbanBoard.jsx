@@ -1,33 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { Box, Typography, Button, Grid } from "@mui/material";
+import { Add, Assignment } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { KanbanColumn, ContextMenu, DeleteDialog } from "./Kanban";
 import {
-  Box,
-  Typography,
-  Button,
-  Grid,
-} from '@mui/material';
-import {
-  Add,
-  Assignment,
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { 
-  KanbanColumn, 
-  ContextMenu, 
-  DeleteDialog 
-} from './Kanban';
-import { 
-  createColumnsWithCounts, 
-  getJobsByStatus, 
-  PRODUCTION_TYPES, 
-  PRIORITY_COLORS 
-} from './Kanban/kanbanUtils';
+  createColumnsWithCounts,
+  getJobsByStatus,
+  PRODUCTION_TYPES,
+  PRIORITY_COLORS,
+} from "./Kanban/kanbanUtils";
 
-const KanbanBoard = ({ 
-  maxSupplies = [], 
-  onStatusChange, 
-  onDeleteJob, 
-  loading = false 
-}) => {
+const KanbanBoard = ({ maxSupplies = [], onStatusChange, onDeleteJob, loading = false }) => {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState({ open: false, job: null });
   const [menuAnchor, setMenuAnchor] = useState({ element: null, job: null });
@@ -67,13 +50,13 @@ const KanbanBoard = ({
   // Drag and Drop handlers
   const handleDragStart = (e, job) => {
     setDraggedJob(job);
-    e.dataTransfer.setData('text/plain', job.id);
-    e.dataTransfer.effectAllowed = 'move';
-    
+    e.dataTransfer.setData("text/plain", job.id);
+    e.dataTransfer.effectAllowed = "move";
+
     // Add ghost image effect
     const dragImage = e.target.cloneNode(true);
-    dragImage.style.transform = 'rotate(5deg)';
-    dragImage.style.opacity = '0.8';
+    dragImage.style.transform = "rotate(5deg)";
+    dragImage.style.opacity = "0.8";
     document.body.appendChild(dragImage);
     e.dataTransfer.setDragImage(dragImage, 0, 0);
     setTimeout(() => document.body.removeChild(dragImage), 0);
@@ -86,7 +69,7 @@ const KanbanBoard = ({
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
   const handleDragEnter = (e, columnId) => {
@@ -104,7 +87,7 @@ const KanbanBoard = ({
   const handleDrop = (e, newStatus) => {
     e.preventDefault();
     setDragOverColumn(null);
-    
+
     if (draggedJob && draggedJob.status !== newStatus) {
       if (onStatusChange) {
         onStatusChange(draggedJob.id, newStatus);
@@ -112,10 +95,6 @@ const KanbanBoard = ({
     }
     setDraggedJob(null);
   };
-
-
-
-
 
   if (loading) {
     return (
@@ -131,17 +110,17 @@ const KanbanBoard = ({
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h5" fontWeight="bold">
-            <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
+            <Assignment sx={{ mr: 1, verticalAlign: "middle" }} />
             Job Manager
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             ลากและวางการ์ดงานเพื่อเปลี่ยนสถานะ หรือคลิกปุ่ม ⋮ เพื่อจัดการ
           </Typography>
         </Box>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<Add />}
-          onClick={() => navigate('/max-supply/create')}
+          onClick={() => navigate("/max-supply/create")}
         >
           เพิ่มงานใหม่
         </Button>
@@ -153,7 +132,7 @@ const KanbanBoard = ({
           const isDropTarget = dragOverColumn === column.id;
           const canDrop = draggedJob && draggedJob.status !== column.id;
           const columnJobs = getJobsByStatus(maxSupplies, column.id);
-          
+
           return (
             <Grid item xs={12} md={4} key={column.id}>
               <KanbanColumn
@@ -198,4 +177,4 @@ const KanbanBoard = ({
   );
 };
 
-export default KanbanBoard; 
+export default KanbanBoard;

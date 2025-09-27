@@ -9,7 +9,11 @@ import {
   open_dialog_loading,
   Box,
 } from "../../../utils/import_lib.js";
-import { MdOutlineAddPhotoAlternate, MdOutlineDriveFileRenameOutline, MdDeleteOutline } from "react-icons/md";
+import {
+  MdOutlineAddPhotoAlternate,
+  MdOutlineDriveFileRenameOutline,
+  MdDeleteOutline,
+} from "react-icons/md";
 import { useGetAllWorksheetQuery } from "../../../features/Worksheet/worksheetApi";
 import ImagesDialog from "./ImagesDialog.jsx";
 import styles from "../Worksheet.module.css";
@@ -92,23 +96,20 @@ function ImageAction({ data, user }) {
             aria-label="change-image"
             disabled={handleDisableBtn()}
             onClick={handleOpenDialog}
-            >
+          >
             <MdOutlineDriveFileRenameOutline />
           </IconButton>
           <IconButton
             aria-label="delete-image"
             disabled={handleDisableBtn()}
             onClick={handleDeleteImage}
-            >
+          >
             <MdDeleteOutline />
           </IconButton>
         </Box>
       ) : (
-        <Grid
-          container
-          className={styles.gridContainerUpload}
-        >
-          <Grid size={{ xs: "auto", }}>
+        <Grid container className={styles.gridContainerUpload}>
+          <Grid size={{ xs: "auto" }}>
             <IconButton
               aria-label="upload-image"
               disabled={handleUploadDisableBtn()}

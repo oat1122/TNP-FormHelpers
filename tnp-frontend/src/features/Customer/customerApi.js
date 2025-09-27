@@ -34,17 +34,11 @@ export const customerApi = createApi({
           }
 
           // Sales Name filter
-          if (
-            Array.isArray(payload.filters.salesName) &&
-            payload.filters.salesName.length > 0
-          ) {
+          if (Array.isArray(payload.filters.salesName) && payload.filters.salesName.length > 0) {
             queryParams.sales_names = payload.filters.salesName.join(",");
           }
           // Channel filter
-          if (
-            Array.isArray(payload.filters.channel) &&
-            payload.filters.channel.length > 0
-          ) {
+          if (Array.isArray(payload.filters.channel) && payload.filters.channel.length > 0) {
             queryParams.channels = payload.filters.channel.join(",");
           }
         }

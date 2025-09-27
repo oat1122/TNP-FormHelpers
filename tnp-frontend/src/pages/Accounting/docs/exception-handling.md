@@ -1,25 +1,25 @@
-# Exception Handling:│ │ สถานการณ์: ลูกค้าจ่ายมัดจำ 50% แล้ว ต้องการเพิ่มสินค้า      │  │
-│ │                                                             │  │
-│ │ ┌─ Step 1: ย้อนกลับสถานะ (Account เท่านั้น) ──────────────┐  │
-│ │ │ สถานะปัจจุบัน: ใบแจ้งหนี้ (อนุมัติแล้ว)                  │  │
-│ │ │ ต้องการย้อนกลับไป: ใบเสนอราคา (เพื่อแก้ไข)                │  │
-│ │ │                                                         │  │
-│ │ │ เหตุผลการย้อนกลับ:                                       │  │
-│ │ │ [ลูกค้าต้องการเพิ่มรายการสินค้า - บริการติดตั้ง]           │  │
-│ │ │                                                         │  │
-│ │ │ ⚠️ คำเตือน: การย้อนกลับจะส่งผลกระทบต่อเอกสารที่เกี่ยวข้อง │  │
-│ │ │ - Pricing Request: PR-2025-001 (คงอยู่)                │  │
-│ │ │ - ใบแจ้งหนี้และใบเสร็จที่เกี่ยวข้องจะถูกยกเลิก           │  │
-│ │ │ [❌ ยกเลิก] [✅ ยืนยันการย้อนกลับ]                        │  │
-│ │ └─────────────────────────────────────────────────────────┘  │ณีพิเศษ
+# Exception Handling:│ │ สถานการณ์: ลูกค้าจ่ายมัดจำ 50% แล้ว ต้องการเพิ่มสินค้า │ │
+
+│ │ │ │ │ │ ┌─ Step 1: ย้อนกลับสถานะ (Account เท่านั้น) ──────────────┐ │ │ │ │
+สถานะปัจจุบัน: ใบแจ้งหนี้ (อนุมัติแล้ว) │ │ │ │ │ ต้องการย้อนกลับไป: ใบเสนอราคา
+(เพื่อแก้ไข) │ │ │ │ │ │ │ │ │ │ เหตุผลการย้อนกลับ: │ │ │ │ │
+[ลูกค้าต้องการเพิ่มรายการสินค้า - บริการติดตั้ง] │ │ │ │ │ │ │ │ │ │ ⚠️ คำเตือน:
+การย้อนกลับจะส่งผลกระทบต่อเอกสารที่เกี่ยวข้อง │ │ │ │ │ - Pricing Request:
+PR-2025-001 (คงอยู่) │ │ │ │ │ - ใบแจ้งหนี้และใบเสร็จที่เกี่ยวข้องจะถูกยกเลิก │
+│ │ │ │ [❌ ยกเลิก] [✅ ยืนยันการย้อนกลับ] │ │ │ │
+└─────────────────────────────────────────────────────────┘ │ณีพิเศษ
 
 ## 🎯 วัตถุประสงค์
-สร้างระบบจัดการกรณีพิเศษต่างๆ ที่อาจเกิดขึ้นในการทำงาน เช่น การแก้ไขออเดอร์ การส่งสินค้าไม่ครบ และการคืนสินค้า พร้อมออกเอกสาร Credit/Debit Note อัตโนมัติ
+
+สร้างระบบจัดการกรณีพิเศษต่างๆ ที่อาจเกิดขึ้นในการทำงาน เช่น การแก้ไขออเดอร์
+การส่งสินค้าไม่ครบ และการคืนสินค้า พร้อมออกเอกสาร Credit/Debit Note อัตโนมัติ
 
 ## 🔄 กรณีพิเศษที่รองรับ
 
 ### 1. ลูกค้าเปลี่ยนใจเพิ่มสินค้า (หลังจ่ายมัดจำ)
-### 2. ส่งสินค้าไม่ครบ (Partial Delivery)  
+
+### 2. ส่งสินค้าไม่ครบ (Partial Delivery)
+
 ### 3. การคืนสินค้า (Product Return)
 
 ---
@@ -27,6 +27,7 @@
 ## 💡 กรณี 1: ลูกค้าเปลี่ยนใจเพิ่มสินค้า
 
 ### 🎨 UI Design
+
 ```
 Order Modification Flow:
 ┌─────────────────────────────────────────────────────────────┐
@@ -84,16 +85,17 @@ Order Modification Flow:
 ```
 
 ### 🔧 Technical Implementation
+
 ```javascript
 const handleOrderModification = async (quotationId, newItems, reason) => {
   try {
     // 1. ดึงข้อมูลปัจจุบันจาก Quotation (รวม Pricing Request reference)
     const quotationData = await quotationApi.getDetail(quotationId);
     const pricingRequestData = await pricingApi.getDetail(quotationData.pricing_request_id);
-    
+
     // 2. สร้าง backup ก่อนแก้ไข
     const backupData = await quotationApi.createBackup(quotationId);
-    
+
     // 3. อัปเดต Quotation พร้อม reference กลับไป Pricing Request
     const updatedData = {
       ...quotationData,
@@ -111,10 +113,10 @@ const handleOrderModification = async (quotationId, newItems, reason) => {
         }
       ]
     };
-    
+
     // 4. คำนวณยอดใหม่
     const newTotals = calculateQuotationTotals(updatedData.items);
-    
+
     // 5. สร้าง Debit Note อัตโนมัติ
     const debitNote = await createDebitNote({
       quotation_id: quotationId,
@@ -123,7 +125,7 @@ const handleOrderModification = async (quotationId, newItems, reason) => {
       additional_amount: newTotals.total_amount - quotationData.total_amount,
       reason: reason
     });
-    
+
     return {
       success: true,
       updated_quotation: updatedData,
@@ -137,18 +139,18 @@ const handleOrderModification = async (quotationId, newItems, reason) => {
     const newSubtotal = calculateSubtotal(updatedData.items);
     const newTaxAmount = calculateTax(newSubtotal);
     const newTotal = newSubtotal + newTaxAmount;
-    
+
     updatedData.subtotal = newSubtotal;
     updatedData.tax_amount = newTaxAmount;
     updatedData.total_amount = newTotal;
-    
+
     // Calculate new deposit and remaining
     const depositAmount = originalQuotation.deposit_amount;
     const additionalAmount = newTotal - originalQuotation.total_amount;
     const newRemainingAmount = newTotal - depositAmount;
-    
+
     await quotationApi.update(quotationId, updatedData);
-    
+
     // 3. Create Debit Note for additional amount
     if (additionalAmount > 0) {
       const debitNote = await adjustmentApi.createDebitNote({
@@ -159,16 +161,16 @@ const handleOrderModification = async (quotationId, newItems, reason) => {
         created_by: getCurrentUser().id
       });
     }
-    
+
     // 4. Re-submit for approval
     await documentApi.submit(quotationId);
-    
+
     return {
       quotation: updatedData,
       additionalAmount,
       newRemainingAmount
     };
-    
+
   } catch (error) {
     throw error;
   }
@@ -180,6 +182,7 @@ const handleOrderModification = async (quotationId, newItems, reason) => {
 ## 📦 กรณี 2: ส่งสินค้าไม่ครบ (Partial Delivery)
 
 ### 🎨 UI Design
+
 ```
 Partial Delivery Management:
 ┌─────────────────────────────────────────────────────────────┐
@@ -236,6 +239,7 @@ Partial Delivery Management:
 ```
 
 ### 🔧 Technical Implementation
+
 ```javascript
 const handlePartialDelivery = async (orderId, deliveredItems) => {
   try {
@@ -243,37 +247,42 @@ const handlePartialDelivery = async (orderId, deliveredItems) => {
     const deliveryNote = await deliveryNoteApi.create({
       order_id: orderId,
       items: deliveredItems,
-      delivery_type: 'partial',
-      notes: `การส่งสินค้าบางส่วน งวดที่ ${getDeliverySequence(orderId)}`
+      delivery_type: "partial",
+      notes: `การส่งสินค้าบางส่วน งวดที่ ${getDeliverySequence(orderId)}`,
     });
-    
+
     // 2. Update order tracking
     for (const item of deliveredItems) {
-      await orderTrackingApi.updateDelivered(orderId, item.product_id, item.quantity);
+      await orderTrackingApi.updateDelivered(
+        orderId,
+        item.product_id,
+        item.quantity
+      );
     }
-    
+
     // 3. Create invoice for delivered items
     const partialInvoice = await invoiceApi.createPartial({
       order_id: orderId,
       items: deliveredItems,
-      delivery_note_id: deliveryNote.id
+      delivery_note_id: deliveryNote.id,
     });
-    
+
     // 4. Check if order is complete
     const remainingItems = await orderTrackingApi.getRemainingItems(orderId);
-    const isComplete = remainingItems.every(item => item.remaining_quantity === 0);
-    
+    const isComplete = remainingItems.every(
+      (item) => item.remaining_quantity === 0
+    );
+
     if (isComplete) {
       await orderApi.markComplete(orderId);
     }
-    
+
     return {
       deliveryNote,
       partialInvoice,
       remainingItems,
-      isComplete
+      isComplete,
     };
-    
   } catch (error) {
     throw error;
   }
@@ -284,7 +293,8 @@ const handlePartialDelivery = async (orderId, deliveredItems) => {
 
 ## 🔄 กรณี 3: การคืนสินค้า
 
-### 🎨 UI Design  
+### 🎨 UI Design
+
 ```
 Product Return Management:
 ┌─────────────────────────────────────────────────────────────┐
@@ -334,6 +344,7 @@ Product Return Management:
 ```
 
 ### 🔧 Technical Implementation
+
 ```javascript
 const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
   try {
@@ -343,38 +354,37 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
       items: returnItems,
       reason,
       return_date: new Date(),
-      created_by: getCurrentUser().id
+      created_by: getCurrentUser().id,
     });
-    
+
     // 2. Calculate refund amount
     const refundAmount = calculateRefundAmount(returnItems);
-    
+
     // 3. Create credit note
     const creditNote = await adjustmentApi.createCreditNote({
-      reference_type: 'delivery_note',
+      reference_type: "delivery_note",
       reference_id: deliveryNoteId,
       amount: refundAmount,
       reason: `คืนสินค้า: ${reason}`,
-      created_by: getCurrentUser().id
+      created_by: getCurrentUser().id,
     });
-    
+
     // 4. Update inventory
     for (const item of returnItems) {
-      await inventoryApi.updateStock(item.product_id, item.quantity, 'return');
+      await inventoryApi.updateStock(item.product_id, item.quantity, "return");
     }
-    
+
     // 5. Update customer balance (if applicable)
     const customer = await getCustomerFromDeliveryNote(deliveryNoteId);
     if (customer.outstanding_balance > 0) {
       await customerApi.updateBalance(customer.id, -refundAmount);
     }
-    
+
     return {
       returnNote,
       creditNote,
-      refundAmount
+      refundAmount,
     };
-    
   } catch (error) {
     throw error;
   }
@@ -384,36 +394,45 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
 ## 📋 Required APIs
 
 ### POST /api/documents/:id/rollback
+
 ### POST /api/adjustments/debit-notes
+
 ### POST /api/adjustments/credit-notes
+
 ### POST /api/returns/create
+
 ### POST /api/order-tracking/partial-delivery
 
 ## 🔐 Permissions
+
 - **Sales**: ไม่สามารถดำเนินการได้ (ดูได้เท่านั้น)
 - **Account**: ดำเนินการได้ทั้งหมด
 
 ## ✅ Acceptance Criteria
 
 ### การแก้ไขออเดอร์
+
 1. Account ย้อนกลับสถานะเอกสารได้
 2. แก้ไขใบเสนอราคาเพิ่มรายการได้
 3. สร้าง Debit Note อัตโนมัติ
 4. คำนวณยอดใหม่ถูกต้อง
 
 ### การส่งไม่ครบ
+
 1. สร้างใบส่งของแยกงวดได้
 2. ติดตามจำนวนคงเหลือได้
 3. ออกใบแจ้งหนี้ตามที่ส่งจริง
 4. แสดง progress การส่งได้
 
 ### การคืนสินค้า
+
 1. บันทึกการคืนสินค้าได้
 2. สร้าง Credit Note อัตโนมัติ
 3. ปรับปรุงสต็อกและยอดขาย
 4. จัดการเงินคืนลูกค้าได้
 
 ## 🚀 AI Command
+
 ```bash
 สร้างระบบจัดการกรณีพิเศษ: แก้ไขออเดอร์, ส่งสินค้าไม่ครบ, การคืนสินค้า
 พร้อมออกเอกสาร Credit/Debit Note อัตโนมัติ

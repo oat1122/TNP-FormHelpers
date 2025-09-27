@@ -36,9 +36,7 @@ function PatternSect() {
   const extraSizes = useSelector((state) => state.worksheet.extraSizes);
   const sumQuantity = useSelector((state) => state.worksheet.sumQuantity);
   const sumQuantityMen = useSelector((state) => state.worksheet.sumQuantityMen);
-  const sumQuantityWomen = useSelector(
-    (state) => state.worksheet.sumQuantityWomen
-  );
+  const sumQuantityWomen = useSelector((state) => state.worksheet.sumQuantityWomen);
   const [extrSizeSelected, setExtrSizeSelected] = useState("");
   const [itemList, setItemList] = useState([]);
   const [itemLoading, setItemLoading] = useState(true);
@@ -50,12 +48,7 @@ function PatternSect() {
     return items.map((item, index) => (
       <div key={index}>
         <Grid container spacing={1} my={1} key={index} alignItems="center">
-          <Grid
-            size={{ xs: 12, md: 1, lg: 1 }}
-            p={1}
-            py={{ xs: 0, lg: 1 }}
-            textAlign="center"
-          >
+          <Grid size={{ xs: 12, md: 1, lg: 1 }} p={1} py={{ xs: 0, lg: 1 }} textAlign="center">
             <Typography
               variant="h6"
               sx={(theme) => ({
@@ -145,14 +138,12 @@ function PatternSect() {
                 size="large"
                 variant="contained"
                 color="error"
-                onClick={() =>
-                  handleRemoveSize(index, pattern_type, item.size_name)
-                }
+                onClick={() => handleRemoveSize(index, pattern_type, item.size_name)}
                 sx={{
                   minWidth: { xs: "100%", md: "60%" },
                 }}
               >
-                <MdDelete style={{ fontSize: '1.45rem' }} />
+                <MdDelete style={{ fontSize: "1.45rem" }} />
               </Button>
             )}
           </Grid>
@@ -224,9 +215,7 @@ function PatternSect() {
     dispatch(addExtraSize(extrSizeSelected));
 
     // remove array after add extra size.
-    const updatedExtraSizes = extraSizes.filter(
-      (item) => item !== extrSizeSelected
-    );
+    const updatedExtraSizes = extraSizes.filter((item) => item !== extrSizeSelected);
     dispatch(setExtraSizes(updatedExtraSizes));
 
     setExtrSizeSelected("");
@@ -241,22 +230,12 @@ function PatternSect() {
       dispatch(setInputPattern({ name: "pattern_name", value: newVal }));
     } else {
       const pattern_name_r = newVal ? newVal.pattern_name : "";
-      const pattern_type_r = newVal
-        ? newVal.pattern_type
-        : inputList.pattern_type;
-      const pattern_sizes_r = newVal
-        ? newVal.pattern_sizes
-        : inputList.pattern_sizes;
+      const pattern_type_r = newVal ? newVal.pattern_type : inputList.pattern_type;
+      const pattern_sizes_r = newVal ? newVal.pattern_sizes : inputList.pattern_sizes;
 
-      dispatch(
-        setInputPattern({ name: "pattern_name", value: pattern_name_r })
-      );
-      dispatch(
-        setInputPattern({ name: "pattern_type", value: pattern_type_r })
-      );
-      dispatch(
-        setInputPattern({ name: "pattern_sizes", value: pattern_sizes_r })
-      );
+      dispatch(setInputPattern({ name: "pattern_name", value: pattern_name_r }));
+      dispatch(setInputPattern({ name: "pattern_type", value: pattern_type_r }));
+      dispatch(setInputPattern({ name: "pattern_sizes", value: pattern_sizes_r }));
     }
   };
 
@@ -273,7 +252,6 @@ function PatternSect() {
   useEffect(() => {
     if (Number(inputList.total_quantity) !== Number(sumQuantity.total)) {
       setHasError(true);
-
     } else {
       setHasError(false);
     }
@@ -281,10 +259,7 @@ function PatternSect() {
 
   if (Number(inputList.pattern_type) === 2) {
     const menSizes = renderedInputField(inputList.pattern_sizes.men, "men");
-    const womenSizes = renderedInputField(
-      inputList.pattern_sizes.women,
-      "women"
-    );
+    const womenSizes = renderedInputField(inputList.pattern_sizes.women, "women");
 
     inputFieldBox = (
       <>
@@ -315,7 +290,7 @@ function PatternSect() {
             my: 2,
             borderBottomWidth: 2,
             borderColor: theme.vars.palette.grey[500],
-            display: { md: "none", },
+            display: { md: "none" },
           })}
         />
       </>
@@ -348,16 +323,8 @@ function PatternSect() {
                 )
               }
             >
-              <FormControlLabel
-                value={1}
-                control={<Radio color="error" />}
-                label="Unisex"
-              />
-              <FormControlLabel
-                value={2}
-                control={<Radio color="error" />}
-                label="Men/Women"
-              />
+              <FormControlLabel value={1} control={<Radio color="error" />} label="Unisex" />
+              <FormControlLabel value={2} control={<Radio color="error" />} label="Men/Women" />
             </RadioGroup>
           </FormGroup>
         </Grid>
@@ -369,25 +336,14 @@ function PatternSect() {
             getOptionLabel={(option) => option.pattern_name}
             onChange={(e, newVal) => handleChangePattern(e, newVal, false)}
             value={
-              itemList.find(
-                (option) => option.pattern_name === inputList.pattern_name
-              ) || null
+              itemList.find((option) => option.pattern_name === inputList.pattern_name) || null
             }
-            isOptionEqualToValue={(option, value) =>
-              option.pattern_name === value.pattern_name
-            }
+            isOptionEqualToValue={(option, value) => option.pattern_name === value.pattern_name}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                required
-                name="pattern_name"
-                label="ชื่อแพทเทิร์น"
-              />
+              <TextField {...params} required name="pattern_name" label="ชื่อแพทเทิร์น" />
             )}
             inputValue={inputList.pattern_name}
-            onInputChange={(e, inputNewVal) =>
-              handleChangePattern(e, inputNewVal, true)
-            }
+            onInputChange={(e, inputNewVal) => handleChangePattern(e, inputNewVal, true)}
           />
         </Grid>
       </Grid>
@@ -454,9 +410,7 @@ function PatternSect() {
         </Grid>
         <Grid size={{ xs: 5, sm: 7, md: 3 }} p={1}>
           <FormControl fullWidth size="small">
-            <InputLabel id="demo-simple-select-helper-label">
-              ไซซ์เพิ่มเติม
-            </InputLabel>
+            <InputLabel id="demo-simple-select-helper-label">ไซซ์เพิ่มเติม</InputLabel>
             <Select
               labelId="demo-simple-select-helper-label"
               value={extrSizeSelected}
@@ -519,8 +473,7 @@ function PatternSect() {
             sx={(theme) => ({
               "& input": {
                 fontFamily: "Kanit",
-                WebkitTextFillColor: (theme.vars || theme).palette.text
-                  .secondary,
+                WebkitTextFillColor: (theme.vars || theme).palette.text.secondary,
               },
             })}
           />

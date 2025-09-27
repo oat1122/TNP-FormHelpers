@@ -48,7 +48,7 @@ function FabricList() {
   const renderedFabric = isLoading ? (
     <tr>
       <td colSpan={11} className="text-center pt-4">
-        <Spinner animation="border"/>
+        <Spinner animation="border" />
       </td>
     </tr>
   ) : isError ? (
@@ -123,14 +123,15 @@ function FabricList() {
       </div>
       {user.role === "manager" || user.role === "admin" ? (
         <div className="text-end pe-lg-4">
-          <Button type="submit" variant="danger" className="mx-2 my-2 py-1" onClick={handleOnSubmit}>
+          <Button
+            type="submit"
+            variant="danger"
+            className="mx-2 my-2 py-1"
+            onClick={handleOnSubmit}
+          >
             submit
           </Button>
-          <Button
-            variant="danger"
-            onClick={handleCreate}
-            className="mx-2 my-2 px-3 py-1"
-          >
+          <Button variant="danger" onClick={handleCreate} className="mx-2 my-2 px-3 py-1">
             +new fabric
           </Button>
         </div>

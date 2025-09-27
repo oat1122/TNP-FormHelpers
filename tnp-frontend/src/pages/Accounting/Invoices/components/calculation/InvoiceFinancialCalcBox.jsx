@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
   Grid,
@@ -12,13 +12,13 @@ import {
   Typography,
   Divider,
   Paper,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
 
 const tokens = {
-  primary: '#900F0F',
-  white: '#FFFFFF',
-  bg: '#F5F5F5',
+  primary: "#900F0F",
+  white: "#FFFFFF",
+  bg: "#F5F5F5",
 };
 
 const InvoiceCalcPaper = styled(Paper)(({ theme }) => ({
@@ -29,11 +29,11 @@ const InvoiceCalcPaper = styled(Paper)(({ theme }) => ({
 }));
 
 const InvoiceCalcRow = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
   padding: theme.spacing(0.5, 0),
-  '&.InvoiceCalc-total': {
+  "&.InvoiceCalc-total": {
     fontWeight: 700,
     borderTop: `1px solid ${theme.palette.divider}`,
     paddingTop: theme.spacing(1),
@@ -43,37 +43,37 @@ const InvoiceCalcRow = styled(Box)(({ theme }) => ({
 
 const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
   isEditing = false,
-  
+
   // Special discount
-  specialDiscountType = 'percentage',
+  specialDiscountType = "percentage",
   specialDiscountValue = 0,
   onSpecialDiscountTypeChange,
   onSpecialDiscountValueChange,
-  
+
   // VAT
   hasVat = true,
-  vatPercentage = 7.00,
+  vatPercentage = 7.0,
   onHasVatChange,
   onVatPercentageChange,
-  
+
   // Withholding tax
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
-  withholdingTaxBase = 'subtotal',
+  withholdingTaxBase = "subtotal",
   onHasWithholdingTaxChange,
   onWithholdingTaxPercentageChange,
   onWithholdingTaxBaseChange,
-  
+
   // Deposit
-  depositMode = 'percentage',
+  depositMode = "percentage",
   depositPercentage = 0,
   depositAmountInput = 0,
-  depositDisplayOrder = 'before',
+  depositDisplayOrder = "before",
   onDepositModeChange,
   onDepositPercentageChange,
   onDepositAmountInputChange,
   onDepositDisplayOrderChange,
-  
+
   // Calculated values
   calculation = {},
 }) {
@@ -92,9 +92,9 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
   } = calculation;
 
   const formatTHB = (amount) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
+    return new Intl.NumberFormat("th-TH", {
+      style: "currency",
+      currency: "THB",
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -129,11 +129,11 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
               fullWidth
               size="small"
               type="number"
-              label={specialDiscountType === 'percentage' ? 'เปอร์เซ็นต์' : 'จำนวนเงิน (บาท)'}
+              label={specialDiscountType === "percentage" ? "เปอร์เซ็นต์" : "จำนวนเงิน (บาท)"}
               value={specialDiscountValue}
               onChange={(e) => onSpecialDiscountValueChange?.(e.target.value)}
               disabled={!isEditing}
-              inputProps={{ min: 0, step: specialDiscountType === 'percentage' ? 0.01 : 1 }}
+              inputProps={{ min: 0, step: specialDiscountType === "percentage" ? 0.01 : 1 }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -155,10 +155,10 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
                   onChange={(e) => onHasVatChange?.(e.target.checked)}
                   disabled={!isEditing}
                   sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
+                    "& .MuiSwitch-switchBase.Mui-checked": {
                       color: tokens.primary,
                     },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
                       backgroundColor: tokens.primary,
                     },
                   }}
@@ -195,10 +195,10 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
                   onChange={(e) => onHasWithholdingTaxChange?.(e.target.checked)}
                   disabled={!isEditing}
                   sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
+                    "& .MuiSwitch-switchBase.Mui-checked": {
                       color: tokens.primary,
                     },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
                       backgroundColor: tokens.primary,
                     },
                   }}
@@ -249,7 +249,7 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
             <FormControl fullWidth size="small" disabled={!isEditing}>
               <InputLabel>รูปแบบมัดจำ</InputLabel>
               <Select
-                value={depositMode || 'percentage'}
+                value={depositMode || "percentage"}
                 onChange={(e) => onDepositModeChange?.(e.target.value)}
                 label="รูปแบบมัดจำ"
               >
@@ -259,7 +259,7 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
               </Select>
             </FormControl>
           </Grid>
-          {depositMode === 'percentage' && (
+          {depositMode === "percentage" && (
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
@@ -273,7 +273,7 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
               />
             </Grid>
           )}
-          {depositMode === 'amount' && (
+          {depositMode === "amount" && (
             <Grid item xs={12} md={3}>
               <TextField
                 fullWidth
@@ -312,52 +312,50 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
         <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
           สรุปการคำนวณ
         </Typography>
-        
+
         <InvoiceCalcRow>
           <Typography>ยอดรวม (ก่อนส่วนลด)</Typography>
           <Typography>{formatTHB(subtotal)}</Typography>
         </InvoiceCalcRow>
-        
+
         {discountUsed > 0 && (
           <InvoiceCalcRow>
             <Typography>หัก ส่วนลดพิเศษ</Typography>
             <Typography>-{formatTHB(discountUsed)}</Typography>
           </InvoiceCalcRow>
         )}
-        
+
         <InvoiceCalcRow>
           <Typography>ยอดหลังหักส่วนลด</Typography>
           <Typography>{formatTHB(effectiveSubtotal)}</Typography>
         </InvoiceCalcRow>
-        
+
         {hasVat && vatAmount > 0 && (
           <InvoiceCalcRow>
             <Typography>ภาษีมูลค่าเพิ่ม {vatPercentage}%</Typography>
             <Typography>{formatTHB(vatAmount)}</Typography>
           </InvoiceCalcRow>
         )}
-        
+
         <InvoiceCalcRow>
           <Typography>ยอดรวมหลัง VAT</Typography>
           <Typography>{formatTHB(totalAmount)}</Typography>
         </InvoiceCalcRow>
-        
+
         {hasWithholdingTax && withholdingTaxAmount > 0 && (
           <InvoiceCalcRow>
             <Typography>หัก ภาษี ณ ที่จ่าย {withholdingTaxPercentage}%</Typography>
             <Typography>-{formatTHB(withholdingTaxAmount)}</Typography>
           </InvoiceCalcRow>
         )}
-        
+
         <InvoiceCalcRow className="InvoiceCalc-total">
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 700 }}>
-            ยอดรวมสุทธิ
-          </Typography>
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: tokens.primary }}>
+          <Typography sx={{ fontSize: "1.1rem", fontWeight: 700 }}>ยอดรวมสุทธิ</Typography>
+          <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: tokens.primary }}>
             {formatTHB(finalTotalAmount)}
           </Typography>
         </InvoiceCalcRow>
-        
+
         {depositAmount > 0 && (
           <>
             <InvoiceCalcRow>

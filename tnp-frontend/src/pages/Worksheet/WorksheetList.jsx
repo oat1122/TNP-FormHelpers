@@ -1,11 +1,4 @@
-import {
-  useState,
-  forwardRef,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import { useState, forwardRef, useEffect, useRef, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import WorksheetCard from "./WorksheetCard";
 import WorksheetFilter from "./WorksheetFilter";
@@ -36,14 +29,7 @@ import { Link, useParams } from "react-router-dom";
 import TitleBar from "../../components/TitleBar";
 
 const Transition = forwardRef(function Transition(props, ref) {
-  return (
-    <Slide
-      direction="right"
-      ref={ref}
-      {...props}
-      timeout={{ enter: 400, exit: 400 }}
-    />
-  );
+  return <Slide direction="right" ref={ref} {...props} timeout={{ enter: 400, exit: 400 }} />;
 });
 
 function WorksheetList() {
@@ -60,8 +46,9 @@ function WorksheetList() {
   const keyword = useSelector((state) => state.global.keyword);
 
   // Optimized API query with better caching strategy
-  const { data, error, isFetching, isSuccess, refetch, isLoading } =
-    useGetAllWorksheetQuery(undefined, {
+  const { data, error, isFetching, isSuccess, refetch, isLoading } = useGetAllWorksheetQuery(
+    undefined,
+    {
       // Enable caching for 5 minutes to reduce API calls
       pollingInterval: 0,
       refetchOnMountOrArgChange: 300000, // 5 minutes
@@ -69,7 +56,8 @@ function WorksheetList() {
       refetchOnReconnect: true,
       // Keep previous data while fetching new data
       keepPreviousData: true,
-    });
+    }
+  );
 
   const dispatch = useDispatch();
   const tShirtImg = import.meta.env.VITE_IMAGE_T_SHIRT_CREATE;
@@ -135,12 +123,7 @@ function WorksheetList() {
           <Typography variant="h6" color="error">
             Error loading worksheets: {error.message || "Unknown error"}
           </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => refetch()}
-            sx={{ mt: 2 }}
-          >
+          <Button variant="outlined" color="error" onClick={() => refetch()} sx={{ mt: 2 }}>
             Retry
           </Button>
         </Box>
@@ -196,9 +179,7 @@ function WorksheetList() {
 
     // Show the intersection observer target even when not loading (for triggering next load)
     if (hasMoreData && isShowingPartialData && !isInitialLoad && !loadingMore) {
-      return (
-        <Box ref={lastCardRef} sx={{ height: "20px", visibility: "hidden" }} />
-      );
+      return <Box ref={lastCardRef} sx={{ height: "20px", visibility: "hidden" }} />;
     }
 
     return null;
@@ -263,18 +244,10 @@ function WorksheetList() {
       // Keyword search filtering
       if (keyword !== "") {
         const searchKeyword = keyword.toLowerCase();
-        const searchWorkID = (item.work_id || "")
-          .toLowerCase()
-          .includes(searchKeyword);
-        const searchWorkName = (item.work_name || "")
-          .toLowerCase()
-          .includes(searchKeyword);
-        const searchUserName = (item.sales_name || "")
-          .toLowerCase()
-          .includes(searchKeyword);
-        const searchCusName = (item.cus_name || "")
-          .toLowerCase()
-          .includes(searchKeyword);
+        const searchWorkID = (item.work_id || "").toLowerCase().includes(searchKeyword);
+        const searchWorkName = (item.work_name || "").toLowerCase().includes(searchKeyword);
+        const searchUserName = (item.sales_name || "").toLowerCase().includes(searchKeyword);
+        const searchCusName = (item.cus_name || "").toLowerCase().includes(searchKeyword);
 
         const passesKeywordFilter =
           searchWorkID || searchWorkName || searchUserName || searchCusName;
@@ -283,17 +256,11 @@ function WorksheetList() {
 
       // Additional filters - Only apply if user has permission
       if (user.role === "manager" || user.role === "admin") {
-        if (
-          worksheetFilters.salesName !== "" &&
-          item.sales_name !== worksheetFilters.salesName
-        ) {
+        if (worksheetFilters.salesName !== "" && item.sales_name !== worksheetFilters.salesName) {
           return false;
         }
 
-        if (
-          worksheetFilters.status !== "" &&
-          item.status.title !== worksheetFilters.status
-        ) {
+        if (worksheetFilters.status !== "" && item.status.title !== worksheetFilters.status) {
           return false;
         }
       }
@@ -328,9 +295,7 @@ function WorksheetList() {
             // Use requestAnimationFrame for better performance
             requestAnimationFrame(() => {
               setTimeout(() => {
-                setCardLimit((prev) =>
-                  Math.min(prev + 10, filteredDataCache.length)
-                );
+                setCardLimit((prev) => Math.min(prev + 10, filteredDataCache.length));
                 setLoadingMore(false);
               }, 100); // Reduced delay for faster loading
             });
@@ -391,11 +356,7 @@ function WorksheetList() {
         <DialogContent>
           <DialogContentText id="alert-dialog-description" className="py-2">
             <Link to="/worksheet-create/t-shirt">
-              <img
-                src={tShirtImg}
-                title="Create T-Shirt Worksheet"
-                width={250}
-              />
+              <img src={tShirtImg} title="Create T-Shirt Worksheet" width={250} />
             </Link>
           </DialogContentText>
           <DialogContentText id="alert-dialog-description" className="py-2">

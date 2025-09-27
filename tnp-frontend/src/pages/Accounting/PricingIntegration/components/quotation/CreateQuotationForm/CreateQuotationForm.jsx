@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Box,
   Container,
@@ -10,7 +10,7 @@ import {
   Tooltip,
   Avatar,
   Divider,
-} from '@mui/material';
+} from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
   Visibility as VisibilityIcon,
@@ -19,7 +19,7 @@ import {
   Payment as PaymentIcon,
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 // THEME & SHARED UI
 import {
@@ -29,25 +29,25 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from '../styles/quotationTheme';
+} from "../styles/quotationTheme";
 
-import CustomerEditCard from '../../CustomerEditCard';
-import QuotationPreview from '../../QuotationPreview';
-import PricingRequestNotesButton from '../../PricingRequestNotesButton';
+import CustomerEditCard from "../../CustomerEditCard";
+import QuotationPreview from "../../QuotationPreview";
+import PricingRequestNotesButton from "../../PricingRequestNotesButton";
 
 // NEW COMPONENTS
-import SpecialDiscountField from './components/SpecialDiscountField';
-import WithholdingTaxField from './components/WithholdingTaxField';
-import Calculation from '../../../../shared/components/Calculation';
-import PaymentTerms from '../../../../shared/components/PaymentTerms';
-import ImageUploadGrid from '../../../../shared/components/ImageUploadGrid';
-import { useUploadQuotationSampleImagesTempMutation } from '../../../../../../features/Accounting/accountingApi';
+import SpecialDiscountField from "./components/SpecialDiscountField";
+import WithholdingTaxField from "./components/WithholdingTaxField";
+import Calculation from "../../../../shared/components/Calculation";
+import PaymentTerms from "../../../../shared/components/PaymentTerms";
+import ImageUploadGrid from "../../../../shared/components/ImageUploadGrid";
+import { useUploadQuotationSampleImagesTempMutation } from "../../../../../../features/Accounting/accountingApi";
 
 // UTILS
-import { useQuotationFinancials } from '../../../../shared/hooks/useQuotationFinancials';
-import { formatTHB } from '../utils/currency';
-import { formatDateTH } from '../utils/date';
-import { sanitizeInt, sanitizeDecimal } from '../../../../shared/inputSanitizers';
+import { useQuotationFinancials } from "../../../../shared/hooks/useQuotationFinancials";
+import { formatTHB } from "../utils/currency";
+import { formatDateTH } from "../utils/date";
+import { sanitizeInt, sanitizeDecimal } from "../../../../shared/inputSanitizers";
 
 /**
  * CreateQuotationForm — restyled to match QuotationDetailDialog
@@ -59,33 +59,40 @@ import { sanitizeInt, sanitizeDecimal } from '../../../../shared/inputSanitizers
 
 const PRNameResolver = ({ prId, currentName, onResolved }) => null; // keep placeholder if used elsewhere
 
-const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onSubmit, readOnly = false }) => {
+const CreateQuotationForm = ({
+  selectedPricingRequests = [],
+  onBack,
+  onSave,
+  onSubmit,
+  readOnly = false,
+}) => {
   // ======== STATE ========
   const [formData, setFormData] = useState({
     customer: {},
     pricingRequests: selectedPricingRequests,
     items: [],
-    notes: '',
+    notes: "",
     // terms (UI-facing)
-  paymentTermsType: 'credit_30', // 'cash' | 'credit_30' | 'credit_60' | 'other'
-  paymentTermsCustom: '',
-  depositMode: 'percentage', // 'percentage' | 'amount'
-  depositPct: 50, // when percentage mode
-  depositAmountInput: '', // raw input when amount mode
+    paymentTermsType: "credit_30", // 'cash' | 'credit_30' | 'credit_60' | 'other'
+    paymentTermsCustom: "",
+    depositMode: "percentage", // 'percentage' | 'amount'
+    depositPct: 50, // when percentage mode
+    depositAmountInput: "", // raw input when amount mode
     dueDate: null,
     // New fields for special discount and withholding tax
-    specialDiscountType: 'percentage', // 'percentage' | 'amount'
+    specialDiscountType: "percentage", // 'percentage' | 'amount'
     specialDiscountValue: 0,
     hasWithholdingTax: false,
     withholdingTaxPercentage: 0,
     sampleImages: [], // [{ path, url, filename, original_filename }]
-    selectedSampleForPdf: '',
+    selectedSampleForPdf: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [isCalcEditing, setIsCalcEditing] = useState(!readOnly);
-  const [uploadSamplesTemp, { isLoading: isUploadingSamples }] = useUploadQuotationSampleImagesTempMutation();
+  const [uploadSamplesTemp, { isLoading: isUploadingSamples }] =
+    useUploadQuotationSampleImagesTempMutation();
 
   // ======== INIT FROM PR ========
   useEffect(() => {
@@ -94,23 +101,23 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
     const items = selectedPricingRequests.map((pr, idx) => ({
       id: pr.pr_id || pr.id || `temp_${idx}`,
       pricingRequestId: pr.pr_id,
-      name: pr.pr_work_name || pr.work_name || 'ไม่ระบุชื่องาน',
-      pattern: pr.pr_pattern || pr.pattern || '',
-      fabricType: pr.pr_fabric_type || pr.fabric_type || pr.material || '',
-      color: pr.pr_color || pr.color || '',
-      size: pr.pr_sizes || pr.sizes || pr.size || '',
-      unit: 'ชิ้น',
+      name: pr.pr_work_name || pr.work_name || "ไม่ระบุชื่องาน",
+      pattern: pr.pr_pattern || pr.pattern || "",
+      fabricType: pr.pr_fabric_type || pr.fabric_type || pr.material || "",
+      color: pr.pr_color || pr.color || "",
+      size: pr.pr_sizes || pr.sizes || pr.size || "",
+      unit: "ชิ้น",
       quantity: parseInt(pr.pr_quantity || pr.quantity || 1, 10),
       unitPrice: pr.pr_unit_price ? Number(pr.pr_unit_price) : 0,
-      notes: pr.pr_notes || pr.notes || '',
+      notes: pr.pr_notes || pr.notes || "",
       originalData: pr,
       sizeRows: [
         {
           uuid: `${pr.pr_id || pr.id || idx}-size-1`,
-          size: pr.pr_sizes || 'S-XL',
+          size: pr.pr_sizes || "S-XL",
           quantity: parseInt(pr.pr_quantity || 1, 10),
           unitPrice: pr.pr_unit_price ? Number(pr.pr_unit_price) : 0,
-          notes: '',
+          notes: "",
         },
       ],
     }));
@@ -121,7 +128,7 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       customer,
       items,
       dueDate: dd,
-      paymentTermsType: 'credit_30',
+      paymentTermsType: "credit_30",
       depositPct: 50,
     }));
   }, [selectedPricingRequests]);
@@ -166,8 +173,11 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
               ...patch,
               // recompute total from sizeRows if provided
               total: Array.isArray(patch.sizeRows ?? i.sizeRows)
-                ? (patch.sizeRows ?? i.sizeRows).reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0)
-                : (((patch.unitPrice ?? i.unitPrice) || 0) * ((patch.quantity ?? i.quantity) || 0)),
+                ? (patch.sizeRows ?? i.sizeRows).reduce(
+                    (s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0),
+                    0
+                  )
+                : ((patch.unitPrice ?? i.unitPrice) || 0) * ((patch.quantity ?? i.quantity) || 0),
             }
           : i
       ),
@@ -178,15 +188,30 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       ...prev,
       items: prev.items.map((i) => {
         if (i.id !== itemId) return i;
-        const newRow = { uuid: `${itemId}-size-${(i.sizeRows?.length || 0) + 1}`, size: '', quantity: '', unitPrice: String(i.unitPrice || ''), notes: '' };
+        const newRow = {
+          uuid: `${itemId}-size-${(i.sizeRows?.length || 0) + 1}`,
+          size: "",
+          quantity: "",
+          unitPrice: String(i.unitPrice || ""),
+          notes: "",
+        };
         const sizeRows = [...(i.sizeRows || []), newRow];
         const total = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
-          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
+          const p =
+            typeof r.unitPrice === "string"
+              ? parseFloat(r.unitPrice || "0")
+              : Number(r.unitPrice || 0);
           return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
         }, 0);
         const quantity = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
           return s + (isNaN(q) ? 0 : q);
         }, 0);
         return { ...i, sizeRows, total, quantity };
@@ -199,14 +224,25 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       ...prev,
       items: prev.items.map((i) => {
         if (i.id !== itemId) return i;
-        const sizeRows = (i.sizeRows || []).map((r) => (r.uuid === rowUuid ? { ...r, ...patch } : r));
+        const sizeRows = (i.sizeRows || []).map((r) =>
+          r.uuid === rowUuid ? { ...r, ...patch } : r
+        );
         const total = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
-          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
+          const p =
+            typeof r.unitPrice === "string"
+              ? parseFloat(r.unitPrice || "0")
+              : Number(r.unitPrice || 0);
           return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
         }, 0);
         const quantity = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
           return s + (isNaN(q) ? 0 : q);
         }, 0);
         return { ...i, sizeRows, total, quantity };
@@ -221,12 +257,21 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         if (i.id !== itemId) return i;
         const sizeRows = (i.sizeRows || []).filter((r) => r.uuid !== rowUuid);
         const total = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
-          const p = typeof r.unitPrice === 'string' ? parseFloat(r.unitPrice || '0') : Number(r.unitPrice || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
+          const p =
+            typeof r.unitPrice === "string"
+              ? parseFloat(r.unitPrice || "0")
+              : Number(r.unitPrice || 0);
           return s + (isNaN(q) || isNaN(p) ? 0 : q * p);
         }, 0);
         const quantity = sizeRows.reduce((s, r) => {
-          const q = typeof r.quantity === 'string' ? parseFloat(r.quantity || '0') : Number(r.quantity || 0);
+          const q =
+            typeof r.quantity === "string"
+              ? parseFloat(r.quantity || "0")
+              : Number(r.quantity || 0);
           return s + (isNaN(q) ? 0 : q);
         }, 0);
         return { ...i, sizeRows, total, quantity };
@@ -243,14 +288,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
       const payload = {
         ...formData,
         subtotal,
-  // New order: discount applied to subtotal before VAT
-  vat,
-  total, // discountedSubtotal + vat
+        // New order: discount applied to subtotal before VAT
+        vat,
+        total, // discountedSubtotal + vat
         // Special discount fields
         specialDiscountType: formData.specialDiscountType,
         specialDiscountValue: formData.specialDiscountValue,
         specialDiscountAmount,
-  netAfterDiscount: discountedSubtotal, // rename compatibility (net after discount before VAT)
+        netAfterDiscount: discountedSubtotal, // rename compatibility (net after discount before VAT)
         // Withholding tax fields
         hasWithholdingTax: formData.hasWithholdingTax,
         withholdingTaxPercentage: formData.withholdingTaxPercentage,
@@ -265,29 +310,33 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           selected_for_pdf: img.filename && img.filename === formData.selectedSampleForPdf,
         })),
         // normalize terms for caller
-        paymentMethod: formData.paymentTermsType === 'other' ? formData.paymentTermsCustom : formData.paymentTermsType,
+        paymentMethod:
+          formData.paymentTermsType === "other"
+            ? formData.paymentTermsCustom
+            : formData.paymentTermsType,
         depositMode: formData.depositMode,
         depositPercentage: String(
-          formData.depositMode === 'percentage'
+          formData.depositMode === "percentage"
             ? (formData.depositPct ?? 0)
-            : (financials.depositPercentage != null
-                ? Number(financials.depositPercentage).toFixed(4)
-                : 0)
+            : financials.depositPercentage != null
+              ? Number(financials.depositPercentage).toFixed(4)
+              : 0
         ),
-  depositAmountInput: formData.depositAmountInput,
+        depositAmountInput: formData.depositAmountInput,
         action,
       };
-      if (action === 'draft') await onSave?.(payload);
+      if (action === "draft") await onSave?.(payload);
       else await onSubmit?.(payload);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isCredit = formData.paymentTermsType === 'credit_30' || formData.paymentTermsType === 'credit_60';
+  const isCredit =
+    formData.paymentTermsType === "credit_30" || formData.paymentTermsType === "credit_60";
 
   return (
-    <Box sx={{ bgcolor: tokens.bg, minHeight: '100vh', py: 3 }}>
+    <Box sx={{ bgcolor: tokens.bg, minHeight: "100vh", py: 3 }}>
       <Container maxWidth="lg">
         {/* Resolve missing work_name if needed (same as original) */}
         {activeItems.map((it) => (
@@ -306,16 +355,32 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
         ))}
 
         {/* HEADER */}
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            mb: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            justifyContent: "space-between",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Tooltip title="ย้อนกลับ">
-              <IconButton onClick={onBack} size="small" sx={{ color: tokens.primary, border: `1px solid ${tokens.primary}` }}>
+              <IconButton
+                onClick={onBack}
+                size="small"
+                sx={{ color: tokens.primary, border: `1px solid ${tokens.primary}` }}
+              >
                 <ArrowBackIcon />
               </IconButton>
             </Tooltip>
             <Box>
-              <Typography variant="h5" fontWeight={700} color={tokens.primary}>สร้างใบเสนอราคา</Typography>
-              <Typography variant="body2" color="text.secondary">จาก {activeItems.length} งาน • {formData.customer?.cus_company || 'กำลังโหลด…'}</Typography>
+              <Typography variant="h5" fontWeight={700} color={tokens.primary}>
+                สร้างใบเสนอราคา
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                จาก {activeItems.length} งาน • {formData.customer?.cus_company || "กำลังโหลด…"}
+              </Typography>
             </Box>
           </Box>
         </Box>
@@ -325,12 +390,18 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           <Grid item xs={12}>
             <Section>
               <SectionHeader>
-                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                <Avatar
+                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                >
                   <AssignmentIcon fontSize="small" />
                 </Avatar>
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>ข้อมูลจาก Pricing Request</Typography>
-                  <Typography variant="caption" color="text.secondary">ดึงข้อมูลอัตโนมัติจาก PR</Typography>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    ข้อมูลจาก Pricing Request
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ดึงข้อมูลอัตโนมัติจาก PR
+                  </Typography>
                 </Box>
               </SectionHeader>
 
@@ -341,13 +412,24 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 />
 
                 {/* งานสรุป */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>รายละเอียดงาน ({activeItems.length})</Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1,
+                  }}
+                >
+                  <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                    รายละเอียดงาน ({activeItems.length})
+                  </Typography>
                 </Box>
 
                 {activeItems.length === 0 ? (
                   <InfoCard sx={{ p: 3 }}>
-                    <Typography variant="body2" color="text.secondary">ไม่พบข้อมูลงาน</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      ไม่พบข้อมูลงาน
+                    </Typography>
                   </InfoCard>
                 ) : (
                   activeItems.map((item, idx) => {
@@ -358,12 +440,33 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                     const qtyMatches = hasPrQty ? totalQty === prQty : true;
                     return (
                       <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {idx + 1}: {item.name}</Typography>
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          mb={1}
+                        >
+                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                            งานที่ {idx + 1}: {item.name}
+                          </Typography>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Chip label={`${totalQty} ${item.unit || 'ชิ้น'}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+                            <Chip
+                              label={`${totalQty} ${item.unit || "ชิ้น"}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                borderColor: tokens.primary,
+                                color: tokens.primary,
+                                fontWeight: 700,
+                              }}
+                            />
                             {hasPrQty && (
-                              <Chip label={`PR: ${prQty} ${item.unit || 'ชิ้น'}`} size="small" color={qtyMatches ? 'success' : 'error'} variant={qtyMatches ? 'outlined' : 'filled'} />
+                              <Chip
+                                label={`PR: ${prQty} ${item.unit || "ชิ้น"}`}
+                                size="small"
+                                color={qtyMatches ? "success" : "error"}
+                                variant={qtyMatches ? "outlined" : "filled"}
+                              />
                             )}
                           </Box>
                         </Box>
@@ -371,34 +474,62 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         <Grid container spacing={1}>
                           {item.pattern && (
                             <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">แพทเทิร์น</Typography>
-                              <Typography variant="body2" fontWeight={500}>{item.pattern}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                แพทเทิร์น
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {item.pattern}
+                              </Typography>
                             </Grid>
                           )}
                           {item.fabricType && (
                             <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">ประเภทผ้า</Typography>
-                              <Typography variant="body2" fontWeight={500}>{item.fabricType}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ประเภทผ้า
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {item.fabricType}
+                              </Typography>
                             </Grid>
                           )}
                           {item.color && (
                             <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">สี</Typography>
-                              <Typography variant="body2" fontWeight={500}>{item.color}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                สี
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {item.color}
+                              </Typography>
                             </Grid>
                           )}
                           {item.size && (
                             <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">ขนาด</Typography>
-                              <Typography variant="body2" fontWeight={500}>{item.size}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ขนาด
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {item.size}
+                              </Typography>
                             </Grid>
                           )}
                         </Grid>
 
                         {item.notes && (
-                          <Box sx={{ mt: 1.5, p: 1.5, bgcolor: tokens.bg, borderRadius: 1, borderLeft: `3px solid ${tokens.primary}` }}>
-                            <Typography variant="caption" color={tokens.primary} fontWeight={700}>หมายเหตุจาก PR</Typography>
-                            <Typography variant="body2" color="text.secondary">{item.notes}</Typography>
+                          <Box
+                            sx={{
+                              mt: 1.5,
+                              p: 1.5,
+                              bgcolor: tokens.bg,
+                              borderRadius: 1,
+                              borderLeft: `3px solid ${tokens.primary}`,
+                            }}
+                          >
+                            <Typography variant="caption" color={tokens.primary} fontWeight={700}>
+                              หมายเหตุจาก PR
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {item.notes}
+                            </Typography>
                           </Box>
                         )}
                       </InfoCard>
@@ -413,11 +544,15 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           <Grid item xs={12}>
             <Section>
               <SectionHeader>
-                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                <Avatar
+                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                >
                   <CalculateIcon fontSize="small" />
                 </Avatar>
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>การคำนวณราคา</Typography>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    การคำนวณราคา
+                  </Typography>
                 </Box>
               </SectionHeader>
 
@@ -425,33 +560,87 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                 {activeItems.map((item, idx) => {
                   const rows = Array.isArray(item.sizeRows) ? item.sizeRows : [];
                   const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
-                  const itemTotal = rows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
-                  const knownUnits = ['ชิ้น', 'ตัว', 'ชุด', 'กล่อง', 'แพ็ค'];
-                  const unitSelectValue = knownUnits.includes(item.unit) ? item.unit : 'อื่นๆ';
+                  const itemTotal = rows.reduce(
+                    (s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0),
+                    0
+                  );
+                  const knownUnits = ["ชิ้น", "ตัว", "ชุด", "กล่อง", "แพ็ค"];
+                  const unitSelectValue = knownUnits.includes(item.unit) ? item.unit : "อื่นๆ";
 
                   return (
                     <InfoCard key={`calc-${item.id}`} sx={{ p: 2, mb: 1.5 }}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        mb={1.5}
+                      >
                         <Box display="flex" alignItems="center" gap={1.5}>
-                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>งานที่ {idx + 1}</Typography>
-                          <Typography variant="body2" color="text.secondary">{item.name}</Typography>
-                          <PricingRequestNotesButton pricingRequestId={item.pricingRequestId || item.pr_id} workName={item.name} variant="icon" size="small" />
+                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                            งานที่ {idx + 1}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.name}
+                          </Typography>
+                          <PricingRequestNotesButton
+                            pricingRequestId={item.pricingRequestId || item.pr_id}
+                            workName={item.name}
+                            variant="icon"
+                            size="small"
+                          />
                         </Box>
-                        <Chip label={`${totalQty} ${item.unit || 'ชิ้น'}`} size="small" variant="outlined" sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} />
+                        <Chip
+                          label={`${totalQty} ${item.unit || "ชิ้น"}`}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            borderColor: tokens.primary,
+                            color: tokens.primary,
+                            fontWeight: 700,
+                          }}
+                        />
                       </Box>
 
                       <Grid container spacing={1.5}>
                         <Grid item xs={12} md={3}>
-                          <TextField fullWidth size="small" label="แพทเทิร์น" value={item.pattern} disabled={!isCalcEditing} onChange={(e) => setItem(item.id, { pattern: e.target.value })} />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="แพทเทิร์น"
+                            value={item.pattern}
+                            disabled={!isCalcEditing}
+                            onChange={(e) => setItem(item.id, { pattern: e.target.value })}
+                          />
                         </Grid>
                         <Grid item xs={12} md={3}>
-                          <TextField fullWidth size="small" label="ประเภทผ้า" value={item.fabricType} disabled={!isCalcEditing} onChange={(e) => setItem(item.id, { fabricType: e.target.value })} />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ประเภทผ้า"
+                            value={item.fabricType}
+                            disabled={!isCalcEditing}
+                            onChange={(e) => setItem(item.id, { fabricType: e.target.value })}
+                          />
                         </Grid>
                         <Grid item xs={12} md={3}>
-                          <TextField fullWidth size="small" label="สี" value={item.color} disabled={!isCalcEditing} onChange={(e) => setItem(item.id, { color: e.target.value })} />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="สี"
+                            value={item.color}
+                            disabled={!isCalcEditing}
+                            onChange={(e) => setItem(item.id, { color: e.target.value })}
+                          />
                         </Grid>
                         <Grid item xs={12} md={3}>
-                          <TextField fullWidth size="small" label="ขนาด (สรุป)" value={item.size} disabled={!isCalcEditing} onChange={(e) => setItem(item.id, { size: e.target.value })} />
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ขนาด (สรุป)"
+                            value={item.size}
+                            disabled={!isCalcEditing}
+                            onChange={(e) => setItem(item.id, { size: e.target.value })}
+                          />
                         </Grid>
                         {/* Unit editor */}
                         <Grid item xs={12} md={3}>
@@ -465,9 +654,12 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             disabled={!isCalcEditing}
                             onChange={(e) => {
                               const val = e.target.value;
-                              if (val === 'อื่นๆ') {
+                              if (val === "อื่นๆ") {
                                 // switch to custom mode; keep current custom value in item.unit
-                                setItem(item.id, { unit: item.unit && !knownUnits.includes(item.unit) ? item.unit : '' });
+                                setItem(item.id, {
+                                  unit:
+                                    item.unit && !knownUnits.includes(item.unit) ? item.unit : "",
+                                });
                               } else {
                                 setItem(item.id, { unit: val });
                               }
@@ -481,14 +673,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                             <option value="อื่นๆ">อื่นๆ</option>
                           </TextField>
                         </Grid>
-                        {unitSelectValue === 'อื่นๆ' && (
+                        {unitSelectValue === "อื่นๆ" && (
                           <Grid item xs={12} md={3}>
                             <TextField
                               fullWidth
                               size="small"
                               label="หน่วย (กำหนดเอง)"
                               placeholder="พิมพ์หน่วย เช่น โหล, ตร.ม., แผ่น"
-                              value={item.unit || ''}
+                              value={item.unit || ""}
                               disabled={!isCalcEditing}
                               onChange={(e) => setItem(item.id, { unit: e.target.value })}
                             />
@@ -497,11 +689,29 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
 
                         {/* Size rows editor */}
                         <Grid item xs={12}>
-                          <Box sx={{ p: 1.5, border: `1px dashed ${tokens.border}`, borderRadius: 1, bgcolor: tokens.bg }}>
-                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                              <Typography variant="subtitle2" fontWeight={700}>แยกตามขนาด</Typography>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              border: `1px dashed ${tokens.border}`,
+                              borderRadius: 1,
+                              bgcolor: tokens.bg,
+                            }}
+                          >
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="space-between"
+                              mb={1}
+                            >
+                              <Typography variant="subtitle2" fontWeight={700}>
+                                แยกตามขนาด
+                              </Typography>
                               {isCalcEditing && (
-                                <SecondaryButton size="small" startIcon={<AddIcon />} onClick={() => addSizeRow(item.id)}>
+                                <SecondaryButton
+                                  size="small"
+                                  startIcon={<AddIcon />}
+                                  onClick={() => addSizeRow(item.id)}
+                                >
                                   เพิ่มแถว
                                 </SecondaryButton>
                               )}
@@ -509,23 +719,50 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
 
                             {/* header */}
                             <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
-                              <Grid item xs={12} md={3}><Typography variant="caption" color="text.secondary">ขนาด</Typography></Grid>
-                              <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">จำนวน</Typography></Grid>
-                              <Grid item xs={6} md={3}><Typography variant="caption" color="text.secondary">ราคาต่อหน่วย</Typography></Grid>
-                              <Grid item xs={10} md={2}><Typography variant="caption" color="text.secondary">ยอดรวม</Typography></Grid>
+                              <Grid item xs={12} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  ขนาด
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  จำนวน
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  ราคาต่อหน่วย
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={10} md={2}>
+                                <Typography variant="caption" color="text.secondary">
+                                  ยอดรวม
+                                </Typography>
+                              </Grid>
                               <Grid item xs={2} md={1}></Grid>
                             </Grid>
 
                             {rows.length === 0 ? (
-                              <Box sx={{ p: 1, color: 'text.secondary' }}>
-                                <Typography variant="body2">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
+                              <Box sx={{ p: 1, color: "text.secondary" }}>
+                                <Typography variant="body2">
+                                  ไม่มีรายละเอียดรายการสำหรับงานนี้
+                                </Typography>
                               </Box>
                             ) : (
                               <Grid container spacing={1}>
                                 {rows.map((row) => (
                                   <React.Fragment key={row.uuid}>
                                     <Grid item xs={12} md={3}>
-                                      <TextField fullWidth size="small" label="ขนาด" value={row.size || ''} disabled={!isCalcEditing} onChange={(e) => updateSizeRow(item.id, row.uuid, { size: e.target.value })} />
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="ขนาด"
+                                        value={row.size || ""}
+                                        disabled={!isCalcEditing}
+                                        onChange={(e) =>
+                                          updateSizeRow(item.id, row.uuid, { size: e.target.value })
+                                        }
+                                      />
                                     </Grid>
                                     <Grid item xs={6} md={3}>
                                       <TextField
@@ -533,10 +770,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                         size="small"
                                         label="จำนวน"
                                         type="text"
-                                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
-                                        value={String(row.quantity ?? '')}
+                                        inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                                        value={String(row.quantity ?? "")}
                                         disabled={!isCalcEditing}
-                                        onChange={(e) => updateSizeRow(item.id, row.uuid, { quantity: sanitizeInt(e.target.value) })}
+                                        onChange={(e) =>
+                                          updateSizeRow(item.id, row.uuid, {
+                                            quantity: sanitizeInt(e.target.value),
+                                          })
+                                        }
                                       />
                                     </Grid>
                                     <Grid item xs={6} md={3}>
@@ -545,25 +786,49 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                                         size="small"
                                         label="ราคาต่อหน่วย"
                                         type="text"
-                                        inputProps={{ inputMode: 'decimal' }}
-                                        value={String(row.unitPrice ?? '')}
+                                        inputProps={{ inputMode: "decimal" }}
+                                        value={String(row.unitPrice ?? "")}
                                         disabled={!isCalcEditing}
-                                        onChange={(e) => updateSizeRow(item.id, row.uuid, { unitPrice: sanitizeDecimal(e.target.value) })}
+                                        onChange={(e) =>
+                                          updateSizeRow(item.id, row.uuid, {
+                                            unitPrice: sanitizeDecimal(e.target.value),
+                                          })
+                                        }
                                       />
                                     </Grid>
                                     <Grid item xs={10} md={2}>
-                                      <Box sx={{ p: 1, bgcolor: '#fff', border: `1px solid ${tokens.border}`, borderRadius: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" fontWeight={800}>{(() => {
-                                          const q = typeof row.quantity === 'string' ? parseFloat(row.quantity || '0') : Number(row.quantity || 0);
-                                          const p = typeof row.unitPrice === 'string' ? parseFloat(row.unitPrice || '0') : Number(row.unitPrice || 0);
-                                          const sum = isNaN(q) || isNaN(p) ? 0 : q * p;
-                                          return formatTHB(sum);
-                                        })()}</Typography>
+                                      <Box
+                                        sx={{
+                                          p: 1,
+                                          bgcolor: "#fff",
+                                          border: `1px solid ${tokens.border}`,
+                                          borderRadius: 1,
+                                          textAlign: "center",
+                                        }}
+                                      >
+                                        <Typography variant="subtitle2" fontWeight={800}>
+                                          {(() => {
+                                            const q =
+                                              typeof row.quantity === "string"
+                                                ? parseFloat(row.quantity || "0")
+                                                : Number(row.quantity || 0);
+                                            const p =
+                                              typeof row.unitPrice === "string"
+                                                ? parseFloat(row.unitPrice || "0")
+                                                : Number(row.unitPrice || 0);
+                                            const sum = isNaN(q) || isNaN(p) ? 0 : q * p;
+                                            return formatTHB(sum);
+                                          })()}
+                                        </Typography>
                                       </Box>
                                     </Grid>
                                     <Grid item xs={2} md={1}>
                                       {isCalcEditing && (
-                                        <SecondaryButton size="small" color="error" onClick={() => removeSizeRow(item.id, row.uuid)}>
+                                        <SecondaryButton
+                                          size="small"
+                                          color="error"
+                                          onClick={() => removeSizeRow(item.id, row.uuid)}
+                                        >
                                           <DeleteOutlineIcon fontSize="small" />
                                         </SecondaryButton>
                                       )}
@@ -571,14 +836,35 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
 
                                     {/* line note */}
                                     <Grid item xs={12}>
-                                      <TextField fullWidth size="small" label="หมายเหตุ (บรรทัดนี้)" multiline minRows={1} value={row.notes || ''} disabled={!isCalcEditing} onChange={(e) => updateSizeRow(item.id, row.uuid, { notes: e.target.value })} />
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="หมายเหตุ (บรรทัดนี้)"
+                                        multiline
+                                        minRows={1}
+                                        value={row.notes || ""}
+                                        disabled={!isCalcEditing}
+                                        onChange={(e) =>
+                                          updateSizeRow(item.id, row.uuid, {
+                                            notes: e.target.value,
+                                          })
+                                        }
+                                      />
                                     </Grid>
                                   </React.Fragment>
                                 ))}
 
                                 {!!warnings?.[item.id] && (
                                   <Grid item xs={12}>
-                                    <Typography variant="caption" sx={{ color: warnings[item.id].type === 'error' ? 'error.main' : 'warning.main' }}>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color:
+                                          warnings[item.id].type === "error"
+                                            ? "error.main"
+                                            : "warning.main",
+                                      }}
+                                    >
                                       {warnings[item.id].message}
                                     </Typography>
                                   </Grid>
@@ -589,9 +875,21 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                         </Grid>
 
                         <Grid item xs={6} md={4}>
-                          <Box sx={{ p: 1.5, border: `1px solid ${tokens.border}`, borderRadius: 1.5, textAlign: 'center', bgcolor: tokens.bg }}>
-                            <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
-                            <Typography variant="h6" fontWeight={800}>{formatTHB(itemTotal)}</Typography>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              border: `1px solid ${tokens.border}`,
+                              borderRadius: 1.5,
+                              textAlign: "center",
+                              bgcolor: tokens.bg,
+                            }}
+                          >
+                            <Typography variant="caption" color="text.secondary">
+                              ยอดรวม
+                            </Typography>
+                            <Typography variant="h6" fontWeight={800}>
+                              {formatTHB(itemTotal)}
+                            </Typography>
                           </Box>
                         </Grid>
                       </Grid>
@@ -609,8 +907,12 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                       discountValue={formData.specialDiscountValue}
                       totalAmount={total}
                       discountAmount={specialDiscountAmount}
-                      onDiscountTypeChange={(type) => setFormData((p) => ({ ...p, specialDiscountType: type }))}
-                      onDiscountValueChange={(value) => setFormData((p) => ({ ...p, specialDiscountValue: value }))}
+                      onDiscountTypeChange={(type) =>
+                        setFormData((p) => ({ ...p, specialDiscountType: type }))
+                      }
+                      onDiscountValueChange={(value) =>
+                        setFormData((p) => ({ ...p, specialDiscountValue: value }))
+                      }
                       disabled={!isCalcEditing}
                     />
                   </Grid>
@@ -620,8 +922,12 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                       taxPercentage={formData.withholdingTaxPercentage}
                       taxAmount={withholdingTaxAmount}
                       subtotalAmount={subtotal}
-                      onToggleWithholdingTax={(enabled) => setFormData((p) => ({ ...p, hasWithholdingTax: enabled }))}
-                      onTaxPercentageChange={(percentage) => setFormData((p) => ({ ...p, withholdingTaxPercentage: percentage }))}
+                      onToggleWithholdingTax={(enabled) =>
+                        setFormData((p) => ({ ...p, hasWithholdingTax: enabled }))
+                      }
+                      onTaxPercentageChange={(percentage) =>
+                        setFormData((p) => ({ ...p, withholdingTaxPercentage: percentage }))
+                      }
                       disabled={!isCalcEditing}
                     />
                   </Grid>
@@ -645,37 +951,65 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           <Grid item xs={12}>
             <Section>
               <SectionHeader>
-                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                <Avatar
+                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                >
                   <PaymentIcon fontSize="small" />
                 </Avatar>
-                <Typography variant="subtitle1" fontWeight={700}>เงื่อนไขการชำระเงิน</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  เงื่อนไขการชำระเงิน
+                </Typography>
               </SectionHeader>
               <Box sx={{ p: 2 }}>
                 <PaymentTerms
                   isEditing
                   paymentTermsType={formData.paymentTermsType}
                   paymentTermsCustom={formData.paymentTermsCustom}
-                  onChangePaymentTermsType={(v) => setFormData(p => ({ ...p, paymentTermsType: v }))}
-                  onChangePaymentTermsCustom={(v) => setFormData(p => ({ ...p, paymentTermsCustom: v }))}
+                  onChangePaymentTermsType={(v) =>
+                    setFormData((p) => ({ ...p, paymentTermsType: v }))
+                  }
+                  onChangePaymentTermsCustom={(v) =>
+                    setFormData((p) => ({ ...p, paymentTermsCustom: v }))
+                  }
                   depositMode={formData.depositMode}
-                  onChangeDepositMode={(v) => setFormData(p => ({ ...p, depositMode: v }))}
+                  onChangeDepositMode={(v) => setFormData((p) => ({ ...p, depositMode: v }))}
                   depositPercentage={formData.depositPct}
                   depositAmountInput={formData.depositAmountInput}
-                  onChangeDepositPercentage={(v) => setFormData(p => ({ ...p, depositPct: sanitizeInt(v) }))}
-                  onChangeDepositAmount={(v) => setFormData(p => ({ ...p, depositAmountInput: sanitizeDecimal(v) }))}
+                  onChangeDepositPercentage={(v) =>
+                    setFormData((p) => ({ ...p, depositPct: sanitizeInt(v) }))
+                  }
+                  onChangeDepositAmount={(v) =>
+                    setFormData((p) => ({ ...p, depositAmountInput: sanitizeDecimal(v) }))
+                  }
                   isCredit={isCredit}
-                  dueDateNode={isCredit ? (
-                    <>
-                      <Grid item xs={6}><Typography>วันครบกำหนด</Typography></Grid>
-                      <Grid item xs={6}><Typography textAlign="right" fontWeight={700}>{formatDateTH(formData.dueDate)}</Typography></Grid>
-                    </>
-                  ) : null}
+                  dueDateNode={
+                    isCredit ? (
+                      <>
+                        <Grid item xs={6}>
+                          <Typography>วันครบกำหนด</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography textAlign="right" fontWeight={700}>
+                            {formatDateTH(formData.dueDate)}
+                          </Typography>
+                        </Grid>
+                      </>
+                    ) : null
+                  }
                   finalTotal={finalTotal}
                   depositAmount={depositAmount}
                   remainingAmount={remainingAmount}
                 />
                 <Box sx={{ mt: 2 }}>
-                  <TextField fullWidth multiline rows={3} label="หมายเหตุ" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} placeholder="เช่น ราคานี้รวมค่าจัดส่งและติดตั้งแล้ว…" />
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="หมายเหตุ"
+                    value={formData.notes}
+                    onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
+                    placeholder="เช่น ราคานี้รวมค่าจัดส่งและติดตั้งแล้ว…"
+                  />
                 </Box>
               </Box>
             </Section>
@@ -685,10 +1019,14 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           <Grid item xs={12}>
             <Section>
               <SectionHeader>
-                <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+                <Avatar
+                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                >
                   <AddIcon fontSize="small" />
                 </Avatar>
-                <Typography variant="subtitle1" fontWeight={700}>รูปภาพตัวอย่าง</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  รูปภาพตัวอย่าง
+                </Typography>
               </SectionHeader>
               <Box sx={{ p: 2 }}>
                 <ImageUploadGrid
@@ -699,40 +1037,69 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
                     const res = await uploadSamplesTemp({ files }).unwrap();
                     const list = res?.data?.sample_images || res?.sample_images || [];
                     setFormData((p) => {
-                      const updated = [...(p.sampleImages||[]), ...list];
+                      const updated = [...(p.sampleImages || []), ...list];
                       const currentSel = p.selectedSampleForPdf;
-                      const nextSel = currentSel && updated.some(it => (it.filename === currentSel))
-                        ? currentSel
-                        : (updated[0]?.filename || '');
+                      const nextSel =
+                        currentSel && updated.some((it) => it.filename === currentSel)
+                          ? currentSel
+                          : updated[0]?.filename || "";
                       return { ...p, sampleImages: updated, selectedSampleForPdf: nextSel };
                     });
                   }}
                   helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
                 />
                 <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)</Typography>
-                  <Box sx={{ display:'flex', flexWrap:'wrap', gap: 1, mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
                     {(formData.sampleImages || []).map((img) => {
-                      const value = img.filename || '';
-                      const src = img.url || '';
+                      const value = img.filename || "";
+                      const src = img.url || "";
                       return (
-                        <label key={value || src} style={{ display:'inline-flex', alignItems:'center', gap:8, border: (formData.selectedSampleForPdf||'')===value ? `2px solid ${tokens.primary}` : '1px solid #ddd', padding:6, borderRadius:6, cursor:'pointer', userSelect:'none' }}>
+                        <label
+                          key={value || src}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            border:
+                              (formData.selectedSampleForPdf || "") === value
+                                ? `2px solid ${tokens.primary}`
+                                : "1px solid #ddd",
+                            padding: 6,
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            userSelect: "none",
+                          }}
+                        >
                           <input
                             type="radio"
                             name="selectedSample"
-                            checked={(formData.selectedSampleForPdf || '') === value}
+                            checked={(formData.selectedSampleForPdf || "") === value}
                             onClick={(e) => {
                               // Allow deselect by clicking the selected radio again
-                              if ((formData.selectedSampleForPdf || '') === value) {
+                              if ((formData.selectedSampleForPdf || "") === value) {
                                 e.preventDefault();
-                                setFormData((p) => ({ ...p, selectedSampleForPdf: '' }));
+                                setFormData((p) => ({ ...p, selectedSampleForPdf: "" }));
                               }
                             }}
-                            onChange={() => setFormData((p) => ({ ...p, selectedSampleForPdf: value }))}
+                            onChange={() =>
+                              setFormData((p) => ({ ...p, selectedSampleForPdf: value }))
+                            }
                             style={{ margin: 0 }}
                           />
                           {src ? (
-                            <img src={src} alt="sample" style={{ width: 72, height: 72, objectFit: 'cover', display:'block' }} />
+                            <img
+                              src={src}
+                              alt="sample"
+                              style={{
+                                width: 72,
+                                height: 72,
+                                objectFit: "cover",
+                                display: "block",
+                              }}
+                            />
                           ) : null}
                         </label>
                       );
@@ -744,14 +1111,23 @@ const CreateQuotationForm = ({ selectedPricingRequests = [], onBack, onSave, onS
           </Grid>
         </Grid>
         {/* FOOTER ACTIONS */}
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-          <SecondaryButton onClick={onBack} startIcon={<ArrowBackIcon />}>ยกเลิก</SecondaryButton>
+        <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between", gap: 1 }}>
+          <SecondaryButton onClick={onBack} startIcon={<ArrowBackIcon />}>
+            ยกเลิก
+          </SecondaryButton>
           <Box display="flex" gap={1}>
-            <SecondaryButton startIcon={<VisibilityIcon />} onClick={() => setShowPreview(true)} disabled={finalTotal === 0}>
+            <SecondaryButton
+              startIcon={<VisibilityIcon />}
+              onClick={() => setShowPreview(true)}
+              disabled={finalTotal === 0}
+            >
               ดูตัวอย่าง
             </SecondaryButton>
-            <PrimaryButton onClick={() => handleSubmit('review')} disabled={isSubmitting || finalTotal === 0}>
-              {isSubmitting ? 'กำลังส่ง…' : 'ส่งตรวจสอบ'}
+            <PrimaryButton
+              onClick={() => handleSubmit("review")}
+              disabled={isSubmitting || finalTotal === 0}
+            >
+              {isSubmitting ? "กำลังส่ง…" : "ส่งตรวจสอบ"}
             </PrimaryButton>
           </Box>
         </Box>

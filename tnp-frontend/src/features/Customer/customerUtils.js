@@ -12,18 +12,18 @@ export function formatCustomRelativeTime(dateString) {
   if (!dateString) {
     return 0;
   }
-  
-  const recallDate = moment(dateString).startOf('day');
-  const today = moment().startOf('day');
-  
+
+  const recallDate = moment(dateString).startOf("day");
+  const today = moment().startOf("day");
+
   // คำนวณจำนวนวันระหว่าง recall date กับวันนี้
-  const diffInDays = recallDate.diff(today, 'days');
-  
+  const diffInDays = recallDate.diff(today, "days");
+
   // ถ้า recall date เป็นในอนาคต = ยังไม่ถึงเวลาต้องติดต่อ
   if (diffInDays > 0) {
     return diffInDays; // จำนวนวันที่เหลือ
   }
-  
+
   // ถ้า recall date เป็นวันนี้หรือผ่านมาแล้ว = ถึงเวลาต้องติดต่อแล้ว
   return Math.abs(diffInDays); // จำนวนวันที่เกินกำหนด (0 สำหรับวันนี้)
 }

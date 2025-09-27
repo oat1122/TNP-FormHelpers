@@ -1,12 +1,6 @@
-import {
-  useState,
-  useEffect,
-  useMemo,
-} from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  GridActionsCellItem,
-} from "@mui/x-data-grid";
+import { GridActionsCellItem } from "@mui/x-data-grid";
 import {
   Box,
   Button,
@@ -21,11 +15,12 @@ import { MdOutlineManageSearch, MdLockReset } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
 import { CiEdit } from "react-icons/ci";
 import { BsTrash3 } from "react-icons/bs";
-import { useGetAllUserQuery, useResetPasswordMutation, useDelUserMutation, } from "../../features/UserManagement/userManagementApi";
 import {
-  setItemList,
-  setMode,
-} from "../../features/UserManagement/userManagementSlice";
+  useGetAllUserQuery,
+  useResetPasswordMutation,
+  useDelUserMutation,
+} from "../../features/UserManagement/userManagementApi";
+import { setItemList, setMode } from "../../features/UserManagement/userManagementSlice";
 import TitleBar from "../../components/TitleBar";
 import { swal_delete_by_id } from "../../utils/dialog_swal2/dialog_delete_by_id";
 import {
@@ -69,8 +64,8 @@ function UserList() {
     formState: { errors },
   } = useForm({
     defaultValues: inputList,
-    mode: 'onChange', // ตรวจสอบความถูกต้องขณะกรอก
-    reValidateMode: 'onChange'
+    mode: "onChange", // ตรวจสอบความถูกต้องขณะกรอก
+    reValidateMode: "onChange",
   });
 
   const handleOpenDialog = (mode, user_uuid = null) => {
@@ -81,8 +76,8 @@ function UserList() {
         reset(itemFill);
       }
       setValue("user_updated_by", user.user_uuid);
-    } 
-    
+    }
+
     if (mode === "create") {
       setValue("user_created_by", user.user_uuid);
       setValue("user_updated_by", user.user_uuid);
@@ -94,7 +89,7 @@ function UserList() {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    
+
     setTimeout(() => {
       reset(inputList);
       dispatch(setMode(""));
@@ -102,9 +97,7 @@ function UserList() {
   };
 
   const handleDelete = async (params) => {
-    const confirmed = await swal_delete_by_id(
-      `กรุณายืนยันการลบข้อมูล ${params.user_nickname}`
-    );
+    const confirmed = await swal_delete_by_id(`กรุณายืนยันการลบข้อมูล ${params.user_nickname}`);
 
     if (confirmed) {
       open_dialog_loading();
@@ -136,14 +129,12 @@ function UserList() {
         } else {
           open_dialog_error(res.message);
         }
-        
       } catch (error) {
         open_dialog_error(error.message, error);
         console.error(error);
       }
     }
-
-  }
+  };
 
   useEffect(() => {
     if (isSuccess) {
@@ -163,16 +154,16 @@ function UserList() {
         field: "no",
         width: 130,
         renderCell: (params) => {
-          const rowIndex  = params.api.getRowIndexRelativeToVisibleRows(params.rowNode.id);
+          const rowIndex = params.api.getRowIndexRelativeToVisibleRows(params.rowNode.id);
           const result = paginationModel.page * paginationModel.pageSize + rowIndex + 1;
           return result;
-        }
+        },
       },
       {
         field: "user_emp_no",
         headerName: "emp no",
         width: 180,
-        valueGetter: (value) => value ? value : "-"
+        valueGetter: (value) => (value ? value : "-"),
       },
       {
         field: "user_nickname",
@@ -208,33 +199,34 @@ function UserList() {
         flex: 1,
         minWidth: 220,
         type: "actions",
-        getActions: (params) => [
-          <GridActionsCellItem
-            icon={<MdLockReset style={{ fontSize: 26 }} />}
-            label="Reset Password"
-            onClick={() => handleResetPassword(params.row)}
-          />,
-
-          <GridActionsCellItem
-            icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
-            label="View"
-            onClick={() => handleOpenDialog("view", params.row.user_uuid)}
-          />,
-
-          <GridActionsCellItem
-            icon={<CiEdit style={{ fontSize: 26 }} />}
-            label="Edit"
-            onClick={() => handleOpenDialog("edit", params.row.user_uuid)}
-          />,
-
-          params.row.user_uuid !== user.user_uuid && (
+        getActions: (params) =>
+          [
             <GridActionsCellItem
-            icon={<BsTrash3 style={{ fontSize: 22 }} />}
-            label="Delete"
-            onClick={() => handleDelete(params.row)}
-            />
-          )
-        ].filter(Boolean),
+              icon={<MdLockReset style={{ fontSize: 26 }} />}
+              label="Reset Password"
+              onClick={() => handleResetPassword(params.row)}
+            />,
+
+            <GridActionsCellItem
+              icon={<MdOutlineManageSearch style={{ fontSize: 26 }} />}
+              label="View"
+              onClick={() => handleOpenDialog("view", params.row.user_uuid)}
+            />,
+
+            <GridActionsCellItem
+              icon={<CiEdit style={{ fontSize: 26 }} />}
+              label="Edit"
+              onClick={() => handleOpenDialog("edit", params.row.user_uuid)}
+            />,
+
+            params.row.user_uuid !== user.user_uuid && (
+              <GridActionsCellItem
+                icon={<BsTrash3 style={{ fontSize: 22 }} />}
+                label="Delete"
+                onClick={() => handleDelete(params.row)}
+              />
+            ),
+          ].filter(Boolean),
       },
     ],
     [handleOpenDialog, handleDelete]
@@ -243,22 +235,19 @@ function UserList() {
   return (
     <div className="user-management-list">
       <DialogForm
-          openDialog={openDialog}
-          handleCloseDialog={handleCloseDialog}
-          register={register}
-          setValue={setValue}
-          getValues={getValues}
-          handleSubmit={handleSubmit}
-          control={control}
-          errors={errors}
-          watch={watch}
-        />
+        openDialog={openDialog}
+        handleCloseDialog={handleCloseDialog}
+        register={register}
+        setValue={setValue}
+        getValues={getValues}
+        handleSubmit={handleSubmit}
+        control={control}
+        errors={errors}
+        watch={watch}
+      />
 
       <TitleBar title="user-management" />
-      <Box
-        paddingX={3}
-        sx={{ margin: "auto", maxWidth: 1800, height: 750, paddingBlock: 3 }}
-      >
+      <Box paddingX={3} sx={{ margin: "auto", maxWidth: 1800, height: 750, paddingBlock: 3 }}>
         {/* Button on top table */}
         <TableContainer>
           <Table sx={{ marginBottom: 2 }}>

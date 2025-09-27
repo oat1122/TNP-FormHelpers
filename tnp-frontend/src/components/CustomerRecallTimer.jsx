@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import moment from "moment";
-import 'moment/locale/th';
+import "moment/locale/th";
 
 // Set moment to use Thai locale
-moment.locale('th');
+moment.locale("th");
 
-function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2", urgentThreshold = 7 }) {
+function CustomerRecallTimer({
+  cd_last_datetime,
+  showIcon = false,
+  size = "body2",
+  urgentThreshold = 7,
+}) {
   const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining());
 
   useEffect(() => {
@@ -28,17 +33,17 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
         minutes: 0,
         seconds: 0,
         expired: false,
-        total: 0
+        total: 0,
       };
     }
-    
+
     const now = moment();
     const recallDate = moment(cd_last_datetime);
     const duration = moment.duration(recallDate.diff(now));
-    
+
     const total = recallDate.diff(now);
     const expired = total <= 0;
-    
+
     if (expired) {
       // เมื่อเกินเวลาแล้ว คำนวณจำนวนวันที่เกินไป
       const overdueDuration = moment.duration(now.diff(recallDate));
@@ -48,17 +53,17 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
         minutes: overdueDuration.minutes(),
         seconds: overdueDuration.seconds(),
         expired: true,
-        total: -Math.abs(total)
+        total: -Math.abs(total),
       };
     }
-    
+
     return {
       days: Math.floor(duration.asDays()),
       hours: duration.hours(),
       minutes: duration.minutes(),
       seconds: duration.seconds(),
       expired: false,
-      total: total
+      total: total,
     };
   }
 
@@ -69,7 +74,7 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
     }
 
     const { days, hours, minutes, seconds, expired } = timeRemaining;
-    
+
     if (expired) {
       // แสดงเวลาที่เกินกำหนดแล้ว - แยกประเภทตามระยะเวลา
       if (days === 0) {
@@ -104,9 +109,9 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
   // Determine color based on urgency
   const getColor = () => {
     if (!cd_last_datetime) return "inherit";
-    
+
     const { days, expired } = timeRemaining;
-    
+
     if (expired) {
       return "error.main"; // แดงเข้มเมื่อเกินเวลาทั้งหมด
     } else if (days <= urgentThreshold) {
@@ -121,7 +126,7 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
   // Determine font weight
   const getFontWeight = () => {
     if (!cd_last_datetime) return "normal";
-    
+
     const { expired } = timeRemaining;
     return expired ? "bold" : "normal";
   };
@@ -129,11 +134,9 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
   // Animation for urgent cases
   const getAnimation = () => {
     if (!cd_last_datetime) return "none";
-    
+
     const { expired } = timeRemaining;
-    return expired 
-      ? "glow-border 2s ease-in-out infinite" 
-      : "none";
+    return expired ? "glow-border 2s ease-in-out infinite" : "none";
   };
 
   return (
@@ -182,4 +185,4 @@ function CustomerRecallTimer({ cd_last_datetime, showIcon = false, size = "body2
   );
 }
 
-export default CustomerRecallTimer; 
+export default CustomerRecallTimer;

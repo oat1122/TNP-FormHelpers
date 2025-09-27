@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Chip,
-  Typography,
-} from "@mui/material";
+import { FormControl, InputLabel, Select, MenuItem, Box, Chip, Typography } from "@mui/material";
 import {
   DateRange,
   Today,
@@ -41,15 +33,13 @@ const TimePeriodSelector = ({
       value: "thisWeek",
       label: "อาทิตนี้",
       icon: <DateRange fontSize="small" />,
-      description:
-        "คำนวณจากงานที่เริ่มและยังไม่เสร็จในอาทิตนี้ (จันทร์-อาทิตย์)",
+      description: "คำนวณจากงานที่เริ่มและยังไม่เสร็จในอาทิตนี้ (จันทร์-อาทิตย์)",
     },
     {
       value: "nextWeek",
       label: "อาทิตหน้า",
       icon: <Weekend fontSize="small" />,
-      description:
-        "คำนวณจากงานที่เริ่มและยังไม่เสร็จในอาทิตหน้า (จันทร์-อาทิตย์)",
+      description: "คำนวณจากงานที่เริ่มและยังไม่เสร็จในอาทิตหน้า (จันทร์-อาทิตย์)",
     },
     {
       value: "thisMonth",

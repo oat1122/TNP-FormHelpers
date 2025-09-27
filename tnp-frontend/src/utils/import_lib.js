@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState  } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import axios from "../api/axios";
@@ -58,8 +58,8 @@ import {
 
 import { styled } from "@mui/system";
 
-import { 
-  Container as BsContainer, 
+import {
+  Container as BsContainer,
   Nav as BsNav,
   Navbar as BsNavbar,
   Form as BsForm,
@@ -73,7 +73,7 @@ import {
   dismiss_loading_toast,
 } from "../utils/dialog_swal2/alart_one_line";
 import { dialog_delete_by_id } from "../utils/dialog_swal2/dialog_delete_by_id";
-import { dialog_confirm_yes_no } from "../utils/dialog_swal2/dialog_confirm_yes_no"
+import { dialog_confirm_yes_no } from "../utils/dialog_swal2/dialog_confirm_yes_no";
 
 export {
   useEffect,
@@ -141,7 +141,8 @@ export {
   BsForm,
   BsInputGroup,
   moment,
-  Swal,  open_dialog_error,
+  Swal,
+  open_dialog_error,
   open_dialog_ok_timer,
   open_dialog_loading,
   dismiss_loading_toast,

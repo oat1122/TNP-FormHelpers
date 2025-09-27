@@ -52,18 +52,10 @@ const GpsAutoFillSection = ({
       >
         <MdGpsFixed size={24} color={PRIMARY_RED} />
         <Box>
-          <Typography
-            fontWeight={600}
-            fontFamily="Kanit"
-            color={PRIMARY_RED}
-          >
+          <Typography fontWeight={600} fontFamily="Kanit" color={PRIMARY_RED}>
             📍 GPS อัตโนมัติ (ปรับปรุงใหม่)
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            fontFamily="Kanit"
-          >
+          <Typography variant="caption" color="text.secondary" fontFamily="Kanit">
             กดปุ่มเพื่อหาที่อยู่จากตำแหน่งปัจจุบันแบบความแม่นยำสูง
           </Typography>
         </Box>
@@ -103,11 +95,7 @@ const GpsAutoFillSection = ({
               onClick={handleGetCurrentLocation}
               disabled={isGettingLocation || mode === "view"}
               startIcon={
-                isGettingLocation ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <MdGpsFixed />
-                )
+                isGettingLocation ? <CircularProgress size={20} color="inherit" /> : <MdGpsFixed />
               }
               sx={{
                 bgcolor: PRIMARY_RED,
@@ -122,9 +110,7 @@ const GpsAutoFillSection = ({
                 },
               }}
             >
-              {isGettingLocation
-                ? "กำลังค้นหา..."
-                : "🎯 ใช้ตำแหน่งปัจจุบัน (ความแม่นยำสูง)"}
+              {isGettingLocation ? "กำลังค้นหา..." : "🎯 ใช้ตำแหน่งปัจจุบัน (ความแม่นยำสูง)"}
             </Button>
 
             {hasFilledFromGps && (
@@ -150,10 +136,10 @@ const GpsAutoFillSection = ({
                 locationStatus.includes("❌")
                   ? "error"
                   : locationStatus.includes("⚠️")
-                  ? "warning"
-                  : locationStatus.includes("✅")
-                  ? "success"
-                  : "info"
+                    ? "warning"
+                    : locationStatus.includes("✅")
+                      ? "success"
+                      : "info"
               }
               sx={{ fontFamily: "Kanit", whiteSpace: "pre-line" }}
             >
@@ -188,12 +174,10 @@ const GpsAutoFillSection = ({
                 🎯 พิกัด: {gpsResult.coordinates.latitude.toFixed(6)},{" "}
                 {gpsResult.coordinates.longitude.toFixed(6)}
                 {"\n"}
-                📏 ความแม่นยำ: ±
-                {Math.round(gpsResult.coordinates.accuracy || 0)} เมตร{"\n"}
+                📏 ความแม่นยำ: ±{Math.round(gpsResult.coordinates.accuracy || 0)} เมตร{"\n"}
                 🔗 แหล่งข้อมูล: {gpsResult.source.toUpperCase()}
                 {"\n"}
-                🕒 เวลา:{" "}
-                {new Date(gpsResult.timestamp).toLocaleString("th-TH")}
+                🕒 เวลา: {new Date(gpsResult.timestamp).toLocaleString("th-TH")}
               </Typography>
             </Box>
           )}

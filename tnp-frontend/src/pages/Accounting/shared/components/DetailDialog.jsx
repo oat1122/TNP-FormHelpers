@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,8 +8,8 @@ import {
   Typography,
   CircularProgress,
   Avatar,
-} from '@mui/material';
-import { tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
+} from "@mui/material";
+import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 /**
  * DetailDialog (Shared Base Component)
@@ -28,16 +28,8 @@ const DetailDialog = ({
   ...props
 }) => {
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth={maxWidth} 
-      fullWidth={fullWidth}
-      {...props}
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {title}
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth={maxWidth} fullWidth={fullWidth} {...props}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>{title}</DialogTitle>
       <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
         {isLoading ? (
           <Box display="flex" alignItems="center" gap={1} p={2}>
@@ -47,18 +39,15 @@ const DetailDialog = ({
         ) : error ? (
           <Box p={2}>
             <Typography color="error">
-              ไม่สามารถโหลดข้อมูลได้: {typeof error === 'string' ? error : error?.message || 'เกิดข้อผิดพลาด'}
+              ไม่สามารถโหลดข้อมูลได้:{" "}
+              {typeof error === "string" ? error : error?.message || "เกิดข้อผิดพลาด"}
             </Typography>
           </Box>
         ) : (
           children
         )}
       </DialogContent>
-      {actions && (
-        <DialogActions>
-          {actions}
-        </DialogActions>
-      )}
+      {actions && <DialogActions>{actions}</DialogActions>}
     </Dialog>
   );
 };

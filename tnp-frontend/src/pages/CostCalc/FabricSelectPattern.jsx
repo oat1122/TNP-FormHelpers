@@ -10,12 +10,12 @@ function FabricSelectPattern() {
   const { data, error } = useGetPatternQuery();
 
   const iconMap = {
-    "t-shirt": <IoShirt style={{ marginRight: 10, }} />,
-    "oversize": <IoShirtOutline style={{ marginRight: 10, }} />,
-    "crop": <IoShirtOutline style={{ marginRight: 10, }} />,
-    "long sleeve": <IoShirtOutline style={{ marginRight: 10, }} />,
-    "polo": <IoShirtOutline style={{ marginRight: 10, }} />,
-    "polo long sleeve": <IoShirtOutline style={{ marginRight: 10, }} />,
+    "t-shirt": <IoShirt style={{ marginRight: 10 }} />,
+    oversize: <IoShirtOutline style={{ marginRight: 10 }} />,
+    crop: <IoShirtOutline style={{ marginRight: 10 }} />,
+    "long sleeve": <IoShirtOutline style={{ marginRight: 10 }} />,
+    polo: <IoShirtOutline style={{ marginRight: 10 }} />,
+    "polo long sleeve": <IoShirtOutline style={{ marginRight: 10 }} />,
   };
 
   return (
@@ -39,7 +39,12 @@ function FabricSelectPattern() {
                         value={pattern.pattern_id}
                         checked={pattern_id === pattern.pattern_id}
                         onChange={() =>
-                          dispatch(setPatternByID({id: pattern.pattern_id, shirtCate: pattern.shirt_category}))
+                          dispatch(
+                            setPatternByID({
+                              id: pattern.pattern_id,
+                              shirtCate: pattern.shirt_category,
+                            })
+                          )
                         }
                         className="mx-3 rounded-3"
                       >

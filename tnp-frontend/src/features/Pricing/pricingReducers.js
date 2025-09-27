@@ -29,11 +29,11 @@ export default {
   },
   setNote: (state, action) => {
     const keyMap = {
-      'sales': 'note_sales',
-      'price': 'note_price',
-      'manager': 'note_manager',
-    }
-    
+      sales: "note_sales",
+      price: "note_price",
+      manager: "note_manager",
+    };
+
     const { inputData, noteType } = action.payload;
 
     state.inputList[keyMap[noteType]].push(inputData);
@@ -65,7 +65,7 @@ export default {
       cus_name: "",
       cus_tel_1: "",
       cus_email: "",
-      cus_fullname: "",  // cus_firstname + cus_lastname;
+      cus_fullname: "", // cus_firstname + cus_lastname;
 
       // note pricing
       note_sales: [],

@@ -20,22 +20,24 @@ function ExampleSect({ handleInputChange }) {
 
   const renderedExampleQty = (items, pattern_type) => {
     return items.map((item, index) => (
-      <Grid key={index} size={{ xs: 6, sm: 4, lg: 2, }} p={1}>
+      <Grid key={index} size={{ xs: 6, sm: 4, lg: 2 }} p={1}>
         <TextField
           type="text"
           fullWidth
           name={`${pattern_type}_example_${item.ex_size_name}`}
           label={item.ex_size_name.toUpperCase()}
           value={item.ex_quantity}
-          onChange={(e) => dispatch(setInputExample({name: e.target.name, value: e.target.value, index}))}
+          onChange={(e) =>
+            dispatch(setInputExample({ name: e.target.name, value: e.target.value, index }))
+          }
         />
       </Grid>
-    ))
-  } 
+    ));
+  };
 
   if (Number(inputList.pattern_type) === 2) {
-    const menSizes = renderedExampleQty(inputList.example_quantity.men, 'men');
-    const womenSizes = renderedExampleQty(inputList.example_quantity.women, 'women');
+    const menSizes = renderedExampleQty(inputList.example_quantity.men, "men");
+    const womenSizes = renderedExampleQty(inputList.example_quantity.women, "women");
 
     content = (
       <Box sx={{ mt: 1 }}>
@@ -47,13 +49,14 @@ function ExampleSect({ handleInputChange }) {
             <Grid container spacing={2}>
               {menSizes}
             </Grid>
-            <Divider variant="middle" 
-              sx={(theme) => ({ 
-                mx: 1, 
-                my: 2, 
+            <Divider
+              variant="middle"
+              sx={(theme) => ({
+                mx: 1,
+                my: 2,
                 borderBottomWidth: 2,
-                borderColor: theme.vars.palette.grey[500]
-              })} 
+                borderColor: theme.vars.palette.grey[500],
+              })}
             />
           </>
         )}
@@ -69,15 +72,13 @@ function ExampleSect({ handleInputChange }) {
           </>
         )}
       </Box>
-    )
-    
+    );
   } else {
-
     content = (
       <Grid container spacing={1}>
-        {renderedExampleQty(inputList.example_quantity, 'unisex')}
+        {renderedExampleQty(inputList.example_quantity, "unisex")}
       </Grid>
-    )
+    );
   }
 
   const handleDateChange = (val_date, is_due_date) => {
@@ -91,7 +92,7 @@ function ExampleSect({ handleInputChange }) {
   return (
     <>
       <Grid container spacing={1}>
-        <Grid size={{ xs:12, sm: 4, lg:2, }} p={1}>
+        <Grid size={{ xs: 12, sm: 4, lg: 2 }} p={1}>
           <LocalizationProvider dateAdapter={AdapterMoment}>
             <DatePicker
               label="วันส่งตัวอย่าง"

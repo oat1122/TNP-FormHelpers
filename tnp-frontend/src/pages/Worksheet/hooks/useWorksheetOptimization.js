@@ -170,10 +170,7 @@ export const useApiCache = (cacheKey, ttl = 300000) => {
           data,
           timestamp: Date.now(),
         };
-        localStorage.setItem(
-          `api_cache_${cacheKey}`,
-          JSON.stringify(cacheData)
-        );
+        localStorage.setItem(`api_cache_${cacheKey}`, JSON.stringify(cacheData));
       } catch (error) {
         console.warn("Error setting API cache:", error);
       }

@@ -6,26 +6,28 @@ import { dateRangeCalculators } from "../utils/dateAdapters";
  * Provides quick date range selection and date manipulation utilities
  */
 export const useDateRangeHelpers = (setDraftFilters) => {
-  
   // Quick date range buttons handler
-  const handleQuickDateRange = useCallback((type) => {
-    const dateRange = dateRangeCalculators[type];
-    
-    if (!dateRange) {
-      console.warn(`Unknown date range type: ${type}`);
-      return;
-    }
+  const handleQuickDateRange = useCallback(
+    (type) => {
+      const dateRange = dateRangeCalculators[type];
 
-    const { startDate, endDate } = dateRange();
+      if (!dateRange) {
+        console.warn(`Unknown date range type: ${type}`);
+        return;
+      }
 
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        startDate,
-        endDate,
-      },
-    }));
-  }, [setDraftFilters]);
+      const { startDate, endDate } = dateRange();
+
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          startDate,
+          endDate,
+        },
+      }));
+    },
+    [setDraftFilters]
+  );
 
   // Handle date field clearing
   const clearStartDate = useCallback(() => {
@@ -49,26 +51,32 @@ export const useDateRangeHelpers = (setDraftFilters) => {
   }, [setDraftFilters]);
 
   // Set start date
-  const setStartDate = useCallback((newValue) => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        ...prev.dateRange,
-        startDate: newValue,
-      },
-    }));
-  }, [setDraftFilters]);
+  const setStartDate = useCallback(
+    (newValue) => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          ...prev.dateRange,
+          startDate: newValue,
+        },
+      }));
+    },
+    [setDraftFilters]
+  );
 
   // Set end date
-  const setEndDate = useCallback((newValue) => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      dateRange: {
-        ...prev.dateRange,
-        endDate: newValue,
-      },
-    }));
-  }, [setDraftFilters]);
+  const setEndDate = useCallback(
+    (newValue) => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        dateRange: {
+          ...prev.dateRange,
+          endDate: newValue,
+        },
+      }));
+    },
+    [setDraftFilters]
+  );
 
   // Clear both dates
   const clearDateRange = useCallback(() => {
@@ -89,4 +97,4 @@ export const useDateRangeHelpers = (setDraftFilters) => {
     setEndDate,
     clearDateRange,
   };
-}; 
+};

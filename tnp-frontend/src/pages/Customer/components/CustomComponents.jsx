@@ -8,10 +8,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import {
-  FirstPage,
-  LastPage,
-} from "@mui/icons-material";
+import { FirstPage, LastPage } from "@mui/icons-material";
 import {
   useGridApiContext,
   useGridSelector,
@@ -25,11 +22,7 @@ import { StyledPagination } from "../styles/StyledComponents";
 import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
 
 // Component Pagination ที่กำหนดเอง
-export const CustomPagination = ({ 
-  paginationModel, 
-  totalItems, 
-  scrollToTop 
-}) => {
+export const CustomPagination = ({ paginationModel, totalItems, scrollToTop }) => {
   const dispatch = useDispatch();
   const apiRef = useGridApiContext();
   const page = useGridSelector(apiRef, gridPageSelector);
@@ -69,10 +62,7 @@ export const CustomPagination = ({
     >
       {/* PageSizeSelector - ซ่อนบน mobile */}
       {!isXs && (
-        <PageSizeSelector
-          value={paginationModel.pageSize}
-          onChange={handlePageSizeChange}
-        />
+        <PageSizeSelector value={paginationModel.pageSize} onChange={handlePageSizeChange} />
       )}
 
       <Box
@@ -101,10 +91,10 @@ export const CustomPagination = ({
             <PaginationItem
               {...props2}
               disableRipple
-              slots={{ 
-                previous: FaChevronLeft, 
+              slots={{
+                previous: FaChevronLeft,
                 next: FaChevronRight,
-                ...(isXs ? {} : { first: FirstPage, last: LastPage })
+                ...(isXs ? {} : { first: FirstPage, last: LastPage }),
               }}
               sx={{
                 fontSize: isXs ? "0.75rem" : "0.875rem",
@@ -138,23 +128,19 @@ export const CustomPagination = ({
           order: isXs ? 1 : 0,
         }}
       >
-        {isXs 
-          ? `${page + 1}/${pageCount}` 
+        {isXs
+          ? `${page + 1}/${pageCount}`
           : `${page * paginationModel.pageSize + 1}-${Math.min(
               (page + 1) * paginationModel.pageSize,
               totalItems
-            )} of ${totalItems}`
-        }
+            )} of ${totalItems}`}
       </Typography>
     </Box>
   );
 };
 
 // Component Toolbar ที่กำหนดเอง
-export const CustomToolbar = ({ 
-  serverSortModel, 
-  isFetching 
-}) => {
+export const CustomToolbar = ({ serverSortModel, isFetching }) => {
   return (
     <GridToolbarContainer>
       <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
@@ -195,4 +181,4 @@ export const CustomToolbar = ({
       </Box>
     </GridToolbarContainer>
   );
-}; 
+};

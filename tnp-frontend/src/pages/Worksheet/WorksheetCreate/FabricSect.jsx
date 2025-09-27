@@ -21,22 +21,22 @@ import {
 function FabricSect({ handleInputChange }) {
   const dispatch = useDispatch();
   const inputList = useSelector((state) => state.worksheet.inputList);
-  const fabricCustomRows = inputList.fabric_custom_color
+  const fabricCustomRows = inputList.fabric_custom_color;
 
   const handleDisableInput = () => {
-    if (String(inputList.work_id).length > 8 || (inputList.is_duplicate)) {
-      return true
+    if (String(inputList.work_id).length > 8 || inputList.is_duplicate) {
+      return true;
     } else {
-      return false
+      return false;
     }
-  }
+  };
 
   const handleRaidoChange = (event) => {
     handleInputChange(event);
   };
 
   const addRow = () => {
-    dispatch(addRowFabricCustomColor())
+    dispatch(addRowFabricCustomColor());
   };
 
   const deleteRow = (index) => {
@@ -102,12 +102,12 @@ function FabricSect({ handleInputChange }) {
         </Grid>
       </Grid>
       <Grid container spacing={1}>
-        <Grid 
+        <Grid
           p={1}
-          size={{ 
+          size={{
             xs: 12,
             lg: 6,
-          }} 
+          }}
         >
           <Box
             p={1}
@@ -117,21 +117,21 @@ function FabricSect({ handleInputChange }) {
             })}
           >
             <Grid container spacing={0} alignItems="center">
-              <Grid 
+              <Grid
                 p={1}
-                size={{ 
-                  xs: "auto", 
-                }} 
+                size={{
+                  xs: "auto",
+                }}
               >
                 <Typography variant="h6" color="grey.800" my={0}>
                   บุ๊งคอ
                 </Typography>
               </Grid>
-              <Grid 
+              <Grid
                 p={1}
-                size={{ 
-                  xs: "auto", 
-                }} 
+                size={{
+                  xs: "auto",
+                }}
               >
                 <FormGroup row>
                   <RadioGroup
@@ -154,27 +154,27 @@ function FabricSect({ handleInputChange }) {
                 </FormGroup>
               </Grid>
               {inputList.crewneck_selected == 1 && (
-              <Grid size={{ xs: 12, sm: "grow" }} p={{ xs: 1, sm: 0 }} pr={{ md: 1 }}>
-                <TextField
-                  required
-                  fullWidth
-                  variant="outlined"
-                  label="สีบุ๊งคอ"
-                  type="text"
-                  name="crewneck_color"
-                  onChange={handleInputChange}
-                  value={inputList.crewneck_color}
-                />
-              </Grid>
+                <Grid size={{ xs: 12, sm: "grow" }} p={{ xs: 1, sm: 0 }} pr={{ md: 1 }}>
+                  <TextField
+                    required
+                    fullWidth
+                    variant="outlined"
+                    label="สีบุ๊งคอ"
+                    type="text"
+                    name="crewneck_color"
+                    onChange={handleInputChange}
+                    value={inputList.crewneck_color}
+                  />
+                </Grid>
               )}
             </Grid>
           </Box>
         </Grid>
-        <Grid 
-          size={{ 
-            xs: 12, 
+        <Grid
+          size={{
+            xs: 12,
             lg: 6,
-          }} 
+          }}
           p={1}
         >
           <Box
@@ -206,34 +206,33 @@ function FabricSect({ handleInputChange }) {
             <Grid container spacing={0} alignItems="center">
               <Grid size={{ xs: 12 }}>
                 {fabricCustomRows.map((row, index) => (
-                <Grid
-                  container
-                  my={1}
-                  alignItems="center"
-                  key={index}
-                >
-                  <Grid size={{ xs: 1, sm: 2, lg: 1 }} p={1} textAlign="center">
-                    <Typography variant="h6">{index + 1}</Typography>
+                  <Grid container my={1} alignItems="center" key={index}>
+                    <Grid size={{ xs: 1, sm: 2, lg: 1 }} p={1} textAlign="center">
+                      <Typography variant="h6">{index + 1}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 9, sm: 8, lg: 10 }} p={1}>
+                      <TextField
+                        required
+                        fullWidth
+                        type="text"
+                        size="small"
+                        variant="outlined"
+                        label="สีผ้า"
+                        name="fabric_custom_color"
+                        value={row}
+                        onChange={(e) => handleInputChange(e, index)}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 2, lg: 1 }} p={1} textAlign="center">
+                      <IconButton
+                        aria-label="delete-fabric-custom"
+                        color="error"
+                        onClick={() => deleteRow(index)}
+                      >
+                        <MdDelete />
+                      </IconButton>
+                    </Grid>
                   </Grid>
-                  <Grid size={{ xs: 9, sm: 8, lg: 10 }} p={1}>
-                    <TextField
-                      required
-                      fullWidth
-                      type="text"
-                      size="small"
-                      variant="outlined"
-                      label="สีผ้า"
-                      name="fabric_custom_color"
-                      value={row}
-                      onChange={(e) => handleInputChange(e, index)}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 2, lg: 1 }} p={1} textAlign="center">
-                    <IconButton aria-label="delete-fabric-custom" color="error" onClick={() => deleteRow(index)}>
-                      <MdDelete />
-                    </IconButton>
-                  </Grid>
-                </Grid>
                 ))}
               </Grid>
             </Grid>

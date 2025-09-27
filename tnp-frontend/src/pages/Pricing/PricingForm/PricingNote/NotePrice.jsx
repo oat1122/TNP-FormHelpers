@@ -73,7 +73,7 @@ function NotePrice(props) {
     props.onCreate(noteDescr, 2);
     setNoteDescr("");
   };
-  
+
   if (notePrice.length > 0) {
     const latestNote = notePrice.reduce((latest, current) => {
       return new Date(current.prn_created_date) > new Date(latest.prn_created_date)
@@ -83,44 +83,41 @@ function NotePrice(props) {
 
     content = (
       <>
-        <div style={{ whiteSpace: 'pre-wrap' }}>{latestNote.prn_text}</div>
+        <div style={{ whiteSpace: "pre-wrap" }}>{latestNote.prn_text}</div>
         <div style={{ fontSize: 14 }}>
           <label style={{ textTransform: "capitalize" }}>{latestNote.created_name}</label>
-          <label style={{ marginInline: 6 }} >|</label>
+          <label style={{ marginInline: 6 }}>|</label>
           <label>{moment(latestNote.prn_created_date).format("DD/MM HH:mm")}</label>
         </div>
       </>
-    )
+    );
   }
 
   useEffect(() => {
-
     if (noteDescr.length > 0) {
       setDisabledBtn(false);
     } else {
       setDisabledBtn(true);
     }
-
-  }, [noteDescr])
+  }, [noteDescr]);
 
   return (
     <>
       <Grid container spacing={2}>
-
         {/* ------ title and history button ------ */}
         <Grid size={12}>
-          <StyledGridRow 
+          <StyledGridRow
             container
             spacing={0}
             sx={{
-              paddingInline: { xs: 2, sm: 1, lg: 2, xl: 1, }
+              paddingInline: { xs: 2, sm: 1, lg: 2, xl: 1 },
             }}
           >
             <Grid size={1}></Grid>
             <Grid size={10}>
-              <StyledLabel sx={{ textTransform: 'uppercase', height: 40, }}>price</StyledLabel>
+              <StyledLabel sx={{ textTransform: "uppercase", height: 40 }}>price</StyledLabel>
             </Grid>
-            <Grid size={1} sx={{ textAlign: 'end' }}>
+            <Grid size={1} sx={{ textAlign: "end" }}>
               <IconButton
                 onClick={() => props.onOpen(2)}
                 sx={(theme) => ({
@@ -136,57 +133,54 @@ function NotePrice(props) {
         {/* ------ note content ------ */}
         <StyledGridCol size={12}>
           <StyledLabel
-            sx={{ 
-              maxHeight: '100%',
+            sx={{
+              maxHeight: "100%",
               minHeight: 78,
-              textAlign: 'start',
+              textAlign: "start",
               padding: 1,
             }}
           >
-          {content}
+            {content}
           </StyledLabel>
         </StyledGridCol>
 
         {/* ------ start textfield and button ------ */}
-        { (mode !== "view") && ["production", "manager", "admin"].includes(user?.role) ? (
-        <Grid size={12}>
+        {mode !== "view" && ["production", "manager", "admin"].includes(user?.role) ? (
+          <Grid size={12}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 9, md: 10, lg: 9 }}>
+                <StyledOutlinedInput
+                  fullWidth
+                  multiline
+                  maxRows={4}
+                  size="small"
+                  value={noteDescr}
+                  onChange={(e) => setNoteDescr(e.target.value)}
+                />
+              </Grid>
 
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 9, md: 10, lg: 9, }}>
-              <StyledOutlinedInput
-                fullWidth
-                multiline
-                maxRows={4}
-                size="small"
-                value={noteDescr}
-                onChange={(e) => setNoteDescr(e.target.value)}
-              />
-            </Grid>
-
-            <Grid  size={{ xs: 12, sm: 3, md: 2, lg: 3, }}>
-              <Button
-                fullWidth
-                onClick={handleSubmit}
-                variant="contained"
-                color="error"
-                disabled={disabledBtn}
-                sx={{
-                  height: 40,
-                }}
-              >
-                เพิ่มโน๊ต
-              </Button>
+              <Grid size={{ xs: 12, sm: 3, md: 2, lg: 3 }}>
+                <Button
+                  fullWidth
+                  onClick={handleSubmit}
+                  variant="contained"
+                  color="error"
+                  disabled={disabledBtn}
+                  sx={{
+                    height: 40,
+                  }}
+                >
+                  เพิ่มโน๊ต
+                </Button>
+              </Grid>
             </Grid>
           </Grid>
-
-        </Grid>
         ) : null}
         {/* ------ end textfield and button ------ */}
 
         <Grid size={12} sx={{ display: isSale ? "none" : "block" }}>
           <VerticalDivider variant="middle" />
         </Grid>
-
       </Grid>
     </>
   );

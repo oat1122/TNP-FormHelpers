@@ -56,36 +56,36 @@ function Testing() {
     limit: 10,
     offset: 0,
     filter: null,
-    sort: null
+    sort: null,
   });
 
-   // ข้อมูลตัวอย่าง
+  // ข้อมูลตัวอย่าง
   const [data, setData] = useState([
-    { id: 1, jobId: 'JOB-001', customer: 'บริษัท A', status: 'รับคิวงาน', amount: 5000 },
-    { id: 2, jobId: 'JOB-002', customer: 'บริษัท B', status: 'กำลังขนส่ง', amount: 7500 },
-    { id: 3, jobId: 'JOB-003', customer: 'บริษัท C', status: 'เสร็จสิ้น', amount: 12000 },
+    { id: 1, jobId: "JOB-001", customer: "บริษัท A", status: "รับคิวงาน", amount: 5000 },
+    { id: 2, jobId: "JOB-002", customer: "บริษัท B", status: "กำลังขนส่ง", amount: 7500 },
+    { id: 3, jobId: "JOB-003", customer: "บริษัท C", status: "เสร็จสิ้น", amount: 12000 },
     // ...เพิ่มข้อมูลตามต้องการ
   ]);
 
   const [totalCount, setTotalCount] = useState(3);
 
-   // คอลัมน์ตัวอย่าง
+  // คอลัมน์ตัวอย่าง
   const columns = [
-    { 
-      field: 'jobId', 
-      headerName: 'Job ID', 
+    {
+      field: "jobId",
+      headerName: "Job ID",
       width: 150,
-      filterable: true
+      filterable: true,
     },
-    { 
-      field: 'customer', 
-      headerName: 'ลูกค้า', 
+    {
+      field: "customer",
+      headerName: "ลูกค้า",
       width: 200,
-      filterable: true
+      filterable: true,
     },
-    { 
-      field: 'status', 
-      headerName: 'สถานะ', 
+    {
+      field: "status",
+      headerName: "สถานะ",
       width: 180,
       // renderCell: (params) => (
       //   // <span style={{ color: CheckColorStatus(params.value) }}>
@@ -93,31 +93,31 @@ function Testing() {
       //   // </span>
       // )
     },
-    { 
-      field: 'amount', 
-      headerName: 'จำนวนเงิน', 
+    {
+      field: "amount",
+      headerName: "จำนวนเงิน",
       width: 150,
-      type: 'number',
+      type: "number",
       // valueFormatter: (params) => `${params.value.toLocaleString()} บาท`
     },
   ];
 
   // ข้อมูลสถานะงาน (ถ้ามี)
   const dataStatusJobs = [
-    { status_name: 'รับคิวงาน', status_count: 5 },
-    { status_name: 'กำลังขนส่ง', status_count: 3 },
-    { status_name: 'เสร็จสิ้น', status_count: 12 },
+    { status_name: "รับคิวงาน", status_count: 5 },
+    { status_name: "กำลังขนส่ง", status_count: 3 },
+    { status_name: "เสร็จสิ้น", status_count: 12 },
   ];
 
   // ฟังก์ชันตัวอย่างสำหรับการ export
   const handleExport = () => {
-    console.log('Exporting data...');
+    console.log("Exporting data...");
     // เรียก API สำหรับ export ข้อมูล
   };
 
   // ฟังก์ชันตัวอย่างสำหรับการ import
   const handleImport = () => {
-    console.log('Importing data...');
+    console.log("Importing data...");
     // เรียก API สำหรับ import ข้อมูล
   };
 

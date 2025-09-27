@@ -17,10 +17,7 @@ export const useGpsHelper = (inputList) => {
   const getLastGpsFromStorage = () => {
     try {
       const lastGps = JSON.parse(localStorage.getItem("lastGps") || "{}");
-      if (
-        lastGps?.timestamp &&
-        Date.now() - new Date(lastGps.timestamp).getTime() < 60000
-      ) {
+      if (lastGps?.timestamp && Date.now() - new Date(lastGps.timestamp).getTime() < 60000) {
         console.log("🔄 Using cached GPS result (less than 1 minute old)");
         return lastGps;
       }
@@ -108,8 +105,7 @@ export const useGpsHelper = (inputList) => {
   };
 
   const isValidThaiCoordinates = (lat, lng) => {
-    const isInThailand =
-      lat >= 5.6 && lat <= 20.5 && lng >= 97.3 && lng <= 105.6;
+    const isInThailand = lat >= 5.6 && lat <= 20.5 && lng >= 97.3 && lng <= 105.6;
     const isNotZero = lat !== 0 && lng !== 0;
 
     if (!isNotZero) {
@@ -133,9 +129,7 @@ export const useGpsHelper = (inputList) => {
       maximumAge: 0,
     };
 
-    addDebugLog(
-      `Starting GPS watch (timeout: ${options.timeout}ms, watchLonger: ${watchLonger})`
-    );
+    addDebugLog(`Starting GPS watch (timeout: ${options.timeout}ms, watchLonger: ${watchLonger})`);
 
     return new Promise((resolve, reject) => {
       let bestPosition = null;
@@ -167,9 +161,7 @@ export const useGpsHelper = (inputList) => {
 
           if (accuracy <= 30) {
             navigator.geolocation.clearWatch(watchId);
-            addDebugLog(
-              `✅ Good accuracy achieved: ${accuracy}m after ${positionCount} attempts`
-            );
+            addDebugLog(`✅ Good accuracy achieved: ${accuracy}m after ${positionCount} attempts`);
             console.log(`✅ Good accuracy achieved: ${accuracy}m`);
             resolve(position);
           }
@@ -194,9 +186,7 @@ export const useGpsHelper = (inputList) => {
           console.log(`⏰ Timeout: Using best position (${bestAccuracy}m)`);
           resolve(bestPosition);
         } else {
-          addDebugLog(
-            `❌ Timeout: No position found after ${positionCount} attempts`
-          );
+          addDebugLog(`❌ Timeout: No position found after ${positionCount} attempts`);
           reject(new Error("GPS timeout - no position found"));
         }
       }, options.timeout);
@@ -249,9 +239,7 @@ export const useGpsHelper = (inputList) => {
       );
 
       if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: Alternative geocoding failed`
-        );
+        throw new Error(`HTTP ${response.status}: Alternative geocoding failed`);
       }
 
       const data = await response.json();
@@ -342,18 +330,10 @@ export const useGpsHelper = (inputList) => {
           }
 
           const finalAddress = addressComponents.join(" ");
-          const province =
-            addr.state || addr.province || addr.city || "ไม่ทราบจังหวัด";
-          const district =
-            addr.city_district ||
-            addr.district ||
-            addr.county ||
-            "ไม่ทราบเขต/อำเภอ";
+          const province = addr.state || addr.province || addr.city || "ไม่ทราบจังหวัด";
+          const district = addr.city_district || addr.district || addr.county || "ไม่ทราบเขต/อำเภอ";
           const subdistrict =
-            addr.suburb ||
-            addr.village ||
-            addr.neighbourhood ||
-            "ไม่ทราบแขวง/ตำบล";
+            addr.suburb || addr.village || addr.neighbourhood || "ไม่ทราบแขวง/ตำบล";
           const zipCode = addr.postcode || "ไม่ทราบรหัสไปรษณีย์";
 
           console.log("✅ Primary address parsed successfully:", {
@@ -377,9 +357,7 @@ export const useGpsHelper = (inputList) => {
 
         throw new Error("No address data found in primary response");
       } catch (primaryError) {
-        addDebugLog(
-          `⚠️ Primary geocoding failed: ${primaryError.message}, trying alternative...`
-        );
+        addDebugLog(`⚠️ Primary geocoding failed: ${primaryError.message}, trying alternative...`);
         console.warn("⚠️ Primary geocoding failed:", primaryError.message);
 
         try {
@@ -387,9 +365,7 @@ export const useGpsHelper = (inputList) => {
           addDebugLog("✅ Alternative geocoding successful");
           return alternativeResult;
         } catch (alternativeError) {
-          addDebugLog(
-            `❌ Alternative geocoding also failed: ${alternativeError.message}`
-          );
+          addDebugLog(`❌ Alternative geocoding also failed: ${alternativeError.message}`);
           throw new Error(
             `Both geocoding services failed. Primary: ${primaryError.message}, Alternative: ${alternativeError.message}`
           );
@@ -402,9 +378,7 @@ export const useGpsHelper = (inputList) => {
       const randomHouseNumber = Math.floor(Math.random() * 899) + 100;
 
       return {
-        address: `${randomHouseNumber} ตำแหน่งจาก GPS (${lat.toFixed(
-          6
-        )}, ${lng.toFixed(6)})`,
+        address: `${randomHouseNumber} ตำแหน่งจาก GPS (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
         province: "ไม่ทราบจังหวัด",
         district: "ไม่ทราบเขต/อำเภอ",
         subdistrict: "ไม่ทราบแขวง/ตำบล",
@@ -542,26 +516,20 @@ export const useGpsHelper = (inputList) => {
       });
 
       if (accuracy > 100 && locationSource === "gps") {
-        setLocationStatus(
-          "⚠️ ตำแหน่งไม่แม่นยำเนื่องจากอยู่ในอาคารหรือสัญญาณอ่อน"
-        );
+        setLocationStatus("⚠️ ตำแหน่งไม่แม่นยำเนื่องจากอยู่ในอาคารหรือสัญญาณอ่อน");
         alert(
           "ตำแหน่งไม่แม่นยำเนื่องจากอยู่ในอาคารหรือสัญญาณอ่อน\nโปรดลองข้างนอกหรือเปิด GPS ค้างไว้สักครู่ก่อนกดใหม่"
         );
       }
 
-      setLocationStatus(
-        `📍 กำลังค้นหาที่อยู่ (ความแม่นยำ: ${Math.round(accuracy || 0)}m)...`
-      );
+      setLocationStatus(`📍 กำลังค้นหาที่อยู่ (ความแม่นยำ: ${Math.round(accuracy || 0)}m)...`);
 
       const addressData = await reverseGeocode(latitude, longitude);
 
       if (addressData.fallback) {
         setLocationStatus(`⚠️ ได้ตำแหน่งแล้ว แต่ไม่สามารถหาที่อยู่ได้`);
       } else {
-        setLocationStatus(
-          `✅ ค้นหาที่อยู่สำเร็จ (${locationSource.toUpperCase()})`
-        );
+        setLocationStatus(`✅ ค้นหาที่อยู่สำเร็จ (${locationSource.toUpperCase()})`);
       }
 
       const result = {

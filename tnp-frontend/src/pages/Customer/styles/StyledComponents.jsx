@@ -34,7 +34,7 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-iconSeparator": {
     display: "none",
   },
-  
+
   "& .MuiDataGrid-row": {
     backgroundColor: theme.vars.palette.grey.main,
     borderRadius: theme.shape.borderRadius,
@@ -46,7 +46,7 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
       boxShadow: "0 4px 8px rgba(0,0,0,0.08)",
     },
   },
-  
+
   "& .MuiDataGrid-cell, .MuiDataGrid-filler > div": {
     textAlign: "center",
     borderWidth: 0,
@@ -97,7 +97,7 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .uppercase-cell": {
     textTransform: "uppercase",
   },
-  
+
   "& .danger-days": {
     color: theme.vars.palette.error.main,
     fontWeight: "bold",
@@ -121,7 +121,7 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderRadius: "12px",
     backgroundColor: `${theme.palette.error.light}22`,
   },
-  
+
   "& .MuiDataGrid-toolbarContainer": {
     gap: 2,
     padding: "12px 20px",
@@ -273,7 +273,7 @@ export const StyledPagination = styled(Pagination)(({ theme }) => ({
     width: 38,
     alignContent: "center",
   },
-  
+
   "& .MuiPaginationItem-page.Mui-selected": {
     backgroundColor: theme.vars.palette.error.light,
     borderColor: theme.vars.palette.error.light,
@@ -286,4 +286,4 @@ export const StyledPagination = styled(Pagination)(({ theme }) => ({
       backgroundColor: theme.vars.palette.error.main,
     },
   },
-})); 
+}));

@@ -1,46 +1,31 @@
-import React from 'react';
-import {
-  Menu,
-  MenuItem,
-} from '@mui/material';
-import {
-  RadioButtonUnchecked,
-  Schedule,
-  CheckCircle,
-  Delete,
-} from '@mui/icons-material';
+import React from "react";
+import { Menu, MenuItem } from "@mui/material";
+import { RadioButtonUnchecked, Schedule, CheckCircle, Delete } from "@mui/icons-material";
 
-const ContextMenu = ({ 
-  anchorEl, 
-  open, 
-  onClose, 
-  job, 
-  onStatusChange, 
-  onDeleteClick 
-}) => {
+const ContextMenu = ({ anchorEl, open, onClose, job, onStatusChange, onDeleteClick }) => {
   return (
     <Menu
       anchorEl={anchorEl}
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { minWidth: 180 }
+        sx: { minWidth: 180 },
       }}
     >
-      <MenuItem onClick={() => onStatusChange(job, 'pending')}>
+      <MenuItem onClick={() => onStatusChange(job, "pending")}>
         <RadioButtonUnchecked sx={{ mr: 1 }} fontSize="small" />
         ย้ายไป กำลังรอ
       </MenuItem>
-      <MenuItem onClick={() => onStatusChange(job, 'in_progress')}>
+      <MenuItem onClick={() => onStatusChange(job, "in_progress")}>
         <Schedule sx={{ mr: 1 }} fontSize="small" />
         ย้ายไป กำลังผลิต
       </MenuItem>
-      <MenuItem onClick={() => onStatusChange(job, 'completed')}>
+      <MenuItem onClick={() => onStatusChange(job, "completed")}>
         <CheckCircle sx={{ mr: 1 }} fontSize="small" />
         ย้ายไป เสร็จสิ้น
       </MenuItem>
       <MenuItem divider />
-      <MenuItem onClick={() => onDeleteClick(job)} sx={{ color: 'error.main' }}>
+      <MenuItem onClick={() => onDeleteClick(job)} sx={{ color: "error.main" }}>
         <Delete sx={{ mr: 1 }} fontSize="small" />
         ลบงาน
       </MenuItem>
@@ -48,4 +33,4 @@ const ContextMenu = ({
   );
 };
 
-export default ContextMenu; 
+export default ContextMenu;

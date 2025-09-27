@@ -26,16 +26,9 @@ const BusinessDetailStepSimple = ({
 
   return (
     <Box>
-      <HeaderSection
-        mode={mode}
-        PRIMARY_RED={PRIMARY_RED}
-        SECONDARY_RED={SECONDARY_RED}
-      />
+      <HeaderSection mode={mode} PRIMARY_RED={PRIMARY_RED} SECONDARY_RED={SECONDARY_RED} />
 
-      <Container
-        maxWidth="md"
-        sx={{ pb: { xs: 10, sm: 4 }, pt: { xs: 2, sm: 0 } }}
-      >
+      <Container maxWidth="md" sx={{ pb: { xs: 10, sm: 4 }, pt: { xs: 2, sm: 0 } }}>
         <ContactInfoSection
           inputList={inputList}
           errors={errors}
@@ -89,37 +82,27 @@ export const parseFullAddress = (fullAddress) => {
       const addressParts = parts.slice(0, -1);
 
       // หาจังหวัด (ขึ้นต้นด้วย "จ.")
-      const provinceIndex = addressParts.findIndex((part) =>
-        part.startsWith("จ.")
-      );
-      const province =
-        provinceIndex >= 0 ? addressParts[provinceIndex].replace("จ.", "") : "";
+      const provinceIndex = addressParts.findIndex((part) => part.startsWith("จ."));
+      const province = provinceIndex >= 0 ? addressParts[provinceIndex].replace("จ.", "") : "";
 
       // หาอำเภอ (ขึ้นต้นด้วย "อ.")
-      const districtIndex = addressParts.findIndex((part) =>
-        part.startsWith("อ.")
-      );
-      const district =
-        districtIndex >= 0 ? addressParts[districtIndex].replace("อ.", "") : "";
+      const districtIndex = addressParts.findIndex((part) => part.startsWith("อ."));
+      const district = districtIndex >= 0 ? addressParts[districtIndex].replace("อ.", "") : "";
 
       // หาตำบล (ขึ้นต้นด้วย "ต.")
-      const subdistrictIndex = addressParts.findIndex((part) =>
-        part.startsWith("ต.")
-      );
+      const subdistrictIndex = addressParts.findIndex((part) => part.startsWith("ต."));
       const subdistrict =
-        subdistrictIndex >= 0
-          ? addressParts[subdistrictIndex].replace("ต.", "")
-          : "";
+        subdistrictIndex >= 0 ? addressParts[subdistrictIndex].replace("ต.", "") : "";
 
       // ที่อยู่คือส่วนที่เหลือก่อนตำบล (ถ้ามี)
       const addressEndIndex =
         subdistrictIndex >= 0
           ? subdistrictIndex
           : districtIndex >= 0
-          ? districtIndex
-          : provinceIndex >= 0
-          ? provinceIndex
-          : addressParts.length;
+            ? districtIndex
+            : provinceIndex >= 0
+              ? provinceIndex
+              : addressParts.length;
       const address = addressParts.slice(0, addressEndIndex).join(" ") || "";
 
       return {

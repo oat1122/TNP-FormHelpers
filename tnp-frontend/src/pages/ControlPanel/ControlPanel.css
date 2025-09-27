@@ -71,7 +71,7 @@ a.btn.disable-link label {
   background-color: transparent;
   border: 0.2rem solid #d2cece;
   border-radius: 1rem;
-  color: #C65050;
+  color: #c65050;
   line-height: normal;
   padding: 0.75rem 1rem;
   display: flex;
@@ -89,7 +89,7 @@ a.btn.disable-link label {
 .btn-secondary.btn-production-type:hover {
   background-color: transparent;
   border-color: #d2cece;
-  color: #C65050;
+  color: #c65050;
 }
 
 .btn-secondary:active.btn-production-type {
@@ -103,11 +103,11 @@ a.btn.disable-link label {
   font-weight: 600;
   letter-spacing: 0.1rem;
   text-transform: uppercase;
-  color: #C65050 !important;
+  color: #c65050 !important;
 }
 
 .production-count {
-  color: #C65050;
+  color: #c65050;
   font-size: clamp(0.8rem, 1.1vw, 1.2rem);
   font-weight: 500;
 }
@@ -118,10 +118,8 @@ a.btn.disable-link label {
 }
 
 .btn-secondary.btn-production-type:hover .production-count {
-  color: #C65050 !important;
+  color: #c65050 !important;
 }
-
-
 
 label.count-process {
   color: #c65050;

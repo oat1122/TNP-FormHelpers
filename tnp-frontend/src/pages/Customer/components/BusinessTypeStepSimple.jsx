@@ -50,56 +50,52 @@ const BusinessTypeStepSimple = ({
   return (
     <Box>
       {/* Header */}
-      <Box 
-        sx={{ 
-          px: 2, 
+      <Box
+        sx={{
+          px: 2,
           py: 3,
           background: `linear-gradient(135deg, ${PRIMARY_RED} 0%, ${SECONDARY_RED} 100%)`,
           color: "white",
           borderRadius: { xs: 0, sm: "0 0 16px 16px" },
-          mb: { xs: 0, sm: 2 }
+          mb: { xs: 0, sm: 2 },
         }}
       >
         <Container maxWidth="md">
           <Box display="flex" alignItems="center" gap={2} mb={1}>
             <MdBusiness size={32} />
             <Box>
-              <Typography
-                variant={isMobile ? "h6" : "h5"}
-                fontWeight={700}
-                fontFamily="Kanit"
-              >
+              <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700} fontFamily="Kanit">
                 ประเภทธุรกิจ
               </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ opacity: 0.9 }}
-                fontFamily="Kanit"
-              >
+              <Typography variant="body2" sx={{ opacity: 0.9 }} fontFamily="Kanit">
                 {mode === "view" ? "ดูข้อมูลประเภทธุรกิจ" : "เลือกประเภทธุรกิจและกรอกข้อมูลพื้นฐาน"}
               </Typography>
             </Box>
           </Box>
-          
+
           {/* Progress indicator for mobile */}
           {isMobile && mode !== "view" && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="caption" sx={{ opacity: 0.8 }}>
                 ขั้นตอนที่ 1 จาก 3
               </Typography>
-              <Box sx={{ 
-                height: 4, 
-                bgcolor: "rgba(255,255,255,0.3)", 
-                borderRadius: 2,
-                mt: 0.5,
-                overflow: "hidden"
-              }}>
-                <Box sx={{ 
-                  width: "33.33%", 
-                  height: "100%", 
-                  bgcolor: "white",
-                  borderRadius: 2
-                }} />
+              <Box
+                sx={{
+                  height: 4,
+                  bgcolor: "rgba(255,255,255,0.3)",
+                  borderRadius: 2,
+                  mt: 0.5,
+                  overflow: "hidden",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: "33.33%",
+                    height: "100%",
+                    bgcolor: "white",
+                    borderRadius: 2,
+                  }}
+                />
               </Box>
             </Box>
           )}
@@ -108,23 +104,23 @@ const BusinessTypeStepSimple = ({
 
       <Container maxWidth="md" sx={{ pb: { xs: 10, sm: 4 }, pt: { xs: 2, sm: 0 } }}>
         {/* SECTION 1: ประเภทธุรกิจและข้อมูลบริษัท */}
-        <Accordion 
-          defaultExpanded 
-          sx={{ 
+        <Accordion
+          defaultExpanded
+          sx={{
             mb: 2,
             borderRadius: 2,
             "&:before": { display: "none" },
-            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)"
+            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)",
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<MdExpandMore size={24} />}
             sx={{
               bgcolor: "white",
               "& .MuiAccordionSummary-content": {
                 alignItems: "center",
-                gap: 2
-              }
+                gap: 2,
+              },
             }}
           >
             <HiOfficeBuilding size={24} color={PRIMARY_RED} />
@@ -141,25 +137,29 @@ const BusinessTypeStepSimple = ({
             <Stack spacing={3}>
               {/* ประเภทธุรกิจ */}
               <Box>
-                <Box sx={{ 
-                  display: "flex", 
-                  gap: 1, 
-                  alignItems: "flex-start",
-                  flexDirection: { xs: "column", sm: "row" }
-                }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "flex-start",
+                    flexDirection: { xs: "column", sm: "row" },
+                  }}
+                >
                   <Autocomplete
                     fullWidth
                     loading={businessTypesIsFetching}
                     disabled={mode === "view"}
                     options={businessTypesList}
                     getOptionLabel={(option) => option.bt_name || ""}
-                    value={businessTypesList.find((type) => type.bt_id === inputList.cus_bt_id) || null}
+                    value={
+                      businessTypesList.find((type) => type.bt_id === inputList.cus_bt_id) || null
+                    }
                     onChange={(event, newValue) => {
                       const syntheticEvent = {
                         target: {
                           name: "cus_bt_id",
-                          value: newValue ? newValue.bt_id : ""
-                        }
+                          value: newValue ? newValue.bt_id : "",
+                        },
                       };
                       handleInputChange(syntheticEvent);
                     }}
@@ -177,8 +177,8 @@ const BusinessTypeStepSimple = ({
                           lineHeight: 1.4,
                           minHeight: "auto",
                           "&:hover": {
-                            bgcolor: `${PRIMARY_RED}08`
-                          }
+                            bgcolor: `${PRIMARY_RED}08`,
+                          },
                         }}
                       >
                         {option.bt_name}
@@ -192,16 +192,16 @@ const BusinessTypeStepSimple = ({
                         error={!!errors.cus_bt_id}
                         helperText={errors.cus_bt_id}
                         size="small"
-                        sx={{ 
+                        sx={{
                           bgcolor: "white",
                           "& .MuiInputBase-input": {
-                            fontFamily: "Kanit", 
-                            fontSize: 14
+                            fontFamily: "Kanit",
+                            fontSize: 14,
                           },
                           "& .MuiInputLabel-root": {
-                            fontFamily: "Kanit", 
-                            fontSize: 14
-                          }
+                            fontFamily: "Kanit",
+                            fontSize: 14,
+                          },
                         }}
                       />
                     )}
@@ -209,9 +209,9 @@ const BusinessTypeStepSimple = ({
                       sx: {
                         maxHeight: { xs: 280, sm: 400 },
                         "& .MuiAutocomplete-option": {
-                          fontFamily: "Kanit"
-                        }
-                      }
+                          fontFamily: "Kanit",
+                        },
+                      },
                     }}
                     PaperComponent={({ children, ...other }) => (
                       <Paper
@@ -246,7 +246,7 @@ const BusinessTypeStepSimple = ({
                     </Tooltip>
                   )}
                 </Box>
-                
+
                 {/* Mobile settings button */}
                 {mode !== "view" && isMobile && (
                   <Box sx={{ mt: 2 }}>
@@ -260,8 +260,8 @@ const BusinessTypeStepSimple = ({
                         borderColor: PRIMARY_RED,
                         fontFamily: "Kanit",
                         "&:hover": {
-                          bgcolor: `${PRIMARY_RED}08`
-                        }
+                          bgcolor: `${PRIMARY_RED}08`,
+                        },
                       }}
                     />
                   </Box>
@@ -319,22 +319,22 @@ const BusinessTypeStepSimple = ({
         </Accordion>
 
         {/* SECTION 2: ข้อมูลติดต่อ */}
-        <Accordion 
-          sx={{ 
+        <Accordion
+          sx={{
             mb: 2,
             borderRadius: 2,
             "&:before": { display: "none" },
-            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)"
+            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)",
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<MdExpandMore size={24} />}
             sx={{
               bgcolor: "white",
               "& .MuiAccordionSummary-content": {
                 alignItems: "center",
-                gap: 2
-              }
+                gap: 2,
+              },
             }}
           >
             <HiPhone size={24} color={PRIMARY_RED} />
@@ -349,9 +349,7 @@ const BusinessTypeStepSimple = ({
           </AccordionSummary>
           <AccordionDetails sx={{ bgcolor: BACKGROUND_COLOR }}>
             <FormControl fullWidth disabled={mode === "view"} size="small">
-              <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>
-                ช่องทางการติดต่อ *
-              </InputLabel>
+              <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>ช่องทางการติดต่อ *</InputLabel>
               <Select
                 name="cus_channel"
                 value={inputList.cus_channel || 1}
@@ -362,7 +360,7 @@ const BusinessTypeStepSimple = ({
                 sx={{
                   fontFamily: "Kanit",
                   fontSize: 14,
-                  bgcolor: "white"
+                  bgcolor: "white",
                 }}
               >
                 <MenuItem value={1} sx={{ fontFamily: "Kanit" }}>
@@ -376,11 +374,7 @@ const BusinessTypeStepSimple = ({
                 </MenuItem>
               </Select>
               {errors.cus_channel && (
-                <Typography
-                  variant="caption"
-                  color="error"
-                  sx={{ mt: 0.5, fontFamily: "Kanit" }}
-                >
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
                   {errors.cus_channel}
                 </Typography>
               )}
@@ -389,22 +383,22 @@ const BusinessTypeStepSimple = ({
         </Accordion>
 
         {/* SECTION 3: ข้อมูลผู้ติดต่อ */}
-        <Accordion 
-          sx={{ 
+        <Accordion
+          sx={{
             mb: 2,
             borderRadius: 2,
             "&:before": { display: "none" },
-            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)"
+            boxShadow: "0 2px 8px rgba(158, 0, 0, 0.1)",
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<MdExpandMore size={24} />}
             sx={{
               bgcolor: "white",
               "& .MuiAccordionSummary-content": {
                 alignItems: "center",
-                gap: 2
-              }
+                gap: 2,
+              },
             }}
           >
             <HiUser size={24} color={PRIMARY_RED} />

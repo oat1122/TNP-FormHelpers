@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 /**
  * Unified financial calculation hook for quotations.
@@ -14,36 +14,51 @@ import { useMemo } from 'react';
  */
 export function useQuotationFinancials({
   items = [],
-  depositMode = 'percentage', // 'percentage' | 'amount'
+  depositMode = "percentage", // 'percentage' | 'amount'
   depositPercentage = 0,
   depositAmountInput = 0,
-  specialDiscountType = 'percentage', // 'percentage' | 'amount'
+  specialDiscountType = "percentage", // 'percentage' | 'amount'
   specialDiscountValue = 0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
   hasVat = true, // NEW: Enable/disable VAT
   vatPercentage = 7, // NEW: Editable VAT rate
 }) {
-  return useMemo(() => computeFinancials({
-    items,
-    depositMode,
-    depositPercentage,
-    depositAmountInput,
-    specialDiscountType,
-    specialDiscountValue,
-    hasWithholdingTax,
-    withholdingTaxPercentage,
-    hasVat,
-    vatPercentage,
-  }), [items, depositMode, depositPercentage, depositAmountInput, specialDiscountType, specialDiscountValue, hasWithholdingTax, withholdingTaxPercentage, hasVat, vatPercentage]);
+  return useMemo(
+    () =>
+      computeFinancials({
+        items,
+        depositMode,
+        depositPercentage,
+        depositAmountInput,
+        specialDiscountType,
+        specialDiscountValue,
+        hasWithholdingTax,
+        withholdingTaxPercentage,
+        hasVat,
+        vatPercentage,
+      }),
+    [
+      items,
+      depositMode,
+      depositPercentage,
+      depositAmountInput,
+      specialDiscountType,
+      specialDiscountValue,
+      hasWithholdingTax,
+      withholdingTaxPercentage,
+      hasVat,
+      vatPercentage,
+    ]
+  );
 }
 
 export function computeFinancials({
   items = [],
-  depositMode = 'percentage',
+  depositMode = "percentage",
   depositPercentage = 0,
   depositAmountInput = 0,
-  specialDiscountType = 'percentage',
+  specialDiscountType = "percentage",
   specialDiscountValue = 0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
@@ -51,9 +66,12 @@ export function computeFinancials({
   vatPercentage = 7, // NEW: Editable VAT rate
 }) {
   // 1. Subtotal
-  const normalizedItems = (items || []).map(it => {
+  const normalizedItems = (items || []).map((it) => {
     if (Array.isArray(it.sizeRows) && it.sizeRows.length > 0) {
-      const rowSubtotal = it.sizeRows.reduce((s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0), 0);
+      const rowSubtotal = it.sizeRows.reduce(
+        (s, r) => s + Number(r.quantity || 0) * Number(r.unitPrice || 0),
+        0
+      );
       return { ...it, _computedSubtotal: rowSubtotal };
     }
     return { ...it, _computedSubtotal: Number(it.quantity || 0) * Number(it.unitPrice || 0) };
@@ -62,9 +80,9 @@ export function computeFinancials({
 
   // 2. Discount (on subtotal)
   let specialDiscountAmount = 0;
-  if (specialDiscountType === 'percentage') {
+  if (specialDiscountType === "percentage") {
     specialDiscountAmount = subtotal * (Number(specialDiscountValue || 0) / 100);
-  } else if (specialDiscountType === 'amount') {
+  } else if (specialDiscountType === "amount") {
     specialDiscountAmount = Number(specialDiscountValue || 0);
   }
   if (specialDiscountAmount > subtotal) specialDiscountAmount = subtotal; // cap
@@ -73,11 +91,13 @@ export function computeFinancials({
   const discountedSubtotal = subtotal - specialDiscountAmount;
 
   // 4. VAT on discounted subtotal (editable rate)
-  const vatRate = hasVat ? (Number(vatPercentage || 0) / 100) : 0;
+  const vatRate = hasVat ? Number(vatPercentage || 0) / 100 : 0;
   const vat = +(discountedSubtotal * vatRate).toFixed(2);
 
   // 5. Withholding tax (on discounted subtotal pre-VAT base)
-  const withholdingTaxAmount = hasWithholdingTax ? +(discountedSubtotal * (Number(withholdingTaxPercentage || 0) / 100)).toFixed(2) : 0;
+  const withholdingTaxAmount = hasWithholdingTax
+    ? +(discountedSubtotal * (Number(withholdingTaxPercentage || 0) / 100)).toFixed(2)
+    : 0;
 
   // 6. Total (after VAT, before withholding)
   const total = +(discountedSubtotal + vat).toFixed(2);
@@ -88,10 +108,11 @@ export function computeFinancials({
   // 8. Deposit / Remaining
   let depPct = 0;
   let depositAmount = 0;
-  if (depositMode === 'amount') {
+  if (depositMode === "amount") {
     depositAmount = Math.max(0, Math.min(finalTotal, Number(depositAmountInput || 0)));
     depPct = finalTotal > 0 ? (depositAmount / finalTotal) * 100 : 0;
-  } else { // percentage
+  } else {
+    // percentage
     depPct = Math.max(0, Math.min(100, Number(depositPercentage || 0)));
     depositAmount = +(finalTotal * (depPct / 100)).toFixed(2);
   }

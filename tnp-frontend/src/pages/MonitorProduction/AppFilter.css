@@ -41,7 +41,7 @@
   background-color: rgb(197, 80, 80) !important;
 }
 
-.app-filter .btn-check:disabled+label.btn {
+.app-filter .btn-check:disabled + label.btn {
   background-color: #de7b7b !important;
   color: #8d1111;
   opacity: 1;
@@ -53,7 +53,7 @@
   background-color: #eb8181 !important;
 }
 
-.app-filter .btn-check:checked+label.btn {
+.app-filter .btn-check:checked + label.btn {
   background-color: #8d1111 !important;
   color: #ffffff !important;
   border-color: unset;
@@ -73,11 +73,11 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('../../assets/img/arrow-down-100.png');
+  background-image: url("../../assets/img/arrow-down-100.png");
   text-align: center;
   text-align-last: center;
   -moz-text-align-last: center;
-  
+
   && option {
     background-color: #fff;
     color: #000;

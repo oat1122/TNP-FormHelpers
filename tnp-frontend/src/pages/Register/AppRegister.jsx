@@ -16,11 +16,12 @@ const AppRegister = () => {
   const listRole = ["admin", "manager", "production", "graphic", "sale"];
 
   const handleShowPass = () => {
-    {typePass == "password" ? setTypePass("text") : setTypePass("password")}
+    {
+      typePass == "password" ? setTypePass("text") : setTypePass("password");
+    }
   };
 
   const handleSignup = async (event) => {
-
     event.preventDefault();
     setIsLoading(true);
 
@@ -83,9 +84,7 @@ const AppRegister = () => {
                     className="mt-md-1 mt-lg-2 me-1"
                     onClick={handleShowPass}
                   />
-                  <Form.Check.Label className="show-pass">
-                    Show Password
-                  </Form.Check.Label>
+                  <Form.Check.Label className="show-pass">Show Password</Form.Check.Label>
                 </Card.Text>
                 <Card.Text className="mt-xl-3 mb-0">
                   <Form.Label>Role</Form.Label>
@@ -97,7 +96,7 @@ const AppRegister = () => {
                     }}
                     className="fs-5"
                   >
-                    <option value="" >Select Role</option>
+                    <option value="">Select Role</option>
                     {listRole.map((val, key) => (
                       <option key={key} value={val}>
                         {val}

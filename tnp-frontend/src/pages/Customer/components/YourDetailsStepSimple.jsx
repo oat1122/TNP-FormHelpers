@@ -16,13 +16,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from "@mui/material";
-import {
-  MdPerson,
-  MdSupervisorAccount,
-  MdExpandMore,
-  MdNote,
-  MdInfo,
-} from "react-icons/md";
+import { MdPerson, MdSupervisorAccount, MdExpandMore, MdNote, MdInfo } from "react-icons/md";
 import { HiUser } from "react-icons/hi";
 
 // สี theme ของบริษัท
@@ -44,7 +38,7 @@ const YourDetailsStepSimple = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
-  
+
   // ดึงข้อมูล user ปัจจุบัน
   const currentUser = JSON.parse(localStorage.getItem("userData") || "{}");
   const isAdmin = currentUser.role === "admin";
@@ -56,18 +50,18 @@ const YourDetailsStepSimple = ({
       if (!inputList.cus_manage_by?.user_id) {
         const managedBy = {
           user_id: currentUser.user_id,
-          username: currentUser.username || currentUser.user_nickname || "คุณ"
+          username: currentUser.username || currentUser.user_nickname || "คุณ",
         };
-        
+
         // ใช้ setTimeout เพื่อป้องกัน race condition
         setTimeout(() => {
           const syntheticEvent = {
             target: {
               name: "cus_manage_by",
-              value: managedBy
-            }
+              value: managedBy,
+            },
           };
-          
+
           handleInputChange(syntheticEvent);
         }, 100);
       }
@@ -77,26 +71,27 @@ const YourDetailsStepSimple = ({
   // จัดการการเปลี่ยนแปลง dropdown ผู้ดูแล
   const handleManagerChange = (event) => {
     const selectedUserId = event.target.value;
-    
+
     if (selectedUserId === "" || selectedUserId === null || selectedUserId === undefined) {
       // ไม่มีผู้ดูแล
       const managedBy = { user_id: "", username: "" };
       handleInputChange({
-        target: { name: "cus_manage_by", value: managedBy }
+        target: { name: "cus_manage_by", value: managedBy },
       });
     } else {
       // หาข้อมูล user ที่เลือก
-      const selectedUser = salesList.find(user => 
-        String(user.user_id) === String(selectedUserId)
+      const selectedUser = salesList.find(
+        (user) => String(user.user_id) === String(selectedUserId)
       );
-      
+
       if (selectedUser) {
         const managedBy = {
           user_id: selectedUser.user_id,
-          username: selectedUser.username || selectedUser.user_nickname || `User ${selectedUser.user_id}`
+          username:
+            selectedUser.username || selectedUser.user_nickname || `User ${selectedUser.user_id}`,
         };
         handleInputChange({
-          target: { name: "cus_manage_by", value: managedBy }
+          target: { name: "cus_manage_by", value: managedBy },
         });
       }
     }
@@ -111,108 +106,106 @@ const YourDetailsStepSimple = ({
           borderRadius: 2,
           p: 3,
           mb: 3,
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
+          color: "white",
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
             content: '""',
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(10px)',
-          }
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(10px)",
+          },
         }}
       >
-        <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Stack spacing={2} sx={{ position: "relative", zIndex: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <HiUser size={isMobile ? 24 : 28} />
-            <Typography 
-              variant={isMobile ? "h6" : "h5"} 
-              sx={{ 
+            <Typography
+              variant={isMobile ? "h6" : "h5"}
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit'
+                fontFamily: "Kanit",
               }}
             >
               ข้อมูลของคุณ
             </Typography>
           </Box>
-          
+
           {/* Progress Indicator */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: 'Kanit' }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: "Kanit" }}>
               ขั้นตอนที่ 3 จาก 4
             </Typography>
-            <Box 
-              sx={{ 
-                flex: 1, 
-                height: 4, 
-                bgcolor: 'rgba(255,255,255,0.3)', 
-                borderRadius: 2, 
-                overflow: 'hidden' 
+            <Box
+              sx={{
+                flex: 1,
+                height: 4,
+                bgcolor: "rgba(255,255,255,0.3)",
+                borderRadius: 2,
+                overflow: "hidden",
               }}
             >
-              <Box 
-                sx={{ 
-                  height: '100%', 
-                  width: '75%', 
-                  bgcolor: 'white', 
+              <Box
+                sx={{
+                  height: "100%",
+                  width: "75%",
+                  bgcolor: "white",
                   borderRadius: 2,
-                  transition: 'width 0.3s ease'
-                }} 
+                  transition: "width 0.3s ease",
+                }}
               />
             </Box>
           </Box>
-          
-          <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: 'Kanit' }}>
+
+          <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: "Kanit" }}>
             ข้อมูลผู้ดูแลลูกค้าและบันทึกเพิ่มเติม
           </Typography>
         </Stack>
       </Box>
 
       {/* Sales Assignment Section */}
-      <Accordion 
+      <Accordion
         defaultExpanded={true}
-        sx={{ 
+        sx={{
           mb: 2,
           boxShadow: isMobile ? 1 : 2,
           borderRadius: 2,
-          '&:before': { display: 'none' },
+          "&:before": { display: "none" },
           border: `1px solid ${DIVIDER_COLOR}`,
         }}
       >
-        <AccordionSummary 
+        <AccordionSummary
           expandIcon={<MdExpandMore />}
           sx={{
             bgcolor: BACKGROUND_COLOR,
-            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-            borderRadius: '8px 8px 0 0',
+            "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: "8px 8px 0 0",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <MdSupervisorAccount size={20} color={PRIMARY_RED} />
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit',
-                color: PRIMARY_RED
+                fontFamily: "Kanit",
+                color: PRIMARY_RED,
               }}
             >
               ผู้ดูแลลูกค้า
             </Typography>
           </Box>
         </AccordionSummary>
-        
+
         <AccordionDetails sx={{ p: 3 }}>
           {isAdmin ? (
             // Admin สามารถเลือกผู้ดูแลได้
             <FormControl fullWidth disabled={mode === "view"}>
-              <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>
-                เลือกผู้ดูแลลูกค้า
-              </InputLabel>
+              <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>เลือกผู้ดูแลลูกค้า</InputLabel>
               <Select
                 name="cus_manage_by_select"
                 value={inputList.cus_manage_by?.user_id || ""} // แสดง user_id เป็น value
@@ -228,8 +221,8 @@ const YourDetailsStepSimple = ({
                   ไม่มีผู้ดูแล
                 </MenuItem>
                 {salesList.map((user) => (
-                  <MenuItem 
-                    key={user.user_id} 
+                  <MenuItem
+                    key={user.user_id}
                     value={String(user.user_id)} // แปลงเป็น string เพื่อ comparison
                     sx={{ fontFamily: "Kanit" }}
                   >
@@ -249,7 +242,12 @@ const YourDetailsStepSimple = ({
               <TextField
                 name="cus_manage_by_display"
                 label="ผู้ดูแลลูกค้า"
-                value={inputList.cus_manage_by?.username || currentUser.username || currentUser.user_nickname || "คุณ"}
+                value={
+                  inputList.cus_manage_by?.username ||
+                  currentUser.username ||
+                  currentUser.user_nickname ||
+                  "คุณ"
+                }
                 fullWidth
                 disabled
                 size="small"
@@ -269,39 +267,39 @@ const YourDetailsStepSimple = ({
       </Accordion>
 
       {/* Notes and Additional Information Section */}
-      <Accordion 
+      <Accordion
         defaultExpanded={false}
-        sx={{ 
+        sx={{
           mb: 2,
           boxShadow: isMobile ? 1 : 2,
           borderRadius: 2,
-          '&:before': { display: 'none' },
+          "&:before": { display: "none" },
           border: `1px solid ${DIVIDER_COLOR}`,
         }}
       >
-        <AccordionSummary 
+        <AccordionSummary
           expandIcon={<MdExpandMore />}
           sx={{
             bgcolor: BACKGROUND_COLOR,
-            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-            borderRadius: '8px 8px 0 0',
+            "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: "8px 8px 0 0",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <MdNote size={20} color={PRIMARY_RED} />
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit',
-                color: PRIMARY_RED
+                fontFamily: "Kanit",
+                color: PRIMARY_RED,
               }}
             >
               บันทึกและข้อมูลเพิ่มเติม
             </Typography>
           </Box>
         </AccordionSummary>
-        
+
         <AccordionDetails sx={{ p: 3 }}>
           <Stack spacing={3}>
             {/* หมายเหตุ */}
@@ -353,46 +351,48 @@ const YourDetailsStepSimple = ({
 
       {/* Tips Section for Sales (Non-admin users) */}
       {!isAdmin && (
-        <Accordion 
+        <Accordion
           defaultExpanded={false}
-          sx={{ 
+          sx={{
             mb: 2,
             boxShadow: isMobile ? 1 : 2,
             borderRadius: 2,
-            '&:before': { display: 'none' },
+            "&:before": { display: "none" },
             border: `1px solid ${DIVIDER_COLOR}`,
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<MdExpandMore />}
             sx={{
               bgcolor: BACKGROUND_COLOR,
-              '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-              borderRadius: '8px 8px 0 0',
+              "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+              borderRadius: "8px 8px 0 0",
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <MdInfo size={20} color={PRIMARY_RED} />
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
+              <Typography
+                variant="subtitle1"
+                sx={{
                   fontWeight: 600,
-                  fontFamily: 'Kanit',
-                  color: PRIMARY_RED
+                  fontFamily: "Kanit",
+                  color: PRIMARY_RED,
                 }}
               >
                 เคล็ดลับการดูแลลูกค้า
               </Typography>
             </Box>
           </AccordionSummary>
-          
+
           <AccordionDetails sx={{ p: 3 }}>
             <Alert severity="success" sx={{ fontFamily: "Kanit" }}>
               <Typography variant="body2" sx={{ fontFamily: "Kanit" }}>
-                <strong>เคล็ดลับการดูแลลูกค้า:</strong><br/>
-                • บันทึกความชอบและข้อกำหนดพิเศษของลูกค้า<br/>
-                • ระบุเวลาที่เหมาะสมในการติดต่อ<br/>
-                • อัปเดตข้อมูลเมื่อมีการเปลี่ยนแปลง
+                <strong>เคล็ดลับการดูแลลูกค้า:</strong>
+                <br />
+                • บันทึกความชอบและข้อกำหนดพิเศษของลูกค้า
+                <br />
+                • ระบุเวลาที่เหมาะสมในการติดต่อ
+                <br />• อัปเดตข้อมูลเมื่อมีการเปลี่ยนแปลง
               </Typography>
             </Alert>
           </AccordionDetails>
@@ -402,4 +402,4 @@ const YourDetailsStepSimple = ({
   );
 };
 
-export default YourDetailsStepSimple; 
+export default YourDetailsStepSimple;

@@ -23,7 +23,7 @@ function OrderSect({ handleInputChange, orderLoading }) {
     content = (
       <>
         <Grid container spacing={1}>
-          <Grid size={{ xs: 6, md: 3, }} p={1}>
+          <Grid size={{ xs: 6, md: 3 }} p={1}>
             <FormControl fullWidth>
               <InputLabel id="shirt-cate-select-label">ประเภทเสื้อ</InputLabel>
               <Select
@@ -40,7 +40,7 @@ function OrderSect({ handleInputChange, orderLoading }) {
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 6, md: 3, }} p={1}>
+          <Grid size={{ xs: 6, md: 3 }} p={1}>
             <FormControl fullWidth size="small">
               <InputLabel id="shirt-cate-select-label">ติดป้ายไซซ์</InputLabel>
               <Select
@@ -57,7 +57,7 @@ function OrderSect({ handleInputChange, orderLoading }) {
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 6, }} p={1}>
+          <Grid size={{ xs: 12, md: 6 }} p={1}>
             <TextField
               fullWidth
               variant="outlined"
@@ -71,7 +71,7 @@ function OrderSect({ handleInputChange, orderLoading }) {
         </Grid>
 
         <Grid container spacing={1} mt={1}>
-          <Grid size={{ xs: 12, md: 6, }} p={1}>
+          <Grid size={{ xs: 12, md: 6 }} p={1}>
             <TextField
               fullWidth
               multiline
@@ -84,7 +84,7 @@ function OrderSect({ handleInputChange, orderLoading }) {
               onChange={handleInputChange}
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 6, }} p={1}>
+          <Grid size={{ xs: 12, md: 6 }} p={1}>
             <TextField
               fullWidth
               multiline
@@ -99,14 +99,10 @@ function OrderSect({ handleInputChange, orderLoading }) {
           </Grid>
         </Grid>
       </>
-    )
+    );
   }
 
-  return (
-    <>
-      {content}
-    </>
-  );
+  return <>{content}</>;
 }
 
 export default OrderSect;

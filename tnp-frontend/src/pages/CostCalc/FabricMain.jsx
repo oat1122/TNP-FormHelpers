@@ -4,7 +4,6 @@ import FabricSelectPattern from "./FabricSelectPattern";
 import { Container } from "react-bootstrap";
 
 function FabricMain() {
-
   return (
     <Container className="fabric-main">
       <FabricSelectPattern />

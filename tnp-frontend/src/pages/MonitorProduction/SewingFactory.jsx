@@ -31,7 +31,6 @@ function SewingFactory({ data }) {
           timer: 1500,
         });
         refetch();
-
       } else {
         Swal.fire({
           icon: "error",
@@ -41,7 +40,6 @@ function SewingFactory({ data }) {
       }
 
       setShowModal(false);
-
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -56,7 +54,11 @@ function SewingFactory({ data }) {
       <Button
         className="btn btn-secondary text-dark btn-modal-factory py-1"
         onClick={handleShowModal}
-        disabled={(user.role !== "manager" && user.role !== "production") || data.status === 2 ? true : false}
+        disabled={
+          (user.role !== "manager" && user.role !== "production") || data.status === 2
+            ? true
+            : false
+        }
       >
         {data.sewing_factory === null ? 0 : data.sewing_factory}
       </Button>
@@ -90,11 +92,7 @@ function SewingFactory({ data }) {
               ))}
           </Modal.Body>
           <Modal.Footer className="text-center py-3">
-            <Button
-              type="submit"
-              variant="danger"
-              className="col-12 col-md-5 mx-md-2"
-            >
+            <Button type="submit" variant="danger" className="col-12 col-md-5 mx-md-2">
               save
             </Button>
             <Button

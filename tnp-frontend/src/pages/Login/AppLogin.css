@@ -45,8 +45,8 @@
 }
 
 .card-login .card-footer {
-    border-bottom-right-radius: 1rem !important;
-    border-bottom-left-radius: 1rem !important;
+  border-bottom-right-radius: 1rem !important;
+  border-bottom-left-radius: 1rem !important;
 }
 
 .card-login .show-pass {
@@ -54,12 +54,12 @@
 }
 
 .card-login .card-footer .btn-danger {
-    width: 100%;
-    font-size: 1rem;
-    letter-spacing: 0.1rem;
-    background-color: #c65050;
-    color: #ffffff;
-  }
+  width: 100%;
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+  background-color: #c65050;
+  color: #ffffff;
+}
 
 .card-login .error {
   letter-spacing: 0.05rem;

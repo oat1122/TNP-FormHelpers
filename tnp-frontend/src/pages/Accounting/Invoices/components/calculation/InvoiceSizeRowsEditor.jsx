@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
   TextField,
@@ -10,26 +10,26 @@ import {
   TableCell,
   Typography,
   Button,
-} from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
+} from "@mui/material";
+import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
 
 const tokens = {
-  primary: '#900F0F',
-  white: '#FFFFFF',
-  bg: '#F5F5F5',
+  primary: "#900F0F",
+  white: "#FFFFFF",
+  bg: "#F5F5F5",
 };
 
 const InvoiceTable = styled(Table)(({ theme }) => ({
-  '& .MuiTableHead-root': {
+  "& .MuiTableHead-root": {
     backgroundColor: tokens.bg,
   },
-  '& .MuiTableCell-head': {
+  "& .MuiTableCell-head": {
     fontWeight: 600,
-    fontSize: '0.875rem',
+    fontSize: "0.875rem",
     color: tokens.primary,
   },
-  '& .MuiTableRow-root:hover': {
+  "& .MuiTableRow-root:hover": {
     backgroundColor: theme.palette.action.hover,
   },
 }));
@@ -37,7 +37,7 @@ const InvoiceTable = styled(Table)(({ theme }) => ({
 const InvoiceAddButton = styled(Button)(({ theme }) => ({
   color: tokens.primary,
   borderColor: tokens.primary,
-  '&:hover': {
+  "&:hover": {
     borderColor: tokens.primary,
     backgroundColor: `${tokens.primary}08`,
   },
@@ -50,19 +50,19 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
   onChangeRow,
   onRemoveRow,
   itemIndex = 0,
-  unit = 'ชิ้น',
+  unit = "ชิ้น",
 }) {
   const formatTHB = (amount) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
+    return new Intl.NumberFormat("th-TH", {
+      style: "currency",
+      currency: "THB",
       minimumFractionDigits: 2,
     }).format(amount);
   };
 
   // Helper function to format number for display in input
   const formatNumberForInput = (value, isPrice = false) => {
-    if (value === 0 || value === '0') return '';
+    if (value === 0 || value === "0") return "";
     if (isPrice) {
       return value.toString();
     }
@@ -71,42 +71,42 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
 
   // Helper function to parse input value
   const parseInputValue = (value, isPrice = false) => {
-    if (!value || value === '') return 0;
-    
+    if (!value || value === "") return 0;
+
     // Remove any non-numeric characters except decimal point for prices
     let cleanValue;
     if (isPrice) {
-      cleanValue = value.toString().replace(/[^\d.]/g, '');
+      cleanValue = value.toString().replace(/[^\d.]/g, "");
       // Ensure only one decimal point
-      const parts = cleanValue.split('.');
+      const parts = cleanValue.split(".");
       if (parts.length > 2) {
-        cleanValue = parts[0] + '.' + parts.slice(1).join('');
+        cleanValue = parts[0] + "." + parts.slice(1).join("");
       }
     } else {
-      cleanValue = value.toString().replace(/[^\d]/g, '');
+      cleanValue = value.toString().replace(/[^\d]/g, "");
     }
-    
-    const numValue = cleanValue === '' ? 0 : Number(cleanValue);
+
+    const numValue = cleanValue === "" ? 0 : Number(cleanValue);
     return Math.max(0, numValue || 0);
   };
 
   const handleQuantityChange = (rowIndex, value) => {
     const numValue = parseInputValue(value, false);
-    onChangeRow?.(itemIndex, rowIndex, 'quantity', numValue);
+    onChangeRow?.(itemIndex, rowIndex, "quantity", numValue);
   };
 
   const handleUnitPriceChange = (rowIndex, value) => {
     const numValue = parseInputValue(value, true);
-    onChangeRow?.(itemIndex, rowIndex, 'unitPrice', numValue);
+    onChangeRow?.(itemIndex, rowIndex, "unitPrice", numValue);
   };
 
   const handleSizeChange = (rowIndex, value) => {
-    onChangeRow?.(itemIndex, rowIndex, 'size', value);
+    onChangeRow?.(itemIndex, rowIndex, "size", value);
   };
 
   const handleAddRow = () => {
     onAddRow?.(itemIndex, {
-      size: '',
+      size: "",
       quantity: 0,
       unitPrice: 0,
     });
@@ -120,12 +120,12 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
   const totalAmount = rows.reduce((sum, row) => {
     const qty = Number(row.quantity || 0);
     const price = Number(row.unitPrice || 0);
-    return sum + (qty * price);
+    return sum + qty * price;
   }, 0);
 
   if (!isEditing && rows.length === 0) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+      <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
         <Typography variant="body2">ไม่มีรายละเอียดขนาด</Typography>
       </Box>
     );
@@ -141,7 +141,11 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
               <TableCell align="right">จำนวน</TableCell>
               <TableCell align="right">ราคาต่อหน่วย</TableCell>
               <TableCell align="right">รวม</TableCell>
-              {isEditing && <TableCell align="center" width={60}>ลบ</TableCell>}
+              {isEditing && (
+                <TableCell align="center" width={60}>
+                  ลบ
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -157,12 +161,12 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                       <TextField
                         fullWidth
                         size="small"
-                        value={row.size || ''}
+                        value={row.size || ""}
                         onChange={(e) => handleSizeChange(rowIndex, e.target.value)}
                         placeholder="ระบุขนาด"
                       />
                     ) : (
-                      <Typography variant="body2">{row.size || '-'}</Typography>
+                      <Typography variant="body2">{row.size || "-"}</Typography>
                     )}
                   </TableCell>
                   <TableCell align="right">
@@ -174,15 +178,15 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                         onChange={(e) => handleQuantityChange(rowIndex, e.target.value)}
                         placeholder="จำนวน"
                         inputProps={{
-                          inputMode: 'numeric',
-                          pattern: '[0-9]*',
-                          style: { textAlign: 'right' }
+                          inputMode: "numeric",
+                          pattern: "[0-9]*",
+                          style: { textAlign: "right" },
                         }}
-                        sx={{ 
+                        sx={{
                           width: 100,
-                          '& .MuiOutlinedInput-input': {
-                            padding: '8.5px 14px',
-                          }
+                          "& .MuiOutlinedInput-input": {
+                            padding: "8.5px 14px",
+                          },
                         }}
                       />
                     ) : (
@@ -200,27 +204,22 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                         onChange={(e) => handleUnitPriceChange(rowIndex, e.target.value)}
                         placeholder="ราคา"
                         inputProps={{
-                          inputMode: 'decimal',
-                          style: { textAlign: 'right' }
+                          inputMode: "decimal",
+                          style: { textAlign: "right" },
                         }}
-                        sx={{ 
+                        sx={{
                           width: 120,
-                          '& .MuiOutlinedInput-input': {
-                            padding: '8.5px 14px',
-                          }
+                          "& .MuiOutlinedInput-input": {
+                            padding: "8.5px 14px",
+                          },
                         }}
                       />
                     ) : (
-                      <Typography variant="body2">
-                        {formatTHB(unitPrice)}
-                      </Typography>
+                      <Typography variant="body2">{formatTHB(unitPrice)}</Typography>
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <Typography 
-                      variant="body2" 
-                      sx={{ fontWeight: 600, color: tokens.primary }}
-                    >
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: tokens.primary }}>
                       {formatTHB(lineTotal)}
                     </Typography>
                   </TableCell>
@@ -229,7 +228,7 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                       <IconButton
                         size="small"
                         onClick={() => handleRemoveRow(rowIndex)}
-                        sx={{ color: 'error.main' }}
+                        sx={{ color: "error.main" }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -255,7 +254,7 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
       )}
 
       {isEditing && (
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-start' }}>
+        <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-start" }}>
           <InvoiceAddButton
             variant="outlined"
             size="small"
@@ -268,7 +267,7 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
       )}
 
       {!isEditing && rows.length === 0 && (
-        <Box sx={{ p: 3, textAlign: 'center', bgcolor: tokens.bg, borderRadius: 1 }}>
+        <Box sx={{ p: 3, textAlign: "center", bgcolor: tokens.bg, borderRadius: 1 }}>
           <Typography variant="body2" color="text.secondary">
             ยังไม่มีรายละเอียดขนาด
           </Typography>

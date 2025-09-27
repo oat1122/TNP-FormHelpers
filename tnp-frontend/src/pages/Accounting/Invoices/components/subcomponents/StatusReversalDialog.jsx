@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,22 +15,19 @@ import {
   Alert,
   Fade,
   Chip,
-} from '@mui/material';
-import {
-  ErrorOutline as ErrorIcon,
-  InfoOutlined as InfoIcon,
-} from '@mui/icons-material';
+} from "@mui/material";
+import { ErrorOutline as ErrorIcon, InfoOutlined as InfoIcon } from "@mui/icons-material";
 
 /**
  * Enhanced Status Reversal Dialog Component
  * Provides a user-friendly interface for selecting reasons when reverting invoice status
  */
-const StatusReversalDialog = ({ 
-  open, 
-  onClose, 
-  onSubmit, 
+const StatusReversalDialog = ({
+  open,
+  onClose,
+  onSubmit,
   pendingRevertSide,
-  isLoading = false 
+  isLoading = false,
 }) => {
   // Local state for form data
   const [selectedReason, setSelectedReason] = useState("");
@@ -46,7 +43,7 @@ const StatusReversalDialog = ({
     "ลูกค้าขอแก้ไขข้อมูล",
     "พบข้อผิดพลาดในการคำนวณ",
     "ต้องอัพเดทข้อมูลจาก Quotation",
-    "อื่นๆ (โปรดระบุ)"
+    "อื่นๆ (โปรดระบุ)",
   ];
 
   // Computed values
@@ -84,22 +81,23 @@ const StatusReversalDialog = ({
    * Gets the side display text with proper formatting
    */
   const getSideDisplayText = () => {
-    if (!pendingRevertSide) return '';
-    return pendingRevertSide === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง';
+    if (!pendingRevertSide) return "";
+    return pendingRevertSide === "before" ? "มัดจำก่อน" : "มัดจำหลัง";
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={!isLoading ? handleClose : undefined}
-      maxWidth="sm" 
+      maxWidth="sm"
       fullWidth
       PaperProps={{
         elevation: 24,
         sx: {
           borderRadius: 2,
-          '--Paper-shadow': '0px 11px 15px -7px rgba(244, 67, 54, 0.2), 0px 24px 38px 3px rgba(244, 67, 54, 0.14), 0px 9px 46px 8px rgba(244, 67, 54, 0.12)',
-        }
+          "--Paper-shadow":
+            "0px 11px 15px -7px rgba(244, 67, 54, 0.2), 0px 24px 38px 3px rgba(244, 67, 54, 0.14), 0px 9px 46px 8px rgba(244, 67, 54, 0.12)",
+        },
       }}
     >
       <DialogTitle sx={{ pb: 1 }}>
@@ -109,7 +107,7 @@ const StatusReversalDialog = ({
             เลือกเหตุผลสำหรับการย้อนสถานะ
           </Typography>
         </Box>
-        
+
         {pendingRevertSide && (
           <Chip
             icon={<InfoIcon />}
@@ -125,11 +123,7 @@ const StatusReversalDialog = ({
       <DialogContent sx={{ pt: 2 }}>
         <Box display="flex" flexDirection="column" gap={2}>
           {/* Information Alert */}
-          <Alert 
-            severity="info" 
-            variant="outlined"
-            sx={{ borderRadius: 1 }}
-          >
+          <Alert severity="info" variant="outlined" sx={{ borderRadius: 1 }}>
             การย้อนสถานะจะทำให้ใบแจ้งหนี้กลับไปเป็น draft และสามารถแก้ไขได้อีกครั้ง
           </Alert>
 
@@ -144,9 +138,7 @@ const StatusReversalDialog = ({
             >
               {predefinedReasons.map((reason) => (
                 <MenuItem key={reason} value={reason}>
-                  <Typography variant="body2">
-                    {reason}
-                  </Typography>
+                  <Typography variant="body2">{reason}</Typography>
                 </MenuItem>
               ))}
             </Select>
@@ -177,30 +169,25 @@ const StatusReversalDialog = ({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3, pt: 1, gap: 1 }}>
-        <Button 
-          onClick={handleClose} 
-          color="secondary"
-          disabled={isLoading}
-          size="large"
-        >
+        <Button onClick={handleClose} color="secondary" disabled={isLoading} size="large">
           ยกเลิก
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
           color="warning"
           disabled={isSubmitDisabled}
           size="large"
-          sx={{ 
+          sx={{
             minWidth: 120,
             fontWeight: 600,
-            '&:disabled': {
-              bgcolor: 'grey.300',
-              color: 'grey.500'
-            }
+            "&:disabled": {
+              bgcolor: "grey.300",
+              color: "grey.500",
+            },
           }}
         >
-          {isLoading ? 'กำลังดำเนินการ...' : 'ย้อนสถานะ'}
+          {isLoading ? "กำลังดำเนินการ..." : "ย้อนสถานะ"}
         </Button>
       </DialogActions>
     </Dialog>

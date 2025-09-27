@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useRevertInvoiceToDraftMutation } from '../../../../../features/Accounting/accountingApi';
+import { useState } from "react";
+import { useRevertInvoiceToDraftMutation } from "../../../../../features/Accounting/accountingApi";
 
 /**
  * Custom hook for managing invoice status reversal functionality
@@ -10,7 +10,7 @@ export const useInvoiceStatusReversal = (invoice) => {
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [pendingRevertSide, setPendingRevertSide] = useState(null);
-  
+
   // RTK Query mutation
   const [revertInvoiceToDraft, { isLoading: isReverting }] = useRevertInvoiceToDraftMutation();
 
@@ -29,24 +29,23 @@ export const useInvoiceStatusReversal = (invoice) => {
    */
   const handleReasonSubmit = async (reason) => {
     try {
-      await revertInvoiceToDraft({ 
-        id: invoice.id, 
+      await revertInvoiceToDraft({
+        id: invoice.id,
         side: pendingRevertSide,
-        reason: reason || undefined 
+        reason: reason || undefined,
       }).unwrap();
-      
-      console.log('✅ Invoice reverted to draft successfully');
-      
+
+      console.log("✅ Invoice reverted to draft successfully");
+
       // Reset states on success
       resetDialog();
-      
     } catch (error) {
-      console.error('❌ Failed to revert invoice:', error);
-      
+      console.error("❌ Failed to revert invoice:", error);
+
       // Show user-friendly error message
-      const errorMessage = error?.data?.message || error.message || 'ไม่ทราบสาเหตุ';
+      const errorMessage = error?.data?.message || error.message || "ไม่ทราบสาเหตุ";
       alert(`เกิดข้อผิดพลาดในการย้อนสถานะ: ${errorMessage}`);
-      
+
       // Reset states even on error to close dialog
       resetDialog();
     }
@@ -72,8 +71,8 @@ export const useInvoiceStatusReversal = (invoice) => {
    * @returns {string} Display text for the side being reverted
    */
   const getRevertSideDisplayText = () => {
-    if (!pendingRevertSide) return '';
-    return pendingRevertSide === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง';
+    if (!pendingRevertSide) return "";
+    return pendingRevertSide === "before" ? "มัดจำก่อน" : "มัดจำหลัง";
   };
 
   return {
@@ -81,12 +80,12 @@ export const useInvoiceStatusReversal = (invoice) => {
     isDialogOpen,
     pendingRevertSide,
     isReverting,
-    
+
     // Handlers
     handleRevertToDraft,
     handleReasonSubmit,
     handleDialogClose,
-    
+
     // Utilities
     getRevertSideDisplayText,
   };

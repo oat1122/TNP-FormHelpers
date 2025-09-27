@@ -7,24 +7,11 @@ import {
   Typography,
   Button,
 } from "@mui/material";
-import {
-  Delete as DeleteIcon,
-  Warning as WarningIcon,
-} from "@mui/icons-material";
+import { Delete as DeleteIcon, Warning as WarningIcon } from "@mui/icons-material";
 
-const DeleteConfirmDialog = ({
-  open,
-  onClose,
-  onConfirm,
-  itemToDelete,
-}) => {
+const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemToDelete }) => {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <WarningIcon color="error" />
         ยืนยันการลบ
@@ -38,18 +25,10 @@ const DeleteConfirmDialog = ({
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-        >
+        <Button onClick={onClose} variant="outlined">
           ยกเลิก
         </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          color="error"
-          startIcon={<DeleteIcon />}
-        >
+        <Button onClick={onConfirm} variant="contained" color="error" startIcon={<DeleteIcon />}>
           ลบ
         </Button>
       </DialogActions>

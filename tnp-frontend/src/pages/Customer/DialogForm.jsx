@@ -11,19 +11,10 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-import {
-  MdSave,
-  MdCancel,
-  MdNavigateNext,
-  MdNavigateBefore,
-  MdClose,
-} from "react-icons/md";
+import { MdSave, MdCancel, MdNavigateNext, MdNavigateBefore, MdClose } from "react-icons/md";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
 import { genCustomerNo } from "../../features/Customer/customerUtils";
-import {
-  setInputList,
-  resetInputList,
-} from "../../features/Customer/customerSlice";
+import { setInputList, resetInputList } from "../../features/Customer/customerSlice";
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
@@ -56,8 +47,7 @@ function DialogForm(props) {
   const groupList = useSelector((state) => state.customer.groupList);
 
   // Local state
-  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] =
-    useState(false);
+  const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
@@ -167,9 +157,7 @@ function DialogForm(props) {
         value = value;
       } else if (typeof value === "string") {
         // แปลง user_id เป็น object (สำหรับ legacy support)
-        const selectedUser = salesList.find(
-          (user) => String(user.user_id) === String(value)
-        );
+        const selectedUser = salesList.find((user) => String(user.user_id) === String(value));
         value = selectedUser
           ? {
               user_id: selectedUser.user_id,
@@ -198,24 +186,22 @@ function DialogForm(props) {
       ].includes(name)
     ) {
       const fullAddress = [
-        name === "cus_address_detail"
-          ? value
-          : newInputList.cus_address_detail || "",
+        name === "cus_address_detail" ? value : newInputList.cus_address_detail || "",
         name === "cus_subdistrict_text"
           ? `ต.${value}`
           : newInputList.cus_subdistrict_text
-          ? `ต.${newInputList.cus_subdistrict_text}`
-          : "",
+            ? `ต.${newInputList.cus_subdistrict_text}`
+            : "",
         name === "cus_district_text"
           ? `อ.${value}`
           : newInputList.cus_district_text
-          ? `อ.${newInputList.cus_district_text}`
-          : "",
+            ? `อ.${newInputList.cus_district_text}`
+            : "",
         name === "cus_province_text"
           ? `จ.${value}`
           : newInputList.cus_province_text
-          ? `จ.${newInputList.cus_province_text}`
-          : "",
+            ? `จ.${newInputList.cus_province_text}`
+            : "",
         name === "cus_zip_code" ? value : newInputList.cus_zip_code || "",
       ]
         .filter(Boolean)
@@ -242,9 +228,7 @@ function DialogForm(props) {
         open_dialog_loading();
 
         const res =
-          mode === "create"
-            ? await addCustomer(inputList)
-            : await updateCustomer(inputList);
+          mode === "create" ? await addCustomer(inputList) : await updateCustomer(inputList);
 
         if (res?.data?.status === "success") {
           props.handleCloseDialog();
@@ -328,9 +312,7 @@ function DialogForm(props) {
         groupList.length > 0
           ? groupList.reduce(
               (max, group) =>
-                parseInt(group.mcg_sort, 10) > parseInt(max.mcg_sort, 10)
-                  ? group
-                  : max,
+                parseInt(group.mcg_sort, 10) > parseInt(max.mcg_sort, 10) ? group : max,
               groupList[0]
             ).mcg_id
           : null;
@@ -436,9 +418,7 @@ function DialogForm(props) {
                     errors={errors}
                     handleInputChange={handleInputChange}
                     businessTypesList={businessTypesList}
-                    handleOpenBusinessTypeManager={
-                      handleOpenBusinessTypeManager
-                    }
+                    handleOpenBusinessTypeManager={handleOpenBusinessTypeManager}
                     businessTypesIsFetching={businessTypesIsFetching}
                     mode={mode}
                   />
@@ -472,9 +452,7 @@ function DialogForm(props) {
                 )}
 
                 {/* Step 4: Verification */}
-                {activeStep === 3 && (
-                  <VerificationStepSimple inputList={inputList} mode={mode} />
-                )}
+                {activeStep === 3 && <VerificationStepSimple inputList={inputList} mode={mode} />}
               </Box>
             </Box>
           </DialogContent>
@@ -524,16 +502,10 @@ function DialogForm(props) {
                   fullWidth
                   sx={{ minWidth: { xs: "auto", sm: "120px" } }}
                 >
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: "none", sm: "inline" } }}
-                  >
+                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
                     ก่อนหน้า
                   </Box>
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: "inline", sm: "none" } }}
-                  >
+                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
                     ก่อนหน้า
                   </Box>
                 </Button>
@@ -550,16 +522,10 @@ function DialogForm(props) {
                     minWidth: { xs: "auto", sm: "120px" },
                   }}
                 >
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: "none", sm: "inline" } }}
-                  >
+                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
                     {activeStep < 3 ? "ถัดไป" : "บันทึก"}
                   </Box>
-                  <Box
-                    component="span"
-                    sx={{ display: { xs: "inline", sm: "none" } }}
-                  >
+                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
                     {activeStep < 3 ? "ถัดไป" : "บันทึก"}
                   </Box>
                 </Button>

@@ -146,13 +146,8 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
   // Generate customer initials - ป้องกัน null/undefined
   const getInitials = (firstName, lastName) => {
     const first =
-      firstName && typeof firstName === "string"
-        ? firstName.charAt(0)?.toUpperCase()
-        : "";
-    const last =
-      lastName && typeof lastName === "string"
-        ? lastName.charAt(0)?.toUpperCase()
-        : "";
+      firstName && typeof firstName === "string" ? firstName.charAt(0)?.toUpperCase() : "";
+    const last = lastName && typeof lastName === "string" ? lastName.charAt(0)?.toUpperCase() : "";
     return first + last || "?";
   };
 
@@ -209,10 +204,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <CustomerAvatar>
-              {getInitials(
-                customerData.cus_firstname,
-                customerData.cus_lastname
-              )}
+              {getInitials(customerData.cus_firstname, customerData.cus_lastname)}
             </CustomerAvatar>
             <Box>
               <Typography
@@ -234,9 +226,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                 }}
               >
                 {customerData.cus_name ||
-                  `${customerData.cus_firstname || ""} ${
-                    customerData.cus_lastname || ""
-                  }`}
+                  `${customerData.cus_firstname || ""} ${customerData.cus_lastname || ""}`}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
                 <Chip
@@ -313,11 +303,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                       onClick={() => toggleSection("notes")}
                       sx={{ ml: "auto" }}
                     >
-                      {expandedSections.notes ? (
-                        <MdExpandLess />
-                      ) : (
-                        <MdExpandMore />
-                      )}
+                      {expandedSections.notes ? <MdExpandLess /> : <MdExpandMore />}
                     </IconButton>
                   </SectionHeader>
 
@@ -415,11 +401,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     onClick={() => toggleSection("basic")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.basic ? (
-                      <MdExpandLess />
-                    ) : (
-                      <MdExpandMore />
-                    )}
+                    {expandedSections.basic ? <MdExpandLess /> : <MdExpandMore />}
                   </IconButton>
                 </SectionHeader>
 
@@ -493,9 +475,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                             sx={{ backgroundColor: "#FF9800", color: "white" }}
                           />
                         )}
-                        {!customerData.cus_channel && (
-                          <Typography variant="body2">-</Typography>
-                        )}
+                        {!customerData.cus_channel && <Typography variant="body2">-</Typography>}
                       </InfoValue>
                     </InfoRow>
 
@@ -560,11 +540,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     onClick={() => toggleSection("contact")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.contact ? (
-                      <MdExpandLess />
-                    ) : (
-                      <MdExpandMore />
-                    )}
+                    {expandedSections.contact ? <MdExpandLess /> : <MdExpandMore />}
                   </IconButton>
                 </SectionHeader>
 
@@ -589,9 +565,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                                 backgroundColor: "#d32f2f",
                               },
                             }}
-                            onClick={() =>
-                              window.open(`tel:${customerData.cus_tel_1}`)
-                            }
+                            onClick={() => window.open(`tel:${customerData.cus_tel_1}`)}
                           />
                         )}
                       </InfoValue>
@@ -616,9 +590,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                                 backgroundColor: "#d32f2f",
                               },
                             }}
-                            onClick={() =>
-                              window.open(`tel:${customerData.cus_tel_2}`)
-                            }
+                            onClick={() => window.open(`tel:${customerData.cus_tel_2}`)}
                           />
                         )}
                       </InfoValue>
@@ -643,9 +615,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                                 backgroundColor: "#d32f2f",
                               },
                             }}
-                            onClick={() =>
-                              window.open(`mailto:${customerData.cus_email}`)
-                            }
+                            onClick={() => window.open(`mailto:${customerData.cus_email}`)}
                           />
                         )}
                       </InfoValue>
@@ -682,11 +652,7 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                     onClick={() => toggleSection("address")}
                     sx={{ ml: "auto" }}
                   >
-                    {expandedSections.address ? (
-                      <MdExpandLess />
-                    ) : (
-                      <MdExpandMore />
-                    )}
+                    {expandedSections.address ? <MdExpandLess /> : <MdExpandMore />}
                   </IconButton>
                 </SectionHeader>
 
@@ -694,48 +660,42 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
                   <Stack spacing={1}>
                     <InfoRow>
                       <InfoLabel>ที่อยู่:</InfoLabel>
-                      <InfoValue sx={{ lineHeight: 1.6 }}>
-                        {parsedAddress.address || "-"}
-                      </InfoValue>
+                      <InfoValue sx={{ lineHeight: 1.6 }}>{parsedAddress.address || "-"}</InfoValue>
                     </InfoRow>
 
                     <InfoRow>
                       <InfoLabel>จังหวัด:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.province || "-"}
-                      </InfoValue>
+                      <InfoValue>{parsedAddress.province || "-"}</InfoValue>
                     </InfoRow>
 
                     <InfoRow>
                       <InfoLabel>เขต/อำเภอ:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.district || "-"}
-                      </InfoValue>
+                      <InfoValue>{parsedAddress.district || "-"}</InfoValue>
                     </InfoRow>
 
                     <InfoRow>
                       <InfoLabel>แขวง/ตำบล:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.subdistrict || "-"}
-                      </InfoValue>
+                      <InfoValue>{parsedAddress.subdistrict || "-"}</InfoValue>
                     </InfoRow>
 
                     <InfoRow>
                       <InfoLabel>รหัสไปรษณีย์:</InfoLabel>
-                      <InfoValue>
-                        {parsedAddress.zipCode || "-"}
-                      </InfoValue>
+                      <InfoValue>{parsedAddress.zipCode || "-"}</InfoValue>
                     </InfoRow>
 
                     <InfoRow>
-                      <InfoLabel sx={{ fontSize: "0.8rem", color: "#666" }}>ที่อยู่ทั้งหมด:</InfoLabel>
-                      <InfoValue sx={{ 
-                        lineHeight: 1.6, 
-                        fontSize: "0.8rem", 
-                        color: "#666",
-                        fontStyle: "italic",
-                        opacity: 0.8
-                      }}>
+                      <InfoLabel sx={{ fontSize: "0.8rem", color: "#666" }}>
+                        ที่อยู่ทั้งหมด:
+                      </InfoLabel>
+                      <InfoValue
+                        sx={{
+                          lineHeight: 1.6,
+                          fontSize: "0.8rem",
+                          color: "#666",
+                          fontStyle: "italic",
+                          opacity: 0.8,
+                        }}
+                      >
                         {customerData.cus_address || "-"}
                       </InfoValue>
                     </InfoRow>

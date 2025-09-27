@@ -24,12 +24,12 @@
 
   @media (min-width: 1000px) {
     && .dropdown-menu[data-bs-popper] {
-      left: -80%
+      left: -80%;
     }
   }
 
   && .dropdown-item {
-    font-family: 'PSL KittithadaBold';
+    font-family: "PSL KittithadaBold";
     font-size: 14pt;
   }
 }
@@ -49,7 +49,7 @@
 
 .nav-item.search-tab .input-group {
   border: 2px solid #c55050;
-  
+
   && .input-group-text {
     background-color: transparent;
     border: none;
@@ -57,7 +57,7 @@
     height: 1.9rem;
     font-size: 1.375rem;
   }
-  
+
   && .form-control {
     height: 1.9rem;
     background-color: transparent;
@@ -66,7 +66,7 @@
     color: #ffffff;
     letter-spacing: 0.1rem;
   }
-  
+
   && .form-control::placeholder {
     color: rgba(255, 255, 255, 0.9);
   }
@@ -79,10 +79,10 @@
     -webkit-appearance: none;
     height: 0.8em;
     width: 0.8em;
-    background: url('../../assets/icons/cancel-red.svg');
+    background: url("../../assets/icons/cancel-red.svg");
     background-size: contain;
   }
-  
+
   && .form-control:focus::-webkit-search-cancel-button {
     opacity: 1;
   }

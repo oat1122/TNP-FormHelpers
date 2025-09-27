@@ -11,7 +11,7 @@ function CuttingFactory({ data }) {
   const { data: myData, isLoading } = useGetFactoryQuery();
   const [radioCutting, setRadioCutting] = useState(Number(data.cutting_factory));
   const [showModal, setShowModal] = useState(false);
-  
+
   const handleShowModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
 
@@ -31,7 +31,6 @@ function CuttingFactory({ data }) {
           timer: 1500,
         });
         refetch();
-
       } else {
         Swal.fire({
           icon: "error",
@@ -41,7 +40,6 @@ function CuttingFactory({ data }) {
       }
 
       setShowModal(false);
-
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -53,10 +51,14 @@ function CuttingFactory({ data }) {
 
   return (
     <>
-      <Button 
-        className="btn btn-secondary text-dark btn-modal-factory py-1" 
+      <Button
+        className="btn btn-secondary text-dark btn-modal-factory py-1"
         onClick={handleShowModal}
-        disabled={(user.role !== "manager" && user.role !== "production") || data.status === 2 ? true : false}
+        disabled={
+          (user.role !== "manager" && user.role !== "production") || data.status === 2
+            ? true
+            : false
+        }
       >
         {data.cutting_factory === null ? 0 : data.cutting_factory}
       </Button>
@@ -75,30 +77,28 @@ function CuttingFactory({ data }) {
               <div className="w-100 text-center">
                 <Spinner animation="border" variant="danger" role="status" />
               </div>
-            ) : myData &&
+            ) : (
+              myData &&
               myData.map((radio, index) => (
-                <Col 
-                  className={`my-2 fs-4 ${Number(radioCutting) === radio.factory_id ? 'highlight' : ''}`} 
+                <Col
+                  className={`my-2 fs-4 ${Number(radioCutting) === radio.factory_id ? "highlight" : ""}`}
                   key={index}
                 >
                   <Form.Check
                     type="radio"
                     id={`radio-cutting-${index}`}
                     name="cutting_factory"
-                    label={`${(radio.factory_no)} - ${radio.factory_name}`}
+                    label={`${radio.factory_no} - ${radio.factory_name}`}
                     value={radio.factory_id}
                     checked={Number(radioCutting) === radio.factory_id}
                     onChange={(e) => setRadioCutting(e.target.value)}
                   />
                 </Col>
-              ))}
+              ))
+            )}
           </Modal.Body>
           <Modal.Footer className="text-center py-3">
-            <Button
-              type="submit"
-              variant="danger"
-              className="col-12 col-md-5 mx-md-2"
-            >
+            <Button type="submit" variant="danger" className="col-12 col-md-5 mx-md-2">
               save
             </Button>
             <Button

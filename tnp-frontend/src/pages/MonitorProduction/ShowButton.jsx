@@ -53,10 +53,7 @@ function ShowButton({ id, onSubmit }) {
               name="checked_1"
               value="1"
             />
-            <label
-              className="btn btn-choose p-2 p-md-3 p-lg-2"
-              htmlFor={`btn-check-1-${id}`}
-            >
+            <label className="btn btn-choose p-2 p-md-3 p-lg-2" htmlFor={`btn-check-1-${id}`}>
               <h1 className="mb-0">1</h1>
               ตัดเย็บเป็นตัว
               <br />
@@ -76,10 +73,7 @@ function ShowButton({ id, onSubmit }) {
               name="checked_2"
               value="2"
             />
-            <label
-              className="btn btn-choose p-2 p-md-3 p-lg-2"
-              htmlFor={`btn-check-2-${id}`}
-            >
+            <label className="btn btn-choose p-2 p-md-3 p-lg-2" htmlFor={`btn-check-2-${id}`}>
               <h1 className="mb-0">2</h1>
               ตัด นำมาปัก/สกรีน
               <br />
@@ -109,10 +103,7 @@ function ShowButton({ id, onSubmit }) {
           name="screen"
           onChange={(event) => onScreen(event.target.value)}
         />
-        <label
-          className="btn btn-toggle mt-2 px-4 py-1"
-          htmlFor={`check-screen-${id}`}
-        >
+        <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-screen-${id}`}>
           มีสกรีน
         </label>
         <input
@@ -124,10 +115,7 @@ function ShowButton({ id, onSubmit }) {
           name="dft"
           onChange={(event) => onDft(event.target.value)}
         />
-        <label
-          className="btn btn-toggle mt-2 px-4 py-1"
-          htmlFor={`check-dft-${id}`}
-        >
+        <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-dft-${id}`}>
           มี DFT
         </label>
         <input
@@ -139,10 +127,7 @@ function ShowButton({ id, onSubmit }) {
           name="embroid"
           onChange={(event) => onEmbroid(event.target.value)}
         />
-        <label
-          className="btn btn-toggle mt-2 px-4 py-1"
-          htmlFor={`check-embroid-${id}`}
-        >
+        <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-embroid-${id}`}>
           มีปัก
         </label>
       </div>
@@ -170,10 +155,7 @@ export const ScreenPoint = (props) => {
         name="screen"
         onChange={(event) => onScreen(event.target.value)}
       />
-      <label
-        className="btn btn-toggle mt-2 px-4 py-1"
-        htmlFor={`check-screen-${id}`}
-      >
+      <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-screen-${id}`}>
         มีสกรีน
       </label>
       <input
@@ -185,10 +167,7 @@ export const ScreenPoint = (props) => {
         name="dft"
         onChange={(event) => onDft(event.target.value)}
       />
-      <label
-        className="btn btn-toggle mt-2 px-4 py-1"
-        htmlFor={`check-dft-${id}`}
-      >
+      <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-dft-${id}`}>
         มี DFT
       </label>
       <input
@@ -202,10 +181,7 @@ export const ScreenPoint = (props) => {
         onChange={(event) => onEmbroid(event.target.value)}
         // onChange={handleChecked}
       />
-      <label
-        className="btn btn-toggle mt-2 px-4 py-1"
-        htmlFor={`check-embroid-${id}`}
-      >
+      <label className="btn btn-toggle mt-2 px-4 py-1" htmlFor={`check-embroid-${id}`}>
         มีปัก
       </label>
     </div>
@@ -264,19 +240,11 @@ export const SelectProcess_2 = (props) => {
   return (
     <ListGroup className="list-group-flush fs-5">
       <ListGroup.Item className="col-12 mx-auto">
-        <Button
-          className="card-text text-center ps-2 btn fs-5"
-          onClick={handleShow}
-        >
+        <Button className="card-text text-center ps-2 btn fs-5" onClick={handleShow}>
           ต้นทุนการผลิต
         </Button>
         <hr className="mt-1 mb-2" />
-        <Modal
-          show={showCost}
-          onHide={handleClose}
-          size="lg"
-          className="modal-cost"
-        >
+        <Modal show={showCost} onHide={handleClose} size="lg" className="modal-cost">
           <Modal.Header closeButton className="d-lg-none">
             {/* <Modal.Title>Modal heading</Modal.Title> */}
           </Modal.Header>
@@ -299,64 +267,32 @@ export const SelectProcess_2 = (props) => {
               </Col>
               <Col lg={3} className="mt-2 d-flex ps-0">
                 <h4 className="label-num px-3 mb-0"></h4>
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-2">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-2">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-2">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
 
               <hr className="d-lg-none mt-4" />
 
               <Col lg={3} className="mt-3 d-flex ps-0">
                 <h4 className="label-num px-3 mb-0"></h4>
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-3">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-3">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <Col lg={3} className="mt-3">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                />
+                <TextField type="text" variant="outlined" className="form-control" />
               </Col>
               <hr className="d-lg-none mt-4" />
               <Col lg={12} className="mt-3 ps-lg-5">
@@ -370,24 +306,14 @@ export const SelectProcess_2 = (props) => {
                 <h4 className="pt-1">รวมทั้งหมด</h4>
               </Col>
               <Col sm={12} lg={3} className="ps-lg-3 mt-2 d-lg-none">
-                <TextField
-                  type="text"
-                  variant="outlined"
-                  className="form-control"
-                  disabled
-                />
+                <TextField type="text" variant="outlined" className="form-control" disabled />
               </Col>
               <Row className="mt-5 gx-4 row-sum d-none d-lg-flex">
                 <Col sm={12} lg={9} className="text-lg-end">
                   <h4 className="pt-1">รวมทั้งหมด</h4>
                 </Col>
                 <Col lg={3} className="ps-lg-3">
-                  <TextField
-                    type="text"
-                    variant="outlined"
-                    className="form-control"
-                    disabled
-                  />
+                  <TextField type="text" variant="outlined" className="form-control" disabled />
                 </Col>
               </Row>
             </Row>
@@ -534,12 +460,7 @@ export const SelectProcess_2 = (props) => {
         <Button className="btn card-link" onClick={handleDFTBlockShow}>
           <RiSettings3Fill />
         </Button>
-        <Modal
-          show={showDFTBlock}
-          onHide={handleDFTBlockClose}
-          size="md"
-          className="modal-embroid"
-        >
+        <Modal show={showDFTBlock} onHide={handleDFTBlockClose} size="md" className="modal-embroid">
           <Modal.Header className="justify-content-end border border-0 py-0 px-1">
             <Modal.Title>
               <Link to="/showlog" target="_blank">
@@ -582,16 +503,10 @@ export const SelectProcess_2 = (props) => {
 
 const ButtonFill = () => (
   <div className="App mt-4 text-center">
-    <Button
-      variant="contained"
-      className="btn-filter me-4 col-5 col-md-4 col-lg-3 col-xl-2"
-    >
+    <Button variant="contained" className="btn-filter me-4 col-5 col-md-4 col-lg-3 col-xl-2">
       All
     </Button>
-    <Button
-      variant="contained"
-      className="btn-filter col-5 col-md-4 col-lg-3 col-xl-2"
-    >
+    <Button variant="contained" className="btn-filter col-5 col-md-4 col-lg-3 col-xl-2">
       MY WORK
     </Button>
   </div>
@@ -672,10 +587,7 @@ const ShowSetting = () => {
         </Modal>
 
         <div className="vr"></div>
-        <button
-          className="btn btn-edit p-0 mx-auto"
-          onClick={handleReceiveDShow}
-        >
+        <button className="btn btn-edit p-0 mx-auto" onClick={handleReceiveDShow}>
           วันที่ได้รับ
         </button>
         <Modal
@@ -727,12 +639,7 @@ const ShowSetting = () => {
         <button className="btn btn-edit p-0 mx-auto" onClick={handleNoteShow}>
           บันทึก
         </button>
-        <Modal
-          show={showNote}
-          onHide={handleNoteClose}
-          size="lg"
-          className="mt-5 modal-note"
-        >
+        <Modal show={showNote} onHide={handleNoteClose} size="lg" className="mt-5 modal-note">
           <Modal.Body className="m-3">
             <Row className="pe-lg-3">
               <Col xs={12} lg={11}>
@@ -742,10 +649,7 @@ const ShowSetting = () => {
                 />
               </Col>
               <Col xs={12} lg={1} className="text-end ps-lg-0 mt-3 mt-lg-0">
-                <Button
-                  variant="contained"
-                  className="btn btn-post col-4 col-md-3 col-lg-8"
-                >
+                <Button variant="contained" className="btn btn-post col-4 col-md-3 col-lg-8">
                   POST
                 </Button>
               </Col>
@@ -756,14 +660,10 @@ const ShowSetting = () => {
                 <label>
                   Lorem Ipsum
                   <br />
-                  Lorem Ipsum คือ เนื้อหาจำลองแบบเรียบๆ
-                  ที่ใช้กันในธุรกิจงานพิมพ์หรืองานเรียงพิมพ์
+                  Lorem Ipsum คือ เนื้อหาจำลองแบบเรียบๆ ที่ใช้กันในธุรกิจงานพิมพ์หรืองานเรียงพิมพ์
                 </label>
               </Col>
-              <Col
-                lg={2}
-                className="d-flex align-items-end justify-content-end flex-column"
-              >
+              <Col lg={2} className="d-flex align-items-end justify-content-end flex-column">
                 <label className="fs-6" style={{ lineHeight: "0.5rem" }}>
                   YING
                 </label>

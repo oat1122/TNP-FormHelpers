@@ -1,5 +1,5 @@
 /* Import Myanmar fonts */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap");
 
 /* Mobile-first responsive design for MaxSupply Form */
 
@@ -59,7 +59,7 @@
     flex-direction: row !important;
     gap: 16px !important;
   }
-  
+
   .mobile-nav-buttons .MuiButton-root {
     width: auto !important;
   }
@@ -81,7 +81,7 @@
     padding: 24px !important;
     margin-bottom: 24px !important;
   }
-  
+
   .mobile-header h4 {
     font-size: 2.125rem !important;
   }
@@ -93,7 +93,7 @@
   top: 16px !important;
   right: 16px !important;
   z-index: 1000 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 @media (min-width: 768px) {
@@ -163,13 +163,13 @@
   z-index: 1300;
   background: white;
   border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   padding: 4px;
   transition: all 0.3s ease-in-out;
 }
 
 .floating-language-toggle:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
@@ -187,11 +187,11 @@
     right: 12px;
     border-radius: 20px;
     padding: 2px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.95);
   }
-  
+
   /* Safe area สำหรับ mobile */
   @supports (padding: env(safe-area-inset-top)) {
     .floating-language-toggle {
@@ -199,12 +199,12 @@
       right: calc(env(safe-area-inset-right) + 12px);
     }
   }
-  
+
   .floating-language-toggle .MuiPaper-root {
     box-shadow: none !important;
     background: transparent !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root {
     font-size: 0.65rem !important;
     padding: 6px 10px !important;
@@ -216,36 +216,36 @@
     text-transform: uppercase !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root.Mui-selected {
     background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
     color: white !important;
     box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4) !important;
     transform: scale(1.05) !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root:not(.Mui-selected) {
     background: rgba(255, 255, 255, 0.8) !important;
     color: #666 !important;
     border: 1.5px solid rgba(25, 118, 210, 0.2) !important;
     backdrop-filter: blur(5px) !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root:not(.Mui-selected):hover {
     background: rgba(25, 118, 210, 0.08) !important;
     border-color: rgba(25, 118, 210, 0.3) !important;
     transform: scale(1.02) !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root:active {
     transform: scale(0.95) !important;
   }
-  
+
   /* Animation เมื่อมีการเปลี่ยนแปลง */
   .floating-language-toggle .MuiToggleButtonGroup-root {
     animation: fadeInUp 0.3s ease-out;
   }
-  
+
   @keyframes fadeInUp {
     from {
       opacity: 0;
@@ -263,7 +263,7 @@
   .floating-language-toggle {
     background: rgba(30, 30, 30, 0.95);
   }
-  
+
   @media (max-width: 767px) {
     .floating-language-toggle .MuiToggleButton-root:not(.Mui-selected) {
       background: rgba(50, 50, 50, 0.8) !important;
@@ -278,7 +278,7 @@
   .floating-language-toggle .MuiToggleButton-root {
     border-width: 2px !important;
   }
-  
+
   .floating-language-toggle .MuiToggleButton-root.Mui-selected {
     border: 2px solid #000 !important;
   }
@@ -301,16 +301,16 @@
     padding-left: 8px !important;
     padding-right: 8px !important;
   }
-  
+
   .MuiPaper-root {
     border-radius: 12px !important;
   }
-  
+
   .MuiTypography-h4 {
     font-size: 1.5rem !important;
     word-break: break-word !important;
   }
-  
+
   .MuiAlert-root {
     border-radius: 8px !important;
     font-size: 0.875rem !important;
@@ -338,7 +338,7 @@
 
 /* Fix for Myanmar font rendering */
 .myanmar-text {
-  font-family: 'Noto Sans Myanmar', 'Myanmar3', 'Pyidaungsu', 'Myanmar Text', sans-serif !important;
+  font-family: "Noto Sans Myanmar", "Myanmar3", "Pyidaungsu", "Myanmar Text", sans-serif !important;
   line-height: 1.6 !important;
   font-weight: 400 !important;
 }
@@ -352,7 +352,7 @@
 }
 
 .myanmar-text .MuiInputBase-input {
-  font-family: 'Noto Sans Myanmar', 'Myanmar3', 'Pyidaungsu', 'Myanmar Text', sans-serif !important;
+  font-family: "Noto Sans Myanmar", "Myanmar3", "Pyidaungsu", "Myanmar Text", sans-serif !important;
 }
 
 /* Enhanced mobile input styling */
@@ -360,12 +360,12 @@
   .MuiTextField-root {
     margin-bottom: 16px !important;
   }
-  
+
   .MuiInputBase-input {
     font-size: 16px !important; /* Prevents zoom on iOS */
     padding: 14px !important;
   }
-  
+
   .MuiSelect-select {
     font-size: 16px !important;
     padding: 14px !important;
@@ -377,7 +377,7 @@
   position: sticky !important;
   bottom: 0 !important;
   background: white !important;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !important;
   z-index: 100 !important;
   margin: 0 -16px !important;
   padding: 16px !important;

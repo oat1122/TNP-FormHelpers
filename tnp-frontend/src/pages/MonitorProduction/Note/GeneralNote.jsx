@@ -28,25 +28,17 @@ function GeneralNote({ pd_id }) {
     }
 
     const generalNotes = item_lists
-      .filter(
-        (note) => note.note_category === "general" && note.pd_id === pd_id
-      )
+      .filter((note) => note.note_category === "general" && note.pd_id === pd_id)
       .sort((a, b) => new Date(b.note_datetime) - new Date(a.note_datetime))
       .map((item) => item.note_descr);
 
     const lastNote = generalNotes.length > 0 ? generalNotes[0] : null;
 
     const resultNote =
-      lastNote !== null && lastNote.length > 40
-        ? lastNote.substring(0, 40) + "..."
-        : lastNote;
+      lastNote !== null && lastNote.length > 40 ? lastNote.substring(0, 40) + "..." : lastNote;
 
     return resultNote !== null ? (
-      <Chip
-        deleteIcon={<MdNotes />}
-        onDelete={handleNoteShow}
-        label={resultNote}
-      />
+      <Chip deleteIcon={<MdNotes />} onDelete={handleNoteShow} label={resultNote} />
     ) : (
       <Chip label=" " />
     );
@@ -54,22 +46,12 @@ function GeneralNote({ pd_id }) {
 
   return (
     <div className="general-note">
-      <Modal
-        show={showNote}
-        onHide={handleNoteClose}
-        size="lg"
-        className="mt-5 modal-note"
-      >
+      <Modal show={showNote} onHide={handleNoteClose} size="lg" className="mt-5 modal-note">
         <ProductionNote pd_id={pd_id} category="general" />
       </Modal>
-      {user.role === "manager" ||
-      user.role === "production" ||
-      user.role === "graphic" ? (
+      {user.role === "manager" || user.role === "production" || user.role === "graphic" ? (
         <>
-          <Button
-            className="text-center ps-2 btn fs-5 rounded-2"
-            onClick={handleNoteShow}
-          >
+          <Button className="text-center ps-2 btn fs-5 rounded-2" onClick={handleNoteShow}>
             บันทึกทั่วไป
           </Button>
         </>

@@ -16,11 +16,7 @@ import { FaPlus, FaChartLine, FaSortAmountDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import ProductionTypeIcon from "./components/ProductionTypeIcon";
-import {
-  productionTypeConfig,
-  statusConfig,
-  priorityConfig,
-} from "./utils/constants";
+import { productionTypeConfig, statusConfig, priorityConfig } from "./utils/constants";
 import { maxSupplyApi } from "../../services/maxSupplyApi";
 import MaxSupplyEditForm from "./MaxSupplyEditForm";
 import {
@@ -386,16 +382,13 @@ const MaxSupplyList = () => {
         {totalItems > 0 && (
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
             <Chip
-              label={`รอเริ่ม: ${
-                maxSupplies.filter((item) => item.status === "pending").length
-              }`}
+              label={`รอเริ่ม: ${maxSupplies.filter((item) => item.status === "pending").length}`}
               color="warning"
               size="small"
             />
             <Chip
               label={`กำลังผลิต: ${
-                maxSupplies.filter((item) => item.status === "in_progress")
-                  .length
+                maxSupplies.filter((item) => item.status === "in_progress").length
               }`}
               color="primary"
               size="small"
@@ -411,10 +404,8 @@ const MaxSupplyList = () => {
               label={`ใกล้ครบกำหนด: ${
                 maxSupplies.filter(
                   (item) =>
-                    getDeadlineStatus(item.expected_completion_date) ===
-                      "urgent" ||
-                    getDeadlineStatus(item.expected_completion_date) ===
-                      "overdue"
+                    getDeadlineStatus(item.expected_completion_date) === "urgent" ||
+                    getDeadlineStatus(item.expected_completion_date) === "overdue"
                 ).length
               }`}
               color="error"

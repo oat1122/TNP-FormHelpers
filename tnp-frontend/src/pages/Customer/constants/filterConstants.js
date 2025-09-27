@@ -1,8 +1,4 @@
-import {
-  MdPerson,
-  MdLanguage,
-  MdBusiness,
-} from "react-icons/md";
+import { MdPerson, MdLanguage, MdBusiness } from "react-icons/md";
 
 // Channel options for customer communication channels
 export const channelOptions = [
@@ -64,7 +60,7 @@ export const filterColors = {
   primaryLight: "rgba(148, 12, 12, 0.08)",
   primaryBorder: "rgba(148, 12, 12, 0.2)",
   primaryGradient: "linear-gradient(135deg, #b71c1c 0%, #940c0c 100%)",
-  
+
   // Semantic colors
   success: "#2e7d32",
   successLight: "rgba(46, 125, 50, 0.08)",
@@ -74,7 +70,7 @@ export const filterColors = {
   infoLight: "rgba(2, 136, 209, 0.08)",
   error: "#d32f2f",
   errorLight: "rgba(211, 47, 47, 0.08)",
-  
+
   // Neutral colors
   background: {
     default: "#ffffff",
@@ -82,7 +78,7 @@ export const filterColors = {
     elevated: "#f8f9fa",
     section: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
   },
-  
+
   // Text colors
   text: {
     primary: "rgba(0, 0, 0, 0.87)",
@@ -90,7 +86,7 @@ export const filterColors = {
     disabled: "rgba(0, 0, 0, 0.38)",
     hint: "rgba(0, 0, 0, 0.38)",
   },
-  
+
   // Border colors
   border: {
     light: "rgba(0, 0, 0, 0.08)",
@@ -98,21 +94,21 @@ export const filterColors = {
     focus: "rgba(148, 12, 12, 0.5)",
     active: "rgba(148, 12, 12, 0.8)",
   },
-  
+
   // Interactive states
   hover: {
     light: "rgba(0, 0, 0, 0.04)",
     medium: "rgba(148, 12, 12, 0.04)",
     strong: "rgba(148, 12, 12, 0.08)",
   },
-  
+
   // Overlay colors
   overlay: {
     light: "rgba(0, 0, 0, 0.02)",
     medium: "rgba(0, 0, 0, 0.04)",
     pattern: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="rgba(148, 12, 12, 0.02)" fill-opacity="1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
   },
-  
+
   // Status colors for chips
   status: {
     active: {
@@ -122,7 +118,7 @@ export const filterColors = {
     },
     success: {
       background: "linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)",
-      color: "#ffffff", 
+      color: "#ffffff",
       shadow: "0 3px 8px rgba(46, 125, 50, 0.3)",
     },
     warning: {
@@ -141,4 +137,4 @@ export const filterColors = {
       shadow: "none",
     },
   },
-}; 
+};

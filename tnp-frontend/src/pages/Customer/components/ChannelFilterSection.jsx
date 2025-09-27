@@ -30,10 +30,7 @@ import { channelOptions, filterPanelConfig } from "../constants/filterConstants"
  * Channel Filter Section Component
  * Handles communication channel multi-selection
  */
-const ChannelFilterSection = ({
-  draftFilters,
-  selectionHelpers,
-}) => {
+const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
   const { handleChannelChange } = selectionHelpers;
 
   return (
@@ -46,9 +43,7 @@ const ChannelFilterSection = ({
               <MdSignalCellularAlt style={{ fontSize: 20, color: "white" }} />
             </FilterIconBox>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <FilterTitle variant="subtitle1">
-                ช่องทางการติดต่อ (CHANNEL)
-              </FilterTitle>
+              <FilterTitle variant="subtitle1">ช่องทางการติดต่อ (CHANNEL)</FilterTitle>
               <FilterDescription variant="caption">
                 เลือกช่องทางการติดต่อที่ต้องการกรองข้อมูล
               </FilterDescription>
@@ -58,9 +53,9 @@ const ChannelFilterSection = ({
           {/* Channel Selection with improved mobile UX */}
           <FilterContentBox>
             <StyledFormControl fullWidth>
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   color: "text.primary",
                   mb: { xs: 1.5, sm: 1 },
                   fontSize: { xs: "0.9rem", sm: "0.95rem" },
@@ -87,7 +82,7 @@ const ChannelFilterSection = ({
                   />
                 )}
               </Typography>
-              
+
               <Select
                 multiple
                 value={draftFilters.channel}
@@ -95,17 +90,25 @@ const ChannelFilterSection = ({
                 input={<OutlinedInput />}
                 renderValue={(selected) => {
                   if (selected.length === 0) {
-                    return <Typography sx={{ color: 'text.secondary' }}>เลือกช่องทางการติดต่อ</Typography>;
+                    return (
+                      <Typography sx={{ color: "text.secondary" }}>
+                        เลือกช่องทางการติดต่อ
+                      </Typography>
+                    );
                   }
                   return (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                       {selected.map((value) => {
-                        const channel = channelOptions.find(c => c.value === value);
+                        const channel = channelOptions.find((c) => c.value === value);
                         const ChannelIcon = channel?.icon;
                         return (
                           <Chip
                             key={value}
-                            icon={ChannelIcon ? <ChannelIcon style={{ fontSize: '0.8rem' }} /> : undefined}
+                            icon={
+                              ChannelIcon ? (
+                                <ChannelIcon style={{ fontSize: "0.8rem" }} />
+                              ) : undefined
+                            }
                             label={channel?.label}
                             size="small"
                             sx={{
@@ -115,9 +118,9 @@ const ChannelFilterSection = ({
                               borderRadius: "6px",
                               height: "24px",
                               fontSize: "0.75rem",
-                              '& .MuiChip-icon': {
-                                color: 'white',
-                                fontSize: '0.8rem',
+                              "& .MuiChip-icon": {
+                                color: "white",
+                                fontSize: "0.8rem",
                               },
                             }}
                           />
@@ -140,54 +143,54 @@ const ChannelFilterSection = ({
                   MenuListProps: {
                     sx: {
                       padding: 1,
-                    }
-                  }
+                    },
+                  },
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '12px',
-                    border: '1px solid rgba(148, 12, 12, 0.3)',
-                    minHeight: '48px',
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    border: "1px solid rgba(148, 12, 12, 0.3)",
+                    minHeight: "48px",
                     fontFamily: "'Kanit', sans-serif",
-                    '&:hover': {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(148, 12, 12, 0.5)',
+                    "&:hover": {
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "rgba(148, 12, 12, 0.5)",
                       },
                     },
-                    '&.Mui-focused': {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#940c0c',
-                        borderWidth: '2px',
+                    "&.Mui-focused": {
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#940c0c",
+                        borderWidth: "2px",
                       },
                     },
                   },
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    border: 'none',
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    border: "none",
                   },
-                  '& .MuiSelect-select': {
-                    padding: '10px 16px',
-                    fontSize: '14px',
+                  "& .MuiSelect-select": {
+                    padding: "10px 16px",
+                    fontSize: "14px",
                   },
                 }}
               >
                 {channelOptions.map((channel) => {
                   const ChannelIcon = channel.icon;
                   return (
-                    <MenuItem 
-                      key={channel.value} 
+                    <MenuItem
+                      key={channel.value}
                       value={channel.value}
                       sx={{
                         borderRadius: 1.5,
-                        margin: '2px 0',
-                        minHeight: '44px',
-                        padding: '8px 12px',
-                        '&:hover': {
-                          bgcolor: 'rgba(148, 12, 12, 0.08)',
+                        margin: "2px 0",
+                        minHeight: "44px",
+                        padding: "8px 12px",
+                        "&:hover": {
+                          bgcolor: "rgba(148, 12, 12, 0.08)",
                         },
-                        '&.Mui-selected': {
-                          bgcolor: 'rgba(148, 12, 12, 0.12)',
-                          '&:hover': {
-                            bgcolor: 'rgba(148, 12, 12, 0.15)',
+                        "&.Mui-selected": {
+                          bgcolor: "rgba(148, 12, 12, 0.12)",
+                          "&:hover": {
+                            bgcolor: "rgba(148, 12, 12, 0.15)",
                           },
                         },
                       }}
@@ -196,29 +199,36 @@ const ChannelFilterSection = ({
                         checked={draftFilters.channel.indexOf(channel.value) > -1}
                         size="small"
                         sx={{
-                          color: 'rgba(148, 12, 12, 0.6)',
-                          '&.Mui-checked': {
-                            color: '#940c0c',
+                          color: "rgba(148, 12, 12, 0.6)",
+                          "&.Mui-checked": {
+                            color: "#940c0c",
                           },
                           marginRight: 1,
                         }}
                       />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                        <ChannelIcon 
-                          style={{ 
-                            fontSize: '16px', 
-                            color: draftFilters.channel.indexOf(channel.value) > -1 ? '#940c0c' : 'text.secondary' 
-                          }} 
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1 }}>
+                        <ChannelIcon
+                          style={{
+                            fontSize: "16px",
+                            color:
+                              draftFilters.channel.indexOf(channel.value) > -1
+                                ? "#940c0c"
+                                : "text.secondary",
+                          }}
                         />
-                        <ListItemText 
+                        <ListItemText
                           primary={channel.label}
                           sx={{
-                            '& .MuiTypography-root': {
+                            "& .MuiTypography-root": {
                               fontFamily: "'Kanit', sans-serif",
-                              fontSize: '14px',
-                              fontWeight: draftFilters.channel.indexOf(channel.value) > -1 ? 600 : 400,
-                              color: draftFilters.channel.indexOf(channel.value) > -1 ? '#940c0c' : 'text.primary',
-                            }
+                              fontSize: "14px",
+                              fontWeight:
+                                draftFilters.channel.indexOf(channel.value) > -1 ? 600 : 400,
+                              color:
+                                draftFilters.channel.indexOf(channel.value) > -1
+                                  ? "#940c0c"
+                                  : "text.primary",
+                            },
                           }}
                         />
                       </Box>
@@ -226,7 +236,7 @@ const ChannelFilterSection = ({
                   );
                 })}
               </Select>
-              
+
               {/* Selected channels display with improved design */}
               {draftFilters.channel.length > 0 && (
                 <Box
@@ -258,9 +268,7 @@ const ChannelFilterSection = ({
                     }}
                   >
                     {draftFilters.channel.map((value) => {
-                      const channel = channelOptions.find(
-                        (c) => c.value === value
-                      );
+                      const channel = channelOptions.find((c) => c.value === value);
                       const ChannelIcon = channel?.icon;
                       return (
                         <Chip
@@ -340,9 +348,7 @@ const ChannelFilterSection = ({
                       px: 1,
                       py: 0.5,
                       borderRadius: 1,
-                      bgcolor: isSelected 
-                        ? "rgba(148, 12, 12, 0.1)" 
-                        : "transparent",
+                      bgcolor: isSelected ? "rgba(148, 12, 12, 0.1)" : "transparent",
                       color: isSelected ? "primary.main" : "text.secondary",
                       fontSize: "0.7rem",
                       fontWeight: isSelected ? 600 : 400,
@@ -362,18 +368,18 @@ const ChannelFilterSection = ({
             sx={{
               p: { xs: 1.5, sm: 1.5 },
               borderRadius: 2,
-              bgcolor: draftFilters.channel.length > 0 
-                ? "rgba(148, 12, 12, 0.06)" 
-                : "rgba(0, 0, 0, 0.04)",
-              border: draftFilters.channel.length > 0 
-                ? "1px dashed rgba(148, 12, 12, 0.3)" 
-                : "1px dashed rgba(0, 0, 0, 0.1)",
+              bgcolor:
+                draftFilters.channel.length > 0 ? "rgba(148, 12, 12, 0.06)" : "rgba(0, 0, 0, 0.04)",
+              border:
+                draftFilters.channel.length > 0
+                  ? "1px dashed rgba(148, 12, 12, 0.3)"
+                  : "1px dashed rgba(0, 0, 0, 0.1)",
               transition: "all 0.2s ease",
             }}
           >
             <Typography
               variant="caption"
-              sx={{ 
+              sx={{
                 color: draftFilters.channel.length > 0 ? "#940c0c" : "text.secondary",
                 fontWeight: 600,
                 fontSize: { xs: "0.75rem", sm: "0.8rem" },
@@ -383,7 +389,7 @@ const ChannelFilterSection = ({
                 gap: 0.5,
               }}
             >
-              {draftFilters.channel.length > 0 ? "📡" : "ℹ️"} 
+              {draftFilters.channel.length > 0 ? "📡" : "ℹ️"}
               {draftFilters.channel.length > 0
                 ? `เลือกช่องทางแล้ว: ${draftFilters.channel.length} ช่องทาง`
                 : "ยังไม่ได้เลือกช่องทางการติดต่อ"}
@@ -395,4 +401,4 @@ const ChannelFilterSection = ({
   );
 };
 
-export default ChannelFilterSection; 
+export default ChannelFilterSection;

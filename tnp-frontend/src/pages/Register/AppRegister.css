@@ -1,66 +1,66 @@
 .card.card-login {
-    margin-top: 5rem;
-    border-radius: 1rem !important;
-    background-color: #ffffff;
-    color: #000000;
-  }
-  
-  .card-login .card-title > h1 {
-    letter-spacing: 0.1rem;
-    font-weight: 600;
-    color: #b34747;
-  }
-  
-  .card-login .card-body input.form-control {
-    font-size: 1.375rem;
-    font-weight: 600;
-    color: #676767;
-    padding-block: 1%;
-    padding-left: 4%;
-    letter-spacing: 0.1rem;
-  }
-  
-  .card-login .card-body input::placeholder {
-    color: #b8b8b8;
-    letter-spacing: 0.1rem;
-  }
-  
-  .card-login .card-body input:focus {
-    letter-spacing: 0.1rem;
-    color: #676767;
-    border-color: #c65050;
-    box-shadow: 0 0 0 0.25rem rgba(250, 68, 68, 0.25) !important;
-  }
-  
-  .card-login .card-body input[type="checkbox"]:focus {
-    box-shadow: none;
-  }
-  
-  .card-login .form-label {
-    color: #1b1b1b;
-    font-size: 1.375rem;
-    letter-spacing: 0.15rem;
-    font-weight: 600;
-    margin-bottom: 0;
-  }
-  
-  .card-login .card-footer {
-      border-bottom-right-radius: 1rem !important;
-      border-bottom-left-radius: 1rem !important;
-  }
-  
-  .card-login .show-pass {
-    font-size: 1.25rem;
-  }
-  
-  .card-login .card-footer .btn-danger {
-      width: 100%;
-      font-size: 1rem;
-      letter-spacing: 0.1rem;
-      background-color: #c65050;
-      color: #ffffff;
-    }
+  margin-top: 5rem;
+  border-radius: 1rem !important;
+  background-color: #ffffff;
+  color: #000000;
+}
 
-    .card-login .error {
-      letter-spacing: 0.05rem;
-    }
+.card-login .card-title > h1 {
+  letter-spacing: 0.1rem;
+  font-weight: 600;
+  color: #b34747;
+}
+
+.card-login .card-body input.form-control {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #676767;
+  padding-block: 1%;
+  padding-left: 4%;
+  letter-spacing: 0.1rem;
+}
+
+.card-login .card-body input::placeholder {
+  color: #b8b8b8;
+  letter-spacing: 0.1rem;
+}
+
+.card-login .card-body input:focus {
+  letter-spacing: 0.1rem;
+  color: #676767;
+  border-color: #c65050;
+  box-shadow: 0 0 0 0.25rem rgba(250, 68, 68, 0.25) !important;
+}
+
+.card-login .card-body input[type="checkbox"]:focus {
+  box-shadow: none;
+}
+
+.card-login .form-label {
+  color: #1b1b1b;
+  font-size: 1.375rem;
+  letter-spacing: 0.15rem;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.card-login .card-footer {
+  border-bottom-right-radius: 1rem !important;
+  border-bottom-left-radius: 1rem !important;
+}
+
+.card-login .show-pass {
+  font-size: 1.25rem;
+}
+
+.card-login .card-footer .btn-danger {
+  width: 100%;
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+  background-color: #c65050;
+  color: #ffffff;
+}
+
+.card-login .error {
+  letter-spacing: 0.05rem;
+}

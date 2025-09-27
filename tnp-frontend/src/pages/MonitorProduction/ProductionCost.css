@@ -11,7 +11,7 @@ input[type="number"] {
 .production-cost button {
   font-family: "PSL Kittithada";
   font-size: 1.25rem !important;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   color: black;
   margin-bottom: 0.5rem;
   line-height: 1rem;
@@ -19,7 +19,7 @@ input[type="number"] {
 }
 
 .production-cost button:hover {
-  background-color: #E0E0E0;
+  background-color: #e0e0e0;
 }
 
 .production-cost form {

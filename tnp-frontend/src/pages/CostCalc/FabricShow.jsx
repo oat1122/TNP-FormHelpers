@@ -14,30 +14,36 @@ function FabricShow({ fabric, index }) {
   const { data: fabricClass } = useGetFabricClassQuery();
   const [delFabric] = useDeleteFabricByIdMutation();
   const user = useSelector((state) => state.fabricCost.user);
-  const [dontEdit, setDontEdit] = useState(null);   // State edit value with permission
+  const [dontEdit, setDontEdit] = useState(null); // State edit value with permission
   const [showInput, setShowInput] = useState(null);
   const [showInput1k, setShowInput1k] = useState(null);
   const [displayNone, setDisplayNone] = useState("");
-  
-  const calculatedFabricCost = (((Number(fabric.fabric_kg) + Number(fabric.collar_kg)) * fabric.fabric_price_per_kg) / fabric.shirt_per_total);  // Calculate fabric cost
-  const fabricCost = isFinite(calculatedFabricCost) ? calculatedFabricCost.toFixed() : 0;   // Result fabric cost
-  const calcShirtCost = Number(fabricCost) + Number(fabric.sewing_price) + Number(fabric.cutting_price)
-                        + Number(fabric.collar_price) + Number(fabric.button_price);   // Calculate shirt cost
-  const shirtCost = isNaN(calcShirtCost) ? 0 : calcShirtCost.toFixed();   // Result shirt cost
+
+  const calculatedFabricCost =
+    ((Number(fabric.fabric_kg) + Number(fabric.collar_kg)) * fabric.fabric_price_per_kg) /
+    fabric.shirt_per_total; // Calculate fabric cost
+  const fabricCost = isFinite(calculatedFabricCost) ? calculatedFabricCost.toFixed() : 0; // Result fabric cost
+  const calcShirtCost =
+    Number(fabricCost) +
+    Number(fabric.sewing_price) +
+    Number(fabric.cutting_price) +
+    Number(fabric.collar_price) +
+    Number(fabric.button_price); // Calculate shirt cost
+  const shirtCost = isNaN(calcShirtCost) ? 0 : calcShirtCost.toFixed(); // Result shirt cost
 
   // Result shirt price
   const shirtPrice = isNaN(fabric.shirt_price_percent)
-  ? shirtCost
-  : fabric.shirt_price_percent === "100"
-  ? (shirtCost * 100) / 1
-  : Math.round((shirtCost * 100) / (100 - fabric.shirt_price_percent));
+    ? shirtCost
+    : fabric.shirt_price_percent === "100"
+      ? (shirtCost * 100) / 1
+      : Math.round((shirtCost * 100) / (100 - fabric.shirt_price_percent));
 
   // Result shirt price minimun 1k of shirt
   const shirtPrice1k = isNaN(fabric.shirt_1k_price_percent)
-  ? shirtCost
-  : fabric.shirt_1k_price_percent === "100"
-  ? (shirtCost * 100) / 1
-  : Math.round((shirtCost * 100) / (100 - fabric.shirt_1k_price_percent));
+    ? shirtCost
+    : fabric.shirt_1k_price_percent === "100"
+      ? (shirtCost * 100) / 1
+      : Math.round((shirtCost * 100) / (100 - fabric.shirt_1k_price_percent));
 
   // Show percent input when click button
   const handleShowPercentInput = () => setShowInput(!showInput);
@@ -48,15 +54,10 @@ function FabricShow({ fabric, index }) {
     dispatch(updateFabric({ index, name, value }));
   };
 
-
   const handleRemove = () => {
-
     if (!fabric.cost_fabric_id) {
-      
       dispatch(removeFabric(index));
-
     } else {
-
       Swal.fire({
         title: "Do you want to delete this fabric?",
         showCancelButton: true,
@@ -119,13 +120,9 @@ function FabricShow({ fabric, index }) {
   // Render quantity shirt price column for sale user
   const renderedShirtPriceColumns = () => {
     const columns = [];
-    
-    columns.push(
-        <td title="qty-shirt">
-          {renderedShirtPrice1k(0)}
-        </td>
-    );
-    
+
+    columns.push(<td title="qty-shirt">{renderedShirtPrice1k(0)}</td>);
+
     for (let i = 0, x = 0; i < 4; i++, x += 5) {
       columns.push(
         <td title="qty-shirt" key={i}>
@@ -136,7 +133,6 @@ function FabricShow({ fabric, index }) {
 
     return columns;
   };
-
 
   // Render shirt price percent input field
   const renderedShirtPricePercent = (
@@ -173,7 +169,6 @@ function FabricShow({ fabric, index }) {
     </>
   );
 
-
   useEffect(() => {
     if (user.role !== "manager" && user.role !== "admin") {
       setDontEdit(!dontEdit);
@@ -195,9 +190,7 @@ function FabricShow({ fabric, index }) {
             value={fabric.fabric_class}
             title={fabric.fabric_class}
             className={`py-0 ${
-              (user.role !== "manager" ||
-              user.role !== "admin") ?
-              "select-disabled" : null
+              user.role !== "manager" || user.role !== "admin" ? "select-disabled" : null
             }`}
             disabled={dontEdit}
           >
@@ -242,12 +235,7 @@ function FabricShow({ fabric, index }) {
         {user.role === "admin" || user.role === "manager" ? (
           <>
             <td title="cost">
-              <Form.Control
-                readOnly
-                type="text"
-                value={shirtCost}
-                name="shirt_cost"
-              />
+              <Form.Control readOnly type="text" value={shirtCost} name="shirt_cost" />
             </td>
             <td title="price">
               <InputGroup>
@@ -275,30 +263,27 @@ function FabricShow({ fabric, index }) {
             </td>
             <td>
               <ButtonGroup>
-
-              {/* Hide component when fabric name and supplier input field in null */}
-              {(fabric.fabric_name && fabric.supplier) !== '' && (
-                <>
-                  <FabricEdit fabric={fabric} handleInputChange={handleInputChange} />
-                  <ModalProfit fabric={fabric} shirtCost={shirtCost}/>
-                </>
-              )}
+                {/* Hide component when fabric name and supplier input field in null */}
+                {(fabric.fabric_name && fabric.supplier) !== "" && (
+                  <>
+                    <FabricEdit fabric={fabric} handleInputChange={handleInputChange} />
+                    <ModalProfit fabric={fabric} shirtCost={shirtCost} />
+                  </>
+                )}
 
                 <Button
                   variant="dark"
                   onClick={handleRemove}
                   className="rounded-3 p-1 btn-action"
                   title="Delete fabric"
-                  >
+                >
                   <IoTrashOutline size={22} />
                 </Button>
               </ButtonGroup>
             </td>
           </>
         ) : (
-          <>
-            {renderedShirtPriceColumns()}
-          </>
+          <>{renderedShirtPriceColumns()}</>
         )}
       </tr>
     </>

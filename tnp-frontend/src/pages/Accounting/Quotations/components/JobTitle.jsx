@@ -1,24 +1,20 @@
-import React from 'react';
-import { Box, Typography, Tooltip } from '@mui/material';
+import React from "react";
+import { Box, Typography, Tooltip } from "@mui/material";
 
 function JobTitle({ text }) {
-  const items = (text || '')
-    .split(',')
+  const items = (text || "")
+    .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const main = items[0] || '-';
+  const main = items[0] || "-";
   const extra = items.length > 1 ? items.length - 1 : 0;
-  const full = items.join(', ');
+  const full = items.join(", ");
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
       <Tooltip title={full}>
-        <Typography
-          variant="body1"
-          noWrap
-          sx={{ fontWeight: 600, flex: '1 1 auto', minWidth: 0 }}
-        >
+        <Typography variant="body1" noWrap sx={{ fontWeight: 600, flex: "1 1 auto", minWidth: 0 }}>
           {main}
         </Typography>
       </Tooltip>
@@ -29,12 +25,12 @@ function JobTitle({ text }) {
             component="span"
             sx={{
               fontSize: 12,
-              color: 'text.secondary',
-              bgcolor: 'action.selected',
+              color: "text.secondary",
+              bgcolor: "action.selected",
               borderRadius: 2,
               px: 1,
               py: 0.25,
-              flex: '0 0 auto',
+              flex: "0 0 auto",
               lineHeight: 1.6,
             }}
           >

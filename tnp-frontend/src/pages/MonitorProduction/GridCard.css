@@ -1,71 +1,73 @@
 /* Layout */
 .grid-card.container {
-    max-width: 1600px;
+  max-width: 1600px;
 }
 
 /* Smooth animations for cards */
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Smooth transition for filter changes */
 .grid-card .row {
-    transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .card {
-    border-radius: 1.3rem !important;
-    border-width: 0.18rem !important;
-    border-color: #d6d3d1 !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 1.3rem !important;
+  border-width: 0.18rem !important;
+  border-color: #d6d3d1 !important;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-title {
-    font-weight: 600 !important;
-    letter-spacing: 0.1rem;
+  font-weight: 600 !important;
+  letter-spacing: 0.1rem;
 }
 
 .card-title label.text-due-date {
-    color: #C55050
+  color: #c55050;
 }
 
 .card-img-overlay > .card-text {
-    background-color: #ECEBE9;
-    color: #868684;
-    width: fit-content;
-    height: fit-content;
-    letter-spacing: 0.05rem;
-    border-radius: 1.5rem;
+  background-color: #ecebe9;
+  color: #868684;
+  width: fit-content;
+  height: fit-content;
+  letter-spacing: 0.05rem;
+  border-radius: 1.5rem;
 }
 
 .list-group label {
-    font-size: 1.125rem;
+  font-size: 1.125rem;
 }
 
 .label-sm {
-    font-size: 0.875rem !important;
+  font-size: 0.875rem !important;
 }
 
 Button.card-text {
-    font-family: 'PSL Kittithada';
-    color: black;
-    height: 1.5rem;
+  font-family: "PSL Kittithada";
+  color: black;
+  height: 1.5rem;
 }
 
 Button.card-text:hover {
-    background-color: rgb(238 234 235 / 0.8);
+  background-color: rgb(238 234 235 / 0.8);
 }
 
 /* .btn-edit {
@@ -90,150 +92,156 @@ Button.card-text:hover {
 } */
 
 Button.card-link {
-    background-color: #413f40;
-    color: white;
-    border-top-right-radius: 1.5rem;
-    border-bottom-right-radius: 1.5rem;
-    position: absolute;
-    height: 1.4rem;
-    width: 20%;
-    right: 1rem;
-    display: block;
-    margin-top: 0.05rem;
+  background-color: #413f40;
+  color: white;
+  border-top-right-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+  position: absolute;
+  height: 1.4rem;
+  width: 20%;
+  right: 1rem;
+  display: block;
+  margin-top: 0.05rem;
 }
 
 Button.card-link:hover {
-    background-color: rgb(65 63 64 / 0.9);
-    color: white;
+  background-color: rgb(65 63 64 / 0.9);
+  color: white;
 }
 
 Button.card-link:active {
-    background-color: rgb(65 63 64 / 0.5) !important;
-    color: white !important;
+  background-color: rgb(65 63 64 / 0.5) !important;
+  color: white !important;
 }
 
-Button.card-link>svg {
-    position: absolute;
-    right: 0.4rem;
-    top: 0.15rem;
-    width: 1.1rem;
-    height: 1.1rem;
+Button.card-link > svg {
+  position: absolute;
+  right: 0.4rem;
+  top: 0.15rem;
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .modal-log .modal-title h2 {
-    font-weight: 600;
-    letter-spacing: 0.25rem;
+  font-weight: 600;
+  letter-spacing: 0.25rem;
 }
 
 .row-log {
-    background-color: #efedee;
-    border-radius: 1rem;
-    margin-inline: 0.1rem;
-    padding-block: 0.3rem;
+  background-color: #efedee;
+  border-radius: 1rem;
+  margin-inline: 0.1rem;
+  padding-block: 0.3rem;
 }
 
 .row-log label {
-    font-size: 1.375rem;
-    letter-spacing: 0.02rem;
-    line-height: 1.375rem;
+  font-size: 1.375rem;
+  letter-spacing: 0.02rem;
+  line-height: 1.375rem;
 }
 
 .btn-choose-embroid-block {
-    font-family: "PSL Kittithada" !important;
-    letter-spacing: 0.05rem !important;
-    line-height: 1rem !important;
-    color: #8a8a8a !important;
-    background-color: #faf8f9 !important;
-    border: 0.1rem solid #e8e4e5 !important;
-    border-radius: 0.5rem !important;
+  font-family: "PSL Kittithada" !important;
+  letter-spacing: 0.05rem !important;
+  line-height: 1rem !important;
+  color: #8a8a8a !important;
+  background-color: #faf8f9 !important;
+  border: 0.1rem solid #e8e4e5 !important;
+  border-radius: 0.5rem !important;
 }
 
 .btn-choose-embroid-block:hover {
-    background-color: #f2dddc58 !important;
-    border-color: #e5adae55 !important;
+  background-color: #f2dddc58 !important;
+  border-color: #e5adae55 !important;
 }
 
-.btn-check:checked+.btn-choose-embroid-block {
-    background-color: #f2dddc !important;
-    border-color: #e5adae !important;
+.btn-check:checked + .btn-choose-embroid-block {
+  background-color: #f2dddc !important;
+  border-color: #e5adae !important;
 }
 
-.btn-choose-embroid-block>h1 {
-    font-size: 3rem;
-    color: #585858 !important;
-    line-height: 3.5rem;
+.btn-choose-embroid-block > h1 {
+  font-size: 3rem;
+  color: #585858 !important;
+  line-height: 3.5rem;
 }
 
-.btn-choose-embroid-block>label {
-    cursor: pointer;
+.btn-choose-embroid-block > label {
+  cursor: pointer;
 }
 
 .btn-log {
-    color: #c35151 !important;
+  color: #c35151 !important;
 }
 
-.btn-log>svg {
-    width: 1.5rem;
-    height: 1.5rem;
+.btn-log > svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .btn-log:active {
-    background-color: rgb(195 81 81 / 0.1) !important;
+  background-color: rgb(195 81 81 / 0.1) !important;
 }
 
 .modal-embroid .modal-dialog {
-    margin-top: 5%;
+  margin-top: 5%;
 }
 
 label.btn-outline-secondary {
-    background-color: #faf8f9 !important;
-    border: 0.1rem solid #e8e4e5 !important;
-    border-radius: 0.5rem !important;
-    color: #8a8a8a !important;
-    font-size: 1.5rem;
-    line-height: 1.125rem;
+  background-color: #faf8f9 !important;
+  border: 0.1rem solid #e8e4e5 !important;
+  border-radius: 0.5rem !important;
+  color: #8a8a8a !important;
+  font-size: 1.5rem;
+  line-height: 1.125rem;
 }
 
 label.btn-outline-secondary h1 {
-    color: #000000;
-    font-weight: 600;
-    font-size: 3rem;
-    margin-bottom: 0;
+  color: #000000;
+  font-weight: 600;
+  font-size: 3rem;
+  margin-bottom: 0;
 }
 
-.btn-check:checked+.btn-outline-secondary {
-    background-color: #f2dddc !important;
-    border-color: #e5adae !important;
+.btn-check:checked + .btn-outline-secondary {
+  background-color: #f2dddc !important;
+  border-color: #e5adae !important;
 }
 
 .card-show .btn-note-general {
-    font-family: "PSL Kittithada";
-    font-size: 1.25rem !important;
-    background-color: #F0F0F0;
-    color: black;
-    margin-bottom: 0.5rem;
-    line-height: 1rem;
-    width: 100%;
-    border: none
+  font-family: "PSL Kittithada";
+  font-size: 1.25rem !important;
+  background-color: #f0f0f0;
+  color: black;
+  margin-bottom: 0.5rem;
+  line-height: 1rem;
+  width: 100%;
+  border: none;
 }
 
 .card-show .btn-note-general:hover {
-    background-color: #E0E0E0;
-    color: #000000;
+  background-color: #e0e0e0;
+  color: #000000;
 }
 
 .card-show .btn-note-general:active {
-    background-color: #E0E0E0 !important;
-    color: #000000;
+  background-color: #e0e0e0 !important;
+  color: #000000;
 }
 
 /* Text */
 @keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0; }
-    100% { opacity: 1; }
+  0% {
+    opacity: 1;
   }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
 
 .blinking {
-    animation: blink 2s infinite;
+  animation: blink 2s infinite;
 }

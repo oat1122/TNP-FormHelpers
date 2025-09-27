@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Grid2 as Grid,
-  Stack,
-  Typography,
-  Box,
-  InputAdornment,
-  IconButton,
-} from "@mui/material";
+import { Grid2 as Grid, Stack, Typography, Box, InputAdornment, IconButton } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { MdDateRange, MdClear } from "react-icons/md";
@@ -26,17 +19,9 @@ import { dateRangeOptions, filterValidation } from "../constants/filterConstants
  * Date Filter Section Component
  * Handles date range selection with Buddhist calendar support
  */
-const DateFilterSection = ({
-  draftFilters,
-  dateHelpers,
-}) => {
-  const {
-    handleQuickDateRange,
-    clearStartDate,
-    clearEndDate,
-    setStartDate,
-    setEndDate,
-  } = dateHelpers;
+const DateFilterSection = ({ draftFilters, dateHelpers }) => {
+  const { handleQuickDateRange, clearStartDate, clearEndDate, setStartDate, setEndDate } =
+    dateHelpers;
 
   // Date picker common props for consistent styling
   const datePickerCommonProps = {
@@ -57,11 +42,10 @@ const DateFilterSection = ({
               borderColor: "rgba(148, 12, 12, 0.5)",
             },
           },
-          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-            {
-              borderColor: "#940c0c",
-              borderWidth: "1.5px",
-            },
+          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#940c0c",
+            borderWidth: "1.5px",
+          },
         },
         InputProps: {
           sx: {
@@ -118,9 +102,7 @@ const DateFilterSection = ({
               <MdDateRange style={{ fontSize: 20, color: "white" }} />
             </FilterIconBox>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <FilterTitle variant="subtitle1">
-                วันที่สร้างลูกค้า
-              </FilterTitle>
+              <FilterTitle variant="subtitle1">วันที่สร้างลูกค้า</FilterTitle>
               <FilterDescription variant="caption">
                 เลือกช่วงวันที่สร้างลูกค้าที่ต้องการ
               </FilterDescription>
@@ -130,9 +112,9 @@ const DateFilterSection = ({
           {/* Date Picker Fields with responsive layout */}
           <FilterContentBox>
             <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
-              <Box 
-                sx={{ 
-                  display: "flex", 
+              <Box
+                sx={{
+                  display: "flex",
                   flexDirection: { xs: "column", md: "row" },
                   gap: { xs: 2, md: 2 },
                 }}
@@ -252,9 +234,9 @@ const DateFilterSection = ({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { 
-                xs: "repeat(2, 1fr)", 
-                sm: "repeat(3, 1fr)" 
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
               },
               gap: { xs: 1, sm: 1.5 },
               "& button": {
@@ -320,4 +302,4 @@ const DateFilterSection = ({
   );
 };
 
-export default DateFilterSection; 
+export default DateFilterSection;

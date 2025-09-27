@@ -33,7 +33,7 @@ const theme = createTheme({
       fontFamily: "'KanitLight', sans-serif",
       fontSize: 20,
     },
-    
+
     body1: {
       fontFamily: "'KanitLight', sans-serif",
     },
@@ -125,8 +125,7 @@ const theme = createTheme({
                     borderColor: (theme.vars || theme).palette.error.main,
                   },
                   "& input": {
-                    WebkitTextFillColor: (theme.vars || theme).palette.text
-                      .secondary,
+                    WebkitTextFillColor: (theme.vars || theme).palette.text.secondary,
                     fontFamily: "'Kanit', sans-serif",
                   },
                 },
@@ -191,9 +190,7 @@ const theme = createTheme({
               props: { variant: "contained", color: "error-light" },
               style: {
                 backgroundColor: theme.vars.palette.error.light,
-                border: `1px solid ${
-                  (theme.vars || theme).palette.error.light
-                }`,
+                border: `1px solid ${(theme.vars || theme).palette.error.light}`,
                 color: "#fff",
                 boxShadow: "none",
                 borderRadius: theme.vars.shape.borderRadius,
@@ -277,11 +274,11 @@ const theme = createTheme({
                     border: `1px solid ${theme.vars.palette.error.light}`,
                     marginRight: 24,
                   },
-                  
+
                   "&.Mui-selected": {
                     border: `1px solid ${theme.vars.palette.error.dark}`,
                     backgroundColor: theme.vars.palette.error.dark,
-                  }
+                  },
                 },
               },
             },
@@ -316,10 +313,10 @@ const theme = createTheme({
     MuiSelect: {
       styleOverrides: {
         root: ({ theme }) => ({
-           "& .Mui-disabled": {
-              backgroundColor: (theme.vars || theme).palette.grey[100],
-              borderRadius: theme.shape.borderRadius,
-            },
+          "& .Mui-disabled": {
+            backgroundColor: (theme.vars || theme).palette.grey[100],
+            borderRadius: theme.shape.borderRadius,
+          },
         }),
       },
     },

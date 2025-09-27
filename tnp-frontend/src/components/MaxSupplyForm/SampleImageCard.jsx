@@ -1,13 +1,6 @@
-import React from 'react';
-import {
-  Card,
-  CardContent,
-  CardMedia,
-  Typography,
-} from '@mui/material';
-import {
-  Image,
-} from '@mui/icons-material';
+import React from "react";
+import { Card, CardContent, CardMedia, Typography } from "@mui/material";
+import { Image } from "@mui/icons-material";
 
 const SampleImageCard = ({ sampleImage }) => {
   if (!sampleImage) return null;
@@ -16,7 +9,7 @@ const SampleImageCard = ({ sampleImage }) => {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          <Image sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <Image sx={{ mr: 1, verticalAlign: "middle" }} />
           รูปตัวอย่างเสื้อ
         </Typography>
         <CardMedia
@@ -24,11 +17,11 @@ const SampleImageCard = ({ sampleImage }) => {
           height="200"
           image={sampleImage}
           alt="Sample shirt"
-          sx={{ objectFit: 'contain', borderRadius: 1 }}
+          sx={{ objectFit: "contain", borderRadius: 1 }}
         />
       </CardContent>
     </Card>
   );
 };
 
-export default SampleImageCard; 
+export default SampleImageCard;

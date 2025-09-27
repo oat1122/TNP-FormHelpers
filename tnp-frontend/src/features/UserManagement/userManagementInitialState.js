@@ -24,4 +24,4 @@ export default {
   },
   mode: "",
   totalCount: 0,
-};  
+};

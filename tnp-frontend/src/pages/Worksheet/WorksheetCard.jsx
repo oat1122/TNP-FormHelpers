@@ -55,7 +55,7 @@ function WorksheetCard({ data, index, isSuccess }) {
       Swal.close();
     } catch (err) {
       console.error("Error downloading the PDF:", err);
-      open_dialog_error(err)
+      open_dialog_error(err);
       // Swal.close();
     }
   };
@@ -71,22 +71,12 @@ function WorksheetCard({ data, index, isSuccess }) {
       >
         {data.work_id}
       </Typography>
-      <Typography
-        variant="h5"
-        textAlign="center"
-        letterSpacing={1}
-        lineHeight={1}
-      >
+      <Typography variant="h5" textAlign="center" letterSpacing={1} lineHeight={1}>
         <label data-testid="work_name-card-header">{data.work_name}</label>
         <label className="px-2">|</label>
         <label data-testid="sales_name-card-header">{data.sales_name}</label>
       </Typography>
-      <Typography
-        variant="body1"
-        textAlign="center"
-        letterSpacing={1}
-        lineHeight={1}
-      >
+      <Typography variant="body1" textAlign="center" letterSpacing={1} lineHeight={1}>
         {data.cus_name}
       </Typography>
     </>
@@ -97,7 +87,7 @@ function WorksheetCard({ data, index, isSuccess }) {
       <Card className="worksheet-card" style={{ padding: 0 }}>
         <CardHeader style={{ paddingBottom: 5 }} title={cardHeader} />
         <CardContent style={{ paddingBlock: 0, paddingInline: 5 }}>
-          <ImagesBox data={data} user={user}/>
+          <ImagesBox data={data} user={user} />
           <Grid container paddingX={2}>
             <Grid size={6}>
               <Typography variant="h6">Due Date</Typography>
@@ -116,10 +106,10 @@ function WorksheetCard({ data, index, isSuccess }) {
           </Grid>
           <Grid container paddingX={2}>
             <Grid size={12}>
-              <Grid 
-                container 
-                sx={(theme) => ({ 
-                  borderBottom: 2, 
+              <Grid
+                container
+                sx={(theme) => ({
+                  borderBottom: 2,
                   paddingBottom: 0.5,
                   borderColor: theme.vars.palette.grey[300],
                   pb: 0.5,
@@ -139,8 +129,8 @@ function WorksheetCard({ data, index, isSuccess }) {
               <Grid
                 container
                 justifyContent="space-between"
-                sx={(theme) => ({ 
-                  borderBottom: 2, 
+                sx={(theme) => ({
+                  borderBottom: 2,
                   paddingBottom: 0.5,
                   borderColor: theme.vars.palette.grey[300],
                   py: 1,
@@ -150,10 +140,7 @@ function WorksheetCard({ data, index, isSuccess }) {
                   <Typography variant="h6">Status</Typography>
                 </Grid>
                 <Grid size="grow" justifyItems="end">
-                  <Typography
-                    color={handleLabelStatus(data.status.title)}
-                    variant="h6"
-                  >
+                  <Typography color={handleLabelStatus(data.status.title)} variant="h6">
                     {data.status.title}
                   </Typography>
                 </Grid>
@@ -166,8 +153,8 @@ function WorksheetCard({ data, index, isSuccess }) {
                 container
                 justifyContent="space-between"
                 alignItems="center"
-                sx={(theme) => ({ 
-                  borderBottom: 2, 
+                sx={(theme) => ({
+                  borderBottom: 2,
                   borderColor: theme.vars.palette.grey[300],
                   py: 0.2,
                 })}
@@ -176,10 +163,7 @@ function WorksheetCard({ data, index, isSuccess }) {
                   <Typography variant="h6">Order</Typography>
                 </Grid>
                 <Grid size={6} textAlign="end">
-                  <IconButton
-                    aria-label="order-sheet"
-                    onClick={() => handleGenPdf("order_sheet")}
-                  >
+                  <IconButton aria-label="order-sheet" onClick={() => handleGenPdf("order_sheet")}>
                     <MdOutlineDescription />
                   </IconButton>
                 </Grid>
@@ -187,7 +171,7 @@ function WorksheetCard({ data, index, isSuccess }) {
             </Grid>
           </Grid>
           {/* Render action button */}
-          <ActionButton data={data} isSuccess={isSuccess} handleGenPdf={handleGenPdf}  />
+          <ActionButton data={data} isSuccess={isSuccess} handleGenPdf={handleGenPdf} />
         </CardContent>
       </Card>
     </>

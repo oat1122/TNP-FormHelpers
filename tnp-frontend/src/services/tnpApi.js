@@ -33,9 +33,9 @@ export const tnpApi = createApi({
     deleteFabricById: builder.mutation({
       query: (fabricId) => ({
         url: `costFabric/${fabricId}`,
-        method: 'DELETE'
-      })
-    })
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -47,5 +47,5 @@ export const {
   useGetFabricClassQuery,
   useEditFabricByIdMutation,
   useDeleteFabricByIdMutation,
-  useUpdateCostFabricOnceMutation
+  useUpdateCostFabricOnceMutation,
 } = tnpApi;

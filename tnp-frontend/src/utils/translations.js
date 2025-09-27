@@ -252,12 +252,12 @@ export const translations = {
     workCalculationFromWorksheet: "WorkSheet မှ အလုပ်တွက်ချက်မှု:",
     screenPrintingWork: "Screen Printing အလုပ်ရှိသည်",
     dtfWork: "DTF အလုပ်ရှိသည်",
-    sublimationWork: "Sublimation အလုပ်ရှိသည်", 
+    sublimationWork: "Sublimation အလုပ်ရှိသည်",
     embroideryWork: "Embroidery အလုပ်ရှိသည်",
     pointsLabel: "အမှတ်",
     totalShirts: "အင်္ကျီအားလုံး",
     calculationFormula: "({points}×{total}={result})",
-  }
+  },
 };
 
 export const getTranslation = (key, language = "th") => {

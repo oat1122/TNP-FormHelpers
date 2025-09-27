@@ -1,27 +1,25 @@
-import React from 'react';
-import {
-  Grid,
-} from '@mui/material';
+import React from "react";
+import { Grid } from "@mui/material";
 import {
   WorksheetSelector,
   BasicInfoForm,
   SampleImageCard,
   NewWorksInfoCard,
   DateSelector,
-} from './';
+} from "./";
 
-const StepBasicInfo = ({ 
-  formData, 
-  errors, 
-  worksheetOptions, 
-  worksheetLoading, 
+const StepBasicInfo = ({
+  formData,
+  errors,
+  worksheetOptions,
+  worksheetLoading,
   selectedWorksheet,
-  onInputChange, 
-  onWorksheetSelect, 
+  onInputChange,
+  onWorksheetSelect,
   onRefreshWorksheets,
   priorityLevels,
-  language = 'th',
-  t = (key) => key
+  language = "th",
+  t = (key) => key,
 }) => {
   return (
     <Grid container spacing={3}>
@@ -75,4 +73,4 @@ const StepBasicInfo = ({
   );
 };
 
-export default StepBasicInfo; 
+export default StepBasicInfo;

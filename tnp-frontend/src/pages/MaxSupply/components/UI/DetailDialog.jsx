@@ -33,11 +33,7 @@ import {
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import * as dateFnsLocales from "date-fns/locale";
-import {
-  productionTypeConfig,
-  statusConfig,
-  priorityConfig,
-} from "../../utils/constants";
+import { productionTypeConfig, statusConfig, priorityConfig } from "../../utils/constants";
 
 const DetailDialog = ({
   open,
@@ -58,12 +54,8 @@ const DetailDialog = ({
 
   if (!selectedItem) return null;
 
-  const deadlineStatus = getDeadlineStatus(
-    selectedItem.expected_completion_date
-  );
-  const daysUntilDeadline = getDaysUntilDeadline(
-    selectedItem.expected_completion_date
-  );
+  const deadlineStatus = getDeadlineStatus(selectedItem.expected_completion_date);
+  const daysUntilDeadline = getDaysUntilDeadline(selectedItem.expected_completion_date);
   const progressPercentage = selectedItem.progress_percentage || 0;
 
   return (
@@ -94,8 +86,9 @@ const DetailDialog = ({
                 fontWeight: "bold",
               }}
             >
-              {productionTypeConfig[selectedItem.production_type]?.label?.charAt(0) || 
-               selectedItem.production_type?.charAt(0) || "?"}
+              {productionTypeConfig[selectedItem.production_type]?.label?.charAt(0) ||
+                selectedItem.production_type?.charAt(0) ||
+                "?"}
             </Avatar>
             <Box>
               <Typography variant="h6" fontWeight="bold">
@@ -139,9 +132,7 @@ const DetailDialog = ({
                   <Typography variant="body2" color="text.secondary">
                     ชื่องาน
                   </Typography>
-                  <Typography variant="body1">
-                    {selectedItem.title}
-                  </Typography>
+                  <Typography variant="body1">{selectedItem.title}</Typography>
                 </Box>
                 <Divider />
                 <Box>
@@ -161,9 +152,7 @@ const DetailDialog = ({
                   <Typography variant="body2" color="text.secondary">
                     จำนวนทั้งหมด
                   </Typography>
-                  <Typography variant="body1">
-                    {selectedItem.total_quantity || 0} ชิ้น
-                  </Typography>
+                  <Typography variant="body1">{selectedItem.total_quantity || 0} ชิ้น</Typography>
                 </Box>
               </Stack>
             </Paper>
@@ -196,11 +185,9 @@ const DetailDialog = ({
                       }}
                     />
                     {selectedItem.start_date
-                      ? format(
-                          new Date(selectedItem.start_date),
-                          "dd/MM/yyyy",
-                          { locale: dateFnsLocales.th }
-                        )
+                      ? format(new Date(selectedItem.start_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
                       : "ไม่ระบุ"}
                   </Typography>
                 </Box>
@@ -219,17 +206,15 @@ const DetailDialog = ({
                         deadlineStatus === "overdue"
                           ? "error.main"
                           : deadlineStatus === "urgent"
-                          ? "warning.main"
-                          : "text.primary",
+                            ? "warning.main"
+                            : "text.primary",
                     }}
                   >
                     <ScheduleIcon style={{ fontSize: "0.8rem" }} />
                     {selectedItem.expected_completion_date
-                      ? format(
-                          new Date(selectedItem.expected_completion_date),
-                          "dd/MM/yyyy",
-                          { locale: dateFnsLocales.th }
-                        )
+                      ? format(new Date(selectedItem.expected_completion_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
                       : "ไม่ระบุ"}
                   </Typography>
                   {deadlineStatus === "urgent" && (

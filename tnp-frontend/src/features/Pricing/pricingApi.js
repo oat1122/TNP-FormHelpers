@@ -18,12 +18,12 @@ export const pricingApi = createApi({
         };
 
         const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString ? `/pricing?${queryString}` : '/pricing';
+        const url = queryString ? `/pricing?${queryString}` : "/pricing";
 
         return {
           url: url,
-          method: "GET"
-        }
+          method: "GET",
+        };
       },
       providesTags: ["Pricing"],
     }),

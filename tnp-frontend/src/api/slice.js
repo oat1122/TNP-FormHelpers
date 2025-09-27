@@ -1,12 +1,12 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { apiConfig } from "./apiConfig"
+import { apiConfig } from "./apiConfig";
 
 // Define a service using a base URL and expected endpoints
 export const apiSlice = createApi({
   reducerPath: "apiSlice",
   baseQuery: fetchBaseQuery(apiConfig),
-  tagTypes: ['Production', 'Pattern', 'Fabric'],
+  tagTypes: ["Production", "Pattern", "Fabric"],
   endpoints: (builder) => ({
     getAllSheets: builder.query({
       query: () => `getProduction`,
@@ -47,27 +47,27 @@ export const apiSlice = createApi({
       query: (payload) => ({
         url: "/note",
         method: "POST",
-        body: payload
-      })
+        body: payload,
+      }),
     }),
     delNote: builder.mutation({
       query: (note_id) => ({
         url: `/note/${note_id}`,
-        method: "DELETE"
-      })
+        method: "DELETE",
+      }),
     }),
     updateProcess: builder.mutation({
       query: (payload) => ({
         url: "/note",
         method: "POST",
-        body: payload
-      })
-    }), 
+        body: payload,
+      }),
+    }),
     resetTime: builder.mutation({
       query: (pd_id) => ({
-        url: 'resetEndTimeStartWork', // Adjust the endpoint URL as needed
-        method: 'POST',   // Adjust the HTTP method as needed
-        body: { pd_id },    // Include pdId in the request body
+        url: "resetEndTimeStartWork", // Adjust the endpoint URL as needed
+        method: "POST", // Adjust the HTTP method as needed
+        body: { pd_id }, // Include pdId in the request body
         providesTags: ["Production"],
       }),
     }),

@@ -16,17 +16,12 @@ import {
 import { FilterList, Clear } from "@mui/icons-material";
 import "./Worksheet.css";
 
-function WorksheetFilter({
-  data,
-  onFilterChange,
-  initialFilters = { salesName: "", status: "" },
-}) {
+function WorksheetFilter({ data, onFilterChange, initialFilters = { salesName: "", status: "" } }) {
   const [filters, setFilters] = useState(initialFilters);
 
   // Get user data to check role permissions
   const user = JSON.parse(localStorage.getItem("userData"));
-  const canUseFilter =
-    user && (user.role === "manager" || user.role === "admin");
+  const canUseFilter = user && (user.role === "manager" || user.role === "admin");
 
   // If user doesn't have permission, don't render the filter
   if (!canUseFilter) {
@@ -123,9 +118,7 @@ function WorksheetFilter({
                 labelId="sales-name-filter-label"
                 value={filters.salesName}
                 label="Sales Name"
-                onChange={(e) =>
-                  handleFilterChange("salesName", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("salesName", e.target.value)}
               >
                 <MenuItem value="">
                   <em>All Sales</em>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -26,7 +26,7 @@ import {
   InputAdornment,
   Alert,
   Skeleton,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Search,
   Refresh,
@@ -41,18 +41,18 @@ import {
   Close,
   ArrowForward,
   AutoAwesome,
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 // Import locale without direct reference to specific structure
 // This works with both date-fns v2.x and v4.x
-import * as dateFnsLocales from 'date-fns/locale';
-import { worksheetApi } from '../../services/maxSupplyApi';
-import { debugTokens } from '../../utils/tokenDebug';
+import * as dateFnsLocales from "date-fns/locale";
+import { worksheetApi } from "../../services/maxSupplyApi";
+import { debugTokens } from "../../utils/tokenDebug";
 
 const WorksheetList = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
   const [worksheets, setWorksheets] = useState([]);
@@ -62,18 +62,18 @@ const WorksheetList = () => {
   const [autoFillDialog, setAutoFillDialog] = useState(false);
   const [autoFillPreview, setAutoFillPreview] = useState(null);
   const [filters, setFilters] = useState({
-    search: '',
-    status: 'all',
-    customer: '',
-    date_from: '',
-    date_to: '',
+    search: "",
+    status: "all",
+    customer: "",
+    date_from: "",
+    date_to: "",
   });
 
   // Production type colors and icons
   const productionColors = {
-    screen: '#7c3aed',
-    dtf: '#0891b2',
-    sublimation: '#16a34a',
+    screen: "#7c3aed",
+    dtf: "#0891b2",
+    sublimation: "#16a34a",
   };
 
   // Load worksheets
@@ -81,28 +81,28 @@ const WorksheetList = () => {
     try {
       setLoading(true);
       console.log("WorksheetList: Fetching worksheets with filters:", filters);
-      
+
       // Debug authentication tokens
       debugTokens();
-      
+
       // Add a token manually to ensure it's included in the request
       const token = localStorage.getItem("authToken") || localStorage.getItem("token");
       if (!token) {
         console.warn("No authentication token found! Requests might fail.");
       }
-      
+
       const response = await worksheetApi.getForMaxSupply(filters);
       console.log("WorksheetList: API response:", response);
-      
-      if (response.status === 'success') {
+
+      if (response.status === "success") {
         if (Array.isArray(response.data)) {
           console.log("WorksheetList: Retrieved", response.data.length, "worksheets");
-          
+
           // Log sample data to understand structure
           if (response.data.length > 0) {
             console.log("WorksheetList: Sample worksheet data:", response.data[0]);
           }
-          
+
           setWorksheets(response.data);
         } else {
           console.error("WorksheetList: Expected array but got:", typeof response.data);
@@ -114,7 +114,7 @@ const WorksheetList = () => {
         setWorksheets([]);
       }
     } catch (error) {
-      console.error('WorksheetList: Error loading worksheets:', error);
+      console.error("WorksheetList: Error loading worksheets:", error);
       setWorksheets([]);
     } finally {
       setLoading(false);
@@ -123,7 +123,7 @@ const WorksheetList = () => {
 
   // Handle filter change
   const handleFilterChange = (name, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -153,12 +153,16 @@ const WorksheetList = () => {
   const generateAutoFillPreview = (worksheet) => {
     const sizes = {};
     if (Array.isArray(worksheet.pattern_sizes)) {
-      worksheet.pattern_sizes.forEach(s => {
+      worksheet.pattern_sizes.forEach((s) => {
         sizes[s.size_name] = s.quantity || 0;
       });
     } else if (worksheet.pattern_sizes) {
-      const arr = [...(worksheet.pattern_sizes.men || []), ...(worksheet.pattern_sizes.women || []), ...(worksheet.pattern_sizes.unisex || [])];
-      arr.forEach(s => {
+      const arr = [
+        ...(worksheet.pattern_sizes.men || []),
+        ...(worksheet.pattern_sizes.women || []),
+        ...(worksheet.pattern_sizes.unisex || []),
+      ];
+      arr.forEach((s) => {
         sizes[s.size_name] = s.quantity || 0;
       });
     }
@@ -167,15 +171,15 @@ const WorksheetList = () => {
       worksheet_id: worksheet.worksheet_id,
       title: worksheet.product_name || worksheet.work_name,
       customer_name: worksheet.customer_name || worksheet.cus_name,
-      production_type: worksheet.screen_dft > 0 ? 'dtf' : 'screen',
+      production_type: worksheet.screen_dft > 0 ? "dtf" : "screen",
       due_date: worksheet.expected_completion_date || worksheet.due_date,
-      shirt_type: worksheet.type_shirt === 'polo-shirt' ? 'polo' : 't-shirt',
+      shirt_type: worksheet.type_shirt === "polo-shirt" ? "polo" : "t-shirt",
       total_quantity: worksheet.total_quantity,
       sizes: sizes,
       screen_points: worksheet.screen_point || 0,
       dtf_points: worksheet.screen_dft || 0,
       sublimation_points: 0,
-      special_instructions: worksheet.special_instructions || worksheet.worksheet_note || '',
+      special_instructions: worksheet.special_instructions || worksheet.worksheet_note || "",
       items: [],
     };
   };
@@ -187,13 +191,13 @@ const WorksheetList = () => {
       dtf: 1,
       sublimation: 3,
     };
-    
+
     return items
-      .filter(item => item.print_type === type)
+      .filter((item) => item.print_type === type)
       .reduce((sum, item) => {
         const sizes = item.sizes ? Object.keys(item.sizes).length : 1;
         const colors = item.colors ? item.colors.length : 1;
-        return sum + (basePoints[type] * sizes * colors);
+        return sum + basePoints[type] * sizes * colors;
       }, 0);
   };
 
@@ -201,7 +205,7 @@ const WorksheetList = () => {
   const handleConfirmCreate = () => {
     setAutoFillDialog(false);
     // Navigate to create form with pre-filled data
-    navigate('/max-supply/create', {
+    navigate("/max-supply/create", {
       state: {
         worksheet: selectedWorksheet,
         autoFillData: autoFillPreview,
@@ -212,56 +216,64 @@ const WorksheetList = () => {
   useEffect(() => {
     // Debug authentication tokens
     debugTokens();
-    
+
     // Then load worksheets
     loadWorksheets();
   }, [filters]);
 
   // Worksheet Card Component
   const WorksheetCard = ({ worksheet }) => (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Box
+          sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
+        >
           <Typography variant="h6" fontWeight="bold">
             {worksheet.code}
           </Typography>
           <Chip
             label={worksheet.status}
-            color={worksheet.status === 'approved' ? 'success' : 'default'}
+            color={worksheet.status === "approved" ? "success" : "default"}
             size="small"
           />
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <Business fontSize="small" color="action" />
           <Typography variant="body2" color="text.secondary">
             {worksheet.customer_name}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <Assignment fontSize="small" color="action" />
           <Typography variant="body2" color="text.secondary">
-            {worksheet.product_name || 'ไม่ระบุชื่อสินค้า'}
+            {worksheet.product_name || "ไม่ระบุชื่อสินค้า"}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <CalendarToday fontSize="small" color="action" />
           <Typography variant="body2" color="text.secondary">
-            วันที่สั่ง: {format(new Date(worksheet.created_at), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+            วันที่สั่ง:{" "}
+            {format(new Date(worksheet.created_at), "dd/MM/yyyy", { locale: dateFnsLocales.th })}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <CalendarToday fontSize="small" color="error" />
           <Typography variant="body2" color="error">
-            คาดว่าเสร็จ: {format(new Date(worksheet.expected_completion_date || worksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+            คาดว่าเสร็จ:{" "}
+            {format(
+              new Date(worksheet.expected_completion_date || worksheet.due_date),
+              "dd/MM/yyyy",
+              { locale: dateFnsLocales.th }
+            )}
           </Typography>
         </Box>
 
         {/* Production Types */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
           {worksheet.worksheet_items?.map((item, index) => (
             <Chip
               key={index}
@@ -269,7 +281,7 @@ const WorksheetList = () => {
               size="small"
               sx={{
                 bgcolor: productionColors[item.print_type],
-                color: 'white',
+                color: "white",
               }}
             />
           ))}
@@ -277,16 +289,13 @@ const WorksheetList = () => {
 
         {/* Quantity */}
         <Typography variant="body2" color="text.secondary">
-          จำนวนทั้งหมด: {worksheet.worksheet_items?.reduce((sum, item) => sum + (item.quantity || 0), 0)} ชิ้น
+          จำนวนทั้งหมด:{" "}
+          {worksheet.worksheet_items?.reduce((sum, item) => sum + (item.quantity || 0), 0)} ชิ้น
         </Typography>
       </CardContent>
 
-      <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-        <Button
-          size="small"
-          startIcon={<Visibility />}
-          onClick={() => handleViewDetail(worksheet)}
-        >
+      <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
+        <Button size="small" startIcon={<Visibility />} onClick={() => handleViewDetail(worksheet)}>
           ดูรายละเอียด
         </Button>
         <Button
@@ -311,7 +320,7 @@ const WorksheetList = () => {
               fullWidth
               placeholder="ค้นหา worksheet..."
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
               size="small"
               InputProps={{
                 startAdornment: (
@@ -327,7 +336,7 @@ const WorksheetList = () => {
               <InputLabel>สถานะ</InputLabel>
               <Select
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
                 label="สถานะ"
               >
                 <MenuItem value="all">ทั้งหมด</MenuItem>
@@ -341,7 +350,7 @@ const WorksheetList = () => {
               fullWidth
               placeholder="ลูกค้า..."
               value={filters.customer}
-              onChange={(e) => handleFilterChange('customer', e.target.value)}
+              onChange={(e) => handleFilterChange("customer", e.target.value)}
               size="small"
             />
           </Grid>
@@ -365,7 +374,7 @@ const WorksheetList = () => {
   const AutoFillPreviewDialog = () => (
     <Dialog open={autoFillDialog} onClose={() => setAutoFillDialog(false)} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6">
             <AutoAwesome sx={{ mr: 1 }} />
             ตัวอย่างข้อมูลที่จะ Auto-fill
@@ -390,26 +399,29 @@ const WorksheetList = () => {
                   <Typography variant="h6" gutterBottom>
                     ข้อมูลพื้นฐาน
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>ชื่องาน:</strong> {autoFillPreview.title}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>ลูกค้า:</strong> {autoFillPreview.customer_name}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
-                        <strong>วันที่คาดว่าเสร็จ:</strong> {format(new Date(autoFillPreview.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}
+                        <strong>วันที่คาดว่าเสร็จ:</strong>{" "}
+                        {format(new Date(autoFillPreview.due_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>ประเภทการผลิต:</strong> {autoFillPreview.production_type}
@@ -424,25 +436,24 @@ const WorksheetList = () => {
                   <Typography variant="h6" gutterBottom>
                     ข้อมูลการผลิต
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>ประเภทเสื้อ:</strong> {autoFillPreview.shirt_type}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
                         <strong>จำนวนทั้งหมด:</strong> {autoFillPreview.total_quantity} ชิ้น
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <CheckCircle fontSize="small" color="success" />
                       <Typography variant="body2">
-                        <strong>จุดพิมพ์:</strong> 
-                        Screen: {autoFillPreview.screen_points}, 
-                        DTF: {autoFillPreview.dtf_points}, 
+                        <strong>จุดพิมพ์:</strong>
+                        Screen: {autoFillPreview.screen_points}, DTF: {autoFillPreview.dtf_points},
                         Sublimation: {autoFillPreview.sublimation_points}
                       </Typography>
                     </Box>
@@ -455,19 +466,30 @@ const WorksheetList = () => {
                   <Typography variant="h6" gutterBottom>
                     รายการสินค้าในออร์เดอร์
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     {autoFillPreview.items.map((item, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Box
+                        key={index}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          p: 1,
+                          border: 1,
+                          borderColor: "divider",
+                          borderRadius: 1,
+                        }}
+                      >
                         <Chip
                           label={`${productionIcons[item.print_type]} ${item.print_type}`}
                           size="small"
                           sx={{
                             bgcolor: productionColors[item.print_type],
-                            color: 'white',
+                            color: "white",
                           }}
                         />
                         <Typography variant="body2">
-                          {item.product_name || 'ไม่ระบุชื่อ'}
+                          {item.product_name || "ไม่ระบุชื่อ"}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           จำนวน: {item.quantity}
@@ -483,11 +505,7 @@ const WorksheetList = () => {
       </DialogContent>
       <DialogActions>
         <Button onClick={() => setAutoFillDialog(false)}>ยกเลิก</Button>
-        <Button
-          variant="contained"
-          onClick={handleConfirmCreate}
-          startIcon={<ArrowForward />}
-        >
+        <Button variant="contained" onClick={handleConfirmCreate} startIcon={<ArrowForward />}>
           ไปที่ฟอร์มสร้างงาน
         </Button>
       </DialogActions>
@@ -498,7 +516,7 @@ const WorksheetList = () => {
   const DetailDialog = () => (
     <Dialog open={detailDialog} onClose={() => setDetailDialog(false)} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6">รายละเอียด Worksheet</Typography>
           <IconButton onClick={() => setDetailDialog(false)}>
             <Close />
@@ -513,12 +531,34 @@ const WorksheetList = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   ข้อมูลพื้นฐาน
                 </Typography>
-                <Typography><strong>รหัส:</strong> {selectedWorksheet.code}</Typography>
-                <Typography><strong>ชื่อสินค้า:</strong> {selectedWorksheet.product_name || 'ไม่ระบุ'}</Typography>
-                <Typography><strong>ลูกค้า:</strong> {selectedWorksheet.customer_name}</Typography>
-                <Typography><strong>สถานะ:</strong> {selectedWorksheet.status}</Typography>
-                <Typography><strong>วันที่สั่ง:</strong> {format(new Date(selectedWorksheet.created_at), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
-                <Typography><strong>วันที่คาดว่าเสร็จ:</strong> {format(new Date(selectedWorksheet.expected_completion_date || selectedWorksheet.due_date), 'dd/MM/yyyy', { locale: dateFnsLocales.th })}</Typography>
+                <Typography>
+                  <strong>รหัส:</strong> {selectedWorksheet.code}
+                </Typography>
+                <Typography>
+                  <strong>ชื่อสินค้า:</strong> {selectedWorksheet.product_name || "ไม่ระบุ"}
+                </Typography>
+                <Typography>
+                  <strong>ลูกค้า:</strong> {selectedWorksheet.customer_name}
+                </Typography>
+                <Typography>
+                  <strong>สถานะ:</strong> {selectedWorksheet.status}
+                </Typography>
+                <Typography>
+                  <strong>วันที่สั่ง:</strong>{" "}
+                  {format(new Date(selectedWorksheet.created_at), "dd/MM/yyyy", {
+                    locale: dateFnsLocales.th,
+                  })}
+                </Typography>
+                <Typography>
+                  <strong>วันที่คาดว่าเสร็จ:</strong>{" "}
+                  {format(
+                    new Date(
+                      selectedWorksheet.expected_completion_date || selectedWorksheet.due_date
+                    ),
+                    "dd/MM/yyyy",
+                    { locale: dateFnsLocales.th }
+                  )}
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -527,17 +567,20 @@ const WorksheetList = () => {
                   รายการสินค้า
                 </Typography>
                 {selectedWorksheet.worksheet_items?.map((item, index) => (
-                  <Box key={index} sx={{ mb: 2, p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Box
+                    key={index}
+                    sx={{ mb: 2, p: 1, border: 1, borderColor: "divider", borderRadius: 1 }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                       <Chip
                         label={`${productionIcons[item.print_type]} ${item.print_type}`}
                         size="small"
                         sx={{
                           bgcolor: productionColors[item.print_type],
-                          color: 'white',
+                          color: "white",
                         }}
                       />
-                      <Typography variant="body2">{item.product_name || 'ไม่ระบุชื่อ'}</Typography>
+                      <Typography variant="body2">{item.product_name || "ไม่ระบุชื่อ"}</Typography>
                     </Box>
                     <Typography variant="body2" color="text.secondary">
                       จำนวน: {item.quantity} ชิ้น
@@ -578,7 +621,7 @@ const WorksheetList = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
           เลือก Worksheet สำหรับสร้างงานผลิต
         </Typography>
@@ -599,7 +642,7 @@ const WorksheetList = () => {
                   <Skeleton variant="text" width="80%" height={24} />
                   <Skeleton variant="text" width="70%" height={24} />
                   <Skeleton variant="text" width="90%" height={24} />
-                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                  <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
                     <Skeleton variant="rounded" width={80} height={24} />
                     <Skeleton variant="rounded" width={80} height={24} />
                   </Box>
@@ -613,7 +656,7 @@ const WorksheetList = () => {
           ))}
         </Grid>
       ) : worksheets.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Paper sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             ไม่พบ Worksheet ที่สามารถสร้างงานผลิตได้
           </Typography>

@@ -6,15 +6,22 @@ import reactHooks from "eslint-plugin-react-hooks";
 import importPlugin from "eslint-plugin-import";
 import prettierPlugin from "eslint-plugin-prettier";
 
+// ✅ แก้ปัญหา key ที่มีช่องว่าง: trim ชื่อคีย์ทั้งหมดก่อนใช้งาน
+const trimKeys = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.trim(), v]));
+
+const browserGlobals = trimKeys(globals.browser);
+const nodeGlobals = trimKeys(globals.node);
+const jestGlobals = {
+  /* ใส่เฉพาะตอนต้องใช้เทส */
+};
+
 export default [
-  // base rules ของ ESLint
   js.configs.recommended,
 
-  // กติกาหลักสำหรับไฟล์โค้ด
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
 
-    // ✅ รวม ignore ไว้ที่เดียว (แทน .eslintignore/.prettierignore)
+    // รวม ignore ที่นี่ให้ ESLint เดินไวและไม่อ่าน assets ใหญ่
     ignores: [
       "node_modules",
       "dist",
@@ -23,12 +30,10 @@ export default [
       ".cache",
       "coverage",
       "public/**",
-      // assets/binaries ใน src
       "src/**/*.{png,jpg,jpeg,webp,gif,ico,svg}",
       "src/**/*.{mp4,webm,mp3,wav,glb,gltf}",
       "src/**/*.{woff,woff2,ttf,otf,eot}",
       "src/**/*.{z}",
-      // misc
       "**/__snapshots__/**",
       "**/*.min.js",
       ".eslintcache",
@@ -38,7 +43,9 @@ export default [
     ],
 
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...browserGlobals,
+      },
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
@@ -55,29 +62,24 @@ export default [
 
     rules: {
       // React
-      "react/react-in-jsx-scope": "off", // Vite/Next ไม่ต้อง import React
-      "react/prop-types": "off", // ถ้าไม่ได้ใช้ PropTypes ให้ปิด
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
 
-      // React Hooks
+      // Hooks
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 
-      // import hygiene
+      // Import จัดระเบียบ
       "import/order": [
         "warn",
         {
           "newlines-between": "always",
           alphabetize: { order: "asc", caseInsensitive: true },
-          groups: [
-            "builtin",
-            "external",
-            "internal",
-            ["parent", "sibling", "index"],
-          ],
+          groups: ["builtin", "external", "internal", ["parent", "sibling", "index"]],
         },
       ],
 
-      // ให้ Prettier เป็นคนจัด format แล้วรายงานผ่าน ESLint
+      // ให้ Prettier จัด format แล้วรายงานผ่าน ESLint
       "prettier/prettier": "warn",
     },
 
@@ -86,11 +88,13 @@ export default [
     },
   },
 
-  // กติกาเฉพาะไฟล์ทดสอบ/สคริปต์ Node
+  // กติกา/สภาพแวดล้อมสำหรับไฟล์สคริปต์ Node หรือไฟล์ config ต่าง ๆ
   {
-    files: ["**/*.{test,spec}.{js,jsx,ts,tsx}", "scripts/**", "vite.config.*"],
+    files: ["scripts/**", "vite.config.*"],
     languageOptions: {
-      globals: { ...globals.node, ...globals.jest },
+      globals: {
+        ...nodeGlobals,
+      },
     },
   },
 ];

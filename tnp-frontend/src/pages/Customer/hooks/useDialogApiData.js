@@ -5,21 +5,19 @@ import {
   useGetUserByRoleQuery,
   useGetAllBusinessTypesQuery,
 } from "../../../features/globalApi";
-import {
-  open_dialog_loading,
-} from "../../../utils/import_lib";
+import { open_dialog_loading } from "../../../utils/import_lib";
 import Swal from "sweetalert2";
 
 export const useDialogApiData = (openDialog) => {
   const locationSearch = useSelector((state) => state.global.locationSearch);
-  
+
   // Debug logging สำหรับ locationSearch changes
   useEffect(() => {
     if (window.debugLocation) {
       console.log("🌐 LocationSearch state changed:", locationSearch);
     }
   }, [locationSearch]);
-  
+
   // Local state for processed data
   const [provincesList, setProvincesList] = useState([]);
   const [districtList, setDistrictList] = useState([]);
@@ -43,7 +41,7 @@ export const useDialogApiData = (openDialog) => {
         locationSearch,
         locationIsFetching,
         hasLocationData: !!locations,
-        locationError: !!locationError
+        locationError: !!locationError,
       });
     }
   }, [openDialog, locationSearch, locationIsFetching, locations, locationError]);
@@ -68,7 +66,7 @@ export const useDialogApiData = (openDialog) => {
           provinces: locations.master_provinces?.length || 0,
           districts: locations.master_district?.length || 0,
           subdistricts: locations.master_subdistrict?.length || 0,
-          rawData: locations
+          rawData: locations,
         });
       }
       setProvincesList(locations.master_provinces || []);
@@ -112,22 +110,22 @@ export const useDialogApiData = (openDialog) => {
     salesList,
     businessTypesList,
     setBusinessTypesList,
-    
+
     // API states
     isLoading,
     hasErrors,
-    
+
     // API functions
     refetchLocations,
-    
+
     // Raw data (if needed)
     locations,
     userRoleData,
     businessTypesData,
-    
+
     // Individual loading states
     locationIsFetching,
     roleIsFetching,
     businessTypesIsFetching,
   };
-}; 
+};

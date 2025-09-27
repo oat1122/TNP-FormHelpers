@@ -27,7 +27,7 @@ function CardShow({ data }) {
   const dispatch = useDispatch();
   const initImage = import.meta.env.VITE_IMAGE_SHIRT_MOCKUP;
 
-  // เช็คการดึงข้อมูลใบงานมาจากระบบใหม่หรือไม่ 
+  // เช็คการดึงข้อมูลใบงานมาจากระบบใหม่หรือไม่
   const isWsNew = data.new_worksheet_id ? true : false;
 
   const { data: myData } = useGetCostsQuery(data.pd_id);
@@ -36,15 +36,14 @@ function CardShow({ data }) {
   const [contentModal, setContentModal] = useState(null);
 
   const handleClose = () => {
-    setShowImage(false)
-    setContentModal(null)
+    setShowImage(false);
+    setContentModal(null);
   };
-  const handleShow =  async () => {
+  const handleShow = async () => {
     open_dialog_loading();
 
     if (isWsNew) {
       await handleGenPdf();
-
     } else {
       setContentModal(
         <iframe
@@ -66,14 +65,12 @@ function CardShow({ data }) {
     let result = initImage;
 
     if (data.picture) {
-
       // ถ้าดึงข้อมูลมาจากใบงานเก่า ให้นำค่าของ 'picture' มาใช้ได้เลย
       if (isWsNew) {
         result = data.picture;
       } else {
         result = `https://izasskobibe.com/worksheets/img/${data.picture}`;
       }
-
     }
 
     return result;
@@ -81,7 +78,7 @@ function CardShow({ data }) {
 
   const handleGenPdf = async () => {
     const input = {
-      sheet_type: 'work_sheet',
+      sheet_type: "work_sheet",
       worksheet_id: data.worksheet_id,
       user_role: user.role,
     };
@@ -105,7 +102,6 @@ function CardShow({ data }) {
           }}
         ></iframe>
       );
-
     } catch (err) {
       console.error("Error downloading the PDF:", err);
       Swal.close();
@@ -114,9 +110,9 @@ function CardShow({ data }) {
 
   useEffect(() => {
     if (dataNote) {
-      dispatch(setNoteList(dataNote))
+      dispatch(setNoteList(dataNote));
     }
-  }, [dataNote, dispatch])
+  }, [dataNote, dispatch]);
 
   return (
     <Col className="card-show px-0 px-md-2">
@@ -130,10 +126,7 @@ function CardShow({ data }) {
             <label className="text-due-date">DUE DATE : {data.due_date}</label>
           </Card.Title>
         </Card.Body>
-        <Card.Body
-          className="py-0 text-center"
-          style={{ position: "relative" }}
-        >
+        <Card.Body className="py-0 text-center" style={{ position: "relative" }}>
           <Button className="p-0 border-0" onClick={handleShow} variant="link">
             <Card.Img
               // src={`https://izasskobibe.com/worksheets/img/${data.picture}`}
@@ -144,8 +137,8 @@ function CardShow({ data }) {
                 {data.production_type === 1
                   ? "ตัดเย็บก่อนสกรีน"
                   : data.production_type === 2
-                  ? "สกรีนก่อนตัดเย็บ"
-                  : null}
+                    ? "สกรีนก่อนตัดเย็บ"
+                    : null}
               </Card.Text>
             </Card.ImgOverlay>
           </Button>
@@ -155,9 +148,7 @@ function CardShow({ data }) {
                 Worksheet Preview
               </Modal.Title>
             </Modal.Header>
-            <Modal.Body>
-              {contentModal}
-            </Modal.Body>
+            <Modal.Body>{contentModal}</Modal.Body>
           </Modal>
         </Card.Body>
         <Card.Body className="px-1 px-md-3">
@@ -173,12 +164,10 @@ function CardShow({ data }) {
             </>
           ) : (
             <>
-                <Row xs={user.role === "manager" ? 2 : 12}>
-                {user.role === "manager" && (
-                  <ProductionCost myData={myData} pd_id={data.pd_id} />
-                )}
-                  <GeneralNote pd_id={data.pd_id} />
-                </Row>
+              <Row xs={user.role === "manager" ? 2 : 12}>
+                {user.role === "manager" && <ProductionCost myData={myData} pd_id={data.pd_id} />}
+                <GeneralNote pd_id={data.pd_id} />
+              </Row>
               <ExamOrder data={data} />
               <hr />
               <FabricOrder data={data} />

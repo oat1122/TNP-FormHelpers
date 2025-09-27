@@ -43,7 +43,7 @@
   border-color: #e5adae55 !important;
 }
 
-.btn-check:checked+.btn-toggle {
+.btn-check:checked + .btn-toggle {
   background-color: #f2dddc !important;
   border-color: #e5adae !important;
 }

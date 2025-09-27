@@ -1,11 +1,5 @@
-import React from 'react';
-import {
-  Box,
-  Typography,
-  Avatar,
-  Grid,
-  Chip,
-} from '@mui/material';
+import React from "react";
+import { Box, Typography, Avatar, Grid, Chip } from "@mui/material";
 import {
   Business as BusinessIcon,
   Person as PersonIcon,
@@ -13,8 +7,14 @@ import {
   Email as EmailIcon,
   Assignment as AssignmentIcon,
   Edit as EditIcon,
-} from '@mui/icons-material';
-import { Section, SectionHeader, SecondaryButton, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
+} from "@mui/icons-material";
+import {
+  Section,
+  SectionHeader,
+  SecondaryButton,
+  InfoCard,
+  tokens,
+} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 /**
  * CustomerSection (Shared Component)
@@ -34,8 +34,12 @@ const CustomerSection = ({
           <AssignmentIcon fontSize="small" />
         </Avatar>
         <Box>
-          <Typography variant="subtitle1" fontWeight={700}>ข้อมูลลูกค้า</Typography>
-          <Typography variant="caption" color="text.secondary">ข้อมูลผู้ติดต่อและบริษัท</Typography>
+          <Typography variant="subtitle1" fontWeight={700}>
+            ข้อมูลลูกค้า
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ข้อมูลผู้ติดต่อและบริษัท
+          </Typography>
         </Box>
       </SectionHeader>
       <Box sx={{ p: 2 }}>
@@ -44,12 +48,14 @@ const CustomerSection = ({
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
             <Box>
               <Typography variant="body2" color="text.secondary">
-                {customer?.customer_type === 'individual' ? 'ชื่อผู้ติดต่อ' : 'ชื่อบริษัท'}
+                {customer?.customer_type === "individual" ? "ชื่อผู้ติดต่อ" : "ชื่อบริษัท"}
               </Typography>
               <Typography variant="body1" fontWeight={700}>
-                {customer?.customer_type === 'individual'
-                  ? `${customer?.cus_firstname || ''} ${customer?.cus_lastname || ''}`.trim() || customer?.cus_name || '-'
-                  : (customer?.cus_company || '-')}
+                {customer?.customer_type === "individual"
+                  ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
+                    customer?.cus_name ||
+                    "-"
+                  : customer?.cus_company || "-"}
               </Typography>
               {customer?.cus_depart && (
                 <Typography variant="caption" color="text.secondary">
@@ -59,19 +65,19 @@ const CustomerSection = ({
             </Box>
             <Box display="flex" alignItems="center" gap={1}>
               {customer?.cus_tel_1 && (
-                <Chip 
-                  size="small" 
-                  variant="outlined" 
-                  label={customer.cus_tel_1} 
-                  sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }} 
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={customer.cus_tel_1}
+                  sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }}
                 />
               )}
               {customer?.cus_tel_2 && (
-                <Chip 
-                  size="small" 
-                  variant="outlined" 
-                  label={customer.cus_tel_2} 
-                  sx={{ borderColor: tokens.secondary, color: tokens.secondary }} 
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={customer.cus_tel_2}
+                  sx={{ borderColor: tokens.secondary, color: tokens.secondary }}
                 />
               )}
               {showEditButton && onEditCustomer && (
@@ -81,31 +87,43 @@ const CustomerSection = ({
               )}
             </Box>
           </Box>
-          {(customer?.contact_name || customer?.cus_email || customer?.cus_tax_id || customer?.cus_address) && (
+          {(customer?.contact_name ||
+            customer?.cus_email ||
+            customer?.cus_tax_id ||
+            customer?.cus_address) && (
             <Grid container spacing={1}>
-              {customer?.contact_name && customer?.customer_type === 'company' && (
+              {customer?.contact_name && customer?.customer_type === "company" && (
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">ผู้ติดต่อ</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ผู้ติดต่อ
+                  </Typography>
                   <Typography variant="body2">
-                    {customer.contact_name} {customer.contact_nickname ? `(${customer.contact_nickname})` : ''}
+                    {customer.contact_name}{" "}
+                    {customer.contact_nickname ? `(${customer.contact_nickname})` : ""}
                   </Typography>
                 </Grid>
               )}
               {customer?.cus_email && (
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">อีเมล</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    อีเมล
+                  </Typography>
                   <Typography variant="body2">{customer.cus_email}</Typography>
                 </Grid>
               )}
               {customer?.cus_tax_id && (
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">เลขประจำตัวผู้เสียภาษี</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    เลขประจำตัวผู้เสียภาษี
+                  </Typography>
                   <Typography variant="body2">{customer.cus_tax_id}</Typography>
                 </Grid>
               )}
               {customer?.cus_address && (
                 <Grid item xs={12}>
-                  <Typography variant="caption" color="text.secondary">ที่อยู่</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ที่อยู่
+                  </Typography>
                   <Typography variant="body2">
                     {customer.cus_address}
                     {customer.cus_zip_code && ` ${customer.cus_zip_code}`}
@@ -122,14 +140,22 @@ const CustomerSection = ({
             <Grid container spacing={1}>
               {quotationNumber && (
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">เลขที่เอกสาร</Typography>
-                  <Typography variant="body2" fontWeight={700}>{quotationNumber}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    เลขที่เอกสาร
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {quotationNumber}
+                  </Typography>
                 </Grid>
               )}
               {workName && (
                 <Grid item xs={12} md={8}>
-                  <Typography variant="caption" color="text.secondary">ใบงานหลัก</Typography>
-                  <Typography variant="body1" fontWeight={700}>{workName}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ใบงานหลัก
+                  </Typography>
+                  <Typography variant="body1" fontWeight={700}>
+                    {workName}
+                  </Typography>
                 </Grid>
               )}
             </Grid>

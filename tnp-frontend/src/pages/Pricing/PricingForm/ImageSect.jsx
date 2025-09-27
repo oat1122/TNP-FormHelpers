@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import {
-  Box,
-  CardActionArea,
-  CardMedia,
-  Grid2 as Grid,
-  Typography,
-} from "@mui/material";
+import { Box, CardActionArea, CardMedia, Grid2 as Grid, Typography } from "@mui/material";
 
 import ImageActionBtn from "./ImageSect/ImageActionBtn.jsx";
 import ImagesDialog from "./ImageSect/ImagesDialog.jsx";
@@ -37,20 +31,24 @@ function ImageSect(props) {
         รูปภาพ
       </Typography>
       <Grid container spacing={1}>
-        <Grid size={{ xs: 12 }} p={1} sx={{ justifyItems: 'center', height: { xs: 'auto', xl: 300 }, maxHeight: 300, }}>
-          <Box sx={{ position: "relative", mb: 1, maxHeight: 300, }}>
+        <Grid
+          size={{ xs: 12 }}
+          p={1}
+          sx={{ justifyItems: "center", height: { xs: "auto", xl: 300 }, maxHeight: 300 }}
+        >
+          <Box sx={{ position: "relative", mb: 1, maxHeight: 300 }}>
             <CardActionArea
-              sx={ !imagePreview ? { opacity: 0.6 } : null }
+              sx={!imagePreview ? { opacity: 0.6 } : null}
               disabled={!imagePreview}
               onClick={() => setOpenDialog(true)}
             >
               <CardMedia
                 component="img"
                 image={renderedImage}
-                sx={{ maxHeight: { xs: 200, lg: 300}, }}
+                sx={{ maxHeight: { xs: 200, lg: 300 } }}
               />
             </CardActionArea>
-            { (user.role === "admin" || user.role === "sale") && mode !== "view" ? (
+            {(user.role === "admin" || user.role === "sale") && mode !== "view" ? (
               <ImageActionBtn user={props.user} setValue={props.setValue} control={props.control} />
             ) : null}
           </Box>

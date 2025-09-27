@@ -25,9 +25,7 @@ export const globalApi = createApi({
     }),
     getUserByRole: builder.query({
       query: (payload) => ({
-        url: payload
-          ? `/get-users-by-role?role=${payload}`
-          : "/get-users-by-role",
+        url: payload ? `/get-users-by-role?role=${payload}` : "/get-users-by-role",
         method: "GET",
       }),
     }),

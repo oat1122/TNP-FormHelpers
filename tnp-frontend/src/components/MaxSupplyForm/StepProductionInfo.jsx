@@ -1,32 +1,30 @@
-import React from 'react';
-import {
-  Grid,
-} from '@mui/material';
+import React from "react";
+import { Grid } from "@mui/material";
 import {
   ShirtTypeSelector,
   ProductionTypeSelector,
   WorkCalculationCard,
   SizeBreakdownTable,
   PrintLocationCard,
-} from './';
+} from "./";
 
-const StepProductionInfo = ({ 
-  formData, 
-  errors, 
-  shirtTypes, 
+const StepProductionInfo = ({
+  formData,
+  errors,
+  shirtTypes,
   productionTypes,
   sizeOptions,
   selectedWorksheet,
-  onInputChange, 
+  onInputChange,
   onSizeBreakdown,
   onSizeQuantityChange,
   onPrintLocationChange,
-  language = 'th',
-  t = (key) => key
+  language = "th",
+  t = (key) => key,
 }) => {
   // Check if data is auto-filled from worksheet
   const isAutoFilled = Boolean(selectedWorksheet && formData.worksheet_id);
-  
+
   return (
     <Grid container spacing={3}>
       {/* Shirt Type */}
@@ -74,13 +72,10 @@ const StepProductionInfo = ({
 
       {/* Print Locations */}
       <Grid item xs={12}>
-        <PrintLocationCard
-          formData={formData}
-          onPrintLocationChange={onPrintLocationChange}
-        />
+        <PrintLocationCard formData={formData} onPrintLocationChange={onPrintLocationChange} />
       </Grid>
     </Grid>
   );
 };
 
-export default StepProductionInfo; 
+export default StepProductionInfo;

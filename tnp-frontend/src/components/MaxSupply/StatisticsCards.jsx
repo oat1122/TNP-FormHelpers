@@ -38,28 +38,18 @@ const StatisticsCards = ({
   } = useProductionCapacityCalculation(allData, externalSelectedTimePeriod);
 
   // Use external state if provided, otherwise use internal state
-  const selectedTimePeriod =
-    externalSelectedTimePeriod || internalSelectedTimePeriod;
-  const setSelectedTimePeriod =
-    externalSetSelectedTimePeriod || internalSetSelectedTimePeriod;
+  const selectedTimePeriod = externalSelectedTimePeriod || internalSelectedTimePeriod;
+  const setSelectedTimePeriod = externalSetSelectedTimePeriod || internalSetSelectedTimePeriod;
 
   // Sync internal state with external state
   useEffect(() => {
-    if (
-      externalSelectedTimePeriod &&
-      externalSelectedTimePeriod !== internalSelectedTimePeriod
-    ) {
+    if (externalSelectedTimePeriod && externalSelectedTimePeriod !== internalSelectedTimePeriod) {
       internalSetSelectedTimePeriod(externalSelectedTimePeriod);
     }
-  }, [
-    externalSelectedTimePeriod,
-    internalSelectedTimePeriod,
-    internalSetSelectedTimePeriod,
-  ]);
+  }, [externalSelectedTimePeriod, internalSelectedTimePeriod, internalSetSelectedTimePeriod]);
 
   // Use calculation result data (for time period specific calculations)
-  const workCalc =
-    calculationResult?.work_calculations || statistics?.work_calculations;
+  const workCalc = calculationResult?.work_calculations || statistics?.work_calculations;
 
   const productionTypeData = [
     {
@@ -152,12 +142,7 @@ const StatisticsCards = ({
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {title}
             </Typography>
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-              color={color}
-              sx={{ mb: 1 }}
-            >
+            <Typography variant="h3" fontWeight="bold" color={color} sx={{ mb: 1 }}>
               {loading ? "-" : value}
             </Typography>
             {percentage !== undefined && (
@@ -183,11 +168,7 @@ const StatisticsCards = ({
               </Box>
             )}
             {total && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 1, display: "block" }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
                 จาก {total} งานทั้งหมด
               </Typography>
             )}
@@ -222,15 +203,11 @@ const StatisticsCards = ({
     const percentage = totalWorkload > 0 ? (workload / totalWorkload) * 100 : 0;
 
     // Production capacity data
-    const dailyCapacity =
-      statistics?.work_calculations?.capacity?.daily?.[type.key] || 0;
+    const dailyCapacity = statistics?.work_calculations?.capacity?.daily?.[type.key] || 0;
     const totalCapacity =
-      statistics?.work_calculations?.capacity?.total?.[type.key] ||
-      dailyCapacity;
-    const utilization =
-      statistics?.work_calculations?.utilization?.[type.key] || 0;
-    const periodDays =
-      statistics?.work_calculations?.capacity?.period_days || 1;
+      statistics?.work_calculations?.capacity?.total?.[type.key] || dailyCapacity;
+    const utilization = statistics?.work_calculations?.utilization?.[type.key] || 0;
+    const periodDays = statistics?.work_calculations?.capacity?.period_days || 1;
 
     const getUtilizationColor = (percentage) => {
       if (percentage >= 90) return "#EF4444"; // Red
@@ -316,11 +293,7 @@ const StatisticsCards = ({
                 <Typography variant="caption" color="text.secondary">
                   สัดส่วนของงานทั้งหมด
                 </Typography>
-                <Typography
-                  variant="caption"
-                  fontWeight="bold"
-                  color={type.color}
-                >
+                <Typography variant="caption" fontWeight="bold" color={type.color}>
                   {percentage.toFixed(1)}%
                 </Typography>
               </Box>
@@ -350,14 +323,8 @@ const StatisticsCards = ({
                 borderTopColor: "divider",
               }}
             >
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                sx={{ mb: 0.5 }}
-              >
-                🎯 กำลังการผลิต/วัน:{" "}
-                <strong>{dailyCapacity.toLocaleString()}</strong> ชิ้น
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                🎯 กำลังการผลิต/วัน: <strong>{dailyCapacity.toLocaleString()}</strong> ชิ้น
               </Typography>
               {periodDays > 1 && (
                 <Typography
@@ -366,8 +333,8 @@ const StatisticsCards = ({
                   display="block"
                   sx={{ mb: 0.5 }}
                 >
-                  📈 กำลังการผลิต{periodLabel}:{" "}
-                  <strong>{totalCapacity.toLocaleString()}</strong> ชิ้น
+                  📈 กำลังการผลิต{periodLabel}: <strong>{totalCapacity.toLocaleString()}</strong>{" "}
+                  ชิ้น
                 </Typography>
               )}
               <Typography
@@ -376,8 +343,7 @@ const StatisticsCards = ({
                 display="block"
                 fontWeight="bold"
               >
-                📊 การใช้งาน{periodLabel}: {getUtilizationLabel(utilization)} (
-                {utilization}%)
+                📊 การใช้งาน{periodLabel}: {getUtilizationLabel(utilization)} ({utilization}%)
               </Typography>
             </Box>
           )}
@@ -399,8 +365,7 @@ const StatisticsCards = ({
         </Typography>
         <Grid container spacing={2}>
           {statusData.map((item) => {
-            const percentage =
-              statistics.total > 0 ? (item.count / statistics.total) * 100 : 0;
+            const percentage = statistics.total > 0 ? (item.count / statistics.total) * 100 : 0;
             return (
               <Grid item xs={12} sm={6} md={3} key={item.key}>
                 <StatusCard
@@ -434,14 +399,8 @@ const StatisticsCards = ({
       <Grid container spacing={3}>
         {productionTypeData.map((type) => {
           // Calculate total job count and total workload from work_calculations
-          const totalJobCount = productionTypeData.reduce(
-            (sum, item) => sum + item.count,
-            0
-          );
-          const totalWorkload = productionTypeData.reduce(
-            (sum, item) => sum + item.workload,
-            0
-          );
+          const totalJobCount = productionTypeData.reduce((sum, item) => sum + item.count, 0);
+          const totalWorkload = productionTypeData.reduce((sum, item) => sum + item.workload, 0);
 
           return (
             <Grid item xs={12} sm={6} md={6} lg={3} key={type.key}>
@@ -467,25 +426,20 @@ const StatisticsCards = ({
             Debug Info (Development Only):
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            Selected period: {selectedTimePeriod} (
-            {getCapacityDisplayLabel(selectedTimePeriod)}){" "}
+            Selected period: {selectedTimePeriod} ({getCapacityDisplayLabel(selectedTimePeriod)}){" "}
             {externalSelectedTimePeriod ? "(External)" : "(Internal)"}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
             Items in period: {calculationResult?.total_items || 0}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            Period days:{" "}
-            {calculationResult?.work_calculations?.capacity?.period_days || 1}
+            Period days: {calculationResult?.work_calculations?.capacity?.period_days || 1}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            Total In-Progress Jobs:{" "}
-            {productionTypeData.reduce((sum, item) => sum + item.count, 0)}
+            Total In-Progress Jobs: {productionTypeData.reduce((sum, item) => sum + item.count, 0)}
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
-            Total Workload:{" "}
-            {productionTypeData.reduce((sum, item) => sum + item.workload, 0)}{" "}
-            ชิ้น
+            Total Workload: {productionTypeData.reduce((sum, item) => sum + item.workload, 0)} ชิ้น
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary">
             Work Calculations: {JSON.stringify(workCalc || {}, null, 2)}

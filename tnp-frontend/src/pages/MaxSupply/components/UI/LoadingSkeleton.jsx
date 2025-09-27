@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Box,
-  Skeleton,
-} from "@mui/material";
+import { Grid, Card, CardContent, CardActions, Box, Skeleton } from "@mui/material";
 
 const LoadingSkeleton = () => (
   <Grid container spacing={2}>
@@ -33,12 +26,7 @@ const LoadingSkeleton = () => (
               <Skeleton variant="rounded" width={100} height={28} />
               <Skeleton variant="rounded" width={120} height={28} />
             </Box>
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height={6}
-              sx={{ mb: 1 }}
-            />
+            <Skeleton variant="rectangular" width="100%" height={6} sx={{ mb: 1 }} />
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Skeleton variant="text" width="70%" />
               <Skeleton variant="text" width="65%" />

@@ -9,14 +9,14 @@
 ```javascript
 const CustomerAutofillDTO = {
   customer_id: "cus_id",
-  customer_company: "cus_company", 
+  customer_company: "cus_company",
   customer_tax_id: "cus_tax_id",
   customer_address: "cus_address",
   customer_zip_code: "cus_zip_code",
   customer_tel_1: "cus_tel_1",
   customer_email: "cus_email",
   customer_firstname: "cus_firstname",
-  customer_lastname: "cus_lastname"
+  customer_lastname: "cus_lastname",
 };
 ```
 
@@ -26,7 +26,7 @@ const CustomerAutofillDTO = {
 const PricingRequestAutofillDTO = {
   pricing_request_id: "pr_id",
   work_name: "pr_work_name",
-  pattern: "pr_pattern", 
+  pattern: "pr_pattern",
   fabric_type: "pr_fabric_type",
   color: "pr_color",
   sizes: "pr_sizes",
@@ -39,7 +39,7 @@ const PricingRequestAutofillDTO = {
   other_screen: "pr_other_screen",
   product_image: "pr_image",
   // รวมข้อมูลลูกค้าจาก pricing_request -> customer
-  customer: CustomerAutofillDTO
+  customer: CustomerAutofillDTO,
 };
 ```
 
@@ -48,11 +48,11 @@ const PricingRequestAutofillDTO = {
 ```javascript
 const PricingRequestNotesDTO = {
   note_id: "prn_id",
-  pricing_request_id: "prn_pr_id", 
+  pricing_request_id: "prn_pr_id",
   note_text: "prn_text",
   note_type: "prn_note_type", // 1=sale, 2=price, 3=manager
   created_by: "prn_created_by",
-  created_date: "prn_created_date"
+  created_date: "prn_created_date",
 };
 ```
 
@@ -64,8 +64,8 @@ const PricingRequestNotesDTO = {
 
 ```sql
 -- Query สำหรับดึงข้อมูล Pricing Request พร้อมลูกค้า
-SELECT 
-  pr.*, 
+SELECT
+  pr.*,
   mc.cus_company,
   mc.cus_tax_id,
   mc.cus_address,
@@ -95,13 +95,13 @@ const AutofillWorkflow = {
   selectPricingRequest: async (pr_id) => {
     const pricingData = await fetchPricingRequestWithCustomer(pr_id);
     const notes = await fetchPricingRequestNotes(pr_id);
-    
+
     return {
       ...pricingData,
-      notes: notes
+      notes: notes,
     };
   },
-  
+
   // 2. Auto-fill ข้อมูลใน Quotation Form
   autofillQuotationForm: (pricingData) => {
     return {
@@ -114,21 +114,21 @@ const AutofillWorkflow = {
       sizes: pricingData.pr_sizes,
       quantity: pricingData.pr_quantity,
       due_date: pricingData.pr_due_date,
-      
+
       // ข้อมูลลูกค้า
       customer_id: pricingData.pr_cus_id,
       customer_company: pricingData.cus_company,
       customer_tax_id: pricingData.cus_tax_id,
       customer_address: pricingData.cus_address,
       customer_zip_code: pricingData.cus_zip_code,
-      
+
       // สร้าง Notes จาก Pricing Request Notes
-      initial_notes: pricingData.notes.map(note => 
-        `[${note.note_type_label}] ${note.prn_text}`
-      ).join('\n')
+      initial_notes: pricingData.notes
+        .map((note) => `[${note.note_type_label}] ${note.prn_text}`)
+        .join("\n"),
     };
   },
-  
+
   // 3. Cascade Auto-fill สำหรับ Invoice, Receipt, Delivery Note
   cascadeAutofill: (sourceDocument, targetType) => {
     const baseData = {
@@ -136,37 +136,37 @@ const AutofillWorkflow = {
       customer_company: sourceDocument.customer_company,
       customer_tax_id: sourceDocument.customer_tax_id,
       customer_address: sourceDocument.customer_address,
-      customer_zip_code: sourceDocument.customer_zip_code
+      customer_zip_code: sourceDocument.customer_zip_code,
     };
-    
-    switch(targetType) {
-      case 'invoice':
+
+    switch (targetType) {
+      case "invoice":
         return {
           ...baseData,
           quotation_id: sourceDocument.id,
           subtotal: sourceDocument.subtotal,
           tax_amount: sourceDocument.tax_amount,
           total_amount: sourceDocument.total_amount,
-          due_date: sourceDocument.due_date
+          due_date: sourceDocument.due_date,
         };
-        
-      case 'receipt':
+
+      case "receipt":
         return {
           ...baseData,
           invoice_id: sourceDocument.id,
           subtotal: sourceDocument.subtotal,
           tax_amount: sourceDocument.tax_amount,
-          total_amount: sourceDocument.total_amount
+          total_amount: sourceDocument.total_amount,
         };
-        
-      case 'delivery_note':
+
+      case "delivery_note":
         return {
           ...baseData,
           receipt_id: sourceDocument.id,
-          delivery_address: sourceDocument.customer_address
+          delivery_address: sourceDocument.customer_address,
         };
     }
-  }
+  },
 };
 ```
 
@@ -181,28 +181,30 @@ const AutofillWorkflow = {
 const PricingRequestSelector = ({ onSelect, selectedPricingRequest }) => {
   const [pricingRequests, setPricingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const fetchPricingRequests = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/pricing/completed-requests');
+      const response = await api.get("/api/pricing/completed-requests");
       setPricingRequests(response.data);
     } catch (error) {
-      console.error('Error fetching pricing requests:', error);
+      console.error("Error fetching pricing requests:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleSelect = async (pr_id) => {
     try {
-      const response = await api.get(`/api/quotations/autofill/pricing-request/${pr_id}`);
+      const response = await api.get(
+        `/api/quotations/autofill/pricing-request/${pr_id}`
+      );
       onSelect(response.data);
     } catch (error) {
-      console.error('Error fetching pricing request details:', error);
+      console.error("Error fetching pricing request details:", error);
     }
   };
-  
+
   return (
     <Select
       placeholder="เลือก Pricing Request สำหรับ Auto-fill"
@@ -214,13 +216,15 @@ const PricingRequestSelector = ({ onSelect, selectedPricingRequest }) => {
       }}
       onChange={handleSelect}
       value={selectedPricingRequest?.pr_id}
-      style={{ width: '100%' }}
+      style={{ width: "100%" }}
     >
-      {pricingRequests.map(pr => (
+      {pricingRequests.map((pr) => (
         <Option key={pr.pr_id} value={pr.pr_id}>
           <div>
-            <div><strong>{pr.pr_work_name}</strong></div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
+            <div>
+              <strong>{pr.pr_work_name}</strong>
+            </div>
+            <div style={{ fontSize: "12px", color: "#666" }}>
               {pr.cus_company} - {pr.pr_quantity} ชิ้น
             </div>
           </div>
@@ -234,44 +238,47 @@ const PricingRequestSelector = ({ onSelect, selectedPricingRequest }) => {
 const CustomerSelector = ({ onSelect, selectedCustomer }) => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const searchCustomers = async (searchText) => {
     if (searchText.length < 2) return;
-    
+
     setLoading(true);
     try {
       const response = await api.get(`/api/customers/search?q=${searchText}`);
       setCustomers(response.data);
     } catch (error) {
-      console.error('Error searching customers:', error);
+      console.error("Error searching customers:", error);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleSelect = async (cus_id) => {
     try {
       const response = await api.get(`/api/customers/${cus_id}/details`);
       onSelect(response.data);
     } catch (error) {
-      console.error('Error fetching customer details:', error);
+      console.error("Error fetching customer details:", error);
     }
   };
-  
+
   return (
     <AutoComplete
       placeholder="ค้นหาลูกค้า (ชื่อบริษัท, เลขภาษี, ชื่อ-นามสกุล)"
       onSearch={debounce(searchCustomers, 300)}
       onSelect={handleSelect}
       value={selectedCustomer?.cus_company}
-      style={{ width: '100%' }}
+      style={{ width: "100%" }}
     >
-      {customers.map(customer => (
+      {customers.map((customer) => (
         <Option key={customer.cus_id} value={customer.cus_id}>
           <div>
-            <div><strong>{customer.cus_company}</strong></div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              {customer.cus_firstname} {customer.cus_lastname} - {customer.cus_tax_id}
+            <div>
+              <strong>{customer.cus_company}</strong>
+            </div>
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              {customer.cus_firstname} {customer.cus_lastname} -{" "}
+              {customer.cus_tax_id}
             </div>
           </div>
         </Option>
@@ -283,8 +290,8 @@ const CustomerSelector = ({ onSelect, selectedCustomer }) => {
 // QuotationForm.jsx - ฟอร์มหลักที่มี Auto-fill
 const QuotationForm = () => {
   const [form] = Form.useForm();
-  const [autoFillSource, setAutoFillSource] = useState('pricing_request'); // หรือ 'customer'
-  
+  const [autoFillSource, setAutoFillSource] = useState("pricing_request"); // หรือ 'customer'
+
   // Auto-fill จาก Pricing Request
   const handlePricingRequestSelect = (pricingData) => {
     form.setFieldsValue({
@@ -301,13 +308,13 @@ const QuotationForm = () => {
       sizes: pricingData.pr_sizes,
       quantity: pricingData.pr_quantity,
       due_date: moment(pricingData.pr_due_date),
-      notes: pricingData.initial_notes
+      notes: pricingData.initial_notes,
     });
-    
+
     // แจ้งให้ผู้ใช้ทราบว่าข้อมูลถูก auto-fill แล้ว
-    message.success('ข้อมูลถูก Auto-fill จาก Pricing Request เรียบร้อยแล้ว');
+    message.success("ข้อมูลถูก Auto-fill จาก Pricing Request เรียบร้อยแล้ว");
   };
-  
+
   // Auto-fill จากลูกค้า
   const handleCustomerSelect = (customerData) => {
     form.setFieldsValue({
@@ -315,80 +322,73 @@ const QuotationForm = () => {
       customer_company: customerData.cus_company,
       customer_tax_id: customerData.cus_tax_id,
       customer_address: customerData.cus_address,
-      customer_zip_code: customerData.cus_zip_code
+      customer_zip_code: customerData.cus_zip_code,
     });
-    
-    message.success('ข้อมูลลูกค้าถูก Auto-fill เรียบร้อยแล้ว');
+
+    message.success("ข้อมูลลูกค้าถูก Auto-fill เรียบร้อยแล้ว");
   };
-  
+
   return (
     <Form form={form} layout="vertical">
       <Card title="เลือกข้อมูลสำหรับ Auto-fill" style={{ marginBottom: 16 }}>
-        <Radio.Group 
-          value={autoFillSource} 
+        <Radio.Group
+          value={autoFillSource}
           onChange={(e) => setAutoFillSource(e.target.value)}
           style={{ marginBottom: 16 }}
         >
-          <Radio.Button value="pricing_request">จาก Pricing Request</Radio.Button>
+          <Radio.Button value="pricing_request">
+            จาก Pricing Request
+          </Radio.Button>
           <Radio.Button value="customer">จากข้อมูลลูกค้า</Radio.Button>
         </Radio.Group>
-        
-        {autoFillSource === 'pricing_request' && (
+
+        {autoFillSource === "pricing_request" && (
           <PricingRequestSelector onSelect={handlePricingRequestSelect} />
         )}
-        
-        {autoFillSource === 'customer' && (
+
+        {autoFillSource === "customer" && (
           <CustomerSelector onSelect={handleCustomerSelect} />
         )}
       </Card>
-      
+
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item 
-            label="ชื่อบริษัท" 
+          <Form.Item
+            label="ชื่อบริษัท"
             name="customer_company"
-            rules={[{ required: true, message: 'กรุณากรอกชื่อบริษัท' }]}
+            rules={[{ required: true, message: "กรุณากรอกชื่อบริษัท" }]}
           >
             <Input placeholder="ชื่อบริษัทลูกค้า" />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item 
-            label="เลขประจำตัวผู้เสียภาษี" 
-            name="customer_tax_id"
-          >
+          <Form.Item label="เลขประจำตัวผู้เสียภาษี" name="customer_tax_id">
             <Input placeholder="เลขประจำตัวผู้เสียภาษี 13 หลัก" />
           </Form.Item>
         </Col>
       </Row>
-      
-      <Form.Item 
-        label="ที่อยู่" 
-        name="customer_address"
-      >
+
+      <Form.Item label="ที่อยู่" name="customer_address">
         <TextArea rows={3} placeholder="ที่อยู่ลูกค้า" />
       </Form.Item>
-      
+
       <Row gutter={16}>
         <Col span={8}>
-          <Form.Item 
-            label="รหัสไปรษณีย์" 
-            name="customer_zip_code"
-          >
+          <Form.Item label="รหัสไปรษณีย์" name="customer_zip_code">
             <Input placeholder="รหัสไปรษณีย์" />
           </Form.Item>
         </Col>
         <Col span={16}>
-          <Form.Item 
-            label="ชื่องาน" 
+          <Form.Item
+            label="ชื่องาน"
             name="work_name"
-            rules={[{ required: true, message: 'กรุณากรอกชื่องาน' }]}
+            rules={[{ required: true, message: "กรุณากรอกชื่องาน" }]}
           >
             <Input placeholder="ชื่องานที่ขอใบเสนอราคา" />
           </Form.Item>
         </Col>
       </Row>
-      
+
       {/* เพิ่มฟิลด์อื่นๆ ตามต้องการ */}
     </Form>
   );
@@ -401,33 +401,35 @@ const QuotationForm = () => {
 // useAutoFill.js - Custom Hook สำหรับ Auto-fill
 export const useAutoFill = () => {
   const [loading, setLoading] = useState(false);
-  
+
   const autoFillFromPricingRequest = async (pr_id) => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/quotations/autofill/pricing-request/${pr_id}`);
+      const response = await api.get(
+        `/api/quotations/autofill/pricing-request/${pr_id}`
+      );
       return response.data;
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูล Pricing Request');
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูล Pricing Request");
       throw error;
     } finally {
       setLoading(false);
     }
   };
-  
+
   const autoFillFromCustomer = async (cus_id) => {
     setLoading(true);
     try {
       const response = await api.get(`/api/customers/${cus_id}/details`);
       return response.data;
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า');
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลลูกค้า");
       throw error;
     } finally {
       setLoading(false);
     }
   };
-  
+
   const cascadeAutoFill = async (sourceDocumentId, sourceType, targetType) => {
     setLoading(true);
     try {
@@ -436,18 +438,18 @@ export const useAutoFill = () => {
       );
       return response.data;
     } catch (error) {
-      message.error('เกิดข้อผิดพลาดในการ Auto-fill ข้อมูล');
+      message.error("เกิดข้อผิดพลาดในการ Auto-fill ข้อมูล");
       throw error;
     } finally {
       setLoading(false);
     }
   };
-  
+
   return {
     loading,
     autoFillFromPricingRequest,
     autoFillFromCustomer,
-    cascadeAutoFill
+    cascadeAutoFill,
   };
 };
 ```
@@ -455,7 +457,9 @@ export const useAutoFill = () => {
 ---
 
 ## �🎯 วัตถุประสงค์
-กำหนด Database Schema, API Endpoints, Permission System และ Technical Architecture สำหรับระบบ Account Management
+
+กำหนด Database Schema, API Endpoints, Permission System และ Technical
+Architecture สำหรับระบบ Account Management
 
 ---
 
@@ -685,10 +689,10 @@ CREATE INDEX idx_pricing_request_notes_pr ON pricing_request_notes(prn_pr_id);
 
 ```javascript
 // Authentication APIs
-POST   /api/auth/login
-POST   /api/auth/logout  
-GET    /api/auth/me
-POST   /api/auth/refresh-token
+POST / api / auth / login;
+POST / api / auth / logout;
+GET / api / auth / me;
+POST / api / auth / refresh - token;
 ```
 
 ### Pricing Integration
@@ -700,7 +704,7 @@ GET    /api/pricing/requests/:id              // ดึงข้อมูล pri
 GET    /api/pricing/requests/:id/notes        // ดึง notes ของ pricing request
 POST   /api/pricing/requests/:id/mark-used    // มาร์คว่าใช้แล้วสำหรับสร้าง quotation
 
-// Customer Data Integration  
+// Customer Data Integration
 GET    /api/customers/:id/details             // ดึงข้อมูลลูกค้าเต็ม (autofill)
 GET    /api/customers/search                  // ค้นหาลูกค้า
 GET    /api/customers/:id/pricing-history     // ประวัติการขอราคา
@@ -723,7 +727,7 @@ GET    /api/quotations/autofill/customer/:cus_id        // ดึงข้อม
 // Quotation Actions
 POST   /api/quotations/:id/submit         // Submit for review
 POST   /api/quotations/:id/approve        // Approve
-POST   /api/quotations/:id/reject         // Reject  
+POST   /api/quotations/:id/reject         // Reject
 POST   /api/quotations/:id/rollback       // Rollback status
 
 // Quotation Conversions
@@ -818,11 +822,11 @@ GET    /api/orders/:id/tracking           // Get order tracking
 
 ```javascript
 // Dashboard & Reports
-GET    /api/reports/dashboard             // Main dashboard data
-GET    /api/reports/sales                 // Sales reports
-GET    /api/reports/payments              // Payment reports
-GET    /api/reports/delivery              // Delivery reports
-GET    /api/reports/profit-loss           // P&L reports
+GET / api / reports / dashboard; // Main dashboard data
+GET / api / reports / sales; // Sales reports
+GET / api / reports / payments; // Payment reports
+GET / api / reports / delivery; // Delivery reports
+GET / api / reports / profit - loss; // P&L reports
 ```
 
 ---
@@ -836,36 +840,36 @@ const PERMISSIONS = {
   quotations: {
     sales: {
       create: true,
-      read: 'own',        // เฉพาะที่ตัวเองสร้าง
-      update: 'own_draft', // เฉพาะร่างที่ตัวเองสร้าง
-      delete: 'own_draft',
-      submit: 'own',
+      read: "own", // เฉพาะที่ตัวเองสร้าง
+      update: "own_draft", // เฉพาะร่างที่ตัวเองสร้าง
+      delete: "own_draft",
+      submit: "own",
       approve: false,
       reject: false,
       rollback: false,
-      convert: false
+      convert: false,
     },
     account: {
       create: true,
-      read: true,         // ทั้งหมด
-      update: true,       // ทั้งหมด
+      read: true, // ทั้งหมด
+      update: true, // ทั้งหมด
       delete: true,
       submit: true,
       approve: true,
       reject: true,
       rollback: true,
-      convert: true
-    }
+      convert: true,
+    },
   },
-  
+
   invoices: {
     sales: {
-      create: false,      // สร้างได้เฉพาะผ่าน conversion
-      read: 'related',    // ที่เกี่ยวข้องกับใบเสนอราคาตัวเอง
+      create: false, // สร้างได้เฉพาะผ่าน conversion
+      read: "related", // ที่เกี่ยวข้องกับใบเสนอราคาตัวเอง
       update: false,
       recordPayment: false,
       approve: false,
-      convert: false
+      convert: false,
     },
     account: {
       create: true,
@@ -874,16 +878,16 @@ const PERMISSIONS = {
       recordPayment: true,
       approve: true,
       convert: true,
-      rollback: true
-    }
+      rollback: true,
+    },
   },
-  
+
   receipts: {
     sales: {
       create: false,
-      read: 'related',
+      read: "related",
       update: false,
-      approve: false
+      approve: false,
     },
     account: {
       create: true,
@@ -891,25 +895,25 @@ const PERMISSIONS = {
       update: true,
       approve: true,
       generateTaxNumber: true,
-      convert: true
-    }
+      convert: true,
+    },
   },
-  
+
   deliveryNotes: {
     sales: {
       create: false,
-      read: 'related',
-      update: 'status_only', // อัปเดตสถานะได้บางอย่าง
-      markDelivered: 'related'
+      read: "related",
+      update: "status_only", // อัปเดตสถานะได้บางอย่าง
+      markDelivered: "related",
     },
     account: {
       create: true,
       read: true,
       update: true,
       markDelivered: true,
-      rollback: true
-    }
-  }
+      rollback: true,
+    },
+  },
 };
 ```
 
@@ -918,24 +922,25 @@ const PERMISSIONS = {
 ```javascript
 const hasPermission = (userRole, resource, action, document = null) => {
   const permission = PERMISSIONS[resource]?.[userRole]?.[action];
-  
+
   if (permission === true) return true;
   if (permission === false) return false;
-  
+
   // Special permission cases
-  if (permission === 'own' && document) {
+  if (permission === "own" && document) {
     return document.created_by === getCurrentUser().id;
   }
-  
-  if (permission === 'own_draft' && document) {
-    return document.created_by === getCurrentUser().id && 
-           document.status === 'draft';
+
+  if (permission === "own_draft" && document) {
+    return (
+      document.created_by === getCurrentUser().id && document.status === "draft"
+    );
   }
-  
-  if (permission === 'related' && document) {
+
+  if (permission === "related" && document) {
     return isRelatedToUser(document, getCurrentUser().id);
   }
-  
+
   return false;
 };
 ```
@@ -952,21 +957,21 @@ const DB_OPTIMIZATION = {
   connectionPool: {
     min: 5,
     max: 20,
-    idle: 10000
+    idle: 10000,
   },
-  
+
   // Query Optimization
   useSelectFields: true, // ไม่ใช้ SELECT *
-  usePagination: true,   // แบ่งหน้าเสมอ
-  cacheQueries: true,    // Cache queries ที่ใช้บ่อย
-  
+  usePagination: true, // แบ่งหน้าเสมอ
+  cacheQueries: true, // Cache queries ที่ใช้บ่อย
+
   // Index Strategy
   indexStrategy: [
-    'status columns for filtering',
-    'foreign keys for joins',
-    'date columns for sorting',
-    'composite indexes for complex queries'
-  ]
+    "status columns for filtering",
+    "foreign keys for joins",
+    "date columns for sorting",
+    "composite indexes for complex queries",
+  ],
 };
 ```
 
@@ -976,27 +981,27 @@ const DB_OPTIMIZATION = {
 const API_OPTIMIZATION = {
   // Response Compression
   compression: true,
-  
+
   // Rate Limiting
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // requests per window
+    max: 100, // requests per window
   },
-  
+
   // Caching Strategy
   caching: {
-    staticData: '1h',      // Customer, Product lists
-    documentList: '5m',    // Document listings
-    reports: '15m'         // Report data
+    staticData: "1h", // Customer, Product lists
+    documentList: "5m", // Document listings
+    reports: "15m", // Report data
   },
-  
+
   // Response Optimization
   responseOptimization: {
     useETags: true,
     cacheHeaders: true,
     compressResponse: true,
-    selectFields: true
-  }
+    selectFields: true,
+  },
 };
 ```
 
@@ -1006,27 +1011,27 @@ const API_OPTIMIZATION = {
 const FRONTEND_OPTIMIZATION = {
   // Code Splitting
   lazyLoading: [
-    'DocumentForm',
-    'ReportDashboard', 
-    'AdvancedSearch',
-    'BulkOperations'
+    "DocumentForm",
+    "ReportDashboard",
+    "AdvancedSearch",
+    "BulkOperations",
   ],
-  
+
   // State Management
   stateOptimization: {
     persistOnlyRequired: true,
     useShallowEqual: true,
     debounceUserInputs: 300, // ms
-    virtualizeListsOver: 100 // items
+    virtualizeListsOver: 100, // items
   },
-  
+
   // Asset Optimization
   assetOptimization: {
     imageCompression: true,
     bundleSplitting: true,
     treeShaking: true,
-    minification: true
-  }
+    minification: true,
+  },
 };
 ```
 
@@ -1038,30 +1043,30 @@ const FRONTEND_OPTIMIZATION = {
 const SECURITY_MEASURES = {
   // Authentication
   authentication: {
-    jwtExpiry: '24h',
-    refreshTokenExpiry: '7d',
+    jwtExpiry: "24h",
+    refreshTokenExpiry: "7d",
     bcryptRounds: 12,
-    sessionTimeout: '4h',
-    multiFactorAuth: false // Future enhancement
+    sessionTimeout: "4h",
+    multiFactorAuth: false, // Future enhancement
   },
-  
+
   // Authorization
   authorization: {
     roleBasedAccess: true,
     resourceLevelPermissions: true,
     documentOwnershipCheck: true,
-    auditTrail: true
+    auditTrail: true,
   },
-  
+
   // Data Protection
   dataProtection: {
     encryptSensitiveData: true,
     auditTrail: true,
-    dataRetention: '7 years',
+    dataRetention: "7 years",
     personalDataProtection: true,
-    backupEncryption: true
+    backupEncryption: true,
   },
-  
+
   // API Security
   apiSecurity: {
     inputValidation: true,
@@ -1069,8 +1074,8 @@ const SECURITY_MEASURES = {
     xssProtection: true,
     csrfProtection: true,
     rateLimiting: true,
-    requestSizeLimit: '10MB'
-  }
+    requestSizeLimit: "10MB",
+  },
 };
 ```
 
@@ -1082,36 +1087,36 @@ const SECURITY_MEASURES = {
 const MONITORING_STRATEGY = {
   // Application Monitoring
   applicationMetrics: [
-    'response_time',
-    'error_rate', 
-    'throughput',
-    'active_users',
-    'document_processing_time'
+    "response_time",
+    "error_rate",
+    "throughput",
+    "active_users",
+    "document_processing_time",
   ],
-  
+
   // Business Metrics
   businessMetrics: [
-    'quotations_created_per_day',
-    'approval_rate',
-    'payment_processing_time',
-    'delivery_success_rate'
+    "quotations_created_per_day",
+    "approval_rate",
+    "payment_processing_time",
+    "delivery_success_rate",
   ],
-  
+
   // Error Tracking
   errorTracking: {
     captureClientErrors: true,
     captureServerErrors: true,
     notifyOnCriticalErrors: true,
-    errorAggregation: true
+    errorAggregation: true,
   },
-  
+
   // Audit Logging
   auditLogging: {
     documentChanges: true,
     userActions: true,
     permissionChecks: true,
-    dataAccess: true
-  }
+    dataAccess: true,
+  },
 };
 ```
 
@@ -1141,7 +1146,7 @@ const MONITORING_STRATEGY = {
     "pr_sub": "",
     "pr_other_screen": "",
     "pr_image": "/uploads/pr_images/abc_polo.jpg",
-    
+
     // ข้อมูลลูกค้าที่ Join มา
     "pr_cus_id": "660e8400-e29b-41d4-a716-446655440001",
     "cus_company": "บริษัท ABC จำกัด",
@@ -1152,7 +1157,7 @@ const MONITORING_STRATEGY = {
     "cus_email": "contact@abc.co.th",
     "cus_firstname": "สมชาย",
     "cus_lastname": "ใจดี",
-    
+
     // Notes ที่รวมจาก pricing_request_notes
     "initial_notes": "[Sale] ลูกค้าต้องการเสื้อคุณภาพดี\n[Price] ราคาต้องแข่งขันได้\n[Manager] อนุมัติราคาพิเศษได้",
     "notes": [
@@ -1165,7 +1170,7 @@ const MONITORING_STRATEGY = {
         "prn_created_date": "2025-08-01T10:00:00Z"
       },
       {
-        "prn_id": "880e8400-e29b-41d4-a716-446655440003", 
+        "prn_id": "880e8400-e29b-41d4-a716-446655440003",
         "prn_text": "ราคาต้องแข่งขันได้",
         "prn_note_type": 2,
         "note_type_label": "Price",
@@ -1194,7 +1199,7 @@ const MONITORING_STRATEGY = {
     "cus_firstname": "สมชาย",
     "cus_lastname": "ใจดี",
     "cus_depart": "ฝ่ายจัดซื้อ",
-    
+
     // ประวัติการขอราคาล่าสุด
     "recent_pricing_requests": [
       {
@@ -1218,7 +1223,7 @@ const MONITORING_STRATEGY = {
 # API Development with Auto-fill Endpoints
 "สร้าง RESTful API endpoints พร้อม autofill functionality จาก pricing_requests และ master_customers"
 
-# Auto-fill Business Logic Implementation  
+# Auto-fill Business Logic Implementation
 "สร้าง Business Logic สำหรับ autofill ข้อมูลจาก pricing_requests (รวม notes) และ master_customers"
 
 # Frontend Auto-fill Components
@@ -1242,6 +1247,7 @@ const MONITORING_STRATEGY = {
 ## 📋 Implementation Checklist
 
 ### Backend Implementation
+
 - [ ] อัพเดต Database Schema ตาม specification ใหม่
 - [ ] สร้าง API endpoints สำหรับ autofill
 - [ ] สร้าง Business Logic สำหรับดึงข้อมูล join tables
@@ -1249,7 +1255,8 @@ const MONITORING_STRATEGY = {
 - [ ] สร้าง DTOs และ Validation
 - [ ] ทดสอบ API endpoints
 
-### Frontend Implementation  
+### Frontend Implementation
+
 - [ ] สร้าง PricingRequestSelector component
 - [ ] สร้าง CustomerSelector component
 - [ ] สร้าง useAutoFill custom hook
@@ -1259,8 +1266,9 @@ const MONITORING_STRATEGY = {
 - [ ] ทดสอบ User Experience
 
 ### Integration & Testing
+
 - [ ] ทดสอบ autofill จาก pricing_requests
-- [ ] ทดสอบ autofill จาก master_customers  
+- [ ] ทดสอบ autofill จาก master_customers
 - [ ] ทดสอบ cascade autofill ระหว่าง documents
 - [ ] ทดสอบ performance กับข้อมูลจำนวนมาก
 - [ ] ทดสอบ edge cases และ error scenarios

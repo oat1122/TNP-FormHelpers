@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -10,15 +10,18 @@ import {
   Box,
   useTheme,
   Avatar,
-} from '@mui/material';
-import {
-  Speed,
-} from '@mui/icons-material';
-import ProductionTypeIcon from '../../pages/MaxSupply/components/ProductionTypeIcon';
+} from "@mui/material";
+import { Speed } from "@mui/icons-material";
+import ProductionTypeIcon from "../../pages/MaxSupply/components/ProductionTypeIcon";
 
-const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', periodLabel = 'วันนี้' }) => {
+const ProductionTypeCapacityCard = ({
+  type,
+  workCalc,
+  timePeriod = "today",
+  periodLabel = "วันนี้",
+}) => {
   const theme = useTheme();
-  
+
   const currentWorkload = workCalc.current_workload[type.key] || 0;
   const totalCapacity = workCalc.capacity?.total?.[type.key] || 0;
   const dailyCapacity = workCalc.capacity?.daily?.[type.key] || 0;
@@ -28,7 +31,7 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
   const periodDays = workCalc.capacity?.period_days || 1;
 
   const formatNumber = (number) => {
-    return new Intl.NumberFormat('th-TH').format(number);
+    return new Intl.NumberFormat("th-TH").format(number);
   };
 
   const getUtilizationColor = (percentage) => {
@@ -39,19 +42,19 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
   };
 
   const getUtilizationLabel = (percentage) => {
-    if (percentage >= 90) return 'สูงมาก';
-    if (percentage >= 70) return 'สูง';
-    if (percentage >= 50) return 'ปานกลาง';
-    return 'ต่ำ';
+    if (percentage >= 90) return "สูงมาก";
+    if (percentage >= 70) return "สูง";
+    if (percentage >= 50) return "ปานกลาง";
+    return "ต่ำ";
   };
 
   return (
-    <Card 
-      variant="outlined" 
-      sx={{ 
+    <Card
+      variant="outlined"
+      sx={{
         bgcolor: type.bgColor,
         borderColor: type.color,
-        height: '100%',
+        height: "100%",
       }}
     >
       <CardContent>
@@ -74,17 +77,19 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
           </Box>
           <Chip
             size="small"
-            label={utilization > 100 ? `${utilization}% (เกิน ${utilization - 100}%)` : `${utilization}%`}
+            label={
+              utilization > 100 ? `${utilization}% (เกิน ${utilization - 100}%)` : `${utilization}%`
+            }
             sx={{
               bgcolor: getUtilizationColor(utilization),
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: utilization > 100 ? '0.7rem' : '0.75rem',
-              height: utilization > 100 ? 'auto' : 24,
-              '& .MuiChip-label': {
+              color: "white",
+              fontWeight: "bold",
+              fontSize: utilization > 100 ? "0.7rem" : "0.75rem",
+              height: utilization > 100 ? "auto" : 24,
+              "& .MuiChip-label": {
                 px: utilization > 100 ? 1 : 1.5,
                 py: utilization > 100 ? 0.5 : 0.5,
-                whiteSpace: 'nowrap',
+                whiteSpace: "nowrap",
               },
             }}
           />
@@ -105,16 +110,17 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
               height: 8,
               borderRadius: 1,
               bgcolor: theme.palette.grey[200],
-              '& .MuiLinearProgress-bar': {
+              "& .MuiLinearProgress-bar": {
                 bgcolor: getUtilizationColor(utilization),
               },
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            การใช้งาน: {getUtilizationLabel(utilization)} 
+            การใช้งาน: {getUtilizationLabel(utilization)}
             {utilization > 100 && (
-              <span style={{ color: theme.palette.error.main, fontWeight: 'bold' }}>
-                {' '}(เกินกำลังผลิต {utilization - 100}%)
+              <span style={{ color: theme.palette.error.main, fontWeight: "bold" }}>
+                {" "}
+                (เกินกำลังผลิต {utilization - 100}%)
               </span>
             )}
           </Typography>
@@ -126,14 +132,14 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
         <Stack spacing={1}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
-              <Speed sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
+              <Speed sx={{ fontSize: 16, mr: 0.5, verticalAlign: "middle" }} />
               กำลังการผลิต/วัน:
             </Typography>
             <Typography variant="body2" fontWeight="bold">
               {formatNumber(dailyCapacity)} ชิ้น
             </Typography>
           </Box>
-          
+
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" color="text.secondary">
               กำลังการผลิต{periodLabel}:
@@ -147,15 +153,14 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
             <Typography variant="body2" color="text.secondary">
               คงเหลือ{periodLabel}:
             </Typography>
-            <Typography 
-              variant="body2" 
-              fontWeight="bold" 
+            <Typography
+              variant="body2"
+              fontWeight="bold"
               color={remainingCapacity < 0 ? theme.palette.error.main : type.color}
             >
-              {remainingCapacity < 0 ? 
-                `เกิน ${formatNumber(Math.abs(remainingCapacity))} ชิ้น` : 
-                `${formatNumber(remainingCapacity)} ชิ้น`
-              }
+              {remainingCapacity < 0
+                ? `เกิน ${formatNumber(Math.abs(remainingCapacity))} ชิ้น`
+                : `${formatNumber(remainingCapacity)} ชิ้น`}
             </Typography>
           </Box>
 
@@ -175,4 +180,4 @@ const ProductionTypeCapacityCard = ({ type, workCalc, timePeriod = 'today', peri
   );
 };
 
-export default ProductionTypeCapacityCard; 
+export default ProductionTypeCapacityCard;

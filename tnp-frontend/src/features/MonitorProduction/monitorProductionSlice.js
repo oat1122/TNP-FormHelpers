@@ -10,13 +10,13 @@ export const monitorProductionSlice = createSlice({
   },
   reducers: {
     setItemList: (state, action) => {
-      state.items = action.payload
+      state.items = action.payload;
     },
     setNoteList: (state, action) => {
-      state.note_lists = action.payload
+      state.note_lists = action.payload;
     },
     setNote: (state, action) => {
-      state.note = action.payload
+      state.note = action.payload;
     },
   },
 });

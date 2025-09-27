@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Alert,
   AlertTitle,
@@ -8,41 +8,41 @@ import {
   ListItem,
   ListItemText,
   IconButton,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
+} from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
 
 const tokens = {
-  primary: '#900F0F',
-  white: '#FFFFFF',
-  bg: '#F5F5F5',
+  primary: "#900F0F",
+  white: "#FFFFFF",
+  bg: "#F5F5F5",
 };
 
 const InvoiceAlert = styled(Alert)(({ theme }) => ({
   marginBottom: theme.spacing(2),
-  '&.MuiAlert-standardWarning': {
-    backgroundColor: '#fff3cd',
-    borderColor: '#ffecb5',
-    color: '#856404',
+  "&.MuiAlert-standardWarning": {
+    backgroundColor: "#fff3cd",
+    borderColor: "#ffecb5",
+    color: "#856404",
   },
-  '&.MuiAlert-standardError': {
-    backgroundColor: '#f8d7da',
-    borderColor: '#f5c6cb',
-    color: '#721c24',
+  "&.MuiAlert-standardError": {
+    backgroundColor: "#f8d7da",
+    borderColor: "#f5c6cb",
+    color: "#721c24",
   },
 }));
 
 const InvoiceExpandButton = styled(IconButton)(({ theme, expanded }) => ({
-  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-  transition: theme.transitions.create('transform', {
+  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+  transition: theme.transitions.create("transform", {
     duration: theme.transitions.duration.shortest,
   }),
-  marginLeft: 'auto',
+  marginLeft: "auto",
 }));
 
 const InvoiceWarningsBanner = React.memo(function InvoiceWarningsBanner({
@@ -88,11 +88,7 @@ const InvoiceWarningsBanner = React.memo(function InvoiceWarningsBanner({
               </InvoiceExpandButton>
             )}
             {onDismiss && (
-              <IconButton
-                size="small"
-                onClick={handleDismiss}
-                aria-label="ปิดการแจ้งเตือน"
-              >
+              <IconButton size="small" onClick={handleDismiss} aria-label="ปิดการแจ้งเตือน">
                 <CloseIcon fontSize="small" />
               </IconButton>
             )}
@@ -109,9 +105,9 @@ const InvoiceWarningsBanner = React.memo(function InvoiceWarningsBanner({
               <List dense sx={{ mt: 1 }}>
                 {warnings.map((warning, index) => (
                   <ListItem key={index} sx={{ pl: 0 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary={warning.message || warning}
-                      primaryTypographyProps={{ variant: 'body2' }}
+                      primaryTypographyProps={{ variant: "body2" }}
                     />
                   </ListItem>
                 ))}
@@ -143,11 +139,7 @@ const InvoiceWarningsBanner = React.memo(function InvoiceWarningsBanner({
               </InvoiceExpandButton>
             )}
             {onDismiss && (
-              <IconButton
-                size="small"
-                onClick={handleDismiss}
-                aria-label="ปิดการแจ้งเตือน"
-              >
+              <IconButton size="small" onClick={handleDismiss} aria-label="ปิดการแจ้งเตือน">
                 <CloseIcon fontSize="small" />
               </IconButton>
             )}
@@ -164,10 +156,7 @@ const InvoiceWarningsBanner = React.memo(function InvoiceWarningsBanner({
               <List dense sx={{ mt: 1 }}>
                 {errors.map((error, index) => (
                   <ListItem key={index} sx={{ pl: 0 }}>
-                    <ListItemText 
-                      primary={error}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
+                    <ListItemText primary={error} primaryTypographyProps={{ variant: "body2" }} />
                   </ListItem>
                 ))}
               </List>

@@ -18,13 +18,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import {
-  FaSearch,
-  FaSync,
-  FaPlus,
-  FaExclamationTriangle,
-  FaClock,
-} from "react-icons/fa";
+import { FaSearch, FaSync, FaPlus, FaExclamationTriangle, FaClock } from "react-icons/fa";
 import {
   FilterList as FilterListIcon,
   Assignment as AssignmentIcon,
@@ -80,21 +74,11 @@ const FilterBar = ({
             >
               <AssignmentIcon color="primary" />
               รายการงานผลิต
-              <Chip
-                label={`${totalItems} งาน`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
+              <Chip label={`${totalItems} งาน`} size="small" color="primary" variant="outlined" />
             </Typography>
             {urgentCount > 0 && (
               <Badge badgeContent={urgentCount} color="error">
-                <Chip
-                  label="ใกล้ครบกำหนด"
-                  size="small"
-                  color="error"
-                  icon={<WarningIcon />}
-                />
+                <Chip label="ใกล้ครบกำหนด" size="small" color="error" icon={<WarningIcon />} />
               </Badge>
             )}
           </Box>
@@ -184,9 +168,7 @@ const FilterBar = ({
               <InputLabel>ประเภท</InputLabel>
               <Select
                 value={filters.production_type}
-                onChange={(e) =>
-                  onFilterChange("production_type", e.target.value)
-                }
+                onChange={(e) => onFilterChange("production_type", e.target.value)}
                 label="ประเภท"
               >
                 <MenuItem value="all">ทั้งหมด</MenuItem>
@@ -224,9 +206,7 @@ const FilterBar = ({
                   <InputLabel>ความสำคัญ</InputLabel>
                   <Select
                     value={filters.priority}
-                    onChange={(e) =>
-                      onFilterChange("priority", e.target.value)
-                    }
+                    onChange={(e) => onFilterChange("priority", e.target.value)}
                     label="ความสำคัญ"
                   >
                     <MenuItem value="all">ทั้งหมด</MenuItem>
@@ -243,9 +223,7 @@ const FilterBar = ({
                   <InputLabel>ประเภทวันที่</InputLabel>
                   <Select
                     value={filters.date_type || "start_date"}
-                    onChange={(e) =>
-                      onFilterChange("date_type", e.target.value)
-                    }
+                    onChange={(e) => onFilterChange("date_type", e.target.value)}
                     label="ประเภทวันที่"
                   >
                     <MenuItem value="start_date">วันที่เริ่มงาน</MenuItem>
@@ -264,9 +242,7 @@ const FilterBar = ({
                   label="วันที่เริ่ม"
                   type="date"
                   value={filters.date_from}
-                  onChange={(e) =>
-                    onFilterChange("date_from", e.target.value)
-                  }
+                  onChange={(e) => onFilterChange("date_from", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                   size="small"
                 />
@@ -278,9 +254,7 @@ const FilterBar = ({
                   label="วันที่สิ้นสุด"
                   type="date"
                   value={filters.date_to}
-                  onChange={(e) =>
-                    onFilterChange("date_to", e.target.value)
-                  }
+                  onChange={(e) => onFilterChange("date_to", e.target.value)}
                   InputLabelProps={{ shrink: true }}
                   size="small"
                 />
@@ -293,12 +267,7 @@ const FilterBar = ({
                     color="error"
                     size="small"
                     startIcon={<FaExclamationTriangle />}
-                    onClick={() =>
-                      onFilterChange(
-                        "overdue_only",
-                        !filters.overdue_only
-                      )
-                    }
+                    onClick={() => onFilterChange("overdue_only", !filters.overdue_only)}
                     title="แสดงเฉพาะงานที่เลยกำหนดแล้ว"
                   >
                     เลยกำหนดเท่านั้น
@@ -308,16 +277,18 @@ const FilterBar = ({
                     color="warning"
                     size="small"
                     startIcon={<FaClock />}
-                    onClick={() =>
-                      onFilterChange("urgent_only", !filters.urgent_only)
-                    }
+                    onClick={() => onFilterChange("urgent_only", !filters.urgent_only)}
                     title="แสดงเฉพาะงานที่ใกล้ครบกำหนด (ภายใน 2 วัน)"
                   >
                     ด่วนเท่านั้น
                   </Button>
                 </Stack>
                 {(filters.overdue_only || filters.urgent_only) && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
+                  >
                     💡 เลือกได้เพียงตัวเลือกเดียว: เลยกำหนด หรือ ด่วน
                   </Typography>
                 )}

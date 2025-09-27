@@ -17,8 +17,8 @@ function GridCard() {
     inProgress: false,
     owner: false,
     dateNull: false,
-    shirtCate: '1',
-    done: false
+    shirtCate: "1",
+    done: false,
   });
 
   const observer = useRef();
@@ -31,7 +31,7 @@ function GridCard() {
 
   const filteredData = useMemo(() => {
     if (!data) return [];
-    
+
     return data
       .filter((row) => {
         const { selectAll, notStarted, inProgress, owner, dateNull, shirtCate, done } = filters;
@@ -64,15 +64,15 @@ function GridCard() {
             "exam_end",
           ].some((key) => !row[key]);
 
-          const isAllShirt = shirtCate === '1';
+        const isAllShirt = shirtCate === "1";
 
-          // Filter only card t-shirt
-          const isTshirt = shirtCate === '2' && row.product_category === 'T-Shirt';
-          
-          // Filter only card polo shirt
-          const isPoloShirt = shirtCate === '3' && row.product_category === 'Polo Shirt';
+        // Filter only card t-shirt
+        const isTshirt = shirtCate === "2" && row.product_category === "T-Shirt";
 
-          const isDone = done && row.status === 2;
+        // Filter only card polo shirt
+        const isPoloShirt = shirtCate === "3" && row.product_category === "Polo Shirt";
+
+        const isDone = done && row.status === 2;
 
         return (
           (isAllShirt || isTshirt || isPoloShirt) &&
@@ -80,24 +80,28 @@ function GridCard() {
         );
       })
       .filter((row) => {
-        
         const isSaleAndNotStarted = user.role === "sale" && row.status === 0;
         const isNotSaleAndNotFinished = user.role !== "sale" && row.status !== 2;
         const isSaleAndInProgress = user.role === "sale" && row.status === 1;
         const isSaleAndDone = user.role === "sale" && row.status === 2;
         const isFinished = (user.role === "admin" || user.role === "manager") && row.status === 2;
-        const searchWorkName = row.work_name.toLowerCase().includes(keyword.toLowerCase()); 
-        const searchUserName = row.username.toLowerCase().includes(keyword.toLowerCase()); 
+        const searchWorkName = row.work_name.toLowerCase().includes(keyword.toLowerCase());
+        const searchUserName = row.username.toLowerCase().includes(keyword.toLowerCase());
 
         return (
-          (isSaleAndNotStarted || isNotSaleAndNotFinished || isSaleAndInProgress || isSaleAndDone || isFinished) && (searchWorkName || searchUserName)
+          (isSaleAndNotStarted ||
+            isNotSaleAndNotFinished ||
+            isSaleAndInProgress ||
+            isSaleAndDone ||
+            isFinished) &&
+          (searchWorkName || searchUserName)
         );
       });
   }, [data, filters, user.username, user.role, keyword]);
 
   useEffect(() => {
     if (observer.current) observer.current.disconnect();
-    
+
     observer.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && filteredData && filteredData.length > cardLimit) {
@@ -105,30 +109,32 @@ function GridCard() {
         }
       },
       {
-        rootMargin: '50px',
-        threshold: 0.1
+        rootMargin: "50px",
+        threshold: 0.1,
       }
     );
-    
+
     if (lastCardRef.current) {
       observer.current.observe(lastCardRef.current);
     }
-    
+
     return () => {
       if (observer.current) observer.current.disconnect();
     };
-  }, [cardLimit, filteredData?.length, filters.notStarted, filters.inProgress, filters.owner, filters.dateNull, filters.done]);
+  }, [
+    cardLimit,
+    filteredData?.length,
+    filters.notStarted,
+    filters.inProgress,
+    filters.owner,
+    filters.dateNull,
+    filters.done,
+  ]);
 
   return (
     <Container className="grid-card">
       <AppFilter onFiltersChange={handleFiltersChange} />
-      <Row
-        xs={1}
-        md={2}
-        xl={3}
-        xxl={4}
-        className="g-4 mt-2 mt-md-0 mx-auto"
-      >
+      <Row xs={1} md={2} xl={3} xxl={4} className="g-4 mt-2 mt-md-0 mx-auto">
         {error ? (
           <div className="w-100 text-center py-5">
             <h3 className="text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</h3>
@@ -141,18 +147,15 @@ function GridCard() {
                 key={row.pd_id}
                 style={{
                   animationDelay: `${index * 0.05}s`,
-                  animation: 'fadeInUp 0.4s ease forwards',
-                  opacity: 0
+                  animation: "fadeInUp 0.4s ease forwards",
+                  opacity: 0,
                 }}
               >
                 <RenderedCard data={row} />
               </div>
             ))}
             {filteredData.length > cardLimit && (
-              <div 
-                className="w-100 text-center py-3" 
-                ref={lastCardRef}
-              >
+              <div className="w-100 text-center py-3" ref={lastCardRef}>
                 <p className="text-muted mb-0">เลื่อนลงเพื่อดูข้อมูลเพิ่มเติม</p>
               </div>
             )}

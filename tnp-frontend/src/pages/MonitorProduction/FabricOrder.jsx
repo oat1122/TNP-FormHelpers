@@ -15,7 +15,7 @@ import moment from "moment";
 import { useSelector } from "react-redux";
 import { open_dialog_ok_timer, open_dialog_error } from "../../utils/dialog_swal2/alart_one_line";
 
-const NoteIcon = styled(MdNotes)({ 
+const NoteIcon = styled(MdNotes)({
   fontSize: "1.25rem",
 });
 
@@ -38,21 +38,16 @@ function FabricOrder({ data }) {
 
   const handleDisabledNoteButton = () => {
     return (
-      item_lists.every(
-        (item) => item.pd_id !== data.pd_id || item.note_category !== "order"
-      ) || item_lists.length === 0
+      item_lists.every((item) => item.pd_id !== data.pd_id || item.note_category !== "order") ||
+      item_lists.length === 0
     );
   };
 
   const SettingRow = () => {
     const [showOrderDate, setShowOrderDate] = useState(false);
     const [showReceiveDate, setShowReceiveDate] = useState(false);
-    const [orderDatePick, setOrderDatePick] = useState(
-      moment(data.order_start)
-    );
-    const [receiveDatePick, setReceiveDatePick] = useState(
-      moment(data.order_end)
-    );
+    const [orderDatePick, setOrderDatePick] = useState(moment(data.order_start));
+    const [receiveDatePick, setReceiveDatePick] = useState(moment(data.order_end));
 
     const handleOrderDShow = () => setShowOrderDate(true);
     const handleReceiveDShow = () => setShowReceiveDate(true);
@@ -70,8 +65,7 @@ function FabricOrder({ data }) {
     const handleSubmitOrder = async (event) => {
       event.preventDefault();
 
-      const dateValue =
-        orderDatePick === null ? "" : orderDatePick.format("yy-MM-DD");
+      const dateValue = orderDatePick === null ? "" : orderDatePick.format("yy-MM-DD");
 
       try {
         const response = await axios.put(`production/${data.pd_id}`, {
@@ -81,21 +75,21 @@ function FabricOrder({ data }) {
         if (response.data.success) {
           // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
           setShowOrderDate(false);
-          
+
           // แสดง toast แทน Swal
           await open_dialog_ok_timer("Order date updated");
-          
+
           refetch();
         } else {
           // ปิด modal ก่อนแสดง error toast
           setShowOrderDate(false);
-          
+
           open_dialog_error("Error", response.data.error);
         }
       } catch (error) {
         // ปิด modal ก่อนแสดง error toast
         setShowOrderDate(false);
-        
+
         open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
     };
@@ -103,8 +97,7 @@ function FabricOrder({ data }) {
     const handleSubmitReceive = async (event) => {
       event.preventDefault();
 
-      const dateValue =
-        receiveDatePick === null ? "" : receiveDatePick.format("yy-MM-DD");
+      const dateValue = receiveDatePick === null ? "" : receiveDatePick.format("yy-MM-DD");
 
       try {
         const response = await axios.put(`production/${data.pd_id}`, {
@@ -114,21 +107,21 @@ function FabricOrder({ data }) {
         if (response.data.success) {
           // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
           setShowReceiveDate(false);
-          
+
           // แสดง toast แทน Swal
           await open_dialog_ok_timer("Order date updated");
-          
+
           refetch();
         } else {
           // ปิด modal ก่อนแสดง error toast
           setShowReceiveDate(false);
-          
+
           open_dialog_error("Error", response.data.error);
         }
       } catch (error) {
         // ปิด modal ก่อนแสดง error toast
         setShowReceiveDate(false);
-        
+
         open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
     };
@@ -136,10 +129,7 @@ function FabricOrder({ data }) {
     return (
       <>
         <div className="content-setting rounded-start border-end w-100 ms-2">
-          <Button
-            className="btn btn-setting py-0 px-1"
-            onClick={handleOrderDShow}
-          >
+          <Button className="btn btn-setting py-0 px-1" onClick={handleOrderDShow}>
             วันสั่ง
           </Button>
           <Modal
@@ -171,11 +161,7 @@ function FabricOrder({ data }) {
                 </LocalizationProvider>
               </Modal.Body>
               <Modal.Footer>
-                <Button
-                  type="submit"
-                  className="col-5 mx-auto"
-                  variant="danger"
-                >
+                <Button type="submit" className="col-5 mx-auto" variant="danger">
                   save
                 </Button>
                 <Button
@@ -190,10 +176,7 @@ function FabricOrder({ data }) {
           </Modal>
         </div>
         <div className="content-setting border-end w-100">
-          <Button
-            className="btn-setting py-0 px-1"
-            onClick={handleReceiveDShow}
-          >
+          <Button className="btn-setting py-0 px-1" onClick={handleReceiveDShow}>
             วันที่ได้รับ
           </Button>
           <Modal
@@ -205,9 +188,7 @@ function FabricOrder({ data }) {
           >
             <form onSubmit={handleSubmitReceive}>
               <Modal.Header className="py-1">
-                <Modal.Title className="mx-auto">
-                  Order Finished Date
-                </Modal.Title>
+                <Modal.Title className="mx-auto">Order Finished Date</Modal.Title>
               </Modal.Header>
               <Modal.Body>
                 <LocalizationProvider dateAdapter={AdapterMoment}>
@@ -227,11 +208,7 @@ function FabricOrder({ data }) {
                 </LocalizationProvider>
               </Modal.Body>
               <Modal.Footer>
-                <Button
-                  type="submit"
-                  className="col-5 mx-auto"
-                  variant="danger"
-                >
+                <Button type="submit" className="col-5 mx-auto" variant="danger">
                   save
                 </Button>
                 <Button
@@ -249,13 +226,8 @@ function FabricOrder({ data }) {
           <Button className="btn-setting py-0 px-0" onClick={handleNoteShow}>
             บันทึก
           </Button>
-          <Modal
-            show={showNote}
-            onHide={handleNoteClose}
-            size="lg"
-            className="mt-5 modal-note"
-          >
-            <ProductionNote pd_id={data.pd_id} category="order"/>
+          <Modal show={showNote} onHide={handleNoteClose} size="lg" className="mt-5 modal-note">
+            <ProductionNote pd_id={data.pd_id} category="order" />
           </Modal>
         </div>
         <div className="content-setting w-100">
@@ -299,15 +271,12 @@ function FabricOrder({ data }) {
             <div className="content-date text-end w-100 rounded-end">
               <label>{orderDate === "Invalid date" ? "" : orderDate}</label>
               <label className="mx-1">
-                {orderDate !== "Invalid date" || receiveDate !== "Invalid date"
-                  ? "|"
-                  : null}
+                {orderDate !== "Invalid date" || receiveDate !== "Invalid date" ? "|" : null}
               </label>
               <label className="fw-bold pe-3">
                 {receiveDate === "Invalid date" ? "" : receiveDate}
               </label>
-              {(user.role !== "manager" && user.role !== "production") ||
-              data.status === 2 ? (
+              {(user.role !== "manager" && user.role !== "production") || data.status === 2 ? (
                 <>
                   <Button
                     className="btn-view-note py-0 px-2"
@@ -316,16 +285,8 @@ function FabricOrder({ data }) {
                   >
                     <NoteIcon />
                   </Button>
-                  <Modal
-                    show={showNote}
-                    onHide={handleNoteClose}
-                    size="lg"
-                    className="modal-note"
-                  >
-                    <ProductionNote
-                      pd_id={data.pd_id}
-                      category="order"
-                    />
+                  <Modal show={showNote} onHide={handleNoteClose} size="lg" className="modal-note">
+                    <ProductionNote pd_id={data.pd_id} category="order" />
                   </Modal>
                 </>
               ) : (
@@ -342,11 +303,7 @@ function FabricOrder({ data }) {
                     className="btn setting px-1 py-0 border-0"
                     htmlFor={`btn-check-order-${data.pd_id}`}
                   >
-                    {showTab ? (
-                      <IoIosCloseCircleOutline />
-                    ) : (
-                      <RiSettings3Fill />
-                    )}
+                    {showTab ? <IoIosCloseCircleOutline /> : <RiSettings3Fill />}
                   </label>
                 </>
               )}

@@ -1,42 +1,42 @@
 .swal2-container.swal2-styled {
-    z-index: 2000;
+  z-index: 2000;
 }
 
 .swal2-title.swal2-styled {
-    /* letter-spacing: 0.15rem !important; */
-    font-size: 24px;
-    font-family: "KanitLight";
-    padding-bottom: 10px
+  /* letter-spacing: 0.15rem !important; */
+  font-size: 24px;
+  font-family: "KanitLight";
+  padding-bottom: 10px;
 }
 
 .swal2-confirm.swal2-styled {
-    background-color: #B20000 !important;
-    border: 1px solid #B20000 !important; 
-    font-size: 16px !important;
-    padding-inline: 1rem;
-    padding-block: 0.5rem;
-    font-family: "Kanit";
+  background-color: #b20000 !important;
+  border: 1px solid #b20000 !important;
+  font-size: 16px !important;
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  font-family: "Kanit";
 }
 .swal2-cancel.swal2-styled {
-    background-color: transparent !important;
-    border: 1px solid #B20000 !important; 
-    color: #B20000 !important;
-    font-size: 16px !important;
-    padding-inline: 1rem;
-    padding-block: 0.5rem;
-    font-family: "Kanit";
+  background-color: transparent !important;
+  border: 1px solid #b20000 !important;
+  color: #b20000 !important;
+  font-size: 16px !important;
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  font-family: "Kanit";
 }
 
 .swal2-cancel.swal2-styled:hover {
-    background-image: none !important;
-    background-color: rgba(178, 0, 0, 0.1)!important;
+  background-image: none !important;
+  background-color: rgba(178, 0, 0, 0.1) !important;
 }
 
 .swal2-deny.swal2-styled {
-    background-color: #B20000 !important;
-    border: 1px solid #B20000 !important; 
-    font-size: 16px !important;
-    padding-inline: 1rem;
-    padding-block: 0.5rem;
-    font-family: "Kanit";
+  background-color: #b20000 !important;
+  border: 1px solid #b20000 !important;
+  font-size: 16px !important;
+  padding-inline: 1rem;
+  padding-block: 0.5rem;
+  font-family: "Kanit";
 }

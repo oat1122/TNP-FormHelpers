@@ -45,13 +45,10 @@ const EnhancedDashboard = ({
   } = useProductionCapacityCalculation(allData, externalSelectedTimePeriod);
 
   // Use external state if provided, otherwise use internal state
-  const selectedTimePeriod =
-    externalSelectedTimePeriod || internalSelectedTimePeriod;
-  const setSelectedTimePeriod =
-    externalSetSelectedTimePeriod || internalSetSelectedTimePeriod;
+  const selectedTimePeriod = externalSelectedTimePeriod || internalSelectedTimePeriod;
+  const setSelectedTimePeriod = externalSetSelectedTimePeriod || internalSetSelectedTimePeriod;
 
-  const workCalc =
-    calculationResult?.work_calculations || statistics?.work_calculations;
+  const workCalc = calculationResult?.work_calculations || statistics?.work_calculations;
 
   // Generate insights based on data
   const generateInsights = () => {
@@ -83,9 +80,7 @@ const EnhancedDashboard = ({
           title: `${type.toUpperCase()} เกินกำลังผลิต`,
           message: `${type.toUpperCase()} ใช้ ${utilization}% (เกิน ${
             utilization - 100
-          }%) ของกำลังผลิต${getCapacityDisplayLabel(
-            selectedTimePeriod
-          )} — ต้องปรับแผนการผลิตด่วน!`,
+          }%) ของกำลังผลิต${getCapacityDisplayLabel(selectedTimePeriod)} — ต้องปรับแผนการผลิตด่วน!`,
         });
       } else if (utilization >= 95) {
         insights.push({
@@ -175,9 +170,7 @@ const EnhancedDashboard = ({
                       },
                     }}
                   >
-                    <AlertTitle sx={{ fontWeight: "bold" }}>
-                      {insight.title}
-                    </AlertTitle>
+                    <AlertTitle sx={{ fontWeight: "bold" }}>{insight.title}</AlertTitle>
                     {insight.message}
                   </Alert>
                 </Grid>

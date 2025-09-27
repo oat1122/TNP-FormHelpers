@@ -1,23 +1,19 @@
-import React from 'react';
+import React from "react";
+import { Box, Typography, Avatar, Button, CircularProgress } from "@mui/material";
+import { PictureAsPdf as PdfIcon, Visibility as VisibilityIcon } from "@mui/icons-material";
 import {
-  Box,
-  Typography,
-  Avatar,
-  Button,
-  CircularProgress,
-} from '@mui/material';
-import {
-  PictureAsPdf as PdfIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
-import { Section, SectionHeader, SecondaryButton, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
+  Section,
+  SectionHeader,
+  SecondaryButton,
+  tokens,
+} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 /**
  * ActionsSection (Shared Component)
  * Standard action buttons for documents (View PDF, Download, etc.)
  */
 const ActionsSection = ({
-  title = 'การดำเนินการ',
+  title = "การดำเนินการ",
   onPreviewPdf,
   onDownloadPdf,
   onEdit,
@@ -37,8 +33,12 @@ const ActionsSection = ({
           <PdfIcon fontSize="small" />
         </Avatar>
         <Box>
-          <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-          <Typography variant="caption" color="text.secondary">ดาวน์โหลด PDF และการจัดการเอกสาร</Typography>
+          <Typography variant="subtitle1" fontWeight={700}>
+            {title}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ดาวน์โหลด PDF และการจัดการเอกสาร
+          </Typography>
         </Box>
       </SectionHeader>
       <Box sx={{ p: 2 }}>
@@ -50,10 +50,10 @@ const ActionsSection = ({
               onClick={onPreviewPdf}
               disabled={isGeneratingPdf}
             >
-              {isGeneratingPdf ? 'กำลังสร้าง…' : 'ดูตัวอย่าง PDF'}
+              {isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
             </SecondaryButton>
           )}
-          
+
           {onDownloadPdf && (
             <SecondaryButton
               startIcon={<PdfIcon />}
@@ -68,26 +68,14 @@ const ActionsSection = ({
           {isEditing ? (
             <>
               {onSave && (
-                <SecondaryButton
-                  variant="contained"
-                  onClick={onSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'กำลังบันทึก…' : 'บันทึก'}
+                <SecondaryButton variant="contained" onClick={onSave} disabled={isSaving}>
+                  {isSaving ? "กำลังบันทึก…" : "บันทึก"}
                 </SecondaryButton>
               )}
-              {onCancel && (
-                <SecondaryButton onClick={onCancel}>
-                  ยกเลิก
-                </SecondaryButton>
-              )}
+              {onCancel && <SecondaryButton onClick={onCancel}>ยกเลิก</SecondaryButton>}
             </>
           ) : (
-            showEditButton && onEdit && (
-              <SecondaryButton onClick={onEdit}>
-                แก้ไข
-              </SecondaryButton>
-            )
+            showEditButton && onEdit && <SecondaryButton onClick={onEdit}>แก้ไข</SecondaryButton>
           )}
 
           {/* Additional custom actions */}

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Box, Container, Typography, Grid, Paper } from '@mui/material';
-import { SpecialDiscountField, WithholdingTaxField, CalculationSummary } from './index';
+import React, { useState } from "react";
+import { Box, Container, Typography, Grid, Paper } from "@mui/material";
+import { SpecialDiscountField, WithholdingTaxField, CalculationSummary } from "./index";
 
 const ComponentsDemo = () => {
-  const [specialDiscountType, setSpecialDiscountType] = useState('percentage');
+  const [specialDiscountType, setSpecialDiscountType] = useState("percentage");
   const [specialDiscountValue, setSpecialDiscountValue] = useState(5);
   const [hasWithholdingTax, setHasWithholdingTax] = useState(true);
   const [withholdingTaxPercentage, setWithholdingTaxPercentage] = useState(3);
@@ -12,11 +12,12 @@ const ComponentsDemo = () => {
   const subtotal = 10000;
   const vat = subtotal * 0.07;
   const total = subtotal + vat;
-  
-  const specialDiscountAmount = specialDiscountType === 'percentage' 
-    ? total * (specialDiscountValue / 100)
-    : specialDiscountValue;
-  
+
+  const specialDiscountAmount =
+    specialDiscountType === "percentage"
+      ? total * (specialDiscountValue / 100)
+      : specialDiscountValue;
+
   const netAfterDiscount = total - specialDiscountAmount;
   const withholdingTaxAmount = hasWithholdingTax ? subtotal * (withholdingTaxPercentage / 100) : 0;
   const finalTotal = netAfterDiscount - withholdingTaxAmount;
@@ -26,30 +27,52 @@ const ComponentsDemo = () => {
       <Typography variant="h4" gutterBottom textAlign="center" color="primary">
         🎨 Quotation Components Demo
       </Typography>
-      <Typography variant="subtitle1" gutterBottom textAlign="center" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography
+        variant="subtitle1"
+        gutterBottom
+        textAlign="center"
+        color="text.secondary"
+        sx={{ mb: 4 }}
+      >
         ตัวอย่างการใช้งาน Components ใหม่สำหรับส่วนลดพิเศษและภาษีหัก ณ ที่จ่าย
       </Typography>
 
       {/* Sample Values Display */}
-      <Paper elevation={1} sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5' }}>
-        <Typography variant="h6" gutterBottom>📊 ข้อมูลตัวอย่าง</Typography>
+      <Paper elevation={1} sx={{ p: 2, mb: 3, bgcolor: "#f5f5f5" }}>
+        <Typography variant="h6" gutterBottom>
+          📊 ข้อมูลตัวอย่าง
+        </Typography>
         <Grid container spacing={2}>
           <Grid item xs={3}>
-            <Typography variant="caption" color="text.secondary">ยอดก่อนภาษี</Typography>
-            <Typography variant="body1" fontWeight={600}>฿10,000.00</Typography>
+            <Typography variant="caption" color="text.secondary">
+              ยอดก่อนภาษี
+            </Typography>
+            <Typography variant="body1" fontWeight={600}>
+              ฿10,000.00
+            </Typography>
           </Grid>
           <Grid item xs={3}>
-            <Typography variant="caption" color="text.secondary">VAT 7%</Typography>
-            <Typography variant="body1" fontWeight={600}>฿700.00</Typography>
+            <Typography variant="caption" color="text.secondary">
+              VAT 7%
+            </Typography>
+            <Typography variant="body1" fontWeight={600}>
+              ฿700.00
+            </Typography>
           </Grid>
           <Grid item xs={3}>
-            <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
-            <Typography variant="body1" fontWeight={600}>฿10,700.00</Typography>
+            <Typography variant="caption" color="text.secondary">
+              ยอดรวม
+            </Typography>
+            <Typography variant="body1" fontWeight={600}>
+              ฿10,700.00
+            </Typography>
           </Grid>
           <Grid item xs={3}>
-            <Typography variant="caption" color="text.secondary">ยอดสุทธิสุดท้าย</Typography>
+            <Typography variant="caption" color="text.secondary">
+              ยอดสุทธิสุดท้าย
+            </Typography>
             <Typography variant="body1" fontWeight={600} color="primary">
-              ฿{finalTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              ฿{finalTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
             </Typography>
           </Grid>
         </Grid>
@@ -105,10 +128,12 @@ const ComponentsDemo = () => {
       </Grid>
 
       {/* Code Example */}
-      <Paper elevation={1} sx={{ p: 3, mt: 4, bgcolor: '#fafafa' }}>
-        <Typography variant="h6" gutterBottom>💻 วิธีการใช้งาน</Typography>
-        <Box component="pre" sx={{ fontSize: '0.875rem', overflow: 'auto' }}>
-{`// Import components
+      <Paper elevation={1} sx={{ p: 3, mt: 4, bgcolor: "#fafafa" }}>
+        <Typography variant="h6" gutterBottom>
+          💻 วิธีการใช้งาน
+        </Typography>
+        <Box component="pre" sx={{ fontSize: "0.875rem", overflow: "auto" }}>
+          {`// Import components
 import { SpecialDiscountField, WithholdingTaxField, CalculationSummary } from './components';
 
 // Use in your form

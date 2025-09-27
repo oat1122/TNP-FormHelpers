@@ -1,9 +1,13 @@
 # Step 2: ใบแจ้งหนี้ (Invoice Flow)
 
 ## 🎯 วัตถุประสงค์
-สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้ พร้อมระบบเลือกประเภทการเรียกเก็บ (เต็มจำนวน/ส่วนที่เหลือ/บางส่วน) และระบบติดตามการชำระเงิน
+
+สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้
+พร้อมระบบเลือกประเภทการเรียกเก็บ (เต็มจำนวน/ส่วนที่เหลือ/บางส่วน)
+และระบบติดตามการชำระเงิน
 
 ## 🔄 Flow การทำงาน
+
 ```
 Quotation (Approved) → One-Click Convert → Invoice → Payment Tracking → Receipt
 ```
@@ -11,6 +15,7 @@ Quotation (Approved) → One-Click Convert → Invoice → Payment Tracking → 
 ## 🎨 UI Design
 
 ### ขั้นตอน 2.1: One-Click Conversion
+
 ```
 Invoice Creation from Quotation:
 ┌─────────────────────────────────────────────────────────────┐
@@ -62,6 +67,7 @@ Invoice Creation from Quotation:
 ```
 
 ### ขั้นตอน 2.2: Account ตรวจสอบและอนุมัติ
+
 ```
 Invoice Approval Interface:
 ┌─────────────────────────────────────────────────────────────┐
@@ -89,6 +95,7 @@ Invoice Approval Interface:
 ```
 
 ### ขั้นตอน 2.3: ส่งใบแจ้งหนี้และติดตามการชำระ
+
 ```
 Invoice Tracking Interface:
 ┌─────────────────────────────────────────────────────────────┐
@@ -124,17 +131,21 @@ Invoice Tracking Interface:
 ## 🔧 Technical Implementation
 
 ### Cascade Auto-fill Implementation
+
 ```javascript
 // Auto-fill Invoice จาก Quotation ตาม technical-implementation.md
-const createInvoiceFromQuotation = async (quotationId, invoiceType = 'remaining') => {
+const createInvoiceFromQuotation = async (
+  quotationId,
+  invoiceType = "remaining"
+) => {
   const quotationData = await quotationApi.getDetail(quotationId);
-  
+
   // Cascade Auto-fill ตาม AutofillWorkflow
   const invoiceData = {
     // ข้อมูลอ้างอิง
     quotation_id: quotationData.id,
     pricing_request_id: quotationData.pricing_request_id,
-    
+
     // Auto-fill ข้อมูลลูกค้าจาก CustomerAutofillDTO
     customer_id: quotationData.customer_id,
     customer_company: quotationData.customer_company,
@@ -143,7 +154,7 @@ const createInvoiceFromQuotation = async (quotationId, invoiceType = 'remaining'
     customer_zip_code: quotationData.customer_zip_code,
     customer_tel_1: quotationData.customer_tel_1,
     customer_email: quotationData.customer_email,
-    
+
     // Auto-fill รายละเอียดงาน
     work_name: quotationData.work_name,
     pattern: quotationData.pattern,
@@ -152,31 +163,31 @@ const createInvoiceFromQuotation = async (quotationId, invoiceType = 'remaining'
     sizes: quotationData.sizes,
     quantity: quotationData.quantity,
     due_date: quotationData.due_date,
-    
+
     // คำนวณยอดตามประเภท Invoice
     type: invoiceType,
     subtotal: quotationData.subtotal,
     vat_rate: quotationData.vat_rate,
     vat_amount: quotationData.vat_amount,
     total_amount: calculateInvoiceAmount(quotationData, invoiceType),
-    
+
     // เงื่อนไขการชำระ
     payment_terms: quotationData.payment_terms,
     due_date: calculateDueDate(quotationData.payment_terms),
-    
-    status: 'draft'
+
+    status: "draft",
   };
-  
+
   return invoiceApi.create(invoiceData);
 };
 
 const calculateInvoiceAmount = (quotationData, invoiceType) => {
-  switch(invoiceType) {
-    case 'full_amount':
+  switch (invoiceType) {
+    case "full_amount":
       return quotationData.total_amount;
-    case 'remaining':
+    case "remaining":
       return quotationData.total_amount - quotationData.deposit_amount;
-    case 'deposit':
+    case "deposit":
       return quotationData.deposit_amount;
     default:
       return quotationData.total_amount;
@@ -185,30 +196,32 @@ const calculateInvoiceAmount = (quotationData, invoiceType) => {
 ```
 
 ### Payment Status Flow
+
 ```javascript
 const PAYMENT_STATUSES = {
-  PENDING: 'pending',               // รอชำระ
-  PARTIAL_PAID: 'partial_paid',     // จ่ายบางส่วน
-  FULLY_PAID: 'fully_paid',         // จ่ายครบแล้ว
-  OVERDUE: 'overdue',               // เกินกำหนด
-  CANCELLED: 'cancelled'            // ยกเลิก
+  PENDING: "pending", // รอชำระ
+  PARTIAL_PAID: "partial_paid", // จ่ายบางส่วน
+  FULLY_PAID: "fully_paid", // จ่ายครบแล้ว
+  OVERDUE: "overdue", // เกินกำหนด
+  CANCELLED: "cancelled", // ยกเลิก
 };
 
 // Status Colors
 const STATUS_COLORS = {
-  fully_paid: '🟢',    // จ่ายแล้ว
-  pending: '🟡',       // รอชำระ  
-  overdue: '🔴',       // เกินกำหนด
-  partial_paid: '🔵',  // จ่ายบางส่วน
-  cancelled: '⚫'      // ยกเลิก
+  fully_paid: "🟢", // จ่ายแล้ว
+  pending: "🟡", // รอชำระ
+  overdue: "🔴", // เกินกำหนด
+  partial_paid: "🔵", // จ่ายบางส่วน
+  cancelled: "⚫", // ยกเลิก
 };
 ```
 
 ### One-Click Conversion Function
+
 ```javascript
 const convertQuotationToInvoice = async (quotationId, options) => {
   const quotation = await quotationApi.getById(quotationId);
-  
+
   // คำนวณยอดตามประเภท
   let invoiceAmount = 0;
   switch (options.type) {
@@ -222,7 +235,7 @@ const convertQuotationToInvoice = async (quotationId, options) => {
       invoiceAmount = options.custom_amount;
       break;
   }
-  
+
   const invoiceData = {
     quotation_id: quotationId,
     customer_id: quotation.customer_id,
@@ -232,10 +245,10 @@ const convertQuotationToInvoice = async (quotationId, options) => {
     tax_amount: calculateTax(invoiceAmount),
     total_amount: invoiceAmount,
     due_date: calculateDueDate(options.payment_terms),
-    status: 'draft',
-    created_by: getCurrentUser().id
+    status: "draft",
+    created_by: getCurrentUser().id,
   };
-  
+
   return invoiceApi.create(invoiceData);
 };
 ```
@@ -243,16 +256,22 @@ const convertQuotationToInvoice = async (quotationId, options) => {
 ## 📋 Required APIs
 
 ### POST /api/quotations/:id/convert-to-invoice
+
 ### POST /api/invoices/:id/record-payment
+
 ### GET /api/invoices/:id/payment-history
+
 ### POST /api/invoices/:id/send-reminder
+
 ### PUT /api/invoices/:id/status
 
 ## 🔐 Permissions
+
 - **Sales**: ดูข้อมูลได้ แต่ไม่สามารถแก้ไขได้
 - **Account**: สร้าง แก้ไข อนุมัติ บันทึกการชำระ
 
 ## ✅ Acceptance Criteria
+
 1. แปลงใบเสนอราคาเป็นใบแจ้งหนี้ได้คลิกเดียว
 2. เลือกประเภทการเรียกเก็บได้ (เต็มจำนวน/คงเหลือ/บางส่วน)
 3. Account ตรวจสอบและอนุมัติได้
@@ -262,8 +281,9 @@ const convertQuotationToInvoice = async (quotationId, options) => {
 7. ส่งการแจ้งเตือนอัตโนมัติเมื่อเกินกำหนด
 
 ## 🚀 AI Command
+
 ```bash
-สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้ 
+สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้
 พร้อมระบบเลือกประเภทการเรียกเก็บ (เต็มจำนวน/ส่วนที่เหลือ/บางส่วน)
 และระบบติดตามการชำระเงิน
 ```

@@ -14,7 +14,7 @@ import {
   FormHelperText,
 } from "@mui/material";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers";
 import { useGetAllProductCateQuery } from "../../../features/globalApi";
@@ -69,16 +69,15 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,
   borderRadius: theme.vars.shape.borderRadius,
   height: 34,
-  
+
   "& fieldset": {
     height: 40,
     borderColor: theme.vars.palette.grey.outlinedInput,
   },
-  
-  "& .MuiOutlinedInput-input": {
-      height: 20,
-  },
 
+  "& .MuiOutlinedInput-input": {
+    height: 20,
+  },
 }));
 
 const VerticalDivider = styled(Divider)(({ theme }) => ({
@@ -98,23 +97,21 @@ function PricingDetailSect(props) {
   const saleOrAdmin = user.role === "sale" || user.role === "admin";
 
   const handleDateChange = (val_date) => {
-    const value = val_date ? val_date.format("YYYY-MM-DD") : null
+    const value = val_date ? val_date.format("YYYY-MM-DD") : null;
     dispatch(setInputList({ ...inputList, pr_due_date: value }));
   };
 
   useEffect(() => {
-  
-      if (data) {
-        setProductCateList(data);
-      }
-  
-      if (isLoading) {
-        open_dialog_loading();
-      } else {
-        Swal.close();
-      }
-  
-    }, [data])
+    if (data) {
+      setProductCateList(data);
+    }
+
+    if (isLoading) {
+      open_dialog_loading();
+    } else {
+      Swal.close();
+    }
+  }, [data]);
 
   return (
     <>
@@ -131,12 +128,12 @@ function PricingDetailSect(props) {
       </Typography>
 
       <Grid container spacing={0}>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>
             <label style={{ color: "red", marginRight: 1 }}>*</label>
@@ -149,18 +146,18 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="ชื่องาน"
-            { ...props.register("pr_work_name", { required: true }) }
+            {...props.register("pr_work_name", { required: true })}
           />
           <FormHelperText error>
-            {props.errors.pr_work_name?.type === 'required' && "กรุณากรอกชื่องาน"}
+            {props.errors.pr_work_name?.type === "required" && "กรุณากรอกชื่องาน"}
           </FormHelperText>
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>
             <label style={{ color: "red", marginRight: 1 }}>*</label>
@@ -194,18 +191,18 @@ function PricingDetailSect(props) {
             )}
           />
           <FormHelperText error>
-            {props.errors.pr_mpc_id?.type === 'required' && "กรุณาเลือกประเภทสินค้า"}
+            {props.errors.pr_mpc_id?.type === "required" && "กรุณาเลือกประเภทสินค้า"}
           </FormHelperText>
         </Grid>
       </Grid>
 
       <Grid container>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>แพทเทิร์น</StyledLabel>
         </Grid>
@@ -215,15 +212,15 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="แพทเทิร์น"
-            { ...props.register("pr_pattern") }
+            {...props.register("pr_pattern")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>ชนิดผ้า</StyledLabel>
         </Grid>
@@ -233,18 +230,18 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="ชนิดผ้า"
-            { ...props.register("pr_fabric_type") }
+            {...props.register("pr_fabric_type")}
           />
         </Grid>
       </Grid>
 
       <Grid container>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>สี</StyledLabel>
         </Grid>
@@ -254,15 +251,15 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="สี"
-            { ...props.register("pr_color") }
+            {...props.register("pr_color")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>ไซซ์</StyledLabel>
         </Grid>
@@ -272,18 +269,18 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="ไซซ์"
-            { ...props.register("pr_sizes") }
+            {...props.register("pr_sizes")}
           />
         </Grid>
       </Grid>
 
       <Grid container>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>
             <label style={{ color: "red", marginRight: 1 }}>*</label>
@@ -308,15 +305,15 @@ function PricingDetailSect(props) {
             )}
           />
           <FormHelperText error>
-            {props.errors.pr_quantity?.type === 'required' && "กรุณากรอกจำนวน"}
+            {props.errors.pr_quantity?.type === "required" && "กรุณากรอกจำนวน"}
           </FormHelperText>
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>วันส่ง</StyledLabel>
         </Grid>
@@ -329,7 +326,9 @@ function PricingDetailSect(props) {
                 <StyledDatePicker
                   {...field} // ผูกค่าจาก react-hook-form
                   value={field.value ? dayjs(field.value) : null}
-                  onChange={(date) => field.onChange(date ? date.startOf("day").format("YYYY-MM-DD") : "")}
+                  onChange={(date) =>
+                    field.onChange(date ? date.startOf("day").format("YYYY-MM-DD") : "")
+                  }
                   format="DD/MM/YYYY"
                   readOnly={mode === "view" || !saleOrAdmin}
                   sx={{
@@ -345,18 +344,18 @@ function PricingDetailSect(props) {
       </Grid>
 
       <Grid size={{ xs: 12 }}>
-          <VerticalDivider variant="middle" />
+        <VerticalDivider variant="middle" />
       </Grid>
 
       <Grid container>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
-          <StyledLabel sx={{ textTransform: 'uppercase' }}>silk</StyledLabel>
+          <StyledLabel sx={{ textTransform: "uppercase" }}>silk</StyledLabel>
         </Grid>
         <Grid size={{ xs: 12, md: 10 }} p={1}>
           <StyledOutlinedInput
@@ -364,17 +363,17 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="SILK"
-            { ...props.register("pr_silk") }
+            {...props.register("pr_silk")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
-          <StyledLabel sx={{ textTransform: 'uppercase' }}>dft</StyledLabel>
+          <StyledLabel sx={{ textTransform: "uppercase" }}>dft</StyledLabel>
         </Grid>
         <Grid size={{ xs: 12, md: 10 }} p={1}>
           <StyledOutlinedInput
@@ -382,15 +381,15 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="DFT"
-            { ...props.register("pr_dft") }
+            {...props.register("pr_dft")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>ปัก</StyledLabel>
         </Grid>
@@ -400,17 +399,17 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="ปัก"
-            { ...props.register("pr_embroider") }
+            {...props.register("pr_embroider")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
-          <StyledLabel sx={{ textTransform: 'uppercase' }}>sub</StyledLabel>
+          <StyledLabel sx={{ textTransform: "uppercase" }}>sub</StyledLabel>
         </Grid>
         <Grid size={{ xs: 12, md: 10 }} p={1}>
           <StyledOutlinedInput
@@ -418,15 +417,15 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="SUB"
-            { ...props.register("pr_sub") }
+            {...props.register("pr_sub")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4, md: 2 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", md: "block" } 
-          }}  
+            display: { xs: "none", md: "block" },
+          }}
         >
           <StyledLabel>อื่นๆ</StyledLabel>
         </Grid>
@@ -436,11 +435,10 @@ function PricingDetailSect(props) {
             size="small"
             readOnly={mode === "view" || !saleOrAdmin}
             placeholder="อื่นๆ"
-            { ...props.register("pr_other_screen") }
+            {...props.register("pr_other_screen")}
           />
         </Grid>
       </Grid>
-
     </>
   );
 }

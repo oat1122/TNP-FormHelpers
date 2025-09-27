@@ -1,7 +1,7 @@
-import React from 'react';
-import { Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import CustomerEditCard from './CustomerEditCard';
+import React from "react";
+import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import CustomerEditCard from "./CustomerEditCard";
 
 const CustomerEditDialog = ({ open, onClose, customer, onUpdated }) => {
   return (
@@ -11,7 +11,7 @@ const CustomerEditDialog = ({ open, onClose, customer, onUpdated }) => {
         <IconButton
           aria-label="close"
           onClick={onClose}
-          sx={{ position: 'absolute', right: 8, top: 8 }}
+          sx={{ position: "absolute", right: 8, top: 8 }}
         >
           <CloseIcon />
         </IconButton>

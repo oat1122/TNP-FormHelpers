@@ -3,11 +3,11 @@ import AppHeader from "../../components/Navbar/AppHeader";
 
 export const AuthLayout = () => {
   const login = localStorage.getItem("isLoggedIn");
-  
+
   return !login ? (
     <Navigate to="/login" />
-    ) : (
-      <>
+  ) : (
+    <>
       <AppHeader />
       <Outlet />
     </>

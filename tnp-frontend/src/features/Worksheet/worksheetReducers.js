@@ -28,12 +28,18 @@ export default {
       state.sumQuantity.total = (state.sumQuantity.men || 0) + (state.sumQuantity.women || 0);
 
       updatedExampleQty = ["men", "women"].reduce((acc, type) => {
-        acc[type] = checkShirtQty([...state.inputList.example_quantity[type]], action.payload.pattern_sizes[type]);
+        acc[type] = checkShirtQty(
+          [...state.inputList.example_quantity[type]],
+          action.payload.pattern_sizes[type]
+        );
         return acc;
       }, {});
     } else {
       state.sumQuantity.total = sumQty(pattern_sizes);
-      updatedExampleQty = checkShirtQty([...state.inputList.example_quantity], action.payload.pattern_sizes);
+      updatedExampleQty = checkShirtQty(
+        [...state.inputList.example_quantity],
+        action.payload.pattern_sizes
+      );
     }
 
     state.inputList = {
@@ -46,9 +52,7 @@ export default {
     state.customerList = data;
   },
   setCustomerSelected: (state, action) => {
-    const selectedCustomer = state.customerList.find(
-      (item) => item.cus_id === action.payload
-    );
+    const selectedCustomer = state.customerList.find((item) => item.cus_id === action.payload);
 
     state.inputList = {
       ...state.inputList,
@@ -86,7 +90,10 @@ export default {
           [name]: updatedInputList,
         };
       }
-    } else if ((name.startsWith("screen") && name !== "screen_detail") || name === "total_quantity") {
+    } else if (
+      (name.startsWith("screen") && name !== "screen_detail") ||
+      name === "total_quantity"
+    ) {
       state.inputList = {
         ...state.inputList,
         [name]: onlyNums(value),
@@ -135,9 +142,15 @@ export default {
   },
   setInputPattern: (state, action) => {
     const { name, value, index = null } = action.payload;
-    const isPatternSizes = ["pattern_sizes", "unisex", "men", "women", "chest", "long", "quantity"].some((prefix) =>
-      name.startsWith(prefix)
-    );
+    const isPatternSizes = [
+      "pattern_sizes",
+      "unisex",
+      "men",
+      "women",
+      "chest",
+      "long",
+      "quantity",
+    ].some((prefix) => name.startsWith(prefix));
     const [patternType, fieldName] = name.split("_");
     let patternSizesState = state.inputList.pattern_sizes;
     let examQtyState;
@@ -152,16 +165,21 @@ export default {
 
         const sizeName = name.split("_")[2];
         const patternTypeMap = {
-          'unisex': 1,
-          'men': 2,
-          'women': 3,
+          unisex: 1,
+          men: 2,
+          women: 3,
         };
 
         if (patternType === "men" || patternType === "women") {
           state.sumQuantity[patternType] = sumQty(patternSizesState);
           state.sumQuantity.total = (state.sumQuantity.men || 0) + (state.sumQuantity.women || 0);
 
-          examQtyState = updateExamField([...state.inputList.example_quantity[patternType]], patternTypeMap[patternType], sizeName, onlyNums(value));
+          examQtyState = updateExamField(
+            [...state.inputList.example_quantity[patternType]],
+            patternTypeMap[patternType],
+            sizeName,
+            onlyNums(value)
+          );
 
           state.inputList = {
             ...state.inputList,
@@ -172,7 +190,12 @@ export default {
           };
         } else {
           state.sumQuantity.total = sumQty(patternSizesState);
-          examQtyState = updateExamField([...state.inputList.example_quantity], patternTypeMap[patternType], sizeName, onlyNums(value));
+          examQtyState = updateExamField(
+            [...state.inputList.example_quantity],
+            patternTypeMap[patternType],
+            sizeName,
+            onlyNums(value)
+          );
 
           state.inputList = {
             ...state.inputList,
@@ -309,7 +332,9 @@ export default {
 
     if (Number(state.inputList.pattern_type) === 2) {
       ["men", "women"].forEach((type) => {
-        const sizeExist = state.inputList.pattern_sizes[type].some((item) => item.size_name === action.payload);
+        const sizeExist = state.inputList.pattern_sizes[type].some(
+          (item) => item.size_name === action.payload
+        );
 
         if (!sizeExist) {
           const updatedPattern = [...state.inputList.pattern_sizes[type], newSize];
@@ -325,14 +350,18 @@ export default {
     const { index, pattern_type, size_name } = action.payload;
     let patternSizeState = state.inputList.pattern_sizes;
     let examQtyState;
-    
+
     if (pattern_type === "men" || pattern_type === "women") {
       state.inputList.pattern_sizes[pattern_type].splice(index, 1);
       patternSizeState = state.inputList.pattern_sizes[pattern_type];
       state.sumQuantity[pattern_type] = sumQty(state.inputList.pattern_sizes[pattern_type]);
       state.sumQuantity.total = (state.sumQuantity.men || 0) + (state.sumQuantity.women || 0);
 
-      examQtyState = updateExamField([...state.inputList.example_quantity[pattern_type]], pattern_type, size_name);
+      examQtyState = updateExamField(
+        [...state.inputList.example_quantity[pattern_type]],
+        pattern_type,
+        size_name
+      );
 
       state.inputList = {
         ...state.inputList,
@@ -341,12 +370,15 @@ export default {
           [pattern_type]: examQtyState,
         },
       };
-
     } else {
       state.inputList.pattern_sizes.splice(index, 1);
       state.sumQuantity.total = sumQty(patternSizeState);
 
-      examQtyState = updateExamField([...state.inputList.example_quantity], pattern_type, size_name);
+      examQtyState = updateExamField(
+        [...state.inputList.example_quantity],
+        pattern_type,
+        size_name
+      );
 
       state.inputList = {
         ...state.inputList,
@@ -354,12 +386,11 @@ export default {
       };
     }
 
-
     const sizeExist = state.extraSizes.some((item) => item === size_name);
 
     if (!sizeExist) {
-      state.extraSizes = [...state.extraSizes, size_name].sort((a, b) =>
-        initAllSizes.indexOf(a.toLowerCase()) - initAllSizes.indexOf(b.toLowerCase())
+      state.extraSizes = [...state.extraSizes, size_name].sort(
+        (a, b) => initAllSizes.indexOf(a.toLowerCase()) - initAllSizes.indexOf(b.toLowerCase())
       );
     }
   },

@@ -53,39 +53,33 @@ function CustomerSect(props) {
 
   return (
     <>
-      <CustomerSectDialog 
-        open={openDialog} 
-        close={handleClose}
-        setValue={props.setValue} 
-      />
+      <CustomerSectDialog open={openDialog} close={handleClose} setValue={props.setValue} />
 
-      <Typography 
-        variant="h5" 
-        color="error" 
-        sx={{ 
-          marginLeft: 1, 
-          marginBottom: 1, 
+      <Typography
+        variant="h5"
+        color="error"
+        sx={{
+          marginLeft: 1,
+          marginBottom: 1,
         }}
       >
         ข้อมูลลูกค้า
-
-        { (mode !== "view") && (user.role === "sale" || user.role === "admin") ? (
-        <Button
-          variant="icon-contained"
-          color="grey"
-          onClick={() => setOpenDialog(true)}
-          sx={{
-            marginLeft: 2,
-            minWidth: 34,
-            width: "fit-content",
-            height: 34,
-            padding: 0,
-          }}
-        >
-          <MdManageSearch style={{ fontSize: "1.5rem" }} />
-        </Button>
-        ) : null }
-
+        {mode !== "view" && (user.role === "sale" || user.role === "admin") ? (
+          <Button
+            variant="icon-contained"
+            color="grey"
+            onClick={() => setOpenDialog(true)}
+            sx={{
+              marginLeft: 2,
+              minWidth: 34,
+              width: "fit-content",
+              height: 34,
+              padding: 0,
+            }}
+          >
+            <MdManageSearch style={{ fontSize: "1.5rem" }} />
+          </Button>
+        ) : null}
       </Typography>
       <Grid container spacing={1}>
         <Grid size={{ xs: 12 }} p={1}>
@@ -95,7 +89,7 @@ function CustomerSect(props) {
             placeholder="บริษัท ธนพลัส 153 จำกัด"
             inputProps={{ style: { textAlign: "center" } }}
             disabled
-            { ...props.register("cus_company") }
+            {...props.register("cus_company")}
           />
         </Grid>
       </Grid>
@@ -107,7 +101,7 @@ function CustomerSect(props) {
             placeholder="ชื่อลูกค้า"
             inputProps={{ style: { textAlign: "center" } }}
             disabled
-            { ...props.register("cus_name") }
+            {...props.register("cus_name")}
           />
         </Grid>
         <Grid size={{ xs: 8 }} p={1}>
@@ -117,7 +111,7 @@ function CustomerSect(props) {
             placeholder="เบอร์โทรศัพท์"
             inputProps={{ style: { textAlign: "center" } }}
             disabled
-            { ...props.register("cus_tel_1") }
+            {...props.register("cus_tel_1")}
           />
         </Grid>
       </Grid>
@@ -129,15 +123,15 @@ function CustomerSect(props) {
             placeholder="อีเมล"
             inputProps={{ style: { textAlign: "center" } }}
             disabled
-            { ...props.register("cus_email") }
+            {...props.register("cus_email")}
           />
         </Grid>
-        <Grid 
+        <Grid
           size={{ xs: 4 }}
-          sx={{ 
+          sx={{
             padding: 1,
-            display: { xs: "none", xl: "block" } 
-          }} 
+            display: { xs: "none", xl: "block" },
+          }}
         >
           <StyledLabel sx={{ textAlign: "center" }}>ชื่อ - นามสกุล</StyledLabel>
         </Grid>
@@ -148,7 +142,7 @@ function CustomerSect(props) {
             placeholder="ชื่อ - นามสกุล"
             inputProps={{ style: { textAlign: "center" } }}
             disabled
-            { ...props.register("cus_fullname") }
+            {...props.register("cus_fullname")}
           />
         </Grid>
       </Grid>

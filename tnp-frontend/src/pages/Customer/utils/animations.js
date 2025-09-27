@@ -205,8 +205,7 @@ export const animationHelpers = {
   }),
 
   // Conditional animation based on state
-  conditionalAnimation: (condition, animation) => 
-    condition ? animation : {},
+  conditionalAnimation: (condition, animation) => (condition ? animation : {}),
 
   // Create entrance animation
   entrance: (type = "fadeIn", delay = 0) => ({
@@ -245,4 +244,4 @@ export default {
   interactiveStates,
   animationHelpers,
   performanceAnimations,
-}; 
+};

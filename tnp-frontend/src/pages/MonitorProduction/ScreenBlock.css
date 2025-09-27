@@ -1,6 +1,6 @@
 /* Layout */
 .screen-block .content-date {
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   height: 1.8rem;
 }
 
@@ -12,7 +12,7 @@
 .screen-block .content-date label {
   font-size: 1.125rem;
   letter-spacing: 0.02rem;
-  vertical-align: middle; 
+  vertical-align: middle;
   line-height: 1.8rem;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .screen-block button.btn-modal-factory:disabled {
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   border: none;
   border-radius: 0.3rem;
   font-size: 1.125rem;

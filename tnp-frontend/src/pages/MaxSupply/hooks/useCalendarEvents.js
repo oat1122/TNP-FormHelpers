@@ -1,9 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, format } from 'date-fns';
-import { organizeEventsInRows, getEventsForDate } from '../utils/calendarUtils';
+import { useState, useEffect, useMemo } from "react";
+import {
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  startOfWeek,
+  endOfWeek,
+  format,
+} from "date-fns";
+import { organizeEventsInRows, getEventsForDate } from "../utils/calendarUtils";
 
 export const useCalendarEvents = (currentDate, maxSupplies = []) => {
-  const [filter, setFilter] = useState({ type: 'all', status: 'all' });
+  const [filter, setFilter] = useState({ type: "all", status: "all" });
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [dayEventsDialogOpen, setDayEventsDialogOpen] = useState(false);
@@ -12,62 +19,62 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
   // ถ้าไม่มี maxSupplies ให้ใช้ข้อมูล mock พื้นฐาน
   const defaultMockData = useMemo(() => {
     if (maxSupplies.length > 0) return [];
-    
+
     return [
       {
-        id: 'mock-1',
-        title: 'เสื้อโปโล ABC Company',
-        customer_name: 'ABC Company',
-        production_type: 'screen',
+        id: "mock-1",
+        title: "เสื้อโปโล ABC Company",
+        customer_name: "ABC Company",
+        production_type: "screen",
         start_date: new Date(2025, 6, 12).toISOString(), // วันนี้ (12 ก.ค.)
         expected_completion_date: new Date(2025, 6, 15).toISOString(),
-        status: 'in_progress',
+        status: "in_progress",
         total_quantity: 500,
-        priority: 'high',
+        priority: "high",
       },
       {
-        id: 'mock-2',
-        title: 'เสื้อยืด XYZ Corp',
-        customer_name: 'XYZ Corp',
-        production_type: 'dtf',
+        id: "mock-2",
+        title: "เสื้อยืด XYZ Corp",
+        customer_name: "XYZ Corp",
+        production_type: "dtf",
         start_date: new Date(2025, 6, 15).toISOString(),
         expected_completion_date: new Date(2025, 6, 22).toISOString(),
-        status: 'pending',
+        status: "pending",
         total_quantity: 300,
-        priority: 'normal',
+        priority: "normal",
       },
       {
-        id: 'mock-3',
-        title: 'เสื้อกีฬา DEF Ltd',
-        customer_name: 'DEF Ltd',
-        production_type: 'sublimation',
+        id: "mock-3",
+        title: "เสื้อกีฬา DEF Ltd",
+        customer_name: "DEF Ltd",
+        production_type: "sublimation",
         start_date: new Date(2025, 6, 20).toISOString(),
         expected_completion_date: new Date(2025, 6, 25).toISOString(),
-        status: 'pending',
+        status: "pending",
         total_quantity: 150,
-        priority: 'low',
+        priority: "low",
       },
       {
-        id: 'mock-4',
-        title: 'เสื้อปัก GHI Inc',
-        customer_name: 'GHI Inc',
-        production_type: 'embroidery',
+        id: "mock-4",
+        title: "เสื้อปัก GHI Inc",
+        customer_name: "GHI Inc",
+        production_type: "embroidery",
         start_date: new Date(2025, 6, 17).toISOString(),
         expected_completion_date: new Date(2025, 6, 20).toISOString(),
-        status: 'completed',
+        status: "completed",
         total_quantity: 200,
-        priority: 'urgent',
+        priority: "urgent",
       },
       {
-        id: 'mock-5',
-        title: 'เสื้อแจ็คเก็ต JKL Corp',
-        customer_name: 'JKL Corp',
-        production_type: 'screen',
+        id: "mock-5",
+        title: "เสื้อแจ็คเก็ต JKL Corp",
+        customer_name: "JKL Corp",
+        production_type: "screen",
         start_date: new Date(2025, 6, 28).toISOString(),
         expected_completion_date: new Date(2025, 6, 31).toISOString(),
-        status: 'pending',
+        status: "pending",
         total_quantity: 100,
-        priority: 'normal',
+        priority: "normal",
       },
     ];
   }, [maxSupplies.length]);
@@ -80,22 +87,22 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 }); // Sunday
-    
+
     // สร้างช่วงวันที่จาก calendarStart ถึง calendarEnd
     const days = eachDayOfInterval({
       start: calendarStart,
-      end: calendarEnd
+      end: calendarEnd,
     });
-    
+
     return days;
   }, [currentDate]);
 
   // Filter events based on current filter
   const filteredEvents = useMemo(() => {
-    return workingData.filter(job => {
-      const typeMatch = filter.type === 'all' || job.production_type === filter.type;
-      const statusMatch = filter.status === 'all' || job.status === filter.status;
-      const isNotCompleted = job.status !== 'completed'; // ไม่แสดง Timeline Bar ถ้าสถานะเป็น completed
+    return workingData.filter((job) => {
+      const typeMatch = filter.type === "all" || job.production_type === filter.type;
+      const statusMatch = filter.status === "all" || job.status === filter.status;
+      const isNotCompleted = job.status !== "completed"; // ไม่แสดง Timeline Bar ถ้าสถานะเป็น completed
       return typeMatch && statusMatch && isNotCompleted;
     });
   }, [workingData, filter]);
@@ -142,8 +149,14 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
   };
 
   // Auto-debug when data changes
-  useEffect(() => {
-  }, [currentDate, calendarDays, maxSupplies, workingData, filteredEvents, eventRowsData]);
+  useEffect(() => {}, [
+    currentDate,
+    calendarDays,
+    maxSupplies,
+    workingData,
+    filteredEvents,
+    eventRowsData,
+  ]);
 
   return {
     // State
@@ -154,14 +167,14 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
     dayEventsDialogOpen,
     hoveredTimeline,
     setHoveredTimeline,
-    
+
     // Computed data
     calendarDays,
     filteredEvents,
     eventRows: eventRowsData.rows,
     overflowTimelines: eventRowsData.overflowTimelines,
     totalTimelines: eventRowsData.totalTimelines,
-    
+
     // Handlers
     handleDayClick,
     handleDayEventsDialogClose,
@@ -170,4 +183,4 @@ export const useCalendarEvents = (currentDate, maxSupplies = []) => {
     handleJobClose,
     getEventsByDate,
   };
-}; 
+};

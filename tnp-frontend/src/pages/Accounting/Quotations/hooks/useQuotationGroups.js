@@ -1,5 +1,5 @@
-import React from 'react';
-import { sanitizeInt, sanitizeDecimal } from '../../shared/inputSanitizers';
+import React from "react";
+import { sanitizeInt, sanitizeDecimal } from "../../shared/inputSanitizers";
 
 // Hook to manage groups editing state and helpers used in QuotationDetailDialog
 export function useQuotationGroups(initialItems) {
@@ -20,7 +20,13 @@ export function useQuotationGroups(initialItems) {
     setGroups((prev) =>
       prev.map((g) => {
         if (g.id !== groupId) return g;
-        const newRow = { uuid: `${groupId}-${Date.now()}`, size: '', quantity: '', unitPrice: '', notes: '' };
+        const newRow = {
+          uuid: `${groupId}-${Date.now()}`,
+          size: "",
+          quantity: "",
+          unitPrice: "",
+          notes: "",
+        };
         return { ...g, sizeRows: [...(g.sizeRows || []), newRow] };
       })
     );
@@ -32,9 +38,9 @@ export function useQuotationGroups(initialItems) {
         if (g.id !== groupId) return g;
         const rows = (g.sizeRows || []).map((r) => {
           if (r.uuid !== rowUuid) return r;
-          if (field === 'size') return { ...r, size: value };
-          if (field === 'quantity') return { ...r, quantity: sanitizeInt(value) };
-          if (field === 'unitPrice') return { ...r, unitPrice: sanitizeDecimal(value) };
+          if (field === "size") return { ...r, size: value };
+          if (field === "quantity") return { ...r, quantity: sanitizeInt(value) };
+          if (field === "unitPrice") return { ...r, unitPrice: sanitizeDecimal(value) };
           return { ...r, [field]: value };
         });
         return { ...g, sizeRows: rows };

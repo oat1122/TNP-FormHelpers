@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 /**
  * Invoice-specific financial calculation hook.
@@ -16,72 +16,76 @@ import { useMemo } from 'react';
  */
 export function useInvoiceCalculation({
   items = [],
-  specialDiscountType = 'percentage', // 'percentage' | 'amount'
+  specialDiscountType = "percentage", // 'percentage' | 'amount'
   specialDiscountValue = 0,
   hasVat = true,
-  vatPercentage = 7.00,
+  vatPercentage = 7.0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
-  withholdingTaxBase = 'subtotal', // 'subtotal' | 'total_after_vat'
-  depositMode = 'percentage', // 'percentage' | 'amount' | null
+  withholdingTaxBase = "subtotal", // 'subtotal' | 'total_after_vat'
+  depositMode = "percentage", // 'percentage' | 'amount' | null
   depositPercentage = 0,
   depositAmountInput = 0,
-  depositDisplayOrder = 'before', // 'before' | 'after'
+  depositDisplayOrder = "before", // 'before' | 'after'
 }) {
-  return useMemo(() => computeInvoiceFinancials({
-    items,
-    specialDiscountType,
-    specialDiscountValue,
-    hasVat,
-    vatPercentage,
-    hasWithholdingTax,
-    withholdingTaxPercentage,
-    withholdingTaxBase,
-    depositMode,
-    depositPercentage,
-    depositAmountInput,
-    depositDisplayOrder,
-  }), [
-    items,
-    specialDiscountType,
-    specialDiscountValue,
-    hasVat,
-    vatPercentage,
-    hasWithholdingTax,
-    withholdingTaxPercentage,
-    withholdingTaxBase,
-    depositMode,
-    depositPercentage,
-    depositAmountInput,
-    depositDisplayOrder,
-  ]);
+  return useMemo(
+    () =>
+      computeInvoiceFinancials({
+        items,
+        specialDiscountType,
+        specialDiscountValue,
+        hasVat,
+        vatPercentage,
+        hasWithholdingTax,
+        withholdingTaxPercentage,
+        withholdingTaxBase,
+        depositMode,
+        depositPercentage,
+        depositAmountInput,
+        depositDisplayOrder,
+      }),
+    [
+      items,
+      specialDiscountType,
+      specialDiscountValue,
+      hasVat,
+      vatPercentage,
+      hasWithholdingTax,
+      withholdingTaxPercentage,
+      withholdingTaxBase,
+      depositMode,
+      depositPercentage,
+      depositAmountInput,
+      depositDisplayOrder,
+    ]
+  );
 }
 
 export function computeInvoiceFinancials({
   items = [],
-  specialDiscountType = 'percentage',
+  specialDiscountType = "percentage",
   specialDiscountValue = 0,
   hasVat = true,
-  vatPercentage = 7.00,
+  vatPercentage = 7.0,
   hasWithholdingTax = false,
   withholdingTaxPercentage = 0,
-  withholdingTaxBase = 'subtotal',
-  depositMode = 'percentage',
+  withholdingTaxBase = "subtotal",
+  depositMode = "percentage",
   depositPercentage = 0,
   depositAmountInput = 0,
-  depositDisplayOrder = 'before',
+  depositDisplayOrder = "before",
 }) {
   // Helper function to round to 2 decimal places
-  const toMoney = (n) => +(Number(n || 0).toFixed(2));
+  const toMoney = (n) => +Number(n || 0).toFixed(2);
 
   // 1. Calculate line totals and subtotal
-  const normalizedItems = (items || []).map(item => {
+  const normalizedItems = (items || []).map((item) => {
     if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
       // For items with size rows, sum all rows
       const rowSubtotal = item.sizeRows.reduce((sum, row) => {
         const qty = Math.max(0, Number(row.quantity || 0));
         const unitPrice = Math.max(0, Number(row.unitPrice || 0));
-        return sum + (qty * unitPrice);
+        return sum + qty * unitPrice;
       }, 0);
       return { ...item, _computedSubtotal: toMoney(rowSubtotal) };
     } else {
@@ -97,9 +101,9 @@ export function computeInvoiceFinancials({
 
   // 3. Special discount calculation
   let discountUsed = 0;
-  if (specialDiscountType === 'amount' && Number(specialDiscountValue || 0) > 0) {
+  if (specialDiscountType === "amount" && Number(specialDiscountValue || 0) > 0) {
     discountUsed = Math.min(Number(specialDiscountValue || 0), subtotal);
-  } else if (specialDiscountType === 'percentage' && Number(specialDiscountValue || 0) > 0) {
+  } else if (specialDiscountType === "percentage" && Number(specialDiscountValue || 0) > 0) {
     discountUsed = subtotal * (Number(specialDiscountValue || 0) / 100);
   }
   discountUsed = toMoney(discountUsed);
@@ -116,7 +120,7 @@ export function computeInvoiceFinancials({
   // 7. Withholding tax calculation
   let withholdingTaxAmount = 0;
   if (hasWithholdingTax) {
-    const whtBase = withholdingTaxBase === 'total_after_vat' ? totalAmount : effectiveSubtotal;
+    const whtBase = withholdingTaxBase === "total_after_vat" ? totalAmount : effectiveSubtotal;
     withholdingTaxAmount = toMoney(whtBase * (Number(withholdingTaxPercentage || 0) / 100));
   }
 
@@ -128,10 +132,11 @@ export function computeInvoiceFinancials({
   let depositAmountBeforeVat = 0;
   let calculatedDepositPercentage = 0;
 
-  if (depositMode === 'amount' && Number(depositAmountInput || 0) > 0) {
+  if (depositMode === "amount" && Number(depositAmountInput || 0) > 0) {
     depositAmount = Math.min(Number(depositAmountInput || 0), finalTotalAmount);
-    calculatedDepositPercentage = finalTotalAmount > 0 ? (depositAmount / finalTotalAmount) * 100 : 0;
-  } else if (depositMode === 'percentage' && Number(depositPercentage || 0) > 0) {
+    calculatedDepositPercentage =
+      finalTotalAmount > 0 ? (depositAmount / finalTotalAmount) * 100 : 0;
+  } else if (depositMode === "percentage" && Number(depositPercentage || 0) > 0) {
     calculatedDepositPercentage = Math.max(0, Math.min(100, Number(depositPercentage || 0)));
     depositAmount = finalTotalAmount * (calculatedDepositPercentage / 100);
   }
@@ -141,7 +146,7 @@ export function computeInvoiceFinancials({
 
   // Calculate deposit before VAT (for display purposes)
   if (depositAmount > 0 && hasVat && vatAmount > 0) {
-    depositAmountBeforeVat = toMoney(depositAmount / (1 + (Number(vatPercentage || 0) / 100)));
+    depositAmountBeforeVat = toMoney(depositAmount / (1 + Number(vatPercentage || 0) / 100));
   } else {
     depositAmountBeforeVat = depositAmount;
   }
@@ -152,7 +157,7 @@ export function computeInvoiceFinancials({
   return {
     // Input normalization
     normalizedItems,
-    
+
     // Core calculations
     subtotal,
     discountUsed,
@@ -161,13 +166,13 @@ export function computeInvoiceFinancials({
     totalAmount,
     withholdingTaxAmount,
     finalTotalAmount,
-    
+
     // Deposit calculations
     depositAmount,
     depositAmountBeforeVat,
     depositPercentage: calculatedDepositPercentage,
     remainingAmount,
-    
+
     // Configuration
     hasVat,
     vatPercentage: Number(vatPercentage || 0),
@@ -176,7 +181,7 @@ export function computeInvoiceFinancials({
     withholdingTaxBase,
     depositMode,
     depositDisplayOrder,
-    
+
     // Helper
     toMoney,
   };

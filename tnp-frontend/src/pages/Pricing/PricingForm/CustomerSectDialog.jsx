@@ -26,9 +26,7 @@ import {
 } from "../../../utils/import_lib";
 import PropTypes from "prop-types";
 import { visuallyHidden } from "@mui/utils";
-import {
-  setInputList,
-} from "../../../features/Pricing/pricingSlice";
+import { setInputList } from "../../../features/Pricing/pricingSlice";
 // import { useGetAllCustomerQuery } from "../../../features/Pricing/pricingApi";
 import { setCustomerList } from "../../../features/globalSlice";
 import { useGetAllCustomerQuery } from "../../../features/globalApi";
@@ -194,11 +192,9 @@ function CustomerSectDialog({ open, close, setValue }) {
     );
 
     // กำหนดค่าให้กับ useForm
-    const customerFields = [
-      "cus_company", "cus_name", "cus_tel_1", "cus_email", "cus_fullname"
-    ];
-    customerFields.forEach(field => setValue(field, selectedCustomer[field]));
-    setValue("pr_cus_id", selectedCustomer.cus_id)
+    const customerFields = ["cus_company", "cus_name", "cus_tel_1", "cus_email", "cus_fullname"];
+    customerFields.forEach((field) => setValue(field, selectedCustomer[field]));
+    setValue("pr_cus_id", selectedCustomer.cus_id);
 
     close();
   };
@@ -211,7 +207,7 @@ function CustomerSectDialog({ open, close, setValue }) {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-  
+
   const handleSearchChange = (query) => {
     setSearchQuery(query);
     setPage(0);

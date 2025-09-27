@@ -57,9 +57,7 @@ const GpsDebugLogs = ({ gpsDebugLogs }) => {
                 wordBreak: "break-all",
               }}
             >
-              <span style={{ color: "#4CAF50" }}>
-                [{log.timestamp}]
-              </span>{" "}
+              <span style={{ color: "#4CAF50" }}>[{log.timestamp}]</span>{" "}
               <span style={{ color: "#FFF" }}>{log.message}</span>
               {log.data && (
                 <span style={{ color: "#81C784", fontSize: "10px" }}>

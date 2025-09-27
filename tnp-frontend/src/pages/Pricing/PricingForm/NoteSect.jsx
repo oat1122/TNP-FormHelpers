@@ -8,7 +8,7 @@ import NoteHistoryDialog from "./PricingNote/NoteHistoryDialog";
 
 function NoteSect(props) {
   const user = JSON.parse(localStorage.getItem("userData"));
-  const [openDialog, setOpenDialog] = useState(false);    // note history dialog
+  const [openDialog, setOpenDialog] = useState(false); // note history dialog
   const [noteType, setNoteType] = useState("");
 
   const fieldArrays = {
@@ -37,42 +37,42 @@ function NoteSect(props) {
       prn_updated_date: moment().format("YYYY-MM-DD HH:mm:ss"),
       prn_updated_by: user.user_uuid,
       created_name: user.user_nickname ?? "-",
-    }
+    };
 
     append(inputData);
   };
 
   return (
     <>
-      <NoteHistoryDialog 
-        open={openDialog} 
-        onClose={handleDialogClose} 
-        noteType={noteType} 
+      <NoteHistoryDialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        noteType={noteType}
         getValues={props.getValues}
       />
 
-      <NoteSales 
-        onCreate={handleCreateNote} 
-        onOpen={handleDialogOpen} 
-        register={props.register} 
-        getValues={props.getValues}
-        />
-      
-      <NotePrice 
-        onCreate={handleCreateNote} 
-        onOpen={handleDialogOpen} 
+      <NoteSales
+        onCreate={handleCreateNote}
+        onOpen={handleDialogOpen}
         register={props.register}
         getValues={props.getValues}
       />
-      
-      { ["production", "manager", "admin"].includes(user?.role) ? (
-        <NoteManager 
-          onCreate={handleCreateNote} 
-          onOpen={handleDialogOpen} 
+
+      <NotePrice
+        onCreate={handleCreateNote}
+        onOpen={handleDialogOpen}
+        register={props.register}
+        getValues={props.getValues}
+      />
+
+      {["production", "manager", "admin"].includes(user?.role) ? (
+        <NoteManager
+          onCreate={handleCreateNote}
+          onOpen={handleDialogOpen}
           register={props.register}
           getValues={props.getValues}
         />
-      ) : null }
+      ) : null}
     </>
   );
 }

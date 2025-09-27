@@ -1,19 +1,11 @@
 import React, { useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Box, Chip, Typography } from "@mui/material";
-import {
-  MdDateRange,
-  MdPerson,
-  MdSignalCellularAlt,
-  MdPhone,
-} from "react-icons/md";
+import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from "react-icons/md";
 import dayjs from "dayjs";
 import { resetFilters } from "../../features/Customer/customerSlice";
 import ScrollContext from "./ScrollContext";
-import {
-  getChannelDisplayName,
-  formatDaysToText,
-} from "../../features/Customer/customerUtils";
+import { getChannelDisplayName, formatDaysToText } from "../../features/Customer/customerUtils";
 
 /**
  * Component to display active filters as tags
@@ -24,8 +16,7 @@ function FilterTags() {
   const { scrollToTop } = useContext(ScrollContext);
 
   // Check if any filters are active
-  const hasDateFilter =
-    filters.dateRange.startDate || filters.dateRange.endDate;
+  const hasDateFilter = filters.dateRange.startDate || filters.dateRange.endDate;
   const hasSalesFilter = filters.salesName && filters.salesName.length > 0;
   const hasChannelFilter = filters.channel && filters.channel.length > 0;
 
@@ -137,9 +128,7 @@ function FilterTags() {
       {hasChannelFilter && (
         <Chip
           icon={<MdSignalCellularAlt style={{ color: "#1976d2" }} />}
-          label={`ช่องทาง: ${filters.channel
-            .map((c) => getChannelDisplayName(c))
-            .join(", ")}`}
+          label={`ช่องทาง: ${filters.channel.map((c) => getChannelDisplayName(c)).join(", ")}`}
           size="medium"
           color="primary"
           variant="outlined"

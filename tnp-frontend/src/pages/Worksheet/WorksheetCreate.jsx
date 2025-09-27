@@ -92,13 +92,12 @@ function WorksheetCreate() {
     e.preventDefault();
     // console.log('handleSubmit input : ', inputList)
     // return;
-    
+
     // check some value before create or update data.
-    const hasError = validateValue({inputList, sumQuantity});
-    
+    const hasError = validateValue({ inputList, sumQuantity });
+
     if (hasError !== "") {
       open_dialog_error(hasError);
-
     } else {
       open_dialog_loading();
 
@@ -146,18 +145,16 @@ function WorksheetCreate() {
 
   useEffect(() => {
     if (!id) {
-      dispatch(
-        setInputList({ name: "type_shirt", value: typeShirt, index: null })
-      );
+      dispatch(setInputList({ name: "type_shirt", value: typeShirt, index: null }));
 
       [
         { name: "user_id", value: user.user_id },
         { name: "nws_created_by", value: user.user_uuid },
-        { name: "nws_updated_by", value: user.user_uuid }
+        { name: "nws_updated_by", value: user.user_uuid },
       ].forEach(({ name, value }) => {
         dispatch(setInputList({ name, value, index: null }));
       });
-   
+
       setTitleTypeShirt(typeShirt);
       setOrderLoading(false);
     }
@@ -230,12 +227,8 @@ function WorksheetCreate() {
                         slotProps={{ textField: { required: true } }}
                         format="DD/MM/YYYY"
                         name="due_date"
-                        value={
-                          inputList.due_date ? moment(inputList.due_date) : null
-                        }
-                        onChange={(val_date) =>
-                          handleDateChange(val_date, true)
-                        }
+                        value={inputList.due_date ? moment(inputList.due_date) : null}
+                        onChange={(val_date) => handleDateChange(val_date, true)}
                         sx={{
                           "& .Mui-readOnly": {
                             backgroundColor: "unset",
@@ -247,10 +240,7 @@ function WorksheetCreate() {
                 </Grid>
                 <VerticalDivider variant="middle" />
 
-                <CustomerSect
-                  handleInputChange={handleInputChange}
-                  inputList={inputList}
-                />
+                <CustomerSect handleInputChange={handleInputChange} inputList={inputList} />
                 <VerticalDivider variant="middle" />
 
                 <Typography variant="h5" color="error" ml={1}>
@@ -307,18 +297,11 @@ function WorksheetCreate() {
                 <Typography variant="h5" color="error" ml={1}>
                   ใบสั่งงาน
                 </Typography>
-                <OrderSect
-                  handleInputChange={handleInputChange}
-                  orderLoading={orderLoading}
-                />
+                <OrderSect handleInputChange={handleInputChange} orderLoading={orderLoading} />
                 <VerticalDivider variant="middle" />
 
                 <Grid container spacing={1} justifyContent="center">
-                  <Grid
-                    size={{ xs: 12, sm: 6, md: 4 }}
-                    p={1}
-                    mt={{ xs: 0, md: 1 }}
-                  >
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
                     <Button
                       fullWidth
                       type="submit"
@@ -329,17 +312,8 @@ function WorksheetCreate() {
                       บันทึก
                     </Button>
                   </Grid>
-                  <Grid
-                    size={{ xs: 12, sm: 6, md: 4 }}
-                    p={1}
-                    mt={{ xs: 0, md: 1 }}
-                  >
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      color="error"
-                      onClick={handleCancel}
-                    >
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
+                    <Button fullWidth variant="outlined" color="error" onClick={handleCancel}>
                       ยกเลิก
                     </Button>
                   </Grid>

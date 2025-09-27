@@ -8,7 +8,7 @@ function NoteCreate({ onCreate }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
+
     setNoteDescr("");
     onCreate(noteDescr);
   };

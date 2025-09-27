@@ -1,25 +1,23 @@
-import React from 'react';
-import {
-  Box,
-  Typography,
-  Avatar,
-  Grid,
-  Divider,
-  Chip,
-} from '@mui/material';
+import React from "react";
+import { Box, Typography, Avatar, Grid, Divider, Chip } from "@mui/material";
 import {
   Calculate as CalculateIcon,
   MonetizationOn as MonetizationOnIcon,
   Percent as PercentIcon,
   Payment as PaymentIcon,
-} from '@mui/icons-material';
-import { Section, SectionHeader, InfoCard, tokens } from '../../PricingIntegration/components/quotation/styles/quotationTheme';
+} from "@mui/icons-material";
+import {
+  Section,
+  SectionHeader,
+  InfoCard,
+  tokens,
+} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 // Format number to Thai currency format
 const formatCurrency = (amount) => {
-  if (!amount && amount !== 0) return '-';
+  if (!amount && amount !== 0) return "-";
   const num = parseFloat(amount);
-  return num.toLocaleString('th-TH', {
+  return num.toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -27,7 +25,7 @@ const formatCurrency = (amount) => {
 
 // Format percentage
 const formatPercent = (percent) => {
-  if (!percent && percent !== 0) return '-';
+  if (!percent && percent !== 0) return "-";
   return `${parseFloat(percent).toFixed(2)}%`;
 };
 
@@ -64,22 +62,28 @@ const FinancialSummarySection = ({ invoice }) => {
           <CalculateIcon fontSize="small" />
         </Avatar>
         <Box>
-          <Typography variant="subtitle1" fontWeight={700}>สรุปการเงิน</Typography>
-          <Typography variant="caption" color="text.secondary">ยอดเงินและการคำนวณ</Typography>
+          <Typography variant="subtitle1" fontWeight={700}>
+            สรุปการเงิน
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ยอดเงินและการคำนวณ
+          </Typography>
         </Box>
       </SectionHeader>
-      
+
       <Box sx={{ p: 2 }}>
         {/* Main Calculation */}
         <InfoCard sx={{ p: 2, mb: 2 }}>
           <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1.5}>
             การคำนวณยอดเงิน
           </Typography>
-          
+
           <Grid container spacing={1}>
             {/* Subtotal */}
             <Grid item xs={6}>
-              <Typography variant="body2" color="text.secondary">ยอดรวม (ไม่รวมภาษี)</Typography>
+              <Typography variant="body2" color="text.secondary">
+                ยอดรวม (ไม่รวมภาษี)
+              </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" textAlign="right" fontWeight={600}>
@@ -92,7 +96,9 @@ const FinancialSummarySection = ({ invoice }) => {
               <>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">
-                    ส่วนลดพิเศษ {specialDiscountPercentage > 0 && `(${formatPercent(specialDiscountPercentage)})`}
+                    ส่วนลดพิเศษ{" "}
+                    {specialDiscountPercentage > 0 &&
+                      `(${formatPercent(specialDiscountPercentage)})`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -162,7 +168,7 @@ const FinancialSummarySection = ({ invoice }) => {
                 ข้อมูลมัดจำ
               </Typography>
             </Box>
-            
+
             <Grid container spacing={1}>
               <Grid item xs={6}>
                 <Typography variant="body2" color="text.secondary">
@@ -170,15 +176,15 @@ const FinancialSummarySection = ({ invoice }) => {
                 </Typography>
               </Grid>
               <Grid item xs={6}>
-                <Chip 
-                  size="small" 
-                  label={isDepositMode === 'percentage' ? 'คิดเป็นเปอร์เซ็นต์' : 'จำนวนเงินคงที่'} 
+                <Chip
+                  size="small"
+                  label={isDepositMode === "percentage" ? "คิดเป็นเปอร์เซ็นต์" : "จำนวนเงินคงที่"}
                   variant="outlined"
                   color="warning"
                 />
               </Grid>
 
-              {isDepositMode === 'percentage' && (
+              {isDepositMode === "percentage" && (
                 <>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">
@@ -215,7 +221,7 @@ const FinancialSummarySection = ({ invoice }) => {
               สถานะการชำระเงิน
             </Typography>
           </Box>
-          
+
           <Grid container spacing={1}>
             <Grid item xs={6}>
               <Typography variant="body2" color="text.secondary">
@@ -249,11 +255,11 @@ const FinancialSummarySection = ({ invoice }) => {
               </Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography 
-                variant="body1" 
-                textAlign="right" 
-                fontWeight={700} 
-                color={remainingAmount > 0 ? 'error.main' : 'success.main'}
+              <Typography
+                variant="body1"
+                textAlign="right"
+                fontWeight={700}
+                color={remainingAmount > 0 ? "error.main" : "success.main"}
               >
                 ฿{formatCurrency(remainingAmount)}
               </Typography>
@@ -262,9 +268,9 @@ const FinancialSummarySection = ({ invoice }) => {
             {/* Payment Status Chip */}
             <Grid item xs={12} mt={1}>
               <Box display="flex" justifyContent="center">
-                <Chip 
-                  label={remainingAmount <= 0 ? 'ชำระครบแล้ว' : 'ยังไม่ได้ชำระ'}
-                  color={remainingAmount <= 0 ? 'success' : 'error'}
+                <Chip
+                  label={remainingAmount <= 0 ? "ชำระครบแล้ว" : "ยังไม่ได้ชำระ"}
+                  color={remainingAmount <= 0 ? "success" : "error"}
                   variant="filled"
                 />
               </Box>
@@ -274,13 +280,13 @@ const FinancialSummarySection = ({ invoice }) => {
 
         {/* Due Date */}
         {invoice?.due_date && (
-          <InfoCard sx={{ p: 2, mt: 2, bgcolor: 'warning.50' }}>
+          <InfoCard sx={{ p: 2, mt: 2, bgcolor: "warning.50" }}>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
                 วันครบกำหนดชำระ
               </Typography>
               <Typography variant="body2" fontWeight={600} color="warning.main">
-                {new Date(invoice.due_date).toLocaleDateString('th-TH')}
+                {new Date(invoice.due_date).toLocaleDateString("th-TH")}
               </Typography>
             </Box>
           </InfoCard>

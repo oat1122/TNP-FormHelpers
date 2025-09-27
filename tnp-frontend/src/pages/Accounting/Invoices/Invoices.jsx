@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import accountingTheme from '../theme/accountingTheme';
-import { Box, Container, Grid, Alert, Stack, Button, Chip, Typography, Fab } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import React, { useMemo, useState } from "react";
+import { ThemeProvider } from "@mui/material/styles";
+import accountingTheme from "../theme/accountingTheme";
+import { Box, Container, Grid, Alert, Stack, Button, Chip, Typography, Fab } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import {
   Header,
   FilterSection,
@@ -10,23 +10,23 @@ import {
   LoadingState,
   ErrorState,
   EmptyState,
-} from '../PricingIntegration/components';
+} from "../PricingIntegration/components";
 import {
   useGetInvoicesQuery,
   useGenerateInvoicePDFMutation,
   useApproveInvoiceMutation,
   useSubmitInvoiceMutation,
-} from '../../../features/Accounting/accountingApi';
-import InvoiceCreateDialog from './components/InvoiceCreateDialog';
-import QuotationSelectionDialog from './components/QuotationSelectionDialog';
-import InvoiceCard from './components/InvoiceCard';
-import { apiConfig } from '../../../api/apiConfig';
-import InvoiceDetailDialog from './components/InvoiceDetailDialog';
-import CompanyManagerDialog from '../Quotations/components/CompanyManagerDialog';
+} from "../../../features/Accounting/accountingApi";
+import InvoiceCreateDialog from "./components/InvoiceCreateDialog";
+import QuotationSelectionDialog from "./components/QuotationSelectionDialog";
+import InvoiceCard from "./components/InvoiceCard";
+import { apiConfig } from "../../../api/apiConfig";
+import InvoiceDetailDialog from "./components/InvoiceDetailDialog";
+import CompanyManagerDialog from "../Quotations/components/CompanyManagerDialog";
 
 const Invoices = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [quotationSelectionOpen, setQuotationSelectionOpen] = useState(false);
@@ -36,7 +36,7 @@ const Invoices = () => {
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   // Invoices: filter + pagination
-  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState('');
+  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState("");
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoicePerPage, setInvoicePerPage] = useState(20);
 
@@ -95,26 +95,32 @@ const Invoices = () => {
     try {
       if (!invoiceId || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
       const data = await generateInvoicePDF({ id: invoiceId, headerTypes }).unwrap();
-      if (data.mode === 'single' && data.pdf_url) {
-        const a = document.createElement('a');
+      if (data.mode === "single" && data.pdf_url) {
+        const a = document.createElement("a");
         a.href = data.pdf_url;
-        a.download = data.filename || 'invoice.pdf';
-        document.body.appendChild(a); a.click(); a.remove();
-      } else if (data.mode === 'zip' && data.zip_url) {
-        const a = document.createElement('a');
+        a.download = data.filename || "invoice.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else if (data.mode === "zip" && data.zip_url) {
+        const a = document.createElement("a");
         a.href = data.zip_url;
-        a.download = data.zip_filename || 'invoices.zip';
-        document.body.appendChild(a); a.click(); a.remove();
+        a.download = data.zip_filename || "invoices.zip";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       } else if (data.pdf_url) {
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = data.pdf_url;
-        a.download = data.filename || 'invoice.pdf';
-        document.body.appendChild(a); a.click(); a.remove();
+        a.download = data.filename || "invoice.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       } else {
-        console.warn('Unexpected generateInvoicePDF response', data);
+        console.warn("Unexpected generateInvoicePDF response", data);
       }
     } catch (e) {
-      console.error('Multi-header download failed', e);
+      console.error("Multi-header download failed", e);
     }
   };
 
@@ -122,45 +128,45 @@ const Invoices = () => {
   const handlePreviewPDF = async ({ invoiceId, mode }) => {
     try {
       if (!invoiceId) return;
-      
+
       // Build URL with mode parameter
-      const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/preview?mode=${mode || 'before'}`;
-      
+      const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/preview?mode=${mode || "before"}`;
+
       // Get auth token from localStorage (same logic as apiConfig)
       const authToken = localStorage.getItem("authToken");
       const token = localStorage.getItem("token");
       const finalToken = authToken || token;
-      
+
       if (!finalToken) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
-      
+
       // Direct fetch to avoid storing Blob in Redux
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${finalToken}`,
-          'Accept': 'application/pdf',
+          Authorization: `Bearer ${finalToken}`,
+          Accept: "application/pdf",
         },
-        credentials: 'include',
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // Convert to blob and open in new tab
       const blob = await response.blob();
-      if (blob.type === 'application/pdf') {
+      if (blob.type === "application/pdf") {
         const objectUrl = URL.createObjectURL(blob);
-        window.open(objectUrl, '_blank');
+        window.open(objectUrl, "_blank");
         // Clean up the object URL after some delay
         setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
       } else {
-        console.error('Unexpected response type for PDF preview:', blob.type);
+        console.error("Unexpected response type for PDF preview:", blob.type);
       }
     } catch (e) {
-      console.error('PDF preview failed', e);
+      console.error("PDF preview failed", e);
     }
   };
 
@@ -168,96 +174,98 @@ const Invoices = () => {
   const handleDownloadPDF = async ({ invoiceId, headerTypes, mode }) => {
     try {
       if (!invoiceId || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
-      
+
       // Build URL with mode and headers
       const params = new URLSearchParams();
-      params.append('mode', mode || 'before');
+      params.append("mode", mode || "before");
       if (headerTypes.length > 0) {
-        headerTypes.forEach(header => params.append('headerTypes[]', header));
+        headerTypes.forEach((header) => params.append("headerTypes[]", header));
       }
-      
+
       const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/download?${params.toString()}`;
-      
+
       // Get auth token (same logic as apiConfig)
       const authToken = localStorage.getItem("authToken");
       const token = localStorage.getItem("token");
       const finalToken = authToken || token;
-      
+
       if (!finalToken) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
-      
+
       // Direct fetch to avoid storing Blob in Redux
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${finalToken}`,
-          'Accept': 'application/pdf, application/zip, application/json',
+          Authorization: `Bearer ${finalToken}`,
+          Accept: "application/pdf, application/zip, application/json",
         },
-        credentials: 'include',
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      const contentType = response.headers.get('content-type') || '';
-      
-      if (contentType.includes('application/pdf') || contentType.includes('application/zip')) {
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/pdf") || contentType.includes("application/zip")) {
         // Handle binary response (PDF or ZIP)
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = objectUrl;
-        
+
         // Determine filename based on content type and mode
-        if (contentType.includes('application/zip')) {
+        if (contentType.includes("application/zip")) {
           a.download = `invoices-${mode}-${Date.now()}.zip`;
         } else {
           a.download = `invoice-${mode}-${invoiceId}.pdf`;
         }
-        
+
         document.body.appendChild(a);
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        
-      } else if (contentType.includes('application/json')) {
+      } else if (contentType.includes("application/json")) {
         // Handle JSON response (legacy format)
         const data = await response.json();
-        
-        if (data.mode === 'single' && data.pdf_url) {
-          const a = document.createElement('a');
+
+        if (data.mode === "single" && data.pdf_url) {
+          const a = document.createElement("a");
           a.href = data.pdf_url;
           a.download = data.filename || `invoice-${mode}.pdf`;
-          document.body.appendChild(a); a.click(); a.remove();
-        } else if (data.mode === 'zip' && data.zip_url) {
-          const a = document.createElement('a');
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } else if (data.mode === "zip" && data.zip_url) {
+          const a = document.createElement("a");
           a.href = data.zip_url;
           a.download = data.zip_filename || `invoices-${mode}.zip`;
-          document.body.appendChild(a); a.click(); a.remove();
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
         } else if (data.pdf_url) {
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = data.pdf_url;
           a.download = data.filename || `invoice-${mode}.pdf`;
-          document.body.appendChild(a); a.click(); a.remove();
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
         } else {
-          console.warn('Unexpected download response', data);
+          console.warn("Unexpected download response", data);
         }
       } else {
-        console.error('Unexpected content type:', contentType);
+        console.error("Unexpected content type:", contentType);
       }
     } catch (e) {
-      console.error('Mode-aware PDF download failed', e);
+      console.error("Mode-aware PDF download failed", e);
     }
   };
 
   return (
     <ThemeProvider theme={accountingTheme}>
-      <Header 
-        title="จัดการใบแจ้งหนี้" 
-        subtitle="รายการใบแจ้งหนี้ทั้งหมดในระบบ" 
-      />
+      <Header title="จัดการใบแจ้งหนี้" subtitle="รายการใบแจ้งหนี้ทั้งหมดในระบบ" />
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header with Create Button */}
@@ -266,11 +274,7 @@ const Invoices = () => {
             รายการใบแจ้งหนี้
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setCompanyDialogOpen(true)}
-            >
+            <Button variant="outlined" size="small" onClick={() => setCompanyDialogOpen(true)}>
               จัดการบริษัท
             </Button>
             <Button
@@ -287,30 +291,36 @@ const Invoices = () => {
 
         <FilterSection
           searchQuery={searchQuery}
-          onSearchChange={(v) => { setSearchQuery(v); setInvoicePage(1); }}
+          onSearchChange={(v) => {
+            setSearchQuery(v);
+            setInvoicePage(1);
+          }}
           onRefresh={refetchInvoices}
-          onResetFilters={() => { 
-            setSearchQuery(''); 
-            setInvoicePage(1); 
-            setInvoicePerPage(20); 
-            setInvoiceTypeFilter(''); 
+          onResetFilters={() => {
+            setSearchQuery("");
+            setInvoicePage(1);
+            setInvoicePerPage(20);
+            setInvoiceTypeFilter("");
           }}
         />
 
         {/* Invoice Type Filter */}
-        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
+        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: "wrap" }}>
           {[
-            { value: '', label: 'ทั้งหมด' },
-            { value: 'full_amount', label: 'เต็มจำนวน' },
-            { value: 'remaining', label: 'ยอดคงเหลือ (หักมัดจำ)' },
-            { value: 'deposit', label: 'มัดจำ' },
-            { value: 'partial', label: 'บางส่วน (กำหนดเอง)' },
+            { value: "", label: "ทั้งหมด" },
+            { value: "full_amount", label: "เต็มจำนวน" },
+            { value: "remaining", label: "ยอดคงเหลือ (หักมัดจำ)" },
+            { value: "deposit", label: "มัดจำ" },
+            { value: "partial", label: "บางส่วน (กำหนดเอง)" },
           ].map((opt) => (
             <Button
-              key={opt.value || 'all'}
+              key={opt.value || "all"}
               size="small"
-              variant={(invoiceTypeFilter === opt.value) ? 'contained' : 'outlined'}
-              onClick={() => { setInvoiceTypeFilter(opt.value); setInvoicePage(1); }}
+              variant={invoiceTypeFilter === opt.value ? "contained" : "outlined"}
+              onClick={() => {
+                setInvoiceTypeFilter(opt.value);
+                setInvoicePage(1);
+              }}
             >
               {opt.label}
             </Button>
@@ -349,19 +359,19 @@ const Invoices = () => {
                       onView={() => handleViewInvoice(inv)}
                       onApprove={async (notes) => {
                         try {
-                          if (inv.status === 'draft') await submitInvoice(inv.id).unwrap();
+                          if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
                           await approveInvoice({ id: inv.id, notes }).unwrap();
                           refetchInvoices();
                         } catch (e) {
-                          console.error('Approve invoice failed', e);
+                          console.error("Approve invoice failed", e);
                         }
                       }}
                       onSubmit={async () => {
                         try {
-                          if (inv.status === 'draft') await submitInvoice(inv.id).unwrap();
+                          if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
                           refetchInvoices();
                         } catch (e) {
-                          console.error('Submit invoice failed', e);
+                          console.error("Submit invoice failed", e);
                         }
                       }}
                     />
@@ -379,10 +389,10 @@ const Invoices = () => {
         aria-label="สร้างใบแจ้งหนี้"
         onClick={handleCreateInvoiceClick}
         sx={{
-          position: 'fixed',
+          position: "fixed",
           bottom: 24,
           right: 24,
-          display: { xs: 'flex', md: 'none' }, // Show only on mobile
+          display: { xs: "flex", md: "none" }, // Show only on mobile
         }}
       >
         <AddIcon />
@@ -418,10 +428,7 @@ const Invoices = () => {
       />
 
       {/* Company Manager Dialog */}
-      <CompanyManagerDialog
-        open={companyDialogOpen}
-        onClose={() => setCompanyDialogOpen(false)}
-      />
+      <CompanyManagerDialog open={companyDialogOpen} onClose={() => setCompanyDialogOpen(false)} />
     </ThemeProvider>
   );
 };

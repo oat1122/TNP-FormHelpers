@@ -23,7 +23,7 @@ import { FiSearch } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
 import { searchKeyword } from "../../features/globalSlice";
 import { handleCheckUpdate } from "../../features/globalUtils";
-import NavDropdown from 'react-bootstrap/NavDropdown';
+import NavDropdown from "react-bootstrap/NavDropdown";
 import DialogChangePass from "./DialogChangePass";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -80,13 +80,19 @@ function AppHeader() {
 
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
-  const pathList = ["/monitor", "/worksheet", "/customer", "/pricing", "/user-management", "/max-supply"];
+  const pathList = [
+    "/monitor",
+    "/worksheet",
+    "/customer",
+    "/pricing",
+    "/user-management",
+    "/max-supply",
+  ];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   let content;
 
   const handlelogout = async () => {
-
     try {
       const res = await axios.post("/logout");
 
@@ -94,9 +100,7 @@ function AppHeader() {
         localStorage.clear();
         navigate("/login");
       }
-
     } catch (e) {
-
       localStorage.clear();
       navigate("/login");
       console.error("Logout failed: ", e.response?.data);
@@ -120,7 +124,9 @@ function AppHeader() {
   };
 
   // rendered search field
-  if (["/customer", "/pricing", "/user-management", "/max-supply/list"].includes(location.pathname)) {
+  if (
+    ["/customer", "/pricing", "/user-management", "/max-supply/list"].includes(location.pathname)
+  ) {
     content = (
       <StyledPaper component="form" elevation={0} onSubmit={handleSubmit}>
         <Autocomplete
@@ -130,9 +136,7 @@ function AppHeader() {
           options={[]}
           value={keyword}
           onInputChange={(e, newVal) => handleInputChange(e, newVal)}
-          renderInput={(params) => (
-            <StyledTextField {...params} placeholder="Search" />
-          )}
+          renderInput={(params) => <StyledTextField {...params} placeholder="Search" />}
           sx={{ flex: 1 }}
         />
         <SearchButton type="submit" variant="contained" color="error-light">
@@ -165,29 +169,22 @@ function AppHeader() {
   useEffect(() => {
     setTimeout(() => {
       handleCheckUpdate(user);
-    }, 2000)
+    }, 2000);
   }, [navigate]);
 
   return (
     <>
       <DialogChangePass
         openDialog={openDialog}
-        closeDialog={ () => setOpenDialog((open) => !open) }
+        closeDialog={() => setOpenDialog((open) => !open)}
       />
 
-      <BsNavbar
-        bg="dark"
-        variant="dark"
-        expand="lg"
-        className="justify-content-between"
-      >
+      <BsNavbar bg="dark" variant="dark" expand="lg" className="justify-content-between">
         <BsContainer fluid>
           <BsNav.Item>
             <BsNavbar.Brand className="">
               <Link to="/" aria-label="control-panel">
-                <IconContext.Provider
-                  value={{ color: "#c55050", size: "2rem" }}
-                >
+                <IconContext.Provider value={{ color: "#c55050", size: "2rem" }}>
                   <RxHome />
                 </IconContext.Provider>
               </Link>
@@ -205,12 +202,9 @@ function AppHeader() {
           ) : null}
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
-          <BsNavbar.Collapse
-            id="basic-navbar-nav"
-            className="justify-content-end"
-          >
+          <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
             {/* Display username and change password */}
-            <NavDropdown 
+            <NavDropdown
               title={
                 <>
                   <BsNav.Item className="me-3">
@@ -220,9 +214,7 @@ function AppHeader() {
                     >
                       {user.username}
                     </BsNavbar.Text>
-                    <IconContext.Provider
-                      value={{ color: "#c55050", size: "1.7rem" }}
-                    >
+                    <IconContext.Provider value={{ color: "#c55050", size: "1.7rem" }}>
                       <BsPersonSquare />
                     </IconContext.Provider>
                     <BsNavbar.Text
@@ -233,30 +225,25 @@ function AppHeader() {
                     </BsNavbar.Text>
                   </BsNav.Item>
                 </>
-              } 
-              id="basic-nav-dropdown" 
+              }
+              id="basic-nav-dropdown"
               className="nav-dropdown"
               drop="down"
             >
-              <NavDropdown.Item onClick={ () => setOpenDialog(true) }>Change Password</NavDropdown.Item>
+              <NavDropdown.Item onClick={() => setOpenDialog(true)}>
+                Change Password
+              </NavDropdown.Item>
             </NavDropdown>
 
             {/* Logout */}
             <BsNav.Item>
               <div className="vr vr-nav d-none d-lg-inline-block me-3"></div>
             </BsNav.Item>
-            <BsNav.Link
-              className="ms-1 ms-lg-0 mt-3 mt-lg-0"
-              onClick={handlelogout}
-            >
-              <IconContext.Provider
-                value={{ color: "#c55050", size: "1.9rem" }}
-              >
+            <BsNav.Link className="ms-1 ms-lg-0 mt-3 mt-lg-0" onClick={handlelogout}>
+              <IconContext.Provider value={{ color: "#c55050", size: "1.9rem" }}>
                 <FiLogOut />
               </IconContext.Provider>
-              <BsNavbar.Text className="d-lg-none ms-3 nav-text">
-                LOG OUT
-              </BsNavbar.Text>
+              <BsNavbar.Text className="d-lg-none ms-3 nav-text">LOG OUT</BsNavbar.Text>
             </BsNav.Link>
           </BsNavbar.Collapse>
         </BsContainer>

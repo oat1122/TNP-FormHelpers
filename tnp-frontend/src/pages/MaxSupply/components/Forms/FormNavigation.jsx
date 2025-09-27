@@ -1,16 +1,6 @@
-import React from 'react';
-import {
-  Box,
-  Button,
-  Paper,
-  CircularProgress,
-} from '@mui/material';
-import {
-  NavigateBefore,
-  NavigateNext,
-  Cancel,
-  Save,
-} from '@mui/icons-material';
+import React from "react";
+import { Box, Button, Paper, CircularProgress } from "@mui/material";
+import { NavigateBefore, NavigateNext, Cancel, Save } from "@mui/icons-material";
 
 const FormNavigation = ({
   activeStep,
@@ -33,16 +23,12 @@ const FormNavigation = ({
         >
           ย้อนกลับ
         </Button>
-        
+
         <Box display="flex" gap={2}>
-          <Button
-            variant="outlined"
-            onClick={onCancel}
-            startIcon={<Cancel />}
-          >
+          <Button variant="outlined" onClick={onCancel} startIcon={<Cancel />}>
             ยกเลิก
           </Button>
-          
+
           {activeStep === totalSteps - 1 ? (
             <Button
               variant="contained"
@@ -50,14 +36,10 @@ const FormNavigation = ({
               disabled={submitLoading}
               startIcon={submitLoading ? <CircularProgress size={20} /> : <Save />}
             >
-              {submitLoading ? 'กำลังบันทึก...' : (isEditMode ? 'อัปเดต' : 'สร้างงาน')}
+              {submitLoading ? "กำลังบันทึก..." : isEditMode ? "อัปเดต" : "สร้างงาน"}
             </Button>
           ) : (
-            <Button
-              variant="contained"
-              onClick={onNext}
-              endIcon={<NavigateNext />}
-            >
+            <Button variant="contained" onClick={onNext} endIcon={<NavigateNext />}>
               ถัดไป
             </Button>
           )}
@@ -67,4 +49,4 @@ const FormNavigation = ({
   );
 };
 
-export default FormNavigation; 
+export default FormNavigation;

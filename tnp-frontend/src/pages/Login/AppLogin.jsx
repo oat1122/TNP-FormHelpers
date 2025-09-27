@@ -75,16 +75,15 @@ const AppLogin = () => {
 
         // Remove any existing tokenExpiry to prevent token expiry issues
         localStorage.removeItem("tokenExpiry");
-        
+
         // Clean up any old token-related items that might cause issues
         localStorage.removeItem("token"); // Remove any old 'token' key
-        
+
         console.log("Login successful - Token expiry tracking disabled");
 
         navigate("/");
         setInputList({ username: "", password: "" });
       }
-
     } catch (error) {
       setIsLoading(false);
       console.error("Login failed: ", error.response?.data);
@@ -125,11 +124,7 @@ const AppLogin = () => {
                     onChange={handleInputChange}
                   />
                 </Card.Text>
-                <Card.Text
-                  className="text-danger fs-5 mb-0 error"
-                >
-                  {errorMsg.username}
-                </Card.Text>
+                <Card.Text className="text-danger fs-5 mb-0 error">{errorMsg.username}</Card.Text>
                 <Card.Text className="mt-xl-3 mb-0">
                   <Form.Label>Password</Form.Label>
                   <Form.Control
@@ -140,41 +135,28 @@ const AppLogin = () => {
                     onChange={handleInputChange}
                   />
                 </Card.Text>
-                <Card.Text className="text-danger fs-5 mb-0 error">
-                  {errorMsg.password}
-                </Card.Text>
+                <Card.Text className="text-danger fs-5 mb-0 error">{errorMsg.password}</Card.Text>
                 <Card.Text className="mt-xl-2">
                   <Form.Check.Input
                     type="checkbox"
                     className="mt-md-1 mt-lg-2 me-1"
                     onClick={handleShowPass}
                   />
-                  <Form.Check.Label className="show-pass">
-                    Show Password
-                  </Form.Check.Label>
+                  <Form.Check.Label className="show-pass">Show Password</Form.Check.Label>
                 </Card.Text>
               </Card.Body>
               <Card.Footer className="text-center bg-white p-3">
                 <Card.Text className="text-center">
-                  <Button
-                    type="submit"
-                    className="btn btn-danger"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="btn btn-danger" disabled={isLoading}>
                     LOGIN
                     {isLoading ? (
                       <div className="ms-1">
-                        <span
-                          className="spinner-border spinner-border-sm"
-                          role="status"
-                        ></span>
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
                       </div>
                     ) : null}
                   </Button>
                 </Card.Text>
-                <Card.Text className="text-danger fs-4 error">
-                  {errorMsg.all}
-                </Card.Text>
+                <Card.Text className="text-danger fs-4 error">{errorMsg.all}</Card.Text>
               </Card.Footer>
             </Card>
           </Form>

@@ -1,14 +1,7 @@
 // filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\FilterPanel.jsx
 import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import {
-  Box,
-  Grid2 as Grid,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-} from "@mui/material";
+import { Box, Grid2 as Grid, Typography, Stack, Alert, CircularProgress } from "@mui/material";
 import { MdExpandMore, MdFilterList } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { useGetUserByRoleQuery } from "../../features/globalApi";
@@ -45,8 +38,7 @@ function FilterPanel() {
   const [expanded, setExpanded] = useState(false);
 
   // Get sales list from API
-  const { data: salesData, isLoading: salesLoading } =
-    useGetUserByRoleQuery("sale");
+  const { data: salesData, isLoading: salesLoading } = useGetUserByRoleQuery("sale");
 
   // Custom hooks for state management
   const {
@@ -60,13 +52,8 @@ function FilterPanel() {
     resetDraftFilters,
   } = useFilterState();
 
-  const {
-    isFiltering,
-    errorMessage,
-    handleApplyFilters,
-    handleResetFilters,
-    clearErrorMessage,
-  } = useFilterActions();
+  const { isFiltering, errorMessage, handleApplyFilters, handleResetFilters, clearErrorMessage } =
+    useFilterActions();
 
   // Helper hooks
   const dateHelpers = useDateRangeHelpers(setDraftFilters);
@@ -75,13 +62,11 @@ function FilterPanel() {
   // Update sales list from API (only once when data is loaded)
   useEffect(() => {
     if (salesData?.sale_role?.length > 0) {
-      const salesNames = salesData.sale_role
-        .map((user) => user.username)
-        .filter(Boolean);
+      const salesNames = salesData.sale_role.map((user) => user.username).filter(Boolean);
       dispatch(setSalesList(salesNames));
     }
-  }, [salesData, dispatch]); 
-  
+  }, [salesData, dispatch]);
+
   // Handle accordion expand/collapse
   const handleAccordionChange = (_, isExpanded) => {
     setExpanded(isExpanded);
@@ -99,14 +84,10 @@ function FilterPanel() {
     setExpanded(false); // Collapse filter panel after reset
   };
 
-
   return (
     <Box sx={{ mb: 3 }}>
       {/* Advanced filters with enhanced design */}
-      <StyledAccordion
-        expanded={expanded}
-        onChange={handleAccordionChange}
-      >
+      <StyledAccordion expanded={expanded} onChange={handleAccordionChange}>
         <StyledAccordionSummary
           expanded={expanded}
           expandIcon={
@@ -126,9 +107,9 @@ function FilterPanel() {
             }}
           >
             {/* Left side - Filter icon and title */}
-            <Box 
-              sx={{ 
-                display: "flex", 
+            <Box
+              sx={{
+                display: "flex",
                 alignItems: "center",
                 flex: 1,
                 minWidth: 0, // Allow text truncation if needed
@@ -159,7 +140,7 @@ function FilterPanel() {
                       label={`${activeFilterCount} กรอง`}
                       size="small"
                       variant="active"
-                      sx={{ 
+                      sx={{
                         fontSize: "0.75rem",
                         height: "20px",
                         display: { xs: "none", sm: "inline-flex" },
@@ -196,9 +177,9 @@ function FilterPanel() {
             </Box>
 
             {/* Right side - Results and status */}
-            <Box 
-              sx={{ 
-                display: "flex", 
+            <Box
+              sx={{
+                display: "flex",
                 alignItems: "center",
                 gap: { xs: 0.5, sm: 1 },
                 flexShrink: 0,
@@ -206,32 +187,26 @@ function FilterPanel() {
             >
               {/* Loading indicator */}
               {isFiltering && (
-                <CircularProgress 
-                  size={20} 
-                  sx={{ 
+                <CircularProgress
+                  size={20}
+                  sx={{
                     color: "primary.main",
                     mr: 1,
-                  }} 
+                  }}
                 />
               )}
-              
+
               {/* Results chip */}
               <StatusChip
                 label={
-                  isFiltering 
+                  isFiltering
                     ? "กำลังค้นหา..."
                     : filteredCount > 0
-                    ? `${filteredCount.toLocaleString("th-TH")} รายการ`
-                    : "ไม่พบข้อมูล"
+                      ? `${filteredCount.toLocaleString("th-TH")} รายการ`
+                      : "ไม่พบข้อมูล"
                 }
                 size="small"
-                variant={
-                  isFiltering 
-                    ? "info"
-                    : filteredCount > 0 
-                    ? "success" 
-                    : "default"
-                }
+                variant={isFiltering ? "info" : filteredCount > 0 ? "success" : "default"}
                 sx={{
                   fontSize: { xs: "0.75rem", sm: "0.875rem" },
                   height: { xs: "24px", sm: "28px" },
@@ -243,15 +218,15 @@ function FilterPanel() {
             </Box>
           </Box>
         </StyledAccordionSummary>
-        
+
         <StyledAccordionDetails>
           {/* Error message with enhanced styling */}
           {errorMessage && (
             <Alert
               severity="error"
               onClose={clearErrorMessage}
-              sx={{ 
-                mb: 3, 
+              sx={{
+                mb: 3,
                 borderRadius: 2,
                 "& .MuiAlert-icon": {
                   fontSize: "1.25rem",
@@ -264,24 +239,18 @@ function FilterPanel() {
               {errorMessage}
             </Alert>
           )}
-          
+
           {/* Filter sections with improved spacing */}
           <Grid container spacing={{ xs: 2, sm: 3 }}>
-            <DateFilterSection
-              draftFilters={draftFilters}
-              dateHelpers={dateHelpers}
-            />
-            
+            <DateFilterSection draftFilters={draftFilters} dateHelpers={dateHelpers} />
+
             <SalesFilterSection
               draftFilters={draftFilters}
               salesList={salesList}
               selectionHelpers={selectionHelpers}
             />
-            
-            <ChannelFilterSection
-              draftFilters={draftFilters}
-              selectionHelpers={selectionHelpers}
-            />
+
+            <ChannelFilterSection draftFilters={draftFilters} selectionHelpers={selectionHelpers} />
 
             {/* Control buttons with responsive layout */}
             <Grid xs={12}>
@@ -289,7 +258,7 @@ function FilterPanel() {
                 direction={{ xs: "column", sm: "row" }}
                 spacing={2}
                 justifyContent="flex-end"
-                sx={{ 
+                sx={{
                   mt: { xs: 2, sm: 3 },
                   pt: 3,
                   borderTop: "1px solid",

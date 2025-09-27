@@ -1,7 +1,7 @@
 import React from "react";
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   Container,
   Stack,
   useTheme,
@@ -11,8 +11,8 @@ import {
   AccordionDetails,
   Alert,
 } from "@mui/material";
-import { 
-  MdVerifiedUser, 
+import {
+  MdVerifiedUser,
   MdExpandMore,
   MdBusiness,
   MdPhone,
@@ -45,101 +45,101 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
           borderRadius: 2,
           p: 3,
           mb: 3,
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
+          color: "white",
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
             content: '""',
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(10px)',
-          }
+            background: "rgba(255,255,255,0.05)",
+            backdropFilter: "blur(10px)",
+          },
         }}
       >
-        <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Stack spacing={2} sx={{ position: "relative", zIndex: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <MdVerifiedUser size={isMobile ? 24 : 28} />
-            <Typography 
-              variant={isMobile ? "h6" : "h5"} 
-              sx={{ 
+            <Typography
+              variant={isMobile ? "h6" : "h5"}
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit'
+                fontFamily: "Kanit",
               }}
             >
               การยืนยัน
             </Typography>
           </Box>
-          
+
           {/* Progress Indicator */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: 'Kanit' }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: "Kanit" }}>
               ขั้นตอนที่ 4 จาก 4 (สำเร็จ)
             </Typography>
-            <Box 
-              sx={{ 
-                flex: 1, 
-                height: 4, 
-                bgcolor: 'rgba(255,255,255,0.3)', 
-                borderRadius: 2, 
-                overflow: 'hidden' 
+            <Box
+              sx={{
+                flex: 1,
+                height: 4,
+                bgcolor: "rgba(255,255,255,0.3)",
+                borderRadius: 2,
+                overflow: "hidden",
               }}
             >
-              <Box 
-                sx={{ 
-                  height: '100%', 
-                  width: '100%', 
-                  bgcolor: 'white', 
+              <Box
+                sx={{
+                  height: "100%",
+                  width: "100%",
+                  bgcolor: "white",
                   borderRadius: 2,
-                  transition: 'width 0.3s ease'
-                }} 
+                  transition: "width 0.3s ease",
+                }}
               />
             </Box>
           </Box>
-          
-          <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: 'Kanit' }}>
+
+          <Typography variant="body2" sx={{ opacity: 0.9, fontFamily: "Kanit" }}>
             ตรวจสอบข้อมูลทั้งหมดก่อนบันทึก
           </Typography>
         </Stack>
       </Box>
 
       {/* Business Information Summary */}
-      <Accordion 
+      <Accordion
         defaultExpanded={true}
-        sx={{ 
+        sx={{
           mb: 2,
           boxShadow: isMobile ? 1 : 2,
           borderRadius: 2,
-          '&:before': { display: 'none' },
+          "&:before": { display: "none" },
           border: `1px solid ${DIVIDER_COLOR}`,
         }}
       >
-        <AccordionSummary 
+        <AccordionSummary
           expandIcon={<MdExpandMore />}
           sx={{
             bgcolor: BACKGROUND_COLOR,
-            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-            borderRadius: '8px 8px 0 0',
+            "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: "8px 8px 0 0",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <HiOfficeBuilding size={20} color={PRIMARY_RED} />
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit',
-                color: PRIMARY_RED
+                fontFamily: "Kanit",
+                color: PRIMARY_RED,
               }}
             >
               ข้อมูลธุรกิจ
             </Typography>
           </Box>
         </AccordionSummary>
-        
+
         <AccordionDetails sx={{ p: 3 }}>
           <Stack spacing={2}>
             <Box>
@@ -188,39 +188,39 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
       </Accordion>
 
       {/* Contact Information Summary */}
-      <Accordion 
+      <Accordion
         defaultExpanded={true}
-        sx={{ 
+        sx={{
           mb: 2,
           boxShadow: isMobile ? 1 : 2,
           borderRadius: 2,
-          '&:before': { display: 'none' },
+          "&:before": { display: "none" },
           border: `1px solid ${DIVIDER_COLOR}`,
         }}
       >
-        <AccordionSummary 
+        <AccordionSummary
           expandIcon={<MdExpandMore />}
           sx={{
             bgcolor: BACKGROUND_COLOR,
-            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-            borderRadius: '8px 8px 0 0',
+            "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: "8px 8px 0 0",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <MdPhone size={20} color={PRIMARY_RED} />
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit',
-                color: PRIMARY_RED
+                fontFamily: "Kanit",
+                color: PRIMARY_RED,
               }}
             >
               ข้อมูลการติดต่อ
             </Typography>
           </Box>
         </AccordionSummary>
-        
+
         <AccordionDetails sx={{ p: 3 }}>
           <Stack spacing={2}>
             <Box>
@@ -271,40 +271,44 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
       </Accordion>
 
       {/* Address Information Summary */}
-      {(inputList.cus_address || inputList.cus_province_text || inputList.cus_district_text || inputList.cus_subdistrict_text || inputList.cus_zip_code) && (
-        <Accordion 
+      {(inputList.cus_address ||
+        inputList.cus_province_text ||
+        inputList.cus_district_text ||
+        inputList.cus_subdistrict_text ||
+        inputList.cus_zip_code) && (
+        <Accordion
           defaultExpanded={false}
-          sx={{ 
+          sx={{
             mb: 2,
             boxShadow: isMobile ? 1 : 2,
             borderRadius: 2,
-            '&:before': { display: 'none' },
+            "&:before": { display: "none" },
             border: `1px solid ${DIVIDER_COLOR}`,
           }}
         >
-          <AccordionSummary 
+          <AccordionSummary
             expandIcon={<MdExpandMore />}
             sx={{
               bgcolor: BACKGROUND_COLOR,
-              '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-              borderRadius: '8px 8px 0 0',
+              "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+              borderRadius: "8px 8px 0 0",
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <MdLocationOn size={20} color={PRIMARY_RED} />
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
+              <Typography
+                variant="subtitle1"
+                sx={{
                   fontWeight: 600,
-                  fontFamily: 'Kanit',
-                  color: PRIMARY_RED
+                  fontFamily: "Kanit",
+                  color: PRIMARY_RED,
                 }}
               >
                 ที่อยู่ธุรกิจ
               </Typography>
             </Box>
           </AccordionSummary>
-          
+
           <AccordionDetails sx={{ p: 3 }}>
             <Stack spacing={2}>
               {inputList.cus_address && (
@@ -323,7 +327,9 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
                 </Box>
               )}
 
-              {(inputList.cus_province_text || inputList.cus_district_text || inputList.cus_subdistrict_text) && (
+              {(inputList.cus_province_text ||
+                inputList.cus_district_text ||
+                inputList.cus_subdistrict_text) && (
                 <Box>
                   <Typography
                     variant="caption"
@@ -334,7 +340,11 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
                     จังหวัด / อำเภอ / ตำบล
                   </Typography>
                   <Typography variant="body2" fontFamily="Kanit" sx={{ fontWeight: 500, mt: 0.5 }}>
-                    {[inputList.cus_province_text, inputList.cus_district_text, inputList.cus_subdistrict_text]
+                    {[
+                      inputList.cus_province_text,
+                      inputList.cus_district_text,
+                      inputList.cus_subdistrict_text,
+                    ]
                       .filter(Boolean)
                       .join(" / ") || "-"}
                   </Typography>
@@ -362,39 +372,39 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
       )}
 
       {/* Management and Notes Summary */}
-      <Accordion 
+      <Accordion
         defaultExpanded={false}
-        sx={{ 
+        sx={{
           mb: 2,
           boxShadow: isMobile ? 1 : 2,
           borderRadius: 2,
-          '&:before': { display: 'none' },
+          "&:before": { display: "none" },
           border: `1px solid ${DIVIDER_COLOR}`,
         }}
       >
-        <AccordionSummary 
+        <AccordionSummary
           expandIcon={<MdExpandMore />}
           sx={{
             bgcolor: BACKGROUND_COLOR,
-            '&:hover': { bgcolor: `${PRIMARY_RED}05` },
-            borderRadius: '8px 8px 0 0',
+            "&:hover": { bgcolor: `${PRIMARY_RED}05` },
+            borderRadius: "8px 8px 0 0",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <HiUser size={20} color={PRIMARY_RED} />
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontWeight: 600,
-                fontFamily: 'Kanit',
-                color: PRIMARY_RED
+                fontFamily: "Kanit",
+                color: PRIMARY_RED,
               }}
             >
               การจัดการและบันทึก
             </Typography>
           </Box>
         </AccordionSummary>
-        
+
         <AccordionDetails sx={{ p: 3 }}>
           <Stack spacing={2}>
             <Box>
@@ -447,21 +457,16 @@ const VerificationStepSimple = ({ inputList = {}, mode = "create" }) => {
       </Accordion>
 
       {/* Final Confirmation Alert */}
-      <Alert 
+      <Alert
         severity="info"
-        sx={{ 
+        sx={{
           fontFamily: "Kanit",
           borderRadius: 2,
           border: `1px solid ${PRIMARY_RED}30`,
           backgroundColor: `${PRIMARY_RED}05`,
         }}
       >
-        <Typography
-          variant="body2"
-          fontFamily="Kanit"
-          color={PRIMARY_RED}
-          sx={{ fontWeight: 500 }}
-        >
+        <Typography variant="body2" fontFamily="Kanit" color={PRIMARY_RED} sx={{ fontWeight: 500 }}>
           กรุณาตรวจสอบข้อมูลทั้งหมดก่อนกดปุ่ม "บันทึก"
         </Typography>
       </Alert>

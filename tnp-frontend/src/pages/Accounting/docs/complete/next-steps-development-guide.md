@@ -5,6 +5,7 @@
 ### **Phase 1: Quotation Management System**
 
 #### 1.1 สร้างหน้า Quotation List
+
 ```
 ไฟล์: src/pages/Accounting/QuotationList.jsx
 - แสดงรายการใบเสนอราคาทั้งหมด
@@ -14,6 +15,7 @@
 ```
 
 #### 1.2 สร้างหน้า Quotation Form
+
 ```
 ไฟล์: src/pages/Accounting/QuotationForm.jsx
 - Create/Edit/View modes
@@ -24,6 +26,7 @@
 ```
 
 #### 1.3 สร้าง Quotation Components
+
 ```
 ไฟล์ต่างๆ:
 - QuotationCard.jsx (สำหรับแสดงใน list)
@@ -35,6 +38,7 @@
 ### **Phase 2: Invoice Management System**
 
 #### 2.1 สร้างหน้า Invoice List
+
 ```
 ไฟล์: src/pages/Accounting/InvoiceList.jsx
 - แสดงรายการใบแจ้งหนี้
@@ -44,6 +48,7 @@
 ```
 
 #### 2.2 สร้างหน้า Invoice Form
+
 ```
 ไฟล์: src/pages/Accounting/InvoiceForm.jsx
 - Create from quotation
@@ -55,6 +60,7 @@
 ### **Phase 3: Receipt Management System**
 
 #### 3.1 สร้างหน้า Receipt List
+
 ```
 ไฟล์: src/pages/Accounting/ReceiptList.jsx
 - Payment tracking
@@ -64,6 +70,7 @@
 ```
 
 #### 3.2 สร้าง Payment Components
+
 ```
 ไฟล์ต่างๆ:
 - PaymentForm.jsx
@@ -75,6 +82,7 @@
 ### **Phase 4: Delivery Management System**
 
 #### 4.1 สร้างหน้า Delivery Notes
+
 ```
 ไฟล์: src/pages/Accounting/DeliveryList.jsx
 - Shipping status tracking
@@ -84,6 +92,7 @@
 ```
 
 #### 4.2 สร้าง Delivery Components
+
 ```
 ไฟล์ต่างๆ:
 - DeliveryTracker.jsx
@@ -97,28 +106,46 @@
 ## 🎨 Design System Guidelines
 
 ### **Colors Usage**
+
 ```css
 /* Primary Actions */
-.btn-primary { background: #900F0F; }
-.btn-approve { background: #900F0F; }
+.btn-primary {
+  background: #900f0f;
+}
+.btn-approve {
+  background: #900f0f;
+}
 
 /* Secondary Actions */
-.btn-secondary { background: #B20000; }
-.btn-edit { border: 1px solid #B20000; }
+.btn-secondary {
+  background: #b20000;
+}
+.btn-edit {
+  border: 1px solid #b20000;
+}
 
 /* Light Backgrounds */
-.notification-bg { background: #E36264; }
-.hover-effect:hover { background: #E36264; }
+.notification-bg {
+  background: #e36264;
+}
+.hover-effect:hover {
+  background: #e36264;
+}
 
 /* Neutral */
-.card-bg { background: #FFFFFF; }
-.text-on-red { color: #FFFFFF; }
+.card-bg {
+  background: #ffffff;
+}
+.text-on-red {
+  color: #ffffff;
+}
 ```
 
 ### **Component Patterns**
+
 ```jsx
 // Standard Card Layout
-<Card sx={{ borderRadius: 3, border: '1px solid #E0E0E0' }}>
+<Card sx={{ borderRadius: 3, border: "1px solid #E0E0E0" }}>
   <CardContent>
     <Typography variant="h6" color="primary">
       Title
@@ -139,43 +166,47 @@
 ## 🔧 Technical Implementation
 
 ### **API Integration Pattern**
+
 ```javascript
 // 1. Add to accountingApi.js
 export const quotationApi = accountingApi.injectEndpoints({
   endpoints: (builder) => ({
     getQuotations: builder.query({
-      query: (params) => ({ url: '/quotations', params }),
-      providesTags: ['Quotation'],
+      query: (params) => ({ url: "/quotations", params }),
+      providesTags: ["Quotation"],
     }),
     createQuotation: builder.mutation({
-      query: (data) => ({ url: '/quotations', method: 'POST', body: data }),
-      invalidatesTags: ['Quotation'],
+      query: (data) => ({ url: "/quotations", method: "POST", body: data }),
+      invalidatesTags: ["Quotation"],
     }),
   }),
 });
 
 // 2. Export hooks
-export const { useGetQuotationsQuery, useCreateQuotationMutation } = quotationApi;
+export const { useGetQuotationsQuery, useCreateQuotationMutation } =
+  quotationApi;
 ```
 
 ### **State Management Pattern**
+
 ```javascript
 // Add to accountingSlice.js
 const quotationState = {
   selectedQuotation: null,
   quotationFilters: {
-    status: 'all',
+    status: "all",
     dateRange: null,
     customer: null,
   },
   quotationModal: {
     open: false,
-    mode: 'view', // 'create', 'edit', 'view'
+    mode: "view", // 'create', 'edit', 'view'
   },
 };
 ```
 
 ### **Component Structure Pattern**
+
 ```
 src/pages/Accounting/
 ├── components/
@@ -206,6 +237,7 @@ src/pages/Accounting/
 ## 📝 Development Checklist
 
 ### **For each new page:**
+
 - [ ] Create page component with proper routing
 - [ ] Add to navigation menu
 - [ ] Implement responsive design
@@ -218,6 +250,7 @@ src/pages/Accounting/
 - [ ] Write documentation
 
 ### **Testing Checklist:**
+
 - [ ] Test responsive design on mobile/tablet
 - [ ] Test all CRUD operations
 - [ ] Test search and filter functionality
@@ -232,7 +265,7 @@ src/pages/Accounting/
 ## 🎯 Priority Order
 
 1. **HIGH PRIORITY**: Quotation Management (เป็น core workflow)
-2. **MEDIUM PRIORITY**: Invoice Management (ต่อจาก quotation)  
+2. **MEDIUM PRIORITY**: Invoice Management (ต่อจาก quotation)
 3. **MEDIUM PRIORITY**: Receipt Management (payment tracking)
 4. **LOW PRIORITY**: Delivery Management (final step)
 
@@ -250,7 +283,7 @@ touch src/pages/Accounting/QuotationList.jsx
 # เพิ่ม navigation item ใน AccountingLayout.jsx
 {
   id: 'quotation',
-  title: 'ใบเสนอราคา', 
+  title: 'ใบเสนอราคา',
   icon: AssignmentIcon,
   path: '/accounting/quotations',
 }

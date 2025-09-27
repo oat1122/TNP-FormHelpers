@@ -25,8 +25,12 @@ const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
 // Accounting components
 const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"));
-const AccountingDashboard = lazy(() => import("./pages/Accounting/AccountingDashboard/AccountingDashboard"));
-const PricingIntegration = lazy(() => import("./pages/Accounting/PricingIntegration/PricingIntegration"));
+const AccountingDashboard = lazy(
+  () => import("./pages/Accounting/AccountingDashboard/AccountingDashboard")
+);
+const PricingIntegration = lazy(
+  () => import("./pages/Accounting/PricingIntegration/PricingIntegration")
+);
 const Quotations = lazy(() => import("./pages/Accounting/Quotations/Quotations"));
 const Invoices = lazy(() => import("./pages/Accounting/Invoices/Invoices"));
 
@@ -42,11 +46,13 @@ function App() {
     <AppTheme>
       <CssBaseline /> {/* Reset CSS */}
       <MaxSupplyProvider>
-        <Suspense fallback={
-          <div className="text-center mt-4">
-            <CircularProgress color="error" size={60} />
-          </div>
-        }>
+        <Suspense
+          fallback={
+            <div className="text-center mt-4">
+              <CircularProgress color="error" size={60} />
+            </div>
+          }
+        >
           <Routes>
             <Route element={<AuthLayout />}>
               <Route path="/" element={<ControlPanel />} />

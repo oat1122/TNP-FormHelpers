@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Grid,
@@ -19,7 +19,7 @@ import {
   IconButton,
   Badge,
   LinearProgress,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
@@ -27,7 +27,7 @@ import {
   CheckCircleOutline as CheckCircleIcon,
   RadioButtonUnchecked as UncheckIcon,
   Info as InfoIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   Section,
   SectionHeader,
@@ -35,26 +35,26 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from '../styles/quotationTheme';
-import useCustomerPricingRequests from '../hooks/useCustomerPricingRequests';
+} from "../styles/quotationTheme";
+import useCustomerPricingRequests from "../hooks/useCustomerPricingRequests";
 
 const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [additionalNotes, setAdditionalNotes] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [selectedPricingItems, setSelectedPricingItems] = useState([]);
 
-  const { list: customerPricingRequests, isLoading, fetchForCustomer } =
-    useCustomerPricingRequests();
+  const {
+    list: customerPricingRequests,
+    isLoading,
+    fetchForCustomer,
+  } = useCustomerPricingRequests();
 
   useEffect(() => {
     if (open && pricingRequest?.customer?.cus_id) {
       const endpoint = import.meta.env.VITE_END_POINT_URL;
-      fetchForCustomer(
-        pricingRequest.customer.cus_id,
-        pricingRequest.pr_id,
-        true,
-        endpoint
-      ).then(({ defaultSelected }) => setSelectedPricingItems(defaultSelected));
+      fetchForCustomer(pricingRequest.customer.cus_id, pricingRequest.pr_id, true, endpoint).then(
+        ({ defaultSelected }) => setSelectedPricingItems(defaultSelected)
+      );
     }
   }, [open, pricingRequest, fetchForCustomer]);
 
@@ -64,8 +64,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
     );
 
   const handleSubmit = async () => {
-    if (selectedPricingItems.length === 0)
-      return alert('กรุณาเลือกอย่างน้อย 1 งาน');
+    if (selectedPricingItems.length === 0) return alert("กรุณาเลือกอย่างน้อย 1 งาน");
     setIsSubmitting(true);
     try {
       const validSelections = customerPricingRequests.filter((item) =>
@@ -79,7 +78,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
       };
       await onSubmit?.(submitData);
       onClose();
-      setAdditionalNotes('');
+      setAdditionalNotes("");
       setSelectedPricingItems([]);
     } finally {
       setIsSubmitting(false);
@@ -124,10 +123,8 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, position: 'relative' }}>
-        {isLoading && (
-          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-        )}
+      <DialogContent sx={{ p: 0, position: "relative" }}>
+        {isLoading && <LinearProgress sx={{ position: "absolute", top: 0, left: 0, right: 0 }} />}
 
         <Box sx={{ p: 3 }}>
           <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
@@ -160,9 +157,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                 <Typography variant="subtitle2" color="text.secondary">
                   บริษัทลูกค้า
                 </Typography>
-                <Typography fontWeight={600}>
-                  {pricingRequest?.customer?.cus_company}
-                </Typography>
+                <Typography fontWeight={600}>{pricingRequest?.customer?.cus_company}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -174,9 +169,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                 <Typography variant="subtitle2" color="text.secondary">
                   ที่อยู่
                 </Typography>
-                <Typography variant="body2">
-                  {pricingRequest?.customer?.cus_address}
-                </Typography>
+                <Typography variant="body2">{pricingRequest?.customer?.cus_address}</Typography>
               </Grid>
             </Grid>
           </InfoCard>
@@ -225,7 +218,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                 ))}
               </Box>
             ) : (
-              <Box sx={{ maxHeight: 420, overflowY: 'auto', pr: 1 }}>
+              <Box sx={{ maxHeight: 420, overflowY: "auto", pr: 1 }}>
                 {customerPricingRequests.map((item, index) => {
                   const selected = selectedPricingItems.includes(item.pr_id);
                   return (
@@ -241,8 +234,8 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                             <Box display="flex" alignItems="center" gap={1.25} mb={1}>
                               <Avatar
                                 sx={{
-                                  bgcolor: selected ? tokens.primary : '#E5E7EB',
-                                  color: selected ? tokens.white : '#6B7280',
+                                  bgcolor: selected ? tokens.primary : "#E5E7EB",
+                                  color: selected ? tokens.white : "#6B7280",
                                   width: 28,
                                   height: 28,
                                 }}
@@ -252,7 +245,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                               <Typography
                                 variant="subtitle1"
                                 fontWeight={700}
-                                color={selected ? tokens.primary : 'inherit'}
+                                color={selected ? tokens.primary : "inherit"}
                               >
                                 {item.pr_work_name}
                               </Typography>
@@ -263,7 +256,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                   ลาย/แบบ
                                 </Typography>
                                 <Typography variant="body2" fontWeight={500}>
-                                  {item.pr_pattern || '-'}
+                                  {item.pr_pattern || "-"}
                                 </Typography>
                               </Grid>
                               <Grid item xs={6} md={3}>
@@ -271,7 +264,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                   วัสดุ
                                 </Typography>
                                 <Typography variant="body2" fontWeight={500}>
-                                  {item.pr_fabric_type || '-'}
+                                  {item.pr_fabric_type || "-"}
                                 </Typography>
                               </Grid>
                               <Grid item xs={6} md={3}>
@@ -288,8 +281,8 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                                 </Typography>
                                 <Typography variant="body2">
                                   {item.pr_due_date
-                                    ? new Date(item.pr_due_date).toLocaleDateString('th-TH')
-                                    : '-'}
+                                    ? new Date(item.pr_due_date).toLocaleDateString("th-TH")
+                                    : "-"}
                                 </Typography>
                               </Grid>
                             </Grid>
@@ -297,10 +290,10 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
                           <Tooltip
                             title={
                               item.is_quoted
-                                ? 'มีใบเสนอราคาแล้ว'
+                                ? "มีใบเสนอราคาแล้ว"
                                 : selected
-                                ? 'ยกเลิกการเลือก'
-                                : 'เลือกงานนี้'
+                                  ? "ยกเลิกการเลือก"
+                                  : "เลือกงานนี้"
                             }
                           >
                             <span>
@@ -361,7 +354,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
               startIcon={<AssignmentIcon />}
             >
               {isSubmitting
-                ? 'กำลังสร้าง…'
+                ? "กำลังสร้าง…"
                 : `สร้างใบเสนอราคา (${selectedPricingItems.length} งาน)`}
             </PrimaryButton>
           </Box>

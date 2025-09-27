@@ -18,24 +18,19 @@ import {
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import { useGetAllWorksheetQuery } from "../../../features/Worksheet/worksheetApi";
 
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
   height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
+  overflow: "hidden",
+  position: "absolute",
   bottom: 0,
   left: 0,
-  whiteSpace: 'nowrap',
+  whiteSpace: "nowrap",
   width: 1,
 });
 
-function ImagesDialog({
-  is_upload,
-  openDialog = false,
-  handleCloseDialog,
-  data,
-}) {
+function ImagesDialog({ is_upload, openDialog = false, handleCloseDialog, data }) {
   const [imageFile, setImageFile] = useState("");
   const [imagePreview, setImagePreview] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
@@ -104,7 +99,7 @@ function ImagesDialog({
                   color="grey"
                   tabIndex={-1}
                   startIcon={<MdCloudUpload style={{ marginRight: 2 }} />}
-                  sx={{ alignItems: 'center' }}
+                  sx={{ alignItems: "center" }}
                 >
                   เลือกรูปภาพ
                   <VisuallyHiddenInput type="file" onChange={handlePreviewImage} />
@@ -112,12 +107,12 @@ function ImagesDialog({
               </Box>
             </DialogContent>
             <DialogActions disableSpacing sx={{ paddingInline: { xs: 4, sm: 2, md: 0 } }}>
-              <Grid container spacing={{ xs: 0, sm: 1 }} sx={{ width: '100%', justifyContent: 'center' }}>
-                <Grid
-                  size={{ xs: 12, sm: 6, md: 4 }}
-                  p={1}
-                  mt={{ xs: 0, md: 1 }}
-                >
+              <Grid
+                container
+                spacing={{ xs: 0, sm: 1 }}
+                sx={{ width: "100%", justifyContent: "center" }}
+              >
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
                   <Button
                     fullWidth
                     type="submit"
@@ -126,16 +121,10 @@ function ImagesDialog({
                     disabled={saveLoading}
                   >
                     บันทึก
-                    {saveLoading && (
-                      <CircularProgress size={18} sx={{ marginLeft: 1 }} />
-                    )}
+                    {saveLoading && <CircularProgress size={18} sx={{ marginLeft: 1 }} />}
                   </Button>
                 </Grid>
-                <Grid
-                  size={{ xs: 12, sm: 6, md: 4 }}
-                  p={1}
-                  mt={{ xs: 0, md: 1 }}
-                >
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} p={1} mt={{ xs: 0, md: 1 }}>
                   <Button
                     fullWidth
                     variant="outlined"
@@ -166,11 +155,7 @@ function ImagesDialog({
             </IconButton>
           </DialogTitle>
           <DialogContent dividers>
-            <CardMedia
-              component="img"
-              image={data.images}
-              alt={`${data.work_name}-images`}
-            />
+            <CardMedia component="img" image={data.images} alt={`${data.work_name}-images`} />
           </DialogContent>
           <DialogActions></DialogActions>
         </Dialog>

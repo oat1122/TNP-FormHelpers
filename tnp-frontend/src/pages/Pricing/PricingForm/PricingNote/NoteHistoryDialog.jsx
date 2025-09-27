@@ -60,9 +60,7 @@ function NoteHistoryDialog(props) {
   const sortedNotes = useMemo(() => {
     return notes
       .slice()
-      .sort(
-        (a, b) => new Date(b.prn_created_date) - new Date(a.prn_created_date)
-      );
+      .sort((a, b) => new Date(b.prn_created_date) - new Date(a.prn_created_date));
   }, [notes]);
 
   const renderedNote = (data, index) => (
@@ -77,17 +75,13 @@ function NoteHistoryDialog(props) {
       >
         <div style={{ whiteSpace: "pre-wrap" }}>{data.prn_text}</div>
         <div style={{ fontSize: 14 }}>
-          <label style={{ textTransform: "capitalize" }}>
-            {data.created_name}
-          </label>
+          <label style={{ textTransform: "capitalize" }}>{data.created_name}</label>
           <label style={{ marginInline: 6 }}>|</label>
           <label>{moment(data.prn_created_date).format("DD/MM HH:mm")}</label>
         </div>
 
         {/* -------- แสดงเมื่อเพิ่มโน๊ตใหม่ แต่ยังไม่บันทึกฟอร์ม     -------- */}
-        {!data?.prn_id ? (
-          <StyledChip label="(ยังไม่ได้บันทึก)" />
-        ) : null}
+        {!data?.prn_id ? <StyledChip label="(ยังไม่ได้บันทึก)" /> : null}
       </StyledLabel>
     </StyledGridCol>
   );
@@ -103,17 +97,8 @@ function NoteHistoryDialog(props) {
 
   return (
     <div>
-      <Dialog
-        open={props.open}
-        onClose={props.onClose}
-        scroll="paper"
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle
-          id="scroll-dialog-title"
-          sx={{ textTransform: "capitalize" }}
-        >
+      <Dialog open={props.open} onClose={props.onClose} scroll="paper" maxWidth="sm" fullWidth>
+        <DialogTitle id="scroll-dialog-title" sx={{ textTransform: "capitalize" }}>
           {keyTitleMap[props.noteType]}
         </DialogTitle>
         <IconButton
@@ -130,14 +115,15 @@ function NoteHistoryDialog(props) {
         </IconButton>
         <DialogContent ref={descriptionElementRef} tabIndex={-1} dividers>
           <Grid container spacing={3}>
-            {sortedNotes.length > 0 ? 
+            {sortedNotes.length > 0 ? (
               sortedNotes.map((item, index) => renderedNote(item, index))
-              : (
-                <Grid size={12} sx={{ textAlign: "center" }}>
-                  <Typography variant="body2" sx={{ fontSize: 16, }} >ไม่มีข้อมูล</Typography>
-                </Grid>
-              )
-            }
+            ) : (
+              <Grid size={12} sx={{ textAlign: "center" }}>
+                <Typography variant="body2" sx={{ fontSize: 16 }}>
+                  ไม่มีข้อมูล
+                </Typography>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions></DialogActions>

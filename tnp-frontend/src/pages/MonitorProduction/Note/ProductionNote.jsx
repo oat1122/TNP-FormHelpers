@@ -10,10 +10,10 @@ import { setNoteList } from "../../../features/MonitorProduction/monitorProducti
 function ProductionNote({ pd_id, category }) {
   const user = JSON.parse(localStorage.getItem("userData"));
   const item_lists = useSelector((state) => state.monitorProduction.note_lists);
-  const { refetch } = useGetAllNotesQuery()
+  const { refetch } = useGetAllNotesQuery();
   const [addNewNote] = useAddNewNoteMutation();
   const [delNote] = useDelNoteMutation();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   const currentDate = moment().format("YYYY-MM-DD HH:mm:ss");
 
@@ -37,13 +37,13 @@ function ProductionNote({ pd_id, category }) {
       },
     ];
 
-    dispatch(setNoteList(updatedDescr))
-    
+    dispatch(setNoteList(updatedDescr));
+
     await addNewNote(formData)
-    .unwrap()
-    .then((response) => {
+      .unwrap()
+      .then((response) => {
         console.log(response.message);
-        refetch()
+        refetch();
       })
       .catch(({ response }) => {
         console.log(response.data.message);
@@ -55,30 +55,30 @@ function ProductionNote({ pd_id, category }) {
       return note.note_id !== note_id;
     });
 
-    dispatch(setNoteList(updatedDescr))
-    
+    dispatch(setNoteList(updatedDescr));
+
     await delNote(note_id)
-    .unwrap()
-    .then((response) => {
-      console.log(response.message);
-    })
-    .catch(({ response }) => {
-        refetch()
+      .unwrap()
+      .then((response) => {
+        console.log(response.message);
+      })
+      .catch(({ response }) => {
+        refetch();
         console.log(response.data.message);
       });
   };
 
   const noteTitleMap = {
-    order: 'สั่งผ้า',
-    dyeing: 'ย้อมผ้า',
-    cutting: 'ตัดผ้า',
-    sewing: 'เย็บผ้า',
-    received: 'ผ้าเข้า',
-    example: 'ตัวอย่าง',
-    general: 'ทั่วไป',
+    order: "สั่งผ้า",
+    dyeing: "ย้อมผ้า",
+    cutting: "ตัดผ้า",
+    sewing: "เย็บผ้า",
+    received: "ผ้าเข้า",
+    example: "ตัวอย่าง",
+    general: "ทั่วไป",
   };
 
-  const noteTitle = 'บันทึก' + noteTitleMap[category];
+  const noteTitle = "บันทึก" + noteTitleMap[category];
 
   return (
     <div className="production-note">
@@ -88,19 +88,13 @@ function ProductionNote({ pd_id, category }) {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="m-3 pt-0">
-        {user.role === "manager" ||
-        user.role === "production" ||
-        user.role === "graphic" ? (
+        {user.role === "manager" || user.role === "production" || user.role === "graphic" ? (
           <>
             <NoteCreate onCreate={createNote} pd_id={pd_id} />
             <hr className="d-lg-none " />
           </>
         ) : null}
-        <NoteList
-          pd_id={pd_id}
-          onDel={deleteNote}
-          category={category}
-        />
+        <NoteList pd_id={pd_id} onDel={deleteNote} category={category} />
       </Modal.Body>
     </div>
   );

@@ -39,9 +39,7 @@ function ProductionCost({ myData, pd_id }) {
         quantity: item.quantity === null ? "" : item.quantity,
         fabric_price: item.fabric_price === null ? "" : item.fabric_price,
         sumPrice:
-          (item.quantity && item.fabric_price) === null
-            ? 0
-            : item.quantity * item.fabric_price,
+          (item.quantity && item.fabric_price) === null ? 0 : item.quantity * item.fabric_price,
       }));
       initialInputList.current = transformedData;
       setInputList(transformedData);
@@ -147,11 +145,7 @@ function ProductionCost({ myData, pd_id }) {
       >
         ต้นทุนการผลิต
       </Button>
-      <Modal
-        show={showCost}
-        onHide={handleClose}
-        className="production-cost"
-      >
+      <Modal show={showCost} onHide={handleClose} className="production-cost">
         <Form onSubmit={handleSubmit}>
           <Modal.Body className="p-4 pb-0">
             <Row className="text-center">
@@ -182,19 +176,13 @@ function ProductionCost({ myData, pd_id }) {
               return (
                 <Row key={index} className="text-center mt-md-0 mt-lg-3">
                   <Col md={2} lg={1} className="">
-                    <InputLabel
-                      htmlFor="number-input"
-                      className="d-none d-lg-none d-md-block"
-                    >
+                    <InputLabel htmlFor="number-input" className="d-none d-lg-none d-md-block">
                       <h4>ลำดับ</h4>
                     </InputLabel>
                     <h4 className="pt-1 mb-0">{index + 1}</h4>
                   </Col>
                   <Col md={10} lg={2} className="mt-2 mt-md-0">
-                    <InputLabel
-                      htmlFor="input-fabric-name"
-                      className="d-lg-none"
-                    >
+                    <InputLabel htmlFor="input-fabric-name" className="d-lg-none">
                       <h4>ชื่อผ้า</h4>
                     </InputLabel>
                     <TextField
@@ -220,10 +208,7 @@ function ProductionCost({ myData, pd_id }) {
                     />
                   </Col>
                   <Col md={6} lg={2} className="mt-2 mt-lg-0">
-                    <InputLabel
-                      htmlFor="input-fabric-color"
-                      className="d-lg-none"
-                    >
+                    <InputLabel htmlFor="input-fabric-color" className="d-lg-none">
                       <h4>สีผ้า</h4>
                     </InputLabel>
                     <TextField
@@ -250,10 +235,7 @@ function ProductionCost({ myData, pd_id }) {
                     />
                   </Col>
                   <Col xs={6} md={6} lg={1} className="mt-2 mt-lg-0">
-                    <InputLabel
-                      htmlFor="input-fabric-price"
-                      className="d-lg-none"
-                    >
+                    <InputLabel htmlFor="input-fabric-price" className="d-lg-none">
                       <h4>ราคา</h4>
                     </InputLabel>
                     <TextField
@@ -295,11 +277,7 @@ function ProductionCost({ myData, pd_id }) {
               );
             })}
             <Col lg={12} className="mt-md-2 mt-lg-4">
-              <Button
-                variant="outlined"
-                className="btn col-12"
-                onClick={handleAddClick}
-              >
+              <Button variant="outlined" className="btn col-12" onClick={handleAddClick}>
                 <BsPlusLg />
               </Button>
             </Col>
@@ -307,27 +285,12 @@ function ProductionCost({ myData, pd_id }) {
           </Modal.Body>
           <Modal.Footer className="border border-0 d-block">
             <Row className="mt-0 mt-lg-5 gx-4 row-sum">
-              <Col
-                sm={12}
-                md={6}
-                lg={3}
-                className="ps-md-2 ps-xl-5 d-none d-lg-inline"
-              >
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="small"
-                  className="btn"
-                >
+              <Col sm={12} md={6} lg={3} className="ps-md-2 ps-xl-5 d-none d-lg-inline">
+                <Button type="submit" variant="contained" size="small" className="btn">
                   Save
                 </Button>
               </Col>
-              <Col
-                sm={12}
-                md={6}
-                lg={3}
-                className="pe-md-3 pe-xl-5 d-none d-lg-inline"
-              >
+              <Col sm={12} md={6} lg={3} className="pe-md-3 pe-xl-5 d-none d-lg-inline">
                 <Button
                   variant="outlined"
                   size="small"
@@ -348,9 +311,7 @@ function ProductionCost({ myData, pd_id }) {
                   className="form-control"
                   value={totalQuantity}
                   InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">kg</InputAdornment>
-                    ),
+                    endAdornment: <InputAdornment position="end">kg</InputAdornment>,
                   }}
                   disabled
                 />
@@ -362,26 +323,14 @@ function ProductionCost({ myData, pd_id }) {
                   className="form-control"
                   value={totalCost}
                   InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="start">฿</InputAdornment>
-                    ),
+                    endAdornment: <InputAdornment position="start">฿</InputAdornment>,
                   }}
                   disabled
                 />
               </Col>
               <hr className="d-lg-none my-4" />
-              <Col
-                sm={12}
-                md={6}
-                lg={3}
-                className="ps-md-2 ps-xl-5 pb-2 d-lg-none"
-              >
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="small"
-                  className="btn"
-                >
+              <Col sm={12} md={6} lg={3} className="ps-md-2 ps-xl-5 pb-2 d-lg-none">
+                <Button type="submit" variant="contained" size="small" className="btn">
                   Save
                 </Button>
               </Col>

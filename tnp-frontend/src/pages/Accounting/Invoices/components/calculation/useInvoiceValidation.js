@@ -1,13 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 /**
  * Invoice validation hook for form validation and warnings
  */
-export function useInvoiceValidation({
-  items = [],
-  originalInvoice = null,
-  formData = {},
-}) {
+export function useInvoiceValidation({ items = [], originalInvoice = null, formData = {} }) {
   return useMemo(() => {
     const warnings = [];
     const errors = [];
@@ -33,10 +29,10 @@ export function useInvoiceValidation({
         if (originalInvoice && item.originalQuantity) {
           const totalQty = item.sizeRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
           const originalQty = Number(item.originalQuantity || 0);
-          
+
           if (totalQty !== originalQty) {
             warnings.push({
-              type: 'quantity_mismatch',
+              type: "quantity_mismatch",
               message: `งานที่ ${index + 1}: จำนวนรวม ${totalQty} ไม่ตรงกับงานหลัก ${originalQty}`,
               itemIndex: index,
               totalQty,
@@ -59,7 +55,9 @@ export function useInvoiceValidation({
     });
 
     // Validate financial fields
-    const discountValue = Number(formData.special_discount_percentage || formData.special_discount_amount || 0);
+    const discountValue = Number(
+      formData.special_discount_percentage || formData.special_discount_amount || 0
+    );
     const vatPercentage = Number(formData.vat_percentage || 0);
     const whtPercentage = Number(formData.withholding_tax_percentage || 0);
     const depositPercentage = Number(formData.deposit_percentage || 0);
@@ -67,44 +65,44 @@ export function useInvoiceValidation({
 
     // Check for negative financial values
     if (discountValue < 0) {
-      errors.push('ส่วนลดต้องไม่ติดลบ');
+      errors.push("ส่วนลดต้องไม่ติดลบ");
     }
     if (vatPercentage < 0) {
-      errors.push('อัตราภาษีมูลค่าเพิ่มต้องไม่ติดลบ');
+      errors.push("อัตราภาษีมูลค่าเพิ่มต้องไม่ติดลบ");
     }
     if (whtPercentage < 0) {
-      errors.push('อัตราภาษีหัก ณ ที่จ่ายต้องไม่ติดลบ');
+      errors.push("อัตราภาษีหัก ณ ที่จ่ายต้องไม่ติดลบ");
     }
     if (depositPercentage < 0) {
-      errors.push('เปอร์เซ็นต์มัดจำต้องไม่ติดลบ');
+      errors.push("เปอร์เซ็นต์มัดจำต้องไม่ติดลบ");
     }
     if (depositAmount < 0) {
-      errors.push('จำนวนเงินมัดจำต้องไม่ติดลบ');
+      errors.push("จำนวนเงินมัดจำต้องไม่ติดลบ");
     }
 
     // Check for excessive percentages
     if (vatPercentage > 100) {
       warnings.push({
-        type: 'high_percentage',
-        message: 'อัตราภาษีมูลค่าเพิ่มสูงกว่า 100%',
+        type: "high_percentage",
+        message: "อัตราภาษีมูลค่าเพิ่มสูงกว่า 100%",
       });
     }
     if (whtPercentage > 100) {
       warnings.push({
-        type: 'high_percentage',
-        message: 'อัตราภาษีหัก ณ ที่จ่ายสูงกว่า 100%',
+        type: "high_percentage",
+        message: "อัตราภาษีหัก ณ ที่จ่ายสูงกว่า 100%",
       });
     }
     if (depositPercentage > 100) {
       warnings.push({
-        type: 'high_percentage',
-        message: 'เปอร์เซ็นต์มัดจำสูงกว่า 100%',
+        type: "high_percentage",
+        message: "เปอร์เซ็นต์มัดจำสูงกว่า 100%",
       });
     }
 
     // Check if invoice is in read-only state
     const status = formData.status || originalInvoice?.status;
-    const isReadOnly = status === 'approved' || status === 'fully_paid';
+    const isReadOnly = status === "approved" || status === "fully_paid";
 
     return {
       warnings,

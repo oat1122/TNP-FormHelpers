@@ -1,8 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useMemo,
-} from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,7 +28,12 @@ import { CiEdit } from "react-icons/ci";
 import { BsTrash3 } from "react-icons/bs";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline } from "react-icons/io";
-import { useGetAllPricingQuery, useDelPricingReqMutation, useUpdatePricingReqMutation, useUpdatePricingReqStatusMutation } from "../../features/Pricing/pricingApi";
+import {
+  useGetAllPricingQuery,
+  useDelPricingReqMutation,
+  useUpdatePricingReqMutation,
+  useUpdatePricingReqStatusMutation,
+} from "../../features/Pricing/pricingApi";
 import {
   setItemList,
   setMode,
@@ -41,7 +42,7 @@ import {
   setTotalCount,
   setPaginationModel,
   setStatusList,
-  setImagePreviewForm
+  setImagePreviewForm,
 } from "../../features/Pricing/pricingSlice";
 import TitleBar from "../../components/TitleBar";
 import FilterTab from "./FilterTab";
@@ -65,13 +66,16 @@ function PricingList() {
   const statusSelected = useSelector((state) => state.pricing.statusSelected);
   const keyword = useSelector((state) => state.global.keyword);
   const paginationModel = useSelector((state) => state.pricing.paginationModel);
-  const { data, error, isFetching, isLoading, isSuccess } = useGetAllPricingQuery({
-    status: statusSelected,
-    page: paginationModel.page,
-    per_page: paginationModel.pageSize,
-    user_id: user.user_uuid,
-    search: keyword,
-  }, { refetchOnFocus: true, refetchOnReconnect: true });
+  const { data, error, isFetching, isLoading, isSuccess } = useGetAllPricingQuery(
+    {
+      status: statusSelected,
+      page: paginationModel.page,
+      per_page: paginationModel.pageSize,
+      user_id: user.user_uuid,
+      search: keyword,
+    },
+    { refetchOnFocus: true, refetchOnReconnect: true }
+  );
   const [delPricingReq] = useDelPricingReqMutation();
   const [updatePricingReqStatus] = useUpdatePricingReqStatusMutation();
 
@@ -79,18 +83,18 @@ function PricingList() {
   const getActionItems = (params, user) => {
     const actions = [];
 
-    const isManagerOrProduction = (user.role === "manager" || user.role === "production");
+    const isManagerOrProduction = user.role === "manager" || user.role === "production";
 
     // สถานะที่ไม่ให้เซลแก้ไข
     const restrictedStatusForSale = [
-      "20db8b15-092b-11f0-b223-38ca84abdf0a",   // รอทำราคา
-      "20db8c29-092b-11f0-b223-38ca84abdf0a"    // แก้ไขรอทำราคา
+      "20db8b15-092b-11f0-b223-38ca84abdf0a", // รอทำราคา
+      "20db8c29-092b-11f0-b223-38ca84abdf0a", // แก้ไขรอทำราคา
     ].includes(params.row.pr_status_id);
-    
+
     // สถานะที่สามารถลบข้อมูลได้
     const deletableStatus = [
-      "20db7a92-092b-11f0-b223-38ca84abdf0a",   // รอส่งคำขอ
-      "20db8cbf-092b-11f0-b223-38ca84abdf0a",   // ปฏิเสธงาน
+      "20db7a92-092b-11f0-b223-38ca84abdf0a", // รอส่งคำขอ
+      "20db8cbf-092b-11f0-b223-38ca84abdf0a", // ปฏิเสธงาน
     ].includes(params.row.pr_status_id);
 
     actions.push(
@@ -101,9 +105,10 @@ function PricingList() {
       />
     );
 
-    const canEdit = user.role === "admin" 
-      || (user.role === "sale" && !restrictedStatusForSale) 
-      || (isManagerOrProduction && params.row.pr_status_id !== "20db7a92-092b-11f0-b223-38ca84abdf0a");   // กรณีเป็นผู้จัดการ ไม่แสดงปุ่มแก้ไขเฉพาะสถานะ "รอส่งคำขอ"
+    const canEdit =
+      user.role === "admin" ||
+      (user.role === "sale" && !restrictedStatusForSale) ||
+      (isManagerOrProduction && params.row.pr_status_id !== "20db7a92-092b-11f0-b223-38ca84abdf0a"); // กรณีเป็นผู้จัดการ ไม่แสดงปุ่มแก้ไขเฉพาะสถานะ "รอส่งคำขอ"
     const canDelete = (user.role === "admin" || user.role === "sale") && deletableStatus;
 
     if (canEdit) {
@@ -127,16 +132,16 @@ function PricingList() {
     }
 
     if (isManagerOrProduction) {
-
       // สถานะเป็น "รอทำราคา" หรือ "แก้ไขรอทำราคา"
-      if (params.row.pr_status_id === "20db8b15-092b-11f0-b223-38ca84abdf0a"
-          || params.row.pr_status_id === "20db8c29-092b-11f0-b223-38ca84abdf0a") 
-      {
+      if (
+        params.row.pr_status_id === "20db8b15-092b-11f0-b223-38ca84abdf0a" ||
+        params.row.pr_status_id === "20db8c29-092b-11f0-b223-38ca84abdf0a"
+      ) {
         actions.push(
           <GridActionsCellItem
-          icon={<IoIosCloseCircleOutline style={{ fontSize: 28 }} />}
-          label="Reject"
-          onClick={() => handleReject(params.row)}
+            icon={<IoIosCloseCircleOutline style={{ fontSize: 28 }} />}
+            label="Reject"
+            onClick={() => handleReject(params.row)}
           />,
           <GridActionsCellItem
             icon={<IoIosCheckmarkCircleOutline style={{ fontSize: 28 }} />}
@@ -148,7 +153,10 @@ function PricingList() {
     }
 
     // แสดงปุ่มขอราคา กรณีเป็นเซลและคำขอมีสถานะเป็น "รอส่งคำขอ"
-    if (params.row.pr_status_id === "20db7a92-092b-11f0-b223-38ca84abdf0a" && user.role === "sale") {
+    if (
+      params.row.pr_status_id === "20db7a92-092b-11f0-b223-38ca84abdf0a" &&
+      user.role === "sale"
+    ) {
       actions.push(
         <GridActionsCellItem
           icon={<IoIosCheckmarkCircleOutline style={{ fontSize: 28 }} />}
@@ -167,13 +175,13 @@ function PricingList() {
     const page = useGridSelector(apiRef, gridPageSelector);
     const pageCount = useGridSelector(apiRef, gridPageCountSelector);
     const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
     useEffect(() => {
       if (paginationModel.page !== page) {
-        apiRef.current.setPage(0); 
+        apiRef.current.setPage(0);
       }
-    }, [paginationModel])
+    }, [paginationModel]);
 
     return (
       <StyledPagination
@@ -182,16 +190,16 @@ function PricingList() {
         shape="rounded"
         page={page + 1}
         count={pageCount}
-        siblingCount={ isXs ? 0 : 1 } 
-        boundaryCount={1} 
+        siblingCount={isXs ? 0 : 1}
+        boundaryCount={1}
         // @ts-expect-error
-        renderItem={(props2) => 
-          <PaginationItem 
-            {...props2} 
-            disableRipple 
+        renderItem={(props2) => (
+          <PaginationItem
+            {...props2}
+            disableRipple
             slots={{ previous: FaChevronLeft, next: FaChevronRight }}
           />
-        }
+        )}
         onChange={(event, value) => apiRef.current.setPage(value - 1)}
       />
     );
@@ -236,29 +244,26 @@ function PricingList() {
   // ส่งคำขอโดยเซล และอนุมัติคำขอ(ให้ราคา) โดยผู้จัดการ
   const handleRequest = async (params, action) => {
     const textMap = {
-      "request": "กรุณายืนยันการส่งคำขอราคา",
-      "pricing": "กรุณายืนยันการให้ราคา",
-    }
-    const confirmed = await dialog_confirm_yes_no(
-      `${textMap[action]}<br/>${params.pr_work_name}`
-    );
+      request: "กรุณายืนยันการส่งคำขอราคา",
+      pricing: "กรุณายืนยันการให้ราคา",
+    };
+    const confirmed = await dialog_confirm_yes_no(`${textMap[action]}<br/>${params.pr_work_name}`);
 
     const data_input = {
       pr_id: params.pr_id,
       user_uuid: user.user_uuid,
-      action: action
-    }
-    
+      action: action,
+    };
+
     if (confirmed) {
       open_dialog_loading();
-      
+
       try {
         const res = await updatePricingReqStatus(data_input).unwrap();
 
         if (res.status === "success") {
           open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ");
         }
-
       } catch (error) {
         console.error("handleRequest Error", error);
         open_dialog_error("handleRequest Error", error?.data.message);
@@ -269,12 +274,17 @@ function PricingList() {
   // ปฏิเสธคำขอโดยผู้จัดการ
   const handleReject = async (params) => {
     let action = null;
-    const reject_result = await open_dialog_three_btn("เหตุผลการปฏิเสธคำขอ", "ยกเลิก", "ปฏิเสธงาน", "ทำราคาไม่ได้");
+    const reject_result = await open_dialog_three_btn(
+      "เหตุผลการปฏิเสธคำขอ",
+      "ยกเลิก",
+      "ปฏิเสธงาน",
+      "ทำราคาไม่ได้"
+    );
 
     if (reject_result.isConfirmed) {
-      action = "reject"   // ปฏิเสธงาน
+      action = "reject"; // ปฏิเสธงาน
     } else if (reject_result.isDenied) {
-      action = "cannot_pricing"   // ทำราคาไม่ได้
+      action = "cannot_pricing"; // ทำราคาไม่ได้
     } else {
       return;
     }
@@ -282,18 +292,17 @@ function PricingList() {
     const data_input = {
       pr_id: params.pr_id,
       user_uuid: user.user_uuid,
-      action: action
-    }
+      action: action,
+    };
 
     open_dialog_loading();
-    
+
     try {
       const res = await updatePricingReqStatus(data_input).unwrap();
 
       if (res.status === "success") {
         open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ");
       }
-
     } catch (error) {
       console.error("handleReject Error", error);
       open_dialog_error("handleReject Error", error?.data.message);
@@ -331,7 +340,6 @@ function PricingList() {
     // reset state input list
     dispatch(resetInputList());
     dispatch(setImagePreviewForm(""));
-
   }, [data]);
 
   const columns = useMemo(
@@ -354,41 +362,40 @@ function PricingList() {
         hideable: false,
       },
       { field: "cus_name", headerName: "CUSTOMER", width: 240 },
-      { 
-        field: "pr_quantity", 
-        headerName: "QUANTITY", 
+      {
+        field: "pr_quantity",
+        headerName: "QUANTITY",
         width: 140,
         renderCell: (params) => {
           let result = params.row?.pr_quantity;
 
           if (params.row?.pr_quantity.length > 3) {
-            const formattedText = params.row?.pr_quantity.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            const formattedText = params.row?.pr_quantity
+              .toString()
+              .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             result = formattedText;
           }
 
           return result;
         },
       },
-      { 
-        field: "prince", 
-        headerName: "PRICE", 
+      {
+        field: "prince",
+        headerName: "PRICE",
         width: 240,
         renderCell: (params) => {
-
           if (params.row?.note_price.length > 0) {
-
             const latestNote = params.row?.note_price.reduce((latest, current) => {
               return new Date(current.prn_created_date) > new Date(latest.prn_created_date)
-              ? current
-              : latest;
+                ? current
+                : latest;
             });
 
             return latestNote.prn_text;
           }
 
-          return '-';
+          return "-";
         },
-      
       },
       { field: "status", headerName: "STATUS", width: 280 },
       {
@@ -405,7 +412,6 @@ function PricingList() {
 
   return (
     <div className="pricing-list">
-     
       <TitleBar title="pricing" />
       <Box
         paddingX={3}
@@ -416,22 +422,22 @@ function PricingList() {
           <Table sx={{ marginBottom: 2 }}>
             <TableBody>
               <TableRow>
-                { user.role === "sale" || user.role === "admin" ? (
-                <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
-                  <Button
-                    variant="icon-contained"
-                    color="grey"
-                    onClick={() => handleOpenForm('create')}
-                    sx={{
-                      marginRight: 3,
-                      height: 40,
-                      padding: 0,
-                    }}
-                  >
-                    <RiAddLargeFill style={{ width: 24, height: 24 }} />
-                  </Button>
-                </TableCell>
-                ) : null }
+                {user.role === "sale" || user.role === "admin" ? (
+                  <TableCell sx={{ padding: 0, border: 0, width: 0 }}>
+                    <Button
+                      variant="icon-contained"
+                      color="grey"
+                      onClick={() => handleOpenForm("create")}
+                      sx={{
+                        marginRight: 3,
+                        height: 40,
+                        padding: 0,
+                      }}
+                    >
+                      <RiAddLargeFill style={{ width: 24, height: 24 }} />
+                    </Button>
+                  </TableCell>
+                ) : null}
                 <TableCell sx={{ padding: 0, border: 0 }}>
                   <FilterTab statusIsLoading={isLoading} />
                 </TableCell>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ToggleButtonGroup, ToggleButton } from '@mui/material';
+import React, { useState } from "react";
+import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 
 /*
  * Reusable pill-style two/ multi option toggle
@@ -17,13 +17,13 @@ const LabeledSwitch = ({
   value,
   onChange = () => {},
   options = [],
-  size = 'small',
-  color = 'primary',
+  size = "small",
+  color = "primary",
   customColor,
   selectedTextColor, // override text color when selected
   disabled = false,
   exclusive = true,
-  sx = {}
+  sx = {},
 }) => {
   // fallback internal state if component used uncontrolled
   const [internal, setInternal] = useState(options[0]?.value);
@@ -35,8 +35,10 @@ const LabeledSwitch = ({
     onChange(newVal);
   };
 
-  const bgColorSx = customColor ? customColor : (theme) => theme.palette[color]?.main || theme.palette.primary.main;
-  const activeColor = customColor ? '#ffffff' : bgColorSx;
+  const bgColorSx = customColor
+    ? customColor
+    : (theme) => theme.palette[color]?.main || theme.palette.primary.main;
+  const activeColor = customColor ? "#ffffff" : bgColorSx;
 
   return (
     <ToggleButtonGroup
@@ -46,35 +48,40 @@ const LabeledSwitch = ({
       size={size}
       disabled={disabled}
       sx={{
-        borderRadius: '999px',
-        overflow: 'hidden',
-        bgcolor: (theme)=> disabled ? theme.palette.action.disabledBackground : (typeof bgColorSx === 'function' ? bgColorSx(theme) : bgColorSx),
-        p: '2px',
-        minHeight: size === 'small' ? 28 : 34,
-        '& .MuiToggleButton-root': {
+        borderRadius: "999px",
+        overflow: "hidden",
+        bgcolor: (theme) =>
+          disabled
+            ? theme.palette.action.disabledBackground
+            : typeof bgColorSx === "function"
+              ? bgColorSx(theme)
+              : bgColorSx,
+        p: "2px",
+        minHeight: size === "small" ? 28 : 34,
+        "& .MuiToggleButton-root": {
           flex: 1,
-          textTransform: 'none',
+          textTransform: "none",
           fontWeight: 500,
-          color: disabled ? 'rgba(255,255,255,0.6)' : '#fff',
-          border: 'none',
+          color: disabled ? "rgba(255,255,255,0.6)" : "#fff",
+          border: "none",
           lineHeight: 1.1,
           px: 1.5,
-          borderRadius: '999px !important',
-          fontSize: size === 'small' ? '.65rem' : '.75rem',
-          '&.Mui-selected': {
-            bgcolor: '#fff',
-            color: disabled ? 'text.disabled' : (selectedTextColor || activeColor),
+          borderRadius: "999px !important",
+          fontSize: size === "small" ? ".65rem" : ".75rem",
+          "&.Mui-selected": {
+            bgcolor: "#fff",
+            color: disabled ? "text.disabled" : selectedTextColor || activeColor,
             fontWeight: 700,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.18)',
-            '&:hover': { bgcolor: '#fff' },
-            '&:active': { transform: 'scale(.96)' }
+            boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+            "&:hover": { bgcolor: "#fff" },
+            "&:active": { transform: "scale(.96)" },
           },
-          '&:hover': { bgcolor: disabled ? 'inherit' : 'rgba(255,255,255,0.15)' }
+          "&:hover": { bgcolor: disabled ? "inherit" : "rgba(255,255,255,0.15)" },
         },
-        ...sx
+        ...sx,
       }}
     >
-      {options.map(opt => (
+      {options.map((opt) => (
         <ToggleButton key={opt.value} value={opt.value} aria-label={opt.label} disabled={disabled}>
           {opt.label}
         </ToggleButton>

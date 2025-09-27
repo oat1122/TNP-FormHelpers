@@ -1,9 +1,4 @@
-import {
-  useState,
-  Box,
-  CardMedia,
-  CardActionArea,
-} from "../../../utils/import_lib";
+import { useState, Box, CardMedia, CardActionArea } from "../../../utils/import_lib";
 import ImageAction from "./ImageAction";
 import ImagesDialog from "./ImagesDialog";
 
@@ -39,7 +34,9 @@ function ImagesBox({ data, user }) {
             // sx={{ maxHeight: 250 }}
           />
         </CardActionArea>
-        {(user.role === "graphic" || user.role === "admin") && (data.status.code !== 3 && data.status.code !== 4) ? (
+        {(user.role === "graphic" || user.role === "admin") &&
+        data.status.code !== 3 &&
+        data.status.code !== 4 ? (
           <ImageAction data={data} user={user} />
         ) : null}
       </Box>

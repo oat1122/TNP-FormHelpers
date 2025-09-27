@@ -5,10 +5,14 @@ import {
   dialog_confirm_yes_no,
   Box,
 } from "../../../../utils/import_lib.js";
-import { MdOutlineAddPhotoAlternate, MdOutlineDriveFileRenameOutline, MdDeleteOutline } from "react-icons/md";
+import {
+  MdOutlineAddPhotoAlternate,
+  MdOutlineDriveFileRenameOutline,
+  MdDeleteOutline,
+} from "react-icons/md";
 import ImagesDialog from "./ImagesDialog.jsx";
 import styles from "../../Pricing.module.css";
-import { useSelector, useDispatch } from "react-redux"
+import { useSelector, useDispatch } from "react-redux";
 import { setImagePreviewForm } from "../../../../features/Pricing/pricingSlice.js";
 
 function ImageActionBtn(props) {
@@ -28,7 +32,7 @@ function ImageActionBtn(props) {
     const confirm = await dialog_confirm_yes_no(`กรุณายืนยันการลบรูปภาพ`);
 
     if (confirm) {
-      props.setValue("pr_image", "")
+      props.setValue("pr_image", "");
       dispatch(setImagePreviewForm(""));
     }
   };
@@ -45,29 +49,17 @@ function ImageActionBtn(props) {
 
       {imagePreview !== "" ? (
         <Box className={styles.gridContainerActionBtn}>
-          <IconButton
-            aria-label="change-image"
-            onClick={handleOpenDialog}
-            >
+          <IconButton aria-label="change-image" onClick={handleOpenDialog}>
             <MdOutlineDriveFileRenameOutline />
           </IconButton>
-          <IconButton
-            aria-label="delete-image"
-            onClick={handleDeleteImage}
-            >
+          <IconButton aria-label="delete-image" onClick={handleDeleteImage}>
             <MdDeleteOutline />
           </IconButton>
         </Box>
       ) : (
-        <Grid
-          container
-          className={styles.gridContainerUpload}
-        >
-          <Grid size={{ xs: "auto", }}>
-            <IconButton
-              aria-label="upload-image"
-              onClick={handleOpenDialog}
-            >
+        <Grid container className={styles.gridContainerUpload}>
+          <Grid size={{ xs: "auto" }}>
+            <IconButton aria-label="upload-image" onClick={handleOpenDialog}>
               <MdOutlineAddPhotoAlternate />
             </IconButton>
           </Grid>

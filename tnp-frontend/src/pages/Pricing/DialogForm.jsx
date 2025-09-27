@@ -17,15 +17,8 @@ import {
   FormHelperText,
 } from "@mui/material";
 import moment from "moment";
-import {
-  formatCustomRelativeTime,
-  genCustomerNo,
-} from "../../features/Customer/customerUtils";
-import {
-  setInputList,
-  setItemList,
-  resetInputList,
-} from "../../features/Customer/customerSlice";
+import { formatCustomRelativeTime, genCustomerNo } from "../../features/Customer/customerUtils";
+import { setInputList, setItemList, resetInputList } from "../../features/Customer/customerSlice";
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
@@ -122,16 +115,13 @@ function DialogForm(props) {
   ];
 
   // const dateString = moment().add(30, "days");
-  const formattedRelativeTime = formatCustomRelativeTime(
-    inputList.cd_last_datetime
-  );
+  const formattedRelativeTime = formatCustomRelativeTime(inputList.cd_last_datetime);
 
   const handleInputChange = (e) => {
     let { name, value } = e.target;
 
     if (name === "cus_tax_id" || name === "cus_zip_code") {
       value = value.replace(/[^0-9]/g, "");
-
     } else if (name === "cus_manage_by") {
       // Properly handle the cus_manage_by changes
       // If value is empty string, set empty object with empty values
@@ -175,9 +165,7 @@ function DialogForm(props) {
       switch (name) {
         case "cus_pro_id": {
           clearDependentDropdowns(["cus_dis_id", "cus_sub_id", "cus_zip_code"]);
-          const provincesResult = provincesList.find(
-            (find) => find.pro_id === value
-          );
+          const provincesResult = provincesList.find((find) => find.pro_id === value);
           if (provincesResult) {
             dispatch(
               setLocationSearch({
@@ -189,9 +177,7 @@ function DialogForm(props) {
         }
         case "cus_dis_id": {
           clearDependentDropdowns(["cus_sub_id", "cus_zip_code"]);
-          const districtResult = districtList.find(
-            (find) => find.dis_id === value
-          );
+          const districtResult = districtList.find((find) => find.dis_id === value);
           if (districtResult) {
             dispatch(
               setLocationSearch({
@@ -203,9 +189,7 @@ function DialogForm(props) {
           break;
         }
         case "cus_sub_id": {
-          const subDistrictResult = subDistrictList.find(
-            (find) => find.sub_id === value
-          );
+          const subDistrictResult = subDistrictList.find((find) => find.sub_id === value);
           if (subDistrictResult) {
             updatedInputList = {
               ...updatedInputList,
@@ -310,9 +294,7 @@ function DialogForm(props) {
         groupList.length > 0
           ? groupList.reduce(
               (max, group) =>
-                parseInt(group.mcg_sort, 10) > parseInt(max.mcg_sort, 10)
-                  ? group
-                  : max,
+                parseInt(group.mcg_sort, 10) > parseInt(max.mcg_sort, 10) ? group : max,
               groupList[0]
             ).mcg_id
           : null; // Or your appropriate default if groupList is empty
@@ -322,7 +304,9 @@ function DialogForm(props) {
           ...inputList,
           cus_no: newCusNo,
           cus_mcg_id: cus_mcg_id, // Include mcg_id, might be null
-          cus_manage_by: isAdmin ? { user_id: "", username: "" } : { user_id: user.user_id, username: user.username || "" },
+          cus_manage_by: isAdmin
+            ? { user_id: "", username: "" }
+            : { user_id: user.user_id, username: user.username || "" },
           // cus_created_by: user.user_id,
           // cus_updated_by: user.user_id,
         })
@@ -334,20 +318,20 @@ function DialogForm(props) {
   // This runs only once when the component mounts
   useEffect(() => {
     // If cus_manage_by is undefined, null, or not an object, initialize it
-    if (!inputList || !inputList.cus_manage_by || typeof inputList.cus_manage_by !== 'object') {
-      console.info('Fixing cus_manage_by format to ensure it is a properly structured object');
-      
+    if (!inputList || !inputList.cus_manage_by || typeof inputList.cus_manage_by !== "object") {
+      console.info("Fixing cus_manage_by format to ensure it is a properly structured object");
+
       // Create a safe version of the inputList
       const safeInputList = inputList || {};
-      
+
       dispatch(
         setInputList({
           ...safeInputList,
-          cus_manage_by: { user_id: "", username: "" }
+          cus_manage_by: { user_id: "", username: "" },
         })
       );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array = run once on mount
 
   useEffect(() => {
@@ -382,9 +366,7 @@ function DialogForm(props) {
     >
       <form ref={formRef} noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ paddingBlock: 1 }}>
-          <Box sx={{ maxWidth: 800, justifySelf: "center" }}>
-            {titleMap[mode] + `ข้อมูลลูกค้า`}
-          </Box>
+          <Box sx={{ maxWidth: 800, justifySelf: "center" }}>{titleMap[mode] + `ข้อมูลลูกค้า`}</Box>
         </DialogTitle>
         <IconButton
           aria-label="close"
@@ -398,16 +380,9 @@ function DialogForm(props) {
         >
           <MdClose />
         </IconButton>
-        <DialogContent
-          dividers
-          sx={{ textAlign: "-webkit-center", paddingBottom: 0 }}
-        >
+        <DialogContent dividers sx={{ textAlign: "-webkit-center", paddingBottom: 0 }}>
           <Box sx={{ maxWidth: 800 }}>
-            <Grid
-              container
-              sx={{ paddingBlock: 2, justifyContent: "center" }}
-              spacing={2}
-            >
+            <Grid container sx={{ paddingBlock: 2, justifyContent: "center" }} spacing={2}>
               {isAdmin && (
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <StyledSelect
@@ -417,8 +392,11 @@ function DialogForm(props) {
                     sx={{ textTransform: "capitalize", cursor: "auto" }}
                     readOnly={mode === "view"}
                     name="cus_manage_by"
-                    value={(inputList.cus_manage_by && typeof inputList.cus_manage_by === 'object') ? 
-                      (inputList.cus_manage_by.user_id || "") : ""}
+                    value={
+                      inputList.cus_manage_by && typeof inputList.cus_manage_by === "object"
+                        ? inputList.cus_manage_by.user_id || ""
+                        : ""
+                    }
                     onChange={handleInputChange}
                   >
                     <MenuItem disabled value="">
@@ -513,9 +491,7 @@ function DialogForm(props) {
                   inputProps={{ style: { textAlign: "center" } }}
                   error={!!errors.cus_company}
                 />
-                <FormHelperText error>
-                  {errors.cus_company && "กรุณากรอกชื่อบริษัท"}
-                </FormHelperText>
+                <FormHelperText error>{errors.cus_company && "กรุณากรอกชื่อบริษัท"}</FormHelperText>
               </Grid>
 
               <Grid display={{ xs: "none", md: "block" }} size={2}>
@@ -536,9 +512,7 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                   error={!!errors.cus_firstname}
                 />
-                <FormHelperText error>
-                  {errors.cus_firstname && "กรุณากรอกชื่อจริง"}
-                </FormHelperText>
+                <FormHelperText error>{errors.cus_firstname && "กรุณากรอกชื่อจริง"}</FormHelperText>
               </Grid>
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>
@@ -558,9 +532,7 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                   error={!!errors.cus_lastname}
                 />
-                <FormHelperText error>
-                  {errors.cus_lastname && "กรุณากรอกนามสกุล "}
-                </FormHelperText>
+                <FormHelperText error>{errors.cus_lastname && "กรุณากรอกนามสกุล "}</FormHelperText>
               </Grid>
 
               <Grid display={{ xs: "none", md: "block" }} size={2}>
@@ -581,9 +553,7 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                   error={!!errors.cus_name}
                 />
-                <FormHelperText error>
-                  {errors.cus_name && "กรุณากรอกชื่อเล่น"}
-                </FormHelperText>
+                <FormHelperText error>{errors.cus_name && "กรุณากรอกชื่อเล่น"}</FormHelperText>
               </Grid>
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>ตำแหน่ง</StyledLabel>
@@ -617,9 +587,7 @@ function DialogForm(props) {
                   onChange={handleInputChange}
                   error={!!errors.cus_tel_1}
                 />
-                <FormHelperText error>
-                  {errors.cus_tel_1 && "กรุณากรอกเบอร์"}
-                </FormHelperText>
+                <FormHelperText error>{errors.cus_tel_1 && "กรุณากรอกเบอร์"}</FormHelperText>
               </Grid>
               <Grid display={{ xs: "none", md: "block" }} size={2}>
                 <StyledLabel>เบอร์สำรอง</StyledLabel>

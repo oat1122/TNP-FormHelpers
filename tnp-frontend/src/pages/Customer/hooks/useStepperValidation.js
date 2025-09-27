@@ -14,8 +14,8 @@ export const useStepperValidation = () => {
   // คำนวณสถานะของแต่ละ step
   const calculateStepStatus = (stepIndex, inputList) => {
     const requiredFields = stepRequiredFields[stepIndex] || [];
-    const stepErrors = requiredFields.filter(field => errors[field]);
-    const completedFields = requiredFields.filter(field => {
+    const stepErrors = requiredFields.filter((field) => errors[field]);
+    const completedFields = requiredFields.filter((field) => {
       const value = inputList[field];
       return value !== undefined && value !== null && value !== "";
     });
@@ -51,15 +51,15 @@ export const useStepperValidation = () => {
   // ตรวจสอบว่า step ปัจจุบันเสร็จสมบูรณ์หรือไม่
   const isStepComplete = (stepIndex, inputList) => {
     const requiredFields = stepRequiredFields[stepIndex] || [];
-    
+
     // ตรวจสอบ required fields
-    const missingFields = requiredFields.filter(field => {
+    const missingFields = requiredFields.filter((field) => {
       const value = inputList[field];
       return !value || value === "";
     });
 
     // ตรวจสอบ errors
-    const stepErrors = requiredFields.filter(field => errors[field]);
+    const stepErrors = requiredFields.filter((field) => errors[field]);
 
     return missingFields.length === 0 && stepErrors.length === 0;
   };
@@ -95,7 +95,7 @@ export const useStepperValidation = () => {
     if (formRef?.current) {
       const form = formRef.current;
       const invalidInputs = form.querySelectorAll(":invalid");
-      
+
       invalidInputs.forEach((input) => {
         // เฉพาะ fields ที่อยู่ในขั้นตอนปัจจุบัน
         if (requiredFields.includes(input.name)) {
@@ -105,14 +105,14 @@ export const useStepperValidation = () => {
     }
 
     // ตรวจสอบ required fields manually
-    requiredFields.forEach(field => {
+    requiredFields.forEach((field) => {
       const value = inputList[field];
       if (!value || value === "") {
         newErrors[field] = "กรุณากรอกข้อมูลนี้";
       }
     });
 
-    setErrors(prev => ({ ...prev, ...newErrors }));
+    setErrors((prev) => ({ ...prev, ...newErrors }));
 
     return Object.keys(newErrors).length === 0;
   };
@@ -139,7 +139,7 @@ export const useStepperValidation = () => {
     }
 
     // ตรวจสอบ required fields manually
-    allRequiredFields.forEach(field => {
+    allRequiredFields.forEach((field) => {
       const value = inputList[field];
       if (!value || value === "") {
         newErrors[field] = "กรุณากรอกข้อมูลนี้";
@@ -174,12 +174,12 @@ export const useStepperValidation = () => {
   // คำนวณ progress percentage
   const calculateProgress = (inputList) => {
     const allRequiredFields = Object.values(stepRequiredFields).flat();
-    const completedFields = allRequiredFields.filter(field => {
+    const completedFields = allRequiredFields.filter((field) => {
       const value = inputList[field];
       return value !== undefined && value !== null && value !== "";
     });
-    
-    return allRequiredFields.length > 0 
+
+    return allRequiredFields.length > 0
       ? Math.round((completedFields.length / allRequiredFields.length) * 100)
       : 0;
   };
@@ -199,4 +199,4 @@ export const useStepperValidation = () => {
     clearAllErrors,
     calculateProgress,
   };
-}; 
+};

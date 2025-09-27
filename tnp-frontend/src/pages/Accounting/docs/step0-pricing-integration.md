@@ -1,9 +1,12 @@
 # Step 0: นำเข้างานจากระบบ Pricing
 
 ## 🎯 วัตถุประสงค์
-สร้างหน้าดึงงานจากระบบ Pricing ที่แสดงงานที่สถานะ "Complete" และให้ Sales สามารถเลือกงานเพื่อสร้างใบเสนอราคาได้
+
+สร้างหน้าดึงงานจากระบบ Pricing ที่แสดงงานที่สถานะ "Complete" และให้ Sales
+สามารถเลือกงานเพื่อสร้างใบเสนอราคาได้
 
 ## 🔄 Flow การทำงาน
+
 ```
 ระบบ Pricing (สถานะ Complete) → หน้างานใหม่ → เลือกงาน → สร้างใบเสนอราคา
 ```
@@ -11,6 +14,7 @@
 ## 🎨 UI Design
 
 ### หน้าดึงงานจาก Pricing
+
 ```
 Pricing System Integration:
 ┌─────────────────────────────────────────────────────────────┐
@@ -37,11 +41,12 @@ Pricing System Integration:
 ## 🔧 Technical Implementation
 
 ### API Integration
+
 ```javascript
 // Hook สำหรับดึงงานจาก Pricing Request (ตาม technical-implementation.md)
 const usePricingRequests = () => {
   return useQuery({
-    queryKey: ['pricing-requests'],
+    queryKey: ["pricing-requests"],
     queryFn: () => pricingApi.getCompletedRequests(),
     refetchInterval: 30000, // Check ทุก 30 วินาที
   });
@@ -50,7 +55,7 @@ const usePricingRequests = () => {
 // Function Auto-fill จาก Pricing Request ตาม DTO structure
 const createQuotationFromPricing = async (pricingRequestId) => {
   const autofillData = await pricingApi.getAutofillData(pricingRequestId);
-  
+
   const quotationData = {
     // Auto-fill จาก PricingRequestAutofillDTO
     pricing_request_id: autofillData.pr_id,
@@ -61,7 +66,7 @@ const createQuotationFromPricing = async (pricingRequestId) => {
     sizes: autofillData.pr_sizes,
     quantity: autofillData.pr_quantity,
     due_date: autofillData.pr_due_date,
-    
+
     // Auto-fill ข้อมูลลูกค้าจาก CustomerAutofillDTO
     customer_id: autofillData.customer.cus_id,
     customer_company: autofillData.customer.cus_company,
@@ -70,21 +75,23 @@ const createQuotationFromPricing = async (pricingRequestId) => {
     customer_zip_code: autofillData.customer.cus_zip_code,
     customer_tel_1: autofillData.customer.cus_tel_1,
     customer_email: autofillData.customer.cus_email,
-    
+
     // ข้อมูลเพิ่มเติม
-    initial_notes: autofillData.notes?.map(note => 
-      `[${note.note_type_label}] ${note.prn_text}`
-    ).join('\n') || '',
-    
-    status: 'draft',
-    created_by: getCurrentUser().id
+    initial_notes:
+      autofillData.notes
+        ?.map((note) => `[${note.note_type_label}] ${note.prn_text}`)
+        .join("\n") || "",
+
+    status: "draft",
+    created_by: getCurrentUser().id,
   };
-  
+
   return quotationApi.create(quotationData);
 };
 ```
 
 ### Components ที่ต้องสร้าง
+
 ```javascript
 // PricingRequestsList.jsx - แสดงรายการ Pricing Request
 // CreateQuotationModal.jsx - Modal สร้างใบเสนอราคา
@@ -96,7 +103,9 @@ const createQuotationFromPricing = async (pricingRequestId) => {
 ## 📋 Required APIs
 
 ### GET /api/pricing/completed-requests
+
 **Response:**
+
 ```json
 {
   "data": [
@@ -132,7 +141,9 @@ const createQuotationFromPricing = async (pricingRequestId) => {
 ```
 
 ### GET /api/quotations/autofill/pricing-request/:id
+
 **Response:**
+
 ```json
 {
   "pr_id": 1001,
@@ -166,7 +177,9 @@ const createQuotationFromPricing = async (pricingRequestId) => {
 ```
 
 ### POST /api/quotations/create-from-pricing
+
 **Request:**
+
 ```json
 {
   "pricing_request_id": 1001,
@@ -177,10 +190,12 @@ const createQuotationFromPricing = async (pricingRequestId) => {
 ```
 
 ## 🔐 Permissions
+
 - **Sales**: สร้างใบเสนอราคาได้
 - **Account**: เข้าถึงและสร้างได้ทั้งหมด
 
 ## ✅ Acceptance Criteria
+
 1. แสดงเฉพาะ Pricing Request ที่สถานะ "Complete"
 2. มีระบบ filter ตามวันที่และลูกค้า
 3. สามารถสร้างใบเสนอราคาจาก Pricing Request ได้
@@ -190,7 +205,8 @@ const createQuotationFromPricing = async (pricingRequestId) => {
 7. แสดงข้อมูลสินค้า/บริการตาม Pricing Request structure
 
 ## 🚀 AI Command
+
 ```bash
-สร้างหน้าดึง Pricing Request จากระบบ Pricing ที่แสดง Pricing Request ที่สถานะ "Complete" 
+สร้างหน้าดึง Pricing Request จากระบบ Pricing ที่แสดง Pricing Request ที่สถานะ "Complete"
 และให้ Sales สามารถเลือกงานเพื่อสร้างใบเสนอราคาด้วย Auto-fill ข้อมูลตาม technical-implementation.md
 ```

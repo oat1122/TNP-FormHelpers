@@ -1,13 +1,17 @@
 # 📝 TNP Notes System - Complete Documentation
 
 ## 🎯 Overview
-ระบบ Notes สำหรับ CreateQuotationForm ที่ใช้แสดงประวัติการบันทึกและความเห็นจากทีม Sale และ Price สำหรับแต่ละ Pricing Request
+
+ระบบ Notes สำหรับ CreateQuotationForm
+ที่ใช้แสดงประวัติการบันทึกและความเห็นจากทีม Sale และ Price สำหรับแต่ละ Pricing
+Request
 
 ## 🏗️ System Architecture
 
 ### Backend Components
 
 #### 1. Database Tables
+
 ```sql
 -- tnpdb.pricing_request_notes
 CREATE TABLE `pricing_request_notes` (
@@ -24,6 +28,7 @@ CREATE TABLE `pricing_request_notes` (
 ```
 
 #### 2. API Endpoints
+
 ```php
 // NEW API Endpoint
 GET /api/v1/pricing-requests/{id}/notes
@@ -105,7 +110,7 @@ GET /api/v1/pricing-requests/{id}/notes
 import PricingRequestNotesButton from './PricingRequestNotesButton';
 
 // ในส่วนแสดงรายละเอียดงาน
-<PricingRequestNotesButton 
+<PricingRequestNotesButton
     pricingRequestId={item.pricingRequestId || item.pr_id}
     workName={item.name}
     variant="chip"
@@ -113,7 +118,7 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 />
 
 // ในส่วนการคำนวณราคา
-<PricingRequestNotesButton 
+<PricingRequestNotesButton
     pricingRequestId={item.pricingRequestId || item.pr_id}
     workName={item.name}
     variant="icon"
@@ -124,20 +129,23 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 ## 🎨 UI/UX Design Features
 
 ### 1. Design System
+
 - **Color Scheme**: ใช้ theme colors แบบ TNP (#900F0F, #B20000, #E36264)
-- **Note Types**: 
+- **Note Types**:
   - Sale Notes: สีน้ำเงิน (#2196F3)
   - Price Notes: สีเขียว (#4CAF50)
 - **Typography**: Material-UI typography scale
 - **Spacing**: Grid system 8px base
 
 ### 2. Interactive Elements
+
 - **Hover Effects**: translateY(-2px) + box-shadow
 - **Smooth Transitions**: 0.3s ease-in-out
 - **Loading States**: Skeleton components
 - **Error Handling**: Alert components พร้อม retry button
 
 ### 3. Responsive Design
+
 - **Mobile-First**: การแสดงผลปรับได้ตามหน้าจอ
 - **Touch-Friendly**: Button sizes เหมาะสำหรับ touch
 - **Accessible**: ARIA labels และ semantic HTML
@@ -145,6 +153,7 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 ## 🔧 Technical Implementation
 
 ### Data Flow
+
 ```
 1. User clicks Notes Button
 2. PricingRequestNotesButton -> opens PricingRequestNotesModal
@@ -155,6 +164,7 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 ```
 
 ### Error Handling
+
 ```javascript
 // Frontend Error States
 - Loading: Skeleton components
@@ -162,7 +172,7 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 - No Data: Informative message
 - API Error: Error message display
 
-// Backend Error Handling  
+// Backend Error Handling
 - Try-catch blocks
 - Laravel logging
 - Proper HTTP status codes
@@ -172,6 +182,7 @@ import PricingRequestNotesButton from './PricingRequestNotesButton';
 ## 🧪 Testing
 
 ### 1. API Testing
+
 ```bash
 # Command Line Test
 php test_notes_api.php
@@ -182,17 +193,17 @@ php test_notes_api.php
 ```
 
 ### 2. Browser Testing
+
 ```html
 <!-- Open test_notes_api.html in browser -->
-- Interactive API testing
-- Visual note display
-- Real-time API calls
-- Bootstrap UI
+- Interactive API testing - Visual note display - Real-time API calls -
+Bootstrap UI
 ```
 
 ## 📊 Current System Status
 
 ### ✅ Completed Features
+
 1. **Backend API**: เสร็จสมบูรณ์พร้อม error handling
 2. **Frontend Components**: สวยงาม responsive และ interactive
 3. **Integration**: ผสานเข้า CreateQuotationForm แล้ว
@@ -200,6 +211,7 @@ php test_notes_api.php
 5. **Documentation**: ครบถ้วน ready for handover
 
 ### 🔧 Business Logic
+
 - **แสดงเฉพาะ**: note_type = 1 (Sale) และ 2 (Price)
 - **เงื่อนไข**: prn_is_deleted = 0
 - **เรียงลำดับ**: prn_created_date ASC
@@ -208,27 +220,30 @@ php test_notes_api.php
 ### 💡 Usage Examples
 
 #### Basic Usage
+
 ```jsx
-<PricingRequestNotesButton 
-    pricingRequestId="009d98b6-bb03-4fc8-9afd-4ecbad5047f2"
-    workName="ผ้ากันเปื้อน"
+<PricingRequestNotesButton
+  pricingRequestId="009d98b6-bb03-4fc8-9afd-4ecbad5047f2"
+  workName="ผ้ากันเปื้อน"
 />
 ```
 
 #### Advanced Usage
+
 ```jsx
-<PricingRequestNotesButton 
-    pricingRequestId={item.pr_id}
-    workName={item.name}
-    variant="chip"        // 'icon' | 'chip'
-    size="small"          // 'small' | 'medium' | 'large'
-    notesCount={5}        // Optional: override badge count
+<PricingRequestNotesButton
+  pricingRequestId={item.pr_id}
+  workName={item.name}
+  variant="chip" // 'icon' | 'chip'
+  size="small" // 'small' | 'medium' | 'large'
+  notesCount={5} // Optional: override badge count
 />
 ```
 
 ## 🎯 Next Development Phase
 
 ### 🏆 Priority Enhancements (ถ้าต้องการ)
+
 1. **Real-time Updates**: WebSocket สำหรับ notes แบบ real-time
 2. **Note Creation**: Form สำหรับเพิ่ม notes ใหม่
 3. **Note Categories**: เพิ่ม sub-categories ใน note types
@@ -236,6 +251,7 @@ php test_notes_api.php
 5. **Mention System**: @mention users ใน notes
 
 ### 📈 Performance Optimizations
+
 1. **Caching**: Redis cache สำหรับ notes ที่เข้าถึงบ่อย
 2. **Pagination**: สำหรับ notes จำนวนมาก
 3. **Lazy Loading**: โหลด notes เมื่อต้องการ
@@ -248,12 +264,13 @@ php test_notes_api.php
 **Developer:** แต้ม (Fullstack Dev Laravel + React + MUI)  
 **Status:** ✅ READY FOR PRODUCTION  
 **Focus:** User Experience + Beautiful Design  
-**Test Coverage:** ✅ API + Frontend + Integration  
+**Test Coverage:** ✅ API + Frontend + Integration
 
 ### 🛠️ Development Workflow
+
 1. ✅ Database Analysis & API Design
 2. ✅ Backend Implementation (Controller + Service)
-3. ✅ Frontend Components (Modal + Button)  
+3. ✅ Frontend Components (Modal + Button)
 4. ✅ Integration & Styling
 5. ✅ Testing & Documentation
 6. ✅ Production Ready

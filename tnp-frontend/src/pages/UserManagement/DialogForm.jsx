@@ -23,10 +23,11 @@ import {
   Divider,
   FormHelperText,
 } from "@mui/material";
+import { resetInputList } from "../../features/Customer/customerSlice";
 import {
-  resetInputList,
-} from "../../features/Customer/customerSlice";
-import { useAddUserMutation, useUpdateUserMutation } from "../../features/UserManagement/userManagementApi";
+  useAddUserMutation,
+  useUpdateUserMutation,
+} from "../../features/UserManagement/userManagementApi";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
@@ -73,99 +74,97 @@ function DialogForm(props) {
     view: "ดู",
   };
 
-  const roleList = [
-    "admin",
-    "manager",
-    "production",
-    "graphic",
-    "sale",
-    "technician",
-  ];
+  const roleList = ["admin", "manager", "production", "graphic", "sale", "technician"];
 
   const renderPasswordSection = () => {
-
     let content;
 
-    if (mode === 'create') {
-
-      content = 
-      <>
-        <Grid size={{ xs: 12, sm: 6, }}>
-          <StyledLabel>
-            <label style={{ color: "red", marginRight: 2 }}>*</label>
-            รหัสผ่าน
-          </StyledLabel>
-          <TextField
-            fullWidth
-            variant="outlined"
-            size="small"
-            placeholder="รหัสผ่าน"
-            type={showPassword ? "text" : "password"}
-             slotProps={{
-              input: {
-                endAdornment: <InputAdornment position="end">
-                  <IconButton
-                    aria-label={showPassword ? 'hide the password' : 'display the password'}
-                    onClick={handleClickShowPassword}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseUp={(e) => e.preventDefault()}
-                    edge="end"
-                  >
-                    {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
-                  </IconButton>
-                </InputAdornment>
-              }
-            }}
-            {...props.register("password", {
-              required: "กรุณากรอกรหัสผ่าน",
-              pattern: {
-                value: /^(?=.*?[a-zA-Z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/,
-                message: "รหัสผ่านต้องมีอักษรภาษาอังกฤษ (a-z), ตัวเลข (0-9), และอักขระพิเศษ (#?!@$%^&*-)"
-              },
-              minLength: {
-                value: 8,
-                message: "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
-              },
-            })}
-            error={!!props.errors.password}
-            helperText={props.errors.password?.message}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, }}>
-          <StyledLabel>
-            <label style={{ color: "red", marginRight: 2 }}>*</label>
-            ยืนยันรหัสผ่าน
-          </StyledLabel>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="ยืนยันรหัสผ่าน"
-            type={showPasswordConfirm ? "text" : "password"}
-            slotProps={{
-              input: {
-                endAdornment : <InputAdornment position="end">
-                  <IconButton
-                    aria-label={showPasswordConfirm ? 'hide the password' : 'display the password'}
-                    onClick={handleClickShowPasswordConfirm}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseUp={(e) => e.preventDefault()}
-                    edge="end"
-                  >
-                    {showPasswordConfirm ? <MdVisibilityOff /> : <MdVisibility />}
-                  </IconButton>
-                </InputAdornment>
-              }
-            }}
-            {...props.register("password_comfirm", {
-              required: "กรุณากรอกยืนยันรหัสผ่าน",
-              validate: (value) =>
-                value === props.getValues("password") || "รหัสผ่านไม่ตรงกัน"
-            })} 
-            error={!!props.errors.password_comfirm}
-            helperText={props.errors.password_comfirm?.message}
-          />
-        </Grid>
-      </>
+    if (mode === "create") {
+      content = (
+        <>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <StyledLabel>
+              <label style={{ color: "red", marginRight: 2 }}>*</label>
+              รหัสผ่าน
+            </StyledLabel>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              placeholder="รหัสผ่าน"
+              type={showPassword ? "text" : "password"}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showPassword ? "hide the password" : "display the password"}
+                        onClick={handleClickShowPassword}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onMouseUp={(e) => e.preventDefault()}
+                        edge="end"
+                      >
+                        {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              {...props.register("password", {
+                required: "กรุณากรอกรหัสผ่าน",
+                pattern: {
+                  value: /^(?=.*?[a-zA-Z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/,
+                  message:
+                    "รหัสผ่านต้องมีอักษรภาษาอังกฤษ (a-z), ตัวเลข (0-9), และอักขระพิเศษ (#?!@$%^&*-)",
+                },
+                minLength: {
+                  value: 8,
+                  message: "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร",
+                },
+              })}
+              error={!!props.errors.password}
+              helperText={props.errors.password?.message}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <StyledLabel>
+              <label style={{ color: "red", marginRight: 2 }}>*</label>
+              ยืนยันรหัสผ่าน
+            </StyledLabel>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="ยืนยันรหัสผ่าน"
+              type={showPasswordConfirm ? "text" : "password"}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={
+                          showPasswordConfirm ? "hide the password" : "display the password"
+                        }
+                        onClick={handleClickShowPasswordConfirm}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onMouseUp={(e) => e.preventDefault()}
+                        edge="end"
+                      >
+                        {showPasswordConfirm ? <MdVisibilityOff /> : <MdVisibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              {...props.register("password_comfirm", {
+                required: "กรุณากรอกยืนยันรหัสผ่าน",
+                validate: (value) => value === props.getValues("password") || "รหัสผ่านไม่ตรงกัน",
+              })}
+              error={!!props.errors.password_comfirm}
+              helperText={props.errors.password_comfirm?.message}
+            />
+          </Grid>
+        </>
+      );
     }
 
     return content;
@@ -177,8 +176,8 @@ function DialogForm(props) {
   const handleClose = () => {
     setShowPassword(false);
     setShowPasswordConfirm(false);
-    props.handleCloseDialog()
-  }
+    props.handleCloseDialog();
+  };
 
   const onSubmit = async (formData) => {
     // e.preventDefault();
@@ -203,12 +202,10 @@ function DialogForm(props) {
           setSaveLoading(false);
           dispatch(resetInputList());
         });
-
       } else {
         setSaveLoading(false);
         open_dialog_error(res.message);
       }
-
     } catch (error) {
       setSaveLoading(false);
       open_dialog_error(error.message, error);
@@ -224,17 +221,10 @@ function DialogForm(props) {
   }, [mode]);
 
   return (
-    <Dialog
-      open={props.openDialog}
-      fullWidth
-      maxWidth="md"
-      disableEscapeKeyDown
-    >
+    <Dialog open={props.openDialog} fullWidth maxWidth="md" disableEscapeKeyDown>
       <form ref={formRef} onSubmit={props.handleSubmit(onSubmit)} noValidate>
         <DialogTitle sx={{ paddingBlock: 1 }}>
-          <Box sx={{ maxWidth: 800, justifySelf: "center" }}>
-            {titleMap[mode] + `ข้อมูลผู้ใช้`}
-          </Box>
+          <Box sx={{ maxWidth: 800, justifySelf: "center" }}>{titleMap[mode] + `ข้อมูลผู้ใช้`}</Box>
         </DialogTitle>
         <IconButton
           aria-label="close"
@@ -248,17 +238,14 @@ function DialogForm(props) {
         >
           <MdClose />
         </IconButton>
-        <DialogContent
-          dividers
-          sx={{ paddingBottom: 0 }}
-        >
+        <DialogContent dividers sx={{ paddingBottom: 0 }}>
           <Box>
             <Grid
               container
               sx={{ paddingBlock: 2, justifyContent: "center" }}
-              spacing={{ xs: 3, md: 5, }}
+              spacing={{ xs: 3, md: 5 }}
             >
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>ชื่อ</StyledLabel>
                 <TextField
                   fullWidth
@@ -268,7 +255,7 @@ function DialogForm(props) {
                   disabled={mode === "view"}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>นามสกุล</StyledLabel>
                 <TextField
                   fullWidth
@@ -278,7 +265,7 @@ function DialogForm(props) {
                   disabled={mode === "view"}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>
                   <label style={{ color: "red", marginRight: 2 }}>*</label>
                   ชื่อเล่น
@@ -293,7 +280,7 @@ function DialogForm(props) {
                   helperText={props.errors.user_nickname?.message}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller
                   name="user_phone"
                   control={props.control} // control จาก useForm()
@@ -307,12 +294,12 @@ function DialogForm(props) {
                         placeholder="เบอร์โทรศัพท์"
                         disabled={mode === "view"}
                         onChange={(e) => field.onChange(onlyNums(e.target.value))}
-                        />
+                      />
                     </>
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>รหัสพนักงาน</StyledLabel>
                 <TextField
                   fullWidth
@@ -322,7 +309,7 @@ function DialogForm(props) {
                   disabled={mode === "view"}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>ตำแหน่ง</StyledLabel>
                 <TextField
                   fullWidth
@@ -332,7 +319,7 @@ function DialogForm(props) {
                   disabled={mode === "view"}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <StyledLabel>
                   <label style={{ color: "red", marginRight: 2 }}>*</label>
                   ชื่อผู้ใช้
@@ -348,7 +335,7 @@ function DialogForm(props) {
                   helperText={props.errors.username?.message}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller
                   name="role"
                   control={props.control}
@@ -369,27 +356,27 @@ function DialogForm(props) {
                       >
                         <Select
                           {...field}
-                          displayEmpty 
+                          displayEmpty
                           disabled={mode === "view"}
                           labelId="select-user-role"
                           id="select-user-role"
                           renderValue={(selected) => {
                             if (!selected) {
-                              return <span style={{ color: '#a9a9a9' }}>สิทธิ์ผู้ใช้งาน</span>;
+                              return <span style={{ color: "#a9a9a9" }}>สิทธิ์ผู้ใช้งาน</span>;
                             }
                             return selected;
                           }}
                         >
-                        {roleList &&
-                          roleList.map((item, index) => (
-                            <MenuItem
-                              key={index}
-                              value={item}
-                              sx={{ textTransform: "capitalize" }}
-                            >
-                              {item}
-                            </MenuItem>
-                          ))}
+                          {roleList &&
+                            roleList.map((item, index) => (
+                              <MenuItem
+                                key={index}
+                                value={item}
+                                sx={{ textTransform: "capitalize" }}
+                              >
+                                {item}
+                              </MenuItem>
+                            ))}
                         </Select>
                         <FormHelperText>{props.errors.role?.message}</FormHelperText>
                       </FormControl>

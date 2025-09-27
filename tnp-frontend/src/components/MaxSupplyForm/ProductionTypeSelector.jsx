@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -8,25 +8,23 @@ import {
   Select,
   MenuItem,
   Box,
-} from '@mui/material';
-import {
-  Build,
-} from '@mui/icons-material';
+} from "@mui/material";
+import { Build } from "@mui/icons-material";
 
 const ProductionTypeSelector = ({ formData, errors, productionTypes, onInputChange }) => {
   return (
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          <Build sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <Build sx={{ mr: 1, verticalAlign: "middle" }} />
           ประเภทการพิมพ์
         </Typography>
-        
+
         <FormControl fullWidth error={!!errors.production_type}>
           <InputLabel>ประเภทการพิมพ์</InputLabel>
           <Select
             value={formData.production_type}
-            onChange={(e) => onInputChange('production_type', e.target.value)}
+            onChange={(e) => onInputChange("production_type", e.target.value)}
             label="ประเภทการพิมพ์"
           >
             {productionTypes.map((type) => (
@@ -37,7 +35,7 @@ const ProductionTypeSelector = ({ formData, errors, productionTypes, onInputChan
                       width: 12,
                       height: 12,
                       backgroundColor: type.color,
-                      borderRadius: '50%',
+                      borderRadius: "50%",
                       mr: 1,
                     }}
                   />
@@ -57,4 +55,4 @@ const ProductionTypeSelector = ({ formData, errors, productionTypes, onInputChan
   );
 };
 
-export default ProductionTypeSelector; 
+export default ProductionTypeSelector;

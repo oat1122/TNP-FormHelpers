@@ -116,7 +116,9 @@
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 0 20px rgba(255, 255, 255, 0.5),
+      0 0 30px rgba(255, 255, 255, 0.3);
   }
   100% {
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
@@ -197,12 +199,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   pointer-events: none;
@@ -240,7 +237,12 @@
 
 /* Improved Thai font styling */
 .toast-container {
-  font-family: "Sarabun", "Prompt", system-ui, -apple-system, sans-serif;
+  font-family:
+    "Sarabun",
+    "Prompt",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Glass morphism effect */
@@ -271,11 +273,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.8) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
   opacity: 0;
   animation: pulse 2s infinite ease-in-out;
 }

@@ -16,7 +16,7 @@ import SewingFactory from "./SewingFactory";
 import { useSelector } from "react-redux";
 import { open_dialog_ok_timer, open_dialog_error } from "../../utils/dialog_swal2/alart_one_line";
 
-const NoteIcon = styled(MdNotes)({ 
+const NoteIcon = styled(MdNotes)({
   fontSize: "1.25rem",
 });
 
@@ -29,7 +29,7 @@ function SewingOrder({ data }) {
   const [showNote, setShowNote] = useState(false);
   const orderDate = moment(data.sewing_start).format("DD/MM/yy");
   const receiveDate = moment(data.sewing_end).format("DD/MM/yy");
-  
+
   const handleShow = () => setShowTab(!showTab);
   const handleNoteShow = () => setShowNote(true);
   const handleNoteClose = () => {
@@ -37,9 +37,12 @@ function SewingOrder({ data }) {
   };
 
   const handleDisabledNoteButton = () => {
-    return item_lists.every(item => item.pd_id !== data.pd_id || item.note_category !== 'sewing') || item_lists.length === 0;
-  }
-  
+    return (
+      item_lists.every((item) => item.pd_id !== data.pd_id || item.note_category !== "sewing") ||
+      item_lists.length === 0
+    );
+  };
+
   const SettingRow = () => {
     const [showOrderDate, setShowOrderDate] = useState(false);
     const [showReceiveDate, setShowReceiveDate] = useState(false);
@@ -53,46 +56,40 @@ function SewingOrder({ data }) {
 
     const handleChange = (event, name) => {
       if (name === "orderDate") {
-        event === null
-          ? setOrderDatePick(null)
-          : setOrderDatePick(event);
+        event === null ? setOrderDatePick(null) : setOrderDatePick(event);
       } else {
-        event === null
-          ? setReceiveDatePick(null)
-          : setReceiveDatePick(event);
+        event === null ? setReceiveDatePick(null) : setReceiveDatePick(event);
       }
     };
 
     const handleSubmitOrder = async (event) => {
       event.preventDefault();
 
-      const dateValue = orderDatePick === null ? '' : orderDatePick.format("yy-MM-DD"); 
+      const dateValue = orderDatePick === null ? "" : orderDatePick.format("yy-MM-DD");
 
       try {
         const response = await axios.put(`production/${data.pd_id}`, {
-          sewing_start: dateValue
+          sewing_start: dateValue,
         });
-    
+
         if (response.data.success) {
           // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
           setShowOrderDate(false);
-          
+
           // แสดง toast แทน Swal
           await open_dialog_ok_timer("Sewing date updated");
-          
-          refetch();
 
+          refetch();
         } else {
           // ปิด modal ก่อนแสดง error toast
           setShowOrderDate(false);
-          
+
           open_dialog_error("Error", response.data.error);
         }
-
       } catch (error) {
         // ปิด modal ก่อนแสดง error toast
         setShowOrderDate(false);
-        
+
         open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
     };
@@ -100,31 +97,29 @@ function SewingOrder({ data }) {
     const handleSubmitReceive = async (event) => {
       event.preventDefault();
 
-      const dateValue = receiveDatePick === null ? '' : receiveDatePick.format("yy-MM-DD"); 
+      const dateValue = receiveDatePick === null ? "" : receiveDatePick.format("yy-MM-DD");
 
       try {
-        const response = await axios.put(`production/${data.pd_id}`, {sewing_end: dateValue});
-    
+        const response = await axios.put(`production/${data.pd_id}`, { sewing_end: dateValue });
+
         if (response.data.success) {
           // ปิด modal ก่อนแสดง toast เพื่อป้องกันการเลื่อนหน้า
           setShowReceiveDate(false);
-          
+
           // แสดง toast แทน Swal
           await open_dialog_ok_timer("Sewing date updated");
-          
-          refetch();
 
+          refetch();
         } else {
           // ปิด modal ก่อนแสดง error toast
           setShowReceiveDate(false);
-          
+
           open_dialog_error("Error", response.data.error);
         }
-
       } catch (error) {
         // ปิด modal ก่อนแสดง error toast
         setShowReceiveDate(false);
-        
+
         open_dialog_error("Error", error.response?.data?.error || "เกิดข้อผิดพลาดในการบันทึก");
       }
     };
@@ -132,10 +127,7 @@ function SewingOrder({ data }) {
     return (
       <>
         <div className="content-setting rounded-start border-end w-100 ms-2">
-          <Button
-            className="btn btn-setting py-0 px-1"
-            onClick={handleOrderDShow}
-          >
+          <Button className="btn btn-setting py-0 px-1" onClick={handleOrderDShow}>
             วันสั่ง
           </Button>
           <Modal
@@ -167,11 +159,7 @@ function SewingOrder({ data }) {
                 </LocalizationProvider>
               </Modal.Body>
               <Modal.Footer>
-                <Button
-                  type="submit"
-                  className="col-5 mx-auto"
-                  variant="danger"
-                >
+                <Button type="submit" className="col-5 mx-auto" variant="danger">
                   save
                 </Button>
                 <Button
@@ -186,10 +174,7 @@ function SewingOrder({ data }) {
           </Modal>
         </div>
         <div className="content-setting border-end w-100">
-          <Button
-            className="btn-setting py-0 px-1"
-            onClick={handleReceiveDShow}
-          >
+          <Button className="btn-setting py-0 px-1" onClick={handleReceiveDShow}>
             วันที่ได้รับ
           </Button>
           <Modal
@@ -201,9 +186,7 @@ function SewingOrder({ data }) {
           >
             <form onSubmit={handleSubmitReceive}>
               <Modal.Header className="py-1">
-                <Modal.Title className="mx-auto">
-                  Sewing Finished Date
-                </Modal.Title>
+                <Modal.Title className="mx-auto">Sewing Finished Date</Modal.Title>
               </Modal.Header>
               <Modal.Body>
                 <LocalizationProvider dateAdapter={AdapterMoment}>
@@ -223,11 +206,7 @@ function SewingOrder({ data }) {
                 </LocalizationProvider>
               </Modal.Body>
               <Modal.Footer>
-                <Button
-                  type="submit"
-                  className="col-5 mx-auto"
-                  variant="danger"
-                >
+                <Button type="submit" className="col-5 mx-auto" variant="danger">
                   save
                 </Button>
                 <Button
@@ -245,12 +224,7 @@ function SewingOrder({ data }) {
           <Button className="btn-setting py-0 px-0" onClick={handleNoteShow}>
             บันทึก
           </Button>
-          <Modal
-            show={showNote}
-            onHide={handleNoteClose}
-            size="lg"
-            className="mt-5 modal-note"
-          >
+          <Modal show={showNote} onHide={handleNoteClose} size="lg" className="mt-5 modal-note">
             <ProductionNote pd_id={data.pd_id} category="sewing" />
           </Modal>
         </div>
@@ -293,29 +267,25 @@ function SewingOrder({ data }) {
             <div className="content-date text-end w-100 rounded-end">
               <label>{orderDate === "Invalid date" ? "" : orderDate}</label>
               <label className="mx-1">
-                {orderDate !== "Invalid date" || receiveDate !== "Invalid date"
-                  ? "|"
-                  : null}
+                {orderDate !== "Invalid date" || receiveDate !== "Invalid date" ? "|" : null}
               </label>
               <label className="fw-bold pe-3">
                 {receiveDate === "Invalid date" ? "" : receiveDate}
               </label>
-              {(user.role !== "manager" && user.role !== "production") ||
-              data.status === 2 ? 
-              <>
-                <Button className="btn-view-note py-0 px-2" onClick={handleNoteShow} disabled={handleDisabledNoteButton()}>
-                  <NoteIcon />
-                </Button>
-                <Modal
-                  show={showNote}
-                  onHide={handleNoteClose}
-                  size="lg"
-                  className="modal-note"
-                >
-                  <ProductionNote pd_id={data.pd_id} category="sewing" />
-                </Modal>
-              </> 
-              : (
+              {(user.role !== "manager" && user.role !== "production") || data.status === 2 ? (
+                <>
+                  <Button
+                    className="btn-view-note py-0 px-2"
+                    onClick={handleNoteShow}
+                    disabled={handleDisabledNoteButton()}
+                  >
+                    <NoteIcon />
+                  </Button>
+                  <Modal show={showNote} onHide={handleNoteClose} size="lg" className="modal-note">
+                    <ProductionNote pd_id={data.pd_id} category="sewing" />
+                  </Modal>
+                </>
+              ) : (
                 <>
                   <input
                     type="checkbox"

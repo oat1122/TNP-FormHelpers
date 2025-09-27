@@ -37,9 +37,7 @@ function FabricCreate({ onCreate }) {
   return (
     <Form>
       {inputFabrics.map((inputFabric, index) => {
-        const fabricCost = isFinite(
-          inputFabric.fabric_price_per_kg / inputFabric.shirt_per_kg
-        )
+        const fabricCost = isFinite(inputFabric.fabric_price_per_kg / inputFabric.shirt_per_kg)
           ? inputFabric.fabric_price_per_kg / inputFabric.shirt_per_kg
           : 0;
 
@@ -119,12 +117,7 @@ function FabricCreate({ onCreate }) {
               />
             </Col>
             <Col>
-              <Form.Control
-                readOnly
-                type="number"
-                value={fabricCost}
-                name="fabric-cost"
-              />
+              <Form.Control readOnly type="number" value={fabricCost} name="fabric-cost" />
             </Col>
             <Col>
               <Form.Control
@@ -137,20 +130,10 @@ function FabricCreate({ onCreate }) {
               />
             </Col>
             <Col>
-              <Form.Control
-                readOnly
-                type="number"
-                value={shirtCost}
-                name="shirt-cost"
-              />
+              <Form.Control readOnly type="number" value={shirtCost} name="shirt-cost" />
             </Col>
             <Col>
-              <Form.Control
-                readOnly
-                type="number"
-                value={shirtPrice}
-                name="shirt-price"
-              />
+              <Form.Control readOnly type="number" value={shirtPrice} name="shirt-price" />
               <InputGroup>
                 <Form.Control
                   type="number"
@@ -165,12 +148,7 @@ function FabricCreate({ onCreate }) {
               </InputGroup>
             </Col>
             <Col title="action">
-              <Form.Control
-                readOnly
-                type="text"
-                value={profitPercent}
-                name="shirt-price"
-              />
+              <Form.Control readOnly type="text" value={profitPercent} name="shirt-price" />
             </Col>
           </Row>
         );

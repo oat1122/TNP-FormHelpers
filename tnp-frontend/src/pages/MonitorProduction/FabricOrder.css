@@ -1,124 +1,124 @@
 /* Layout */
 .fabric-order .content-date {
-    background-color: #F0F0F0;
-    height: 1.8rem;
+  background-color: #f0f0f0;
+  height: 1.8rem;
 }
 
 .fabric-order .content-date label.title {
-    font-size: 1.25rem;
-    letter-spacing: 0.063rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.063rem;
 }
 
 .fabric-order .content-date label {
-    font-size: 1.125rem;
-    letter-spacing: 0.02rem;
-    vertical-align: middle;
-    line-height: 1.8rem;
+  font-size: 1.125rem;
+  letter-spacing: 0.02rem;
+  vertical-align: middle;
+  line-height: 1.8rem;
 }
 
 .fabric-order .content-setting {
-    background-color: #818181;
-    height: 1.8rem;
+  background-color: #818181;
+  height: 1.8rem;
 }
 
 .modal-date .modal-content {
-    width: fit-content !important;
-    margin: 0 auto;
+  width: fit-content !important;
+  margin: 0 auto;
 }
 
 .modal-date .modal-title {
-    font-family: "PSL Kittithada";
-    letter-spacing: 0.15rem;
-    font-size: 2rem;
-    font-weight: 600;
-    color: #c35151;
+  font-family: "PSL Kittithada";
+  letter-spacing: 0.15rem;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #c35151;
 }
 
 .modal-date .date-picker h4 {
-    font-size: 1.375rem;
-    line-height: normal;
+  font-size: 1.375rem;
+  line-height: normal;
 }
 
 .modal-factory .modal-title {
-    font-family: "PSL Kittithada";
-    letter-spacing: 0.15rem;
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #c35151;
+  font-family: "PSL Kittithada";
+  letter-spacing: 0.15rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #c35151;
 }
 
 .modal-factory .modal-body .col {
-    padding-inline: 0.5rem;
+  padding-inline: 0.5rem;
 }
 
 .modal-factory .modal-body .highlight {
-    background-color: rgba(223, 123, 123, 0.2);
-    border-radius: 0.5rem;
-    padding-inline: 0.5rem;
-  }
+  background-color: rgba(223, 123, 123, 0.2);
+  border-radius: 0.5rem;
+  padding-inline: 0.5rem;
+}
 
 .modal-factory .modal-footer {
-    display: block;
+  display: block;
 }
 
 .modal-factory .modal-w {
-    width: fit-content !important;
-    margin: 0 auto;
+  width: fit-content !important;
+  margin: 0 auto;
 }
 /* End layout */
 
 /* Button */
 .fabric-order button.btn-modal-factory {
-    background-color: #F0F0F0;
-    border: none;
-    font-size: 1.125rem;
-    line-height: normal;
+  background-color: #f0f0f0;
+  border: none;
+  font-size: 1.125rem;
+  line-height: normal;
 }
 
 .fabric-order button.btn-modal-factory:hover {
-    background-color: #E0E0E0;
+  background-color: #e0e0e0;
 }
 
 .fabric-order button.btn-modal-factory:disabled {
-    opacity: 1;
+  opacity: 1;
 }
 
 .fabric-order button.btn-modal-factory-disabled:disabled {
-    background-color: #808080;
-    border: none;
-    opacity: 1;
-    font-size: 1.125rem;
-    line-height: normal;
-    color: transparent;
+  background-color: #808080;
+  border: none;
+  opacity: 1;
+  font-size: 1.125rem;
+  line-height: normal;
+  color: transparent;
 }
 
 .fabric-order button.btn-setting {
-    font-family: "PSL Kittithada";
-    font-size: 1rem;
-    background-color: #808080;
-    color: white;
-    border: none;
-    letter-spacing: 0.05rem;
-    line-height: normal;
-    height: 1.8rem;
-    width: 100%;
+  font-family: "PSL Kittithada";
+  font-size: 1rem;
+  background-color: #808080;
+  color: white;
+  border: none;
+  letter-spacing: 0.05rem;
+  line-height: normal;
+  height: 1.8rem;
+  width: 100%;
 }
 
-.fabric-order button.btn-setting:hover{
-    background-color: #707070;
+.fabric-order button.btn-setting:hover {
+  background-color: #707070;
 }
 
-.fabric-order button.btn-setting:active{
-    background-color: #696969;
+.fabric-order button.btn-setting:active {
+  background-color: #696969;
 }
 
 .fabric-order label.setting {
-    background-color: #808080 !important;
-    color: white !important;
-    font-size: 1.25rem !important;
-    height: 1.8rem;
-    width: 1.8rem;
-    line-height: normal;
+  background-color: #808080 !important;
+  color: white !important;
+  font-size: 1.25rem !important;
+  height: 1.8rem;
+  width: 1.8rem;
+  line-height: normal;
 }
 
 .fabric-order label.setting:hover {
@@ -127,154 +127,154 @@
 }
 
 .fabric-order button.btn-view-note {
-    font-family: "PSL Kittithada";
-    font-size: 1rem;
-    background-color: #808080;
-    color: white;
-    border: none;
-    letter-spacing: 0.05rem;
-    line-height: normal;
-    height: 1.8rem;
+  font-family: "PSL Kittithada";
+  font-size: 1rem;
+  background-color: #808080;
+  color: white;
+  border: none;
+  letter-spacing: 0.05rem;
+  line-height: normal;
+  height: 1.8rem;
 }
 
-.fabric-order button.btn-view-note:hover{
-    background-color: #707070;
+.fabric-order button.btn-view-note:hover {
+  background-color: #707070;
 }
 
-.fabric-order button.btn-view-note:disabled{
-    opacity: 0.1;
+.fabric-order button.btn-view-note:disabled {
+  opacity: 0.1;
 }
 
 .modal-date button.btn-danger {
-    font-family: "PSL KittithadaBold" !important;
-    font-size: 1.25rem !important;
-    letter-spacing: 0.1rem !important;
-    background-color: #c35151 !important;
-    line-height: normal;
-    text-transform: uppercase;
+  font-family: "PSL KittithadaBold" !important;
+  font-size: 1.25rem !important;
+  letter-spacing: 0.1rem !important;
+  background-color: #c35151 !important;
+  line-height: normal;
+  text-transform: uppercase;
 }
 
 .modal-date button.btn-danger:hover {
-    background-color: rgb(195 81 81 / 0.9) !important;
-    color: white;
+  background-color: rgb(195 81 81 / 0.9) !important;
+  color: white;
 }
 
 .modal-date button.btn-danger:active {
-    color: white !important;
+  color: white !important;
 }
 
 .modal-date button.btn-outline-danger {
-    font-family: "PSL KittithadaBold" !important;
-    font-size: 1.25rem !important;
-    letter-spacing: 0.1rem !important;
-    border-color: #c35151 !important;
-    color: #c35151 !important;
-    line-height: normal;
-    text-transform: uppercase;
+  font-family: "PSL KittithadaBold" !important;
+  font-size: 1.25rem !important;
+  letter-spacing: 0.1rem !important;
+  border-color: #c35151 !important;
+  color: #c35151 !important;
+  line-height: normal;
+  text-transform: uppercase;
 }
 
 .modal-date button.btn-outline-danger:hover {
-    background-color: rgb(195 81 81 / 0.1) !important;
+  background-color: rgb(195 81 81 / 0.1) !important;
 }
 
 .modal-date .date-picker .MuiButton-root:hover {
-    background-color: rgb(195, 81, 81, 0.1);
+  background-color: rgb(195, 81, 81, 0.1);
 }
 
 .modal-date .date-picker .MuiButton-text {
-    color: #c35151;
+  color: #c35151;
 }
 
 .modal-date .MuiPickerStaticWrapper-root .MuiDialogActions-root button {
-    font-family: "PSL Kittithada";
-    font-size: 1.3rem;
-    letter-spacing: 0.1rem;
-    color: #c35151;
-    height: 2rem;
+  font-family: "PSL Kittithada";
+  font-size: 1.3rem;
+  letter-spacing: 0.1rem;
+  color: #c35151;
+  height: 2rem;
 }
 
 .modal-date .MuiPickerStaticWrapper-root .MuiOutlinedInput-root {
-    background-color: white !important;
-    border-color: #413f40 !important;
+  background-color: white !important;
+  border-color: #413f40 !important;
 }
 
 .modal-date .MuiPickerStaticWrapper-root .MuiOutlinedInput-root fieldset {
-    border-color: rgb(118 118 118) !important;
+  border-color: rgb(118 118 118) !important;
 }
 
 .modal-date .MuiPickerStaticWrapper-root .MuiOutlinedInput-root .Mui-focused fieldset {
-    border: none !important;
+  border: none !important;
 }
 
 .modal-date .MuiPickerStaticWrapper-root .MuiDialogActions-root button:hover {
-    background-color: rgb(195 81 81 / 0.05) !important;
+  background-color: rgb(195 81 81 / 0.05) !important;
 }
 
 .modal-date button.MuiPickersDay-root:hover {
-    background-color: rgb(195 81 81 / 0.1) !important;
+  background-color: rgb(195 81 81 / 0.1) !important;
 }
 
 .modal-date .Mui-selected {
-    background-color: rgb(195 81 81) !important;
+  background-color: rgb(195 81 81) !important;
 }
 
 .modal-date .Mui-selected.MuiPickersDay-root:hover {
-    background-color: rgb(195 81 81) !important;
+  background-color: rgb(195 81 81) !important;
 }
 
 .modal-factory .modal-body .form-check-input {
-    margin-right: 2rem;
+  margin-right: 2rem;
 }
 
 .modal-factory .modal-body .form-check-input:checked {
-    background-color: rgb(195 81 81);
-    border-color: rgb(195 81 81);
+  background-color: rgb(195 81 81);
+  border-color: rgb(195 81 81);
 }
 
 .modal-factory .modal-body .form-check-input:focus {
-    border-color: none;
-    box-shadow: none;
+  border-color: none;
+  box-shadow: none;
 }
 
 .modal-factory .modal-body .form-check-input:active {
-    background-color: rgba(195, 81, 81, 0.1);
-    border-color: rgb(195 81 81);
-    box-shadow: 0 0 0 0.25rem rgba(195, 81, 81, 0.25);
+  background-color: rgba(195, 81, 81, 0.1);
+  border-color: rgb(195 81 81);
+  box-shadow: 0 0 0 0.25rem rgba(195, 81, 81, 0.25);
 }
 
 .modal-factory .modal-body .form-check-label {
-    letter-spacing: 0.1rem;
-    font-family: "PSL KittithadaBold"
+  letter-spacing: 0.1rem;
+  font-family: "PSL KittithadaBold";
 }
 
 .modal-factory .modal-footer button {
-    text-transform: uppercase;
-    font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: 0.15rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.15rem;
 }
 
 .modal-factory .modal-footer button.btn-danger {
-    background-color: #c35151;
-    line-height: normal;
+  background-color: #c35151;
+  line-height: normal;
 }
 
 .modal-factory .modal-footer button.btn-danger:hover {
-    background-color: rgb(195 81 81 / 0.9);
-    color: white;
+  background-color: rgb(195 81 81 / 0.9);
+  color: white;
 }
-  
+
 .modal-factory .modal-footer button.btn-danger:active {
-    color: white;
+  color: white;
 }
-  
+
 .modal-factory .modal-footer button.btn-outline-danger {
-    border-color: #c35151;
-    color: #c35151;
-    line-height: normal;
+  border-color: #c35151;
+  color: #c35151;
+  line-height: normal;
 }
-  
+
 .modal-factory button.btn-outline-danger:hover {
-    background-color: rgb(195 81 81 / 0.1);
+  background-color: rgb(195 81 81 / 0.1);
 }
 /* End button */

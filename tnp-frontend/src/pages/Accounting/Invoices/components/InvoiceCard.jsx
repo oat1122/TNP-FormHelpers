@@ -1,44 +1,93 @@
-import React from 'react';
-import { Box, Stack, Chip, Button, Typography, Collapse, Tooltip, Menu, MenuItem, Checkbox, ListItemText, Divider, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, FormControl, Select, InputLabel } from '@mui/material';
-import DescriptionIcon from '@mui/icons-material/Description';
-import EventIcon from '@mui/icons-material/Event';
-import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
-import PaymentIcon from '@mui/icons-material/Payment';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import React from "react";
+import {
+  Box,
+  Stack,
+  Chip,
+  Button,
+  Typography,
+  Collapse,
+  Tooltip,
+  Menu,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  FormControl,
+  Select,
+  InputLabel,
+} from "@mui/material";
+import DescriptionIcon from "@mui/icons-material/Description";
+import EventIcon from "@mui/icons-material/Event";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import PaymentIcon from "@mui/icons-material/Payment";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 // Styled Components
-import { TNPCard, TNPCardContent, TNPStatusChip, TNPCountChip, TNPDivider } from '../../PricingIntegration/components/styles/StyledComponents';
+import {
+  TNPCard,
+  TNPCardContent,
+  TNPStatusChip,
+  TNPCountChip,
+  TNPDivider,
+} from "../../PricingIntegration/components/styles/StyledComponents";
 
 // Custom Components
-import ImageUploadGrid from '../../shared/components/ImageUploadGrid';
-import { CustomerInfoSection } from './subcomponents/CustomerInfoSection';
-import WorkDetailsSection from './subcomponents/WorkDetailsSection';
-import DepositCard from './subcomponents/DepositCard';
-import FinancialSummaryCard from './subcomponents/FinancialSummaryCard';
-import StatusReversalDialog from './subcomponents/StatusReversalDialog';
+import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
+import { CustomerInfoSection } from "./subcomponents/CustomerInfoSection";
+import WorkDetailsSection from "./subcomponents/WorkDetailsSection";
+import DepositCard from "./subcomponents/DepositCard";
+import FinancialSummaryCard from "./subcomponents/FinancialSummaryCard";
+import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
 
 // Custom Hooks
-import { useInvoiceEvidence } from './hooks/useInvoiceEvidence';
-import { useInvoiceApproval } from './hooks/useInvoiceApproval';
-import { useInvoicePDFDownload } from './hooks/useInvoicePDFDownload';
-import { useInvoiceStatusReversal } from './hooks/useInvoiceStatusReversal';
+import { useInvoiceEvidence } from "./hooks/useInvoiceEvidence";
+import { useInvoiceApproval } from "./hooks/useInvoiceApproval";
+import { useInvoicePDFDownload } from "./hooks/useInvoicePDFDownload";
+import { useInvoiceStatusReversal } from "./hooks/useInvoiceStatusReversal";
 
 // Utilities
-import { formatTHB, formatDate, typeLabels, truncateText, formatInvoiceNumber } from './utils/invoiceFormatters';
-import { getInvoiceStatus, calculateInvoiceFinancials, formatDepositInfo, getDisplayInvoiceNumber } from './utils/invoiceLogic';
+import {
+  formatTHB,
+  formatDate,
+  typeLabels,
+  truncateText,
+  formatInvoiceNumber,
+} from "./utils/invoiceFormatters";
+import {
+  getInvoiceStatus,
+  calculateInvoiceFinancials,
+  formatDepositInfo,
+  getDisplayInvoiceNumber,
+} from "./utils/invoiceLogic";
 
 // Hooks
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 // API
-import { useGetCompaniesQuery, useUpdateInvoiceMutation } from '../../../../features/Accounting/accountingApi';
+import {
+  useGetCompaniesQuery,
+  useUpdateInvoiceMutation,
+} from "../../../../features/Accounting/accountingApi";
 
-const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, onSubmit, onUpdateCompany }) => {
+const InvoiceCard = ({
+  invoice,
+  onView,
+  onDownloadPDF,
+  onPreviewPDF,
+  onApprove,
+  onSubmit,
+  onUpdateCompany,
+}) => {
   const [showDetails, setShowDetails] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
-  
+  const [previewPdfUrl, setPreviewPdfUrl] = useState("");
+
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
   const evidenceHook = useInvoiceEvidence(invoice);
@@ -52,16 +101,16 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     canApproveActiveSide,
     canUserApprove,
     handleApprove,
-    handleDepositModeChange
+    handleDepositModeChange,
   } = approvalHook;
 
   // ใช้สถานะของฝั่งที่กำลังดูสำหรับแสดงผล
   const activeSideStatus = getActiveSideStatus();
 
   // RTK Query hooks (หลังจาก get variables แล้ว)
-  const { data: companiesResp, isLoading: loadingCompanies } = useGetCompaniesQuery(undefined, { 
+  const { data: companiesResp, isLoading: loadingCompanies } = useGetCompaniesQuery(undefined, {
     refetchOnMountOrArgChange: false,
-    skip: !canUserApprove || activeSideStatus !== 'draft' 
+    skip: !canUserApprove || activeSideStatus !== "draft",
   });
   const [updateInvoice, { isLoading: updatingCompany }] = useUpdateInvoiceMutation();
 
@@ -70,7 +119,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     hasEvidence,
     hasEvidenceForMode,
     handleUploadEvidence,
-    uploadingEvidence
+    uploadingEvidence,
   } = evidenceHook;
 
   const {
@@ -81,33 +130,40 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
     handleDownloadClick,
     handlePreviewClick,
     handleCloseMenu,
-    handleConfirmDownload
+    handleConfirmDownload,
   } = pdfHook;
-  
+
   // Calculate financial data
   const financials = calculateInvoiceFinancials(invoice);
   const depositInfo = formatDepositInfo(invoice);
-  
+
   const invoiceStatus = getInvoiceStatus({ ...invoice, status: activeSideStatus });
 
   // Company name processing
   let customerSnapshot = null;
   if (invoice?.customer_snapshot) {
     try {
-      if (typeof invoice.customer_snapshot === 'string') {
+      if (typeof invoice.customer_snapshot === "string") {
         customerSnapshot = JSON.parse(invoice.customer_snapshot);
-      } else if (typeof invoice.customer_snapshot === 'object') {
+      } else if (typeof invoice.customer_snapshot === "object") {
         customerSnapshot = invoice.customer_snapshot;
       }
     } catch (error) {
       customerSnapshot = null;
     }
   }
-  
-  const displayCompanyName = invoice?.customer_company || invoice?.customer?.cus_company || customerSnapshot?.customer_company || 'บริษัท/ลูกค้า';
-  const displayAddress = invoice?.customer_address || invoice?.customer?.cus_address || customerSnapshot?.customer_address;
-  const rawCompanyName = displayCompanyName || displayAddress || 'บริษัท/ลูกค้า';
-  const cleanCompanyName = rawCompanyName.replace(/(\d+)\s+\1/g, '$1');
+
+  const displayCompanyName =
+    invoice?.customer_company ||
+    invoice?.customer?.cus_company ||
+    customerSnapshot?.customer_company ||
+    "บริษัท/ลูกค้า";
+  const displayAddress =
+    invoice?.customer_address ||
+    invoice?.customer?.cus_address ||
+    customerSnapshot?.customer_address;
+  const rawCompanyName = displayCompanyName || displayAddress || "บริษัท/ลูกค้า";
+  const cleanCompanyName = rawCompanyName.replace(/(\d+)\s+\1/g, "$1");
   const truncatedCompanyName = truncateText(cleanCompanyName, 35);
 
   const quotationNumber = invoice?.quotation_number || invoice?.quotation?.number || null;
@@ -119,123 +175,128 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
   }, [companiesResp]);
 
   // Handle company change
-  const handleCompanyChange = useCallback(async (newCompanyId) => {
-    if (!newCompanyId || updatingCompany) return;
+  const handleCompanyChange = useCallback(
+    async (newCompanyId) => {
+      if (!newCompanyId || updatingCompany) return;
 
-    try {
-      if (onUpdateCompany) {
-        await onUpdateCompany(invoice.id, newCompanyId);
-      } else {
-        // Use RTK Query mutation as fallback
-        await updateInvoice({ id: invoice.id, company_id: newCompanyId }).unwrap();
+      try {
+        if (onUpdateCompany) {
+          await onUpdateCompany(invoice.id, newCompanyId);
+        } else {
+          // Use RTK Query mutation as fallback
+          await updateInvoice({ id: invoice.id, company_id: newCompanyId }).unwrap();
+        }
+      } catch (error) {
+        console.error("Failed to update company:", error);
       }
-    } catch (error) {
-      console.error('Failed to update company:', error);
-    }
-  }, [invoice.id, onUpdateCompany, updateInvoice, updatingCompany]);
+    },
+    [invoice.id, onUpdateCompany, updateInvoice, updatingCompany]
+  );
 
   // Get current company
-  const currentCompany = companies.find(c => c.id === invoice.company_id);
+  const currentCompany = companies.find((c) => c.id === invoice.company_id);
 
   // Handle PDF Preview - Create blob URL for iframe
   const handlePreviewPDFDialog = async (mode) => {
     try {
-      console.log('🔍 PDF Preview clicked:', { invoice: invoice?.id, mode, onPreviewPDF: !!onPreviewPDF });
-      
+      console.log("🔍 PDF Preview clicked:", {
+        invoice: invoice?.id,
+        mode,
+        onPreviewPDF: !!onPreviewPDF,
+      });
+
       if (!invoice?.id) {
-        console.error('❌ No invoice ID found');
+        console.error("❌ No invoice ID found");
         return;
       }
-      
+
       // Show dialog immediately with loading state
       setPreviewDialogOpen(true);
-      setPreviewPdfUrl(''); // Clear previous URL
-      
+      setPreviewPdfUrl(""); // Clear previous URL
+
       // Build PDF URL
-      const apiConfig = { baseUrl: process.env.NODE_ENV === 'production' ? '/api/v1' : 'http://localhost:8000/api/v1' };
-      const url = `${apiConfig.baseUrl}/invoices/${invoice.id}/pdf/preview?mode=${mode || 'before'}`;
-      
+      const apiConfig = {
+        baseUrl: process.env.NODE_ENV === "production" ? "/api/v1" : "http://localhost:8000/api/v1",
+      };
+      const url = `${apiConfig.baseUrl}/invoices/${invoice.id}/pdf/preview?mode=${mode || "before"}`;
+
       // Get auth token
       const authToken = localStorage.getItem("authToken");
       const token = localStorage.getItem("token");
       const finalToken = authToken || token;
-      
+
       if (!finalToken) {
-        console.error('❌ No authentication token found');
+        console.error("❌ No authentication token found");
         return;
       }
-      
-      console.log('📥 Fetching PDF from:', url);
-      
+
+      console.log("📥 Fetching PDF from:", url);
+
       // Fetch PDF as blob
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${finalToken}`,
-          'Accept': 'application/pdf',
+          Authorization: `Bearer ${finalToken}`,
+          Accept: "application/pdf",
         },
-        credentials: 'include',
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       // Convert to blob and create object URL
       const blob = await response.blob();
-      if (blob.type === 'application/pdf') {
+      if (blob.type === "application/pdf") {
         const objectUrl = URL.createObjectURL(blob);
-        console.log('✅ PDF loaded successfully, setting URL:', objectUrl);
+        console.log("✅ PDF loaded successfully, setting URL:", objectUrl);
         setPreviewPdfUrl(objectUrl);
       } else {
-        console.error('❌ Unexpected response type for PDF preview:', blob.type);
+        console.error("❌ Unexpected response type for PDF preview:", blob.type);
         throw new Error(`Expected PDF but got ${blob.type}`);
       }
-      
     } catch (error) {
-      console.error('❌ Error previewing PDF:', error);
+      console.error("❌ Error previewing PDF:", error);
       // Close dialog on error
       setPreviewDialogOpen(false);
-      setPreviewPdfUrl('');
+      setPreviewPdfUrl("");
     }
   };
 
   const handleClosePreviewDialog = () => {
     // Clean up object URL to prevent memory leaks
-    if (previewPdfUrl && previewPdfUrl.startsWith('blob:')) {
+    if (previewPdfUrl && previewPdfUrl.startsWith("blob:")) {
       URL.revokeObjectURL(previewPdfUrl);
     }
     setPreviewDialogOpen(false);
-    setPreviewPdfUrl('');
+    setPreviewPdfUrl("");
   };
 
   const handleOpenInNewTab = () => {
     if (previewPdfUrl) {
-      window.open(previewPdfUrl, '_blank');
+      window.open(previewPdfUrl, "_blank");
     }
   };
 
-
-
   // ReasonDialog Component
 
-
   return (
-    <TNPCard sx={{ position: 'relative' }}>
-      {(localStatus === 'approved' || hasEvidence) && (
-        <Tooltip title={hasEvidence ? 'มีหลักฐานการชำระเงินแล้ว' : 'อนุมัติแล้ว'} placement="left">
+    <TNPCard sx={{ position: "relative" }}>
+      {(localStatus === "approved" || hasEvidence) && (
+        <Tooltip title={hasEvidence ? "มีหลักฐานการชำระเงินแล้ว" : "อนุมัติแล้ว"} placement="left">
           <Box
-            aria-label={hasEvidence ? 'มีหลักฐานการชำระเงินแล้ว' : 'ใบแจ้งหนี้อนุมัติแล้ว'}
+            aria-label={hasEvidence ? "มีหลักฐานการชำระเงินแล้ว" : "ใบแจ้งหนี้อนุมัติแล้ว"}
             sx={{
-              position: 'absolute',
+              position: "absolute",
               top: 6,
               right: 6,
               width: 12,
               height: 12,
-              borderRadius: '50%',
-              bgcolor: hasEvidence ? 'success.main' : 'warning.main',
-              border: '2px solid #fff',
-              boxShadow: 1
+              borderRadius: "50%",
+              bgcolor: hasEvidence ? "success.main" : "warning.main",
+              border: "2px solid #fff",
+              boxShadow: 1,
             }}
           />
         </Tooltip>
@@ -245,62 +306,67 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box flex={1}>
             <Tooltip title={cleanCompanyName} placement="top-start">
-              <Typography 
-                variant="h6" 
-                noWrap 
-                sx={{ 
-                  fontWeight: 700, 
-                  mb: 1.25, 
+              <Typography
+                variant="h6"
+                noWrap
+                sx={{
+                  fontWeight: 700,
+                  mb: 1.25,
                   lineHeight: 1.45,
-                  fontSize: '1.1rem'
+                  fontSize: "1.1rem",
                 }}
               >
                 {truncatedCompanyName}
               </Typography>
             </Tooltip>
-            
+
             {/* จัดกลุ่ม Chips ใหม่ - แยกเป็น 2 กลุ่ม */}
-            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.25}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              spacing={1.25}
+            >
               {/* กลุ่มซ้าย: เลขที่เอกสาร + สถานะ */}
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                 {(() => {
                   const displayNumber = getDisplayInvoiceNumber(invoice, depositMode);
-                  
+
                   return displayNumber ? (
-                    <TNPCountChip 
-                      icon={<DescriptionIcon sx={{ fontSize: '0.9rem' }} aria-hidden="true" />} 
-                      label={displayNumber} 
+                    <TNPCountChip
+                      icon={<DescriptionIcon sx={{ fontSize: "0.9rem" }} aria-hidden="true" />}
+                      label={displayNumber}
                       size="small"
                       sx={{ fontWeight: 600 }}
                       aria-label={`เลขที่เอกสาร ${displayNumber}`}
                     />
                   ) : null;
                 })()}
-                <TNPStatusChip 
-                  label={invoiceStatus.status} 
-                  size="small" 
+                <TNPStatusChip
+                  label={invoiceStatus.status}
+                  size="small"
                   statuscolor={invoiceStatus.color}
                   sx={{ fontWeight: 500 }}
                   aria-label={`สถานะ ${invoiceStatus.status}`}
                 />
-                <Chip 
-                  size="small" 
-                  color="primary" 
+                <Chip
+                  size="small"
+                  color="primary"
                   variant="outlined"
-                  label={typeLabels[invoice?.type] || invoice?.type || '-'} 
-                  sx={{ fontSize: '0.75rem' }}
+                  label={typeLabels[invoice?.type] || invoice?.type || "-"}
+                  sx={{ fontSize: "0.75rem" }}
                 />
               </Stack>
-              
+
               {/* กลุ่มขวา: เงื่อนไขพิเศษ */}
               <Stack direction="row" spacing={1} alignItems="center">
                 {depositInfo && (
-                  <Chip 
-                    size="small" 
-                    color="warning" 
+                  <Chip
+                    size="small"
+                    color="warning"
                     variant="outlined"
                     label={`มัดจำ: ${depositInfo}`}
-                    sx={{ fontSize: '0.75rem' }}
+                    sx={{ fontSize: "0.75rem" }}
                   />
                 )}
               </Stack>
@@ -320,18 +386,20 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
             {/* ยอดรวมหลัก - เน้นให้เด่น */}
             <Stack direction="row" spacing={1.5} alignItems="center">
               <RequestQuoteIcon fontSize="medium" color="primary" aria-hidden="true" />
-              <Typography sx={{ 
-                fontWeight: 700, 
-                fontSize: '1.1rem',
-                color: 'primary.main',
-                lineHeight: 1.45
-              }}>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
+                  color: "primary.main",
+                  lineHeight: 1.45,
+                }}
+              >
                 ยอดรวม: {formatTHB(financials?.total || 0)}
               </Typography>
             </Stack>
-            
+
             {/* Deposit Cards - Conditional Rendering Based on Mode */}
-            <DepositCard 
+            <DepositCard
               mode={depositMode}
               depositAmount={financials?.depositAmount || 0}
               paidAmount={financials?.paidAmount || 0}
@@ -342,30 +410,30 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               hasEvidenceForMode={hasEvidenceForMode}
               onModeChange={(val) => handleDepositModeChange(val, hasEvidence)}
             />
-            
+
             {/* ปุ่มแสดงเพิ่มเติม */}
-            <Button 
-              size="small" 
-              variant="text" 
+            <Button
+              size="small"
+              variant="text"
               onClick={() => setShowDetails(!showDetails)}
               startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              sx={{ 
-                alignSelf: 'flex-start', 
-                ml: 4.5, 
+              sx={{
+                alignSelf: "flex-start",
+                ml: 4.5,
                 mt: 0.5,
-                fontSize: '0.85rem',
-                fontWeight: 500
+                fontSize: "0.85rem",
+                fontWeight: 500,
               }}
               tabIndex={0}
-              aria-label={showDetails ? 'ซ่อนรายละเอียดการคำนวณ' : 'แสดงรายละเอียดการคำนวณ'}
+              aria-label={showDetails ? "ซ่อนรายละเอียดการคำนวณ" : "แสดงรายละเอียดการคำนวณ"}
             >
-              {showDetails ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียดการคำนวณ'}
+              {showDetails ? "ซ่อนรายละเอียด" : "แสดงรายละเอียดการคำนวณ"}
             </Button>
 
             {/* รายละเอียดการคำนวณ */}
             <Collapse in={showDetails}>
-              <FinancialSummaryCard 
-                financials={financials} 
+              <FinancialSummaryCard
+                financials={financials}
                 invoice={invoice}
                 showDetails={showDetails}
               />
@@ -380,12 +448,20 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               <PaymentIcon fontSize="small" color="action" aria-hidden="true" />
               <Stack spacing={0.5}>
                 {invoice?.payment_method && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                  >
                     วิธีชำระเงิน: {invoice.payment_method}
                   </Typography>
                 )}
                 {invoice?.payment_terms && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                  >
                     เงื่อนไขการชำระ: {invoice.payment_terms}
                   </Typography>
                 )}
@@ -396,25 +472,32 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
 
         {/* Dates - ปรับปรุงการแสดงผล */}
         <Box mb={2}>
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
             spacing={{ xs: 0.5, sm: 3 }}
-            sx={{ fontSize: '0.85rem' }}
+            sx={{ fontSize: "0.85rem" }}
           >
             <Stack direction="row" spacing={1} alignItems="center">
               <EventIcon fontSize="small" color="action" aria-hidden="true" />
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+              >
                 สร้างเมื่อ: {formatDate(invoice?.created_at)}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               <EventIcon fontSize="small" color="warning" aria-hidden="true" />
-              <Typography variant="caption" sx={{ 
-                color: invoiceStatus.status === 'เกินกำหนด' ? 'error.main' : 'warning.main',
-                fontWeight: 500,
-                fontSize: '0.8rem',
-                lineHeight: 1.45
-              }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: invoiceStatus.status === "เกินกำหนด" ? "error.main" : "warning.main",
+                  fontWeight: 500,
+                  fontSize: "0.8rem",
+                  lineHeight: 1.45,
+                }}
+              >
                 วันครบกำหนด: {formatDate(invoice?.due_date)}
               </Typography>
             </Stack>
@@ -422,26 +505,46 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         </Box>
 
         {/* Additional Info - ย่อให้เล็กลง */}
-        {(quotationNumber || invoice?.customer_address || invoice?.notes || (invoice?.document_header_type && invoice.document_header_type !== 'ต้นฉบับ')) && (
+        {(quotationNumber ||
+          invoice?.customer_address ||
+          invoice?.notes ||
+          (invoice?.document_header_type && invoice.document_header_type !== "ต้นฉบับ")) && (
           <Box mb={2.5}>
             <Stack spacing={0.5}>
               {quotationNumber && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                >
                   อ้างอิงใบเสนอราคา: {quotationNumber}
                 </Typography>
               )}
               {invoice?.customer_address && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
-                  ที่อยู่ใบกำกับ: {invoice.customer_address}{invoice?.customer_zip_code ? ` ${invoice.customer_zip_code}` : ''}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                >
+                  ที่อยู่ใบกำกับ: {invoice.customer_address}
+                  {invoice?.customer_zip_code ? ` ${invoice.customer_zip_code}` : ""}
                 </Typography>
               )}
               {invoice?.notes && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                >
                   หมายเหตุ: {invoice.notes}
                 </Typography>
               )}
-              {invoice?.document_header_type && invoice.document_header_type !== 'ต้นฉบับ' && (
-                <Typography variant="caption" color="primary.main" sx={{ fontSize: '0.8rem', lineHeight: 1.45 }}>
+              {invoice?.document_header_type && invoice.document_header_type !== "ต้นฉบับ" && (
+                <Typography
+                  variant="caption"
+                  color="primary.main"
+                  sx={{ fontSize: "0.8rem", lineHeight: 1.45 }}
+                >
                   ประเภทหัวกระดาษ: {invoice.document_header_type}
                 </Typography>
               )}
@@ -450,22 +553,28 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         )}
 
         {/* Company Selector - แสดงเฉพาะก่อนอนุมัติและผู้ใช้มีสิทธิ์ */}
-        {activeSideStatus === 'draft' && canUserApprove && invoice.status !== 'approved' && (
+        {activeSideStatus === "draft" && canUserApprove && invoice.status !== "approved" && (
           <Box mb={2.5}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
               เลือกบริษัทที่ออกเอกสาร
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <FormControl size="small" sx={{ minWidth: 200 }} disabled={loadingCompanies || updatingCompany}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <FormControl
+                size="small"
+                sx={{ minWidth: 200 }}
+                disabled={loadingCompanies || updatingCompany}
+              >
                 <InputLabel id={`company-select-label-${invoice.id}`}>บริษัท</InputLabel>
                 <Select
                   labelId={`company-select-label-${invoice.id}`}
-                  value={companies.find(c => c.id === invoice.company_id) ? invoice.company_id : ''}
+                  value={
+                    companies.find((c) => c.id === invoice.company_id) ? invoice.company_id : ""
+                  }
                   label="บริษัท"
                   onChange={(e) => handleCompanyChange(e.target.value)}
                   renderValue={(val) => {
-                    const found = companies.find(c => c.id === val);
-                    return found ? (found.short_code || found.name) : 'ไม่ระบุ';
+                    const found = companies.find((c) => c.id === val);
+                    return found ? found.short_code || found.name : "ไม่ระบุ";
                   }}
                 >
                   {companies.map((c) => (
@@ -482,39 +591,42 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
                   ))}
                 </Select>
               </FormControl>
-              
+
               {/* แสดงบริษัทปัจจุบัน */}
               {currentCompany && (
                 <Tooltip title={`บริษัทปัจจุบัน: ${currentCompany.name}`}>
-                  <Chip 
-                    size="small" 
-                    color="primary" 
+                  <Chip
+                    size="small"
+                    color="primary"
                     variant="outlined"
-                    label={currentCompany.short_code || currentCompany.name} 
+                    label={currentCompany.short_code || currentCompany.name}
                   />
                 </Tooltip>
               )}
-              
+
               {/* Loading indicator */}
               {(loadingCompanies || updatingCompany) && <CircularProgress size={18} />}
             </Box>
-            
-            <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5, display: 'block' }}>
-              หมายเหตุ: เลขที่เอกสารจะถูกสร้างหลังจากกดอนุมัติ และสามารถเปลี่ยนบริษัทได้เฉพาะก่อนอนุมัติเท่านั้น
+
+            <Typography
+              variant="caption"
+              sx={{ fontSize: "0.75rem", color: "text.secondary", mt: 0.5, display: "block" }}
+            >
+              หมายเหตุ: เลขที่เอกสารจะถูกสร้างหลังจากกดอนุมัติ
+              และสามารถเปลี่ยนบริษัทได้เฉพาะก่อนอนุมัติเท่านั้น
             </Typography>
           </Box>
         )}
 
         {/* Evidence Upload Section - Mode-Specific */}
-        { activeSideStatus === 'approved' && (
+        {activeSideStatus === "approved" && (
           <Box mb={2.5}>
             <ImageUploadGrid
               images={getEvidenceForMode(depositMode)}
               onUpload={(files) => handleUploadEvidence(files, depositMode)}
-              title={`หลักฐานการชำระเงิน (${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'})`}
+              title={`หลักฐานการชำระเงิน (${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})`}
               helperText={
-                uploadingEvidence ? 'กำลังอัปโหลด...' : 
-                'อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)'
+                uploadingEvidence ? "กำลังอัปโหลด..." : "อัปโหลดสลิปหรือหลักฐาน (รองรับหลายไฟล์)"
               }
               disabled={uploadingEvidence}
               previewMode="dialog"
@@ -531,46 +643,48 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               variant="contained"
               color="success"
               onClick={handleApprove}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                fontSize: '0.8rem', 
-                fontWeight: 500, 
+              sx={{
+                px: 2,
+                py: 1,
+                fontSize: "0.8rem",
+                fontWeight: 500,
                 borderRadius: 2,
-                boxShadow: 'none',
+                boxShadow: "none",
                 minHeight: 36,
-                '&:hover': {
-                  boxShadow: 1
-                }
+                "&:hover": {
+                  boxShadow: 1,
+                },
               }}
-              aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
+              aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
             >
-              อนุมัติ ({depositMode === 'before' ? 'ก่อน' : 'หลัง'})
+              อนุมัติ ({depositMode === "before" ? "ก่อน" : "หลัง"})
             </Button>
           )}
-          
+
           {/* Revert Button - Show when approved and user has permission */}
-          {canUserApprove() && activeSideStatus === 'approved' && (
+          {canUserApprove() && activeSideStatus === "approved" && (
             <Button
               size="medium"
               variant="outlined"
               color="warning"
               onClick={() => statusReversalHook.handleRevertToDraft(depositMode)}
               disabled={statusReversalHook.isReverting}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                fontSize: '0.8rem', 
-                fontWeight: 500, 
+              sx={{
+                px: 2,
+                py: 1,
+                fontSize: "0.8rem",
+                fontWeight: 500,
                 borderRadius: 2,
                 minHeight: 36,
-                '&:hover': {
-                  bgcolor: 'warning.50'
-                }
+                "&:hover": {
+                  bgcolor: "warning.50",
+                },
               }}
-              aria-label={`ย้อนสถานะใบแจ้งหนี้ฝั่ง ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'} กลับเป็น draft`}
+              aria-label={`ย้อนสถานะใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"} กลับเป็น draft`}
             >
-              {statusReversalHook.isReverting ? 'กำลังย้อนสถานะ...' : `ย้อนเป็น Draft (${depositMode === 'before' ? 'ก่อน' : 'หลัง'})`}
+              {statusReversalHook.isReverting
+                ? "กำลังย้อนสถานะ..."
+                : `ย้อนเป็น Draft (${depositMode === "before" ? "ก่อน" : "หลัง"})`}
             </Button>
           )}
           {/* PDF Actions - Mode-specific */}
@@ -579,23 +693,23 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               size="medium"
               variant="outlined"
               onClick={() => handlePreviewPDFDialog(depositMode)}
-              startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
-              sx={{ 
-                px: 2, 
-                py: 1, 
-                fontSize: '0.8rem', 
-                fontWeight: 500, 
+              startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
+              sx={{
+                px: 2,
+                py: 1,
+                fontSize: "0.8rem",
+                fontWeight: 500,
                 borderRadius: 2,
                 minHeight: 36,
-                borderColor: 'grey.300',
-                color: 'text.primary',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: 'primary.50'
-                }
+                borderColor: "grey.300",
+                color: "text.primary",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  bgcolor: "primary.50",
+                },
               }}
               tabIndex={0}
-              aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
+              aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
             >
               ดูตัวอย่าง PDF
             </Button>
@@ -606,23 +720,23 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
                 size="medium"
                 variant="outlined"
                 onClick={handleDownloadClick}
-                startIcon={<DescriptionIcon sx={{ fontSize: '1rem' }} aria-hidden="true" />}
-                sx={{ 
-                  px: 2, 
-                  py: 1, 
-                  fontSize: '0.8rem', 
-                  fontWeight: 500, 
+                startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
+                sx={{
+                  px: 2,
+                  py: 1,
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
                   borderRadius: 2,
                   minHeight: 36,
-                  borderColor: 'grey.300',
-                  color: 'text.primary',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    bgcolor: 'primary.50'
-                  }
+                  borderColor: "grey.300",
+                  color: "text.primary",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    bgcolor: "primary.50",
+                  },
                 }}
                 tabIndex={0}
-                aria-label={`ดาวน์โหลดไฟล์ PDF โหมด ${depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'}`}
+                aria-label={`ดาวน์โหลดไฟล์ PDF โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
               >
                 ดาวน์โหลด PDF
               </Button>
@@ -630,44 +744,52 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
                 anchorEl={downloadAnchorEl}
                 open={Boolean(downloadAnchorEl)}
                 onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
               >
-                <Typography sx={{ px: 2, pt: 1, fontSize: '.8rem', fontWeight: 600 }}>
-                  เลือกประเภทหัวกระดาษ ({depositMode === 'before' ? 'มัดจำก่อน' : 'มัดจำหลัง'})
+                <Typography sx={{ px: 2, pt: 1, fontSize: ".8rem", fontWeight: 600 }}>
+                  เลือกประเภทหัวกระดาษ ({depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})
                 </Typography>
                 <Divider />
-                {extendedHeaderOptions.map(opt => (
+                {extendedHeaderOptions.map((opt) => (
                   <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
                     <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
-                    <ListItemText primaryTypographyProps={{ fontSize: '.8rem' }} primary={opt} />
+                    <ListItemText primaryTypographyProps={{ fontSize: ".8rem" }} primary={opt} />
                   </MenuItem>
                 ))}
                 <Divider />
-                <MenuItem disabled={selectedHeaders.length === 0} onClick={() => handleConfirmDownload(depositMode)} sx={{ justifyContent: 'center' }}>
-                  <Typography color={selectedHeaders.length ? 'primary.main' : 'text.disabled'} fontSize={'.8rem'} fontWeight={600}>
-                    ดาวน์โหลด {selectedHeaders.length > 1 ? '(.zip)' : '(PDF)'}
+                <MenuItem
+                  disabled={selectedHeaders.length === 0}
+                  onClick={() => handleConfirmDownload(depositMode)}
+                  sx={{ justifyContent: "center" }}
+                >
+                  <Typography
+                    color={selectedHeaders.length ? "primary.main" : "text.disabled"}
+                    fontSize={".8rem"}
+                    fontWeight={600}
+                  >
+                    ดาวน์โหลด {selectedHeaders.length > 1 ? "(.zip)" : "(PDF)"}
                   </Typography>
                 </MenuItem>
               </Menu>
             </>
           )}
           {onView && (
-            <Button 
-              size="medium" 
-              variant="contained" 
-              onClick={onView} 
+            <Button
+              size="medium"
+              variant="contained"
+              onClick={onView}
               color="primary"
-              sx={{ 
+              sx={{
                 px: 2.5,
                 py: 1,
-                fontSize: '0.85rem',
+                fontSize: "0.85rem",
                 fontWeight: 500,
                 borderRadius: 2,
-                boxShadow: 'none',
+                boxShadow: "none",
                 minHeight: 36,
-                '&:hover': {
-                  boxShadow: 2
-                }
+                "&:hover": {
+                  boxShadow: 2,
+                },
               }}
               tabIndex={0}
               aria-label="ดูรายละเอียดใบแจ้งหนี้"
@@ -687,16 +809,16 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
         fullWidth
         PaperProps={{
           sx: {
-            height: '90vh',
-            maxHeight: '90vh'
-          }
+            height: "90vh",
+            maxHeight: "90vh",
+          },
         }}
       >
         <DialogTitle
           sx={{
-            bgcolor: 'primary.main',
-            color: 'white',
-            py: 2
+            bgcolor: "primary.main",
+            color: "white",
+            py: 2,
           }}
         >
           ดูตัวอย่าง PDF ใบแจ้งหนี้
@@ -705,7 +827,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
           dividers
           sx={{
             p: 0,
-            height: '80vh'
+            height: "80vh",
           }}
         >
           {previewPdfUrl ? (
@@ -713,21 +835,21 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
               title="invoice-pdf"
               src={previewPdfUrl}
               style={{
-                width: '100%',
-                height: '80vh',
-                border: '0px'
+                width: "100%",
+                height: "80vh",
+                border: "0px",
               }}
             />
           ) : (
             <Box
               sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '80vh',
-                color: 'text.secondary',
-                gap: 2
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "80vh",
+                color: "text.secondary",
+                gap: 2,
               }}
             >
               <CircularProgress size={40} />
@@ -753,9 +875,9 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onApprove, 
       </Dialog>
 
       {/* Status Reversal Dialog */}
-      <StatusReversalDialog 
-        open={statusReversalHook.isDialogOpen} 
-        onClose={statusReversalHook.handleDialogClose} 
+      <StatusReversalDialog
+        open={statusReversalHook.isDialogOpen}
+        onClose={statusReversalHook.handleDialogClose}
         onSubmit={statusReversalHook.handleReasonSubmit}
         pendingRevertSide={statusReversalHook.pendingRevertSide}
         isLoading={statusReversalHook.isReverting}

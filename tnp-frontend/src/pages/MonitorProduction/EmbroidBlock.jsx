@@ -18,11 +18,9 @@ function ScreenBlock({ data }) {
   const handleCloseModal = () => {
     setShowModal(false);
     setRadioEmbroid(Number(data.embroid_factory));
-  }
+  };
 
-  const saveDate = data.embroid_date
-    ? moment(data.embroid_date).format("DD/MM/yy")
-    : null;
+  const saveDate = data.embroid_date ? moment(data.embroid_date).format("DD/MM/yy") : null;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -72,12 +70,8 @@ function ScreenBlock({ data }) {
           <label className="title">บล็อคปัก</label>
         </div>
         <div className="content-date w-100 text-end rounded-end">
-          <label className="pe-3">
-            {saveDate === "Invalid date" ? "" : saveDate}
-          </label>
-          {user.role !== "graphic" ||
-          data.status === 2 ||
-          data.embroid === null ? null : (
+          <label className="pe-3">{saveDate === "Invalid date" ? "" : saveDate}</label>
+          {user.role !== "graphic" || data.status === 2 || data.embroid === null ? null : (
             <>
               <input
                 type="checkbox"
@@ -110,9 +104,10 @@ function ScreenBlock({ data }) {
           <Modal.Body className="px-4 py-2">
             {isLoading ? (
               <div className="w-100 text-center">
-               <Spinner animation="border" variant="danger" role="status" />
-             </div>
-            ) : myData &&
+                <Spinner animation="border" variant="danger" role="status" />
+              </div>
+            ) : (
+              myData &&
               myData.map((radio, index) => (
                 <Col
                   className={`my-2 fs-4 ${
@@ -130,14 +125,11 @@ function ScreenBlock({ data }) {
                     onChange={(e) => setRadioEmbroid(e.target.value)}
                   />
                 </Col>
-              ))}
+              ))
+            )}
           </Modal.Body>
           <Modal.Footer className="text-center py-3">
-            <Button
-              type="submit"
-              variant="danger"
-              className="col-12 col-md-5 mx-md-2"
-            >
+            <Button type="submit" variant="danger" className="col-12 col-md-5 mx-md-2">
               save
             </Button>
             <Button

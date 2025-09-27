@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Typography,
-  Tooltip,
-  Chip,
-  useTheme,
-} from "@mui/material";
+import { Box, Typography, Tooltip, Chip, useTheme } from "@mui/material";
 import { GridActionsCellItem } from "@mui/x-data-grid";
 import { MdOutlineManageSearch } from "react-icons/md";
 import { CiEdit } from "react-icons/ci";
@@ -19,9 +13,9 @@ import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
 // Helper function to check if recall date is expired
 const isRecallExpired = (dateString) => {
   if (!dateString) return false;
-  const recallDate = moment(dateString).startOf('day');
-  const today = moment().startOf('day');
-  return recallDate.diff(today, 'days') <= 0;
+  const recallDate = moment(dateString).startOf("day");
+  const today = moment().startOf("day");
+  return recallDate.diff(today, "days") <= 0;
 };
 
 export const useColumnDefinitions = ({
@@ -66,8 +60,8 @@ export const useColumnDefinitions = ({
                 params.value === 1
                   ? theme.palette.info.light
                   : params.value === 2
-                  ? theme.palette.success.light
-                  : theme.palette.warning.light,
+                    ? theme.palette.success.light
+                    : theme.palette.warning.light,
               color: (theme) => theme.palette.common.white,
               fontWeight: "bold",
             }}
@@ -283,10 +277,7 @@ export const useColumnDefinitions = ({
         const cellParams2 = {
           id: param2.api.getCellParams(param2.id, "cus_bt_id"),
         };
-        return (
-          param1.api.sortRowsLookup[cellParams.id] -
-          param1.api.sortRowsLookup[cellParams2.id]
-        );
+        return param1.api.sortRowsLookup[cellParams.id] - param1.api.sortRowsLookup[cellParams2.id];
       },
       renderCell: (params) => (
         <Typography
@@ -310,7 +301,7 @@ export const useColumnDefinitions = ({
       sortable: true,
       renderCell: (params) => {
         return (
-          <CustomerRecallTimer 
+          <CustomerRecallTimer
             cd_last_datetime={params.value}
             showIcon={true}
             size="body2"
@@ -321,7 +312,7 @@ export const useColumnDefinitions = ({
       cellClassName: (params) => {
         const expired = isRecallExpired(params.value);
         const daysLeft = formatCustomRelativeTime(params.value);
-        
+
         if (expired) {
           return "expired-days";
         } else if (daysLeft <= 7) {
@@ -340,9 +331,7 @@ export const useColumnDefinitions = ({
         try {
           if (!params.value) return "—";
 
-          return moment(params.value).isValid()
-            ? moment(params.value).format("D MMMM YYYY")
-            : "—";
+          return moment(params.value).isValid() ? moment(params.value).format("D MMMM YYYY") : "—";
         } catch (error) {
           console.error("Error formatting date:", error);
           return "—";
@@ -378,9 +367,7 @@ export const useColumnDefinitions = ({
         const province = params.row.province_name;
         const district = params.row.district_name;
 
-        const fullAddress = [address, district, province]
-          .filter(Boolean)
-          .join(", ");
+        const fullAddress = [address, district, province].filter(Boolean).join(", ");
 
         return (
           <Typography
@@ -408,11 +395,7 @@ export const useColumnDefinitions = ({
       getActions: (params) => [
         <GridActionsCellItem
           key="recall"
-          icon={
-            <PiClockClockwise
-              style={{ fontSize: 22, color: theme.palette.info.main }}
-            />
-          }
+          icon={<PiClockClockwise style={{ fontSize: 22, color: theme.palette.info.main }} />}
           label="Recall"
           onClick={() => handleRecall(params.row)}
           showInMenu={false}
@@ -440,9 +423,7 @@ export const useColumnDefinitions = ({
           <GridActionsCellItem
             key="grade-up"
             icon={
-              <PiArrowFatLinesUpFill
-                style={{ fontSize: 22, color: theme.palette.success.main }}
-              />
+              <PiArrowFatLinesUpFill style={{ fontSize: 22, color: theme.palette.success.main }} />
             }
             label="Change Grade Up"
             onClick={() => handleChangeGroup(true, params.row)}
@@ -498,9 +479,7 @@ export const useColumnDefinitions = ({
         <GridActionsCellItem
           key="view"
           icon={
-            <MdOutlineManageSearch
-              style={{ fontSize: 26, color: theme.palette.primary.main }}
-            />
+            <MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />
           }
           label="View"
           onClick={() => handleOpenDialog("view", params.id)}
@@ -519,11 +498,7 @@ export const useColumnDefinitions = ({
         />,
         <GridActionsCellItem
           key="edit"
-          icon={
-            <CiEdit
-              style={{ fontSize: 26, color: theme.palette.secondary.main }}
-            />
-          }
+          icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
           label="Edit"
           onClick={() => handleOpenDialog("edit", params.id)}
           showInMenu={false}
@@ -541,11 +516,7 @@ export const useColumnDefinitions = ({
         />,
         <GridActionsCellItem
           key="delete"
-          icon={
-            <BsTrash3
-              style={{ fontSize: 22, color: theme.palette.error.main }}
-            />
-          }
+          icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
           label="Delete"
           onClick={() => handleDelete(params.row)}
           showInMenu={false}
@@ -564,4 +535,4 @@ export const useColumnDefinitions = ({
       ],
     },
   ];
-}; 
+};

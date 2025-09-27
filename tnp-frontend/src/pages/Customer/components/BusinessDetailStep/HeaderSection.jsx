@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, Container, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { MdAssignment } from "react-icons/md";
 
 const HeaderSection = ({ mode, PRIMARY_RED, SECONDARY_RED }) => {
@@ -27,18 +21,10 @@ const HeaderSection = ({ mode, PRIMARY_RED, SECONDARY_RED }) => {
         <Box display="flex" alignItems="center" gap={2} mb={1}>
           <MdAssignment size={32} />
           <Box>
-            <Typography
-              variant={isMobile ? "h6" : "h5"}
-              fontWeight={700}
-              fontFamily="Kanit"
-            >
+            <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700} fontFamily="Kanit">
               ข้อมูลที่อยู่
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ opacity: 0.9 }}
-              fontFamily="Kanit"
-            >
+            <Typography variant="body2" sx={{ opacity: 0.9 }} fontFamily="Kanit">
               {mode === "view"
                 ? "ดูข้อมูลที่อยู่"
                 : "กรอกข้อมูลที่อยู่และใช้ GPS ช่วยเติมอัตโนมัติ"}

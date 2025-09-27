@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Box, Button, useTheme, useMediaQuery, Pagination } from "@mui/material";
 import { RiAddLargeFill } from "react-icons/ri";
@@ -47,19 +41,13 @@ const isRecallExpired = (dateString) => {
 const DataGridWithRowIdFix = (props) => {
   const getRowId = (row) => {
     if (!row) return `row-${Math.random().toString(36).substring(2, 15)}`;
-    return (
-      row.cus_id ||
-      row.id ||
-      `row-${Math.random().toString(36).substring(2, 15)}`
-    );
+    return row.cus_id || row.id || `row-${Math.random().toString(36).substring(2, 15)}`;
   };
 
   // สร้าง key ที่เปลี่ยนไปตาม rows เพื่อ force re-render DataGrid
   const dataGridKey = React.useMemo(() => {
     if (!props.rows || !Array.isArray(props.rows)) return "datagrid-empty";
-    const rowIds = props.rows
-      .map((row) => row?.cus_id || row?.id || "no-id")
-      .join(",");
+    const rowIds = props.rows.map((row) => row?.cus_id || row?.id || "no-id").join(",");
     return `datagrid-${rowIds.substring(0, 50)}-${props.rows.length}`;
   }, [props.rows]);
 
@@ -77,9 +65,7 @@ function CustomerList() {
   const itemList = useSelector((state) => state.customer.itemList);
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const keyword = useSelector((state) => state.global.keyword);
-  const paginationModel = useSelector(
-    (state) => state.customer.paginationModel
-  );
+  const paginationModel = useSelector((state) => state.customer.paginationModel);
   const filters = useSelector((state) => state.customer.filters);
   const isLoading = useSelector((state) => state.customer.isLoading);
 
@@ -128,37 +114,37 @@ function CustomerList() {
     try {
       const savedVisibility = localStorage.getItem("customerTableColumnVisibility");
       const savedOrder = localStorage.getItem("customerTableColumnOrder");
-      
+
       if (savedVisibility) {
         const parsed = JSON.parse(savedVisibility);
         // ตรวจสอบว่า column ใหม่ที่จำเป็นมีอยู่หรือไม่
-        const requiredColumns = ['cus_channel', 'cd_note', 'business_type'];
-        const hasAllRequired = requiredColumns.every(col => col in parsed.model);
-        
+        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+        const hasAllRequired = requiredColumns.every((col) => col in parsed.model);
+
         if (hasAllRequired) {
           setColumnVisibilityModel(parsed.model);
         } else {
           // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
-          console.log('Column preferences outdated, using defaults');
+          console.log("Column preferences outdated, using defaults");
           localStorage.removeItem("customerTableColumnVisibility");
         }
       }
-      
+
       if (savedOrder) {
         const parsed = JSON.parse(savedOrder);
-        const requiredColumns = ['cus_channel', 'cd_note', 'business_type'];
-        const hasAllRequired = requiredColumns.every(col => parsed.order.includes(col));
-        
+        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+        const hasAllRequired = requiredColumns.every((col) => parsed.order.includes(col));
+
         if (hasAllRequired) {
           setColumnOrderModel(parsed.order);
         } else {
           // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
-          console.log('Column order outdated, using defaults');
+          console.log("Column order outdated, using defaults");
           localStorage.removeItem("customerTableColumnOrder");
         }
       }
     } catch (error) {
-      console.warn('Failed to load column preferences from localStorage', error);
+      console.warn("Failed to load column preferences from localStorage", error);
       // ลบ localStorage ที่เสียหาย
       localStorage.removeItem("customerTableColumnVisibility");
       localStorage.removeItem("customerTableColumnOrder");
@@ -166,16 +152,15 @@ function CustomerList() {
   }, []); // Empty dependency array - run once on mount
 
   // API Query
-  const { data, error, isFetching, isSuccess, refetch } =
-    useGetAllCustomerQuery({
-      group: groupSelected,
-      page: paginationModel.page,
-      per_page: paginationModel.pageSize,
-      user_id: user.user_id,
-      search: keyword,
-      filters: filters,
-      sortModel: serverSortModel,
-    });
+  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery({
+    group: groupSelected,
+    page: paginationModel.page,
+    per_page: paginationModel.pageSize,
+    user_id: user.user_id,
+    search: keyword,
+    filters: filters,
+    sortModel: serverSortModel,
+  });
 
   // Scroll to top function
   const scrollToTop = useCallback(() => {
@@ -191,8 +176,7 @@ function CustomerList() {
               inline: "nearest",
             });
 
-            const containerRect =
-              tableContainerRef.current.getBoundingClientRect();
+            const containerRect = tableContainerRef.current.getBoundingClientRect();
             if (containerRect.top < 0) {
               window.scrollBy({
                 top: containerRect.top - 20,
@@ -200,10 +184,7 @@ function CustomerList() {
               });
             }
           } catch (innerError) {
-            console.warn(
-              "Smooth scrolling not supported in timeout, using fallback",
-              innerError
-            );
+            console.warn("Smooth scrolling not supported in timeout, using fallback", innerError);
             if (tableContainerRef.current) {
               tableContainerRef.current.scrollIntoView(true);
             } else {
@@ -323,10 +304,7 @@ function CustomerList() {
         username: user?.username || "unknown",
       };
 
-      localStorage.setItem(
-        "customerTableColumnVisibility",
-        JSON.stringify(columnPreferences)
-      );
+      localStorage.setItem("customerTableColumnVisibility", JSON.stringify(columnPreferences));
     } catch (error) {
       console.warn("Failed to save column visibility to localStorage", error);
     }
@@ -343,10 +321,7 @@ function CustomerList() {
         username: user?.username || "unknown",
       };
 
-      localStorage.setItem(
-        "customerTableColumnOrder",
-        JSON.stringify(columnOrderPreferences)
-      );
+      localStorage.setItem("customerTableColumnOrder", JSON.stringify(columnOrderPreferences));
     } catch (error) {
       console.warn("Failed to save column order to localStorage", error);
     }
@@ -358,7 +333,7 @@ function CustomerList() {
     if (totalItems < 30) {
       return null;
     }
-    
+
     return (
       <CustomPagination
         paginationModel={paginationModel}
@@ -376,9 +351,7 @@ function CustomerList() {
   // Load saved column settings
   useEffect(() => {
     try {
-      const savedVisibilityPrefs = localStorage.getItem(
-        "customerTableColumnVisibility"
-      );
+      const savedVisibilityPrefs = localStorage.getItem("customerTableColumnVisibility");
       if (savedVisibilityPrefs) {
         const savedPrefs = JSON.parse(savedVisibilityPrefs);
         const savedModel = savedPrefs.model || savedPrefs;
@@ -401,9 +374,7 @@ function CustomerList() {
   const isExtraSmall = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
-    const hasSavedPreferences = localStorage.getItem(
-      "customerTableColumnVisibility"
-    );
+    const hasSavedPreferences = localStorage.getItem("customerTableColumnVisibility");
 
     if (!hasSavedPreferences) {
       const responsiveVisibility = {
@@ -458,15 +429,7 @@ function CustomerList() {
         }
       }
     }
-  }, [
-    data,
-    dispatch,
-    filters,
-    itemList,
-    paginationModel.page,
-    scrollToTop,
-    isSuccess,
-  ]);
+  }, [data, dispatch, filters, itemList, paginationModel.page, scrollToTop, isSuccess]);
 
   // Reset เมื่อเปลี่ยนกลุ่มหรือกรองข้อมูล เพื่อป้องกัน DataGrid error
   useEffect(() => {
@@ -560,15 +523,17 @@ function CustomerList() {
               />
               {/* Mobile Pagination */}
               {totalItems > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, px: 2 }}>
-                  <Pagination 
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2, px: 2 }}>
+                  <Pagination
                     count={Math.ceil(totalItems / paginationModel.pageSize)}
                     page={paginationModel.page + 1}
                     onChange={(event, page) => {
-                      dispatch(setPaginationModel({ 
-                        ...paginationModel, 
-                        page: page - 1 
-                      }));
+                      dispatch(
+                        setPaginationModel({
+                          ...paginationModel,
+                          page: page - 1,
+                        })
+                      );
                       // Scroll to top on page change
                       scrollToTop();
                     }}
@@ -577,10 +542,10 @@ function CustomerList() {
                     showFirstButton
                     showLastButton
                     sx={{
-                      '& .MuiPaginationItem-root': {
-                        fontSize: '0.9rem',
-                        margin: '0 2px',
-                      }
+                      "& .MuiPaginationItem-root": {
+                        fontSize: "0.9rem",
+                        margin: "0 2px",
+                      },
                     }}
                   />
                 </Box>
@@ -620,9 +585,7 @@ function CustomerList() {
                   pagination: { paginationModel },
                   sorting: { sortModel: serverSortModel },
                 }}
-                onPaginationModelChange={(model) =>
-                  dispatch(setPaginationModel(model))
-                }
+                onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
                 onSortModelChange={handleSortModelChange}
                 onColumnVisibilityModelChange={handleColumnVisibilityChange}
                 onColumnOrderChange={handleColumnOrderChange}
@@ -645,9 +608,7 @@ function CustomerList() {
                   }
 
                   const expired = isRecallExpired(params.row.cd_last_datetime);
-                  const daysLeft = formatCustomRelativeTime(
-                    params.row.cd_last_datetime
-                  );
+                  const daysLeft = formatCustomRelativeTime(params.row.cd_last_datetime);
 
                   if (expired) {
                     classes.push("expired-row");

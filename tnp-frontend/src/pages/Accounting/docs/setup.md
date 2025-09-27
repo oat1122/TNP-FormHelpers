@@ -1,4 +1,5 @@
 # 🔄 Flow การทำงานระบบบัญชี แบบ FlowAccount
+
 ## คู่มือสำหรับ AI Developer - Simple & Clear Workflow
 
 ---
@@ -21,12 +22,14 @@
 ## 🎯 ภาพรวม Flow หลัก {#overview}
 
 ### สรุป Flow ระบบ (4 ขั้นตอนหลัก)
+
 ```
 ระบบ Pricing → ใบเสนอราคา → ใบแจ้งหนี้ → ใบเสร็จ/ใบกำกับภาษี → ใบส่งของ
    (ดึงงาน)      (สร้างและอนุมัติ)   (เรียกเก็บเงิน)     (รับชำระ)        (ส่งสินค้า)
 ```
 
 ### 🎨 แนวคิดหลัก FlowAccount
+
 - **One-Click Conversion** - แปลงเอกสารคลิกเดียว
 - **Auto Data Transfer** - ดึงข้อมูลอัตโนมัติไม่ต้องพิมพ์ซ้ำ
 - **Status Tracking** - ติดตามสถานะได้ทุกขั้นตอน
@@ -38,6 +41,7 @@
 ## 👥 บทบาทการทำงาน 2 Role {#roles}
 
 ### 🔵 Sales (ฝ่ายขาย)
+
 ```
 หน้าที่หลัก:
 ✅ สร้างใบเสนอราคาจากงาน Pricing
@@ -55,6 +59,7 @@
 ```
 
 ### 🟢 Account (ฝ่ายบัญชี)
+
 ```
 หน้าที่หลัก:
 ✅ อนุมัติ/ปฏิเสธเอกสารทุกประเภท
@@ -77,12 +82,14 @@
 ## 🚀 Step 0: นำเข้างานจากระบบ Pricing {#step-0}
 
 ### AI Command
+
 ```bash
-สร้างหน้าดึงงานจากระบบ Pricing ที่แสดงงานที่สถานะ "Complete" 
+สร้างหน้าดึงงานจากระบบ Pricing ที่แสดงงานที่สถานะ "Complete"
 และให้ Sales สามารถเลือกงานเพื่อสร้างใบเสนอราคาได้
 ```
 
 ### UI Design
+
 ```
 Pricing System Integration:
 ┌─────────────────────────────────────────────────────────────┐
@@ -105,6 +112,7 @@ Pricing System Integration:
 ```
 
 ### Flow Logic
+
 ```
 1. ระบบ Pricing ส่งสัญญาณ "Complete"
 2. แสดงงานในหน้า "งานใหม่" ของ Sales
@@ -114,11 +122,12 @@ Pricing System Integration:
 ```
 
 ### Technical Implementation
+
 ```javascript
 // API Integration
 const usePricingJobs = () => {
   return useQuery({
-    queryKey: ['pricing-jobs'],
+    queryKey: ["pricing-jobs"],
     queryFn: () => pricingApi.getCompletedJobs(),
     refetchInterval: 30000, // Check ทุก 30 วินาที
   });
@@ -132,7 +141,7 @@ const createQuotationFromPricing = async (pricingJobId) => {
     customer_id: pricingData.customer_id,
     items: pricingData.items,
     estimated_total: pricingData.total_cost,
-    status: 'draft'
+    status: "draft",
   };
   return quotationApi.create(quotationData);
 };
@@ -143,10 +152,11 @@ const createQuotationFromPricing = async (pricingJobId) => {
 ## 📄 Step 1: ใบเสนอราคา (Quotation Flow) {#step-1}
 
 ### AI Command
+
 ```bash
 สร้าง Quotation Flow ที่มี 3 ขั้นตอน:
 1. Sales สร้างและแก้ไข
-2. Account ตรวจสอบและอนุมัติ  
+2. Account ตรวจสอบและอนุมัติ
 3. Sales ส่งให้ลูกค้าและอัปโหลดหลักฐาน
 พร้อม role-based permissions และ status tracking
 ```
@@ -242,6 +252,7 @@ Send Document Interface:
 ```
 
 ### Status Flow Diagram
+
 ```
 Quotation Status Flow:
 
@@ -256,39 +267,45 @@ pending_review → rejected → draft (edit again)
 ```
 
 ### Role-Based Actions
+
 ```javascript
 const QUOTATION_STATUSES = {
-  DRAFT: 'draft',                    // ร่าง (Sales สร้าง)
-  PENDING_REVIEW: 'pending_review',  // รอตรวจสอบ (ส่งให้ Account)
-  APPROVED: 'approved',              // อนุมัติแล้ว (Account อนุมัติ)
-  REJECTED: 'rejected',              // ปฏิเสธ (Account ปฏิเสธ)
-  SENT: 'sent',                      // ส่งลูกค้าแล้ว (Sales ส่ง)
-  COMPLETED: 'completed'             // สำเร็จ (ลูกค้าตอบรับ)
+  DRAFT: "draft", // ร่าง (Sales สร้าง)
+  PENDING_REVIEW: "pending_review", // รอตรวจสอบ (ส่งให้ Account)
+  APPROVED: "approved", // อนุมัติแล้ว (Account อนุมัติ)
+  REJECTED: "rejected", // ปฏิเสธ (Account ปฏิเสธ)
+  SENT: "sent", // ส่งลูกค้าแล้ว (Sales ส่ง)
+  COMPLETED: "completed", // สำเร็จ (ลูกค้าตอบรับ)
 };
 
 // Role-based Actions
 const getAvailableActions = (status, userRole) => {
   const actions = {
     [QUOTATION_STATUSES.DRAFT]: {
-      sales: ['edit', 'delete', 'submit_for_review'],
-      account: ['edit', 'delete', 'approve', 'reject']
+      sales: ["edit", "delete", "submit_for_review"],
+      account: ["edit", "delete", "approve", "reject"],
     },
     [QUOTATION_STATUSES.PENDING_REVIEW]: {
-      sales: ['view'],
-      account: ['approve', 'reject', 'send_back_for_edit']
+      sales: ["view"],
+      account: ["approve", "reject", "send_back_for_edit"],
     },
     [QUOTATION_STATUSES.APPROVED]: {
-      sales: ['download_pdf', 'send_email', 'upload_evidence', 'mark_completed'],
-      account: ['view', 'revoke_approval', 'create_invoice']
+      sales: [
+        "download_pdf",
+        "send_email",
+        "upload_evidence",
+        "mark_completed",
+      ],
+      account: ["view", "revoke_approval", "create_invoice"],
     },
     [QUOTATION_STATUSES.SENT]: {
-      sales: ['mark_completed'],
-      account: ['view', 'create_invoice']
+      sales: ["mark_completed"],
+      account: ["view", "create_invoice"],
     },
     [QUOTATION_STATUSES.COMPLETED]: {
-      sales: ['view'],
-      account: ['view', 'create_invoice']
-    }
+      sales: ["view"],
+      account: ["view", "create_invoice"],
+    },
   };
   return actions[status]?.[userRole] || [];
 };
@@ -299,8 +316,9 @@ const getAvailableActions = (status, userRole) => {
 ## 💰 Step 2: ใบแจ้งหนี้ (Invoice Flow) {#step-2}
 
 ### AI Command
+
 ```bash
-สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้ 
+สร้าง One-Click Conversion จากใบเสนอราคาเป็นใบแจ้งหนี้
 พร้อมระบบเลือกประเภทการเรียกเก็บ (เต็มจำนวน/ส่วนที่เหลือ/บางส่วน)
 และระบบติดตามการชำระเงิน
 ```
@@ -409,6 +427,7 @@ Invoice Tracking Interface:
 ```
 
 ### Payment Status Flow
+
 ```
 Invoice Payment Flow:
 
@@ -418,7 +437,7 @@ overdue    overdue      success
 
 Status Colors:
 🟢 fully_paid - จ่ายแล้ว
-🟡 pending - รอชำระ  
+🟡 pending - รอชำระ
 🔴 overdue - เกินกำหนด
 🔵 partial_paid - จ่ายบางส่วน
 ⚫ cancelled - ยกเลิก
@@ -429,6 +448,7 @@ Status Colors:
 ## 🧾 Step 3: ใบเสร็จ/ใบกำกับภาษี (Receipt/Tax Invoice Flow) {#step-3}
 
 ### AI Command
+
 ```bash
 สร้างระบบบันทึกการชำระเงินและออกใบเสร็จ/ใบกำกับภาษีอัตโนมัติ
 พร้อมการคำนวณ VAT และ running number ตามมาตรฐาน
@@ -544,6 +564,7 @@ Final Receipt Approval:
 ```
 
 ### VAT Calculation Logic
+
 ```javascript
 // ระบบคำนวณ VAT แบบ FlowAccount
 const calculateVAT = (amount, vatRate = 0.07, priceIncludesVat = true) => {
@@ -554,7 +575,7 @@ const calculateVAT = (amount, vatRate = 0.07, priceIncludesVat = true) => {
     return {
       beforeVat: Math.round(beforeVat * 100) / 100,
       vatAmount: Math.round(vatAmount * 100) / 100,
-      totalAmount: amount
+      totalAmount: amount,
     };
   } else {
     // ราคายังไม่รวม VAT (คำนวณเพิ่ม)
@@ -563,7 +584,7 @@ const calculateVAT = (amount, vatRate = 0.07, priceIncludesVat = true) => {
     return {
       beforeVat: amount,
       vatAmount: Math.round(vatAmount * 100) / 100,
-      totalAmount: Math.round(totalAmount * 100) / 100
+      totalAmount: Math.round(totalAmount * 100) / 100,
     };
   }
 };
@@ -571,15 +592,15 @@ const calculateVAT = (amount, vatRate = 0.07, priceIncludesVat = true) => {
 // Auto Generate Document Number
 const generateDocumentNumber = (type, date = new Date()) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const sequence = getNextSequenceNumber(type, year, month);
-  
+
   const formats = {
-    receipt: `RCPT${year}${month}-${sequence.toString().padStart(4, '0')}`,
-    tax_invoice: `TAX${year}${month}-${sequence.toString().padStart(4, '0')}`,
-    delivery_note: `DN${year}${month}-${sequence.toString().padStart(4, '0')}`
+    receipt: `RCPT${year}${month}-${sequence.toString().padStart(4, "0")}`,
+    tax_invoice: `TAX${year}${month}-${sequence.toString().padStart(4, "0")}`,
+    delivery_note: `DN${year}${month}-${sequence.toString().padStart(4, "0")}`,
   };
-  
+
   return formats[type];
 };
 ```
@@ -589,8 +610,9 @@ const generateDocumentNumber = (type, date = new Date()) => {
 ## 📦 Step 4: ใบส่งของ (Delivery Note Flow) {#step-4}
 
 ### AI Command
+
 ```bash
-สร้างระบบใบส่งของพร้อมติดตามสถานะการจัดส่ง 
+สร้างระบบใบส่งของพร้อมติดตามสถานะการจัดส่ง
 รองรับการส่งด้วยตัวเอง บริษัทขนส่ง และลูกค้ามารับเอง
 พร้อม timeline tracking และ integration กับระบบขนส่ง
 ```
@@ -723,6 +745,7 @@ Job Completion Summary:
 ```
 
 ### Delivery Status Flow
+
 ```
 Delivery Status Progression:
 
@@ -748,8 +771,9 @@ Status Colors:
 ### 💡 กรณี 1: ลูกค้าเปลี่ยนใจเพิ่มสินค้า (หลังจ่ายมัดจำ)
 
 ### AI Command
+
 ```bash
-สร้างระบบแก้ไขออเดอร์และคำนวณยอดใหม่ 
+สร้างระบบแก้ไขออเดอร์และคำนวณยอดใหม่
 พร้อมออกเอกสาร Credit/Debit Note อัตโนมัติ
 ```
 
@@ -812,8 +836,9 @@ Order Modification Flow:
 ### 📦 กรณี 2: ส่งสินค้าไม่ครบ (Partial Delivery)
 
 ### AI Command
+
 ```bash
-สร้างระบบจัดการส่งสินค้าแบบงวด 
+สร้างระบบจัดการส่งสินค้าแบบงวด
 พร้อมติดตามจำนวนคงเหลือและออกเอกสารแยกตามงวด
 ```
 
@@ -885,6 +910,7 @@ Partial Delivery Management:
 ### 🔄 กรณี 3: การคืนสินค้า
 
 ### AI Command
+
 ```bash
 สร้างระบบจัดการการคืนสินค้าพร้อมออก Credit Note
 และปรับปรุงสต็อก/การเงินอัตโนมัติ
@@ -1069,94 +1095,94 @@ CREATE TABLE document_attachments (
 const API_ENDPOINTS = {
   // Authentication
   auth: {
-    login: 'POST /api/auth/login',
-    logout: 'POST /api/auth/logout',
-    me: 'GET /api/auth/me'
+    login: "POST /api/auth/login",
+    logout: "POST /api/auth/logout",
+    me: "GET /api/auth/me",
   },
 
   // Pricing Integration
   pricing: {
-    getCompletedJobs: 'GET /api/pricing/completed-jobs',
-    getJobDetail: 'GET /api/pricing/jobs/:id',
-    markAsUsed: 'POST /api/pricing/jobs/:id/mark-used'
+    getCompletedJobs: "GET /api/pricing/completed-jobs",
+    getJobDetail: "GET /api/pricing/jobs/:id",
+    markAsUsed: "POST /api/pricing/jobs/:id/mark-used",
   },
 
   // Quotations
   quotations: {
-    list: 'GET /api/quotations',
-    create: 'POST /api/quotations',
-    show: 'GET /api/quotations/:id',
-    update: 'PUT /api/quotations/:id',
-    delete: 'DELETE /api/quotations/:id',
-    
+    list: "GET /api/quotations",
+    create: "POST /api/quotations",
+    show: "GET /api/quotations/:id",
+    update: "PUT /api/quotations/:id",
+    delete: "DELETE /api/quotations/:id",
+
     // Actions
-    submit: 'POST /api/quotations/:id/submit',
-    approve: 'POST /api/quotations/:id/approve',
-    reject: 'POST /api/quotations/:id/reject',
-    rollback: 'POST /api/quotations/:id/rollback',
-    
+    submit: "POST /api/quotations/:id/submit",
+    approve: "POST /api/quotations/:id/approve",
+    reject: "POST /api/quotations/:id/reject",
+    rollback: "POST /api/quotations/:id/rollback",
+
     // Conversions
-    convertToInvoice: 'POST /api/quotations/:id/convert-to-invoice',
-    
+    convertToInvoice: "POST /api/quotations/:id/convert-to-invoice",
+
     // File operations
-    generatePDF: 'GET /api/quotations/:id/pdf',
-    sendEmail: 'POST /api/quotations/:id/send-email',
-    uploadEvidence: 'POST /api/quotations/:id/upload-evidence'
+    generatePDF: "GET /api/quotations/:id/pdf",
+    sendEmail: "POST /api/quotations/:id/send-email",
+    uploadEvidence: "POST /api/quotations/:id/upload-evidence",
   },
 
   // Invoices
   invoices: {
-    list: 'GET /api/invoices',
-    create: 'POST /api/invoices',
-    show: 'GET /api/invoices/:id',
-    update: 'PUT /api/invoices/:id',
-    
+    list: "GET /api/invoices",
+    create: "POST /api/invoices",
+    show: "GET /api/invoices/:id",
+    update: "PUT /api/invoices/:id",
+
     // Payment
-    recordPayment: 'POST /api/invoices/:id/payments',
-    getPaymentHistory: 'GET /api/invoices/:id/payments',
-    
+    recordPayment: "POST /api/invoices/:id/payments",
+    getPaymentHistory: "GET /api/invoices/:id/payments",
+
     // Conversions
-    convertToReceipt: 'POST /api/invoices/:id/convert-to-receipt',
-    
+    convertToReceipt: "POST /api/invoices/:id/convert-to-receipt",
+
     // Tracking
-    sendReminder: 'POST /api/invoices/:id/send-reminder',
-    updateStatus: 'PUT /api/invoices/:id/status'
+    sendReminder: "POST /api/invoices/:id/send-reminder",
+    updateStatus: "PUT /api/invoices/:id/status",
   },
 
   // Receipts
   receipts: {
-    list: 'GET /api/receipts',
-    create: 'POST /api/receipts',
-    show: 'GET /api/receipts/:id',
-    approve: 'POST /api/receipts/:id/approve',
-    generateTaxNumber: 'POST /api/receipts/:id/generate-tax-number',
-    convertToDeliveryNote: 'POST /api/receipts/:id/convert-to-delivery-note'
+    list: "GET /api/receipts",
+    create: "POST /api/receipts",
+    show: "GET /api/receipts/:id",
+    approve: "POST /api/receipts/:id/approve",
+    generateTaxNumber: "POST /api/receipts/:id/generate-tax-number",
+    convertToDeliveryNote: "POST /api/receipts/:id/convert-to-delivery-note",
   },
 
   // Delivery Notes
   deliveryNotes: {
-    list: 'GET /api/delivery-notes',
-    create: 'POST /api/delivery-notes',
-    show: 'GET /api/delivery-notes/:id',
-    updateStatus: 'PUT /api/delivery-notes/:id/status',
-    updateTracking: 'PUT /api/delivery-notes/:id/tracking',
-    markDelivered: 'POST /api/delivery-notes/:id/mark-delivered'
+    list: "GET /api/delivery-notes",
+    create: "POST /api/delivery-notes",
+    show: "GET /api/delivery-notes/:id",
+    updateStatus: "PUT /api/delivery-notes/:id/status",
+    updateTracking: "PUT /api/delivery-notes/:id/tracking",
+    markDelivered: "POST /api/delivery-notes/:id/mark-delivered",
   },
 
   // Exception Handling
   adjustments: {
-    createDebitNote: 'POST /api/adjustments/debit-notes',
-    createCreditNote: 'POST /api/adjustments/credit-notes',
-    processReturn: 'POST /api/adjustments/returns'
+    createDebitNote: "POST /api/adjustments/debit-notes",
+    createCreditNote: "POST /api/adjustments/credit-notes",
+    processReturn: "POST /api/adjustments/returns",
   },
 
   // Reports
   reports: {
-    dashboard: 'GET /api/reports/dashboard',
-    sales: 'GET /api/reports/sales',
-    payments: 'GET /api/reports/payments',
-    delivery: 'GET /api/reports/delivery'
-  }
+    dashboard: "GET /api/reports/dashboard",
+    sales: "GET /api/reports/sales",
+    payments: "GET /api/reports/payments",
+    delivery: "GET /api/reports/delivery",
+  },
 };
 ```
 
@@ -1169,121 +1195,129 @@ const useDocumentFlowStore = create((set, get) => ({
   currentDocument: null,
   documentList: [],
   filters: {
-    status: 'all',
+    status: "all",
     dateRange: null,
     customer: null,
-    documentType: 'quotation'
+    documentType: "quotation",
   },
-  
+
   // Actions
   setCurrentDocument: (doc) => set({ currentDocument: doc }),
-  
+
   // Document Flow Actions
   submitForReview: async (documentId) => {
     try {
       const response = await documentApi.submit(documentId);
-      
+
       // Add to history
-      await get().addToHistory(documentId, 'quotation', 'submit', 'ส่งตรวจสอบ');
-      
+      await get().addToHistory(documentId, "quotation", "submit", "ส่งตรวจสอบ");
+
       // Update local state
       set((state) => ({
-        documentList: state.documentList.map(doc => 
-          doc.id === documentId 
-            ? { ...doc, status: 'pending_review' }
-            : doc
-        )
+        documentList: state.documentList.map((doc) =>
+          doc.id === documentId ? { ...doc, status: "pending_review" } : doc
+        ),
       }));
-      
+
       return response;
     } catch (error) {
       throw error;
     }
   },
-  
+
   approveDocument: async (documentId, notes) => {
     try {
       const response = await documentApi.approve(documentId, notes);
-      
-      await get().addToHistory(documentId, 'quotation', 'approve', notes);
-      
+
+      await get().addToHistory(documentId, "quotation", "approve", notes);
+
       set((state) => ({
-        documentList: state.documentList.map(doc => 
-          doc.id === documentId 
-            ? { ...doc, status: 'approved', approved_by: getCurrentUser().id }
+        documentList: state.documentList.map((doc) =>
+          doc.id === documentId
+            ? { ...doc, status: "approved", approved_by: getCurrentUser().id }
             : doc
-        )
+        ),
       }));
-      
+
       return response;
     } catch (error) {
       throw error;
     }
   },
-  
+
   // One-Click Conversions
   convertToInvoice: async (quotationId, options) => {
     try {
       const invoice = await quotationApi.convertToInvoice(quotationId, options);
-      
+
       // Update quotation status
       set((state) => ({
-        documentList: state.documentList.map(doc => 
-          doc.id === quotationId 
-            ? { ...doc, status: 'converted', invoice_id: invoice.id }
+        documentList: state.documentList.map((doc) =>
+          doc.id === quotationId
+            ? { ...doc, status: "converted", invoice_id: invoice.id }
             : doc
-        )
+        ),
       }));
-      
-      await get().addToHistory(quotationId, 'quotation', 'convert_to_invoice', 
-        `แปลงเป็นใบแจ้งหนี้ ${invoice.number}`);
-      
+
+      await get().addToHistory(
+        quotationId,
+        "quotation",
+        "convert_to_invoice",
+        `แปลงเป็นใบแจ้งหนี้ ${invoice.number}`
+      );
+
       return invoice;
     } catch (error) {
       throw error;
     }
   },
-  
+
   convertToReceipt: async (invoiceId, paymentData) => {
     try {
       // Record payment first
       await invoiceApi.recordPayment(invoiceId, paymentData);
-      
+
       // Convert to receipt
       const receipt = await invoiceApi.convertToReceipt(invoiceId);
-      
-      await get().addToHistory(invoiceId, 'invoice', 'convert_to_receipt',
-        `สร้างใบเสร็จ ${receipt.number}`);
-      
+
+      await get().addToHistory(
+        invoiceId,
+        "invoice",
+        "convert_to_receipt",
+        `สร้างใบเสร็จ ${receipt.number}`
+      );
+
       return receipt;
     } catch (error) {
       throw error;
     }
   },
-  
+
   // Exception Handling
   rollbackDocument: async (documentId, documentType, reason) => {
     try {
-      const response = await documentApi.rollback(documentId, documentType, reason);
-      
-      await get().addToHistory(documentId, documentType, 'rollback', reason);
-      
+      const response = await documentApi.rollback(
+        documentId,
+        documentType,
+        reason
+      );
+
+      await get().addToHistory(documentId, documentType, "rollback", reason);
+
       // Update status based on rollback rules
       const newStatus = get().calculateRollbackStatus(documentType);
       set((state) => ({
-        documentList: state.documentList.map(doc => 
-          doc.id === documentId 
-            ? { ...doc, status: newStatus }
-            : doc
-        )
+        documentList: state.documentList.map((doc) =>
+          doc.id === documentId ? { ...doc, status: newStatus } : doc
+        ),
       }));
-      
+
       return response;
     } catch (error) {
       throw error;
     }
   },
-  
+
   // Utility functions
   addToHistory: async (documentId, documentType, action, notes) => {
     try {
@@ -1292,65 +1326,70 @@ const useDocumentFlowStore = create((set, get) => ({
         document_type: documentType,
         action,
         notes,
-        action_by: getCurrentUser().id
+        action_by: getCurrentUser().id,
       });
     } catch (error) {
-      console.error('Failed to add history:', error);
+      console.error("Failed to add history:", error);
     }
   },
-  
+
   calculateRollbackStatus: (documentType) => {
     const rollbackMap = {
-      'invoice': 'approved',     // ย้อนจากใบแจ้งหนี้ไปใบเสนอราคาที่อนุมัติแล้ว
-      'receipt': 'approved',     // ย้อนจากใบเสร็จไปใบแจ้งหนี้ที่อนุมัติแล้ว
-      'delivery_note': 'approved' // ย้อนจากใบส่งของไปใบเสร็จที่อนุมัติแล้ว
+      invoice: "approved", // ย้อนจากใบแจ้งหนี้ไปใบเสนอราคาที่อนุมัติแล้ว
+      receipt: "approved", // ย้อนจากใบเสร็จไปใบแจ้งหนี้ที่อนุมัติแล้ว
+      delivery_note: "approved", // ย้อนจากใบส่งของไปใบเสร็จที่อนุมัติแล้ว
     };
-    return rollbackMap[documentType] || 'draft';
+    return rollbackMap[documentType] || "draft";
   },
-  
+
   // Get available actions based on role and status
   getAvailableActions: (document) => {
     const userRole = useAuthStore.getState().user.role;
     const { status, document_type } = document;
-    
+
     return getAvailableActionsByRole(document_type, status, userRole);
-  }
+  },
 }));
 
 // Permission Store
 const usePermissionStore = create((set, get) => ({
   permissions: {},
-  
+
   hasPermission: (resource, action, document = null) => {
     const userRole = useAuthStore.getState().user.role;
     return hasPermission(userRole, resource, action, document);
   },
-  
+
   canEdit: (document) => {
     const userRole = useAuthStore.getState().user.role;
-    
-    if (userRole === 'account') return true; // Account แก้ไขได้หมด
-    
-    if (userRole === 'sales') {
+
+    if (userRole === "account") return true; // Account แก้ไขได้หมด
+
+    if (userRole === "sales") {
       // Sales แก้ไขได้เฉพาะที่ตัวเองสร้างและสถานะ draft
-      return document.created_by === getCurrentUser().id && 
-             document.status === 'draft';
+      return (
+        document.created_by === getCurrentUser().id &&
+        document.status === "draft"
+      );
     }
-    
+
     return false;
   },
-  
+
   canApprove: (document) => {
     const userRole = useAuthStore.getState().user.role;
-    return userRole === 'account' && 
-           ['pending_review', 'draft'].includes(document.status);
+    return (
+      userRole === "account" &&
+      ["pending_review", "draft"].includes(document.status)
+    );
   },
-  
+
   canRollback: (document) => {
     const userRole = useAuthStore.getState().user.role;
-    return userRole === 'account' && 
-           !['draft', 'rejected'].includes(document.status);
-  }
+    return (
+      userRole === "account" && !["draft", "rejected"].includes(document.status)
+    );
+  },
 }));
 ```
 
@@ -1362,36 +1401,36 @@ const PERMISSIONS = {
   quotations: {
     sales: {
       create: true,
-      read: 'own',        // เฉพาะที่ตัวเองสร้าง
-      update: 'own_draft', // เฉพาะร่างที่ตัวเองสร้าง
-      delete: 'own_draft',
-      submit: 'own',
+      read: "own", // เฉพาะที่ตัวเองสร้าง
+      update: "own_draft", // เฉพาะร่างที่ตัวเองสร้าง
+      delete: "own_draft",
+      submit: "own",
       approve: false,
       reject: false,
       rollback: false,
-      convert: false
+      convert: false,
     },
     account: {
       create: true,
-      read: true,         // ทั้งหมด
-      update: true,       // ทั้งหมด
+      read: true, // ทั้งหมด
+      update: true, // ทั้งหมด
       delete: true,
       submit: true,
       approve: true,
       reject: true,
       rollback: true,
-      convert: true
-    }
+      convert: true,
+    },
   },
-  
+
   invoices: {
     sales: {
-      create: false,      // สร้างได้เฉพาะผ่าน conversion
-      read: 'related',    // ที่เกี่ยวข้องกับใบเสนอราคาตัวเอง
+      create: false, // สร้างได้เฉพาะผ่าน conversion
+      read: "related", // ที่เกี่ยวข้องกับใบเสนอราคาตัวเอง
       update: false,
       recordPayment: false,
       approve: false,
-      convert: false
+      convert: false,
     },
     account: {
       create: true,
@@ -1400,16 +1439,16 @@ const PERMISSIONS = {
       recordPayment: true,
       approve: true,
       convert: true,
-      rollback: true
-    }
+      rollback: true,
+    },
   },
-  
+
   receipts: {
     sales: {
       create: false,
-      read: 'related',
+      read: "related",
       update: false,
-      approve: false
+      approve: false,
     },
     account: {
       create: true,
@@ -1417,49 +1456,50 @@ const PERMISSIONS = {
       update: true,
       approve: true,
       generateTaxNumber: true,
-      convert: true
-    }
+      convert: true,
+    },
   },
-  
+
   deliveryNotes: {
     sales: {
       create: false,
-      read: 'related',
-      update: 'status_only', // อัปเดตสถานะได้บางอย่าง
-      markDelivered: 'related'
+      read: "related",
+      update: "status_only", // อัปเดตสถานะได้บางอย่าง
+      markDelivered: "related",
     },
     account: {
       create: true,
       read: true,
       update: true,
       markDelivered: true,
-      rollback: true
-    }
-  }
+      rollback: true,
+    },
+  },
 };
 
 // Permission Check Function
 const hasPermission = (userRole, resource, action, document = null) => {
   const permission = PERMISSIONS[resource]?.[userRole]?.[action];
-  
+
   if (permission === true) return true;
   if (permission === false) return false;
-  
+
   // Special permission cases
-  if (permission === 'own' && document) {
+  if (permission === "own" && document) {
     return document.created_by === getCurrentUser().id;
   }
-  
-  if (permission === 'own_draft' && document) {
-    return document.created_by === getCurrentUser().id && 
-           document.status === 'draft';
+
+  if (permission === "own_draft" && document) {
+    return (
+      document.created_by === getCurrentUser().id && document.status === "draft"
+    );
   }
-  
-  if (permission === 'related' && document) {
+
+  if (permission === "related" && document) {
     // ตรวจสอบว่าเอกสารนี้เกี่ยวข้องกับงานของ Sales หรือไม่
     return isRelatedToUser(document, getCurrentUser().id);
   }
-  
+
   return false;
 };
 
@@ -1471,7 +1511,7 @@ const isRelatedToUser = (document, userId) => {
     const quotation = getQuotationById(document.quotation_id);
     return quotation?.created_by === userId;
   }
-  
+
   // หรือตรวจสอบจาก created_by ตรงๆ
   return document.created_by === userId;
 };
@@ -1481,77 +1521,77 @@ const getAvailableActionsByRole = (documentType, status, userRole) => {
   const actionsMap = {
     quotation: {
       draft: {
-        sales: ['edit', 'delete', 'submit_for_review'],
-        account: ['edit', 'delete', 'approve', 'reject']
+        sales: ["edit", "delete", "submit_for_review"],
+        account: ["edit", "delete", "approve", "reject"],
       },
       pending_review: {
-        sales: ['view'],
-        account: ['approve', 'reject', 'send_back_for_edit']
+        sales: ["view"],
+        account: ["approve", "reject", "send_back_for_edit"],
       },
       approved: {
-        sales: ['view', 'download_pdf', 'send_email', 'upload_evidence'],
-        account: ['view', 'edit', 'revoke_approval', 'convert_to_invoice']
+        sales: ["view", "download_pdf", "send_email", "upload_evidence"],
+        account: ["view", "edit", "revoke_approval", "convert_to_invoice"],
       },
       sent: {
-        sales: ['view', 'mark_completed'],
-        account: ['view', 'convert_to_invoice']
+        sales: ["view", "mark_completed"],
+        account: ["view", "convert_to_invoice"],
       },
       completed: {
-        sales: ['view'],
-        account: ['view', 'convert_to_invoice']
-      }
+        sales: ["view"],
+        account: ["view", "convert_to_invoice"],
+      },
     },
-    
+
     invoice: {
       draft: {
-        sales: ['view'],
-        account: ['edit', 'delete', 'approve']
+        sales: ["view"],
+        account: ["edit", "delete", "approve"],
       },
       approved: {
-        sales: ['view'],
-        account: ['view', 'send_email', 'record_payment', 'rollback']
+        sales: ["view"],
+        account: ["view", "send_email", "record_payment", "rollback"],
       },
       sent: {
-        sales: ['view'],
-        account: ['view', 'record_payment', 'send_reminder']
+        sales: ["view"],
+        account: ["view", "record_payment", "send_reminder"],
       },
       partial_paid: {
-        sales: ['view'],
-        account: ['view', 'record_payment', 'convert_to_receipt']
+        sales: ["view"],
+        account: ["view", "record_payment", "convert_to_receipt"],
       },
       fully_paid: {
-        sales: ['view'],
-        account: ['view', 'convert_to_receipt']
-      }
+        sales: ["view"],
+        account: ["view", "convert_to_receipt"],
+      },
     },
-    
+
     receipt: {
       draft: {
-        sales: ['view'],
-        account: ['edit', 'approve', 'delete']
+        sales: ["view"],
+        account: ["edit", "approve", "delete"],
       },
       approved: {
-        sales: ['view'],
-        account: ['view', 'download_pdf', 'convert_to_delivery_note']
-      }
+        sales: ["view"],
+        account: ["view", "download_pdf", "convert_to_delivery_note"],
+      },
     },
-    
+
     delivery_note: {
       preparing: {
-        sales: ['view'],
-        account: ['view', 'edit', 'mark_shipped']
+        sales: ["view"],
+        account: ["view", "edit", "mark_shipped"],
       },
       shipping: {
-        sales: ['view', 'update_tracking'],
-        account: ['view', 'update_tracking', 'mark_delivered']
+        sales: ["view", "update_tracking"],
+        account: ["view", "update_tracking", "mark_delivered"],
       },
       delivered: {
-        sales: ['view', 'mark_completed'],
-        account: ['view', 'mark_completed']
-      }
-    }
+        sales: ["view", "mark_completed"],
+        account: ["view", "mark_completed"],
+      },
+    },
   };
-  
+
   return actionsMap[documentType]?.[status]?.[userRole] || [];
 };
 ```
@@ -1563,51 +1603,50 @@ const getAvailableActionsByRole = (documentType, status, userRole) => {
 const handleOrderModification = async (quotationId, newItems, reason) => {
   try {
     // 1. Rollback to quotation
-    await documentApi.rollback(quotationId, 'quotation', reason);
-    
+    await documentApi.rollback(quotationId, "quotation", reason);
+
     // 2. Update quotation with new items
     const originalQuotation = await quotationApi.getById(quotationId);
     const updatedData = {
       ...originalQuotation,
-      items: [...originalQuotation.items, ...newItems]
+      items: [...originalQuotation.items, ...newItems],
     };
-    
+
     // Recalculate totals
     const newSubtotal = calculateSubtotal(updatedData.items);
     const newTaxAmount = calculateTax(newSubtotal);
     const newTotal = newSubtotal + newTaxAmount;
-    
+
     updatedData.subtotal = newSubtotal;
     updatedData.tax_amount = newTaxAmount;
     updatedData.total_amount = newTotal;
-    
+
     // Calculate new deposit and remaining
     const depositAmount = originalQuotation.deposit_amount; // เงินมัดจำเดิม
     const additionalAmount = newTotal - originalQuotation.total_amount;
     const newRemainingAmount = newTotal - depositAmount;
-    
+
     await quotationApi.update(quotationId, updatedData);
-    
+
     // 3. Create Debit Note for additional amount
     if (additionalAmount > 0) {
       const debitNote = await adjustmentApi.createDebitNote({
-        reference_type: 'quotation',
+        reference_type: "quotation",
         reference_id: quotationId,
         amount: additionalAmount,
         reason: `เพิ่มรายการสินค้าตามคำขอลูกค้า: ${reason}`,
-        created_by: getCurrentUser().id
+        created_by: getCurrentUser().id,
       });
     }
-    
+
     // 4. Re-submit for approval
     await documentApi.submit(quotationId);
-    
+
     return {
       quotation: updatedData,
       additionalAmount,
-      newRemainingAmount
+      newRemainingAmount,
     };
-    
   } catch (error) {
     throw error;
   }
@@ -1620,37 +1659,42 @@ const handlePartialDelivery = async (orderId, deliveredItems) => {
     const deliveryNote = await deliveryNoteApi.create({
       order_id: orderId,
       items: deliveredItems,
-      delivery_type: 'partial',
-      notes: `การส่งสินค้าบางส่วน งวดที่ ${getDeliverySequence(orderId)}`
+      delivery_type: "partial",
+      notes: `การส่งสินค้าบางส่วน งวดที่ ${getDeliverySequence(orderId)}`,
     });
-    
+
     // 2. Update order tracking
     for (const item of deliveredItems) {
-      await orderTrackingApi.updateDelivered(orderId, item.product_id, item.quantity);
+      await orderTrackingApi.updateDelivered(
+        orderId,
+        item.product_id,
+        item.quantity
+      );
     }
-    
+
     // 3. Create invoice for delivered items
     const partialInvoice = await invoiceApi.createPartial({
       order_id: orderId,
       items: deliveredItems,
-      delivery_note_id: deliveryNote.id
+      delivery_note_id: deliveryNote.id,
     });
-    
+
     // 4. Check if order is complete
     const remainingItems = await orderTrackingApi.getRemainingItems(orderId);
-    const isComplete = remainingItems.every(item => item.remaining_quantity === 0);
-    
+    const isComplete = remainingItems.every(
+      (item) => item.remaining_quantity === 0
+    );
+
     if (isComplete) {
       await orderApi.markComplete(orderId);
     }
-    
+
     return {
       deliveryNote,
       partialInvoice,
       remainingItems,
-      isComplete
+      isComplete,
     };
-    
   } catch (error) {
     throw error;
   }
@@ -1665,38 +1709,37 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
       items: returnItems,
       reason,
       return_date: new Date(),
-      created_by: getCurrentUser().id
+      created_by: getCurrentUser().id,
     });
-    
+
     // 2. Calculate refund amount
     const refundAmount = calculateRefundAmount(returnItems);
-    
+
     // 3. Create credit note
     const creditNote = await adjustmentApi.createCreditNote({
-      reference_type: 'delivery_note',
+      reference_type: "delivery_note",
       reference_id: deliveryNoteId,
       amount: refundAmount,
       reason: `คืนสินค้า: ${reason}`,
-      created_by: getCurrentUser().id
+      created_by: getCurrentUser().id,
     });
-    
+
     // 4. Update inventory
     for (const item of returnItems) {
-      await inventoryApi.updateStock(item.product_id, item.quantity, 'return');
+      await inventoryApi.updateStock(item.product_id, item.quantity, "return");
     }
-    
+
     // 5. Update customer balance (if applicable)
     const customer = await getCustomerFromDeliveryNote(deliveryNoteId);
     if (customer.outstanding_balance > 0) {
       await customerApi.updateBalance(customer.id, -refundAmount);
     }
-    
+
     return {
       returnNote,
       creditNote,
-      refundAmount
+      refundAmount,
     };
-    
   } catch (error) {
     throw error;
   }
@@ -1711,7 +1754,7 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
 
 ```bash
 # 1. สร้าง Document Flow Engine
-"สร้าง Document Flow Engine ที่จัดการ state transitions ตาม FlowAccount 
+"สร้าง Document Flow Engine ที่จัดการ state transitions ตาม FlowAccount
 พร้อม role-based permissions และ audit trail"
 
 # 2. สร้าง One-Click Conversion System
@@ -1734,11 +1777,11 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
 พร้อม Credit/Debit Note อัตโนมัติ"
 
 # 7. สร้าง Integration API
-"สร้าง API เชื่อมต่อกับระบบ Pricing และระบบขนส่ง 
+"สร้าง API เชื่อมต่อกับระบบ Pricing และระบบขนส่ง
 พร้อม error handling และ retry mechanism"
 
 # 8. สร้าง Notification System
-"สร้างระบบแจ้งเตือนอัตโนมัติสำหรับเอกสารรอการอนุมัติ, 
+"สร้างระบบแจ้งเตือนอัตโนมัติสำหรับเอกสารรอการอนุมัติ,
 การครบกำหนดชำระ และสถานะการส่งสินค้า"
 ```
 
@@ -1746,15 +1789,15 @@ const handleProductReturn = async (deliveryNoteId, returnItems, reason) => {
 
 ```bash
 # 9. สร้าง Dashboard แบบ Role-Based
-"สร้าง Dashboard ที่แสดงข้อมูลต่างกันตาม role 
+"สร้าง Dashboard ที่แสดงข้อมูลต่างกันตาม role
 Sales เห็นงานของตัวเอง, Account เห็นทั้งหมด"
 
 # 10. สร้าง Document List ที่มี Advanced Filter
-"สร้างหน้ารายการเอกสารพร้อม filter, search, bulk actions 
+"สร้างหน้ารายการเอกสารพร้อม filter, search, bulk actions
 และ status-based tabs"
 
 # 11. สร้าง Multi-Step Forms
-"สร้างฟอร์มสร้างเอกสารแบบ step-by-step พร้อม validation 
+"สร้างฟอร์มสร้างเอกสารแบบ step-by-step พร้อม validation
 และ auto-save functionality"
 
 # 12. สร้าง Timeline UI Component
@@ -1770,11 +1813,11 @@ Sales เห็นงานของตัวเอง, Account เห็นท�
 
 ```bash
 # 14. สร้าง Database Schema
-"สร้าง database schema ตาม ERD ที่กำหนด 
+"สร้าง database schema ตาม ERD ที่กำหนด
 พร้อม indexes, constraints และ audit tables"
 
 # 15. สร้าง API Endpoints
-"สร้าง RESTful API endpoints ตาม specification 
+"สร้าง RESTful API endpoints ตาม specification
 พร้อม authentication, authorization และ rate limiting"
 
 # 16. สร้าง State Management
@@ -1794,15 +1837,15 @@ Sales เห็นงานของตัวเอง, Account เห็นท�
 
 ```bash
 # 19. สร้าง Reporting Dashboard
-"สร้าง reporting dashboard พร้อม charts, KPIs 
+"สร้าง reporting dashboard พร้อม charts, KPIs
 และ export functionality (PDF/Excel)"
 
 # 20. สร้าง Email Integration
-"สร้างระบบส่งอีเมลอัตโนมัติพร้อม templates, attachments 
+"สร้างระบบส่งอีเมลอัตโนมัติพร้อม templates, attachments
 และ delivery tracking"
 
 # 21. สร้าง File Upload System
-"สร้างระบบอัปโหลดไฟล์แนบพร้อม preview, compression 
+"สร้างระบบอัปโหลดไฟล์แนบพร้อม preview, compression
 และ virus scanning"
 
 # 22. สร้าง Audit Trail System
@@ -1824,68 +1867,64 @@ Sales เห็นงานของตัวเอง, Account เห็นท�
 // 1. Database Optimization
 const DB_OPTIMIZATION = {
   indexes: [
-    'CREATE INDEX idx_quotations_status ON quotations(status)',
-    'CREATE INDEX idx_quotations_customer ON quotations(customer_id)',
-    'CREATE INDEX idx_quotations_created_date ON quotations(created_at)',
-    'CREATE INDEX idx_invoices_due_date ON invoices(due_date)',
-    'CREATE INDEX idx_document_history_document ON document_history(document_type, document_id)'
+    "CREATE INDEX idx_quotations_status ON quotations(status)",
+    "CREATE INDEX idx_quotations_customer ON quotations(customer_id)",
+    "CREATE INDEX idx_quotations_created_date ON quotations(created_at)",
+    "CREATE INDEX idx_invoices_due_date ON invoices(due_date)",
+    "CREATE INDEX idx_document_history_document ON document_history(document_type, document_id)",
   ],
-  
+
   // Connection Pooling
   connectionPool: {
     min: 5,
     max: 20,
-    idle: 10000
+    idle: 10000,
   },
-  
+
   // Query Optimization
   useSelectFields: true, // ไม่ใช้ SELECT *
-  usePagination: true,   // แบ่งหน้าเสมอ
-  cacheQueries: true     // Cache queries ที่ใช้บ่อย
+  usePagination: true, // แบ่งหน้าเสมอ
+  cacheQueries: true, // Cache queries ที่ใช้บ่อย
 };
 
 // 2. Frontend Optimization
 const FRONTEND_OPTIMIZATION = {
   // Code Splitting
-  lazyLoading: [
-    'DocumentForm',
-    'ReportDashboard', 
-    'AdvancedSearch'
-  ],
-  
+  lazyLoading: ["DocumentForm", "ReportDashboard", "AdvancedSearch"],
+
   // State Management
   stateOptimization: {
     persistOnlyRequired: true,
     useShallowEqual: true,
-    debounceUserInputs: 300 // ms
+    debounceUserInputs: 300, // ms
   },
-  
+
   // Caching Strategy
   caching: {
-    documentList: '5m',    // 5 minutes
-    customerList: '15m',   // 15 minutes
-    productList: '30m',    // 30 minutes
-    reports: '1h'          // 1 hour
-  }
+    documentList: "5m", // 5 minutes
+    customerList: "15m", // 15 minutes
+    productList: "30m", // 30 minutes
+    reports: "1h", // 1 hour
+  },
 };
 
 // 3. API Optimization
 const API_OPTIMIZATION = {
   // Response Compression
   compression: true,
-  
+
   // Rate Limiting
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // requests per window
+    max: 100, // requests per window
   },
-  
+
   // Response Optimization
   responseOptimization: {
     useETags: true,
     cacheHeaders: true,
-    compressResponse: true
-  }
+    compressResponse: true,
+  },
 };
 ```
 
@@ -1898,34 +1937,34 @@ const API_OPTIMIZATION = {
 const SECURITY_MEASURES = {
   // Authentication
   authentication: {
-    jwtExpiry: '24h',
-    refreshTokenExpiry: '7d',
+    jwtExpiry: "24h",
+    refreshTokenExpiry: "7d",
     bcryptRounds: 12,
-    sessionTimeout: '4h'
+    sessionTimeout: "4h",
   },
-  
+
   // Authorization
   authorization: {
     roleBasedAccess: true,
     resourceLevelPermissions: true,
-    documentOwnershipCheck: true
+    documentOwnershipCheck: true,
   },
-  
+
   // Data Protection
   dataProtection: {
     encryptSensitiveData: true,
     auditTrail: true,
-    dataRetention: '7 years',
-    personalDataProtection: true
+    dataRetention: "7 years",
+    personalDataProtection: true,
   },
-  
+
   // API Security
   apiSecurity: {
     inputValidation: true,
     sqlInjectionPrevention: true,
     xssProtection: true,
-    csrfProtection: true
-  }
+    csrfProtection: true,
+  },
 };
 ```
 
@@ -1938,32 +1977,38 @@ const SECURITY_MEASURES = {
 ระบบ Account Management ที่:
 
 ✅ **ใช้งานง่ายเหมือน FlowAccount**
+
 - แปลงเอกสารคลิกเดียว
 - ดึงข้อมูลอัตโนมัติไม่ต้องพิมพ์ซ้ำ
 - UI/UX ที่เข้าใจง่าย
 
 ✅ **รองรับ 2 Role อย่างชัดเจน**
+
 - Sales: สร้าง แก้ไข ส่งตรวจสอบ
 - Account: อนุมัติ ควบคุม จัดการการเงิน
 - แต่ละคนมีหน้าที่และสิทธิ์ชัดเจน
 
 ✅ **จัดการกรณีพิเศษได้ยืดหยุ่น**
+
 - แก้ไขออเดอร์หลังจ่ายมัดจำ
 - ส่งสินค้าไม่ครบตามงวด
 - การคืนสินค้า
 - ออกเอกสารปรับยอด Credit/Debit Note
 
 ✅ **ติดตามได้ทุกขั้นตอน**
+
 - Timeline แสดงประวัติการเปลี่ยนแปลง
 - Status tracking แบบ real-time
 - Audit trail ครบถ้วน
 
 ✅ **คำนวณอัตโนมัติ**
+
 - VAT 7% ตามมาตรฐาน
 - เงินมัดจำและยอดคงเหลือ
 - การแยกภาษีย้อนกลับ
 
 ✅ **ปลอดภัยและเสถียร**
+
 - Role-based permissions
 - Data encryption
 - Backup & recovery
@@ -1973,24 +2018,28 @@ const SECURITY_MEASURES = {
 
 ```markdown
 Phase 1: Core Foundation (Week 1-2)
+
 - Database schema setup
 - Authentication & authorization
 - Basic API endpoints
 - Role-based UI components
 
 Phase 2: Document Flow (Week 3-6)
+
 - Quotation management
 - Invoice creation & tracking
 - Receipt/Tax invoice generation
 - Delivery note system
 
 Phase 3: Advanced Features (Week 7-9)
+
 - One-click conversions
 - Exception handling
 - Notification system
 - PDF generation
 
 Phase 4: Integration & Testing (Week 10-12)
+
 - Pricing system integration
 - Courier API integration
 - Performance optimization
@@ -1998,6 +2047,7 @@ Phase 4: Integration & Testing (Week 10-12)
 - User acceptance testing
 
 Phase 5: Deployment (Week 13-14)
+
 - Production deployment
 - Data migration
 - User training
@@ -2006,8 +2056,9 @@ Phase 5: Deployment (Week 13-14)
 
 ---
 
-**🎯 Final Goal**: ระบบบัญชีที่ทันสมัย ใช้งานง่าย มีประสิทธิภาพสูง และรองรับการเติบโตของธุรกิจ TNP Group พร้อมให้บริการลูกค้าได้อย่างมืออาชีพ
+**🎯 Final Goal**: ระบบบัญชีที่ทันสมัย ใช้งานง่าย มีประสิทธิภาพสูง
+และรองรับการเติบโตของธุรกิจ TNP Group พร้อมให้บริการลูกค้าได้อย่างมืออาชีพ
 
 ---
 
-*สร้างโดย AI Assistant สำหรับ TNP Group - Document Version 1.0*
+_สร้างโดย AI Assistant สำหรับ TNP Group - Document Version 1.0_

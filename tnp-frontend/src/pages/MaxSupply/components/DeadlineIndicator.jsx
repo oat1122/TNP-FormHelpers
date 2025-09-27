@@ -1,76 +1,76 @@
-import React from 'react';
-import { Box, Typography, Chip, Tooltip } from '@mui/material';
-import { FaExclamationTriangle, FaClock, FaCheckCircle } from 'react-icons/fa';
-import { differenceInDays } from 'date-fns';
+import React from "react";
+import { Box, Typography, Chip, Tooltip } from "@mui/material";
+import { FaExclamationTriangle, FaClock, FaCheckCircle } from "react-icons/fa";
+import { differenceInDays } from "date-fns";
 
-const DeadlineIndicator = ({ expectedDate, priority = 'normal', size = 'small' }) => {
+const DeadlineIndicator = ({ expectedDate, priority = "normal", size = "small" }) => {
   if (!expectedDate) return null;
 
   const daysUntilDeadline = differenceInDays(new Date(expectedDate), new Date());
-  
+
   const getDeadlineStatus = () => {
-    if (daysUntilDeadline < 0) return 'overdue';
-    if (daysUntilDeadline <= 2) return 'urgent';
-    if (daysUntilDeadline <= 7) return 'warning';
-    return 'normal';
+    if (daysUntilDeadline < 0) return "overdue";
+    if (daysUntilDeadline <= 2) return "urgent";
+    if (daysUntilDeadline <= 7) return "warning";
+    return "normal";
   };
 
   const status = getDeadlineStatus();
-  
+
   const getStatusConfig = () => {
     switch (status) {
-      case 'overdue':
+      case "overdue":
         return {
-          color: 'error',
+          color: "error",
           icon: <FaExclamationTriangle />,
           label: `เลย ${Math.abs(daysUntilDeadline)} วัน`,
-          bgColor: '#fef2f2',
-          textColor: '#dc2626'
+          bgColor: "#fef2f2",
+          textColor: "#dc2626",
         };
-      case 'urgent':
+      case "urgent":
         return {
-          color: 'warning',
+          color: "warning",
           icon: <FaClock />,
           label: `เหลือ ${daysUntilDeadline} วัน`,
-          bgColor: '#fffbeb',
-          textColor: '#f59e0b'
+          bgColor: "#fffbeb",
+          textColor: "#f59e0b",
         };
-      case 'warning':
+      case "warning":
         return {
-          color: 'info',
+          color: "info",
           icon: <FaClock />,
           label: `เหลือ ${daysUntilDeadline} วัน`,
-          bgColor: '#f0f9ff',
-          textColor: '#0ea5e9'
+          bgColor: "#f0f9ff",
+          textColor: "#0ea5e9",
         };
       default:
         return {
-          color: 'success',
+          color: "success",
           icon: <FaCheckCircle />,
-          label: 'ปกติ',
-          bgColor: '#f0fdf4',
-          textColor: '#059669'
+          label: "ปกติ",
+          bgColor: "#f0fdf4",
+          textColor: "#059669",
         };
     }
   };
 
   const config = getStatusConfig();
 
-  if (status === 'normal') return null;
+  if (status === "normal") return null;
 
   return (
-    <Tooltip title={`คาดว่าเสร็จ: ${new Date(expectedDate).toLocaleDateString('th-TH')}`}>
+    <Tooltip title={`คาดว่าเสร็จ: ${new Date(expectedDate).toLocaleDateString("th-TH")}`}>
       <Chip
         icon={config.icon}
         label={config.label}
         color={config.color}
         size={size}
         sx={{
-          fontWeight: 'bold',
-          fontSize: size === 'small' ? '0.7rem' : '0.8rem',
-          '& .MuiChip-icon': {
-            fontSize: size === 'small' ? '0.8rem' : '1rem'
-          }
+          fontWeight: "bold",
+          fontSize: size === "small" ? "0.7rem" : "0.8rem",
+          "& .MuiChip-icon": {
+            fontSize: size === "small" ? "0.8rem" : "1rem",
+          },
         }}
       />
     </Tooltip>

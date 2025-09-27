@@ -84,12 +84,12 @@
     width: calc(100% - 32px);
     max-height: calc(100% - 32px);
   }
-  
+
   .edit-form-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .edit-form-actions .MuiButton-root {
     margin: 4px 0;
   }

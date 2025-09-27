@@ -20,9 +20,7 @@ import {
   open_dialog_loading,
 } from "../../../utils/import_lib";
 import { setInputList } from "../../../features/Worksheet/worksheetSlice";
-import {
-  useUpdateWorksheetMutation,
-} from "../../../features/Worksheet/worksheetApi";
+import { useUpdateWorksheetMutation } from "../../../features/Worksheet/worksheetApi";
 import { useGetUserByRoleQuery } from "../../../features/globalApi";
 
 function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
@@ -32,13 +30,8 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
   const [productionList, setProductionList] = useState([]);
   const user = JSON.parse(localStorage.getItem("userData"));
   const inputList = useSelector((state) => state.worksheet.inputList);
-  const {
-    data,
-    error,
-    isLoading,
-  } = useGetUserByRoleQuery(null, { skip: !open });
+  const { data, error, isLoading } = useGetUserByRoleQuery(null, { skip: !open });
   const [updateWorksheet] = useUpdateWorksheetMutation();
-    
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,7 +43,6 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
     setSaveLoading(true);
 
     try {
-      
       const res = await updateWorksheet(inputList);
 
       if (res.data.status === "ok") {
@@ -62,7 +54,6 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
         open_dialog_error(res.data.message);
         console.error(res.data);
       }
-
     } catch (error) {
       setSaveLoading(false);
       open_dialog_error(error.message, error);
@@ -83,30 +74,22 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
   }, [open]);
 
   useEffect(() => {
-
-      if (data) {
-        setCreatorList(data.graphic_role);
-        setManagerList(data.manager_role);
-        setProductionList(data.production_role);
-        Swal.close();
-
-      } else if (isLoading) {
-        open_dialog_loading();
-
-      } else if (error) {
-        open_dialog_error('Get User by role Error', error.data?.message);
-        console.error('Get User by role Error: ', error)
-      }
-
-    }, [data, isLoading]);
+    if (data) {
+      setCreatorList(data.graphic_role);
+      setManagerList(data.manager_role);
+      setProductionList(data.production_role);
+      Swal.close();
+    } else if (isLoading) {
+      open_dialog_loading();
+    } else if (error) {
+      open_dialog_error("Get User by role Error", error.data?.message);
+      console.error("Get User by role Error: ", error);
+    }
+  }, [data, isLoading]);
 
   return (
     <div>
-      <Dialog 
-        open={open} 
-        fullWidth
-        disableEscapeKeyDown	
-      >
+      <Dialog open={open} fullWidth disableEscapeKeyDown>
         <form onSubmit={handleSubmit}>
           <DialogTitle>
             <b>Work Name :</b> {inputList.work_name}
@@ -114,9 +97,7 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
           <DialogContent>
             <Box>
               <FormControl fullWidth sx={{ m: 1 }}>
-                <InputLabel id="creator-name-select-label">
-                  Creator Name
-                </InputLabel>
+                <InputLabel id="creator-name-select-label">Creator Name</InputLabel>
                 <Select
                   labelId="creator-name-select-label"
                   id="creator-name-select"
@@ -139,13 +120,11 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
                       >
                         {item.user_nickname}
                       </MenuItem>
-                  ))}
+                    ))}
                 </Select>
               </FormControl>
               <FormControl fullWidth sx={{ m: 1 }}>
-                <InputLabel id="manager-name-select-label">
-                  Manager Name
-                </InputLabel>
+                <InputLabel id="manager-name-select-label">Manager Name</InputLabel>
                 <Select
                   labelId="manager-name-select-label"
                   id="manager-name-select"
@@ -167,13 +146,11 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
                       >
                         {item.user_nickname}
                       </MenuItem>
-                  ))}
+                    ))}
                 </Select>
               </FormControl>
               <FormControl fullWidth sx={{ m: 1 }}>
-                <InputLabel id="production-name-select-label">
-                  Production Name
-                </InputLabel>
+                <InputLabel id="production-name-select-label">Production Name</InputLabel>
                 <Select
                   labelId="production-name-select-label"
                   id="production-name-select"
@@ -183,7 +160,9 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
                   onChange={handleChange}
                   sx={{ textTransform: "capitalize" }}
                 >
-                  <MenuItem disabled value="">Production Name</MenuItem>
+                  <MenuItem disabled value="">
+                    Production Name
+                  </MenuItem>
                   {productionList &&
                     productionList.map((item, index) => (
                       <MenuItem
@@ -193,7 +172,7 @@ function AssignmentDialog({ open, saveLoading, setSaveLoading, handleClose }) {
                       >
                         {item.user_nickname}
                       </MenuItem>
-                  ))}
+                    ))}
                 </Select>
               </FormControl>
             </Box>

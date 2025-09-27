@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Typography,
-  FormControl,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { Box, Typography, FormControl, Select, MenuItem } from "@mui/material";
 
 // Component สำหรับเลือกจำนวน rows ต่อหน้า
 export const PageSizeSelector = ({ value, onChange }) => {
@@ -13,10 +7,7 @@ export const PageSizeSelector = ({ value, onChange }) => {
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Typography
-        variant="body2"
-        sx={{ color: (theme) => theme.vars.palette.grey.dark }}
-      >
+      <Typography variant="body2" sx={{ color: (theme) => theme.vars.palette.grey.dark }}>
         Rows per page:
       </Typography>
       <FormControl size="small" sx={{ minWidth: 85 }}>
@@ -93,8 +84,7 @@ export const SortInfoDisplay = ({ sortModel }) => {
     >
       <SortIcon />
       <Typography variant="caption" sx={{ fontWeight: "medium" }}>
-        เรียงตาม: {displayField} (
-        {displayDirection === "ascending" ? "น้อยไปมาก" : "มากไปน้อย"})
+        เรียงตาม: {displayField} ({displayDirection === "ascending" ? "น้อยไปมาก" : "มากไปน้อย"})
       </Typography>
     </Box>
   );
@@ -125,13 +115,8 @@ export const NoDataComponent = () => (
     >
       📋
     </Box>
-    <Typography sx={{ fontSize: 18, fontWeight: "medium" }}>
-      ไม่พบข้อมูลลูกค้า
-    </Typography>
-    <Typography
-      variant="body2"
-      sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}
-    >
+    <Typography sx={{ fontSize: 18, fontWeight: "medium" }}>ไม่พบข้อมูลลูกค้า</Typography>
+    <Typography variant="body2" sx={{ textAlign: "center", maxWidth: 300, opacity: 0.7 }}>
       ลองใช้ตัวกรองอื่น หรือลองค้นหาด้วยคำสำคัญอื่น
     </Typography>
   </Box>
@@ -140,6 +125,6 @@ export const NoDataComponent = () => (
 // Mapping ข้อมูลช่องทาง
 export const channelMap = {
   1: "sales",
-  2: "online", 
+  2: "online",
   3: "office",
-}; 
+};

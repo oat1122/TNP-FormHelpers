@@ -21,15 +21,8 @@ import {
   Tooltip,
   CircularProgress,
 } from "@mui/material";
-import {
-  MdAdd,
-  MdEdit,
-  MdDelete,
-  MdClose,
-  MdSearch,
-  MdBusinessCenter,
-} from "react-icons/md";
-import Swal from 'sweetalert2';
+import { MdAdd, MdEdit, MdDelete, MdClose, MdSearch, MdBusinessCenter } from "react-icons/md";
+import Swal from "sweetalert2";
 import {
   useGetAllBusinessTypesQuery,
   useAddBusinessTypeMutation,
@@ -44,29 +37,23 @@ function BusinessTypeManager({ open, onClose }) {
   const [newTypeName, setNewTypeName] = useState("");
 
   // API Hooks
-  const {
-    data: businessTypes,
-    isLoading,
-    refetch,
-  } = useGetAllBusinessTypesQuery();
-  const [addBusinessType, { isLoading: isAdding }] =
-    useAddBusinessTypeMutation();
-  const [updateBusinessType, { isLoading: isUpdating }] =
-    useUpdateBusinessTypeMutation();
-  const [deleteBusinessType, { isLoading: isDeleting }] =
-    useDeleteBusinessTypeMutation();
+  const { data: businessTypes, isLoading, refetch } = useGetAllBusinessTypesQuery();
+  const [addBusinessType, { isLoading: isAdding }] = useAddBusinessTypeMutation();
+  const [updateBusinessType, { isLoading: isUpdating }] = useUpdateBusinessTypeMutation();
+  const [deleteBusinessType, { isLoading: isDeleting }] = useDeleteBusinessTypeMutation();
 
   // ฟังก์ชันเพิ่มประเภทธุรกิจใหม่
   const handleAddType = async () => {
     if (!newTypeName.trim()) return;
 
-    try {      await addBusinessType({
+    try {
+      await addBusinessType({
         bt_name: newTypeName.trim(),
       }).unwrap();
 
       setNewTypeName("");
       open_dialog_ok_timer("เพิ่มประเภทธุรกิจใหม่เรียบร้อย");
-      refetch();      
+      refetch();
       // ปิดหน้าจัดการประเภทธุรกิจเมื่อเพิ่มเรียบร้อย
       setTimeout(() => {
         onClose();
@@ -84,10 +71,11 @@ function BusinessTypeManager({ open, onClose }) {
       await updateBusinessType({
         bt_id: editingType.bt_id,
         bt_name: newTypeName.trim(),
-      }).unwrap();      setEditingType(null);
+      }).unwrap();
+      setEditingType(null);
       setNewTypeName("");
       open_dialog_ok_timer("อัพเดทประเภทธุรกิจเรียบร้อย");
-      refetch();      
+      refetch();
       // ปิดหน้าจัดการประเภทธุรกิจเมื่อแก้ไขเรียบร้อย
       setTimeout(() => {
         onClose();
@@ -102,88 +90,90 @@ function BusinessTypeManager({ open, onClose }) {
     try {
       // แสดงกล่องยืนยันการลบ
       const result = await Swal.fire({
-        title: 'ยืนยันการลบ?',
+        title: "ยืนยันการลบ?",
         text: `คุณต้องการลบประเภทธุรกิจ "${typeName}" ใช่หรือไม่?`,
-        icon: 'warning',
+        icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ใช่, ลบเลย',
-        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "ใช่, ลบเลย",
+        cancelButtonText: "ยกเลิก",
         allowOutsideClick: false,
         allowEscapeKey: false,
         focusConfirm: false,
         customClass: {
-          container: 'swal-container-top-layer',
-          popup: 'swal-popup-top',
-          backdrop: 'swal2-backdrop-show',
-          confirmButton: 'swal2-confirm',
-          cancelButton: 'swal2-cancel',
+          container: "swal-container-top-layer",
+          popup: "swal-popup-top",
+          backdrop: "swal2-backdrop-show",
+          confirmButton: "swal2-confirm",
+          cancelButton: "swal2-cancel",
         },
         backdrop: `rgba(0,0,0,0.7)`,
         zIndex: 9999999,
-        position: 'center',
+        position: "center",
       });
-      
+
       // ถ้าผู้ใช้กด "ใช่, ลบเลย"
       if (result.isConfirmed) {
         try {
           // แสดง loading ระหว่างลบ
           Swal.fire({
-            title: 'กำลังลบ...',
-            text: 'กรุณารอสักครู่',
+            title: "กำลังลบ...",
+            text: "กรุณารอสักครู่",
             allowOutsideClick: false,
             customClass: {
-              container: 'swal-container-top-layer',
-              popup: 'swal-popup-top',
-              backdrop: 'swal2-backdrop-show',
+              container: "swal-container-top-layer",
+              popup: "swal-popup-top",
+              backdrop: "swal2-backdrop-show",
             },
             zIndex: 9999999,
-            position: 'center',
+            position: "center",
             didOpen: () => {
               Swal.showLoading();
-            }
+            },
           });
-          
+
           const response = await deleteBusinessType(typeId).unwrap();
-          
-          if (response.status === 'success') {
+
+          if (response.status === "success") {
             Swal.fire({
-              title: 'ลบเรียบร้อย!',
-              text: 'ประเภทธุรกิจถูกลบเรียบร้อยแล้ว',
-              icon: 'success',
+              title: "ลบเรียบร้อย!",
+              text: "ประเภทธุรกิจถูกลบเรียบร้อยแล้ว",
+              icon: "success",
               timer: 1500,
               showConfirmButton: false,
               customClass: {
-                container: 'swal-container-top-layer',
-                popup: 'swal-popup-top',
-                backdrop: 'swal2-backdrop-show',
+                container: "swal-container-top-layer",
+                popup: "swal-popup-top",
+                backdrop: "swal2-backdrop-show",
               },
-              zIndex: 9999999,              position: 'center'
+              zIndex: 9999999,
+              position: "center",
             });
-            refetch();            
+            refetch();
             // ปิดหน้าจัดการประเภทธุรกิจเมื่อลบเรียบร้อย
             setTimeout(() => {
               onClose();
             }, 1000);
           }
         } catch (error) {
-          const errorMsg = error.data?.message || 
-                          "ไม่สามารถลบประเภทธุรกิจได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่";
-          
+          const errorMsg =
+            error.data?.message ||
+            "ไม่สามารถลบประเภทธุรกิจได้ เนื่องจากมีลูกค้าใช้งานประเภทธุรกิจนี้อยู่";
+
           Swal.fire({
-            title: 'ไม่สามารถลบได้',
+            title: "ไม่สามารถลบได้",
             html: `${errorMsg}<br><br><small>คำแนะนำ: กรุณาเปลี่ยนประเภทธุรกิจของลูกค้าที่ใช้ประเภทนี้ก่อนทำการลบ</small>`,
-            icon: 'error',
+            icon: "error",
             customClass: {
-              container: 'swal-container-top-layer',
-              popup: 'swal-popup-top',
-              backdrop: 'swal2-backdrop-show',
+              container: "swal-container-top-layer",
+              popup: "swal-popup-top",
+              backdrop: "swal2-backdrop-show",
             },
             zIndex: 9999999,
-            position: 'center'
+            position: "center",
           });
-          
+
           console.error("Delete business type error:", error);
         }
       }
@@ -205,9 +195,7 @@ function BusinessTypeManager({ open, onClose }) {
 
   // กรองรายการประเภทธุรกิจตามคำค้นหา
   const filteredTypes = businessTypes
-    ? businessTypes.filter((type) =>
-        type.bt_name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? businessTypes.filter((type) => type.bt_name.toLowerCase().includes(searchTerm.toLowerCase()))
     : [];
 
   return (
@@ -242,7 +230,8 @@ function BusinessTypeManager({ open, onClose }) {
         },
       }}
     >
-      {" "}      <DialogTitle
+      {" "}
+      <DialogTitle
         sx={{
           p: 2,
           background: "linear-gradient(90deg, #f5f5f5, #eeeeee)",
@@ -259,13 +248,14 @@ function BusinessTypeManager({ open, onClose }) {
             left: 0,
             right: 0,
             bottom: 0,
-            background:
-              "linear-gradient(45deg, transparent 65%, rgba(255, 255, 255, 0.3) 85%)",
+            background: "linear-gradient(45deg, transparent 65%, rgba(255, 255, 255, 0.3) 85%)",
             zIndex: 0,
           },
         }}
       >
-        {" "}        <Box          sx={{
+        {" "}
+        <Box
+          sx={{
             backgroundColor: "rgba(220, 38, 38, 0.1)",
             borderRadius: "50%",
             p: 0.8,
@@ -276,7 +266,8 @@ function BusinessTypeManager({ open, onClose }) {
           }}
         >
           <MdBusinessCenter size={24} color="#DC2626" />
-        </Box>{" "}        <Typography
+        </Box>{" "}
+        <Typography
           variant="h6"
           component="div"
           sx={{
@@ -284,12 +275,13 @@ function BusinessTypeManager({ open, onClose }) {
             fontFamily: "Kanit",
             fontWeight: 600,
             zIndex: 1,
-            color: 'black',
+            color: "black",
             textShadow: "0 1px 1px rgba(255, 255, 255, 0.25)",
           }}
         >
           จัดการประเภทธุรกิจ
-        </Typography>{" "}        <IconButton
+        </Typography>{" "}
+        <IconButton
           edge="end"
           onClick={onClose}
           aria-label="close"
@@ -333,7 +325,8 @@ function BusinessTypeManager({ open, onClose }) {
             "&:hover": {
               boxShadow: "0 8px 20px rgba(255, 82, 82, 0.15)",
               transform: "translateY(-2px)",
-            },            "&::before": {
+            },
+            "&::before": {
               content: '""',
               position: "absolute",
               top: 0,
@@ -347,7 +340,10 @@ function BusinessTypeManager({ open, onClose }) {
           {editingType ? (
             <>
               {" "}
-              <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>                <Box                  sx={{
+              <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>
+                {" "}
+                <Box
+                  sx={{
                     borderRadius: "50%",
                     bgcolor: "rgba(220, 38, 38, 0.1)",
                     p: 1.2,
@@ -356,7 +352,8 @@ function BusinessTypeManager({ open, onClose }) {
                   }}
                 >
                   <MdEdit size={22} />
-                </Box>                <Typography
+                </Box>{" "}
+                <Typography
                   variant="subtitle1"
                   sx={{
                     fontFamily: "Kanit",
@@ -378,9 +375,7 @@ function BusinessTypeManager({ open, onClose }) {
                   </Typography>
                 </Typography>
               </Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}
-              >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
                 <TextField
                   fullWidth
                   size="medium"
@@ -404,8 +399,7 @@ function BusinessTypeManager({ open, onClose }) {
                         boxShadow: "0 4px 8px rgba(255, 82, 82, 0.1)",
                       },
                       "&:hover fieldset": {
-                        borderColor: (theme) =>
-                          `${theme.vars.palette.error.main}4D`,
+                        borderColor: (theme) => `${theme.vars.palette.error.main}4D`,
                       },
                       "&.Mui-focused": {
                         boxShadow: "0 4px 12px rgba(255, 82, 82, 0.15)",
@@ -475,7 +469,10 @@ function BusinessTypeManager({ open, onClose }) {
           ) : (
             <>
               {" "}
-              <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>                <Box                  sx={{
+              <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>
+                {" "}
+                <Box
+                  sx={{
                     borderRadius: "50%",
                     bgcolor: "rgba(220, 38, 38, 0.1)",
                     p: 1.2,
@@ -484,7 +481,8 @@ function BusinessTypeManager({ open, onClose }) {
                   }}
                 >
                   <MdAdd size={22} />
-                </Box><Typography
+                </Box>
+                <Typography
                   variant="subtitle1"
                   sx={{
                     fontFamily: "Kanit",
@@ -496,9 +494,7 @@ function BusinessTypeManager({ open, onClose }) {
                   เพิ่มประเภทธุรกิจใหม่
                 </Typography>
               </Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}
-              >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
                 <TextField
                   fullWidth
                   size="medium"
@@ -521,8 +517,7 @@ function BusinessTypeManager({ open, onClose }) {
                         boxShadow: "0 4px 8px rgba(255, 82, 82, 0.1)",
                       },
                       "&:hover fieldset": {
-                        borderColor: (theme) =>
-                          `${theme.vars.palette.error.main}4D`,
+                        borderColor: (theme) => `${theme.vars.palette.error.main}4D`,
                       },
                       "&.Mui-focused": {
                         boxShadow: "0 4px 12px rgba(255, 82, 82, 0.15)",
@@ -569,10 +564,13 @@ function BusinessTypeManager({ open, onClose }) {
             </>
           )}{" "}
           {(isAdding || isUpdating) && (
-            <Box sx={{ mt: 3, px: 1 }}>              <LinearProgress
+            <Box sx={{ mt: 3, px: 1 }}>
+              {" "}
+              <LinearProgress
                 sx={{
                   borderRadius: 1.5,
-                  height: 8,                    bgcolor: "rgba(220, 38, 38, 0.1)",
+                  height: 8,
+                  bgcolor: "rgba(220, 38, 38, 0.1)",
                   "& .MuiLinearProgress-bar": {
                     backgroundImage: "linear-gradient(90deg, #EF4444, #DC2626)",
                   },
@@ -583,7 +581,8 @@ function BusinessTypeManager({ open, onClose }) {
                 sx={{
                   display: "block",
                   mt: 1.5,
-                  textAlign: "center",                color: "#DC2626",
+                  textAlign: "center",
+                  color: "#DC2626",
                   fontWeight: 500,
                   fontSize: "0.85rem",
                 }}
@@ -602,7 +601,9 @@ function BusinessTypeManager({ open, onClose }) {
             mb: 2.5,
             gap: 2,
           }}
-        >          <Box
+        >
+          {" "}
+          <Box
             sx={{
               display: "flex",
               alignItems: "center",
@@ -611,7 +612,8 @@ function BusinessTypeManager({ open, onClose }) {
             }}
           >
             <Box
-              sx={{                background: "linear-gradient(135deg, #EF4444, #DC2626)",
+              sx={{
+                background: "linear-gradient(135deg, #EF4444, #DC2626)",
                 color: "white",
                 borderRadius: "50%",
                 p: 0.8,
@@ -620,8 +622,10 @@ function BusinessTypeManager({ open, onClose }) {
               }}
             >
               <MdBusinessCenter size={18} />
-            </Box>            <Typography
-              variant="subtitle1"              sx={{
+            </Box>{" "}
+            <Typography
+              variant="subtitle1"
+              sx={{
                 fontFamily: "Kanit",
                 fontWeight: 600,
                 color: "black",
@@ -645,7 +649,6 @@ function BusinessTypeManager({ open, onClose }) {
               </Box>
             </Typography>
           </Box>
-
           {/* ส่วนค้นหา */}
           <Box sx={{ minWidth: 220, maxWidth: 280, width: "40%" }}>
             <TextField
@@ -681,11 +684,13 @@ function BusinessTypeManager({ open, onClose }) {
                     borderWidth: "1px",
                   },
                 },
-              }}              InputProps={{
+              }}
+              InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
                     <Box
-                      sx={{                        backgroundColor: "rgba(220, 38, 38, 0.08)",
+                      sx={{
+                        backgroundColor: "rgba(220, 38, 38, 0.08)",
                         borderRadius: "50%",
                         p: 0.5,
                         color: "#DC2626",
@@ -714,7 +719,8 @@ function BusinessTypeManager({ open, onClose }) {
               gap: 3,
               boxShadow: "0 4px 16px rgba(0, 0, 0, 0.07)",
               position: "relative",
-              overflow: "hidden",              "&::before": {
+              overflow: "hidden",
+              "&::before": {
                 content: '""',
                 position: "absolute",
                 top: 0,
@@ -724,9 +730,12 @@ function BusinessTypeManager({ open, onClose }) {
                 background: "linear-gradient(90deg, #EF4444 0%, #DC2626 100%)",
               },
             }}
-          >            <CircularProgress
+          >
+            {" "}
+            <CircularProgress
               size={48}
-              thickness={4}                sx={{
+              thickness={4}
+              sx={{
                 color: "#DC2626",
                 animation: "pulse 2s infinite ease-in-out",
                 "@keyframes pulse": {
@@ -774,7 +783,8 @@ function BusinessTypeManager({ open, onClose }) {
                 "&::-webkit-scrollbar-track": {
                   background: "rgba(0, 0, 0, 0.03)",
                   borderRadius: "10px",
-                },                "&::-webkit-scrollbar-thumb": {
+                },
+                "&::-webkit-scrollbar-thumb": {
                   background: "rgba(220, 38, 38, 0.3)",
                   borderRadius: "10px",
                   "&:hover": {
@@ -880,9 +890,7 @@ function BusinessTypeManager({ open, onClose }) {
               },
             }}
           >
-            {searchTerm
-              ? "ไม่พบประเภทธุรกิจที่ค้นหา"
-              : "ยังไม่มีประเภทธุรกิจในระบบ"}
+            {searchTerm ? "ไม่พบประเภทธุรกิจที่ค้นหา" : "ยังไม่มีประเภทธุรกิจในระบบ"}
           </Alert>
         )}
       </DialogContent>{" "}
@@ -900,8 +908,7 @@ function BusinessTypeManager({ open, onClose }) {
             transform: "translateX(-50%)",
             width: "70%",
             height: "1px",
-            background:
-              "linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.06), transparent)",
+            background: "linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.06), transparent)",
           },
         }}
       >

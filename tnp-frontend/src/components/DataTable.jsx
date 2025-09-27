@@ -5,14 +5,7 @@ import {
   useGridApiContext,
   useGridSelector,
 } from "@mui/x-data-grid";
-import {
-  Box,
-  styled,
-  Pagination,
-  PaginationItem,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, styled, Pagination, PaginationItem, useTheme, useMediaQuery } from "@mui/material";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({

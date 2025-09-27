@@ -5,11 +5,7 @@ import {
   useUpdateRecallMutation,
   useChangeGradeMutation,
 } from "../../../features/Customer/customerApi";
-import {
-  resetInputList,
-  setInputList,
-  setMode,
-} from "../../../features/Customer/customerSlice";
+import { resetInputList, setInputList, setMode } from "../../../features/Customer/customerSlice";
 import { setLocationSearch } from "../../../features/globalSlice";
 import { swal_delete_by_id } from "../../../utils/dialog_swal2/dialog_delete_by_id";
 import {
@@ -39,10 +35,7 @@ export const useCustomerActions = (scrollToTop) => {
         let managedBy = { user_id: "", username: "" };
 
         if (itemFill.cus_manage_by) {
-          if (
-            typeof itemFill.cus_manage_by === "object" &&
-            itemFill.cus_manage_by.user_id
-          ) {
+          if (typeof itemFill.cus_manage_by === "object" && itemFill.cus_manage_by.user_id) {
             managedBy = {
               user_id: String(itemFill.cus_manage_by.user_id),
               username: itemFill.cus_manage_by.username || "",
@@ -95,9 +88,7 @@ export const useCustomerActions = (scrollToTop) => {
 
   // จัดการการลบลูกค้า
   const handleDelete = async (params) => {
-    const confirmed = await swal_delete_by_id(
-      `กรุณายืนยันการลบข้อมูล ${params.cus_name}`
-    );
+    const confirmed = await swal_delete_by_id(`กรุณายืนยันการลบข้อมูล ${params.cus_name}`);
 
     if (confirmed) {
       open_dialog_loading();
@@ -118,9 +109,7 @@ export const useCustomerActions = (scrollToTop) => {
 
   // จัดการการรีเซ็ต recall timer
   const handleRecall = async (params) => {
-    const confirmed = await swal_delete_by_id(
-      `กรุณายืนยันการรีเซตเวลาของ ${params.cus_name}`
-    );
+    const confirmed = await swal_delete_by_id(`กรุณายืนยันการรีเซตเวลาของ ${params.cus_name}`);
 
     if (confirmed) {
       open_dialog_loading();
@@ -149,17 +138,13 @@ export const useCustomerActions = (scrollToTop) => {
   const handleChangeGroup = async (is_up, params, refetch) => {
     const direction = is_up ? "up" : "down";
 
-    const currentGroup = groupList.find(
-      (group) => group.mcg_id === params.cus_mcg_id
-    );
+    const currentGroup = groupList.find((group) => group.mcg_id === params.cus_mcg_id);
     const currentGrade = currentGroup ? currentGroup.mcg_name : "?";
 
     let targetGrade = "?";
     if (currentGroup) {
       const targetSort = currentGroup.mcg_sort + (is_up ? -1 : 1);
-      const targetGroup = groupList.find(
-        (group) => group.mcg_sort === targetSort
-      );
+      const targetGroup = groupList.find((group) => group.mcg_sort === targetSort);
       if (targetGroup) {
         targetGrade = targetGroup.mcg_name;
       }
@@ -199,9 +184,7 @@ export const useCustomerActions = (scrollToTop) => {
   // ตรวจสอบว่าควร disable button หรือไม่
   const handleDisableChangeGroupBtn = useMemo(
     () => (is_up, params) => {
-      const matchGroup = groupList.find(
-        (group) => group.mcg_id === params.cus_mcg_id
-      );
+      const matchGroup = groupList.find((group) => group.mcg_id === params.cus_mcg_id);
       if (!matchGroup) return true;
 
       const minSort = 1; // Grade A has sort = 1
@@ -225,4 +208,4 @@ export const useCustomerActions = (scrollToTop) => {
     handleDisableChangeGroupBtn,
     user,
   };
-}; 
+};

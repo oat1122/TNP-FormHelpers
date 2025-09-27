@@ -1,23 +1,23 @@
-import { configureStore } from '@reduxjs/toolkit'
+import { configureStore } from "@reduxjs/toolkit";
 // Or from '@reduxjs/toolkit/query/react'
-import { setupListeners } from '@reduxjs/toolkit/query'
-import { apiSlice } from './api/slice';
-import { tnpApi } from './services/tnpApi';
-import { globalApi } from './features/globalApi';
-import { worksheetApi } from './features/Worksheet/worksheetApi';
-import { customerApi } from './features/Customer/customerApi';
-import { userManagementApi } from './features/UserManagement/userManagementApi';
-import { pricingApi } from './features/Pricing/pricingApi';
-import { accountingApi } from './features/Accounting/accountingApi';
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { apiSlice } from "./api/slice";
+import { tnpApi } from "./services/tnpApi";
+import { globalApi } from "./features/globalApi";
+import { worksheetApi } from "./features/Worksheet/worksheetApi";
+import { customerApi } from "./features/Customer/customerApi";
+import { userManagementApi } from "./features/UserManagement/userManagementApi";
+import { pricingApi } from "./features/Pricing/pricingApi";
+import { accountingApi } from "./features/Accounting/accountingApi";
 
-import globalSliceReducer from './features/globalSlice';
-import fabricCostReducer from './features/fabricCost/fabricCostSlice';
-import monitorProductionSliceReducer from './features/MonitorProduction/monitorProductionSlice';
-import worksheetSliceReducer from './features/Worksheet/worksheetSlice';
-import customerSliceReducer from './features/Customer/customerSlice';
-import userManagementReducers from './features/UserManagement/userManagementSlice';
-import pricingReducers from './features/Pricing/pricingSlice';
-import accountingReducer from './features/Accounting/accountingSlice';
+import globalSliceReducer from "./features/globalSlice";
+import fabricCostReducer from "./features/fabricCost/fabricCostSlice";
+import monitorProductionSliceReducer from "./features/MonitorProduction/monitorProductionSlice";
+import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
+import customerSliceReducer from "./features/Customer/customerSlice";
+import userManagementReducers from "./features/UserManagement/userManagementSlice";
+import pricingReducers from "./features/Pricing/pricingSlice";
+import accountingReducer from "./features/Accounting/accountingSlice";
 
 const store = configureStore({
   reducer: {
@@ -52,12 +52,12 @@ const store = configureStore({
       customerApi.middleware,
       userManagementApi.middleware,
       pricingApi.middleware,
-      accountingApi.middleware,
+      accountingApi.middleware
     ),
-})
+});
 
 // optional, but required for refetchOnFocus/refetchOnReconnect behaviors
 // see `setupListeners` docs - takes an optional callback as the 2nd arg for customization
-setupListeners(store.dispatch)
+setupListeners(store.dispatch);
 
 export default store;

@@ -12,9 +12,7 @@ export const measureExecutionTime = (fn, label = "Function") => {
     const end = performance.now();
 
     if (process.env.NODE_ENV === "development") {
-      console.log(
-        `[Performance] ${label} execution time: ${(end - start).toFixed(2)}ms`
-      );
+      console.log(`[Performance] ${label} execution time: ${(end - start).toFixed(2)}ms`);
     }
 
     return result;

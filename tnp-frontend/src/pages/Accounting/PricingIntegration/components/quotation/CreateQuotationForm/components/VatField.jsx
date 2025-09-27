@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Grid,
@@ -13,17 +13,17 @@ import {
   IconButton,
   Tooltip,
   useTheme,
-  Collapse
-} from '@mui/material';
+  Collapse,
+} from "@mui/material";
 import {
   Percent as VatIcon,
   Info as InfoIcon,
   Calculate as CalculateIcon,
-  ExpandMore as ExpandMoreIcon
-} from '@mui/icons-material';
-import { formatTHB } from '../../utils/currency';
-import { sanitizeDecimal } from '../../../../../shared/inputSanitizers';
-import { tokens } from '../../styles/quotationTheme';
+  ExpandMore as ExpandMoreIcon,
+} from "@mui/icons-material";
+import { formatTHB } from "../../utils/currency";
+import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
+import { tokens } from "../../styles/quotationTheme";
 
 const VatField = ({
   hasVat = true,
@@ -32,16 +32,16 @@ const VatField = ({
   subtotalAmount = 0,
   onToggleVat,
   onVatPercentageChange,
-  disabled = false
+  disabled = false,
 }) => {
   const theme = useTheme();
   const [showDetails, setShowDetails] = useState(false);
 
   // Common VAT rates in Thailand
   const commonVatRates = [
-    { value: 0, label: '0%', desc: 'ยกเว้นภาษี' },
-    { value: 7, label: '7%', desc: 'อัตราปกติ' },
-    { value: 10, label: '10%', desc: 'อัตราพิเศษ' }
+    { value: 0, label: "0%", desc: "ยกเว้นภาษี" },
+    { value: 7, label: "7%", desc: "อัตราปกติ" },
+    { value: 10, label: "10%", desc: "อัตราพิเศษ" },
   ];
 
   const handleVatRateSelect = (rate) => {
@@ -56,33 +56,33 @@ const VatField = ({
   const calculatedVatAmount = subtotalAmount * (vatPercentage / 100);
 
   return (
-    <Card 
-      elevation={0} 
-      sx={{ 
+    <Card
+      elevation={0}
+      sx={{
         border: `1px solid ${theme.palette.divider}`,
         borderRadius: 2,
-        background: hasVat 
+        background: hasVat
           ? `linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)`
           : `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          borderColor: hasVat ? '#4caf50' : tokens.primary,
-          boxShadow: hasVat 
-            ? '0 4px 20px rgba(76, 175, 80, 0.2)'
-            : `0 4px 20px ${tokens.primary}20`
-        }
+        transition: "all 0.3s ease",
+        "&:hover": {
+          borderColor: hasVat ? "#4caf50" : tokens.primary,
+          boxShadow: hasVat
+            ? "0 4px 20px rgba(76, 175, 80, 0.2)"
+            : `0 4px 20px ${tokens.primary}20`,
+        },
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
         {/* Header with Toggle */}
         <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-          <Box 
-            sx={{ 
-              p: 1, 
-              borderRadius: '50%', 
-              bgcolor: hasVat ? '#4caf50' : theme.palette.grey[300],
-              color: hasVat ? 'white' : theme.palette.grey[600],
-              transition: 'all 0.3s ease'
+          <Box
+            sx={{
+              p: 1,
+              borderRadius: "50%",
+              bgcolor: hasVat ? "#4caf50" : theme.palette.grey[300],
+              color: hasVat ? "white" : theme.palette.grey[600],
+              transition: "all 0.3s ease",
             }}
           >
             <VatIcon fontSize="small" />
@@ -131,15 +131,15 @@ const VatField = ({
         {/* Toggle Details */}
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
           <Typography variant="caption" color="text.secondary">
-            {hasVat ? 'ปรับแต่งอัตราภาษี' : 'การตั้งค่าภาษี'}
+            {hasVat ? "ปรับแต่งอัตราภาษี" : "การตั้งค่าภาษี"}
           </Typography>
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             onClick={() => setShowDetails(!showDetails)}
             disabled={disabled}
             sx={{
-              transform: showDetails ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s ease'
+              transform: showDetails ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.3s ease",
             }}
           >
             <ExpandMoreIcon fontSize="small" />
@@ -163,27 +163,29 @@ const VatField = ({
                         sx={{
                           p: 1,
                           borderRadius: 1,
-                          border: `1px solid ${vatPercentage === rate.value ? '#4caf50' : theme.palette.divider}`,
-                          bgcolor: vatPercentage === rate.value ? '#e8f5e8' : 'transparent',
-                          cursor: disabled ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.2s ease',
+                          border: `1px solid ${vatPercentage === rate.value ? "#4caf50" : theme.palette.divider}`,
+                          bgcolor: vatPercentage === rate.value ? "#e8f5e8" : "transparent",
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          transition: "all 0.2s ease",
                           opacity: disabled ? 0.6 : 1,
-                          '&:hover': !disabled ? {
-                            borderColor: '#4caf50',
-                            bgcolor: '#f1f8e9'
-                          } : {}
+                          "&:hover": !disabled
+                            ? {
+                                borderColor: "#4caf50",
+                                bgcolor: "#f1f8e9",
+                              }
+                            : {},
                         }}
                       >
-                        <Typography 
-                          variant="body2" 
+                        <Typography
+                          variant="body2"
                           fontWeight={vatPercentage === rate.value ? 700 : 500}
-                          color={vatPercentage === rate.value ? '#2e7d32' : 'text.primary'}
+                          color={vatPercentage === rate.value ? "#2e7d32" : "text.primary"}
                           textAlign="center"
                         >
                           {rate.label}
                         </Typography>
-                        <Typography 
-                          variant="caption" 
+                        <Typography
+                          variant="caption"
                           color="text.secondary"
                           textAlign="center"
                           display="block"
@@ -204,45 +206,45 @@ const VatField = ({
                 size="small"
                 type="text"
                 label="อัตราภาษี (%)"
-                inputProps={{ 
-                  inputMode: 'numeric',
-                  style: { 
-                    textAlign: 'center',
-                    fontSize: '1.1rem',
-                    fontWeight: 600
-                  }
+                inputProps={{
+                  inputMode: "numeric",
+                  style: {
+                    textAlign: "center",
+                    fontSize: "1.1rem",
+                    fontWeight: 600,
+                  },
                 }}
-                value={String(vatPercentage || '')}
+                value={String(vatPercentage || "")}
                 onChange={(e) => handlePercentageChange(e.target.value)}
                 placeholder="7.00"
                 disabled={disabled}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
+                  "& .MuiOutlinedInput-root": {
                     borderRadius: 2,
                     bgcolor: theme.palette.background.paper,
-                    '&.Mui-focused': {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#4caf50',
-                        borderWidth: 2
-                      }
-                    }
+                    "&.Mui-focused": {
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#4caf50",
+                        borderWidth: 2,
+                      },
+                    },
                   },
-                  '& .MuiInputLabel-root.Mui-focused': {
-                    color: '#4caf50'
-                  }
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "#4caf50",
+                  },
                 }}
               />
               <Typography
                 variant="caption"
                 color="text.secondary"
                 sx={{
-                  position: 'absolute',
+                  position: "absolute",
                   right: 8,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
                   bgcolor: theme.palette.background.paper,
-                  px: 0.5
+                  px: 0.5,
                 }}
               >
                 %
@@ -251,18 +253,18 @@ const VatField = ({
 
             {/* Calculation Display */}
             <Fade in={hasVat}>
-              <Box 
-                sx={{ 
-                  bgcolor: '#f9fdf9', 
-                  borderRadius: 1, 
+              <Box
+                sx={{
+                  bgcolor: "#f9fdf9",
+                  borderRadius: 1,
                   p: 1.5,
-                  border: `1px solid ${theme.palette.success.light}`
+                  border: `1px solid ${theme.palette.success.light}`,
                 }}
               >
                 <Typography variant="caption" color="text.secondary" gutterBottom>
                   การคำนวณ VAT
                 </Typography>
-                <Grid container spacing={1} sx={{ fontSize: '0.875rem' }}>
+                <Grid container spacing={1} sx={{ fontSize: "0.875rem" }}>
                   <Grid item xs={6}>
                     <Typography variant="body2">ฐานภาษี:</Typography>
                   </Grid>
@@ -275,7 +277,12 @@ const VatField = ({
                     <Typography variant="body2">VAT {vatPercentage}%:</Typography>
                   </Grid>
                   <Grid item xs={6}>
-                    <Typography variant="body2" textAlign="right" fontWeight={600} color="success.main">
+                    <Typography
+                      variant="body2"
+                      textAlign="right"
+                      fontWeight={600}
+                      color="success.main"
+                    >
                       {formatTHB(calculatedVatAmount)}
                     </Typography>
                   </Grid>
@@ -283,10 +290,17 @@ const VatField = ({
                     <Box sx={{ borderTop: `1px solid ${theme.palette.divider}`, pt: 0.5, mt: 0.5 }}>
                       <Grid container>
                         <Grid item xs={6}>
-                          <Typography variant="body2" fontWeight={700}>ยอดรวม VAT:</Typography>
+                          <Typography variant="body2" fontWeight={700}>
+                            ยอดรวม VAT:
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2" textAlign="right" fontWeight={700} color="success.main">
+                          <Typography
+                            variant="body2"
+                            textAlign="right"
+                            fontWeight={700}
+                            color="success.main"
+                          >
                             {formatTHB(subtotalAmount + calculatedVatAmount)}
                           </Typography>
                         </Grid>
@@ -301,12 +315,14 @@ const VatField = ({
 
         {/* Help text when VAT is disabled */}
         <Collapse in={!hasVat}>
-          <Box sx={{ 
-            bgcolor: theme.palette.grey[50], 
-            borderRadius: 1, 
-            p: 1.5,
-            textAlign: 'center'
-          }}>
+          <Box
+            sx={{
+              bgcolor: theme.palette.grey[50],
+              borderRadius: 1,
+              p: 1.5,
+              textAlign: "center",
+            }}
+          >
             <Typography variant="caption" color="text.secondary">
               ไม่คิดภาษีมูลค่าเพิ่ม (ยกเว้นภาษี หรือสินค้าไม่มี VAT)
             </Typography>

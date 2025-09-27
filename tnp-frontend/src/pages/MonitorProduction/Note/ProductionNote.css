@@ -1,34 +1,34 @@
 .row-post {
-    background-color: #efedee;
-    border-radius: 0.8rem;
-    margin-inline: 0.1rem;
-    padding-block: 0.3rem;
+  background-color: #efedee;
+  border-radius: 0.8rem;
+  margin-inline: 0.1rem;
+  padding-block: 0.3rem;
 }
 
 .row-post label {
-    font-size: 1.375rem;
-    letter-spacing: 0.07rem;
-    line-height: 1.375rem;
+  font-size: 1.375rem;
+  letter-spacing: 0.07rem;
+  line-height: 1.375rem;
 }
 
 .form-control.textarea-post {
-    font-family: "PSL KittithadaBold" !important;
-    font-size: 1.375rem !important;
-    letter-spacing: 0.07rem !important;
-    line-height: 1.375rem;
-    color: #000000 !important;
-    background-color: #efedee !important;
-    border-radius: 0.8rem !important;
-    width: 100%;
-    min-height: calc(1em + 0.75rem + 2px);
+  font-family: "PSL KittithadaBold" !important;
+  font-size: 1.375rem !important;
+  letter-spacing: 0.07rem !important;
+  line-height: 1.375rem;
+  color: #000000 !important;
+  background-color: #efedee !important;
+  border-radius: 0.8rem !important;
+  width: 100%;
+  min-height: calc(1em + 0.75rem + 2px);
 }
 
 .MuiButton-root.btn-post {
-    font-family: "PSL Kittithada" !important;
-    font-size: 1.125rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1rem !important;
-    background-color: #efedee !important;
-    color: black !important;
-    border-radius: 0.8rem !important;
+  font-family: "PSL Kittithada" !important;
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1rem !important;
+  background-color: #efedee !important;
+  color: black !important;
+  border-radius: 0.8rem !important;
 }

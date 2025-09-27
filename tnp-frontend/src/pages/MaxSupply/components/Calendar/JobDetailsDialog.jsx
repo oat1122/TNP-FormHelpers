@@ -26,11 +26,7 @@ import {
   Event as EventIcon,
   Work as WorkIcon,
 } from "@mui/icons-material";
-import {
-  productionTypeConfig,
-  statusConfig,
-  priorityConfig,
-} from "../../utils/constants";
+import { productionTypeConfig, statusConfig, priorityConfig } from "../../utils/constants";
 import {
   formatDate,
   formatShortDate,
@@ -40,30 +36,18 @@ import {
 } from "../../utils/dateFormatters";
 import ProductionTypeIcon from "../ProductionTypeIcon";
 
-const JobDetailsDialog = ({
-  open,
-  onClose,
-  selectedJob,
-  onJobEdit,
-  onJobDelete,
-}) => {
+const JobDetailsDialog = ({ open, onClose, selectedJob, onJobEdit, onJobDelete }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   if (!selectedJob) return null;
 
   const typeConfig =
-    productionTypeConfig[selectedJob.production_type] ||
-    productionTypeConfig.screen;
+    productionTypeConfig[selectedJob.production_type] || productionTypeConfig.screen;
   const statusInfo = statusConfig[selectedJob.status] || statusConfig.pending;
-  const priorityInfo =
-    priorityConfig[selectedJob.priority] || priorityConfig.normal;
-  const endDateForDuration =
-    selectedJob.expected_completion_date || selectedJob.due_date;
-  const duration = calculateDuration(
-    selectedJob.start_date,
-    endDateForDuration
-  );
+  const priorityInfo = priorityConfig[selectedJob.priority] || priorityConfig.normal;
+  const endDateForDuration = selectedJob.expected_completion_date || selectedJob.due_date;
+  const duration = calculateDuration(selectedJob.start_date, endDateForDuration);
 
   const handleJobEdit = () => {
     onJobEdit(selectedJob);
@@ -88,9 +72,7 @@ const JobDetailsDialog = ({
       PaperProps={{
         sx: {
           borderRadius: isMobile ? 0 : 3,
-          boxShadow: isMobile
-            ? "none"
-            : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          boxShadow: isMobile ? "none" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
           overflow: "hidden",
         },
       }}
@@ -121,18 +103,10 @@ const JobDetailsDialog = ({
                 height: 56,
               }}
             >
-              <ProductionTypeIcon
-                type={selectedJob.production_type}
-                size={24}
-                color="white"
-              />
+              <ProductionTypeIcon type={selectedJob.production_type} size={24} color="white" />
             </Avatar>
             <Box>
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                sx={{ color: "white" }}
-              >
+              <Typography variant="h6" fontWeight="bold" sx={{ color: "white" }}>
                 {selectedJob.title || "งานไม่ระบุชื่อ"}
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9, color: "white" }}>
@@ -282,11 +256,7 @@ const JobDetailsDialog = ({
                     <Typography
                       variant="body2"
                       fontWeight="medium"
-                      color={
-                        isOverdue(selectedJob.due_date)
-                          ? "error.main"
-                          : "text.primary"
-                      }
+                      color={isOverdue(selectedJob.due_date) ? "error.main" : "text.primary"}
                     >
                       {formatDate(selectedJob.due_date)}
                     </Typography>
@@ -302,11 +272,7 @@ const JobDetailsDialog = ({
                   <Typography variant="body2" color="text.secondary">
                     ระยะเวลา:
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    fontWeight="medium"
-                    color={typeConfig.color}
-                  >
+                  <Typography variant="body2" fontWeight="medium" color={typeConfig.color}>
                     {formatDuration(duration)}
                   </Typography>
                 </Box>
@@ -319,29 +285,17 @@ const JobDetailsDialog = ({
                     border: `1px solid ${typeConfig.color}30`,
                   }}
                 >
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    gutterBottom
-                  >
+                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                     การแสดงผลบนปฏิทิน
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: typeConfig.color, fontWeight: "bold" }}
-                  >
-                    {typeConfig.icon} Timeline bar ข้ามจาก{" "}
-                    {formatShortDate(selectedJob.start_date)} ถึง{" "}
-                    {formatShortDate(
-                      selectedJob.expected_completion_date ||
-                        selectedJob.due_date
-                    )}
+                  <Typography variant="body2" sx={{ color: typeConfig.color, fontWeight: "bold" }}>
+                    {typeConfig.icon} Timeline bar ข้ามจาก {formatShortDate(selectedJob.start_date)}{" "}
+                    ถึง{" "}
+                    {formatShortDate(selectedJob.expected_completion_date || selectedJob.due_date)}
                   </Typography>
                   {selectedJob.due_date &&
                     selectedJob.expected_completion_date &&
-                    selectedJob.due_date !==
-                      selectedJob.expected_completion_date && (
+                    selectedJob.due_date !== selectedJob.expected_completion_date && (
                       <Typography
                         variant="caption"
                         display="block"
@@ -367,84 +321,68 @@ const JobDetailsDialog = ({
                 รายละเอียดการผลิต
               </Typography>
               <Grid container spacing={2}>
-                {Object.entries(selectedJob.work_calculations).map(
-                  ([type, data]) => {
-                    const typeConf =
-                      productionTypeConfig[type] || productionTypeConfig.screen;
-                    return (
-                      <Grid item xs={12} md={6} key={type}>
-                        <Card
-                          variant="outlined"
-                          sx={{
-                            p: 2,
-                            bgcolor: typeConf.bgColor,
-                            borderColor: typeConf.color,
-                          }}
+                {Object.entries(selectedJob.work_calculations).map(([type, data]) => {
+                  const typeConf = productionTypeConfig[type] || productionTypeConfig.screen;
+                  return (
+                    <Grid item xs={12} md={6} key={type}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          bgcolor: typeConf.bgColor,
+                          borderColor: typeConf.color,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          fontWeight="bold"
+                          sx={{ mb: 1, color: typeConf.color }}
                         >
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight="bold"
-                            sx={{ mb: 1, color: typeConf.color }}
-                          >
-                            {typeConf.icon} {typeConf.label}
-                          </Typography>
-                          <Grid container spacing={2}>
-                            <Grid item xs={4}>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                จุดพิมพ์
-                              </Typography>
-                              <Typography variant="h6" fontWeight="bold">
-                                {data.points || 0}
-                              </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                จำนวน
-                              </Typography>
-                              <Typography variant="h6" fontWeight="bold">
-                                {data.total_quantity || 0}
-                              </Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                รวมงาน
-                              </Typography>
-                              <Typography
-                                variant="h6"
-                                fontWeight="bold"
-                                color={typeConf.color}
-                              >
-                                {data.total_work || 0}
-                              </Typography>
-                            </Grid>
-                          </Grid>
-                          {data.description && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                mt: 1,
-                                display: "block",
-                                fontStyle: "italic",
-                              }}
-                            >
-                              {data.description}
+                          {typeConf.icon} {typeConf.label}
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              จุดพิมพ์
                             </Typography>
-                          )}
-                        </Card>
-                      </Grid>
-                    );
-                  }
-                )}
+                            <Typography variant="h6" fontWeight="bold">
+                              {data.points || 0}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              จำนวน
+                            </Typography>
+                            <Typography variant="h6" fontWeight="bold">
+                              {data.total_quantity || 0}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={4}>
+                            <Typography variant="caption" color="text.secondary">
+                              รวมงาน
+                            </Typography>
+                            <Typography variant="h6" fontWeight="bold" color={typeConf.color}>
+                              {data.total_work || 0}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                        {data.description && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              mt: 1,
+                              display: "block",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            {data.description}
+                          </Typography>
+                        )}
+                      </Card>
+                    </Grid>
+                  );
+                })}
               </Grid>
             </Grid>
           )}
@@ -466,8 +404,7 @@ const JobDetailsDialog = ({
               {selectedJob.special_instructions && (
                 <Alert severity="warning">
                   <Typography variant="body2">
-                    <strong>คำแนะนำพิเศษ:</strong>{" "}
-                    {selectedJob.special_instructions}
+                    <strong>คำแนะนำพิเศษ:</strong> {selectedJob.special_instructions}
                   </Typography>
                 </Alert>
               )}
@@ -476,9 +413,7 @@ const JobDetailsDialog = ({
         </Grid>
       </DialogContent>
 
-      <DialogActions
-        sx={{ p: 2, gap: 1, borderTop: `1px solid ${theme.palette.divider}` }}
-      >
+      <DialogActions sx={{ p: 2, gap: 1, borderTop: `1px solid ${theme.palette.divider}` }}>
         <Button
           onClick={handleJobEdit}
           variant="contained"

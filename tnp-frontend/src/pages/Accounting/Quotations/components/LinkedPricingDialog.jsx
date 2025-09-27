@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -13,17 +13,17 @@ import {
   Chip,
   CircularProgress,
   Stack,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
 import {
   useGetQuotationQuery,
   useGetPricingRequestAutofillQuery,
-} from '../../../../features/Accounting/accountingApi';
-import PricingRequestNotesButton from '../../PricingIntegration/components/PricingRequestNotesButton';
+} from "../../../../features/Accounting/accountingApi";
+import PricingRequestNotesButton from "../../PricingIntegration/components/PricingRequestNotesButton";
 
 const Title = styled(DialogTitle)({
-  background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-  color: '#fff',
+  background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
+  color: "#fff",
   fontWeight: 700,
 });
 
@@ -39,9 +39,7 @@ const getPricingViewUrl = (prId) => {
     if (apiBase) {
       const u = new URL(apiBase);
       // Drop API path and strip common api subdomain markers
-      const cleanedHost = u.host
-        .replace(/^api\./, '')
-        .replace(/-api(?=\.|:)/, '');
+      const cleanedHost = u.host.replace(/^api\./, "").replace(/-api(?=\.|:)/, "");
       return `${u.protocol}//${cleanedHost}/pricing/view/${encodeURIComponent(prId)}`;
     }
   } catch (e) {
@@ -61,28 +59,39 @@ const PRDetailRow = ({ prId }) => {
     );
   }
   const pr = data?.data || data;
-  const prNo = pr?.pr_no || pr?.pr_number || prId?.slice(-6) || 'PR';
-  const workName = pr?.pr_work_name || pr?.work_name || 'ไม่ระบุชื่องาน';
+  const prNo = pr?.pr_no || pr?.pr_number || prId?.slice(-6) || "PR";
+  const workName = pr?.pr_work_name || pr?.work_name || "ไม่ระบุชื่องาน";
   return (
     <ListItem divider>
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-          <Typography variant="body1" fontWeight={700}>#{prNo}</Typography>
+      <Box sx={{ width: "100%" }}>
+        <Box
+          sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}
+        >
+          <Typography variant="body1" fontWeight={700}>
+            #{prNo}
+          </Typography>
           <Button
             variant="outlined"
             size="small"
             href={getPricingViewUrl(prId)}
             target="_blank"
             rel="noopener"
-            sx={{ textTransform: 'none', px: 1.25, py: 0.25, borderRadius: 1.5 }}
+            sx={{ textTransform: "none", px: 1.25, py: 0.25, borderRadius: 1.5 }}
           >
             ดูใบงานต้น ฉบับ
           </Button>
         </Box>
-        <Typography variant="body1" sx={{ mt: 0.5 }}>{workName}</Typography>
+        <Typography variant="body1" sx={{ mt: 0.5 }}>
+          {workName}
+        </Typography>
         <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
           <Chip label={`PR NO: ${prNo}`} size="small" />
-          <PricingRequestNotesButton pricingRequestId={prId} workName={workName} variant="chip" showCount={false} />
+          <PricingRequestNotesButton
+            pricingRequestId={prId}
+            workName={workName}
+            variant="chip"
+            showCount={false}
+          />
         </Stack>
       </Box>
     </ListItem>
@@ -90,14 +99,18 @@ const PRDetailRow = ({ prId }) => {
 };
 
 const LinkedPricingDialog = ({ open, onClose, quotationId }) => {
-  const { data, isLoading, error } = useGetQuotationQuery(quotationId, { skip: !open || !quotationId });
+  const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
+    skip: !open || !quotationId,
+  });
 
   const prIds = useMemo(() => {
     const set = new Set();
     const q = data?.data || data;
     if (!q) return [];
     if (Array.isArray(q?.items)) {
-      q.items.forEach((it) => { if (it.pricing_request_id) set.add(it.pricing_request_id); });
+      q.items.forEach((it) => {
+        if (it.pricing_request_id) set.add(it.pricing_request_id);
+      });
     }
     if (q?.primary_pricing_request_id) set.add(q.primary_pricing_request_id);
     // sometimes backend may return array
@@ -128,10 +141,16 @@ const LinkedPricingDialog = ({ open, onClose, quotationId }) => {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} variant="contained" sx={{
-          background: 'linear-gradient(135deg, #900F0F 0%, #B20000 100%)',
-          color: '#fff'
-        }}>ปิด</Button>
+        <Button
+          onClick={onClose}
+          variant="contained"
+          sx={{
+            background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
+            color: "#fff",
+          }}
+        >
+          ปิด
+        </Button>
       </DialogActions>
     </Dialog>
   );

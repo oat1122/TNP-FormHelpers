@@ -19,7 +19,7 @@ export const worksheetApi = createApi({
       providesTags: ["Worksheet"],
     }),
     getAllCustomer: builder.query({
-      query: () => `get-all-customers`
+      query: () => `get-all-customers`,
     }),
     getShirtPattern: builder.query({
       query: () => `shirt-patterns`,

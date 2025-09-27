@@ -28,11 +28,7 @@ export const globalSlice = createSlice({
   },
 });
 
-export const {
-  searchKeyword,
-  setLocationSearch,
-  setCustomerList,
-  setStatusList,
-} = globalSlice.actions;
+export const { searchKeyword, setLocationSearch, setCustomerList, setStatusList } =
+  globalSlice.actions;
 
 export default globalSlice.reducer;

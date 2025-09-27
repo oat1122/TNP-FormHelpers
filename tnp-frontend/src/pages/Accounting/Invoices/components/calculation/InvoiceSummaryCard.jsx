@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
   Grid,
@@ -12,37 +12,37 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Delete as DeleteIcon,
   DeleteOutline as DeleteOutlineIcon,
   Add as AddIcon,
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-import InvoiceSizeRowsEditor from './InvoiceSizeRowsEditor';
+} from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
+import InvoiceSizeRowsEditor from "./InvoiceSizeRowsEditor";
 
 const tokens = {
-  primary: '#900F0F',
-  white: '#FFFFFF',
-  bg: '#F5F5F5',
+  primary: "#900F0F",
+  white: "#FFFFFF",
+  bg: "#F5F5F5",
 };
 
 const InvoiceCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   border: `1px solid ${theme.palette.divider}`,
   boxShadow: `0px 2px 1px -1px rgba(144, 15, 15, 0.2), 0px 1px 1px 0px rgba(144, 15, 15, 0.14), 0px 1px 3px 0px rgba(144, 15, 15, 0.12)`,
-  '&:hover': {
+  "&:hover": {
     boxShadow: theme.shadows[4],
   },
 }));
 
-const InvoiceChip = styled(Chip)(({ theme, variant = 'outlined' }) => ({
+const InvoiceChip = styled(Chip)(({ theme, variant = "outlined" }) => ({
   fontWeight: 700,
-  ...(variant === 'outlined' && {
+  ...(variant === "outlined" && {
     borderColor: tokens.primary,
     color: tokens.primary,
   }),
-  ...(variant === 'error' && {
+  ...(variant === "error" && {
     backgroundColor: theme.palette.error.main,
     color: theme.palette.error.contrastText,
   }),
@@ -50,7 +50,7 @@ const InvoiceChip = styled(Chip)(({ theme, variant = 'outlined' }) => ({
 
 const InvoiceDeleteButton = styled(Button)(({ theme }) => ({
   color: theme.palette.error.main,
-  minWidth: 'auto',
+  minWidth: "auto",
   padding: theme.spacing(0.5),
 }));
 
@@ -67,9 +67,9 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
   onChangeItem,
 }) {
   const formatTHB = (amount) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
+    return new Intl.NumberFormat("th-TH", {
+      style: "currency",
+      currency: "THB",
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -84,7 +84,7 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
     totalAmount = item.sizeRows.reduce((sum, row) => {
       const qty = Number(row.quantity || 0);
       const price = Number(row.unitPrice || 0);
-      return sum + (qty * price);
+      return sum + qty * price;
     }, 0);
   } else {
     totalQuantity = Number(item.quantity || 0);
@@ -92,13 +92,13 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
     totalAmount = totalQuantity * unitPrice;
   }
 
-  const unit = item.unit || 'ชิ้น';
+  const unit = item.unit || "ชิ้น";
   const workName = item.name || item.work_name || `งานที่ ${index + 1}`;
   const originalQuantity = Number(item.originalQuantity || 0);
   const hasQuantityMismatch = originalQuantity > 0 && totalQuantity !== originalQuantity;
 
-  const knownUnits = ['ชิ้น', 'ตัว', 'ชุด', 'กล่อง', 'แพ็ค'];
-  const unitSelectValue = knownUnits.includes(unit) ? unit : 'อื่นๆ';
+  const knownUnits = ["ชิ้น", "ตัว", "ชุด", "กล่อง", "แพ็ค"];
+  const unitSelectValue = knownUnits.includes(unit) ? unit : "อื่นๆ";
 
   const handleDeleteItem = () => {
     onDeleteItem?.(index);
@@ -112,8 +112,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
     <InvoiceCard elevation={1}>
       <Box sx={{ p: 2 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               {workName}
             </Typography>
@@ -123,12 +123,12 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
                 label="ชื่องาน"
                 placeholder="กรุณาระบุชื่องาน"
                 value={workName}
-                onChange={(e) => handleItemChange('name', e.target.value)}
+                onChange={(e) => handleItemChange("name", e.target.value)}
                 sx={{ minWidth: 200 }}
               />
             )}
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <InvoiceChip
               size="small"
               variant="outlined"
@@ -161,8 +161,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               fullWidth
               size="small"
               label="แพทเทิร์น"
-              value={item.pattern || ''}
-              onChange={(e) => handleItemChange('pattern', e.target.value)}
+              value={item.pattern || ""}
+              onChange={(e) => handleItemChange("pattern", e.target.value)}
               disabled={!isEditing}
             />
           </Grid>
@@ -171,8 +171,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               fullWidth
               size="small"
               label="ประเภทผ้า"
-              value={item.fabricType || ''}
-              onChange={(e) => handleItemChange('fabricType', e.target.value)}
+              value={item.fabricType || ""}
+              onChange={(e) => handleItemChange("fabricType", e.target.value)}
               disabled={!isEditing}
             />
           </Grid>
@@ -181,8 +181,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               fullWidth
               size="small"
               label="สี"
-              value={item.color || ''}
-              onChange={(e) => handleItemChange('color', e.target.value)}
+              value={item.color || ""}
+              onChange={(e) => handleItemChange("color", e.target.value)}
               disabled={!isEditing}
             />
           </Grid>
@@ -191,8 +191,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               fullWidth
               size="small"
               label="ขนาด (สรุป)"
-              value={item.size || ''}
-              onChange={(e) => handleItemChange('size', e.target.value)}
+              value={item.size || ""}
+              onChange={(e) => handleItemChange("size", e.target.value)}
               disabled={!isEditing || hasDetailedRows}
             />
           </Grid>
@@ -202,8 +202,8 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               <Select
                 value={unitSelectValue}
                 onChange={(e) => {
-                  const newUnit = e.target.value === 'อื่นๆ' ? '' : e.target.value;
-                  handleItemChange('unit', newUnit);
+                  const newUnit = e.target.value === "อื่นๆ" ? "" : e.target.value;
+                  handleItemChange("unit", newUnit);
                 }}
                 label="หน่วย"
               >
@@ -234,8 +234,10 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
         {/* Total Summary */}
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={6} md={4}>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" color="text.secondary">ยอดรวม</Typography>
+            <Box sx={{ textAlign: "right" }}>
+              <Typography variant="caption" color="text.secondary">
+                ยอดรวม
+              </Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, color: tokens.primary }}>
                 {formatTHB(totalAmount)}
               </Typography>

@@ -11,12 +11,7 @@ import {
   IconButton,
   useTheme,
 } from "@mui/material";
-import {
-  FaUser,
-  FaCalendarAlt,
-  FaExclamationTriangle,
-  FaClock,
-} from "react-icons/fa";
+import { FaUser, FaCalendarAlt, FaExclamationTriangle, FaClock } from "react-icons/fa";
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
@@ -25,10 +20,7 @@ import {
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import * as dateFnsLocales from "date-fns/locale";
-import {
-  productionTypeConfig,
-  statusConfig,
-} from "../../utils/constants";
+import { productionTypeConfig, statusConfig } from "../../utils/constants";
 
 const MobileCardView = ({
   maxSupplies,
@@ -48,9 +40,7 @@ const MobileCardView = ({
     <Grid container spacing={2}>
       {maxSupplies.map((item) => {
         const deadlineStatus = getDeadlineStatus(item.expected_completion_date);
-        const daysUntilDeadline = getDaysUntilDeadline(
-          item.expected_completion_date
-        );
+        const daysUntilDeadline = getDaysUntilDeadline(item.expected_completion_date);
         const progressPercentage = item.progress_percentage || 0;
 
         return (
@@ -62,8 +52,8 @@ const MobileCardView = ({
                   deadlineStatus === "overdue"
                     ? "2px solid #dc2626"
                     : deadlineStatus === "urgent"
-                    ? "2px solid #f59e0b"
-                    : "none",
+                      ? "2px solid #f59e0b"
+                      : "none",
                 "&:hover": {
                   transform: "translateY(-2px)",
                   boxShadow: theme.shadows[4],
@@ -101,12 +91,7 @@ const MobileCardView = ({
                   />
                 )}
                 {item.priority === "urgent" && (
-                  <Chip
-                    label="ด่วน"
-                    color="error"
-                    size="small"
-                    sx={{ fontSize: "0.7rem" }}
-                  />
+                  <Chip label="ด่วน" color="error" size="small" sx={{ fontSize: "0.7rem" }} />
                 )}
               </Box>
 
@@ -125,11 +110,7 @@ const MobileCardView = ({
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
                       {item.code}
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       {item.title}
                     </Typography>
                     <Typography
@@ -163,8 +144,7 @@ const MobileCardView = ({
                   />
                   <Chip
                     label={
-                      productionTypeConfig[item.production_type]?.label ||
-                      item.production_type
+                      productionTypeConfig[item.production_type]?.label || item.production_type
                     }
                     sx={{
                       bgcolor: productionColors[item.production_type],
@@ -174,9 +154,7 @@ const MobileCardView = ({
                 </Box>
 
                 {/* Dates Section */}
-                <Box
-                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
-                >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                   <Typography
                     variant="body2"
                     color="text.secondary"
@@ -208,11 +186,9 @@ const MobileCardView = ({
                     />
                     คาดว่าเสร็จ:{" "}
                     {item.expected_completion_date
-                      ? format(
-                          new Date(item.expected_completion_date),
-                          "dd/MM/yyyy",
-                          { locale: dateFnsLocales.th }
-                        )
+                      ? format(new Date(item.expected_completion_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
                       : "ไม่ระบุ"}
                   </Typography>
                   <Typography
@@ -225,18 +201,16 @@ const MobileCardView = ({
                         deadlineStatus === "overdue"
                           ? "error.main"
                           : deadlineStatus === "urgent"
-                          ? "warning.main"
-                          : "text.secondary",
+                            ? "warning.main"
+                            : "text.secondary",
                     }}
                   >
                     <FaExclamationTriangle style={{ fontSize: "0.8rem" }} />
                     คาดว่าเสร็จ:{" "}
                     {item.expected_completion_date
-                      ? format(
-                          new Date(item.expected_completion_date),
-                          "dd/MM/yyyy",
-                          { locale: dateFnsLocales.th }
-                        )
+                      ? format(new Date(item.expected_completion_date), "dd/MM/yyyy", {
+                          locale: dateFnsLocales.th,
+                        })
                       : "ไม่ระบุ"}
                   </Typography>
                 </Box>

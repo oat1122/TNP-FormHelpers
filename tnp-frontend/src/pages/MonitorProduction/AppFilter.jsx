@@ -9,8 +9,8 @@ function AppFilter({ onFiltersChange }) {
     inProgress: false,
     owner: false,
     dateNull: false,
-    shirtCate: '1',
-    done: false
+    shirtCate: "1",
+    done: false,
   });
 
   const handleRadioChange = (event) => {
@@ -36,9 +36,9 @@ function AppFilter({ onFiltersChange }) {
   const handleSelectChange = (event) => {
     const { value } = event.target;
     const updatedState = { ...isChecked, shirtCate: value };
-  
+
     setIsChecked(updatedState);
-  
+
     setTimeout(() => {
       onFiltersChange(updatedState);
     }, 200);
@@ -53,15 +53,17 @@ function AppFilter({ onFiltersChange }) {
               <td style={{ backgroundColor: "transparent" }}>
                 <div>
                   <ButtonGroup className="col-lg-12 my-2">
-                    <Form.Select 
-                      aria-label="select shirt category" 
-                      className="mx-3" 
-                      name="shirtCate" 
+                    <Form.Select
+                      aria-label="select shirt category"
+                      className="mx-3"
+                      name="shirtCate"
                       value={isChecked.shirtCate}
                       onChange={(e) => handleSelectChange(e)}
                     >
                       <option value="1">ทั้งหมด</option>
-                      <option className="green" value="2">เสื้อยืด</option>
+                      <option className="green" value="2">
+                        เสื้อยืด
+                      </option>
                       <option value="3">เสื้อโปโล</option>
                     </Form.Select>
                     <div className="vl"></div>

@@ -1,8 +1,9 @@
 import { ButtonGroup, ToggleButton, Table } from "react-bootstrap";
-import { useGetPatternQuery } from "../../services/tnpApi";
-import { useSelector, useDispatch } from "react-redux";
-import { setPatternByID } from "../../features/fabricCost/fabricCostSlice";
 import { IoShirt, IoShirtOutline } from "react-icons/io5";
+import { useSelector, useDispatch } from "react-redux";
+
+import { setPatternByID } from "../../features/fabricCost/fabricCostSlice";
+import { useGetPatternQuery } from "../../services/tnpApi";
 
 function FabricSelectPattern() {
   const pattern_id = useSelector((state) => state.fabricCost.pattern.id);

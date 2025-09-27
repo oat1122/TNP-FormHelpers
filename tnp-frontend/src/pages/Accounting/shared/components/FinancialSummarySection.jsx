@@ -1,11 +1,12 @@
-import React from "react";
-import { Box, Typography, Avatar, Grid, Divider, Chip } from "@mui/material";
 import {
   Calculate as CalculateIcon,
   MonetizationOn as MonetizationOnIcon,
   Percent as PercentIcon,
   Payment as PaymentIcon,
 } from "@mui/icons-material";
+import { Box, Typography, Avatar, Grid, Divider, Chip } from "@mui/material";
+import React from "react";
+
 import {
   Section,
   SectionHeader,

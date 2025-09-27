@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from "react";
+import {
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Today as TodayIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
+  CalendarMonth as CalendarIcon,
+  TipsAndUpdates as TipsIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Paper,
@@ -12,18 +21,9 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Today as TodayIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  CalendarMonth as CalendarIcon,
-  TipsAndUpdates as TipsIcon,
-} from "@mui/icons-material";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import React, { useState, useEffect } from "react";
 
 // Import extracted components
 import { ProductionTypeLegend, DayEventsDialog, JobDetailsDialog, CalendarGrid } from "./Calendar";

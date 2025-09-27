@@ -1,11 +1,12 @@
 import "./ScreenBlock.css";
-import { useState } from "react";
-import { RiSettings3Fill } from "react-icons/ri";
-import { useGetAllSheetsQuery, useGetFactoryQuery } from "../../api/slice";
-import { Stack, Modal, Col, Button, Form, Spinner } from "react-bootstrap";
-import axios from "../../api/axios";
 import moment from "moment";
+import { useState } from "react";
+import { Stack, Modal, Col, Button, Form, Spinner } from "react-bootstrap";
+import { RiSettings3Fill } from "react-icons/ri";
 import Swal from "sweetalert2";
+
+import axios from "../../api/axios";
+import { useGetAllSheetsQuery, useGetFactoryQuery } from "../../api/slice";
 
 function ScreenBlock({ data }) {
   const { refetch } = useGetAllSheetsQuery();

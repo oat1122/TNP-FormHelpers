@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Form, InputGroup } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
+
 import { setInputFabric } from "../../features/fabricCost/fabricCostSlice";
 
 function FabricCreate({ onCreate }) {

@@ -2,10 +2,11 @@
  * Component for displaying deposit information cards based on mode
  */
 
-import React from "react";
 import { Box, Card, Typography, Stack } from "@mui/material";
-import { formatTHB } from "../utils/invoiceFormatters";
+import React from "react";
+
 import LabeledSwitch from "../../../shared/components/LabeledSwitch";
+import { formatTHB } from "../utils/invoiceFormatters";
 
 const DepositCard = ({
   mode,

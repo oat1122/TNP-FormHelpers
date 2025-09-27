@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Typography, TextField, Paper, Pagination, Chip, LinearProgress } from "@mui/material";
+import React from "react";
 
 const PaginationSection = ({
   pagination,

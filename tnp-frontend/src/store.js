@@ -1,23 +1,23 @@
 import { configureStore } from "@reduxjs/toolkit";
 // Or from '@reduxjs/toolkit/query/react'
 import { setupListeners } from "@reduxjs/toolkit/query";
-import { apiSlice } from "./api/slice";
-import { tnpApi } from "./services/tnpApi";
-import { globalApi } from "./features/globalApi";
-import { worksheetApi } from "./features/Worksheet/worksheetApi";
-import { customerApi } from "./features/Customer/customerApi";
-import { userManagementApi } from "./features/UserManagement/userManagementApi";
-import { pricingApi } from "./features/Pricing/pricingApi";
-import { accountingApi } from "./features/Accounting/accountingApi";
 
-import globalSliceReducer from "./features/globalSlice";
-import fabricCostReducer from "./features/fabricCost/fabricCostSlice";
-import monitorProductionSliceReducer from "./features/MonitorProduction/monitorProductionSlice";
-import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
-import customerSliceReducer from "./features/Customer/customerSlice";
-import userManagementReducers from "./features/UserManagement/userManagementSlice";
-import pricingReducers from "./features/Pricing/pricingSlice";
+import { apiSlice } from "./api/slice";
+import { accountingApi } from "./features/Accounting/accountingApi";
 import accountingReducer from "./features/Accounting/accountingSlice";
+import { customerApi } from "./features/Customer/customerApi";
+import customerSliceReducer from "./features/Customer/customerSlice";
+import fabricCostReducer from "./features/fabricCost/fabricCostSlice";
+import { globalApi } from "./features/globalApi";
+import globalSliceReducer from "./features/globalSlice";
+import monitorProductionSliceReducer from "./features/MonitorProduction/monitorProductionSlice";
+import { pricingApi } from "./features/Pricing/pricingApi";
+import pricingReducers from "./features/Pricing/pricingSlice";
+import { userManagementApi } from "./features/UserManagement/userManagementApi";
+import userManagementReducers from "./features/UserManagement/userManagementSlice";
+import { worksheetApi } from "./features/Worksheet/worksheetApi";
+import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
+import { tnpApi } from "./services/tnpApi";
 
 const store = configureStore({
   reducer: {

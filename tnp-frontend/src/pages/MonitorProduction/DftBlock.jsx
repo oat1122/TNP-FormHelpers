@@ -1,11 +1,12 @@
 import "./ScreenBlock.css";
+import moment from "moment";
 import { useState } from "react";
 import { Stack, Modal, Col, ToggleButton, Button } from "react-bootstrap";
 import { RiSettings3Fill } from "react-icons/ri";
-import { useGetAllSheetsQuery, useGetDftListQuery } from "../../api/slice";
-import axios from "../../api/axios";
-import moment from "moment";
 import Swal from "sweetalert2";
+
+import axios from "../../api/axios";
+import { useGetAllSheetsQuery, useGetDftListQuery } from "../../api/slice";
 
 function ScreenBlock({ data }) {
   const { refetch } = useGetAllSheetsQuery();

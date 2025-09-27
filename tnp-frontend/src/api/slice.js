@@ -1,5 +1,6 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
 import { apiConfig } from "./apiConfig";
 
 // Define a service using a base URL and expected endpoints

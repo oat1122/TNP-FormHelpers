@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
   Button,
@@ -23,6 +21,11 @@ import {
   Divider,
   FormHelperText,
 } from "@mui/material";
+import { useState, useEffect, useRef } from "react";
+import { Controller } from "react-hook-form";
+import { MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
+import { useSelector, useDispatch } from "react-redux";
+
 import { resetInputList } from "../../features/Customer/customerSlice";
 import {
   useAddUserMutation,
@@ -33,8 +36,6 @@ import {
   open_dialog_error,
   open_dialog_loading,
 } from "../../utils/import_lib";
-import { MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import { Controller } from "react-hook-form";
 import { onlyNums } from "../../utils/inputFormatters";
 
 const StyledLabel = styled(InputLabel)(({ theme }) => ({

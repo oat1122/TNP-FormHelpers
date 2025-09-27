@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
-import { Card, CardContent, Typography, Grid, Box, Divider, useTheme } from "@mui/material";
 import { Factory } from "@mui/icons-material";
-import ProductionTypeCapacityCard from "./ProductionTypeCapacityCard";
+import { Card, CardContent, Typography, Grid, Box, Divider, useTheme } from "@mui/material";
+import React, { useEffect } from "react";
+
 import CapacitySummary from "./CapacitySummary";
+import ProductionTypeCapacityCard from "./ProductionTypeCapacityCard";
 import TimePeriodSelector from "./TimePeriodSelector";
 import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
 import { productionTypeConfig } from "../../pages/MaxSupply/utils/constants";

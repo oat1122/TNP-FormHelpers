@@ -1,4 +1,4 @@
-import React from "react";
+import { Straighten, Lock } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
   TableCell,
   Box,
 } from "@mui/material";
-import { Straighten, Lock } from "@mui/icons-material";
+import React from "react";
 
 const SizeBreakdownTable = ({
   formData,

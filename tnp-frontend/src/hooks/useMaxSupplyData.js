@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { maxSupplyApi } from "../services/maxSupplyApi";
 import { format } from "date-fns";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+import { maxSupplyApi } from "../services/maxSupplyApi";
 
 export const useMaxSupplyData = (filters = {}) => {
   const [data, setData] = useState([]);

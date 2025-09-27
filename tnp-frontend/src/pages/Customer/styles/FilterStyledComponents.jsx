@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Paper,
   Box,
@@ -14,6 +13,8 @@ import {
   Chip,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import React from "react";
+
 import { filterColors, filterPanelConfig } from "../constants/filterConstants";
 import { animations, transitions, interactiveStates } from "../utils/animations";
 

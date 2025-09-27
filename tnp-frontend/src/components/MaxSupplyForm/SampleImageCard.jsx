@@ -1,6 +1,6 @@
-import React from "react";
-import { Card, CardContent, CardMedia, Typography } from "@mui/material";
 import { Image } from "@mui/icons-material";
+import { Card, CardContent, CardMedia, Typography } from "@mui/material";
+import React from "react";
 
 const SampleImageCard = ({ sampleImage }) => {
   if (!sampleImage) return null;

@@ -1,6 +1,6 @@
-import React from "react";
-import { Box, Button, Paper, CircularProgress } from "@mui/material";
 import { NavigateBefore, NavigateNext, Cancel, Save } from "@mui/icons-material";
+import { Box, Button, Paper, CircularProgress } from "@mui/material";
+import React from "react";
 
 const FormNavigation = ({
   activeStep,

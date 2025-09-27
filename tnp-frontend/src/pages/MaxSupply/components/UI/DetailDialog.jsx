@@ -1,4 +1,10 @@
-import React from "react";
+import {
+  Close as CloseIcon,
+  Edit as EditIcon,
+  Schedule as ScheduleIcon,
+  Assignment as AssignmentIcon,
+  TrendingUp as TrendingUpIcon,
+} from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -17,6 +23,9 @@ import {
   LinearProgress,
   useTheme,
 } from "@mui/material";
+import { format } from "date-fns";
+import * as dateFnsLocales from "date-fns/locale";
+import React from "react";
 import {
   FaUser,
   FaCalendarAlt,
@@ -24,15 +33,7 @@ import {
   FaClock,
   FaCheckCircle,
 } from "react-icons/fa";
-import {
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Schedule as ScheduleIcon,
-  Assignment as AssignmentIcon,
-  TrendingUp as TrendingUpIcon,
-} from "@mui/icons-material";
-import { format } from "date-fns";
-import * as dateFnsLocales from "date-fns/locale";
+
 import { productionTypeConfig, statusConfig, priorityConfig } from "../../utils/constants";
 
 const DetailDialog = ({

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Box,
   Button,
@@ -14,14 +13,16 @@ import {
   InputAdornment,
   Divider,
 } from "@mui/material";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
+
+import { useResetPasswordMutation } from "../../features/UserManagement/userManagementApi";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
   open_dialog_loading,
 } from "../../utils/import_lib";
-import { MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import { useForm } from "react-hook-form";
-import { useResetPasswordMutation } from "../../features/UserManagement/userManagementApi";
 
 const StyledLabel = styled(InputLabel)(({ theme }) => ({
   color: theme.vars.palette.grey.dark,

@@ -1,9 +1,10 @@
 import "./FabricOrder.css";
 import { useState } from "react";
 import { Modal, Col, Button, Form } from "react-bootstrap";
-import { useGetFactoryQuery, useGetAllSheetsQuery } from "../../api/slice";
-import axios from "../../api/axios";
 import Swal from "sweetalert2";
+
+import axios from "../../api/axios";
+import { useGetFactoryQuery, useGetAllSheetsQuery } from "../../api/slice";
 
 function SewingFactory({ data }) {
   const user = JSON.parse(localStorage.getItem("userData"));

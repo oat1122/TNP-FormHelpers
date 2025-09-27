@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -19,6 +18,8 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import React, { useState } from "react";
 import {
   MdClose,
   MdPerson,
@@ -33,9 +34,9 @@ import {
   MdContactPhone,
   MdHistory,
 } from "react-icons/md";
-import { styled } from "@mui/material/styles";
-import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
+
 import { parseFullAddress } from "./BusinessDetailStepSimple";
+import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
 
 // Styled components - ปรับสีตาม theme
 const ViewCard = styled(Card)(({ theme }) => ({

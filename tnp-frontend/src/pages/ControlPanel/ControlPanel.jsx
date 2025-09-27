@@ -1,4 +1,5 @@
 import "./ControlPanel.css";
+import { Spinner } from "react-bootstrap";
 import { IconContext } from "react-icons";
 import {
   FaAddressBook,
@@ -24,12 +25,12 @@ import {
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
-import { LiaFileInvoiceDollarSolid } from "react-icons/lia";
 import { HiDocumentCurrencyDollar } from "react-icons/hi2";
+import { LiaFileInvoiceDollarSolid } from "react-icons/lia";
+
 import { useGetPdCountQuery } from "../../api/slice";
 import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
 import { productionTypeConfig } from "../../pages/MaxSupply/utils/constants";
-import { Spinner } from "react-bootstrap";
 
 function ControlPanel() {
   const { data, isLoading } = useGetPdCountQuery();

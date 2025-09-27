@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -13,7 +12,9 @@ import {
   Box,
   Chip,
 } from "@mui/material";
+import React from "react";
 import { MdExpandMore, MdGpsFixed } from "react-icons/md";
+
 import AccuracyChip from "./AccuracyChip";
 import GpsDebugLogs from "./GpsDebugLogs";
 

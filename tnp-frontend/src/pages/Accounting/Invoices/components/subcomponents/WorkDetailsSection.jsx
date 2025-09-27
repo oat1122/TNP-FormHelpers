@@ -2,9 +2,10 @@
  * Component for displaying work details and items list
  */
 
-import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
 import WorkIcon from "@mui/icons-material/Work";
+import { Box, Stack, Typography } from "@mui/material";
+import React from "react";
+
 import { formatItemsList } from "../utils/invoiceLogic";
 
 const WorkDetailsSection = ({ invoice }) => {

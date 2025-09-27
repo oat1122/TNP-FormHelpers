@@ -1,6 +1,6 @@
-import React from "react";
-import { Paper, Typography, Button, List, ListItem, Box, Skeleton } from "@mui/material";
 import { Circle } from "@mui/icons-material";
+import { Paper, Typography, Button, List, ListItem, Box, Skeleton } from "@mui/material";
+import React from "react";
 
 const JobStatusSection = ({ statistics, loading }) => {
   // Map statistics to display data

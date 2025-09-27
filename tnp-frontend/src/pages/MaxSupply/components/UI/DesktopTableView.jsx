@@ -1,4 +1,8 @@
-import React from "react";
+import {
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
 import {
   Table,
   TableBody,
@@ -15,14 +19,11 @@ import {
   TableSortLabel,
   useTheme,
 } from "@mui/material";
-import { FaUser, FaExclamationTriangle, FaClock } from "react-icons/fa";
-import {
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
 import { format } from "date-fns";
 import * as dateFnsLocales from "date-fns/locale";
+import React from "react";
+import { FaUser, FaExclamationTriangle, FaClock } from "react-icons/fa";
+
 import { productionTypeConfig, statusConfig, priorityConfig } from "../../utils/constants";
 
 const DesktopTableView = ({

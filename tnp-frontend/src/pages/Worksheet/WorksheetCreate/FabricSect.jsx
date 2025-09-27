@@ -1,3 +1,9 @@
+import { MdAdd, MdDelete } from "react-icons/md";
+
+import {
+  addRowFabricCustomColor,
+  deleteRowFabricCustomColor,
+} from "../../../features/Worksheet/worksheetSlice";
 import {
   useSelector,
   useDispatch,
@@ -12,11 +18,6 @@ import {
   Button,
   Box,
 } from "../../../utils/import_lib";
-import { MdAdd, MdDelete } from "react-icons/md";
-import {
-  addRowFabricCustomColor,
-  deleteRowFabricCustomColor,
-} from "../../../features/Worksheet/worksheetSlice";
 
 function FabricSect({ handleInputChange }) {
   const dispatch = useDispatch();

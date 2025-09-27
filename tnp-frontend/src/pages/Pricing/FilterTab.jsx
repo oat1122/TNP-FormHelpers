@@ -1,5 +1,6 @@
-import { useSelector, useDispatch } from "react-redux";
 import { Skeleton, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+
 import { setStatusSelected } from "../../features/Pricing/pricingSlice";
 
 function FilterTab(props) {

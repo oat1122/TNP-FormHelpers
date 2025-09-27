@@ -1,6 +1,3 @@
-import { useState, useEffect, useRef, useContext } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import ScrollContext from "./ScrollContext";
 import {
   Box,
   Button,
@@ -11,14 +8,26 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
+import { useState, useEffect, useRef, useContext } from "react";
 import { MdSave, MdCancel, MdNavigateNext, MdNavigateBefore, MdClose } from "react-icons/md";
+import { useSelector, useDispatch } from "react-redux";
+
+import BusinessDetailStepSimple from "./components/BusinessDetailStepSimple";
+import BusinessTypeStepSimple from "./components/BusinessTypeStepSimple";
+import CustomerStepper from "./components/CustomerStepper";
+import VerificationStepSimple from "./components/VerificationStepSimple";
+import YourDetailsStepSimple from "./components/YourDetailsStepSimple";
+import { useDialogApiData } from "./hooks/useDialogApiData";
+import { useLocationSelection } from "./hooks/useLocationSelection";
+import { useStepperValidation } from "./hooks/useStepperValidation";
+import ScrollContext from "./ScrollContext";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
-import { genCustomerNo } from "../../features/Customer/customerUtils";
-import { setInputList, resetInputList } from "../../features/Customer/customerSlice";
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
 } from "../../features/Customer/customerApi";
+import { setInputList, resetInputList } from "../../features/Customer/customerSlice";
+import { genCustomerNo } from "../../features/Customer/customerUtils";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
@@ -26,14 +35,6 @@ import {
 } from "../../utils/import_lib";
 
 // Import stepper components and hooks
-import CustomerStepper from "./components/CustomerStepper";
-import BusinessTypeStepSimple from "./components/BusinessTypeStepSimple";
-import BusinessDetailStepSimple from "./components/BusinessDetailStepSimple";
-import YourDetailsStepSimple from "./components/YourDetailsStepSimple";
-import VerificationStepSimple from "./components/VerificationStepSimple";
-import { useStepperValidation } from "./hooks/useStepperValidation";
-import { useLocationSelection } from "./hooks/useLocationSelection";
-import { useDialogApiData } from "./hooks/useDialogApiData";
 
 // Main DialogForm component
 

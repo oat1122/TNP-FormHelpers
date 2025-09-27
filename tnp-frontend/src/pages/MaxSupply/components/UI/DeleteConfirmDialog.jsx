@@ -1,4 +1,4 @@
-import React from "react";
+import { Delete as DeleteIcon, Warning as WarningIcon } from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -7,7 +7,7 @@ import {
   Typography,
   Button,
 } from "@mui/material";
-import { Delete as DeleteIcon, Warning as WarningIcon } from "@mui/icons-material";
+import React from "react";
 
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemToDelete }) => {
   return (

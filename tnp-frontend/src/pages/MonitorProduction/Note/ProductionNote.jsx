@@ -1,10 +1,11 @@
 import "./ProductionNote.css";
 import moment from "moment";
 import { Modal } from "react-bootstrap";
-import { useAddNewNoteMutation, useDelNoteMutation, useGetAllNotesQuery } from "../../../api/slice";
+import { useSelector, useDispatch } from "react-redux";
+
 import NoteCreate from "./NoteCreate";
 import NoteList from "./NoteList";
-import { useSelector, useDispatch } from "react-redux";
+import { useAddNewNoteMutation, useDelNoteMutation, useGetAllNotesQuery } from "../../../api/slice";
 import { setNoteList } from "../../../features/MonitorProduction/monitorProductionSlice";
 
 function ProductionNote({ pd_id, category }) {

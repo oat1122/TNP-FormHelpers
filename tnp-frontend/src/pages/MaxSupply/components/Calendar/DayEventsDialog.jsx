@@ -1,4 +1,4 @@
-import React from "react";
+import { Close as CloseIcon, Event as EventIcon } from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -14,9 +14,10 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { Close as CloseIcon, Event as EventIcon } from "@mui/icons-material";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
+import React from "react";
+
 import {
   productionTypeConfig,
   statusConfig,

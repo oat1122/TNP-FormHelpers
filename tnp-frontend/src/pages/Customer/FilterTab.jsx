@@ -1,5 +1,3 @@
-import React, { useState, useContext, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
 import {
   ToggleButton,
   CircularProgress,
@@ -10,13 +8,16 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
+import React, { useState, useContext, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+
+import ScrollContext from "./ScrollContext";
+import { apiConfig } from "../../api/apiConfig";
 import {
   setGroupSelected,
   setPaginationModel,
   fetchFilteredCustomers,
 } from "../../features/Customer/customerSlice";
-import ScrollContext from "./ScrollContext";
-import { apiConfig } from "../../api/apiConfig";
 
 function FilterTab() {
   const dispatch = useDispatch();

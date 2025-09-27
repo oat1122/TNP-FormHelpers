@@ -1,7 +1,23 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { Box, Button, useTheme, useMediaQuery, Pagination } from "@mui/material";
+import moment from "moment";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { RiAddLargeFill } from "react-icons/ri";
+import { useDispatch, useSelector } from "react-redux";
+
+import { CustomPagination, CustomToolbar } from "./components/CustomComponents";
+import CustomerCardList from "./components/CustomerCardList";
+import CustomerViewDialog from "./components/CustomerViewDialog";
+import { NoDataComponent } from "./components/UtilityComponents";
+import { useColumnDefinitions } from "./config/columnDefinitions";
+import DialogForm from "./DialogForm";
+import FilterPanel from "./FilterPanel";
+import FilterTab from "./FilterTab";
+import FilterTags from "./FilterTags";
+import { useCustomerActions } from "./hooks/useCustomerActions";
+import ScrollContext from "./ScrollContext";
+import ScrollTopButton from "./ScrollTopButton";
+import { StyledDataGrid } from "./styles/StyledComponents";
+import TitleBar from "../../components/TitleBar";
 import { useGetAllCustomerQuery } from "../../features/Customer/customerApi";
 import {
   setItemList,
@@ -9,25 +25,10 @@ import {
   setTotalCount,
   setPaginationModel,
 } from "../../features/Customer/customerSlice";
-import TitleBar from "../../components/TitleBar";
-import FilterTab from "./FilterTab";
-import FilterPanel from "./FilterPanel";
-import FilterTags from "./FilterTags";
-import ScrollContext from "./ScrollContext";
-import ScrollTopButton from "./ScrollTopButton";
-import DialogForm from "./DialogForm";
-import CustomerViewDialog from "./components/CustomerViewDialog";
 import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
-import moment from "moment";
 import { open_dialog_error } from "../../utils/import_lib";
 
 // Import separated components
-import { StyledDataGrid } from "./styles/StyledComponents";
-import { NoDataComponent } from "./components/UtilityComponents";
-import { CustomPagination, CustomToolbar } from "./components/CustomComponents";
-import { useCustomerActions } from "./hooks/useCustomerActions";
-import { useColumnDefinitions } from "./config/columnDefinitions";
-import CustomerCardList from "./components/CustomerCardList";
 
 // Helper function to check if recall date is expired
 const isRecallExpired = (dateString) => {

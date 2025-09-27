@@ -1,10 +1,11 @@
+import { red } from "@mui/material/colors";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+
+import KanitLight from "./assets/fonts/Kanit/Kanit-Light.woff2";
+import Kanit from "./assets/fonts/Kanit/Kanit-Regular.woff2";
+import KanitSemiBold from "./assets/fonts/Kanit/Kanit-SemiBold.woff2";
 import PSLKittithada from "./assets/fonts/PSL Kittithada/PSLKittithada.woff2";
 import PSLKittithadaBold from "./assets/fonts/PSL Kittithada/PSLKittithadaProBold.woff2";
-import Kanit from "./assets/fonts/Kanit/Kanit-Regular.woff2";
-import KanitLight from "./assets/fonts/Kanit/Kanit-Light.woff2";
-import KanitSemiBold from "./assets/fonts/Kanit/Kanit-SemiBold.woff2";
-import { red } from "@mui/material/colors";
 
 const theme = createTheme({
   cssVariables: {

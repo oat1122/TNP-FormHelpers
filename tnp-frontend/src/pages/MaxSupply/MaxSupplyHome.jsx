@@ -1,17 +1,4 @@
-import React, { useState, useEffect } from "react";
 import { Box, Container, Typography, Grid, Button, LinearProgress, Alert } from "@mui/material";
-import { maxSupplyApi, calendarApi } from "../../services/maxSupplyApi";
-import toast from "react-hot-toast";
-import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
-import { useFallbackData } from "../../hooks/useFallbackData";
-import {
-  StatisticsCards,
-  WorkCapacityCard,
-  KanbanBoard,
-  EnhancedDashboard,
-} from "../../components/MaxSupply";
-import { NavigationTabs, DeadlineSection, JobStatusSection } from "./components";
-import EnhancedCalendarView from "./components/CalendarView";
 import {
   format,
   startOfMonth,
@@ -22,6 +9,20 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
+import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+
+import { NavigationTabs, DeadlineSection, JobStatusSection } from "./components";
+import EnhancedCalendarView from "./components/CalendarView";
+import {
+  StatisticsCards,
+  WorkCapacityCard,
+  KanbanBoard,
+  EnhancedDashboard,
+} from "../../components/MaxSupply";
+import { useFallbackData } from "../../hooks/useFallbackData";
+import { useMaxSupplyData } from "../../hooks/useMaxSupplyData";
+import { maxSupplyApi, calendarApi } from "../../services/maxSupplyApi";
 
 const MaxSupplyHome = () => {
   const [currentDate, setCurrentDate] = useState(new Date());

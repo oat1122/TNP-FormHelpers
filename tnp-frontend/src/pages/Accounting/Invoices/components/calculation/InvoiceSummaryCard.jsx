@@ -1,4 +1,8 @@
-import React from "react";
+import {
+  Delete as DeleteIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  Add as AddIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -13,12 +17,9 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import {
-  Delete as DeleteIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  Add as AddIcon,
-} from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import React from "react";
+
 import InvoiceSizeRowsEditor from "./InvoiceSizeRowsEditor";
 
 const tokens = {

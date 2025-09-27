@@ -1,4 +1,4 @@
-import React from "react";
+import { Category } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -8,7 +8,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { Category } from "@mui/icons-material";
+import React from "react";
 
 const ShirtTypeSelector = ({ formData, errors, shirtTypes, onInputChange }) => {
   return (

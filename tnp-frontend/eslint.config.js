@@ -1,10 +1,10 @@
 // eslint.config.js
 import js from "@eslint/js";
-import globals from "globals";
-import react from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
 import importPlugin from "eslint-plugin-import";
 import prettierPlugin from "eslint-plugin-prettier";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
 
 // ✅ แก้ปัญหา key ที่มีช่องว่าง: trim ชื่อคีย์ทั้งหมดก่อนใช้งาน
 const trimKeys = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.trim(), v]));

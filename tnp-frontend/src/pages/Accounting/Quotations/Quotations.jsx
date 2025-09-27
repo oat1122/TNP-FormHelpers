@@ -1,9 +1,3 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { ThemeProvider } from "@mui/material/styles";
-import accountingTheme from "../theme/accountingTheme";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { th } from "date-fns/locale";
 import {
   Box,
   Container,
@@ -18,15 +12,13 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
-import {
-  Header,
-  FilterSection,
-  PaginationSection,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-  FloatingActionButton,
-} from "../PricingIntegration/components";
+import { ThemeProvider } from "@mui/material/styles";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { th } from "date-fns/locale";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
+import { useDispatch } from "react-redux";
+
 import {
   useGetQuotationsQuery,
   useApproveQuotationMutation,
@@ -37,14 +29,23 @@ import {
   useUploadQuotationEvidenceMutation,
   useSubmitQuotationMutation,
 } from "../../../features/Accounting/accountingApi";
-import { useDispatch } from "react-redux";
 import { addNotification } from "../../../features/Accounting/accountingSlice";
+import {
+  Header,
+  FilterSection,
+  PaginationSection,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  FloatingActionButton,
+} from "../PricingIntegration/components";
+import accountingTheme from "../theme/accountingTheme";
+import CompanyManagerDialog from "./components/CompanyManagerDialog";
+import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationCard from "./components/QuotationCard";
 // ApprovalPanel removed along with Drawer UI
-import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationDetailDialog from "./components/QuotationDetailDialog";
 import usePagination from "./hooks/usePagination";
-import CompanyManagerDialog from "./components/CompanyManagerDialog";
 import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
 
 const statusOrder = ["draft", "pending_review", "approved", "sent", "completed", "rejected"];

@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
+
 import AppHeader from "../../components/Navbar/AppHeader";
 
 export const AuthLayout = () => {

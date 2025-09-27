@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { IconButton, Tooltip, Badge, Chip, Box } from "@mui/material";
 import { StickyNote2 as NotesIcon, Visibility as ViewIcon } from "@mui/icons-material";
+import { IconButton, Tooltip, Badge, Chip, Box } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import React, { useState } from "react";
+
 import PricingRequestNotesModal from "./PricingRequestNotesModal";
 
 // Styled Components

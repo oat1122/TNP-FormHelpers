@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import qs from "qs";
+
 import initialState from "./customerInitialState";
 import reducers from "./customerReducers";
 import { apiConfig } from "../../api/apiConfig";
-import qs from "qs";
 
 // Define the async thunk for fetching filtered customers
 export const fetchFilteredCustomers = createAsyncThunk(

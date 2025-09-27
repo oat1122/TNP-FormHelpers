@@ -1,4 +1,12 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  ArrowBack as ArrowBackIcon,
+  Visibility as VisibilityIcon,
+  Assignment as AssignmentIcon,
+  Calculate as CalculateIcon,
+  Payment as PaymentIcon,
+  Add as AddIcon,
+  DeleteOutline as DeleteOutlineIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Container,
@@ -11,17 +19,20 @@ import {
   Avatar,
   Divider,
 } from "@mui/material";
-import {
-  ArrowBack as ArrowBackIcon,
-  Visibility as VisibilityIcon,
-  Assignment as AssignmentIcon,
-  Calculate as CalculateIcon,
-  Payment as PaymentIcon,
-  Add as AddIcon,
-  DeleteOutline as DeleteOutlineIcon,
-} from "@mui/icons-material";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 // THEME & SHARED UI
+import SpecialDiscountField from "./components/SpecialDiscountField";
+import WithholdingTaxField from "./components/WithholdingTaxField";
+import { useUploadQuotationSampleImagesTempMutation } from "../../../../../../features/Accounting/accountingApi";
+import Calculation from "../../../../shared/components/Calculation";
+import ImageUploadGrid from "../../../../shared/components/ImageUploadGrid";
+import PaymentTerms from "../../../../shared/components/PaymentTerms";
+import { useQuotationFinancials } from "../../../../shared/hooks/useQuotationFinancials";
+import { sanitizeInt, sanitizeDecimal } from "../../../../shared/inputSanitizers";
+import CustomerEditCard from "../../CustomerEditCard";
+import PricingRequestNotesButton from "../../PricingRequestNotesButton";
+import QuotationPreview from "../../QuotationPreview";
 import {
   Section,
   SectionHeader,
@@ -31,23 +42,11 @@ import {
   tokens,
 } from "../styles/quotationTheme";
 
-import CustomerEditCard from "../../CustomerEditCard";
-import QuotationPreview from "../../QuotationPreview";
-import PricingRequestNotesButton from "../../PricingRequestNotesButton";
-
 // NEW COMPONENTS
-import SpecialDiscountField from "./components/SpecialDiscountField";
-import WithholdingTaxField from "./components/WithholdingTaxField";
-import Calculation from "../../../../shared/components/Calculation";
-import PaymentTerms from "../../../../shared/components/PaymentTerms";
-import ImageUploadGrid from "../../../../shared/components/ImageUploadGrid";
-import { useUploadQuotationSampleImagesTempMutation } from "../../../../../../features/Accounting/accountingApi";
 
 // UTILS
-import { useQuotationFinancials } from "../../../../shared/hooks/useQuotationFinancials";
 import { formatTHB } from "../utils/currency";
 import { formatDateTH } from "../utils/date";
-import { sanitizeInt, sanitizeDecimal } from "../../../../shared/inputSanitizers";
 
 /**
  * CreateQuotationForm — restyled to match QuotationDetailDialog

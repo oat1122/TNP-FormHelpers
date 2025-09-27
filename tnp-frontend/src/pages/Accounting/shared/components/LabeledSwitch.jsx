@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
+import React, { useState } from "react";
 
 /*
  * Reusable pill-style two/ multi option toggle

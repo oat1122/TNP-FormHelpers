@@ -1,4 +1,4 @@
-import React from "react";
+import { ArrowBack, AutoAwesome, CheckCircle } from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -12,7 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { ArrowBack, AutoAwesome, CheckCircle } from "@mui/icons-material";
+import React from "react";
 
 const FormStepHeader = ({ isEditMode, onBack, autoFillPreview, steps, activeStep, isMobile }) => {
   const theme = useTheme();

@@ -1,10 +1,13 @@
-import { useState } from "react";
 import { Button, Chip } from "@mui/material";
+import { useState } from "react";
 import { Modal } from "react-bootstrap";
+
 import ProductionNote from "./ProductionNote";
+
 import "./GeneralNote.css";
 import { MdNotes } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
+
 import { useGetAllNotesQuery } from "../../../api/slice";
 
 function GeneralNote({ pd_id }) {

@@ -1,10 +1,11 @@
+import { Chip, styled } from "@mui/material";
 import { useState, useEffect } from "react";
 import { Col, Row } from "react-bootstrap";
-import { Chip, styled } from "@mui/material";
-import { PiClockClockwise } from "react-icons/pi";
 import { CgTimelapse } from "react-icons/cg";
-import { useResetTimeMutation } from "../api/slice";
+import { PiClockClockwise } from "react-icons/pi";
 import Swal from "sweetalert2";
+
+import { useResetTimeMutation } from "../api/slice";
 
 const ResetTimeIcon = styled(PiClockClockwise)({
   fontSize: "1.5rem",

@@ -1,4 +1,4 @@
-import React from "react";
+import { Build } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   MenuItem,
   Box,
 } from "@mui/material";
-import { Build } from "@mui/icons-material";
+import React from "react";
 
 const ProductionTypeSelector = ({ formData, errors, productionTypes, onInputChange }) => {
   return (

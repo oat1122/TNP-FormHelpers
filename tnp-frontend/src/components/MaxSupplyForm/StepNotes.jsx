@@ -1,6 +1,6 @@
-import React from "react";
-import { Box, Typography, Card, CardContent, Grid, TextField } from "@mui/material";
 import { Note, CheckCircle } from "@mui/icons-material";
+import { Box, Typography, Card, CardContent, Grid, TextField } from "@mui/material";
+import React from "react";
 
 const StepNotes = ({ formData, errors, onInputChange, language = "th", t = (key) => key }) => {
   return (

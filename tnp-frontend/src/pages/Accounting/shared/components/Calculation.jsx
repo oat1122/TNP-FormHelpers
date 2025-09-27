@@ -1,5 +1,6 @@
-import React from "react";
 import { Box, Grid, Typography, Divider } from "@mui/material";
+import React from "react";
+
 import {
   InfoCard,
   tokens,

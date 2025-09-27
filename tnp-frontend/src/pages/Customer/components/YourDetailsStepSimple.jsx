@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import {
   Box,
   Typography,
@@ -16,8 +15,9 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from "@mui/material";
-import { MdPerson, MdSupervisorAccount, MdExpandMore, MdNote, MdInfo } from "react-icons/md";
+import React, { useEffect } from "react";
 import { HiUser } from "react-icons/hi";
+import { MdPerson, MdSupervisorAccount, MdExpandMore, MdNote, MdInfo } from "react-icons/md";
 
 // สี theme ของบริษัท
 const PRIMARY_RED = "#9e0000";

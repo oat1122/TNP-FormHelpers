@@ -13,18 +13,21 @@ import {
   BsForm,
   BsInputGroup,
 } from "../../utils/import_lib";
+
 import { Button, styled, Autocomplete, TextField, Paper } from "@mui/material";
+
 import "./AppHeader.css";
+import NavDropdown from "react-bootstrap/NavDropdown";
 import { IconContext } from "react-icons";
-import { RxHome } from "react-icons/rx";
 import { BsPersonSquare } from "react-icons/bs";
-import { FiLogOut } from "react-icons/fi";
 import { FiSearch } from "react-icons/fi";
+import { FiLogOut } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
+import { RxHome } from "react-icons/rx";
+
+import DialogChangePass from "./DialogChangePass";
 import { searchKeyword } from "../../features/globalSlice";
 import { handleCheckUpdate } from "../../features/globalUtils";
-import NavDropdown from "react-bootstrap/NavDropdown";
-import DialogChangePass from "./DialogChangePass";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   flex: 1,

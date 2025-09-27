@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
+
 import {
   useGetAllLocationQuery,
   useGetUserByRoleQuery,
   useGetAllBusinessTypesQuery,
 } from "../../../features/globalApi";
 import { open_dialog_loading } from "../../../utils/import_lib";
-import Swal from "sweetalert2";
 
 export const useDialogApiData = (openDialog) => {
   const locationSearch = useSelector((state) => state.global.locationSearch);

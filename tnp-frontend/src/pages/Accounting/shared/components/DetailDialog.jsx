@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,6 +8,8 @@ import {
   CircularProgress,
   Avatar,
 } from "@mui/material";
+import React from "react";
+
 import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 /**

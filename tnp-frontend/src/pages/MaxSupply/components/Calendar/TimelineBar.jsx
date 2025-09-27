@@ -1,5 +1,6 @@
-import React from "react";
 import { Box, Typography, Tooltip, Chip, useMediaQuery, useTheme } from "@mui/material";
+import React from "react";
+
 import {
   productionTypeConfig,
   statusConfig,

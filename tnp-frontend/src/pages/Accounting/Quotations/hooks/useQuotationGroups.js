@@ -1,4 +1,5 @@
 import React from "react";
+
 import { sanitizeInt, sanitizeDecimal } from "../../shared/inputSanitizers";
 
 // Hook to manage groups editing state and helpers used in QuotationDetailDialog

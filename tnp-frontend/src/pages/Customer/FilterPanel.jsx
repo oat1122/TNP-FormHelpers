@@ -1,16 +1,19 @@
 // filepath: d:\01oat\TNP-FormHelpers\tnp-frontend\src\pages\Customer\FilterPanel.jsx
-import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
 import { Box, Grid2 as Grid, Typography, Stack, Alert, CircularProgress } from "@mui/material";
+import React, { useState, useEffect } from "react";
 import { MdExpandMore, MdFilterList } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
-import { useGetUserByRoleQuery } from "../../features/globalApi";
-import { setSalesList } from "../../features/Customer/customerSlice";
+import { useDispatch } from "react-redux";
 
 // Import custom hooks
-import { useFilterState } from "./hooks/useFilterState";
-import { useFilterActions } from "./hooks/useFilterActions";
+import {
+  DateFilterSection,
+  SalesFilterSection,
+  ChannelFilterSection,
+} from "./components/FilterComponents";
 import { useDateRangeHelpers } from "./hooks/useDateRangeHelpers";
+import { useFilterActions } from "./hooks/useFilterActions";
+import { useFilterState } from "./hooks/useFilterState";
 import { useSelectionHelpers } from "./hooks/useSelectionHelpers";
 
 // Import styled components
@@ -27,11 +30,8 @@ import {
 } from "./styles/FilterStyledComponents";
 
 // Import filter components
-import {
-  DateFilterSection,
-  SalesFilterSection,
-  ChannelFilterSection,
-} from "./components/FilterComponents";
+import { setSalesList } from "../../features/Customer/customerSlice";
+import { useGetUserByRoleQuery } from "../../features/globalApi";
 
 function FilterPanel() {
   const dispatch = useDispatch();

@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Modal, Row, Col, Form, Button } from "react-bootstrap";
-import { useSelector } from "react-redux";
 import { AiOutlineControl } from "react-icons/ai";
+import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
+
 import {
   useUpdateCostFabricOnceMutation,
   useGetFabricByPatternIdQuery,
 } from "../../services/tnpApi";
-import Swal from "sweetalert2";
 
 function FabricEdit({ fabric }) {
   const [showEdit, setShowEdit] = useState(false); // State show / hide edit fabric detail modal

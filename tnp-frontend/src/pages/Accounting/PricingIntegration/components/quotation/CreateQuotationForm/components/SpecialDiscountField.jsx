@@ -1,4 +1,9 @@
-import React from "react";
+import {
+  Percent as PercentIcon,
+  AttachMoney as MoneyIcon,
+  Info as InfoIcon,
+  LocalOffer as OfferIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -12,15 +17,11 @@ import {
   Fade,
   useTheme,
 } from "@mui/material";
-import {
-  Percent as PercentIcon,
-  AttachMoney as MoneyIcon,
-  Info as InfoIcon,
-  LocalOffer as OfferIcon,
-} from "@mui/icons-material";
-import { formatTHB } from "../../utils/currency";
+import React from "react";
+
 import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
+import { formatTHB } from "../../utils/currency";
 
 const SpecialDiscountField = ({
   discountType = "percentage",

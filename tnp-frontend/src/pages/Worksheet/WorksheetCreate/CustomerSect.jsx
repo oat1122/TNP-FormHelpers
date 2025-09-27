@@ -1,3 +1,6 @@
+import { MdManageSearch } from "react-icons/md";
+
+import CustomerSectDialog from "./CustomerSectDialog.jsx";
 import {
   useState,
   useSelector,
@@ -6,8 +9,6 @@ import {
   TextField,
   Typography,
 } from "../../../utils/import_lib";
-import CustomerSectDialog from "./CustomerSectDialog.jsx";
-import { MdManageSearch } from "react-icons/md";
 
 function CustomerSect({ handleInputChange }) {
   const inputList = useSelector((state) => state.worksheet.inputList);

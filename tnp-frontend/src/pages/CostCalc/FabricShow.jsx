@@ -1,13 +1,14 @@
 import "./FabricCalc.css";
 import { useState, useEffect } from "react";
 import { Form, InputGroup, Button, ButtonGroup } from "react-bootstrap";
-import { updateFabric, removeFabric } from "../../features/fabricCost/fabricCostSlice";
-import { useSelector, useDispatch } from "react-redux";
-import { useGetFabricClassQuery, useDeleteFabricByIdMutation } from "../../services/tnpApi";
-import Swal from "sweetalert2";
-import { ModalProfit } from "./ModalProfit";
-import FabricEdit from "./FabricEdit";
 import { IoTrashOutline } from "react-icons/io5";
+import { useSelector, useDispatch } from "react-redux";
+import Swal from "sweetalert2";
+
+import FabricEdit from "./FabricEdit";
+import { ModalProfit } from "./ModalProfit";
+import { updateFabric, removeFabric } from "../../features/fabricCost/fabricCostSlice";
+import { useGetFabricClassQuery, useDeleteFabricByIdMutation } from "../../services/tnpApi";
 
 function FabricShow({ fabric, index }) {
   const dispatch = useDispatch();

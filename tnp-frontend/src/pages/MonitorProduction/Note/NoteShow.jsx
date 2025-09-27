@@ -1,6 +1,7 @@
-import { Row, Col } from "react-bootstrap";
 import moment from "moment";
+import { Row, Col } from "react-bootstrap";
 import { BsTrash3 } from "react-icons/bs";
+
 import "./ProductionNote.css";
 import { dialog_delete_by_id } from "../../../utils/dialog_swal2/dialog_delete_by_id";
 

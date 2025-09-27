@@ -1,5 +1,5 @@
-import { initSizes, initExtraSizes, initAllSizes } from "./../../data/patternSize";
 import { onlyNums } from "../../utils/inputFormatters";
+import { initSizes, initExtraSizes, initAllSizes } from "./../../data/patternSize";
 import { updateExamField, checkShirtQty, sumQty, changeSizeListSelect } from "./worksheetUtils";
 
 const sortedPatternSizeName = (statePatternSizes) => {

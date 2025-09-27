@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Grid2 as Grid,
   Stack,
@@ -14,7 +13,10 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
+import React from "react";
 import { MdSignalCellularAlt } from "react-icons/md";
+
+import { channelOptions, filterPanelConfig } from "../constants/filterConstants";
 import {
   FilterSectionPaper,
   FilterHeaderBox,
@@ -24,7 +26,6 @@ import {
   FilterContentBox,
   StyledFormControl,
 } from "../styles/FilterStyledComponents";
-import { channelOptions, filterPanelConfig } from "../constants/filterConstants";
 
 /**
  * Channel Filter Section Component

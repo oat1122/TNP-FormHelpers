@@ -1,6 +1,10 @@
 // src/pages/Accounting/PricingIntegration/components/PricingRequestNotesModal.jsx
-import React from "react";
-import moment from "moment";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HistoryIcon from "@mui/icons-material/History";
+import NotesIcon from "@mui/icons-material/Notes";
+import PersonIcon from "@mui/icons-material/Person";
+import ScheduleIcon from "@mui/icons-material/Schedule";
 import {
   Dialog,
   DialogTitle,
@@ -20,12 +24,8 @@ import {
   Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import HistoryIcon from "@mui/icons-material/History";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import PersonIcon from "@mui/icons-material/Person";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import NotesIcon from "@mui/icons-material/Notes";
+import moment from "moment";
+import React from "react";
 
 /**
  * โมดัล Notes สำหรับ Pricing Request (โฟกัส sale/price)

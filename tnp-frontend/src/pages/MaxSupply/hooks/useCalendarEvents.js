@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
 import {
   startOfMonth,
   endOfMonth,
@@ -7,6 +6,8 @@ import {
   endOfWeek,
   format,
 } from "date-fns";
+import { useState, useEffect, useMemo } from "react";
+
 import { organizeEventsInRows, getEventsForDate } from "../utils/calendarUtils";
 
 export const useCalendarEvents = (currentDate, maxSupplies = []) => {

@@ -1,4 +1,9 @@
-import React, { useState } from "react";
+import {
+  AccountBalance as TaxIcon,
+  Info as InfoIcon,
+  Calculate as CalculateIcon,
+  ExpandMore as ExpandMoreIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -15,15 +20,11 @@ import {
   useTheme,
   Collapse,
 } from "@mui/material";
-import {
-  AccountBalance as TaxIcon,
-  Info as InfoIcon,
-  Calculate as CalculateIcon,
-  ExpandMore as ExpandMoreIcon,
-} from "@mui/icons-material";
-import { formatTHB } from "../../utils/currency";
+import React, { useState } from "react";
+
 import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
+import { formatTHB } from "../../utils/currency";
 
 const WithholdingTaxField = ({
   hasWithholdingTax = false,

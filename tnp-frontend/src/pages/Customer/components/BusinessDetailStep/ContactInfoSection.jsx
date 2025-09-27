@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -8,6 +7,7 @@ import {
   Grid2 as Grid,
   Box,
 } from "@mui/material";
+import React from "react";
 import { MdExpandMore, MdPhone } from "react-icons/md";
 
 const ContactInfoSection = ({

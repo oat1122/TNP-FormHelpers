@@ -1,5 +1,6 @@
-import React from "react";
 import { Box, Typography, Avatar, Grid, Chip } from "@mui/material";
+import React from "react";
+
 import {
   Section,
   SectionHeader,

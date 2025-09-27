@@ -1,6 +1,7 @@
 import { Container, Row, Col, Card } from "react-bootstrap";
-import AppHeader from "../../components/Navbar/AppHeader";
+
 import styles from "./ShowLog.module.css";
+import AppHeader from "../../components/Navbar/AppHeader";
 
 function ShowLog() {
   return (

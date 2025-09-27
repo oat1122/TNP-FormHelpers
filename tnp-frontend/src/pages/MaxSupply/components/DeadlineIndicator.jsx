@@ -1,7 +1,7 @@
-import React from "react";
 import { Box, Typography, Chip, Tooltip } from "@mui/material";
-import { FaExclamationTriangle, FaClock, FaCheckCircle } from "react-icons/fa";
 import { differenceInDays } from "date-fns";
+import React from "react";
+import { FaExclamationTriangle, FaClock, FaCheckCircle } from "react-icons/fa";
 
 const DeadlineIndicator = ({ expectedDate, priority = "normal", size = "small" }) => {
   if (!expectedDate) return null;

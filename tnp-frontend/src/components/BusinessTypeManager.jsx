@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,8 +20,10 @@ import {
   Tooltip,
   CircularProgress,
 } from "@mui/material";
+import { useState, useEffect } from "react";
 import { MdAdd, MdEdit, MdDelete, MdClose, MdSearch, MdBusinessCenter } from "react-icons/md";
 import Swal from "sweetalert2";
+
 import {
   useGetAllBusinessTypesQuery,
   useAddBusinessTypeMutation,

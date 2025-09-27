@@ -1,7 +1,3 @@
-import { useEffect, useRef, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
 import {
   Button,
   Card,
@@ -11,6 +7,18 @@ import {
   Grid2 as Grid,
   styled,
 } from "@mui/material";
+import { skipToken } from "@reduxjs/toolkit/dist/query";
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import Swal from "sweetalert2";
+
+import CustomerSect from "./PricingForm/CustomerSect";
+import ImageSect from "./PricingForm/ImageSect";
+import NoteSect from "./PricingForm/NoteSect";
+import PricingDetailSect from "./PricingForm/PricingDetailSect";
+import TitleBar from "../../components/TitleBar";
 import {
   useAddPricingReqMutation,
   useUpdatePricingReqMutation,
@@ -18,19 +26,12 @@ import {
 } from "../../features/Pricing/pricingApi";
 import { setMode, setImagePreviewForm } from "../../features/Pricing/pricingSlice";
 import { validateValue } from "../../features/Pricing/pricingUtils";
+import { open_dialog_three_btn } from "../../utils/dialog_swal2/alart_one_line";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
   open_dialog_loading,
 } from "../../utils/import_lib";
-import Swal from "sweetalert2";
-import TitleBar from "../../components/TitleBar";
-import CustomerSect from "./PricingForm/CustomerSect";
-import ImageSect from "./PricingForm/ImageSect";
-import PricingDetailSect from "./PricingForm/PricingDetailSect";
-import NoteSect from "./PricingForm/NoteSect";
-import { skipToken } from "@reduxjs/toolkit/dist/query";
-import { open_dialog_three_btn } from "../../utils/dialog_swal2/alart_one_line";
 
 const VerticalDivider = styled(Divider)(({ theme }) => ({
   marginInline: 0,

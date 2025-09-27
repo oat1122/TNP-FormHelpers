@@ -1,4 +1,4 @@
-import React from "react";
+import { Language, Translate } from "@mui/icons-material";
 import {
   Box,
   ToggleButton,
@@ -9,7 +9,7 @@ import {
   useMediaQuery,
   Tooltip,
 } from "@mui/material";
-import { Language, Translate } from "@mui/icons-material";
+import React from "react";
 
 const LanguageToggle = ({ language, onLanguageChange, compact = false }) => {
   const theme = useTheme();

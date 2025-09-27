@@ -1,6 +1,6 @@
-import React from "react";
-import { Box, Typography, Button, Alert, Paper } from "@mui/material";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
+import { Box, Typography, Button, Alert, Paper } from "@mui/material";
+import React from "react";
 
 const ErrorState = ({ error, onRetry }) => {
   return (

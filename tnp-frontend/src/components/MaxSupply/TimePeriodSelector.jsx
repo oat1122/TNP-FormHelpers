@@ -1,5 +1,3 @@
-import React from "react";
-import { FormControl, InputLabel, Select, MenuItem, Box, Chip, Typography } from "@mui/material";
 import {
   DateRange,
   Today,
@@ -9,6 +7,8 @@ import {
   EventNote,
   NavigateNext,
 } from "@mui/icons-material";
+import { FormControl, InputLabel, Select, MenuItem, Box, Chip, Typography } from "@mui/material";
+import React from "react";
 
 const TimePeriodSelector = ({
   value,

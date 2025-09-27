@@ -1,6 +1,6 @@
-import React from "react";
-import { Box, Tab, Tabs } from "@mui/material";
 import { Dashboard, CalendarToday, Assignment } from "@mui/icons-material";
+import { Box, Tab, Tabs } from "@mui/material";
+import React from "react";
 
 const NavigationTabs = ({ currentTab, setCurrentTab }) => {
   const tabs = [

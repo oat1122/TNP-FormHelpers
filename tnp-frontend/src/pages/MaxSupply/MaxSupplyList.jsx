@@ -15,10 +15,8 @@ import {
 import { FaPlus, FaChartLine, FaSortAmountDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
+
 import ProductionTypeIcon from "./components/ProductionTypeIcon";
-import { productionTypeConfig, statusConfig, priorityConfig } from "./utils/constants";
-import { maxSupplyApi } from "../../services/maxSupplyApi";
-import MaxSupplyEditForm from "./MaxSupplyEditForm";
 import {
   FilterBar,
   MobileCardView,
@@ -28,6 +26,9 @@ import {
   LoadingSkeleton,
   EmptyState,
 } from "./components/UI";
+import MaxSupplyEditForm from "./MaxSupplyEditForm";
+import { productionTypeConfig, statusConfig, priorityConfig } from "./utils/constants";
+import { maxSupplyApi } from "../../services/maxSupplyApi";
 
 const MaxSupplyList = () => {
   const theme = useTheme();

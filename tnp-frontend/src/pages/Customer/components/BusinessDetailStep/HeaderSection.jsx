@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Container, Typography, useMediaQuery, useTheme } from "@mui/material";
+import React from "react";
 import { MdAssignment } from "react-icons/md";
 
 const HeaderSection = ({ mode, PRIMARY_RED, SECONDARY_RED }) => {

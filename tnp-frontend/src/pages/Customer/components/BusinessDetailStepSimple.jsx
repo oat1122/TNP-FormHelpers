@@ -1,9 +1,10 @@
-import React from "react";
 import { Box, Container } from "@mui/material";
-import HeaderSection from "./BusinessDetailStep/HeaderSection";
+import React from "react";
+
+import AddressFormSection from "./BusinessDetailStep/AddressFormSection";
 import ContactInfoSection from "./BusinessDetailStep/ContactInfoSection";
 import GpsAutoFillSection from "./BusinessDetailStep/GpsAutoFillSection";
-import AddressFormSection from "./BusinessDetailStep/AddressFormSection";
+import HeaderSection from "./BusinessDetailStep/HeaderSection";
 import { useGpsHelper } from "./BusinessDetailStep/useGpsHelper";
 
 // สี theme ของบริษัท

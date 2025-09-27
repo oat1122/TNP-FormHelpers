@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Grid,
@@ -14,6 +13,7 @@ import {
   Paper,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import React from "react";
 
 const tokens = {
   primary: "#900F0F",

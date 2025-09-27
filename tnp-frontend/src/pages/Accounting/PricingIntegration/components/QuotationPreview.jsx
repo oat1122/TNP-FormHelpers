@@ -1,4 +1,3 @@
-import React, { useState, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -13,9 +12,11 @@ import {
   Button,
   Stack,
 } from "@mui/material";
+import React, { useState, useMemo } from "react";
+
+import accountingHttp from "../../../../api/accountingApi";
 import { adaptQuotationPayloadToPreview } from "../utils/quotationAdapter";
 // Backend PDF generation via API
-import accountingHttp from "../../../../api/accountingApi";
 
 // A4 printable quotation preview with logo and size from quotation_items
 function QuotationPreview({

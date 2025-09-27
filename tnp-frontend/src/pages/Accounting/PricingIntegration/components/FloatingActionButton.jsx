@@ -1,6 +1,6 @@
-import React from "react";
-import { Fab } from "@mui/material";
 import { Refresh as RefreshIcon } from "@mui/icons-material";
+import { Fab } from "@mui/material";
+import React from "react";
 
 const FloatingActionButton = ({ onRefresh }) => {
   return (

@@ -1,5 +1,6 @@
-import React from "react";
 import { Box, Container, Typography } from "@mui/material";
+import React from "react";
+
 import ToastTester from "../components/ToastTester";
 
 function TestToast() {

@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Grid2 as Grid,
   Stack,
@@ -16,7 +15,10 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
+import React from "react";
 import { MdPerson } from "react-icons/md";
+
+import { filterPanelConfig } from "../constants/filterConstants";
 import {
   FilterSectionPaper,
   FilterHeaderBox,
@@ -26,7 +28,6 @@ import {
   FilterContentBox,
   StyledFormControl,
 } from "../styles/FilterStyledComponents";
-import { filterPanelConfig } from "../constants/filterConstants";
 
 /**
  * Sales Filter Section Component

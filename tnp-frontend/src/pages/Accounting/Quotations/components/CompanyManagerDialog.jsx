@@ -1,4 +1,7 @@
-import React from "react";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
 import {
   Dialog,
   DialogTitle,
@@ -17,10 +20,8 @@ import {
   ListItemText,
   ListItemSecondaryAction,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
-import SaveIcon from "@mui/icons-material/Save";
+import React from "react";
+
 import {
   useGetCompaniesQuery,
   useCreateCompanyMutation,

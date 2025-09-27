@@ -1,7 +1,8 @@
 import "./FabricCalc.css";
+import { Container } from "react-bootstrap";
+
 import FabricList from "./FabricList";
 import FabricSelectPattern from "./FabricSelectPattern";
-import { Container } from "react-bootstrap";
 
 function FabricMain() {
   return (

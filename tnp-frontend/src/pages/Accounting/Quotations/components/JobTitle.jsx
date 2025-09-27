@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Typography, Tooltip } from "@mui/material";
+import React from "react";
 
 function JobTitle({ text }) {
   const items = (text || "")

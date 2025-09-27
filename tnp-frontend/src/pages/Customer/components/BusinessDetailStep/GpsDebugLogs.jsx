@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import { Box, Button, Chip, Paper, Typography } from "@mui/material";
+import React, { useState } from "react";
 
 const GpsDebugLogs = ({ gpsDebugLogs }) => {
   const [showDebugLogs, setShowDebugLogs] = useState(false);

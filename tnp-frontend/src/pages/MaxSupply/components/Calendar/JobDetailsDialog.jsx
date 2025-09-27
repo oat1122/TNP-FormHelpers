@@ -1,4 +1,11 @@
-import React from "react";
+import {
+  Close as CloseIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Person as PersonIcon,
+  Event as EventIcon,
+  Work as WorkIcon,
+} from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -18,14 +25,8 @@ import {
   useMediaQuery,
   Fade,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Person as PersonIcon,
-  Event as EventIcon,
-  Work as WorkIcon,
-} from "@mui/icons-material";
+import React from "react";
+
 import { productionTypeConfig, statusConfig, priorityConfig } from "../../utils/constants";
 import {
   formatDate,

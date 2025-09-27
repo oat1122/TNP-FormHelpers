@@ -1,4 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
+import {
+  Edit as EditIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+  Business as BusinessIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Check as CheckIcon,
+} from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -20,20 +32,9 @@ import {
   Radio,
   InputAdornment,
 } from "@mui/material";
-import {
-  Edit as EditIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  LocationOn as LocationIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Check as CheckIcon,
-} from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import React, { useState, useEffect, useCallback } from "react";
+
 import {
   customerApi,
   validateCustomerData,
@@ -48,9 +49,9 @@ import {
   prepareManagerForApi,
   mergeManagerData,
 } from "./managerUtils";
-import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
-import { AddressService } from "../../../../services/AddressService";
 import { useGetUserByRoleQuery } from "../../../../features/globalApi";
+import { AddressService } from "../../../../services/AddressService";
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 
 // Styled Components
 const CustomerCard = styled(Card)(({ theme }) => ({

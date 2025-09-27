@@ -1,4 +1,5 @@
 import { format, parseISO, differenceInDays, isValid } from "date-fns";
+
 import { CALENDAR_CONFIG, PRIORITY_ORDER } from "./constants";
 
 // Calculate event timeline position and width for multi-day spanning

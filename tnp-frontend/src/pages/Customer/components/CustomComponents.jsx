@@ -1,5 +1,4 @@
-import React, { useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { FirstPage, LastPage } from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -8,7 +7,6 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { FirstPage, LastPage } from "@mui/icons-material";
 import {
   useGridApiContext,
   useGridSelector,
@@ -16,10 +14,13 @@ import {
   gridPageSelector,
   GridToolbarContainer,
 } from "@mui/x-data-grid";
+import React, { useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { useDispatch } from "react-redux";
+
+import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
 import { setPaginationModel } from "../../../features/Customer/customerSlice";
 import { StyledPagination } from "../styles/StyledComponents";
-import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
 
 // Component Pagination ที่กำหนดเอง
 export const CustomPagination = ({ paginationModel, totalItems, scrollToTop }) => {

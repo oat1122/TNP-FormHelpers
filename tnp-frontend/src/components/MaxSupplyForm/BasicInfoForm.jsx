@@ -1,4 +1,4 @@
-import React from "react";
+import { Person } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   MenuItem,
   Box,
 } from "@mui/material";
-import { Person } from "@mui/icons-material";
+import React from "react";
 
 const BasicInfoForm = ({
   formData,

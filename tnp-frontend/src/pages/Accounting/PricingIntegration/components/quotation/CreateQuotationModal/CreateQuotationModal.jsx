@@ -1,4 +1,11 @@
-import React, { useEffect, useState } from "react";
+import {
+  Assignment as AssignmentIcon,
+  Business as BusinessIcon,
+  Close as CloseIcon,
+  CheckCircleOutline as CheckCircleIcon,
+  RadioButtonUnchecked as UncheckIcon,
+  Info as InfoIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Grid,
@@ -20,14 +27,9 @@ import {
   Badge,
   LinearProgress,
 } from "@mui/material";
-import {
-  Assignment as AssignmentIcon,
-  Business as BusinessIcon,
-  Close as CloseIcon,
-  CheckCircleOutline as CheckCircleIcon,
-  RadioButtonUnchecked as UncheckIcon,
-  Info as InfoIcon,
-} from "@mui/icons-material";
+import React, { useEffect, useState } from "react";
+
+import useCustomerPricingRequests from "../hooks/useCustomerPricingRequests";
 import {
   Section,
   SectionHeader,
@@ -36,7 +38,6 @@ import {
   InfoCard,
   tokens,
 } from "../styles/quotationTheme";
-import useCustomerPricingRequests from "../hooks/useCustomerPricingRequests";
 
 const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

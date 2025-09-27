@@ -1,6 +1,7 @@
-import React from "react";
-import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
+import React from "react";
+
 import CustomerEditCard from "./CustomerEditCard";
 
 const CustomerEditDialog = ({ open, onClose, customer, onUpdated }) => {

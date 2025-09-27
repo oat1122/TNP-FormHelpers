@@ -1,4 +1,3 @@
-import React from "react";
 import {
   ScreenShare,
   Print,
@@ -6,6 +5,8 @@ import {
   ContentCut,
   Help as HelpIcon,
 } from "@mui/icons-material";
+import React from "react";
+
 import { productionTypeConfig } from "../utils/constants";
 
 const ProductionTypeIcon = ({ type, size = 20, color = "inherit", ...props }) => {

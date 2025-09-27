@@ -1,6 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { GridActionsCellItem } from "@mui/x-data-grid";
 import {
   Box,
   Button,
@@ -11,17 +8,24 @@ import {
   TableContainer,
   Chip,
 } from "@mui/material";
+import { GridActionsCellItem } from "@mui/x-data-grid";
+import { useState, useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { BsTrash3 } from "react-icons/bs";
+import { CiEdit } from "react-icons/ci";
 import { MdOutlineManageSearch, MdLockReset } from "react-icons/md";
 import { RiAddLargeFill } from "react-icons/ri";
-import { CiEdit } from "react-icons/ci";
-import { BsTrash3 } from "react-icons/bs";
+import { useDispatch, useSelector } from "react-redux";
+
+import DialogForm from "./DialogForm";
+import DataTable from "../../components/DataTable";
+import TitleBar from "../../components/TitleBar";
 import {
   useGetAllUserQuery,
   useResetPasswordMutation,
   useDelUserMutation,
 } from "../../features/UserManagement/userManagementApi";
 import { setItemList, setMode } from "../../features/UserManagement/userManagementSlice";
-import TitleBar from "../../components/TitleBar";
 import { swal_delete_by_id } from "../../utils/dialog_swal2/dialog_delete_by_id";
 import {
   open_dialog_ok_timer,
@@ -29,9 +33,6 @@ import {
   open_dialog_error,
   dialog_confirm_yes_no,
 } from "../../utils/import_lib";
-import DialogForm from "./DialogForm";
-import { useForm } from "react-hook-form";
-import DataTable from "../../components/DataTable";
 
 function UserList() {
   const user = JSON.parse(localStorage.getItem("userData"));

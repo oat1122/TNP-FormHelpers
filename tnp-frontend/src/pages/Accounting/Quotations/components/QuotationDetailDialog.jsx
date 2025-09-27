@@ -1,4 +1,11 @@
-import React from "react";
+import {
+  Assignment as AssignmentIcon,
+  Calculate as CalculateIcon,
+  Payment as PaymentIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
+  DeleteOutline as DeleteOutlineIcon,
+} from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -13,14 +20,13 @@ import {
   TextField,
   Divider,
 } from "@mui/material";
-import {
-  Assignment as AssignmentIcon,
-  Calculate as CalculateIcon,
-  Payment as PaymentIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-  DeleteOutline as DeleteOutlineIcon,
-} from "@mui/icons-material";
+
+// Replaced custom client-side preview with backend PDF generation
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import React from "react";
+
+import { apiConfig } from "../../../../api/apiConfig";
 import {
   useGetQuotationQuery,
   useGetPricingRequestAutofillQuery,
@@ -30,7 +36,10 @@ import {
   useDeleteQuotationSignatureImageMutation,
   useUploadQuotationSampleImagesMutation,
 } from "../../../../features/Accounting/accountingApi";
-import { apiConfig } from "../../../../api/apiConfig";
+import CustomerEditDialog from "../../PricingIntegration/components/CustomerEditDialog";
+// Reuse discount & withholding components from create form
+import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
+import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import {
   Section,
   SectionHeader,
@@ -38,14 +47,15 @@ import {
   InfoCard,
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { formatTHB } from "../utils/format";
 import { formatDateTH } from "../../PricingIntegration/components/quotation/utils/date";
-import CustomerEditDialog from "../../PricingIntegration/components/CustomerEditDialog";
-// Replaced custom client-side preview with backend PDF generation
+import Calculation from "../../shared/components/Calculation";
+import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
+import PaymentTerms from "../../shared/components/PaymentTerms";
+import { useQuotationFinancials } from "../../shared/hooks/useQuotationFinancials";
 import { sanitizeInt } from "../../shared/inputSanitizers";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { useQuotationGroups } from "../hooks/useQuotationGroups";
+import { formatTHB } from "../utils/format";
 import {
   pickQuotation,
   normalizeCustomer,
@@ -54,14 +64,6 @@ import {
   computeTotals,
   toISODate,
 } from "../utils/quotationUtils";
-import { useQuotationFinancials } from "../../shared/hooks/useQuotationFinancials";
-import { useQuotationGroups } from "../hooks/useQuotationGroups";
-// Reuse discount & withholding components from create form
-import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
-import Calculation from "../../shared/components/Calculation";
-import PaymentTerms from "../../shared/components/PaymentTerms";
-import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
 
 // Child: Summary card per PR group (fetch PR info if group has no name)
 const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {

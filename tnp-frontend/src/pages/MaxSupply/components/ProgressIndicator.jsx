@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, LinearProgress, Typography, Chip } from "@mui/material";
+import React from "react";
 
 const ProgressIndicator = ({
   current = 0,

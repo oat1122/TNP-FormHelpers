@@ -1,5 +1,3 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
   Button,
@@ -17,25 +15,28 @@ import {
   FormHelperText,
 } from "@mui/material";
 import moment from "moment";
-import { formatCustomRelativeTime, genCustomerNo } from "../../features/Customer/customerUtils";
-import { setInputList, setItemList, resetInputList } from "../../features/Customer/customerSlice";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { MdClose } from "react-icons/md";
+import { useSelector, useDispatch } from "react-redux";
+import Swal from "sweetalert2";
+
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
 } from "../../features/Customer/customerApi";
-import { setLocationSearch } from "../../features/globalSlice";
+import { setInputList, setItemList, resetInputList } from "../../features/Customer/customerSlice";
+import { formatCustomRelativeTime, genCustomerNo } from "../../features/Customer/customerUtils";
 import {
   useGetAllLocationQuery,
   useLazyGetAllLocationQuery,
   useGetUserByRoleQuery,
 } from "../../features/globalApi";
+import { setLocationSearch } from "../../features/globalSlice";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
   open_dialog_loading,
 } from "../../utils/import_lib";
-import { MdClose } from "react-icons/md";
-import Swal from "sweetalert2";
 
 const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,

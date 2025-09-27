@@ -1,4 +1,12 @@
-import React, { useState } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Warning,
+  CheckCircle,
+  Info,
+  Speed,
+  Assessment,
+} from "@mui/icons-material";
 import {
   Box,
   Container,
@@ -15,17 +23,10 @@ import {
   Fade,
   Tooltip,
 } from "@mui/material";
-import {
-  TrendingUp,
-  TrendingDown,
-  Warning,
-  CheckCircle,
-  Info,
-  Speed,
-  Assessment,
-} from "@mui/icons-material";
-import StatisticsCards from "./StatisticsCards";
+import React, { useState } from "react";
+
 import CapacitySummary from "./CapacitySummary";
+import StatisticsCards from "./StatisticsCards";
 import WorkCapacityCard from "./WorkCapacityCard";
 import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
 

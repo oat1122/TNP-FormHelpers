@@ -1,4 +1,4 @@
-import React from "react";
+import { Speed } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -11,7 +11,8 @@ import {
   useTheme,
   Avatar,
 } from "@mui/material";
-import { Speed } from "@mui/icons-material";
+import React from "react";
+
 import ProductionTypeIcon from "../../pages/MaxSupply/components/ProductionTypeIcon";
 
 const ProductionTypeCapacityCard = ({

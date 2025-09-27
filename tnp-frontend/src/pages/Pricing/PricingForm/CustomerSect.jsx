@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useSelector } from "react-redux";
 import {
   Button,
   Grid2 as Grid,
@@ -8,9 +6,11 @@ import {
   styled,
   InputLabel,
 } from "@mui/material";
+import { useState } from "react";
+import { MdManageSearch } from "react-icons/md";
+import { useSelector } from "react-redux";
 
 import CustomerSectDialog from "./CustomerSectDialog.jsx";
-import { MdManageSearch } from "react-icons/md";
 
 const StyledOutlinedInput = styled(OutlinedInput)(({ theme }) => ({
   backgroundColor: theme.vars.palette.grey.outlinedInput,

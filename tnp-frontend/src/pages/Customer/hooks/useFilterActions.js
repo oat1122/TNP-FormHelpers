@@ -1,7 +1,7 @@
+import { debounce } from "lodash";
 import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { debounce } from "lodash";
-import ScrollContext from "../ScrollContext";
+
 import {
   setFilters,
   setPaginationModel,
@@ -9,6 +9,7 @@ import {
   fetchFilteredCustomers,
 } from "../../../features/Customer/customerSlice";
 import { filterPanelConfig } from "../constants/filterConstants";
+import ScrollContext from "../ScrollContext";
 
 /**
  * Custom hook for managing filter actions

@@ -1,19 +1,20 @@
 import "./FabricOrder.css";
-import { useState } from "react";
 import { styled } from "@mui/material";
-import { Stack, Modal, Button } from "react-bootstrap";
-import { RiSettings3Fill } from "react-icons/ri";
-import { IoIosCloseCircleOutline } from "react-icons/io";
-import { MdNotes } from "react-icons/md";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { StaticDatePicker } from "@mui/x-date-pickers/StaticDatePicker";
-import ProductionNote from "./Note/ProductionNote";
-import { useGetAllSheetsQuery, useGetNotesQuery } from "../../api/slice";
-import axios from "../../api/axios";
 import moment from "moment";
-import SewingFactory from "./SewingFactory";
+import { useState } from "react";
+import { Stack, Modal, Button } from "react-bootstrap";
+import { IoIosCloseCircleOutline } from "react-icons/io";
+import { MdNotes } from "react-icons/md";
+import { RiSettings3Fill } from "react-icons/ri";
 import { useSelector } from "react-redux";
+
+import ProductionNote from "./Note/ProductionNote";
+import SewingFactory from "./SewingFactory";
+import axios from "../../api/axios";
+import { useGetAllSheetsQuery, useGetNotesQuery } from "../../api/slice";
 import { open_dialog_ok_timer, open_dialog_error } from "../../utils/dialog_swal2/alart_one_line";
 
 const NoteIcon = styled(MdNotes)({

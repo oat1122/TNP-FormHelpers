@@ -1,4 +1,4 @@
-import React from "react";
+import { Schedule, Circle } from "@mui/icons-material";
 import {
   Paper,
   Typography,
@@ -9,8 +9,8 @@ import {
   ListItemIcon,
   Skeleton,
 } from "@mui/material";
-import { Schedule, Circle } from "@mui/icons-material";
 import { format, isWithinInterval, parseISO, addDays, startOfToday } from "date-fns";
+import React from "react";
 
 const DeadlineSection = ({
   jobs = [],

@@ -1,10 +1,11 @@
-import React, { useContext } from "react";
-import { useSelector, useDispatch } from "react-redux";
 import { Box, Chip, Typography } from "@mui/material";
-import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from "react-icons/md";
 import dayjs from "dayjs";
-import { resetFilters } from "../../features/Customer/customerSlice";
+import React, { useContext } from "react";
+import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from "react-icons/md";
+import { useSelector, useDispatch } from "react-redux";
+
 import ScrollContext from "./ScrollContext";
+import { resetFilters } from "../../features/Customer/customerSlice";
 import { getChannelDisplayName, formatDaysToText } from "../../features/Customer/customerUtils";
 
 /**

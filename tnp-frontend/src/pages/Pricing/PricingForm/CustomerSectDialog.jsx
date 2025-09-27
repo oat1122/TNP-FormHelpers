@@ -1,3 +1,13 @@
+import { visuallyHidden } from "@mui/utils";
+
+// import { useGetAllCustomerQuery } from "../../../features/Pricing/pricingApi";
+import { skipToken } from "@reduxjs/toolkit/dist/query/index.js";
+import PropTypes from "prop-types";
+import { IoSearch } from "react-icons/io5";
+
+import { useGetAllCustomerQuery } from "../../../features/globalApi";
+import { setCustomerList } from "../../../features/globalSlice";
+import { setInputList } from "../../../features/Pricing/pricingSlice";
 import {
   useDispatch,
   useEffect,
@@ -24,14 +34,6 @@ import {
   TextField,
   InputAdornment,
 } from "../../../utils/import_lib";
-import PropTypes from "prop-types";
-import { visuallyHidden } from "@mui/utils";
-import { setInputList } from "../../../features/Pricing/pricingSlice";
-// import { useGetAllCustomerQuery } from "../../../features/Pricing/pricingApi";
-import { setCustomerList } from "../../../features/globalSlice";
-import { useGetAllCustomerQuery } from "../../../features/globalApi";
-import { skipToken } from "@reduxjs/toolkit/dist/query/index.js";
-import { IoSearch } from "react-icons/io5";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {

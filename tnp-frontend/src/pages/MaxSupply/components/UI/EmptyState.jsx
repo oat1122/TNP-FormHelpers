@@ -1,7 +1,7 @@
-import React from "react";
-import { Box, Typography, Button, useTheme } from "@mui/material";
-import { FaPlus } from "react-icons/fa";
 import { Assignment as AssignmentIcon } from "@mui/icons-material";
+import { Box, Typography, Button, useTheme } from "@mui/material";
+import React from "react";
+import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const EmptyState = () => {

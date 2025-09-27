@@ -1,10 +1,11 @@
+import moment from "moment";
 import { useState } from "react";
 import { useFieldArray } from "react-hook-form";
-import NoteSales from "./PricingNote/NoteSales";
-import NotePrice from "./PricingNote/NotePrice";
-import NoteManager from "./PricingNote/NoteManager";
-import moment from "moment";
+
 import NoteHistoryDialog from "./PricingNote/NoteHistoryDialog";
+import NoteManager from "./PricingNote/NoteManager";
+import NotePrice from "./PricingNote/NotePrice";
+import NoteSales from "./PricingNote/NoteSales";
 
 function NoteSect(props) {
   const user = JSON.parse(localStorage.getItem("userData"));

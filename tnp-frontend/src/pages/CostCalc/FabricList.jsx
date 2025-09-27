@@ -1,11 +1,12 @@
 import "./FabricCalc.css";
-import { Button, Spinner } from "react-bootstrap";
-import FabricShow from "./FabricShow";
 import { useEffect } from "react";
-import { useGetFabricByPatternIdQuery, useEditFabricByIdMutation } from "../../services/tnpApi";
+import { Button, Spinner } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
-import { addFabric, setFabricsList } from "../../features/fabricCost/fabricCostSlice";
 import Swal from "sweetalert2";
+
+import FabricShow from "./FabricShow";
+import { addFabric, setFabricsList } from "../../features/fabricCost/fabricCostSlice";
+import { useGetFabricByPatternIdQuery, useEditFabricByIdMutation } from "../../services/tnpApi";
 
 function FabricList() {
   const pattern = useSelector((state) => state.fabricCost.pattern.id);

@@ -2,10 +2,11 @@
  * Component for displaying customer information with snapshot support
  */
 
-import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import PersonIcon from "@mui/icons-material/Person";
+import { Box, Stack, Typography } from "@mui/material";
+import React from "react";
+
 import { truncateText } from "../utils/invoiceFormatters";
 
 const CustomerInfoSection = ({ invoice }) => {

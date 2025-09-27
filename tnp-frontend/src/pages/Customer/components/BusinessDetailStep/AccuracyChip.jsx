@@ -1,5 +1,5 @@
-import React from "react";
 import { Chip } from "@mui/material";
+import React from "react";
 
 const AccuracyChip = ({ accuracy }) => {
   const roundedAccuracy = Math.round(accuracy || 9999);

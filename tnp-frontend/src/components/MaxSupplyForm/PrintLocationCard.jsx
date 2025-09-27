@@ -1,4 +1,4 @@
-import React from "react";
+import { Print } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   TextField,
   Collapse,
 } from "@mui/material";
-import { Print } from "@mui/icons-material";
+import React from "react";
 
 const PrintLocationCard = ({ formData, onPrintLocationChange }) => {
   return (

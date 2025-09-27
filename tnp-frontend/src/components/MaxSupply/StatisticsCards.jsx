@@ -1,4 +1,11 @@
-import React, { useEffect } from "react";
+import {
+  TrendingUp,
+  Assignment,
+  Schedule,
+  CheckCircle,
+  PendingActions,
+  PlayArrow,
+} from "@mui/icons-material";
 import {
   Box,
   Card,
@@ -10,14 +17,8 @@ import {
   Chip,
   LinearProgress,
 } from "@mui/material";
-import {
-  TrendingUp,
-  Assignment,
-  Schedule,
-  CheckCircle,
-  PendingActions,
-  PlayArrow,
-} from "@mui/icons-material";
+import React, { useEffect } from "react";
+
 import TimePeriodSelector from "./TimePeriodSelector";
 import useProductionCapacityCalculation from "../../hooks/useProductionCapacityCalculation";
 import ProductionTypeIcon from "../../pages/MaxSupply/components/ProductionTypeIcon";

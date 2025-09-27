@@ -1,4 +1,9 @@
-import React from "react";
+import {
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Schedule as ScheduleIcon,
+} from "@mui/icons-material";
 import {
   Grid,
   Card,
@@ -11,15 +16,11 @@ import {
   IconButton,
   useTheme,
 } from "@mui/material";
-import { FaUser, FaCalendarAlt, FaExclamationTriangle, FaClock } from "react-icons/fa";
-import {
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Schedule as ScheduleIcon,
-} from "@mui/icons-material";
 import { format } from "date-fns";
 import * as dateFnsLocales from "date-fns/locale";
+import React from "react";
+import { FaUser, FaCalendarAlt, FaExclamationTriangle, FaClock } from "react-icons/fa";
+
 import { productionTypeConfig, statusConfig } from "../../utils/constants";
 
 const MobileCardView = ({

@@ -1,5 +1,5 @@
-import React from "react";
 import { Grid, Card, CardContent, CardActions, Box, Skeleton } from "@mui/material";
+import React from "react";
 
 const LoadingSkeleton = () => (
   <Grid container spacing={2}>

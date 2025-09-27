@@ -1,12 +1,17 @@
 import React, { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router-dom";
+
 import { AuthLayout, GuestLayout } from "./pages/Login/AuthLayout";
 import "./index.css";
 import AppLogin from "./pages/Login/AppLogin";
 import ControlPanel from "./pages/ControlPanel/ControlPanel";
+
 import CssBaseline from "@mui/material/CssBaseline";
+
 import AppTheme from "./AppTheme";
+
 import { CircularProgress } from "@mui/material";
+
 import { MaxSupplyProvider } from "./pages/MaxSupply/context/MaxSupplyContext";
 
 // Lazy loaded components

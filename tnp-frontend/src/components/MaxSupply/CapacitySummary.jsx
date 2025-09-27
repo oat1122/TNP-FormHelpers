@@ -1,6 +1,7 @@
-import React from "react";
-import { Box, Typography, Grid, Card, CardContent, Tooltip, Avatar, Chip } from "@mui/material";
 import { Assignment, Inventory, Speed, TrendingUp, Info } from "@mui/icons-material";
+import { Box, Typography, Grid, Card, CardContent, Tooltip, Avatar, Chip } from "@mui/material";
+import React from "react";
+
 import TimePeriodSelector from "./TimePeriodSelector";
 
 const CapacitySummary = ({

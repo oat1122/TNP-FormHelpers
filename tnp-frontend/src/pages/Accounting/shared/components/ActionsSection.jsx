@@ -1,6 +1,7 @@
-import React from "react";
-import { Box, Typography, Avatar, Button, CircularProgress } from "@mui/material";
 import { PictureAsPdf as PdfIcon, Visibility as VisibilityIcon } from "@mui/icons-material";
+import { Box, Typography, Avatar, Button, CircularProgress } from "@mui/material";
+import React from "react";
+
 import {
   Section,
   SectionHeader,

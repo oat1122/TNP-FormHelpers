@@ -6,10 +6,12 @@ use App\Models\Accounting\DeliveryNote;
 use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\DocumentAttachment;
+use App\Models\Accounting\InvoiceItem;
 use App\Services\Accounting\AutofillService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class DeliveryNoteService
 {
@@ -18,6 +20,113 @@ class DeliveryNoteService
     public function __construct(AutofillService $autofillService)
     {
         $this->autofillService = $autofillService;
+    }
+
+    /**
+     * Get invoice items that can be converted to delivery notes
+     */
+    public function getInvoiceItemSources($filters = [], $perPage = 20)
+    {
+        try {
+            $query = InvoiceItem::with(['invoice' => function ($invoiceQuery) {
+                // Build a safe select list that only includes existing columns
+                $columns = [
+                    'id',
+                    'number',
+                    'status',
+                    'customer_company',
+                    'customer_firstname',
+                    'customer_lastname',
+                    'customer_tel_1',
+                    'customer_address',
+                    'company_id',
+                    'customer_id',
+                    'created_at',
+                    'updated_at',
+                ];
+                // Include work_name only if it exists in the current schema
+                if (Schema::hasColumn('invoices', 'work_name')) {
+                    $columns[] = 'work_name';
+                }
+
+                $invoiceQuery->select($columns);
+            }])->whereHas('invoice', function ($invoiceQuery) {
+                $invoiceQuery->whereIn('status', ['sent', 'partial_paid', 'fully_paid', 'approved']);
+            });
+
+            if (!empty($filters['search'])) {
+                $search = '%' . $filters['search'] . '%';
+                $query->where(function ($q) use ($search) {
+                    $q->where('item_name', 'like', $search)
+                      ->orWhere('pattern', 'like', $search)
+                      ->orWhere('color', 'like', $search)
+                      ->orWhere('size', 'like', $search)
+                      ->orWhereHas('invoice', function ($invoiceQuery) use ($search) {
+                          $invoiceQuery->where('number', 'like', $search)
+                              ->orWhere('customer_company', 'like', $search);
+                          // Search by work_name only if the column exists
+                          if (Schema::hasColumn('invoices', 'work_name')) {
+                              $invoiceQuery->orWhere('work_name', 'like', $search);
+                          }
+                      });
+                });
+            }
+
+            if (!empty($filters['invoice_status'])) {
+                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
+                    $invoiceQuery->where('status', $filters['invoice_status']);
+                });
+            }
+
+            if (!empty($filters['company_id'])) {
+                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
+                    $invoiceQuery->where('company_id', $filters['company_id']);
+                });
+            }
+
+            if (!empty($filters['customer_id'])) {
+                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
+                    $invoiceQuery->where('customer_id', $filters['customer_id']);
+                });
+            }
+
+            if (!empty($filters['invoice_id'])) {
+                $query->where('invoice_id', $filters['invoice_id']);
+            }
+
+            $query->orderByDesc('created_at');
+
+            $paginator = $query->paginate($perPage);
+
+            return $paginator->through(function (InvoiceItem $item) {
+                $invoice = $item->invoice;
+
+                return [
+                    'invoice_item_id' => $item->id,
+                    'invoice_id' => $invoice?->id,
+                    'invoice_number' => $invoice?->number,
+                    'invoice_status' => $invoice?->status,
+                    'company_id' => $invoice?->company_id,
+                    'customer_id' => $invoice?->customer_id,
+                    'customer_company' => $invoice?->customer_company,
+                    'customer_name' => trim(($invoice?->customer_firstname ?? '') . ' ' . ($invoice?->customer_lastname ?? '')),
+                    'customer_phone' => $invoice?->customer_tel_1,
+                    'delivery_address' => $invoice?->customer_address,
+                    'work_name' => $invoice?->work_name ?? $item->item_name,
+                    'item_name' => $item->item_name,
+                    'item_description' => $item->item_description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'final_amount' => $item->final_amount,
+                    'sequence_order' => $item->sequence_order,
+                    'created_at' => $invoice?->created_at,
+                ];
+            });
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteService::getInvoiceItemSources error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -50,6 +159,8 @@ class DeliveryNoteService
             $deliveryNote->company_id = $receipt->company_id
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
+            $deliveryNote->invoice_id = $data['invoice_id'] ?? null;
+            $deliveryNote->invoice_item_id = $data['invoice_item_id'] ?? null;
             $deliveryNote->receipt_id = $receipt->id;
             
             // Auto-fill ข้อมูลจาก Receipt
@@ -114,6 +225,8 @@ class DeliveryNoteService
             $deliveryNote->company_id = $data['company_id']
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
+            $deliveryNote->invoice_id = $data['invoice_id'] ?? null;
+            $deliveryNote->invoice_item_id = $data['invoice_item_id'] ?? null;
             
             // ข้อมูลลูกค้า
             $deliveryNote->customer_id = $data['customer_id'] ?? null;
@@ -220,7 +333,7 @@ class DeliveryNoteService
     public function getList($filters = [], $perPage = 20)
     {
         try {
-            $query = DeliveryNote::with(['receipt', 'customer', 'creator']);
+            $query = DeliveryNote::with(['receipt', 'invoice', 'invoiceItem', 'customer', 'creator']);
 
             // Apply filters
             if (!empty($filters['search'])) {
@@ -230,7 +343,15 @@ class DeliveryNoteService
                       ->orWhere('customer_company', 'like', $search)
                       ->orWhere('work_name', 'like', $search)
                       ->orWhere('recipient_name', 'like', $search)
-                      ->orWhere('tracking_number', 'like', $search);
+                      ->orWhere('tracking_number', 'like', $search)
+                      ->orWhereHas('invoice', function ($invoiceQuery) use ($search) {
+                          $invoiceQuery->where('number', 'like', $search)
+                              ->orWhere('customer_company', 'like', $search)
+                              ->orWhere('work_name', 'like', $search);
+                      })
+                      ->orWhereHas('invoiceItem', function ($itemQuery) use ($search) {
+                          $itemQuery->where('item_name', 'like', $search);
+                      });
                 });
             }
 
@@ -244,6 +365,14 @@ class DeliveryNoteService
 
             if (!empty($filters['customer_id'])) {
                 $query->where('customer_id', $filters['customer_id']);
+            }
+
+            if (!empty($filters['invoice_id'])) {
+                $query->where('invoice_id', $filters['invoice_id']);
+            }
+
+            if (!empty($filters['invoice_item_id'])) {
+                $query->where('invoice_item_id', $filters['invoice_item_id']);
             }
 
             if (!empty($filters['courier_company'])) {
@@ -673,3 +802,4 @@ class DeliveryNoteService
         }
     }
 }
+

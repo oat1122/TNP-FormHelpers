@@ -607,6 +607,40 @@ export const accountingApi = createApi({
       providesTags: (result, error, id) => [{ type: "DeliveryNote", id }],
     }),
 
+    getDeliveryNoteInvoiceItems: builder.query({
+      query: (params = {}) => ({
+        url: "/delivery-notes/invoice-items",
+        params,
+      }),
+      providesTags: ["DeliveryNote"],
+    }),
+
+    createDeliveryNote: builder.mutation({
+      query: (payload) => ({
+        url: "/delivery-notes",
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["DeliveryNote", "Dashboard"],
+    }),
+
+    updateDeliveryNote: builder.mutation({
+      query: ({ id, ...payload }) => ({
+        url: `/delivery-notes/${id}`,
+        method: "PUT",
+        body: payload,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "DeliveryNote", id }],
+    }),
+
+    deleteDeliveryNote: builder.mutation({
+      query: (id) => ({
+        url: `/delivery-notes/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["DeliveryNote", "Dashboard"],
+    }),
+
     createDeliveryNoteFromReceipt: builder.mutation({
       query: ({ receiptId, ...additionalData }) => ({
         url: "/delivery-notes/create-from-receipt",
@@ -788,6 +822,10 @@ export const {
   // Delivery Notes
   useGetDeliveryNotesQuery,
   useGetDeliveryNoteQuery,
+  useGetDeliveryNoteInvoiceItemsQuery,
+  useCreateDeliveryNoteMutation,
+  useUpdateDeliveryNoteMutation,
+  useDeleteDeliveryNoteMutation,
   useCreateDeliveryNoteFromReceiptMutation,
   useStartShippingMutation,
   useUpdateTrackingMutation,

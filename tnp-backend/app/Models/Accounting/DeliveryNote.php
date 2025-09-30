@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\MasterCustomer;
 use App\Models\User;
+use App\Models\Accounting\Invoice;
+use App\Models\Accounting\InvoiceItem;
 
 /**
  * Class DeliveryNote
@@ -50,6 +52,8 @@ class DeliveryNote extends Model
         'company_id',
         'number',
         'receipt_id',
+        'invoice_id',
+        'invoice_item_id',
         'customer_id',
         'customer_company',
         'customer_address',
@@ -101,7 +105,25 @@ class DeliveryNote extends Model
      */
     public function receipt(): BelongsTo
     {
-        return $this->belongsTo(Receipt::class, 'receipt_id', 'id');
+        return $this->belongsTo(Receipt::class, 'receipt_id',
+        'invoice_id',
+        'invoice_item_id', 'id');
+    }
+
+    /**
+     * Relationship: DeliveryNote belongs to Invoice
+     */
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id', 'id');
+    }
+
+    /**
+     * Relationship: DeliveryNote belongs to Invoice Item
+     */
+    public function invoiceItem(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceItem::class, 'invoice_item_id', 'id');
     }
 
     /**
@@ -275,3 +297,13 @@ class DeliveryNote extends Model
         return $trackingUrls[$this->courier_company] ?? null;
     }
 }
+
+
+
+
+
+
+
+
+
+

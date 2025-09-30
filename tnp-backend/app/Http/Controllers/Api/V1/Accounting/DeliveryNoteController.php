@@ -56,7 +56,41 @@ class DeliveryNoteController extends Controller
     }
 
     /**
-     * ดูรายละเอียด Delivery Note
+     * Retrieve invoice items available for delivery note creation
+     * GET /api/v1/delivery-notes/invoice-items
+     */
+    public function getInvoiceItems(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'search' => $request->query('search'),
+                'invoice_status' => $request->query('invoice_status'),
+                'company_id' => $request->query('company_id'),
+                'customer_id' => $request->query('customer_id'),
+                'invoice_id' => $request->query('invoice_id'),
+            ];
+
+            $perPage = min($request->query('per_page', 20), 50);
+            $items = $this->deliveryNoteService->getInvoiceItemSources($filters, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $items,
+                'message' => 'Invoice items for delivery retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteController::getInvoiceItems error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve invoice items for delivery: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retrieve delivery note details
      * GET /api/v1/delivery-notes/{id}
      */
     public function show($id): JsonResponse
@@ -96,6 +130,8 @@ class DeliveryNoteController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'company_id' => 'nullable|string|exists:companies,id',
+                'invoice_id' => 'nullable|string|exists:invoices,id',
+                'invoice_item_id' => 'nullable|string|exists:invoice_items,id',
                 'customer_company' => 'required|string|max:255',
                 'customer_address' => 'required|string|max:500',
                 'work_name' => 'required|string|max:255',
@@ -146,6 +182,8 @@ class DeliveryNoteController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'customer_company' => 'sometimes|string|max:255',
+                'invoice_id' => 'sometimes|string|exists:invoices,id',
+                'invoice_item_id' => 'sometimes|string|exists:invoice_items,id',
                 'customer_address' => 'sometimes|string|max:500',
                 'work_name' => 'sometimes|string|max:255',
                 'delivery_method' => 'sometimes|in:self_delivery,courier,customer_pickup',

@@ -27,6 +27,7 @@ import {
   InputLabel,
 } from "@mui/material";
 import React from "react";
+import { apiConfig } from "../../../../api/apiConfig";
 
 // Styled Components
 
@@ -88,6 +89,9 @@ const InvoiceCard = ({
   const [showDetails, setShowDetails] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewPdfUrl, setPreviewPdfUrl] = useState("");
+  // New anchors for Tax Invoice and Receipt download menus
+  const [taxDownloadAnchorEl, setTaxDownloadAnchorEl] = useState(null);
+  const [receiptDownloadAnchorEl, setReceiptDownloadAnchorEl] = useState(null);
 
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
@@ -216,10 +220,7 @@ const InvoiceCard = ({
       setPreviewPdfUrl(""); // Clear previous URL
 
       // Build PDF URL
-      const apiConfig = {
-        baseUrl: process.env.NODE_ENV === "production" ? "/api/v1" : "http://localhost:8000/api/v1",
-      };
-      const url = `${apiConfig.baseUrl}/invoices/${invoice.id}/pdf/preview?mode=${mode || "before"}`;
+      const url = `${getApiBaseUrl()}/invoices/${invoice.id}/pdf/preview?mode=${mode || "before"}`;
 
       // Get auth token
       const authToken = localStorage.getItem("authToken");
@@ -272,6 +273,144 @@ const InvoiceCard = ({
     }
     setPreviewDialogOpen(false);
     setPreviewPdfUrl("");
+  };
+
+  // Helpers for Tax/Receipt download flows (direct fetch with multi-header)
+  const getApiBaseUrl = () => apiConfig?.baseUrl || "/api/v1";
+
+  const getAuthToken = () => {
+    const authToken = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token");
+    return authToken || token;
+  };
+
+  const handleTaxDownloadClick = (e) => setTaxDownloadAnchorEl(e.currentTarget);
+  const handleReceiptDownloadClick = (e) => setReceiptDownloadAnchorEl(e.currentTarget);
+  const handleCloseTaxMenu = () => setTaxDownloadAnchorEl(null);
+  const handleCloseReceiptMenu = () => setReceiptDownloadAnchorEl(null);
+
+  const handleConfirmDownloadTax = async (mode) => {
+    try {
+      handleCloseTaxMenu();
+      const headerTypes = selectedHeaders;
+      if (!invoice?.id || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
+
+      const params = new URLSearchParams();
+      params.append("mode", mode || "before");
+      headerTypes.forEach((h) => params.append("headerTypes[]", h));
+
+      const url = `${getApiBaseUrl()}/invoices/${invoice.id}/pdf/tax/download?${params.toString()}`;
+      const finalToken = getAuthToken();
+      if (!finalToken) throw new Error("No authentication token found");
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${finalToken}`,
+          Accept: "application/pdf, application/zip, application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/pdf") || contentType.includes("application/zip")) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = contentType.includes("application/zip")
+          ? `tax-invoices-${mode}-${Date.now()}.zip`
+          : `tax-invoice-${mode}-${invoice.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } else if (contentType.includes("application/json")) {
+        const data = await response.json();
+        const a = document.createElement("a");
+        if (data.mode === "zip" && data.zip_url) {
+          a.href = data.zip_url;
+          a.download = data.zip_filename || `tax-invoices-${mode}.zip`;
+        } else if (data.pdf_url) {
+          a.href = data.pdf_url;
+          a.download = data.filename || `tax-invoice-${mode}.pdf`;
+        } else {
+          console.warn("Unexpected tax download response", data);
+          return;
+        }
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        console.error("Unexpected content type (tax):", contentType);
+      }
+    } catch (e) {
+      console.error("Tax Invoice download failed", e);
+    }
+  };
+
+  const handleConfirmDownloadReceipt = async (mode) => {
+    try {
+      handleCloseReceiptMenu();
+      const headerTypes = selectedHeaders;
+      if (!invoice?.id || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
+
+      const params = new URLSearchParams();
+      params.append("mode", mode || "before");
+      headerTypes.forEach((h) => params.append("headerTypes[]", h));
+
+      const url = `${getApiBaseUrl()}/invoices/${invoice.id}/pdf/receipt/download?${params.toString()}`;
+      const finalToken = getAuthToken();
+      if (!finalToken) throw new Error("No authentication token found");
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${finalToken}`,
+          Accept: "application/pdf, application/zip, application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/pdf") || contentType.includes("application/zip")) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = contentType.includes("application/zip")
+          ? `receipts-${mode}-${Date.now()}.zip`
+          : `receipt-${mode}-${invoice.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } else if (contentType.includes("application/json")) {
+        const data = await response.json();
+        const a = document.createElement("a");
+        if (data.mode === "zip" && data.zip_url) {
+          a.href = data.zip_url;
+          a.download = data.zip_filename || `receipts-${mode}.zip`;
+        } else if (data.pdf_url) {
+          a.href = data.pdf_url;
+          a.download = data.filename || `receipt-${mode}.pdf`;
+        } else {
+          console.warn("Unexpected receipt download response", data);
+          return;
+        }
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        console.error("Unexpected content type (receipt):", contentType);
+      }
+    } catch (e) {
+      console.error("Receipt download failed", e);
+    }
   };
 
   const handleOpenInNewTab = () => {
@@ -737,9 +876,9 @@ const InvoiceCard = ({
                   },
                 }}
                 tabIndex={0}
-                aria-label={`ดาวน์โหลดไฟล์ PDF โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+                aria-label={`ดาวน์โหลด ใบแจ้งหนี้ โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
               >
-                ดาวน์โหลด PDF
+                ดาวน์โหลด ใบแจ้งหนี้
               </Button>
               <Menu
                 anchorEl={downloadAnchorEl}
@@ -774,6 +913,123 @@ const InvoiceCard = ({
               </Menu>
             </>
           )}
+          {/* Tax Invoice Download */}
+          {onDownloadPDF && (
+            <Button
+              size="medium"
+              variant="outlined"
+              onClick={handleTaxDownloadClick}
+              startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
+              sx={{
+                px: 2,
+                py: 1,
+                fontSize: "0.8rem",
+                fontWeight: 500,
+                borderRadius: 2,
+                minHeight: 36,
+                borderColor: "grey.300",
+                color: "text.primary",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  bgcolor: "primary.50",
+                },
+              }}
+              tabIndex={0}
+              aria-label={`ดาวน์โหลด ใบกำกับภาษี โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+            >
+              ดาวน์โหลด ใบกำกับภาษี
+            </Button>
+          )}
+          <Menu
+            anchorEl={taxDownloadAnchorEl}
+            open={Boolean(taxDownloadAnchorEl)}
+            onClose={handleCloseTaxMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          >
+            <Typography sx={{ px: 2, pt: 1, fontSize: ".8rem", fontWeight: 600 }}>
+              เลือกประเภทหัวกระดาษ ({depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})
+            </Typography>
+            <Divider />
+            {extendedHeaderOptions.map((opt) => (
+              <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
+                <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
+                <ListItemText primaryTypographyProps={{ fontSize: ".8rem" }} primary={opt} />
+              </MenuItem>
+            ))}
+            <Divider />
+            <MenuItem
+              disabled={selectedHeaders.length === 0}
+              onClick={() => handleConfirmDownloadTax(depositMode)}
+              sx={{ justifyContent: "center" }}
+            >
+              <Typography
+                color={selectedHeaders.length ? "primary.main" : "text.disabled"}
+                fontSize={".8rem"}
+                fontWeight={600}
+              >
+                ดาวน์โหลด {selectedHeaders.length > 1 ? "(.zip)" : "(PDF)"}
+              </Typography>
+            </MenuItem>
+          </Menu>
+
+          {/* Receipt Download */}
+          {onDownloadPDF && (
+            <Button
+              size="medium"
+              variant="outlined"
+              onClick={handleReceiptDownloadClick}
+              startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
+              sx={{
+                px: 2,
+                py: 1,
+                fontSize: "0.8rem",
+                fontWeight: 500,
+                borderRadius: 2,
+                minHeight: 36,
+                borderColor: "grey.300",
+                color: "text.primary",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  bgcolor: "primary.50",
+                },
+              }}
+              tabIndex={0}
+              aria-label={`ดาวน์โหลด ใบเสร็จรับเงิน โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+            >
+              ดาวน์โหลด ใบเสร็จรับเงิน
+            </Button>
+          )}
+          <Menu
+            anchorEl={receiptDownloadAnchorEl}
+            open={Boolean(receiptDownloadAnchorEl)}
+            onClose={handleCloseReceiptMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          >
+            <Typography sx={{ px: 2, pt: 1, fontSize: ".8rem", fontWeight: 600 }}>
+              เลือกประเภทหัวกระดาษ ({depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})
+            </Typography>
+            <Divider />
+            {extendedHeaderOptions.map((opt) => (
+              <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
+                <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
+                <ListItemText primaryTypographyProps={{ fontSize: ".8rem" }} primary={opt} />
+              </MenuItem>
+            ))}
+            <Divider />
+            <MenuItem
+              disabled={selectedHeaders.length === 0}
+              onClick={() => handleConfirmDownloadReceipt(depositMode)}
+              sx={{ justifyContent: "center" }}
+            >
+              <Typography
+                color={selectedHeaders.length ? "primary.main" : "text.disabled"}
+                fontSize={".8rem"}
+                fontWeight={600}
+              >
+                ดาวน์โหลด {selectedHeaders.length > 1 ? "(.zip)" : "(PDF)"}
+              </Typography>
+            </MenuItem>
+          </Menu>
           {onView && (
             <Button
               size="medium"

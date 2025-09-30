@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Services\Accounting\Pdf\TaxInvoicePdfMasterService;
+use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
 
 class InvoiceController extends Controller
 {
@@ -1083,6 +1085,216 @@ class InvoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to download PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * แสดง PDF ใบกำกับภาษี (Tax Invoice) ในเบราว์เซอร์ตาม mode
+     * GET /api/v1/invoices/{id}/pdf/tax/preview?mode=before|after
+     */
+    public function streamTaxPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            $options['deposit_mode'] = $mode;
+
+            $service = app(TaxInvoicePdfMasterService::class);
+            return $service->streamPdf(\App\Models\Accounting\Invoice::findOrFail($id), $options);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to stream Tax Invoice PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF ใบกำกับภาษี (Tax Invoice) - รองรับหลายหัวกระดาษ (zip)
+     * GET /api/v1/invoices/{id}/pdf/tax/download?mode=before|after&headerTypes[]=... 
+     */
+    public function downloadTaxPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $headerTypes = $request->input('headerTypes');
+
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            $options['deposit_mode'] = $mode;
+
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            /** @var TaxInvoicePdfMasterService $master */
+            $master = app(TaxInvoicePdfMasterService::class);
+
+            if (empty($headerTypes) || !is_array($headerTypes)) {
+                $response = $master->streamPdf($invoice, $options);
+                $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+                $filename = sprintf('tax-invoice-%s-%s.pdf', $invoice->number ?? $invoice->id, $modeLabel);
+                return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+            }
+
+            // Multi-header: create files and zip
+            $files = [];
+            foreach ($headerTypes as $ht) {
+                if (!is_string($ht) || trim($ht) === '') continue;
+                $localOptions = $options + ['document_header_type' => $ht];
+                $pdfData = $master->generatePdf($invoice->replicate(), $localOptions);
+                $files[] = [
+                    'type' => $ht,
+                    'path' => $pdfData['path'],
+                    'filename' => $pdfData['filename'],
+                    'size' => $pdfData['size'],
+                    'url' => $pdfData['url']
+                ];
+            }
+
+            if (count($files) === 0) {
+                throw new \Exception('No valid header types generated');
+            }
+
+            if (count($files) === 1) {
+                $single = $files[0]['path'];
+                return response()->download($single, basename($single), [
+                    'Content-Type' => 'application/pdf'
+                ]);
+            }
+
+            $zipDir = storage_path('app/public/pdfs/tax-invoices/zips');
+            if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
+            $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+            $zipName = sprintf('tax-invoices-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel);
+            $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
+            }
+            foreach ($files as $f) {
+                if (is_file($f['path'])) {
+                    $zip->addFile($f['path'], $f['filename']);
+                }
+            }
+            $zip->close();
+            return response()->download($zipPath, $zipName, [
+                'Content-Type' => 'application/zip'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download Tax Invoice PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * แสดง PDF ใบเสร็จรับเงิน (Receipt) ในเบราว์เซอร์ตาม mode
+     * GET /api/v1/invoices/{id}/pdf/receipt/preview?mode=before|after
+     */
+    public function streamReceiptPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            $options['deposit_mode'] = $mode;
+
+            $service = app(ReceiptPdfMasterService::class);
+            return $service->streamPdf(\App\Models\Accounting\Invoice::findOrFail($id), $options);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to stream Receipt PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF ใบเสร็จรับเงิน (Receipt) - รองรับหลายหัวกระดาษ (zip)
+     * GET /api/v1/invoices/{id}/pdf/receipt/download?mode=before|after&headerTypes[]=... 
+     */
+    public function downloadReceiptPdf(Request $request, $id)
+    {
+        try {
+            $options = $request->only(['format', 'orientation', 'showWatermark']);
+            $headerTypes = $request->input('headerTypes');
+
+            $mode = $request->query('mode');
+            if (!in_array($mode, ['before', 'after'])) {
+                $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+                $mode = $invoice->deposit_display_order ?? 'before';
+            }
+            $options['deposit_mode'] = $mode;
+
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            /** @var ReceiptPdfMasterService $master */
+            $master = app(ReceiptPdfMasterService::class);
+
+            if (empty($headerTypes) || !is_array($headerTypes)) {
+                $response = $master->streamPdf($invoice, $options);
+                $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+                $filename = sprintf('receipt-%s-%s.pdf', $invoice->number ?? $invoice->id, $modeLabel);
+                return $response->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+            }
+
+            // Multi-header: create files and zip
+            $files = [];
+            foreach ($headerTypes as $ht) {
+                if (!is_string($ht) || trim($ht) === '') continue;
+                $localOptions = $options + ['document_header_type' => $ht];
+                $pdfData = $master->generatePdf($invoice->replicate(), $localOptions);
+                $files[] = [
+                    'type' => $ht,
+                    'path' => $pdfData['path'],
+                    'filename' => $pdfData['filename'],
+                    'size' => $pdfData['size'],
+                    'url' => $pdfData['url']
+                ];
+            }
+
+            if (count($files) === 0) {
+                throw new \Exception('No valid header types generated');
+            }
+
+            if (count($files) === 1) {
+                $single = $files[0]['path'];
+                return response()->download($single, basename($single), [
+                    'Content-Type' => 'application/pdf'
+                ]);
+            }
+
+            $zipDir = storage_path('app/public/pdfs/receipts/zips');
+            if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
+            $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+            $zipName = sprintf('receipts-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel);
+            $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+                throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
+            }
+            foreach ($files as $f) {
+                if (is_file($f['path'])) {
+                    $zip->addFile($f['path'], $f['filename']);
+                }
+            }
+            $zip->close();
+            return response()->download($zipPath, $zipName, [
+                'Content-Type' => 'application/zip'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download Receipt PDF: ' . $e->getMessage()
             ], 500);
         }
     }

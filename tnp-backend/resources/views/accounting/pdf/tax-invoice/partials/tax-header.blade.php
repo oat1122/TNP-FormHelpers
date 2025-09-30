@@ -40,38 +40,33 @@
       </div>
     </td>
     <td class="header-right">
-      @php
-        $docTitle    = 'ใบกำกับภาษี';
-        $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
-        $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
-        $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
+    @php
+    $docTitle    = 'ใบกำกับภาษี';
+    $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
+    $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
+    $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
 
-        // Determine reference number similar to invoice header
-        $referenceNo = null;
-        $isDepositAfter = ($invoice->deposit_display_order ?? '') === 'after' || 
-                         ($invoice->type ?? '') === 'remaining' || 
-                         !empty($invoice->reference_invoice_id);
-        if ($isDepositAfter) {
-            if (isset($summary) && isset($summary['deposit_after']) && !empty($summary['deposit_after']['reference_invoice_number'])) {
-                $referenceNo = $summary['deposit_after']['reference_invoice_number'];
-            } else {
-                $referenceNo = $invoice->reference_invoice_number ?? null;
-                if (!$referenceNo && !empty($invoice->reference_invoice_id)) {
-                    if (isset($invoice->referenceInvoice) && $invoice->referenceInvoice) {
-                        $referenceNo = $invoice->referenceInvoice->number_before ?? $invoice->referenceInvoice->number ?? null;
-                    }
-                }
-                if (!$referenceNo && !empty($invoice->quotation) && !empty($invoice->quotation->number)) {
-                    $referenceNo = $invoice->quotation->number;
-                }
-            }
-        } else {
-            if (!empty($invoice->quotation) && !empty($invoice->quotation->number)) {
-                $referenceNo = $invoice->quotation->number;
-            }
-        }
+    // Select number by deposit_display_order
+    $mode = strtolower($invoice->deposit_display_order ?? 'before');
+    $rawNumber = $mode === 'after'
+      ? ($invoice->number_after ?? null)
+      : ($invoice->number_before ?? null);
 
-        $seller      = $invoice->manager ?? $invoice->creator;
+    // Map invoice prefix to TAXA/TAXB for display
+    $docNumber = $rawNumber;
+    if (is_string($docNumber)) {
+      if (str_starts_with($docNumber, 'INVA')) {
+        $docNumber = 'TAXA' . substr($docNumber, 4);
+      } elseif (str_starts_with($docNumber, 'INVB')) {
+        $docNumber = 'TAXB' . substr($docNumber, 4);
+      }
+    }
+    if (empty($docNumber)) { $docNumber = 'DRAFT'; }
+
+    // Reference uses the same selected number (unmapped)
+    $referenceNo = $rawNumber ?: null;
+
+    $seller      = $invoice->manager ?? $invoice->creator;
         $sellerFirst = optional($seller)->user_firstname;
         $sellerLast  = optional($seller)->user_lastname;
         $sellerUser  = optional($seller)->username;
@@ -80,7 +75,7 @@
         if (is_string($jobName)) { $jobName = trim($jobName); }
 
         $metaRows = [
-          ['label'=>'เลขที่','value'=>$invoice->number ?? 'DRAFT'],
+      ['label'=>'เลขที่','value'=>$docNumber],
           ['label'=>'วันที่','value'=>$createdDate],
         ];
         if ($dueDate)       $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];

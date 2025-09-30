@@ -266,8 +266,16 @@ class InvoicePdfMasterService
         $mpdf->SetHTMLHeader($headerHtml);
         $mpdf->SetHTMLFooter($footerHtml);
 
-        // Watermark เฉพาะ preview
-        if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {
+        // Watermark เฉพาะ preview หรือบังคับเมื่อทั้ง before/after เป็น draft หรือเมื่อฝั่งที่กำลังดูเป็น draft
+        $bothDraft = (strtolower($invoice->status_before ?? '') === 'draft')
+            && (strtolower($invoice->status_after ?? '') === 'draft');
+        $mode = strtolower($data['options']['deposit_mode'] ?? ($invoice->deposit_display_order ?? 'before'));
+        $activeSideStatus = $mode === 'after'
+            ? strtolower($invoice->status_after ?? '')
+            : strtolower($invoice->status_before ?? '');
+        $activeDraft = ($activeSideStatus === 'draft');
+        $shouldWatermark = (!$isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft || $activeDraft;
+        if ($shouldWatermark) {
             $mpdf->SetWatermarkText('PREVIEW', 0.1);
             $mpdf->showWatermarkText = true;
         }

@@ -776,7 +776,13 @@ const InvoiceCard = ({
         )}
 
         {/* Action Buttons - Side-specific Approve (admin/account only) */}
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
+        <Stack
+          direction="row"
+          spacing={0.75}
+          justifyContent="flex-end"
+          useFlexGap
+          sx={{ flexWrap: "wrap", rowGap: 1, columnGap: 1 }}
+        >
           {canUserApprove() && canApproveActiveSide() && (
             <Button
               size="medium"
@@ -804,18 +810,18 @@ const InvoiceCard = ({
           {/* Revert Button - Show when approved and user has permission */}
           {canUserApprove() && activeSideStatus === "approved" && (
             <Button
-              size="medium"
+              size="small"
               variant="outlined"
               color="warning"
               onClick={() => statusReversalHook.handleRevertToDraft(depositMode)}
               disabled={statusReversalHook.isReverting}
               sx={{
-                px: 2,
-                py: 1,
-                fontSize: "0.8rem",
+                px: 1.5,
+                py: 0.75,
+                fontSize: "0.78rem",
                 fontWeight: 500,
                 borderRadius: 2,
-                minHeight: 36,
+                minHeight: 32,
                 "&:hover": {
                   bgcolor: "warning.50",
                 },
@@ -830,17 +836,17 @@ const InvoiceCard = ({
           {/* PDF Actions - Mode-specific */}
           {onPreviewPDF && (
             <Button
-              size="medium"
+              size="small"
               variant="outlined"
               onClick={() => handlePreviewPDFDialog(depositMode)}
               startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
               sx={{
-                px: 2,
-                py: 1,
-                fontSize: "0.8rem",
+                px: 1.5,
+                py: 0.75,
+                fontSize: "0.78rem",
                 fontWeight: 500,
                 borderRadius: 2,
-                minHeight: 36,
+                minHeight: 32,
                 borderColor: "grey.300",
                 color: "text.primary",
                 "&:hover": {
@@ -857,17 +863,17 @@ const InvoiceCard = ({
           {onDownloadPDF && (
             <>
               <Button
-                size="medium"
+                size="small"
                 variant="outlined"
                 onClick={handleDownloadClick}
                 startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
                 sx={{
-                  px: 2,
-                  py: 1,
-                  fontSize: "0.8rem",
+                  px: 1.5,
+                  py: 0.75,
+                  fontSize: "0.78rem",
                   fontWeight: 500,
                   borderRadius: 2,
-                  minHeight: 36,
+                  minHeight: 32,
                   borderColor: "grey.300",
                   color: "text.primary",
                   "&:hover": {
@@ -916,17 +922,17 @@ const InvoiceCard = ({
           {/* Tax Invoice Download */}
           {onDownloadPDF && (
             <Button
-              size="medium"
+              size="small"
               variant="outlined"
               onClick={handleTaxDownloadClick}
               startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
               sx={{
-                px: 2,
-                py: 1,
-                fontSize: "0.8rem",
+                px: 1.5,
+                py: 0.75,
+                fontSize: "0.78rem",
                 fontWeight: 500,
                 borderRadius: 2,
-                minHeight: 36,
+                minHeight: 32,
                 borderColor: "grey.300",
                 color: "text.primary",
                 "&:hover": {
@@ -975,17 +981,17 @@ const InvoiceCard = ({
           {/* Receipt Download */}
           {onDownloadPDF && (
             <Button
-              size="medium"
+              size="small"
               variant="outlined"
               onClick={handleReceiptDownloadClick}
               startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
               sx={{
-                px: 2,
-                py: 1,
-                fontSize: "0.8rem",
+                px: 1.5,
+                py: 0.75,
+                fontSize: "0.78rem",
                 fontWeight: 500,
                 borderRadius: 2,
-                minHeight: 36,
+                minHeight: 32,
                 borderColor: "grey.300",
                 color: "text.primary",
                 "&:hover": {

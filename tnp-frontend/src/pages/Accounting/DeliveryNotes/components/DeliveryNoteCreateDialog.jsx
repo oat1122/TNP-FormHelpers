@@ -52,6 +52,10 @@ import {
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 import { formatTHB } from "../../Invoices/utils/format";
+import {
+  buildDeliveryNoteItemsFromGroups,
+  buildCustomerSnapshot,
+} from "../utils/deliveryNotePayload";
 
 const toDateOrNull = (value) => {
   if (!value) return null;
@@ -677,6 +681,8 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
     const toastId = showLoading("Creating delivery note...");
 
     try {
+      const items = buildDeliveryNoteItemsFromGroups(editableItems, invoice);
+      const customerSnapshot = buildCustomerSnapshot(customer);
       const payload = {
         company_id: formState.company_id || invoice?.company_id,
         customer_id: formState.customer_id || undefined,
@@ -691,8 +697,18 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         notes: formState.notes || undefined,
         invoice_id: source?.invoice_id || undefined,
         invoice_item_id: source?.invoice_item_id || undefined,
+        invoice_number: source?.invoice_number || invoice?.number,
         customer_data_source: customerDataSource,
+        customer_snapshot: customerSnapshot,
         sender_company_id: formState.sender_company_id || undefined, // ใหม่: ส่งค่าบริษัทผู้ส่ง
+        // delivery fields: allow backend defaulting
+        delivery_method: undefined,
+        courier_company: undefined,
+        delivery_address: undefined,
+        recipient_name: undefined,
+        recipient_phone: undefined,
+        delivery_date: undefined,
+        items: items?.length ? items : undefined,
       };
 
       await createDeliveryNote(payload).unwrap();

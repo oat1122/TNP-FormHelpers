@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\DeliveryNote;
+use App\Models\Accounting\DeliveryNoteItem;
 use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\DocumentAttachment;
@@ -333,15 +334,27 @@ class DeliveryNoteService
             $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
             $deliveryNote->invoice_id = $data['invoice_id'] ?? null;
             $deliveryNote->invoice_item_id = $data['invoice_item_id'] ?? null;
+            // cache invoice number if provided/available
+            if (!empty($data['invoice_number'])) {
+                $deliveryNote->invoice_number = $data['invoice_number'];
+            } elseif (!empty($deliveryNote->invoice_id)) {
+                $deliveryNote->invoice_number = optional(Invoice::find($deliveryNote->invoice_id))->number;
+            }
             
             // ข้อมูลลูกค้า
             $deliveryNote->customer_id = $data['customer_id'] ?? null;
+            $deliveryNote->customer_data_source = $data['customer_data_source'] ?? 'master';
             $deliveryNote->customer_company = $data['customer_company'];
             $deliveryNote->customer_address = $data['customer_address'];
             $deliveryNote->customer_zip_code = $data['customer_zip_code'] ?? null;
             $deliveryNote->customer_tel_1 = $data['customer_tel_1'] ?? null;
             $deliveryNote->customer_firstname = $data['customer_firstname'] ?? null;
             $deliveryNote->customer_lastname = $data['customer_lastname'] ?? null;
+            if (!empty($data['customer_snapshot'])) {
+                $deliveryNote->customer_snapshot = is_array($data['customer_snapshot'])
+                    ? json_encode($data['customer_snapshot'])
+                    : $data['customer_snapshot'];
+            }
             
             // ข้อมูลงาน
             $deliveryNote->work_name = $data['work_name'];
@@ -351,18 +364,59 @@ class DeliveryNoteService
             $deliveryNote->delivery_method = $data['delivery_method'] ?? 'courier';
             $deliveryNote->courier_company = $data['courier_company'] ?? null;
             $deliveryNote->tracking_number = $data['tracking_number'] ?? null;
-            $deliveryNote->delivery_address = $data['delivery_address'];
-            $deliveryNote->recipient_name = $data['recipient_name'];
+            $deliveryNote->delivery_address = $data['delivery_address'] ?? ($data['customer_address'] ?? null);
+            $deliveryNote->recipient_name = $data['recipient_name'] ?? trim(($data['customer_firstname'] ?? '') . ' ' . ($data['customer_lastname'] ?? '')) ?: null;
             $deliveryNote->recipient_phone = $data['recipient_phone'] ?? null;
             $deliveryNote->delivery_date = $data['delivery_date'] ?? now()->addDays(1)->format('Y-m-d');
             $deliveryNote->delivery_notes = $data['delivery_notes'] ?? null;
             $deliveryNote->notes = $data['notes'] ?? null;
+            $deliveryNote->sender_company_id = $data['sender_company_id'] ?? null;
             
             // Status และ Audit
             $deliveryNote->status = 'preparing';
             $deliveryNote->created_by = $createdBy;
             
             $deliveryNote->save();
+
+            // สร้างรายการ delivery_note_items หากมี payload มาด้วย
+            if (!empty($data['items']) && is_array($data['items'])) {
+                $seq = 1;
+                foreach ($data['items'] as $item) {
+                    $dni = new DeliveryNoteItem();
+                    $dni->delivery_note_id = $deliveryNote->id;
+                    $dni->invoice_id = $item['invoice_id'] ?? ($deliveryNote->invoice_id ?? null);
+                    $dni->invoice_item_id = $item['invoice_item_id'] ?? null;
+                    $dni->sequence_order = $item['sequence_order'] ?? $seq++;
+                    $dni->item_name = $item['item_name'] ?? ($item['work_name'] ?? 'รายการงาน');
+                    $dni->item_description = $item['item_description'] ?? null;
+                    $dni->pattern = $item['pattern'] ?? null;
+                    $dni->fabric_type = $item['fabric_type'] ?? ($item['fabric'] ?? null);
+                    $dni->color = $item['color'] ?? null;
+                    $dni->size = $item['size'] ?? null;
+                    $dni->delivered_quantity = (int)($item['delivered_quantity'] ?? $item['quantity'] ?? 0);
+                    $dni->unit = $item['unit'] ?? 'ชิ้น';
+                    if (!empty($item['item_snapshot'])) {
+                        $dni->item_snapshot = is_array($item['item_snapshot']) ? json_encode($item['item_snapshot']) : $item['item_snapshot'];
+                    }
+                    $dni->status = 'ready';
+                    $dni->created_by = $createdBy;
+                    $dni->save();
+                }
+            } elseif (!empty($deliveryNote->work_name)) {
+                // fallback: หากไม่มี items ให้สร้าง 1 แถวสรุปรวมตาม work_name/quantity
+                $dni = new DeliveryNoteItem();
+                $dni->delivery_note_id = $deliveryNote->id;
+                $dni->invoice_id = $deliveryNote->invoice_id;
+                $dni->invoice_item_id = $deliveryNote->invoice_item_id;
+                $dni->sequence_order = 1;
+                $dni->item_name = $deliveryNote->work_name;
+                $dni->item_description = null;
+                $dni->delivered_quantity = (int) (preg_replace('/[^0-9]/', '', (string) $deliveryNote->quantity) ?: 0);
+                $dni->unit = 'ชิ้น';
+                $dni->status = 'ready';
+                $dni->created_by = $createdBy;
+                $dni->save();
+            }
 
             // บันทึก Document History
             DocumentHistory::logStatusChange(
@@ -377,7 +431,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['customer', 'creator']);
+            return $deliveryNote->load(['customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

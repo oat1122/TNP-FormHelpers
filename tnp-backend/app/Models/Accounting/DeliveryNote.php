@@ -9,6 +9,9 @@ use App\Models\MasterCustomer;
 use App\Models\User;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\InvoiceItem;
+use App\Models\Accounting\Receipt;
+use App\Models\Accounting\DocumentHistory;
+use App\Models\Accounting\DocumentAttachment;
 
 /**
  * Class DeliveryNote
@@ -54,13 +57,16 @@ class DeliveryNote extends Model
         'receipt_id',
         'invoice_id',
         'invoice_item_id',
+        'invoice_number',
         'customer_id',
+        'customer_data_source',
         'customer_company',
         'customer_address',
         'customer_zip_code',
         'customer_tel_1',
         'customer_firstname',
         'customer_lastname',
+        'customer_snapshot',
         'work_name',
         'quantity',
         'status',
@@ -74,6 +80,7 @@ class DeliveryNote extends Model
         'delivered_at',
         'delivery_notes',
         'notes',
+        'sender_company_id',
         'created_by',
         'delivered_by'
     ];
@@ -105,9 +112,7 @@ class DeliveryNote extends Model
      */
     public function receipt(): BelongsTo
     {
-        return $this->belongsTo(Receipt::class, 'receipt_id',
-        'invoice_id',
-        'invoice_item_id', 'id');
+        return $this->belongsTo(Receipt::class, 'receipt_id', 'id');
     }
 
     /**
@@ -124,6 +129,14 @@ class DeliveryNote extends Model
     public function invoiceItem(): BelongsTo
     {
         return $this->belongsTo(InvoiceItem::class, 'invoice_item_id', 'id');
+    }
+
+    /**
+     * Relationship: DeliveryNote has many DeliveryNoteItem
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(DeliveryNoteItem::class, 'delivery_note_id', 'id')->orderBy('sequence_order');
     }
 
     /**

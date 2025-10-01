@@ -246,7 +246,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                   <DatePicker
                     label="Delivery date"
                     value={formState.delivery_date}
-                    onChange={(value) => setFormState((prev) => ({ ...prev, delivery_date: value }))}
+                    onChange={(value) =>
+                      setFormState((prev) => ({ ...prev, delivery_date: value }))
+                    }
                     slotProps={{ textField: { fullWidth: true } }}
                   />
                 </LocalizationProvider>

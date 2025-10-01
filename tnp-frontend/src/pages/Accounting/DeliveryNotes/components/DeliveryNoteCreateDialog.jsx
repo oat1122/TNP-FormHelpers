@@ -11,7 +11,25 @@ import {
   Alert,
   MenuItem,
   Divider,
+  Avatar,
+  Box,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Chip,
+  Paper,
+  Card,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from "@mui/material";
+import {
+  Assignment as AssignmentIcon,
+  Business as BusinessIcon,
+  LocalShipping as ShippingIcon,
+} from "@mui/icons-material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import React from "react";
@@ -22,6 +40,13 @@ import {
 } from "../../../../features/Accounting/accountingApi";
 import { showError, showSuccess, showLoading, dismissToast } from "../../utils/accountingToast";
 import LoadingState from "../../PricingIntegration/components/LoadingState";
+import {
+  Section,
+  SectionHeader,
+  InfoCard,
+  tokens,
+} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { formatTHB } from "../../Invoices/utils/format";
 
 const deliveryMethodOptions = [
   { value: "courier", label: "Courier" },
@@ -51,12 +76,18 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
   const [createDeliveryNote, { isLoading: creating }] = useCreateDeliveryNoteMutation();
 
+  // Customer data source toggle - similar to InvoiceDetailDialog pattern
+  const [customerDataSource, setCustomerDataSource] = React.useState("master"); // 'master' or 'delivery'
+
   const [formState, setFormState] = React.useState({
     company_id: "",
     customer_id: "",
     customer_company: "",
     customer_address: "",
     customer_tel_1: "",
+    customer_tax_id: "",
+    customer_firstname: "",
+    customer_lastname: "",
     recipient_name: "",
     recipient_phone: "",
     delivery_address: "",
@@ -70,6 +101,37 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
     notes: "",
   });
 
+  // Normalize customer data from master_customers relationship (similar to InvoiceDetailDialog)
+  const normalizeCustomer = (invoice) => {
+    if (!invoice) return {};
+
+    // Use customer relationship data from master_customers table
+    const customer = invoice.customer;
+    if (!customer) return {};
+
+    return {
+      customer_type: customer.cus_company ? "company" : "individual",
+      cus_name: customer.cus_name,
+      cus_firstname: customer.cus_firstname,
+      cus_lastname: customer.cus_lastname,
+      cus_company: customer.cus_company,
+      cus_tel_1: customer.cus_tel_1,
+      cus_tel_2: customer.cus_tel_2,
+      cus_email: customer.cus_email,
+      cus_tax_id: customer.cus_tax_id,
+      cus_address: customer.cus_address,
+      cus_zip_code: customer.cus_zip_code,
+      cus_depart: customer.cus_depart,
+      contact_name:
+        customer.cus_firstname && customer.cus_lastname
+          ? `${customer.cus_firstname} ${customer.cus_lastname}`.trim()
+          : customer.cus_name,
+      contact_nickname: customer.cus_name,
+    };
+  };
+
+  const customer = normalizeCustomer(invoice);
+
   React.useEffect(() => {
     if (!open) return;
 
@@ -80,6 +142,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
       customer_address:
         source?.delivery_address || source?.customer_address || invoice?.customer_address || "",
       customer_tel_1: source?.customer_phone || invoice?.customer_tel_1 || "",
+      customer_tax_id: source?.customer_tax_id || invoice?.customer_tax_id || "",
+      customer_firstname: source?.customer_firstname || invoice?.customer_firstname || "",
+      customer_lastname: source?.customer_lastname || invoice?.customer_lastname || "",
       recipient_name:
         source?.recipient_name || source?.customer_name || invoice?.customer_firstname || "",
       recipient_phone: source?.customer_phone || invoice?.customer_tel_1 || "",
@@ -90,16 +155,37 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
       tracking_number: source?.tracking_number || "",
       delivery_date: toDateOrNull(source?.delivery_date) || toDateOrNull(new Date()),
       work_name: source?.work_name || source?.item_name || invoice?.work_name || "",
-      quantity: String(source?.quantity || invoice?.quantity || ""),
+      quantity: String(source?.quantity || invoice?.quantity || "1"),
       delivery_notes: "",
       notes: "",
     };
 
     setFormState((prev) => ({ ...prev, ...hydrated }));
+
+    // Reset customer data source when dialog opens
+    setCustomerDataSource("master");
   }, [open, source, invoice]);
 
   const handleChange = (field) => (event) => {
     setFormState((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  const handleCustomerDataSourceChange = (event, value) => {
+    const newSource = value;
+    setCustomerDataSource(newSource);
+
+    // When switching to master, hydrate with customer data
+    if (newSource === "master" && customer) {
+      setFormState((prev) => ({
+        ...prev,
+        customer_company: customer.cus_company || "",
+        customer_address: customer.cus_address || "",
+        customer_tel_1: customer.cus_tel_1 || "",
+        customer_tax_id: customer.cus_tax_id || "",
+        customer_firstname: customer.cus_firstname || "",
+        customer_lastname: customer.cus_lastname || "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -117,6 +203,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         customer_company: formState.customer_company,
         customer_address: formState.customer_address,
         customer_tel_1: formState.customer_tel_1 || undefined,
+        customer_tax_id: formState.customer_tax_id || undefined,
+        customer_firstname: formState.customer_firstname || undefined,
+        customer_lastname: formState.customer_lastname || undefined,
         recipient_name: formState.recipient_name || formState.customer_company,
         recipient_phone: formState.recipient_phone || undefined,
         delivery_address: formState.delivery_address,
@@ -130,6 +219,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         quantity: formState.quantity,
         invoice_id: source?.invoice_id || undefined,
         invoice_item_id: source?.invoice_item_id || undefined,
+        customer_data_source: customerDataSource,
       };
 
       await createDeliveryNote(payload).unwrap();
@@ -146,193 +236,616 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
   const disableCourierFields = formState.delivery_method !== "courier";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create delivery note</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>สร้างใบส่งของ</DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent dividers sx={{ p: 0 }}>
         {invoiceLoading && <LoadingState message="Loading invoice details..." />}
 
         {!invoiceLoading && (
-          <Stack spacing={3}>
+          <Stack spacing={3} sx={{ p: 3 }}>
+            {/* Source selection alert */}
             {source ? (
               source.invoice_item_id ? (
                 <Alert severity="info">
-                  Selected invoice item: <strong>{source.item_name}</strong> from invoice{" "}
+                  รายการที่เลือก: <strong>{source.item_name}</strong> จากใบแจ้งหนี้{" "}
                   <strong>{source.invoice_number}</strong>
                 </Alert>
               ) : (
                 <Alert severity="info">
-                  Selected invoice: <strong>{source.invoice_number}</strong>
+                  ใบแจ้งหนี้ที่เลือก: <strong>{source.invoice_number}</strong>
                 </Alert>
               )
             ) : (
               <Alert severity="warning">
-                No invoice selected. You can still create a manual delivery note.
+                ไม่ได้เลือกใบแจ้งหนี้ คุณสามารถสร้างใบส่งของแบบ manual ได้
               </Alert>
             )}
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Customer company"
-                  value={formState.customer_company}
-                  onChange={handleChange("customer_company")}
-                  fullWidth
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Customer phone"
-                  value={formState.customer_tel_1}
-                  onChange={handleChange("customer_tel_1")}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Recipient name"
-                  value={formState.recipient_name}
-                  onChange={handleChange("recipient_name")}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Recipient phone"
-                  value={formState.recipient_phone}
-                  onChange={handleChange("recipient_phone")}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Customer address"
-                  value={formState.customer_address}
-                  onChange={handleChange("customer_address")}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Delivery address"
-                  value={formState.delivery_address}
-                  onChange={handleChange("delivery_address")}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  select
-                  label="Delivery method"
-                  value={formState.delivery_method}
-                  onChange={handleChange("delivery_method")}
-                  fullWidth
+            {/* Customer Information Section */}
+            <Section>
+              <SectionHeader>
+                <Avatar
+                  sx={{ 
+                    bgcolor: tokens.primary, 
+                    width: 32, 
+                    height: 32,
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                  }}
                 >
-                  {deliveryMethodOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="Delivery date"
-                    value={formState.delivery_date}
-                    onChange={(value) =>
-                      setFormState((prev) => ({ ...prev, delivery_date: value }))
-                    }
-                    slotProps={{ textField: { fullWidth: true } }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Courier company"
-                  value={formState.courier_company}
-                  onChange={handleChange("courier_company")}
-                  fullWidth
-                  disabled={disableCourierFields}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Tracking number"
-                  value={formState.tracking_number}
-                  onChange={handleChange("tracking_number")}
-                  fullWidth
-                  disabled={disableCourierFields}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Work name"
-                  value={formState.work_name}
-                  onChange={handleChange("work_name")}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="Quantity"
-                  value={formState.quantity}
-                  onChange={handleChange("quantity")}
-                  fullWidth
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Delivery notes"
-                  value={formState.delivery_notes}
-                  onChange={handleChange("delivery_notes")}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Internal notes"
-                  value={formState.notes}
-                  onChange={handleChange("notes")}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                />
-              </Grid>
-            </Grid>
-
-            {invoice && (
-              <>
-                <Divider />
-                <Stack spacing={0.5}>
-                  <Typography variant="subtitle2">Invoice summary</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {invoice.number} � {invoice.customer_company}
+                  <BusinessIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">ข้อมูลลูกค้า</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ข้อมูลผู้ติดต่อและบริษัท
                   </Typography>
-                </Stack>
-              </>
+                </Box>
+              </SectionHeader>
+
+              <Box sx={{ p: 3 }}>
+                {/* Customer data source selection */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    เลือกแหล่งข้อมูลลูกค้า
+                  </Typography>
+                  <RadioGroup
+                    value={customerDataSource}
+                    onChange={handleCustomerDataSourceChange}
+                    row
+                  >
+                    <FormControlLabel
+                      value="master"
+                      control={<Radio />}
+                      label="ใช้ข้อมูลจากฐานข้อมูลลูกค้า (master_customers)"
+                    />
+                    <FormControlLabel
+                      value="delivery"
+                      control={<Radio />}
+                      label="แก้ไขข้อมูลเฉพาะใบส่งของนี้"
+                    />
+                  </RadioGroup>
+                  {customerDataSource === "master" && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", mt: 1 }}
+                    >
+                      ข้อมูลจะถูกดึงมาจากฐานข้อมูลลูกค้าหลัก
+                    </Typography>
+                  )}
+                  {customerDataSource === "delivery" && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", mt: 1 }}
+                    >
+                      ข้อมูลจะถูกบันทึกเฉพาะในใบส่งของนี้เท่านั้น
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Customer Info Display/Edit */}
+                <InfoCard sx={{ p: 2, mb: 3 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        ชื่อบริษัท
+                      </Typography>
+                      <Typography variant="body1" fontWeight={500}>
+                        {customerDataSource === "master" 
+                          ? (customer.cus_company || formState.customer_company || "-")
+                          : formState.customer_company || "-"
+                        }
+                      </Typography>
+                    </Box>
+                    {(customerDataSource === "master" ? customer.cus_tax_id : formState.customer_tax_id) && (
+                      <Box>
+                        <Chip 
+                          size="small" 
+                          variant="outlined" 
+                          label={customerDataSource === "master" ? customer.cus_tax_id : formState.customer_tax_id} 
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                  <Grid container spacing={1}>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="caption" color="text.secondary">
+                        ผู้ติดต่อ
+                      </Typography>
+                      <Typography variant="body2">
+                        {customerDataSource === "master" 
+                          ? customer.contact_name || "-"
+                          : `${formState.customer_firstname || ""} ${formState.customer_lastname || ""}`.trim() || "-"
+                        }
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="caption" color="text.secondary">
+                        เบอร์โทร
+                      </Typography>
+                      <Typography variant="body2">
+                        {customerDataSource === "master" 
+                          ? customer.cus_tel_1 || "-"
+                          : formState.customer_tel_1 || "-"
+                        }
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">
+                        ที่อยู่
+                      </Typography>
+                      <Typography variant="body2">
+                        {customerDataSource === "master" 
+                          ? customer.cus_address || "-"
+                          : formState.customer_address || "-"
+                        }
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </InfoCard>
+
+                {/* Editable fields when delivery source is selected */}
+                {customerDataSource === "delivery" && (
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="ชื่อบริษัท"
+                        value={formState.customer_company}
+                        onChange={handleChange("customer_company")}
+                        fullWidth
+                        required
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="เลขประจำตัวผู้เสียภาษี"
+                        value={formState.customer_tax_id}
+                        onChange={handleChange("customer_tax_id")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="ชื่อ"
+                        value={formState.customer_firstname}
+                        onChange={handleChange("customer_firstname")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="นามสกุล"
+                        value={formState.customer_lastname}
+                        onChange={handleChange("customer_lastname")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="เบอร์โทร"
+                        value={formState.customer_tel_1}
+                        onChange={handleChange("customer_tel_1")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="ที่อยู่ลูกค้า"
+                        value={formState.customer_address}
+                        onChange={handleChange("customer_address")}
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                )}
+              </Box>
+            </Section>
+
+            {/* Delivery Information Section */}
+            <Section>
+              <SectionHeader>
+                <Avatar
+                  sx={{ 
+                    bgcolor: tokens.primary, 
+                    width: 32, 
+                    height: 32,
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                  }}
+                >
+                  <ShippingIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">ข้อมูลการจัดส่ง</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    รายละเอียดการจัดส่งและผู้รับ
+                  </Typography>
+                </Box>
+              </SectionHeader>
+
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="ชื่อผู้รับ"
+                      value={formState.recipient_name}
+                      onChange={handleChange("recipient_name")}
+                      fullWidth
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="เบอร์โทรผู้รับ"
+                      value={formState.recipient_phone}
+                      onChange={handleChange("recipient_phone")}
+                      fullWidth
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="ที่อยู่จัดส่ง"
+                      value={formState.delivery_address}
+                      onChange={handleChange("delivery_address")}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      required
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      select
+                      label="วิธีการจัดส่ง"
+                      value={formState.delivery_method}
+                      onChange={handleChange("delivery_method")}
+                      fullWidth
+                      size="small"
+                    >
+                      {deliveryMethodOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                      <DatePicker
+                        label="วันที่จัดส่ง"
+                        value={formState.delivery_date}
+                        onChange={(value) =>
+                          setFormState((prev) => ({ ...prev, delivery_date: value }))
+                        }
+                        slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                      />
+                    </LocalizationProvider>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="บริษัทขนส่ง"
+                      value={formState.courier_company}
+                      onChange={handleChange("courier_company")}
+                      fullWidth
+                      disabled={disableCourierFields}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="เลขติดตาม"
+                      value={formState.tracking_number}
+                      onChange={handleChange("tracking_number")}
+                      fullWidth
+                      disabled={disableCourierFields}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="หมายเหตุการจัดส่ง"
+                      value={formState.delivery_notes}
+                      onChange={handleChange("delivery_notes")}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      size="small"
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Section>
+
+            {/* Work Items Section */}
+            <Section>
+              <SectionHeader>
+                <Avatar
+                  sx={{ 
+                    bgcolor: tokens.primary, 
+                    width: 32, 
+                    height: 32,
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                  }}
+                >
+                  <AssignmentIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">รายการงาน</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ข้อมูลงานและจำนวนที่จัดส่ง
+                  </Typography>
+                </Box>
+              </SectionHeader>
+
+              <Box sx={{ p: 3 }}>
+                {/* Manual Work Name and Quantity for non-invoice items */}
+                {!invoice?.items?.length && (
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid item xs={12} md={8}>
+                      <TextField
+                        label="ชื่องาน"
+                        value={formState.work_name}
+                        onChange={handleChange("work_name")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        label="จำนวน"
+                        value={formState.quantity}
+                        onChange={handleChange("quantity")}
+                        fullWidth
+                        size="small"
+                      />
+                    </Grid>
+                  </Grid>
+                )}
+
+                {/* Internal Notes */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="หมายเหตุภายใน"
+                      value={formState.notes}
+                      onChange={handleChange("notes")}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      size="small"
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Invoice Items Table - from tnpdb.invoice_items */}
+                {invoice?.items?.length > 0 ? (
+                  <InfoCard>
+                    <Box sx={{ p: 2, borderBottom: `1px solid ${tokens.border}` }}>
+                      <Typography variant="subtitle2">
+                        รายการสินค้าจากใบแจ้งหนี้ {invoice.number}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        แสดงข้อมูลจาก invoice_items
+                      </Typography>
+                    </Box>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>ลำดับ</TableCell>
+                          <TableCell>รายการ</TableCell>
+                          <TableCell>รายละเอียด</TableCell>
+                          <TableCell align="center">จำนวน</TableCell>
+                          <TableCell align="right">ราคาต่อหน่วย</TableCell>
+                          <TableCell align="right">ยอดรวม</TableCell>
+                          <TableCell>สถานะ</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {invoice.items.map((item, index) => (
+                          <TableRow key={item.id || index}>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {item.sequence_order || index + 1}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {item.item_name}
+                                </Typography>
+                                {item.pattern && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    แพทเทิร์น: {item.pattern}
+                                  </Typography>
+                                )}
+                                {(item.fabric_type || item.color || item.size) && (
+                                  <Box sx={{ mt: 0.5 }}>
+                                    {item.fabric_type && (
+                                      <Chip 
+                                        size="small" 
+                                        variant="outlined" 
+                                        label={`ผ้า: ${item.fabric_type}`}
+                                        sx={{ mr: 0.5, mb: 0.5 }}
+                                      />
+                                    )}
+                                    {item.color && (
+                                      <Chip 
+                                        size="small" 
+                                        variant="outlined" 
+                                        label={`สี: ${item.color}`}
+                                        sx={{ mr: 0.5, mb: 0.5 }}
+                                      />
+                                    )}
+                                    {item.size && (
+                                      <Chip 
+                                        size="small" 
+                                        variant="outlined" 
+                                        label={`ขนาด: ${item.size}`}
+                                        sx={{ mr: 0.5, mb: 0.5 }}
+                                      />
+                                    )}
+                                  </Box>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {item.item_description || "-"}
+                              </Typography>
+                              {item.notes && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                                  หมายเหตุ: {item.notes}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">
+                                {item.quantity} {item.unit || "ชิ้น"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2">
+                                {formatTHB(item.unit_price)}
+                              </Typography>
+                              {item.discount_percentage > 0 && (
+                                <Typography variant="caption" color="error.main" sx={{ display: "block" }}>
+                                  ส่วนลด {item.discount_percentage}%
+                                </Typography>
+                              )}
+                              {item.discount_amount > 0 && (
+                                <Typography variant="caption" color="error.main" sx={{ display: "block" }}>
+                                  ลด {formatTHB(item.discount_amount)}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" fontWeight={500}>
+                                {formatTHB(item.final_amount || item.subtotal || (item.unit_price * item.quantity))}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={
+                                  item.status === 'draft' ? 'ร่าง' :
+                                  item.status === 'confirmed' ? 'ยืนยัน' :
+                                  item.status === 'delivered' ? 'จัดส่งแล้ว' :
+                                  item.status === 'cancelled' ? 'ยกเลิก' :
+                                  item.status
+                                }
+                                color={
+                                  item.status === 'confirmed' ? 'success' :
+                                  item.status === 'delivered' ? 'info' :
+                                  item.status === 'cancelled' ? 'error' :
+                                  'default'
+                                }
+                                variant={item.status === 'draft' ? 'outlined' : 'filled'}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    {/* Summary Row */}
+                    <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: 'grey.50' }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="body2">
+                            <strong>รวมรายการ:</strong> {invoice.items.length} รายการ
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="body2" align="right">
+                            <strong>ยอดรวมทั้งหมด:</strong> {formatTHB(
+                              invoice.items.reduce((sum, item) => 
+                                sum + (item.final_amount || item.subtotal || (item.unit_price * item.quantity)), 0
+                              )
+                            )}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </InfoCard>
+                ) : (
+                  /* Fallback for manual items or selected specific item */
+                  <InfoCard>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>รายการ</TableCell>
+                          <TableCell align="center">จำนวน</TableCell>
+                          <TableCell align="right">หมายเหตุ</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {formState.work_name || source?.item_name || source?.work_name || "-"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2">
+                              {formState.quantity || "1"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="text.secondary">
+                              {formState.delivery_notes || "-"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </InfoCard>
+                )}
+              </Box>
+            </Section>
+
+            {/* Invoice Summary (if applicable) */}
+            {invoice && (
+              <InfoCard sx={{ p: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  สรุปใบแจ้งหนี้
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {invoice.number} • {invoice.customer_company}
+                  {invoice.final_total_amount && (
+                    <> • ยอดรวม {formatTHB(invoice.final_total_amount)}</>
+                  )}
+                </Typography>
+              </InfoCard>
             )}
           </Stack>
         )}
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
         <Button onClick={onClose} disabled={creating}>
-          Cancel
+          ยกเลิก
         </Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={creating}>
-          {creating ? "Saving..." : "Create"}
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          disabled={creating}
+          sx={{
+            bgcolor: tokens.primary,
+            "&:hover": { bgcolor: "#7A0E0E" },
+          }}
+        >
+          {creating ? "กำลังบันทึก..." : "สร้างใบส่งของ"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -266,11 +266,11 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
             <Section>
               <SectionHeader>
                 <Avatar
-                  sx={{ 
-                    bgcolor: tokens.primary, 
-                    width: 32, 
+                  sx={{
+                    bgcolor: tokens.primary,
+                    width: 32,
                     height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
                   }}
                 >
                   <BusinessIcon />
@@ -327,24 +327,36 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
                 {/* Customer Info Display/Edit */}
                 <InfoCard sx={{ p: 2, mb: 3 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      mb: 2,
+                    }}
+                  >
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         ชื่อบริษัท
                       </Typography>
                       <Typography variant="body1" fontWeight={500}>
-                        {customerDataSource === "master" 
-                          ? (customer.cus_company || formState.customer_company || "-")
-                          : formState.customer_company || "-"
-                        }
+                        {customerDataSource === "master"
+                          ? customer.cus_company || formState.customer_company || "-"
+                          : formState.customer_company || "-"}
                       </Typography>
                     </Box>
-                    {(customerDataSource === "master" ? customer.cus_tax_id : formState.customer_tax_id) && (
+                    {(customerDataSource === "master"
+                      ? customer.cus_tax_id
+                      : formState.customer_tax_id) && (
                       <Box>
-                        <Chip 
-                          size="small" 
-                          variant="outlined" 
-                          label={customerDataSource === "master" ? customer.cus_tax_id : formState.customer_tax_id} 
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={
+                            customerDataSource === "master"
+                              ? customer.cus_tax_id
+                              : formState.customer_tax_id
+                          }
                         />
                       </Box>
                     )}
@@ -355,10 +367,10 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         ผู้ติดต่อ
                       </Typography>
                       <Typography variant="body2">
-                        {customerDataSource === "master" 
+                        {customerDataSource === "master"
                           ? customer.contact_name || "-"
-                          : `${formState.customer_firstname || ""} ${formState.customer_lastname || ""}`.trim() || "-"
-                        }
+                          : `${formState.customer_firstname || ""} ${formState.customer_lastname || ""}`.trim() ||
+                            "-"}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} md={4}>
@@ -366,10 +378,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         เบอร์โทร
                       </Typography>
                       <Typography variant="body2">
-                        {customerDataSource === "master" 
+                        {customerDataSource === "master"
                           ? customer.cus_tel_1 || "-"
-                          : formState.customer_tel_1 || "-"
-                        }
+                          : formState.customer_tel_1 || "-"}
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
@@ -377,10 +388,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         ที่อยู่
                       </Typography>
                       <Typography variant="body2">
-                        {customerDataSource === "master" 
+                        {customerDataSource === "master"
                           ? customer.cus_address || "-"
-                          : formState.customer_address || "-"
-                        }
+                          : formState.customer_address || "-"}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -455,11 +465,11 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
             <Section>
               <SectionHeader>
                 <Avatar
-                  sx={{ 
-                    bgcolor: tokens.primary, 
-                    width: 32, 
+                  sx={{
+                    bgcolor: tokens.primary,
+                    width: 32,
                     height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
                   }}
                 >
                   <ShippingIcon />
@@ -571,11 +581,11 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
             <Section>
               <SectionHeader>
                 <Avatar
-                  sx={{ 
-                    bgcolor: tokens.primary, 
-                    width: 32, 
+                  sx={{
+                    bgcolor: tokens.primary,
+                    width: 32,
                     height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" }
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
                   }}
                 >
                   <AssignmentIcon />
@@ -672,25 +682,25 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                                 {(item.fabric_type || item.color || item.size) && (
                                   <Box sx={{ mt: 0.5 }}>
                                     {item.fabric_type && (
-                                      <Chip 
-                                        size="small" 
-                                        variant="outlined" 
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
                                         label={`ผ้า: ${item.fabric_type}`}
                                         sx={{ mr: 0.5, mb: 0.5 }}
                                       />
                                     )}
                                     {item.color && (
-                                      <Chip 
-                                        size="small" 
-                                        variant="outlined" 
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
                                         label={`สี: ${item.color}`}
                                         sx={{ mr: 0.5, mb: 0.5 }}
                                       />
                                     )}
                                     {item.size && (
-                                      <Chip 
-                                        size="small" 
-                                        variant="outlined" 
+                                      <Chip
+                                        size="small"
+                                        variant="outlined"
                                         label={`ขนาด: ${item.size}`}
                                         sx={{ mr: 0.5, mb: 0.5 }}
                                       />
@@ -704,7 +714,11 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                                 {item.item_description || "-"}
                               </Typography>
                               {item.notes && (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ display: "block", mt: 0.5 }}
+                                >
                                   หมายเหตุ: {item.notes}
                                 </Typography>
                               )}
@@ -715,51 +729,68 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                               </Typography>
                             </TableCell>
                             <TableCell align="right">
-                              <Typography variant="body2">
-                                {formatTHB(item.unit_price)}
-                              </Typography>
+                              <Typography variant="body2">{formatTHB(item.unit_price)}</Typography>
                               {item.discount_percentage > 0 && (
-                                <Typography variant="caption" color="error.main" sx={{ display: "block" }}>
+                                <Typography
+                                  variant="caption"
+                                  color="error.main"
+                                  sx={{ display: "block" }}
+                                >
                                   ส่วนลด {item.discount_percentage}%
                                 </Typography>
                               )}
                               {item.discount_amount > 0 && (
-                                <Typography variant="caption" color="error.main" sx={{ display: "block" }}>
+                                <Typography
+                                  variant="caption"
+                                  color="error.main"
+                                  sx={{ display: "block" }}
+                                >
                                   ลด {formatTHB(item.discount_amount)}
                                 </Typography>
                               )}
                             </TableCell>
                             <TableCell align="right">
                               <Typography variant="body2" fontWeight={500}>
-                                {formatTHB(item.final_amount || item.subtotal || (item.unit_price * item.quantity))}
+                                {formatTHB(
+                                  item.final_amount ||
+                                    item.subtotal ||
+                                    item.unit_price * item.quantity
+                                )}
                               </Typography>
                             </TableCell>
                             <TableCell>
                               <Chip
                                 size="small"
                                 label={
-                                  item.status === 'draft' ? 'ร่าง' :
-                                  item.status === 'confirmed' ? 'ยืนยัน' :
-                                  item.status === 'delivered' ? 'จัดส่งแล้ว' :
-                                  item.status === 'cancelled' ? 'ยกเลิก' :
-                                  item.status
+                                  item.status === "draft"
+                                    ? "ร่าง"
+                                    : item.status === "confirmed"
+                                      ? "ยืนยัน"
+                                      : item.status === "delivered"
+                                        ? "จัดส่งแล้ว"
+                                        : item.status === "cancelled"
+                                          ? "ยกเลิก"
+                                          : item.status
                                 }
                                 color={
-                                  item.status === 'confirmed' ? 'success' :
-                                  item.status === 'delivered' ? 'info' :
-                                  item.status === 'cancelled' ? 'error' :
-                                  'default'
+                                  item.status === "confirmed"
+                                    ? "success"
+                                    : item.status === "delivered"
+                                      ? "info"
+                                      : item.status === "cancelled"
+                                        ? "error"
+                                        : "default"
                                 }
-                                variant={item.status === 'draft' ? 'outlined' : 'filled'}
+                                variant={item.status === "draft" ? "outlined" : "filled"}
                               />
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                    
+
                     {/* Summary Row */}
-                    <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: 'grey.50' }}>
+                    <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: "grey.50" }}>
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                           <Typography variant="body2">
@@ -768,9 +799,15 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <Typography variant="body2" align="right">
-                            <strong>ยอดรวมทั้งหมด:</strong> {formatTHB(
-                              invoice.items.reduce((sum, item) => 
-                                sum + (item.final_amount || item.subtotal || (item.unit_price * item.quantity)), 0
+                            <strong>ยอดรวมทั้งหมด:</strong>{" "}
+                            {formatTHB(
+                              invoice.items.reduce(
+                                (sum, item) =>
+                                  sum +
+                                  (item.final_amount ||
+                                    item.subtotal ||
+                                    item.unit_price * item.quantity),
+                                0
                               )
                             )}
                           </Typography>
@@ -797,9 +834,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Typography variant="body2">
-                              {formState.quantity || "1"}
-                            </Typography>
+                            <Typography variant="body2">{formState.quantity || "1"}</Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" color="text.secondary">
@@ -836,9 +871,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         <Button onClick={onClose} disabled={creating}>
           ยกเลิก
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
           disabled={creating}
           sx={{
             bgcolor: tokens.primary,

@@ -12,7 +12,7 @@ Successfully improved the Create Delivery Note dialog according to the requireme
 **After**: Structured sections with clear visual hierarchy:
 
 - **ข้อมูลลูกค้า (Customer Information)** section with Business icon
-- **ข้อมูลการจัดส่ง (Delivery Information)** section with Shipping icon  
+- **ข้อมูลการจัดส่ง (Delivery Information)** section with Shipping icon
 - **รายการงาน (Work Items)** section with Assignment icon
 
 ### 2. Customer Data Source Management
@@ -23,6 +23,7 @@ Implemented customer data source toggle similar to `InvoiceDetailDialog.jsx`:
 - **Delivery Specific Mode**: Allows editing customer data specific to this delivery note
 
 #### Features:
+
 - Radio buttons for source selection
 - Dynamic field enabling/disabling based on source
 - Auto-hydration from invoice customer relationship
@@ -31,16 +32,19 @@ Implemented customer data source toggle similar to `InvoiceDetailDialog.jsx`:
 ### 3. Enhanced UI Components
 
 #### Section Headers with Icons:
+
 - Consistent styling using TNP design tokens
 - Professional avatar icons with proper sizing
 - Clear section titles and descriptions
 
 #### Information Cards:
+
 - Customer information display card
 - Work items summary table
 - Invoice summary (when applicable)
 
 #### Form Improvements:
+
 - Smaller `size="small"` inputs for better density
 - Proper field grouping and spacing
 - Required field validation
@@ -49,6 +53,7 @@ Implemented customer data source toggle similar to `InvoiceDetailDialog.jsx`:
 ### 4. Improved Data Flow
 
 #### Customer Data Normalization:
+
 ```javascript
 const normalizeCustomer = (invoice) => {
   // Uses customer relationship data from master_customers table
@@ -63,6 +68,7 @@ const normalizeCustomer = (invoice) => {
 ```
 
 #### Enhanced Payload:
+
 - Added `customer_data_source` field
 - Extended customer fields (tax_id, firstname, lastname)
 - Improved field validation and hydration
@@ -70,11 +76,13 @@ const normalizeCustomer = (invoice) => {
 ### 5. Localization & UX
 
 #### Thai Language Implementation:
+
 - All UI text translated to Thai
 - Professional terminology consistent with business domain
 - Clear validation messages and helper text
 
 #### Improved User Experience:
+
 - Source selection alerts with proper context
 - Summary tables for work items
 - Invoice reference display
@@ -97,25 +105,27 @@ const normalizeCustomer = (invoice) => {
   <DialogTitle>สร้างใบส่งของ</DialogTitle>
   <DialogContent>
     <Alert /> {/* Source selection info */}
-    
-    <Section> {/* Customer Information */}
+    <Section>
+      {" "}
+      {/* Customer Information */}
       <SectionHeader />
       <CustomerDataSourceToggle />
       <CustomerInfoCard />
       <EditableFields />
     </Section>
-    
-    <Section> {/* Delivery Information */}
+    <Section>
+      {" "}
+      {/* Delivery Information */}
       <SectionHeader />
       <DeliveryFields />
     </Section>
-    
-    <Section> {/* Work Items */}
+    <Section>
+      {" "}
+      {/* Work Items */}
       <SectionHeader />
       <WorkItemFields />
       <SummaryTable />
     </Section>
-    
     <InfoCard /> {/* Invoice Summary */}
   </DialogContent>
   <DialogActions />
@@ -125,6 +135,7 @@ const normalizeCustomer = (invoice) => {
 ### Data Management:
 
 #### State Management:
+
 ```javascript
 const [customerDataSource, setCustomerDataSource] = useState("master");
 const [formState, setFormState] = useState({
@@ -138,12 +149,13 @@ const [formState, setFormState] = useState({
 ```
 
 #### Source Toggle Handler:
+
 ```javascript
 const handleCustomerDataSourceChange = (event, value) => {
   setCustomerDataSource(value);
   if (value === "master" && customer) {
     // Hydrate with master customer data
-    setFormState(prev => ({
+    setFormState((prev) => ({
       ...prev,
       customer_company: customer.cus_company || "",
       // ... other master fields
@@ -155,30 +167,35 @@ const handleCustomerDataSourceChange = (event, value) => {
 ## ✅ Requirements Compliance
 
 ### ✅ 1. UI Design
+
 - ✅ Uses `Paper`, `Card`, `Stack`, `Typography`, `Grid` components
 - ✅ Structured sections: Customer Info + Work Items
 - ✅ Professional visual hierarchy with icons
 - ✅ Consistent TNP styling and theming
 
-### ✅ 2. Functionality 
+### ✅ 2. Functionality
+
 - ✅ Auto-hydrates from invoice/invoice item selection
 - ✅ Editable fields in dialog before save
 - ✅ Customer data source toggle (master vs delivery-specific)
 - ✅ Work name, quantity, notes editing capability
 
 ### ✅ 3. UX/Validation
+
 - ✅ Required field validation (customer_company, delivery_address)
 - ✅ Source selection alerts with proper context
 - ✅ Success/error toast notifications
 - ✅ Loading states and proper error handling
 
 ### ✅ 4. Payload Structure
+
 - ✅ All required fields in payload
 - ✅ Customer data source included
 - ✅ Extended customer fields support
 - ✅ Proper API integration with `useCreateDeliveryNoteMutation`
 
 ### ✅ 5. Acceptance Criteria
+
 - ✅ UI structured with Customer Info + Work Items sections
 - ✅ Customer data editing with source selection
 - ✅ Work item editing (quantity, notes, etc.)
@@ -188,18 +205,21 @@ const handleCustomerDataSourceChange = (event, value) => {
 ## 🚀 Benefits
 
 ### For Users:
+
 - **Clear Information Architecture**: Logical grouping reduces cognitive load
 - **Flexible Data Management**: Choose between master data or custom overrides
 - **Professional Interface**: Consistent with other accounting dialogs
 - **Thai Language Support**: Native language for better usability
 
 ### For Developers:
+
 - **Maintainable Code**: Clear component structure and separation of concerns
 - **Reusable Patterns**: Customer data source pattern can be used elsewhere
 - **Extensible Design**: Easy to add new sections or fields
 - **Type Safety**: Proper TypeScript patterns and validation
 
 ### For Business:
+
 - **Data Consistency**: Master customer data integration prevents duplication
 - **Audit Trail**: Customer data source tracking for compliance
 - **Workflow Efficiency**: Streamlined delivery note creation process
@@ -208,18 +228,21 @@ const handleCustomerDataSourceChange = (event, value) => {
 ## 🔄 Integration Status
 
 ### Frontend:
+
 - ✅ UI components implemented and styled
-- ✅ State management working correctly  
+- ✅ State management working correctly
 - ✅ API integration functional
 - ✅ Validation and error handling active
 
 ### Backend:
+
 - ✅ Existing API endpoints compatible
 - ✅ Customer data source handling ready
 - ✅ Extended payload support confirmed
 - ✅ Database relationships working
 
 ### Testing:
+
 - ✅ Frontend builds without errors
 - ✅ Backend routes responding correctly
 - ✅ Data flow validated end-to-end
@@ -228,7 +251,7 @@ const handleCustomerDataSourceChange = (event, value) => {
 ## 🎯 Success Metrics
 
 1. **UI Quality**: Professional, structured interface with clear sections ✅
-2. **Functionality**: Full CRUD operations with customer data management ✅  
+2. **Functionality**: Full CRUD operations with customer data management ✅
 3. **UX**: Intuitive workflow with proper validation and feedback ✅
 4. **Integration**: Seamless API communication and data persistence ✅
 5. **Localization**: Complete Thai language support ✅

@@ -30,20 +30,18 @@ import {
 import {
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
-  LocalShipping as ShippingIcon,
   Edit as EditIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import React, { useState, useRef, useMemo, useEffect } from "react";
 
 import {
   useGetInvoiceQuery,
   useCreateDeliveryNoteMutation,
+  useGetCompaniesQuery,
 } from "../../../../features/Accounting/accountingApi";
 import { showError, showSuccess, showLoading, dismissToast } from "../../utils/accountingToast";
 import LoadingState from "../../PricingIntegration/components/LoadingState";
@@ -55,22 +53,10 @@ import {
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 import { formatTHB } from "../../Invoices/utils/format";
 
-const deliveryMethodOptions = [
-  { value: "courier", label: "Courier" },
-  { value: "self_delivery", label: "Self delivery" },
-  { value: "customer_pickup", label: "Customer pickup" },
-];
-
 const toDateOrNull = (value) => {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const formatDateForApi = (date) => {
-  if (!date) return null;
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
 // Component สำหรับแสดงตาราง Invoice Items แบบจัดกลุ่ม (Editable)
@@ -566,6 +552,16 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
   const invoice = React.useMemo(() => invoiceData?.data || invoiceData || null, [invoiceData]);
 
+  // Fetch companies for sender selection
+  const { data: companiesResp, isLoading: companiesLoading } = useGetCompaniesQuery(undefined, {
+    skip: !open,
+  });
+
+  const companies = React.useMemo(() => {
+    const list = companiesResp?.data ?? companiesResp ?? [];
+    return Array.isArray(list) ? list : [];
+  }, [companiesResp]);
+
   const [createDeliveryNote, { isLoading: creating }] = useCreateDeliveryNoteMutation();
 
   // Customer data source toggle - similar to InvoiceDetailDialog pattern
@@ -583,17 +579,10 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
     customer_tax_id: "",
     customer_firstname: "",
     customer_lastname: "",
-    recipient_name: "",
-    recipient_phone: "",
-    delivery_address: "",
-    delivery_method: "courier",
-    courier_company: "",
-    tracking_number: "",
-    delivery_date: toDateOrNull(new Date()),
     work_name: "",
     quantity: "1",
-    delivery_notes: "",
     notes: "",
+    sender_company_id: "", // ใหม่: ผู้ส่ง/บริษัทส่ง
   });
 
   // Normalize customer data from master_customers relationship (similar to InvoiceDetailDialog)
@@ -645,19 +634,10 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
       customer_tax_id: source?.customer_tax_id || invoice?.customer_tax_id || "",
       customer_firstname: source?.customer_firstname || invoice?.customer_firstname || "",
       customer_lastname: source?.customer_lastname || invoice?.customer_lastname || "",
-      recipient_name:
-        source?.recipient_name || source?.customer_name || invoice?.customer_firstname || "",
-      recipient_phone: source?.customer_phone || invoice?.customer_tel_1 || "",
-      delivery_address:
-        source?.delivery_address || invoice?.customer_address || source?.customer_address || "",
-      delivery_method: source?.delivery_method || "courier",
-      courier_company: source?.courier_company || "",
-      tracking_number: source?.tracking_number || "",
-      delivery_date: toDateOrNull(source?.delivery_date) || toDateOrNull(new Date()),
       work_name: source?.work_name || source?.item_name || invoice?.work_name || "",
       quantity: String(source?.quantity || invoice?.quantity || "1"),
-      delivery_notes: "",
       notes: "",
+      sender_company_id: source?.company_id || invoice?.company_id || "", // เลือกบริษัทผู้ส่ง
     };
 
     setFormState((prev) => ({ ...prev, ...hydrated }));
@@ -689,8 +669,8 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
   };
 
   const handleSubmit = async () => {
-    if (!formState.customer_company || !formState.delivery_address) {
-      showError("Customer and delivery address are required");
+    if (!formState.customer_company) {
+      showError("Customer company is required");
       return;
     }
 
@@ -706,20 +686,13 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         customer_tax_id: formState.customer_tax_id || undefined,
         customer_firstname: formState.customer_firstname || undefined,
         customer_lastname: formState.customer_lastname || undefined,
-        recipient_name: formState.recipient_name || formState.customer_company,
-        recipient_phone: formState.recipient_phone || undefined,
-        delivery_address: formState.delivery_address,
-        delivery_method: formState.delivery_method,
-        courier_company: formState.delivery_method === "courier" ? formState.courier_company : null,
-        tracking_number: formState.tracking_number || undefined,
-        delivery_date: formatDateForApi(formState.delivery_date) || undefined,
-        delivery_notes: formState.delivery_notes || undefined,
-        notes: formState.notes || undefined,
         work_name: formState.work_name,
         quantity: formState.quantity,
+        notes: formState.notes || undefined,
         invoice_id: source?.invoice_id || undefined,
         invoice_item_id: source?.invoice_item_id || undefined,
         customer_data_source: customerDataSource,
+        sender_company_id: formState.sender_company_id || undefined, // ใหม่: ส่งค่าบริษัทผู้ส่ง
       };
 
       await createDeliveryNote(payload).unwrap();
@@ -732,8 +705,6 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
       showError(message);
     }
   };
-
-  const disableCourierFields = formState.delivery_method !== "courier";
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
@@ -961,7 +932,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
               </Box>
             </Section>
 
-            {/* Delivery Information Section */}
+            {/* Company and Sender Information Section */}
             <Section>
               <SectionHeader>
                 <Avatar
@@ -972,108 +943,94 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                     "& .MuiSvgIcon-root": { fontSize: "1rem" },
                   }}
                 >
-                  <ShippingIcon />
+                  <BusinessIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="subtitle1">ข้อมูลการจัดส่ง</Typography>
+                  <Typography variant="subtitle1">ข้อมูลบริษัทและผู้ส่ง</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    รายละเอียดการจัดส่งและผู้รับ
+                    ข้อมูลบริษัทผู้ส่งและการจัดการ
                   </Typography>
                 </Box>
               </SectionHeader>
 
               <Box sx={{ p: 3 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="ชื่อผู้รับ"
-                      value={formState.recipient_name}
-                      onChange={handleChange("recipient_name")}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="เบอร์โทรผู้รับ"
-                      value={formState.recipient_phone}
-                      onChange={handleChange("recipient_phone")}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="ที่อยู่จัดส่ง"
-                      value={formState.delivery_address}
-                      onChange={handleChange("delivery_address")}
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      required
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      select
-                      label="วิธีการจัดส่ง"
-                      value={formState.delivery_method}
-                      onChange={handleChange("delivery_method")}
-                      fullWidth
-                      size="small"
-                    >
-                      {deliveryMethodOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
+                {/* Sender Company Information */}
+                <Box sx={{ mb: 3, pb: 2, borderBottom: `1px solid ${tokens.border}` }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                    ข้อมูลผู้ส่ง
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        label="บริษัทผู้ส่ง"
+                        value={formState.sender_company_id}
+                        onChange={handleChange("sender_company_id")}
+                        fullWidth
+                        size="small"
+                        disabled={companiesLoading}
+                        helperText="เลือกบริษัทที่ทำการส่งของ"
+                      >
+                        <MenuItem value="">
+                          <em>- ไม่ระบุ -</em>
                         </MenuItem>
-                      ))}
-                    </TextField>
+                        {companies.map((company) => (
+                          <MenuItem key={company.id} value={company.id}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {company.short_code || company.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {company.name}
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    {formState.sender_company_id && (
+                      <Grid item xs={12} md={6}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            bgcolor: "grey.50",
+                            borderRadius: 1,
+                            border: "1px solid",
+                            borderColor: "grey.200",
+                          }}
+                        >
+                          {(() => {
+                            const selectedCompany = companies.find(
+                              (c) => c.id === formState.sender_company_id
+                            );
+                            return selectedCompany ? (
+                              <Stack spacing={0.5}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {selectedCompany.legal_name || selectedCompany.name}
+                                </Typography>
+                                {selectedCompany.tax_id && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    เลขประจำตัวผู้เสียภาษี: {selectedCompany.tax_id}
+                                  </Typography>
+                                )}
+                                {selectedCompany.address && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    {selectedCompany.address}
+                                  </Typography>
+                                )}
+                                {selectedCompany.phone && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    โทร: {selectedCompany.phone}
+                                  </Typography>
+                                )}
+                              </Stack>
+                            ) : null;
+                          })()}
+                        </Box>
+                      </Grid>
+                    )}
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <DatePicker
-                        label="วันที่จัดส่ง"
-                        value={formState.delivery_date}
-                        onChange={(value) =>
-                          setFormState((prev) => ({ ...prev, delivery_date: value }))
-                        }
-                        slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                      />
-                    </LocalizationProvider>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="บริษัทขนส่ง"
-                      value={formState.courier_company}
-                      onChange={handleChange("courier_company")}
-                      fullWidth
-                      disabled={disableCourierFields}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="เลขติดตาม"
-                      value={formState.tracking_number}
-                      onChange={handleChange("tracking_number")}
-                      fullWidth
-                      disabled={disableCourierFields}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="หมายเหตุการจัดส่ง"
-                      value={formState.delivery_notes}
-                      onChange={handleChange("delivery_notes")}
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      size="small"
-                    />
-                  </Grid>
-                </Grid>
+                </Box>
               </Box>
             </Section>
 
@@ -1149,7 +1106,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" color="text.secondary">
-                              {formState.delivery_notes || "-"}
+                              {formState.notes || "-"}
                             </Typography>
                           </TableCell>
                         </TableRow>

@@ -82,7 +82,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   // Initialize editable groups from invoice items
   useEffect(() => {
     if (!invoice?.items) return;
-    
+
     const map = new Map();
     invoice.items.forEach((it, idx) => {
       const name = it.item_name || it.name || "-";
@@ -91,7 +91,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
       const color = it.color || "";
       const workName = it.work_name || "-";
       const key = [name, pattern, fabric, color, workName].join("||");
-      
+
       if (!map.has(key)) {
         map.set(key, {
           key,
@@ -104,9 +104,10 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
           rows: [],
         });
       }
-      
-      const q = typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
-      
+
+      const q =
+        typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
+
       map.get(key).rows.push({
         id: it.id || `${idx}`,
         sequence_order: it.sequence_order || idx + 1,
@@ -116,12 +117,12 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
         originalItem: it,
       });
     });
-    
+
     const grouped = Array.from(map.values()).map((g) => ({
       ...g,
       totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
     }));
-    
+
     setEditableGroups(grouped);
   }, [invoice?.items]);
 
@@ -146,10 +147,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   };
 
   const handleGroupFieldChange = (groupIndex, field, value) => {
-    setEditableGroups(prev => 
-      prev.map((group, idx) => 
-        idx === groupIndex ? { ...group, [field]: value } : group
-      )
+    setEditableGroups((prev) =>
+      prev.map((group, idx) => (idx === groupIndex ? { ...group, [field]: value } : group))
     );
   };
 
@@ -161,8 +160,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   const handleSaveRow = () => {
     setEditingRow(null);
     // Recalculate group totals
-    setEditableGroups(prev => 
-      prev.map(group => ({
+    setEditableGroups((prev) =>
+      prev.map((group) => ({
         ...group,
         totalQty: group.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
       }))
@@ -175,14 +174,14 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   };
 
   const handleRowFieldChange = (groupIndex, rowIndex, field, value) => {
-    setEditableGroups(prev => 
-      prev.map((group, gIdx) => 
-        gIdx === groupIndex 
+    setEditableGroups((prev) =>
+      prev.map((group, gIdx) =>
+        gIdx === groupIndex
           ? {
               ...group,
-              rows: group.rows.map((row, rIdx) => 
+              rows: group.rows.map((row, rIdx) =>
                 rIdx === rowIndex ? { ...row, [field]: value } : row
-              )
+              ),
             }
           : group
       )
@@ -198,23 +197,21 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
       quantity: 0,
       unit: "ชิ้น",
     };
-    
-    setEditableGroups(prev => 
-      prev.map((group, idx) => 
-        idx === groupIndex 
-          ? { ...group, rows: [...group.rows, newRow] }
-          : group
+
+    setEditableGroups((prev) =>
+      prev.map((group, idx) =>
+        idx === groupIndex ? { ...group, rows: [...group.rows, newRow] } : group
       )
     );
   };
 
   const handleDeleteRow = (groupIndex, rowIndex) => {
-    setEditableGroups(prev => 
-      prev.map((group, gIdx) => 
-        gIdx === groupIndex 
+    setEditableGroups((prev) =>
+      prev.map((group, gIdx) =>
+        gIdx === groupIndex
           ? {
               ...group,
-              rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex)
+              rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex),
             }
           : group
       )
@@ -224,14 +221,12 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   return (
     <InfoCard>
       <Box sx={{ p: 2, borderBottom: `1px solid ${tokens.border}` }}>
-        <Typography variant="subtitle2">
-          รายการสินค้าจากใบแจ้งหนี้ {invoice.number}
-        </Typography>
+        <Typography variant="subtitle2">รายการสินค้าจากใบแจ้งหนี้ {invoice.number}</Typography>
         <Typography variant="caption" color="text.secondary">
           แสดงข้อมูลจาก invoice_items ({editableGroups.length} กลุ่ม) - สามารถแก้ไขได้
         </Typography>
       </Box>
-      
+
       {editableGroups.map((group, groupIndex) => (
         <Box key={group.key || groupIndex} sx={{ mb: 2 }}>
           {/* Group Header - Editable */}
@@ -243,7 +238,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   <TextField
                     label="ชื่องาน"
                     value={group.name}
-                    onChange={(e) => handleGroupFieldChange(groupIndex, 'name', e.target.value)}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, "name", e.target.value)}
                     fullWidth
                     size="small"
                   />
@@ -252,7 +247,9 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   <TextField
                     label="รายละเอียด"
                     value={group.description}
-                    onChange={(e) => handleGroupFieldChange(groupIndex, 'description', e.target.value)}
+                    onChange={(e) =>
+                      handleGroupFieldChange(groupIndex, "description", e.target.value)
+                    }
                     fullWidth
                     size="small"
                   />
@@ -261,7 +258,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   <TextField
                     label="แพทเทิร์น"
                     value={group.pattern}
-                    onChange={(e) => handleGroupFieldChange(groupIndex, 'pattern', e.target.value)}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, "pattern", e.target.value)}
                     fullWidth
                     size="small"
                   />
@@ -270,7 +267,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   <TextField
                     label="ผ้า"
                     value={group.fabric}
-                    onChange={(e) => handleGroupFieldChange(groupIndex, 'fabric', e.target.value)}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, "fabric", e.target.value)}
                     fullWidth
                     size="small"
                   />
@@ -279,7 +276,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   <TextField
                     label="สี"
                     value={group.color}
-                    onChange={(e) => handleGroupFieldChange(groupIndex, 'color', e.target.value)}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, "color", e.target.value)}
                     fullWidth
                     size="small"
                   />
@@ -308,7 +305,14 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
             ) : (
               // View mode
               <Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 1,
+                  }}
+                >
                   <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                     {group.name}
                   </Typography>
@@ -338,38 +342,44 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
               </Box>
             )}
           </Box>
-          
+
           {/* Size Details Table - Simplified and Clean */}
           <Table size="small" sx={{ mt: 1 }}>
             <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
                 <TableCell sx={{ fontWeight: 600, width: "30%" }}>ไซส์</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600, width: "40%" }}>จำนวน</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600, width: "30%" }}>การจัดการ</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, width: "40%" }}>
+                  จำนวน
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, width: "30%" }}>
+                  การจัดการ
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {group.rows.map((row, rowIndex) => (
-                <TableRow 
+                <TableRow
                   key={row.id}
-                  sx={{ 
-                    '&:nth-of-type(odd)': { bgcolor: "grey.50" },
-                    '&:hover': { bgcolor: "action.hover" }
+                  sx={{
+                    "&:nth-of-type(odd)": { bgcolor: "grey.50" },
+                    "&:hover": { bgcolor: "action.hover" },
                   }}
                 >
                   <TableCell sx={{ py: 1.5 }}>
                     {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
                       <TextField
                         value={row.size}
-                        onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'size', e.target.value)}
+                        onChange={(e) =>
+                          handleRowFieldChange(groupIndex, rowIndex, "size", e.target.value)
+                        }
                         size="small"
                         fullWidth
                         placeholder="ระบุไซส์..."
-                        sx={{ 
-                          '& .MuiInputBase-root': { 
+                        sx={{
+                          "& .MuiInputBase-root": {
                             borderRadius: 1.5,
-                            bgcolor: "background.paper"
-                          }
+                            bgcolor: "background.paper",
+                          },
                         }}
                       />
                     ) : (
@@ -380,37 +390,58 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   </TableCell>
                   <TableCell align="center" sx={{ py: 1.5 }}>
                     {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
-                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        justifyContent="center"
+                      >
                         <TextField
                           type="number"
                           value={row.quantity}
-                          onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'quantity', Number(e.target.value))}
+                          onChange={(e) =>
+                            handleRowFieldChange(
+                              groupIndex,
+                              rowIndex,
+                              "quantity",
+                              Number(e.target.value)
+                            )
+                          }
                           size="small"
-                          sx={{ 
+                          sx={{
                             width: 100,
-                            '& .MuiInputBase-root': { 
+                            "& .MuiInputBase-root": {
                               borderRadius: 1.5,
-                              bgcolor: "background.paper"
-                            }
+                              bgcolor: "background.paper",
+                            },
                           }}
                           inputProps={{ min: 0 }}
                         />
                         <TextField
                           value={row.unit}
-                          onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'unit', e.target.value)}
+                          onChange={(e) =>
+                            handleRowFieldChange(groupIndex, rowIndex, "unit", e.target.value)
+                          }
                           size="small"
-                          sx={{ 
+                          sx={{
                             width: 80,
-                            '& .MuiInputBase-root': { 
+                            "& .MuiInputBase-root": {
                               borderRadius: 1.5,
-                              bgcolor: "background.paper"
-                            }
+                              bgcolor: "background.paper",
+                            },
                           }}
                           placeholder="หน่วย"
                         />
                       </Stack>
                     ) : (
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 0.5,
+                        }}
+                      >
                         <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
                           {Number(row.quantity).toLocaleString()}
                         </Typography>
@@ -424,26 +455,26 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                     {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
                       <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Tooltip title="บันทึก">
-                          <IconButton 
-                            size="small" 
-                            color="primary" 
+                          <IconButton
+                            size="small"
+                            color="primary"
                             onClick={handleSaveRow}
-                            sx={{ 
-                              bgcolor: "primary.main", 
+                            sx={{
+                              bgcolor: "primary.main",
                               color: "white",
-                              '&:hover': { bgcolor: "primary.dark" }
+                              "&:hover": { bgcolor: "primary.dark" },
                             }}
                           >
                             <SaveIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="ยกเลิก">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={handleCancelRowEdit}
-                            sx={{ 
+                            sx={{
                               bgcolor: "grey.200",
-                              '&:hover': { bgcolor: "grey.300" }
+                              "&:hover": { bgcolor: "grey.300" },
                             }}
                           >
                             <CancelIcon fontSize="small" />
@@ -453,24 +484,24 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                     ) : (
                       <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Tooltip title="แก้ไข">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => handleEditRow(groupIndex, rowIndex)}
-                            sx={{ 
+                            sx={{
                               color: "primary.main",
-                              '&:hover': { bgcolor: "primary.light", color: "primary.dark" }
+                              "&:hover": { bgcolor: "primary.light", color: "primary.dark" },
                             }}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="ลบ">
-                          <IconButton 
-                            size="small" 
-                            color="error" 
+                          <IconButton
+                            size="small"
+                            color="error"
                             onClick={() => handleDeleteRow(groupIndex, rowIndex)}
-                            sx={{ 
-                              '&:hover': { bgcolor: "error.light", color: "error.dark" }
+                            sx={{
+                              "&:hover": { bgcolor: "error.light", color: "error.dark" },
                             }}
                           >
                             <DeleteIcon fontSize="small" />
@@ -483,24 +514,28 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
               ))}
               {/* Add Row Button */}
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 2, borderTop: "2px dashed", borderColor: "divider" }}>
+                <TableCell
+                  colSpan={3}
+                  align="center"
+                  sx={{ py: 2, borderTop: "2px dashed", borderColor: "divider" }}
+                >
                   <Button
                     size="medium"
                     variant="outlined"
                     startIcon={<AddIcon />}
                     onClick={() => handleAddRow(groupIndex)}
-                    sx={{ 
+                    sx={{
                       borderRadius: 2,
                       borderStyle: "dashed",
                       textTransform: "none",
                       fontSize: "0.875rem",
                       px: 3,
                       py: 1,
-                      '&:hover': {
+                      "&:hover": {
                         borderStyle: "solid",
                         bgcolor: "primary.light",
-                        color: "primary.dark"
-                      }
+                        color: "primary.dark",
+                      },
                     }}
                   >
                     เพิ่มไซส์ใหม่
@@ -515,7 +550,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
       {/* Summary Row */}
       <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: "grey.50" }}>
         <Typography variant="body2">
-          <strong>รวมทั้งหมด:</strong> {editableGroups.reduce((sum, group) => sum + group.totalQty, 0)} ชิ้น
+          <strong>รวมทั้งหมด:</strong>{" "}
+          {editableGroups.reduce((sum, group) => sum + group.totalQty, 0)} ชิ้น
         </Typography>
       </Box>
     </InfoCard>

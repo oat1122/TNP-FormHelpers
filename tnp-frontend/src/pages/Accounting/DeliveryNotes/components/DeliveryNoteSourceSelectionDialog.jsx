@@ -204,7 +204,7 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
       const color = it.color || "";
       const workName = it.work_name || "-";
       const key = [name, pattern, fabric, color, workName].join("||");
-      
+
       if (!map.has(key)) {
         map.set(key, {
           key,
@@ -216,11 +216,17 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
           rows: [],
         });
       }
-      
-      const q = typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
-      const p = typeof it.unit_price === "string" ? parseFloat(it.unit_price || "0") : Number(it.unit_price || 0);
-      const subtotal = Number(it.final_amount || it.subtotal || (!isNaN(q) && !isNaN(p) ? q * p : 0));
-      
+
+      const q =
+        typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
+      const p =
+        typeof it.unit_price === "string"
+          ? parseFloat(it.unit_price || "0")
+          : Number(it.unit_price || 0);
+      const subtotal = Number(
+        it.final_amount || it.subtotal || (!isNaN(q) && !isNaN(p) ? q * p : 0)
+      );
+
       map.get(key).rows.push({
         id: it.id || `${idx}`,
         size: it.size || "",
@@ -230,7 +236,7 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
         originalItem: it, // Keep reference to original item for selection
       });
     });
-    
+
     return Array.from(map.values()).map((g) => ({
       ...g,
       total: g.rows.reduce((s, r) => s + (Number(r.subtotal) || 0), 0),
@@ -304,7 +310,9 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
             }}
             onClick={handleToggleExpanded}
           >
-            <Typography variant="subtitle2">รายการสินค้า ({grouped.length} กลุ่ม, {items.length} รายการ)</Typography>
+            <Typography variant="subtitle2">
+              รายการสินค้า ({grouped.length} กลุ่ม, {items.length} รายการ)
+            </Typography>
             <IconButton size="small">
               <ExpandMoreIcon
                 sx={{

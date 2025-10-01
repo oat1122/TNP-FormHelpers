@@ -90,6 +90,39 @@ class DeliveryNoteController extends Controller
     }
 
     /**
+     * Retrieve invoices available for delivery note creation
+     * GET /api/v1/delivery-notes/invoices
+     */
+    public function getInvoices(Request $request): JsonResponse
+    {
+        try {
+            $filters = [
+                'search' => $request->query('search'),
+                'status' => $request->query('status', 'approved'), // Default to approved only
+                'company_id' => $request->query('company_id'),
+                'customer_id' => $request->query('customer_id'),
+            ];
+
+            $perPage = min($request->query('per_page', 20), 50);
+            $invoices = $this->deliveryNoteService->getInvoiceSources($filters, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoices,
+                'message' => 'Invoices for delivery retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteController::getInvoices error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve invoices for delivery: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Retrieve delivery note details
      * GET /api/v1/delivery-notes/{id}
      */

@@ -379,6 +379,7 @@ Route::prefix('v1')->group(function() {
         // DeliveryNote CRUD
         Route::get('/delivery-notes', 'index')->name('delivery-notes.index');
         Route::get('/delivery-notes/invoice-items', 'getInvoiceItems')->name('delivery-notes.invoice-items');
+        Route::get('/delivery-notes/invoices', 'getInvoices')->name('delivery-notes.invoices');
         Route::get('/delivery-notes/{id}', 'show')->name('delivery-notes.show');
         Route::post('/delivery-notes', 'store')->name('delivery-notes.store');
         Route::put('/delivery-notes/{id}', 'update')->name('delivery-notes.update');

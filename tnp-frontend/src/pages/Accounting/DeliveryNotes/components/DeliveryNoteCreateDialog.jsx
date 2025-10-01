@@ -155,13 +155,19 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
         {!invoiceLoading && (
           <Stack spacing={3}>
             {source ? (
-              <Alert severity="info">
-                Selected invoice item: <strong>{source.item_name}</strong> from invoice {" "}
-                <strong>{source.invoice_number}</strong>
-              </Alert>
+              source.invoice_item_id ? (
+                <Alert severity="info">
+                  Selected invoice item: <strong>{source.item_name}</strong> from invoice{" "}
+                  <strong>{source.invoice_number}</strong>
+                </Alert>
+              ) : (
+                <Alert severity="info">
+                  Selected invoice: <strong>{source.invoice_number}</strong>
+                </Alert>
+              )
             ) : (
               <Alert severity="warning">
-                No invoice item selected. You can still create a manual delivery note.
+                No invoice selected. You can still create a manual delivery note.
               </Alert>
             )}
 
@@ -310,7 +316,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                 <Stack spacing={0.5}>
                   <Typography variant="subtitle2">Invoice summary</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {invoice.number} · {invoice.customer_company}
+                    {invoice.number} ï¿½ {invoice.customer_company}
                   </Typography>
                 </Stack>
               </>

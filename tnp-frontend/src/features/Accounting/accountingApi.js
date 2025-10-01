@@ -615,6 +615,14 @@ export const accountingApi = createApi({
       providesTags: ["DeliveryNote"],
     }),
 
+    getDeliveryNoteInvoices: builder.query({
+      query: (params = {}) => ({
+        url: "/delivery-notes/invoices",
+        params,
+      }),
+      providesTags: ["DeliveryNote"],
+    }),
+
     createDeliveryNote: builder.mutation({
       query: (payload) => ({
         url: "/delivery-notes",
@@ -823,6 +831,7 @@ export const {
   useGetDeliveryNotesQuery,
   useGetDeliveryNoteQuery,
   useGetDeliveryNoteInvoiceItemsQuery,
+  useGetDeliveryNoteInvoicesQuery,
   useCreateDeliveryNoteMutation,
   useUpdateDeliveryNoteMutation,
   useDeleteDeliveryNoteMutation,

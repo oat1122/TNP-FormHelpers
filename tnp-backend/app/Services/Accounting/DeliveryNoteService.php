@@ -7,6 +7,7 @@ use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\DocumentAttachment;
 use App\Models\Accounting\InvoiceItem;
+use App\Models\Accounting\Invoice;
 use App\Services\Accounting\AutofillService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -125,6 +126,111 @@ class DeliveryNoteService
             });
         } catch (\Exception $e) {
             Log::error('DeliveryNoteService::getInvoiceItemSources error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get invoices that can be converted to delivery notes (with their items included)
+     */
+    public function getInvoiceSources($filters = [], $perPage = 20)
+    {
+        try {
+            $query = Invoice::with(['items', 'customer'])
+                ->whereIn('status', ['sent', 'partial_paid', 'fully_paid', 'approved']);
+
+            if (!empty($filters['search'])) {
+                $search = '%' . $filters['search'] . '%';
+                $query->where(function ($q) use ($search) {
+                    $q->where('number', 'like', $search)
+                      ->orWhere('customer_company', 'like', $search)
+                      ->orWhere('customer_firstname', 'like', $search)
+                      ->orWhere('customer_lastname', 'like', $search);
+                    
+                    // Search by work_name only if the column exists
+                    if (Schema::hasColumn('invoices', 'work_name')) {
+                        $q->orWhere('work_name', 'like', $search);
+                    }
+
+                    // Search in related invoice items
+                    $q->orWhereHas('items', function ($itemQuery) use ($search) {
+                        $itemQuery->where('item_name', 'like', $search)
+                                 ->orWhere('pattern', 'like', $search)
+                                 ->orWhere('color', 'like', $search);
+                    });
+                });
+            }
+
+            if (!empty($filters['status'])) {
+                $statuses = is_array($filters['status']) ? $filters['status'] : [$filters['status']];
+                $query->whereIn('status', $statuses);
+            }
+
+            if (!empty($filters['company_id'])) {
+                $query->where('company_id', $filters['company_id']);
+            }
+
+            if (!empty($filters['customer_id'])) {
+                $query->where('customer_id', $filters['customer_id']);
+            }
+
+            $query->orderByDesc('created_at');
+
+            $paginator = $query->paginate($perPage);
+
+            return $paginator->through(function (Invoice $invoice) {
+                $data = [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'status' => $invoice->status,
+                    'company_id' => $invoice->company_id,
+                    'customer_id' => $invoice->customer_id,
+                    'customer_company' => $invoice->customer_company,
+                    'customer_firstname' => $invoice->customer_firstname,
+                    'customer_lastname' => $invoice->customer_lastname,
+                    'customer_address' => $invoice->customer_address,
+                    'customer_tel_1' => $invoice->customer_tel_1,
+                    'total_amount' => $invoice->total_amount,
+                    'created_at' => $invoice->created_at,
+                    'updated_at' => $invoice->updated_at,
+                ];
+
+                // Include work_name only if it exists in the current schema
+                if (Schema::hasColumn('invoices', 'work_name')) {
+                    $data['work_name'] = $invoice->work_name;
+                }
+
+                // Include customer relationship data if available
+                if ($invoice->customer) {
+                    $data['customer'] = [
+                        'cus_company' => $invoice->customer->cus_company ?? null,
+                        'cus_address' => $invoice->customer->cus_address ?? null,
+                    ];
+                }
+
+                // Include invoice items
+                $data['items'] = $invoice->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'item_name' => $item->item_name,
+                        'item_description' => $item->item_description,
+                        'quantity' => $item->quantity,
+                        'unit' => $item->unit,
+                        'unit_price' => $item->unit_price,
+                        'final_amount' => $item->final_amount,
+                        'subtotal' => $item->subtotal,
+                        'pattern' => $item->pattern,
+                        'color' => $item->color,
+                        'size' => $item->size,
+                        'work_name' => $item->work_name ?? $item->item_name,
+                        'sequence_order' => $item->sequence_order,
+                    ];
+                });
+
+                return $data;
+            });
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteService::getInvoiceSources error: ' . $e->getMessage());
             throw $e;
         }
     }

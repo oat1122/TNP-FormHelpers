@@ -60,47 +60,128 @@ const formatCurrency = (value) => {
   }
 };
 
-const InvoiceItemRow = ({ item, invoice, onSelectItem }) => {
-  const workName = item.work_name || "-";
-  const quantity = item.quantity || 0;
-  const unitPrice = Number(item.unit_price || 0);
-  const lineTotal = Number(item.final_amount || item.subtotal || quantity * unitPrice);
+const InvoiceItemGroupRow = ({ group, invoice, onSelectItem }) => {
+  const formatTHB = React.useMemo(
+    () => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }),
+    []
+  );
 
   return (
     <Box
       sx={{
-        p: 1.5,
+        p: 1.25,
         border: "1px dashed",
         borderColor: "divider",
         borderRadius: 1.5,
         bgcolor: "background.paper",
         "&:hover": { borderColor: "primary.light", boxShadow: 1 },
-        cursor: "pointer",
       }}
-      onClick={() => onSelectItem?.(item, invoice)}
     >
+      {/* Header: unique fields (friendly chips) */}
       <Box
-        sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 1,
+          flexWrap: "wrap",
+          mb: 1,
+        }}
       >
-        <Stack spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {item.item_name}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+            {group.name}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            งาน: {workName}
+            งาน: {group.workName}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            จำนวน {quantity} × {formatCurrency(unitPrice)}
+          <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+            {group.pattern && (
+              <Chip size="small" label={`แพทเทิร์น: ${group.pattern}`} variant="outlined" />
+            )}
+            {group.fabric && (
+              <Chip size="small" label={`ผ้า: ${group.fabric}`} variant="outlined" />
+            )}
+            {group.color && <Chip size="small" label={`สี: ${group.color}`} variant="outlined" />}
+          </Stack>
+        </Box>
+        <Box sx={{ textAlign: "right" }}>
+          <Typography variant="caption" color="text.secondary">
+            ยอดรวมของงานนี้
           </Typography>
-        </Stack>
-        <Stack spacing={0.5} sx={{ textAlign: "right", alignItems: "flex-end" }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {formatCurrency(lineTotal)}
+          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+            {formatTHB.format(group.total)}
           </Typography>
-          <TNPSecondaryButton size="small" variant="outlined">
-            Select this item
-          </TNPSecondaryButton>
-        </Stack>
+          <Typography variant="caption" color="text.secondary">
+            รวมจำนวน {Number(group.totalQty || 0)} ชิ้น
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Per-size rows */}
+      <Box>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px",
+            gap: 0.75,
+            mb: 0.5,
+            p: 0.75,
+            bgcolor: "background.default",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            ไซส์
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+            ราคา/หน่วย
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+            จำนวน
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+            รวม
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+            เลือก
+          </Typography>
+        </Box>
+        {group.rows.map((r, ri) => (
+          <Box
+            key={r.id || ri}
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px",
+              gap: 0.75,
+              py: 0.5,
+              px: 0.75,
+              bgcolor: ri % 2 ? "background.default" : "transparent",
+              borderRadius: 1,
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="body2">{r.size || "-"}</Typography>
+            <Typography variant="body2" sx={{ textAlign: "right" }}>
+              {formatTHB.format(Number(r.unit_price || 0))}
+            </Typography>
+            <Typography variant="body2" sx={{ textAlign: "right" }}>
+              {Number(r.quantity || 0)}
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "right" }}>
+              {formatTHB.format(Number(r.subtotal || 0))}
+            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <TNPSecondaryButton
+                size="small"
+                variant="outlined"
+                onClick={() => onSelectItem?.(r.originalItem, invoice)}
+              >
+                เลือก
+              </TNPSecondaryButton>
+            </Box>
+          </Box>
+        ))}
       </Box>
     </Box>
   );
@@ -112,6 +193,50 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
   const createdAt = invoice.created_at ? format(new Date(invoice.created_at), "dd MMM yyyy") : "-";
   const items = Array.isArray(invoice.items) ? invoice.items : [];
   const amountText = formatCurrency(invoice.total_amount || 0);
+
+  // Group items by common attributes (รายการ/แพทเทิร์น/ผ้า/สี/งาน)
+  const grouped = React.useMemo(() => {
+    const map = new Map();
+    items.forEach((it, idx) => {
+      const name = it.item_name || it.name || "-";
+      const pattern = it.pattern || "";
+      const fabric = it.fabric_type || it.material || "";
+      const color = it.color || "";
+      const workName = it.work_name || "-";
+      const key = [name, pattern, fabric, color, workName].join("||");
+      
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name,
+          pattern,
+          fabric,
+          color,
+          workName,
+          rows: [],
+        });
+      }
+      
+      const q = typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
+      const p = typeof it.unit_price === "string" ? parseFloat(it.unit_price || "0") : Number(it.unit_price || 0);
+      const subtotal = Number(it.final_amount || it.subtotal || (!isNaN(q) && !isNaN(p) ? q * p : 0));
+      
+      map.get(key).rows.push({
+        id: it.id || `${idx}`,
+        size: it.size || "",
+        unit_price: isNaN(p) ? 0 : p,
+        quantity: isNaN(q) ? 0 : q,
+        subtotal: isNaN(subtotal) ? 0 : subtotal,
+        originalItem: it, // Keep reference to original item for selection
+      });
+    });
+    
+    return Array.from(map.values()).map((g) => ({
+      ...g,
+      total: g.rows.reduce((s, r) => s + (Number(r.subtotal) || 0), 0),
+      totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+    }));
+  }, [items]);
 
   const handleToggleExpanded = (e) => {
     e.stopPropagation();
@@ -179,7 +304,7 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
             }}
             onClick={handleToggleExpanded}
           >
-            <Typography variant="subtitle2">รายการสินค้า ({items.length} รายการ)</Typography>
+            <Typography variant="subtitle2">รายการสินค้า ({grouped.length} กลุ่ม, {items.length} รายการ)</Typography>
             <IconButton size="small">
               <ExpandMoreIcon
                 sx={{
@@ -192,7 +317,7 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
 
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <Stack spacing={1} sx={{ mt: 1 }}>
-              {items.length === 0 ? (
+              {grouped.length === 0 ? (
                 <Typography
                   variant="body2"
                   color="text.secondary"
@@ -201,10 +326,10 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
                   ไม่มีรายการสินค้า
                 </Typography>
               ) : (
-                items.map((item, index) => (
-                  <InvoiceItemRow
-                    key={item.id || index}
-                    item={item}
+                grouped.map((group, index) => (
+                  <InvoiceItemGroupRow
+                    key={group.key || index}
+                    group={group}
                     invoice={invoice}
                     onSelectItem={handleSelectItem}
                   />

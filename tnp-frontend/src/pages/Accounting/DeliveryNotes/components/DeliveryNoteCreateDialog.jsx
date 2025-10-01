@@ -24,19 +24,26 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import {
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
   LocalShipping as ShippingIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import React from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 
 import {
-  useCreateDeliveryNoteMutation,
   useGetInvoiceQuery,
+  useCreateDeliveryNoteMutation,
 } from "../../../../features/Accounting/accountingApi";
 import { showError, showSuccess, showLoading, dismissToast } from "../../utils/accountingToast";
 import LoadingState from "../../PricingIntegration/components/LoadingState";
@@ -66,6 +73,455 @@ const formatDateForApi = (date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
+// Component สำหรับแสดงตาราง Invoice Items แบบจัดกลุ่ม (Editable)
+const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
+  const [editableGroups, setEditableGroups] = useState([]);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editingRow, setEditingRow] = useState(null);
+
+  // Initialize editable groups from invoice items
+  useEffect(() => {
+    if (!invoice?.items) return;
+    
+    const map = new Map();
+    invoice.items.forEach((it, idx) => {
+      const name = it.item_name || it.name || "-";
+      const pattern = it.pattern || "";
+      const fabric = it.fabric_type || it.material || "";
+      const color = it.color || "";
+      const workName = it.work_name || "-";
+      const key = [name, pattern, fabric, color, workName].join("||");
+      
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name,
+          pattern,
+          fabric,
+          color,
+          workName,
+          description: it.item_description || "-",
+          rows: [],
+        });
+      }
+      
+      const q = typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
+      
+      map.get(key).rows.push({
+        id: it.id || `${idx}`,
+        sequence_order: it.sequence_order || idx + 1,
+        size: it.size || "",
+        quantity: isNaN(q) ? 0 : q,
+        unit: it.unit || "ชิ้น",
+        originalItem: it,
+      });
+    });
+    
+    const grouped = Array.from(map.values()).map((g) => ({
+      ...g,
+      totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+    }));
+    
+    setEditableGroups(grouped);
+  }, [invoice?.items]);
+
+  // Group header editing handlers
+  const handleEditGroup = (groupIndex) => {
+    setEditingGroup(groupIndex);
+  };
+
+  const handleSaveGroup = (groupIndex) => {
+    setEditingGroup(null);
+    // Notify parent component of changes
+    onUpdateItems?.(editableGroups);
+  };
+
+  const handleCancelGroupEdit = () => {
+    setEditingGroup(null);
+    // Reset to original data
+    if (invoice?.items) {
+      // Re-initialize from original data
+      // ... (same logic as useEffect)
+    }
+  };
+
+  const handleGroupFieldChange = (groupIndex, field, value) => {
+    setEditableGroups(prev => 
+      prev.map((group, idx) => 
+        idx === groupIndex ? { ...group, [field]: value } : group
+      )
+    );
+  };
+
+  // Row editing handlers
+  const handleEditRow = (groupIndex, rowIndex) => {
+    setEditingRow({ groupIndex, rowIndex });
+  };
+
+  const handleSaveRow = () => {
+    setEditingRow(null);
+    // Recalculate group totals
+    setEditableGroups(prev => 
+      prev.map(group => ({
+        ...group,
+        totalQty: group.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      }))
+    );
+    onUpdateItems?.(editableGroups);
+  };
+
+  const handleCancelRowEdit = () => {
+    setEditingRow(null);
+  };
+
+  const handleRowFieldChange = (groupIndex, rowIndex, field, value) => {
+    setEditableGroups(prev => 
+      prev.map((group, gIdx) => 
+        gIdx === groupIndex 
+          ? {
+              ...group,
+              rows: group.rows.map((row, rIdx) => 
+                rIdx === rowIndex ? { ...row, [field]: value } : row
+              )
+            }
+          : group
+      )
+    );
+  };
+
+  // Add/Delete row handlers
+  const handleAddRow = (groupIndex) => {
+    const newRow = {
+      id: `new-${Date.now()}`,
+      sequence_order: editableGroups[groupIndex].rows.length + 1,
+      size: "",
+      quantity: 0,
+      unit: "ชิ้น",
+    };
+    
+    setEditableGroups(prev => 
+      prev.map((group, idx) => 
+        idx === groupIndex 
+          ? { ...group, rows: [...group.rows, newRow] }
+          : group
+      )
+    );
+  };
+
+  const handleDeleteRow = (groupIndex, rowIndex) => {
+    setEditableGroups(prev => 
+      prev.map((group, gIdx) => 
+        gIdx === groupIndex 
+          ? {
+              ...group,
+              rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex)
+            }
+          : group
+      )
+    );
+  };
+
+  return (
+    <InfoCard>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${tokens.border}` }}>
+        <Typography variant="subtitle2">
+          รายการสินค้าจากใบแจ้งหนี้ {invoice.number}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          แสดงข้อมูลจาก invoice_items ({editableGroups.length} กลุ่ม) - สามารถแก้ไขได้
+        </Typography>
+      </Box>
+      
+      {editableGroups.map((group, groupIndex) => (
+        <Box key={group.key || groupIndex} sx={{ mb: 2 }}>
+          {/* Group Header - Editable */}
+          <Box sx={{ p: 2, bgcolor: "grey.50", borderBottom: `1px solid ${tokens.border}` }}>
+            {editingGroup === groupIndex ? (
+              // Edit mode
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="ชื่องาน"
+                    value={group.name}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, 'name', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="รายละเอียด"
+                    value={group.description}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, 'description', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="แพทเทิร์น"
+                    value={group.pattern}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, 'pattern', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="ผ้า"
+                    value={group.fabric}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, 'fabric', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="สี"
+                    value={group.color}
+                    onChange={(e) => handleGroupFieldChange(groupIndex, 'color', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={() => handleSaveGroup(groupIndex)}
+                    >
+                      บันทึก
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<CancelIcon />}
+                      onClick={handleCancelGroupEdit}
+                    >
+                      ยกเลิก
+                    </Button>
+                  </Stack>
+                </Grid>
+              </Grid>
+            ) : (
+              // View mode
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    {group.name}
+                  </Typography>
+                  <Tooltip title="แก้ไขข้อมูลกลุ่ม">
+                    <IconButton size="small" onClick={() => handleEditGroup(groupIndex)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+                  {group.pattern && (
+                    <Chip size="small" label={`แพทเทิร์น: ${group.pattern}`} variant="outlined" />
+                  )}
+                  {group.fabric && (
+                    <Chip size="small" label={`ผ้า: ${group.fabric}`} variant="outlined" />
+                  )}
+                  {group.color && (
+                    <Chip size="small" label={`สี: ${group.color}`} variant="outlined" />
+                  )}
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  รายละเอียด: {group.description}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                  รวม {group.totalQty} ชิ้น
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          
+          {/* Size Details Table - Simplified and Clean */}
+          <Table size="small" sx={{ mt: 1 }}>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "grey.100" }}>
+                <TableCell sx={{ fontWeight: 600, width: "30%" }}>ไซส์</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, width: "40%" }}>จำนวน</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, width: "30%" }}>การจัดการ</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {group.rows.map((row, rowIndex) => (
+                <TableRow 
+                  key={row.id}
+                  sx={{ 
+                    '&:nth-of-type(odd)': { bgcolor: "grey.50" },
+                    '&:hover': { bgcolor: "action.hover" }
+                  }}
+                >
+                  <TableCell sx={{ py: 1.5 }}>
+                    {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
+                      <TextField
+                        value={row.size}
+                        onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'size', e.target.value)}
+                        size="small"
+                        fullWidth
+                        placeholder="ระบุไซส์..."
+                        sx={{ 
+                          '& .MuiInputBase-root': { 
+                            borderRadius: 1.5,
+                            bgcolor: "background.paper"
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {row.size || <em style={{ color: "#999" }}>ยังไม่ระบุไซส์</em>}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.5 }}>
+                    {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                        <TextField
+                          type="number"
+                          value={row.quantity}
+                          onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'quantity', Number(e.target.value))}
+                          size="small"
+                          sx={{ 
+                            width: 100,
+                            '& .MuiInputBase-root': { 
+                              borderRadius: 1.5,
+                              bgcolor: "background.paper"
+                            }
+                          }}
+                          inputProps={{ min: 0 }}
+                        />
+                        <TextField
+                          value={row.unit}
+                          onChange={(e) => handleRowFieldChange(groupIndex, rowIndex, 'unit', e.target.value)}
+                          size="small"
+                          sx={{ 
+                            width: 80,
+                            '& .MuiInputBase-root': { 
+                              borderRadius: 1.5,
+                              bgcolor: "background.paper"
+                            }
+                          }}
+                          placeholder="หน่วย"
+                        />
+                      </Stack>
+                    ) : (
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                          {Number(row.quantity).toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.unit}
+                        </Typography>
+                      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.5 }}>
+                    {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
+                        <Tooltip title="บันทึก">
+                          <IconButton 
+                            size="small" 
+                            color="primary" 
+                            onClick={handleSaveRow}
+                            sx={{ 
+                              bgcolor: "primary.main", 
+                              color: "white",
+                              '&:hover': { bgcolor: "primary.dark" }
+                            }}
+                          >
+                            <SaveIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="ยกเลิก">
+                          <IconButton 
+                            size="small" 
+                            onClick={handleCancelRowEdit}
+                            sx={{ 
+                              bgcolor: "grey.200",
+                              '&:hover': { bgcolor: "grey.300" }
+                            }}
+                          >
+                            <CancelIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ) : (
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
+                        <Tooltip title="แก้ไข">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEditRow(groupIndex, rowIndex)}
+                            sx={{ 
+                              color: "primary.main",
+                              '&:hover': { bgcolor: "primary.light", color: "primary.dark" }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="ลบ">
+                          <IconButton 
+                            size="small" 
+                            color="error" 
+                            onClick={() => handleDeleteRow(groupIndex, rowIndex)}
+                            sx={{ 
+                              '&:hover': { bgcolor: "error.light", color: "error.dark" }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {/* Add Row Button */}
+              <TableRow>
+                <TableCell colSpan={3} align="center" sx={{ py: 2, borderTop: "2px dashed", borderColor: "divider" }}>
+                  <Button
+                    size="medium"
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleAddRow(groupIndex)}
+                    sx={{ 
+                      borderRadius: 2,
+                      borderStyle: "dashed",
+                      textTransform: "none",
+                      fontSize: "0.875rem",
+                      px: 3,
+                      py: 1,
+                      '&:hover': {
+                        borderStyle: "solid",
+                        bgcolor: "primary.light",
+                        color: "primary.dark"
+                      }
+                    }}
+                  >
+                    เพิ่มไซส์ใหม่
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Box>
+      ))}
+
+      {/* Summary Row */}
+      <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: "grey.50" }}>
+        <Typography variant="body2">
+          <strong>รวมทั้งหมด:</strong> {editableGroups.reduce((sum, group) => sum + group.totalQty, 0)} ชิ้น
+        </Typography>
+      </Box>
+    </InfoCard>
+  );
+};
+
 const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
   const invoiceId = source?.invoice_id;
   const { data: invoiceData, isFetching: invoiceLoading } = useGetInvoiceQuery(invoiceId, {
@@ -78,6 +534,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
   // Customer data source toggle - similar to InvoiceDetailDialog pattern
   const [customerDataSource, setCustomerDataSource] = React.useState("master"); // 'master' or 'delivery'
+
+  // State for editable invoice items
+  const [editableItems, setEditableItems] = useState([]);
 
   const [formState, setFormState] = React.useState({
     company_id: "",
@@ -131,6 +590,11 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
   };
 
   const customer = normalizeCustomer(invoice);
+
+  // Handler for updating editable items
+  const handleUpdateItems = (updatedGroups) => {
+    setEditableItems(updatedGroups);
+  };
 
   React.useEffect(() => {
     if (!open) return;
@@ -623,198 +1087,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                   </Grid>
                 )}
 
-                {/* Internal Notes */}
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="หมายเหตุภายใน"
-                      value={formState.notes}
-                      onChange={handleChange("notes")}
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      size="small"
-                    />
-                  </Grid>
-                </Grid>
-
-                {/* Invoice Items Table - from tnpdb.invoice_items */}
+                {/* Invoice Items Table - Grouped by Item Type */}
                 {invoice?.items?.length > 0 ? (
-                  <InfoCard>
-                    <Box sx={{ p: 2, borderBottom: `1px solid ${tokens.border}` }}>
-                      <Typography variant="subtitle2">
-                        รายการสินค้าจากใบแจ้งหนี้ {invoice.number}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        แสดงข้อมูลจาก invoice_items
-                      </Typography>
-                    </Box>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>ลำดับ</TableCell>
-                          <TableCell>รายการ</TableCell>
-                          <TableCell>รายละเอียด</TableCell>
-                          <TableCell align="center">จำนวน</TableCell>
-                          <TableCell align="right">ราคาต่อหน่วย</TableCell>
-                          <TableCell align="right">ยอดรวม</TableCell>
-                          <TableCell>สถานะ</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {invoice.items.map((item, index) => (
-                          <TableRow key={item.id || index}>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {item.sequence_order || index + 1}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="body2" fontWeight={500}>
-                                  {item.item_name}
-                                </Typography>
-                                {item.pattern && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    แพทเทิร์น: {item.pattern}
-                                  </Typography>
-                                )}
-                                {(item.fabric_type || item.color || item.size) && (
-                                  <Box sx={{ mt: 0.5 }}>
-                                    {item.fabric_type && (
-                                      <Chip
-                                        size="small"
-                                        variant="outlined"
-                                        label={`ผ้า: ${item.fabric_type}`}
-                                        sx={{ mr: 0.5, mb: 0.5 }}
-                                      />
-                                    )}
-                                    {item.color && (
-                                      <Chip
-                                        size="small"
-                                        variant="outlined"
-                                        label={`สี: ${item.color}`}
-                                        sx={{ mr: 0.5, mb: 0.5 }}
-                                      />
-                                    )}
-                                    {item.size && (
-                                      <Chip
-                                        size="small"
-                                        variant="outlined"
-                                        label={`ขนาด: ${item.size}`}
-                                        sx={{ mr: 0.5, mb: 0.5 }}
-                                      />
-                                    )}
-                                  </Box>
-                                )}
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" color="text.secondary">
-                                {item.item_description || "-"}
-                              </Typography>
-                              {item.notes && (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{ display: "block", mt: 0.5 }}
-                                >
-                                  หมายเหตุ: {item.notes}
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
-                                {item.quantity} {item.unit || "ชิ้น"}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2">{formatTHB(item.unit_price)}</Typography>
-                              {item.discount_percentage > 0 && (
-                                <Typography
-                                  variant="caption"
-                                  color="error.main"
-                                  sx={{ display: "block" }}
-                                >
-                                  ส่วนลด {item.discount_percentage}%
-                                </Typography>
-                              )}
-                              {item.discount_amount > 0 && (
-                                <Typography
-                                  variant="caption"
-                                  color="error.main"
-                                  sx={{ display: "block" }}
-                                >
-                                  ลด {formatTHB(item.discount_amount)}
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2" fontWeight={500}>
-                                {formatTHB(
-                                  item.final_amount ||
-                                    item.subtotal ||
-                                    item.unit_price * item.quantity
-                                )}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label={
-                                  item.status === "draft"
-                                    ? "ร่าง"
-                                    : item.status === "confirmed"
-                                      ? "ยืนยัน"
-                                      : item.status === "delivered"
-                                        ? "จัดส่งแล้ว"
-                                        : item.status === "cancelled"
-                                          ? "ยกเลิก"
-                                          : item.status
-                                }
-                                color={
-                                  item.status === "confirmed"
-                                    ? "success"
-                                    : item.status === "delivered"
-                                      ? "info"
-                                      : item.status === "cancelled"
-                                        ? "error"
-                                        : "default"
-                                }
-                                variant={item.status === "draft" ? "outlined" : "filled"}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-
-                    {/* Summary Row */}
-                    <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: "grey.50" }}>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <Typography variant="body2">
-                            <strong>รวมรายการ:</strong> {invoice.items.length} รายการ
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <Typography variant="body2" align="right">
-                            <strong>ยอดรวมทั้งหมด:</strong>{" "}
-                            {formatTHB(
-                              invoice.items.reduce(
-                                (sum, item) =>
-                                  sum +
-                                  (item.final_amount ||
-                                    item.subtotal ||
-                                    item.unit_price * item.quantity),
-                                0
-                              )
-                            )}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  </InfoCard>
+                  <InvoiceItemsTable invoice={invoice} onUpdateItems={handleUpdateItems} />
                 ) : (
                   /* Fallback for manual items or selected specific item */
                   <InfoCard>

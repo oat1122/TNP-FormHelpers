@@ -39,3 +39,27 @@ export function buildCustomerSnapshot(customer) {
   };
   return snapshot;
 }
+
+// Fallback: build items directly from invoice.items when groups are not available
+export function buildDeliveryNoteItemsFromInvoice(invoice) {
+  const items = [];
+  if (!invoice?.items?.length) return items;
+  let seq = 1;
+  for (const base of invoice.items) {
+    items.push({
+      sequence_order: seq++,
+      item_name: base.item_name || base.work_name || invoice?.work_name || "งาน",
+      item_description: base.item_description || undefined,
+      pattern: base.pattern || undefined,
+      fabric_type: base.fabric_type || base.material || undefined,
+      color: base.color || undefined,
+      size: base.size || undefined,
+      delivered_quantity: Number(base.quantity) || 0,
+      unit: base.unit || "ชิ้น",
+      invoice_id: invoice?.id,
+      invoice_item_id: base.id,
+      item_snapshot: { ...base },
+    });
+  }
+  return items;
+}

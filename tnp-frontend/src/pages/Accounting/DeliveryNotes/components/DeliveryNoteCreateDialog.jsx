@@ -55,7 +55,11 @@ import { formatTHB } from "../../Invoices/utils/format";
 import {
   buildDeliveryNoteItemsFromGroups,
   buildCustomerSnapshot,
+  buildDeliveryNoteItemsFromInvoice,
 } from "../utils/deliveryNotePayload";
+import { useDeliveryNoteForm } from "../hooks/useDeliveryNoteForm";
+import { useDeliveryNoteItems } from "../hooks/useDeliveryNoteItems";
+import { useSubmitDeliveryNote } from "../hooks/useSubmitDeliveryNote";
 
 const toDateOrNull = (value) => {
   if (!value) return null;
@@ -114,6 +118,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
     }));
 
     setEditableGroups(grouped);
+    // Propagate initial groups to parent so submit has items even if user doesn't edit
+    onUpdateItems?.(grouped);
   }, [invoice?.items]);
 
   // Group header editing handlers
@@ -123,8 +129,15 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
 
   const handleSaveGroup = (groupIndex) => {
     setEditingGroup(null);
-    // Notify parent component of changes
-    onUpdateItems?.(editableGroups);
+    // Recalculate totals and propagate latest state
+    setEditableGroups((prev) => {
+      const next = prev.map((g) => ({
+        ...g,
+        totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      }));
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   const handleCancelGroupEdit = () => {
@@ -137,9 +150,13 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   };
 
   const handleGroupFieldChange = (groupIndex, field, value) => {
-    setEditableGroups((prev) =>
-      prev.map((group, idx) => (idx === groupIndex ? { ...group, [field]: value } : group))
-    );
+    setEditableGroups((prev) => {
+      const next = prev.map((group, idx) =>
+        idx === groupIndex ? { ...group, [field]: value } : group
+      );
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   // Row editing handlers
@@ -149,14 +166,15 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
 
   const handleSaveRow = () => {
     setEditingRow(null);
-    // Recalculate group totals
-    setEditableGroups((prev) =>
-      prev.map((group) => ({
+    // Recalculate group totals and propagate latest state
+    setEditableGroups((prev) => {
+      const next = prev.map((group) => ({
         ...group,
-        totalQty: group.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-      }))
-    );
-    onUpdateItems?.(editableGroups);
+        totalQty: (group.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      }));
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   const handleCancelRowEdit = () => {
@@ -164,8 +182,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
   };
 
   const handleRowFieldChange = (groupIndex, rowIndex, field, value) => {
-    setEditableGroups((prev) =>
-      prev.map((group, gIdx) =>
+    setEditableGroups((prev) => {
+      const next = prev.map((group, gIdx) =>
         gIdx === groupIndex
           ? {
               ...group,
@@ -174,8 +192,10 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
               ),
             }
           : group
-      )
-    );
+      );
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   // Add/Delete row handlers
@@ -188,24 +208,25 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
       unit: "ชิ้น",
     };
 
-    setEditableGroups((prev) =>
-      prev.map((group, idx) =>
+    setEditableGroups((prev) => {
+      const next = prev.map((group, idx) =>
         idx === groupIndex ? { ...group, rows: [...group.rows, newRow] } : group
-      )
-    );
+      );
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   const handleDeleteRow = (groupIndex, rowIndex) => {
-    setEditableGroups((prev) =>
-      prev.map((group, gIdx) =>
+    setEditableGroups((prev) => {
+      const next = prev.map((group, gIdx) =>
         gIdx === groupIndex
-          ? {
-              ...group,
-              rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex),
-            }
+          ? { ...group, rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex) }
           : group
-      )
-    );
+      );
+      onUpdateItems?.(next);
+      return next;
+    });
   };
 
   return (
@@ -568,27 +589,6 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
   const [createDeliveryNote, { isLoading: creating }] = useCreateDeliveryNoteMutation();
 
-  // Customer data source toggle - similar to InvoiceDetailDialog pattern
-  const [customerDataSource, setCustomerDataSource] = React.useState("master"); // 'master' or 'delivery'
-
-  // State for editable invoice items
-  const [editableItems, setEditableItems] = useState([]);
-
-  const [formState, setFormState] = React.useState({
-    company_id: "",
-    customer_id: "",
-    customer_company: "",
-    customer_address: "",
-    customer_tel_1: "",
-    customer_tax_id: "",
-    customer_firstname: "",
-    customer_lastname: "",
-    work_name: "",
-    quantity: "1",
-    notes: "",
-    sender_company_id: "", // ใหม่: ผู้ส่ง/บริษัทส่ง
-  });
-
   // Normalize customer data from master_customers relationship (similar to InvoiceDetailDialog)
   const normalizeCustomer = (invoice) => {
     if (!invoice) return {};
@@ -620,107 +620,20 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
 
   const customer = normalizeCustomer(invoice);
 
-  // Handler for updating editable items
-  const handleUpdateItems = (updatedGroups) => {
-    setEditableItems(updatedGroups);
-  };
-
-  React.useEffect(() => {
-    if (!open) return;
-
-    const hydrated = {
-      company_id: source?.company_id || invoice?.company_id || "",
-      customer_id: source?.customer_id || invoice?.customer_id || "",
-      customer_company: source?.customer_company || invoice?.customer_company || "",
-      customer_address:
-        source?.delivery_address || source?.customer_address || invoice?.customer_address || "",
-      customer_tel_1: source?.customer_phone || invoice?.customer_tel_1 || "",
-      customer_tax_id: source?.customer_tax_id || invoice?.customer_tax_id || "",
-      customer_firstname: source?.customer_firstname || invoice?.customer_firstname || "",
-      customer_lastname: source?.customer_lastname || invoice?.customer_lastname || "",
-      work_name: source?.work_name || source?.item_name || invoice?.work_name || "",
-      quantity: String(source?.quantity || invoice?.quantity || "1"),
-      notes: "",
-      sender_company_id: source?.company_id || invoice?.company_id || "", // เลือกบริษัทผู้ส่ง
-    };
-
-    setFormState((prev) => ({ ...prev, ...hydrated }));
-
-    // Reset customer data source when dialog opens
-    setCustomerDataSource("master");
-  }, [open, source, invoice]);
-
-  const handleChange = (field) => (event) => {
-    setFormState((prev) => ({ ...prev, [field]: event.target.value }));
-  };
-
-  const handleCustomerDataSourceChange = (event, value) => {
-    const newSource = value;
-    setCustomerDataSource(newSource);
-
-    // When switching to master, hydrate with customer data
-    if (newSource === "master" && customer) {
-      setFormState((prev) => ({
-        ...prev,
-        customer_company: customer.cus_company || "",
-        customer_address: customer.cus_address || "",
-        customer_tel_1: customer.cus_tel_1 || "",
-        customer_tax_id: customer.cus_tax_id || "",
-        customer_firstname: customer.cus_firstname || "",
-        customer_lastname: customer.cus_lastname || "",
-      }));
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!formState.customer_company) {
-      showError("Customer company is required");
-      return;
-    }
-
-    const toastId = showLoading("Creating delivery note...");
-
-    try {
-      const items = buildDeliveryNoteItemsFromGroups(editableItems, invoice);
-      const customerSnapshot = buildCustomerSnapshot(customer);
-      const payload = {
-        company_id: formState.company_id || invoice?.company_id,
-        customer_id: formState.customer_id || undefined,
-        customer_company: formState.customer_company,
-        customer_address: formState.customer_address,
-        customer_tel_1: formState.customer_tel_1 || undefined,
-        customer_tax_id: formState.customer_tax_id || undefined,
-        customer_firstname: formState.customer_firstname || undefined,
-        customer_lastname: formState.customer_lastname || undefined,
-        work_name: formState.work_name,
-        quantity: formState.quantity,
-        notes: formState.notes || undefined,
-        invoice_id: source?.invoice_id || undefined,
-        invoice_item_id: source?.invoice_item_id || undefined,
-        invoice_number: source?.invoice_number || invoice?.number,
-        customer_data_source: customerDataSource,
-        customer_snapshot: customerSnapshot,
-        sender_company_id: formState.sender_company_id || undefined, // ใหม่: ส่งค่าบริษัทผู้ส่ง
-        // delivery fields: allow backend defaulting
-        delivery_method: undefined,
-        courier_company: undefined,
-        delivery_address: undefined,
-        recipient_name: undefined,
-        recipient_phone: undefined,
-        delivery_date: undefined,
-        items: items?.length ? items : undefined,
-      };
-
-      await createDeliveryNote(payload).unwrap();
-      dismissToast(toastId);
-      showSuccess("Delivery note created successfully");
-      onCreated?.();
-    } catch (error) {
-      dismissToast(toastId);
-      const message = error?.data?.message || "Failed to create delivery note";
-      showError(message);
-    }
-  };
+  // hooks: form, items, submit
+  const { formState, handleChange, customerDataSource, handleCustomerDataSourceChange } =
+    useDeliveryNoteForm(open, source, invoice, customer);
+  const { editableItems, handleUpdateItems } = useDeliveryNoteItems();
+  const { handleSubmit } = useSubmitDeliveryNote(
+    createDeliveryNote,
+    formState,
+    invoice,
+    customer,
+    customerDataSource,
+    source,
+    editableItems,
+    onCreated
+  );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>

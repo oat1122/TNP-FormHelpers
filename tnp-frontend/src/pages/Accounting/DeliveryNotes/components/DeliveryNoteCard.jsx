@@ -154,7 +154,7 @@ const DeliveryNoteCard = ({
 
   const hasAmount = grandTotalAmount > 0;
 
-  const [expanded, setExpanded] = React.useState(true);
+  const [expanded, setExpanded] = React.useState(false);
 
   return (
     <Card elevation={1} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\MasterCustomer;
 use App\Models\User;
+use App\Models\Company;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\InvoiceItem;
 use App\Models\Accounting\Receipt;
@@ -153,6 +154,22 @@ class DeliveryNote extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(MasterCustomer::class, 'customer_id', 'cus_id');
+    }
+
+    /**
+     * Relationship: DeliveryNote belongs to Company (owner company)
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    /**
+     * Relationship: DeliveryNote belongs to Sender Company (optional override)
+     */
+    public function senderCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'sender_company_id', 'id');
     }
 
     /**

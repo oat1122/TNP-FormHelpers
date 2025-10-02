@@ -4,6 +4,7 @@ namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Quotation;
 use App\Models\Accounting\Invoice;
+use App\Models\Accounting\DeliveryNote;
 
 /**
  * Centralized extractor for customer info used in PDF documents.
@@ -194,6 +195,108 @@ class CustomerInfoExtractor
                 $tel = $snap['cus_tel_2']
                     ?? $snap['customer_tel_2']
                     ?? ($preferInvoice ? $live->cus_tel_2 : $i->customer_tel_2)
+                    ?? '';
+            }
+        }
+
+        return [
+            'name' => (string)$name,
+            'address' => (string)$address,
+            'tax_id' => (string)$tax,
+            'tel' => (string)$tel,
+        ];
+    }
+
+    /**
+     * Extract customer fields from a DeliveryNote model into a normalized array.
+     *
+     * Returns keys: name, address, tax_id, tel
+     */
+    public static function fromDeliveryNote(DeliveryNote $d): array
+    {
+        $snap = is_array($d->customer_snapshot ?? null) ? $d->customer_snapshot : [];
+        $source = $d->customer_data_source ?? 'master';
+
+        try {
+            if ($d->relationLoaded('customer')) {
+                $d->getRelation('customer')->refresh();
+            } else {
+                $d->load('customer');
+            }
+        } catch (\Throwable $e) {
+            // ignore and use fallbacks
+        }
+
+        $live = optional($d->getRelation('customer') ?? $d->customer);
+        $preferDelivery = ($source === 'delivery');
+
+        // Name
+        $name = $preferDelivery
+            ? ($d->customer_company
+                ?? $live->cus_company
+                ?? $snap['customer_company']
+                ?? $snap['cus_company']
+                ?? '')
+            : ($live->cus_company
+                ?? $d->customer_company
+                ?? $snap['cus_company']
+                ?? $snap['customer_company']
+                ?? '');
+
+        // Address + zip
+        $address = $preferDelivery
+            ? ($d->customer_address
+                ?? $live->cus_address
+                ?? $snap['customer_address']
+                ?? $snap['cus_address']
+                ?? '')
+            : ($live->cus_address
+                ?? $d->customer_address
+                ?? $snap['cus_address']
+                ?? $snap['customer_address']
+                ?? '');
+        $zip = $preferDelivery
+            ? ($d->customer_zip_code
+                ?? $live->cus_zip_code
+                ?? $snap['customer_zip_code']
+                ?? $snap['cus_zip_code']
+                ?? '')
+            : ($live->cus_zip_code
+                ?? $d->customer_zip_code
+                ?? $snap['cus_zip_code']
+                ?? $snap['customer_zip_code']
+                ?? '');
+        if ($address && $zip) {
+            $a = trim((string)$address);
+            $z = trim((string)$zip);
+            $hasZip = preg_match('/\b' . preg_quote($z, '/') . '\b/u', $a) === 1;
+            $address = $hasZip ? $a : ($a . ' ' . $z);
+        }
+
+        // Tax ID
+        $tax = $preferDelivery
+            ? ($d->customer_tax_id
+                ?? $live->cus_tax_id
+                ?? $snap['customer_tax_id']
+                ?? $snap['cus_tax_id']
+                ?? '')
+            : ($live->cus_tax_id
+                ?? $d->customer_tax_id
+                ?? $snap['cus_tax_id']
+                ?? $snap['customer_tax_id']
+                ?? '');
+
+        // Telephone
+        $tel = $preferDelivery ? ($d->customer_tel_1 ?? '') : ($live->cus_tel_1 ?? '');
+        $isInvalid = trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1;
+        if ($isInvalid) {
+            $tel = $preferDelivery
+                ? ($snap['customer_tel_1'] ?? $snap['cus_tel_1'] ?? $live->cus_tel_1 ?? '')
+                : ($snap['cus_tel_1'] ?? $snap['customer_tel_1'] ?? $d->customer_tel_1 ?? '');
+            if (trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1) {
+                $tel = $snap['cus_tel_2']
+                    ?? $snap['customer_tel_2']
+                    ?? ($preferDelivery ? $live->cus_tel_2 : $d->customer_tel_2)
                     ?? '';
             }
         }

@@ -1,4 +1,5 @@
 import { Box, Stack, Typography, Grid, TextField, Button, Chip } from "@mui/material";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import React, { useMemo, useState } from "react";
 import {
   useGetDeliveryNoteQuery,
@@ -10,6 +11,8 @@ import {
   useGenerateDeliveryNotePDFMutation,
 } from "../../../../features/Accounting/accountingApi";
 import DetailDialog from "../../shared/components/DetailDialog";
+import { apiConfig } from "../../../../api/apiConfig";
+import { showError } from "../../utils/accountingToast";
 
 const statusColor = (status) => {
   switch (status) {
@@ -105,6 +108,28 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!deliveryNoteId) return;
+    try {
+      const response = await generatePDF(deliveryNoteId).unwrap();
+      const pdfUrl =
+        response?.url || response?.data?.url || response?.pdf_url || response?.data?.pdf_url;
+      if (pdfUrl) {
+        const normalized = (pdfUrl || "").replace(/\\/g, "/");
+        window.open(normalized, "_blank", "noopener");
+        return;
+      }
+      // Fallback to direct GET route
+      window.open(
+        `${apiConfig.baseUrl}/delivery-notes/${deliveryNoteId}/generate-pdf`,
+        "_blank",
+        "noopener"
+      );
+    } catch (err) {
+      showError(err?.data?.message || "Unable to download delivery note PDF");
+    }
+  };
+
   return (
     <DetailDialog
       open={open}
@@ -118,7 +143,17 @@ const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) 
         <Box>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6">สถานะการจัดส่ง</Typography>
-            <Chip size="small" label={note.status} color={statusColor(note.status)} />
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PictureAsPdfIcon />}
+                onClick={handleDownloadPDF}
+              >
+                PDF
+              </Button>
+              <Chip size="small" label={note.status} color={statusColor(note.status)} />
+            </Stack>
           </Stack>
 
           <Grid container spacing={2}>

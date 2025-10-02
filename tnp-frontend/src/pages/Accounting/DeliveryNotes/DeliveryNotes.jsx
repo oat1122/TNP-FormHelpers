@@ -84,9 +84,11 @@ const DeliveryNotes = () => {
     if (!note?.id) return;
     try {
       const response = await generatePDF(note.id).unwrap();
-      const pdfUrl = response?.pdf_url || response?.data?.pdf_url;
+      const pdfUrl =
+        response?.url || response?.data?.url || response?.pdf_url || response?.data?.pdf_url;
       if (pdfUrl) {
-        window.open(pdfUrl, "_blank", "noopener");
+        const normalized = (pdfUrl || "").replace(/\\/g, "/");
+        window.open(normalized, "_blank", "noopener");
         return;
       }
       window.open(

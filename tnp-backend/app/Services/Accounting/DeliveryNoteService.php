@@ -937,14 +937,32 @@ class DeliveryNoteService
     public function generatePdf($deliveryNoteId)
     {
         try {
-            $deliveryNote = DeliveryNote::with(['receipt', 'customer', 'creator'])->findOrFail($deliveryNoteId);
+            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])->findOrFail($deliveryNoteId);
 
-            // TODO: Implement actual PDF generation
-            // สำหรับตอนนี้ return mock data
+            // ใช้ Master PDF Service (mPDF)
+            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
+            $result = $master->generatePdf($deliveryNote);
+
+            // Log history (optional)
+            try {
+                \App\Models\Accounting\DocumentHistory::logAction(
+                    'delivery_note',
+                    $deliveryNote->id,
+                    'generate_pdf',
+                    auth()->user()->user_uuid ?? null,
+                    'สร้าง PDF (mPDF): '.$result['filename'].' ('.$result['type'].')'
+                );
+            } catch (\Throwable $logE) {
+                Log::warning('DeliveryNoteService::generatePdf history log failed: '.$logE->getMessage());
+            }
+
             return [
-                'pdf_url' => '/storage/delivery_notes/pdfs/' . $deliveryNote->number . '.pdf',
-                'filename' => 'ใบส่งของ_' . $deliveryNote->number . '.pdf',
-                'size' => 245760 // Mock size
+                'url'      => $result['url'],
+                'path'     => $result['path'],
+                'filename' => $result['filename'],
+                'size'     => $result['size'],
+                'engine'   => 'mPDF',
+                'type'     => $result['type'] ?? 'preview',
             ];
 
         } catch (\Exception $e) {

@@ -64,6 +64,7 @@ class DeliveryNote extends Model
         'customer_address',
         'customer_zip_code',
         'customer_tel_1',
+        'customer_tax_id',
         'customer_firstname',
         'customer_lastname',
         'customer_snapshot',

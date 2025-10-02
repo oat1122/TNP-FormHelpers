@@ -523,20 +523,9 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
     return full || nick || "";
   }, [note?.customer]);
 
-  // When switching data source, if switching to 'delivery' prefill fields from master
+  // Switch data source without mutating current delivery inputs (no prefill from master)
   const handleCustomerDataSourceChange = (e) => {
     const next = e.target.value;
-    if (next === "delivery" && masterCustomer) {
-      setFormState((s) => ({
-        ...s,
-        customer_company: masterCustomer.company,
-        customer_tax_id: masterCustomer.taxId,
-        customer_firstname: masterCustomer.firstName,
-        customer_lastname: masterCustomer.lastName,
-        customer_tel_1: masterCustomer.phone,
-        customer_address: masterCustomer.address,
-      }));
-    }
     setCustomerDataSource(next);
   };
 

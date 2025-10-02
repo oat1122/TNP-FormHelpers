@@ -380,6 +380,7 @@ class DeliveryNoteService
             $deliveryNote->customer_address = $data['customer_address'];
             $deliveryNote->customer_zip_code = $data['customer_zip_code'] ?? null;
             $deliveryNote->customer_tel_1 = $data['customer_tel_1'] ?? null;
+            $deliveryNote->customer_tax_id = $data['customer_tax_id'] ?? null;
             $deliveryNote->customer_firstname = $data['customer_firstname'] ?? null;
             $deliveryNote->customer_lastname = $data['customer_lastname'] ?? null;
             if (!empty($data['customer_snapshot'])) {

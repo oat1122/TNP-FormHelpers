@@ -176,6 +176,7 @@ class DeliveryNoteController extends Controller
                 'customer_address' => 'nullable|string|max:500',
                 'customer_zip_code' => 'nullable|string|max:10',
                 'customer_tel_1' => 'nullable|string|max:50',
+                'customer_tax_id' => 'nullable|string|max:50',
                 'customer_firstname' => 'nullable|string|max:100',
                 'customer_lastname' => 'nullable|string|max:100',
                 'customer_snapshot' => 'nullable',

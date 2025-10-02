@@ -45,19 +45,19 @@ export function useDeliveryNoteForm(open, source, invoice, customer) {
 
   const handleCustomerDataSourceChange = (event, value) => {
     const newSource = value;
-    setCustomerDataSource(newSource);
-
-    if (newSource === "master" && customer) {
+    // If switching to 'delivery', prefill editable fields from master customer
+    if (newSource === "delivery" && customer) {
       setFormState((prev) => ({
         ...prev,
-        customer_company: customer.cus_company || "",
-        customer_address: customer.cus_address || "",
-        customer_tel_1: customer.cus_tel_1 || "",
-        customer_tax_id: customer.cus_tax_id || "",
-        customer_firstname: customer.cus_firstname || "",
-        customer_lastname: customer.cus_lastname || "",
+        customer_company: customer.cus_company || prev.customer_company || "",
+        customer_address: customer.cus_address || prev.customer_address || "",
+        customer_tel_1: customer.cus_tel_1 || prev.customer_tel_1 || "",
+        customer_tax_id: customer.cus_tax_id || prev.customer_tax_id || "",
+        customer_firstname: customer.cus_firstname || prev.customer_firstname || "",
+        customer_lastname: customer.cus_lastname || prev.customer_lastname || "",
       }));
     }
+    setCustomerDataSource(newSource);
   };
 
   return {

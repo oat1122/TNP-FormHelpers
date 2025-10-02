@@ -297,6 +297,38 @@ class DeliveryNoteService
             
             $deliveryNote->save();
 
+            // หากอัปเดตให้ใช้ข้อมูลลูกค้าจาก master ให้ล้างค่า override บนใบส่งของนี้
+            if (!empty($data['customer_data_source']) && $data['customer_data_source'] === 'master') {
+                $overrideFields = [
+                    'customer_company',
+                    'customer_address',
+                    'customer_zip_code',
+                    'customer_tel_1',
+                    'customer_firstname',
+                    'customer_lastname',
+                    'customer_tax_id',
+                ];
+                $needSave = false;
+                foreach ($overrideFields as $field) {
+                    if ($deliveryNote->{$field} !== null) {
+                        $deliveryNote->{$field} = null;
+                        $needSave = true;
+                    }
+                }
+                if ($needSave) {
+                    $deliveryNote->save();
+                    DocumentHistory::logAction(
+                        'delivery_note',
+                        $deliveryNote->id,
+                        'customer_source_master',
+                        $updatedBy,
+                        'เปลี่ยนแหล่งข้อมูลลูกค้าเป็น master และล้างข้อมูลเฉพาะใบส่งของ'
+                    );
+                }
+            }
+
+            
+
             // บันทึก Document History
             DocumentHistory::logStatusChange(
                 'delivery_note',

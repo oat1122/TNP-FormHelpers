@@ -433,7 +433,7 @@ function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
           <strong>รวมทั้งหมด:</strong> {groups.reduce((sum, g) => sum + (g.totalQty || 0), 0)} ชิ้น
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          หมายเหตุ: ตอนนี้การแก้ไขรายการงานจะยังไม่ถูกบันทึกไปยังระบบหลังบ้าน
+          หมายเหตุ: การแก้ไขรายการงานจะถูกบันทึกเมื่อกดปุ่ม "บันทึก"
         </Typography>
       </Box>
     </InfoCard>
@@ -491,7 +491,44 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
 
   const { groups, setGroups } = useGroupedNoteItems(note);
 
-  const { handleUpdate } = useSubmitUpdateDeliveryNote(updateDeliveryNote, note, formState, groups);
+  // Normalize customer values from master_customers relation for display/prefill
+  const masterCustomer = React.useMemo(() => {
+    const c = note?.customer;
+    if (!c) return null;
+    return {
+      company: c.cus_company || "",
+      taxId: c.cus_tax_id || "",
+      firstName: c.cus_firstname || "",
+      lastName: c.cus_lastname || "",
+      phone: c.cus_tel_1 || "",
+      address: c.cus_address || "",
+    };
+  }, [note?.customer]);
+
+  // When switching data source, if switching to 'delivery' prefill fields from master
+  const handleCustomerDataSourceChange = (e) => {
+    const next = e.target.value;
+    if (next === "delivery" && masterCustomer) {
+      setFormState((s) => ({
+        ...s,
+        customer_company: masterCustomer.company,
+        customer_tax_id: masterCustomer.taxId,
+        customer_firstname: masterCustomer.firstName,
+        customer_lastname: masterCustomer.lastName,
+        customer_tel_1: masterCustomer.phone,
+        customer_address: masterCustomer.address,
+      }));
+    }
+    setCustomerDataSource(next);
+  };
+
+  const { handleUpdate } = useSubmitUpdateDeliveryNote(
+    updateDeliveryNote,
+    note,
+    formState,
+    groups,
+    customerDataSource
+  );
   const handleSave = async () => {
     const ok = await handleUpdate();
     if (ok) {
@@ -542,7 +579,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                   </Typography>
                   <RadioGroup
                     value={customerDataSource}
-                    onChange={(e) => setCustomerDataSource(e.target.value)}
+                    onChange={handleCustomerDataSourceChange}
                     row
                   >
                     <FormControlLabel
@@ -581,11 +618,25 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         ชื่อบริษัท
                       </Typography>
                       <Typography variant="body1" fontWeight={500}>
-                        {formState.customer_company || "-"}
+                        {customerDataSource === "master"
+                          ? masterCustomer?.company || "-"
+                          : formState.customer_company || "-"}
                       </Typography>
                     </Box>
-                    {formState.customer_tax_id ? (
-                      <Chip size="small" variant="outlined" label={formState.customer_tax_id} />
+                    {(
+                      customerDataSource === "master"
+                        ? masterCustomer?.taxId
+                        : formState.customer_tax_id
+                    ) ? (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={
+                          customerDataSource === "master"
+                            ? masterCustomer?.taxId
+                            : formState.customer_tax_id
+                        }
+                      />
                     ) : null}
                   </Box>
                   <Grid container spacing={1}>
@@ -594,22 +645,35 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         ผู้ติดต่อ
                       </Typography>
                       <Typography variant="body2">
-                        {(formState.customer_firstname || "") +
-                          (formState.customer_lastname ? ` ${formState.customer_lastname}` : "") ||
-                          "-"}
+                        {customerDataSource === "master"
+                          ? (masterCustomer?.firstName || "") +
+                              (masterCustomer?.lastName ? ` ${masterCustomer?.lastName}` : "") ||
+                            "-"
+                          : (formState.customer_firstname || "") +
+                              (formState.customer_lastname
+                                ? ` ${formState.customer_lastname}`
+                                : "") || "-"}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="caption" color="text.secondary">
                         เบอร์โทร
                       </Typography>
-                      <Typography variant="body2">{formState.customer_tel_1 || "-"}</Typography>
+                      <Typography variant="body2">
+                        {customerDataSource === "master"
+                          ? masterCustomer?.phone || "-"
+                          : formState.customer_tel_1 || "-"}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography variant="caption" color="text.secondary">
                         ที่อยู่
                       </Typography>
-                      <Typography variant="body2">{formState.customer_address || "-"}</Typography>
+                      <Typography variant="body2">
+                        {customerDataSource === "master"
+                          ? masterCustomer?.address || "-"
+                          : formState.customer_address || "-"}
+                      </Typography>
                     </Grid>
                   </Grid>
                 </InfoCard>

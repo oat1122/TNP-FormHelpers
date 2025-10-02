@@ -310,7 +310,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
+            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -457,8 +457,15 @@ class DeliveryNoteService
 
             $oldData = $deliveryNote->toArray();
 
-            // อัปเดตข้อมูล
-            $deliveryNote->fill(array_filter($data, function($value) {
+            // อัปเดตข้อมูล (รองรับ customer_snapshot ถ้าเป็น array ให้เก็บเป็น json)
+            $fillData = $data;
+            if (array_key_exists('customer_snapshot', $fillData)) {
+                if (is_array($fillData['customer_snapshot'])) {
+                    $fillData['customer_snapshot'] = json_encode($fillData['customer_snapshot']);
+                }
+            }
+
+            $deliveryNote->fill(array_filter($fillData, function($value) {
                 return $value !== null;
             }));
             
@@ -476,9 +483,45 @@ class DeliveryNoteService
                 );
             }
 
+            // หากส่ง items มาด้วย ให้แทนที่รายการเดิม (เฉพาะสถานะ preparing เท่านั้น)
+            if (!empty($data['items']) && is_array($data['items'])) {
+                // ลบรายการเดิมทั้งหมดก่อน แล้วเพิ่มใหม่ตามลำดับ
+                DeliveryNoteItem::where('delivery_note_id', $deliveryNote->id)->delete();
+                $seq = 1;
+                foreach ($data['items'] as $item) {
+                    $dni = new DeliveryNoteItem();
+                    $dni->delivery_note_id = $deliveryNote->id;
+                    $dni->invoice_id = $item['invoice_id'] ?? ($deliveryNote->invoice_id ?? null);
+                    $dni->invoice_item_id = $item['invoice_item_id'] ?? null;
+                    $dni->sequence_order = $item['sequence_order'] ?? $seq++;
+                    $dni->item_name = $item['item_name'] ?? ($item['work_name'] ?? 'รายการงาน');
+                    $dni->item_description = $item['item_description'] ?? null;
+                    $dni->pattern = $item['pattern'] ?? null;
+                    $dni->fabric_type = $item['fabric_type'] ?? ($item['fabric'] ?? null);
+                    $dni->color = $item['color'] ?? null;
+                    $dni->size = $item['size'] ?? null;
+                    $dni->delivered_quantity = (int)($item['delivered_quantity'] ?? $item['quantity'] ?? 0);
+                    $dni->unit = $item['unit'] ?? 'ชิ้น';
+                    if (!empty($item['item_snapshot'])) {
+                        $dni->item_snapshot = is_array($item['item_snapshot']) ? json_encode($item['item_snapshot']) : $item['item_snapshot'];
+                    }
+                    $dni->status = 'ready';
+                    $dni->created_by = $updatedBy;
+                    $dni->save();
+                }
+
+                DocumentHistory::logAction(
+                    'delivery_note',
+                    $deliveryNote->id,
+                    'items_replaced',
+                    $updatedBy,
+                    'ปรับปรุงรายการงาน (' . count($data['items']) . ' รายการ)'
+                );
+            }
+
             DB::commit();
 
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
+            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -493,7 +536,7 @@ class DeliveryNoteService
     public function getList($filters = [], $perPage = 20)
     {
         try {
-            $query = DeliveryNote::with(['receipt', 'invoice', 'invoiceItem', 'customer', 'creator']);
+            $query = DeliveryNote::with(['receipt', 'invoice', 'invoiceItem', 'customer', 'creator', 'items']);
 
             // Apply filters
             if (!empty($filters['search'])) {
@@ -603,7 +646,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
+            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -645,7 +688,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
+            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

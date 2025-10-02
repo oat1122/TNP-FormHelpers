@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +10,6 @@ import {
   Stack,
   Typography,
   Alert,
-  MenuItem,
   Avatar,
   Box,
   RadioGroup,
@@ -23,58 +23,48 @@ import {
   TableCell,
   IconButton,
   Tooltip,
+  MenuItem,
 } from "@mui/material";
 import {
   Assignment as AssignmentIcon,
   Business as BusinessIcon,
   Edit as EditIcon,
   Add as AddIcon,
-  Delete as DeleteIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
-import React, { useState, useEffect } from "react";
-
 import {
-  useGetInvoiceQuery,
-  useCreateDeliveryNoteMutation,
+  useGetDeliveryNoteQuery,
+  useUpdateDeliveryNoteMutation,
   useGetCompaniesQuery,
 } from "../../../../features/Accounting/accountingApi";
-// toasts are handled inside useSubmitDeliveryNote hook
-import LoadingState from "../../PricingIntegration/components/LoadingState";
+import { formatTHB } from "../../Invoices/utils/format";
 import {
   Section,
   SectionHeader,
   InfoCard,
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { formatTHB } from "../../Invoices/utils/format";
-// payload builders are handled inside useSubmitDeliveryNote hook
-import { useDeliveryNoteForm } from "../hooks/useDeliveryNoteForm";
-import { useDeliveryNoteItems } from "../hooks/useDeliveryNoteItems";
-import { useSubmitDeliveryNote } from "../hooks/useSubmitDeliveryNote";
+import { useSubmitUpdateDeliveryNote } from "../hooks/useSubmitUpdateDeliveryNote";
 
-// removed unused helper
+// Group existing delivery note items for display/editing
+function useGroupedNoteItems(note) {
+  const [groups, setGroups] = React.useState([]);
 
-// Component สำหรับแสดงตาราง Invoice Items แบบจัดกลุ่ม (Editable)
-const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
-  const [editableGroups, setEditableGroups] = useState([]);
-  const [editingGroup, setEditingGroup] = useState(null);
-  const [editingRow, setEditingRow] = useState(null);
-
-  // Initialize editable groups from invoice items
-  useEffect(() => {
-    if (!invoice?.items) return;
-
+  React.useEffect(() => {
+    const items = Array.isArray(note?.items)
+      ? note.items
+      : Array.isArray(note?.delivery_note_items)
+        ? note.delivery_note_items
+        : [];
     const map = new Map();
-    invoice.items.forEach((it, idx) => {
-      const name = it.item_name || it.name || "-";
+    items.forEach((it, idx) => {
+      const name = it.item_name || "-";
       const pattern = it.pattern || "";
-      const fabric = it.fabric_type || it.material || "";
+      const fabric = it.fabric_type || "";
       const color = it.color || "";
-      const workName = it.work_name || "-";
+      const workName = name;
       const key = [name, pattern, fabric, color, workName].join("||");
-
       if (!map.has(key)) {
         map.set(key, {
           key,
@@ -87,152 +77,106 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
           rows: [],
         });
       }
-
-      const q =
-        typeof it.quantity === "string" ? parseFloat(it.quantity || "0") : Number(it.quantity || 0);
-
+      const qty =
+        Number(
+          typeof it.delivered_quantity === "string"
+            ? parseFloat(it.delivered_quantity || "0")
+            : it.delivered_quantity || 0
+        ) || 0;
       map.get(key).rows.push({
         id: it.id || `${idx}`,
-        sequence_order: it.sequence_order || idx + 1,
         size: it.size || "",
-        quantity: isNaN(q) ? 0 : q,
+        quantity: qty,
         unit: it.unit || "ชิ้น",
-        originalItem: it,
       });
     });
-
     const grouped = Array.from(map.values()).map((g) => ({
       ...g,
-      totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
     }));
+    setGroups(grouped);
+  }, [note?.items, note?.delivery_note_items]);
 
-    setEditableGroups(grouped);
-    // Propagate initial groups to parent so submit has items even if user doesn't edit
-    onUpdateItems?.(grouped);
-  }, [invoice?.items]);
-
-  // Group header editing handlers
-  const handleEditGroup = (groupIndex) => {
-    setEditingGroup(groupIndex);
+  return {
+    groups,
+    setGroups,
   };
+}
 
-  const handleSaveGroup = (groupIndex) => {
-    setEditingGroup(null);
-    // Recalculate totals and propagate latest state
-    setEditableGroups((prev) => {
-      const next = prev.map((g) => ({
-        ...g,
-        totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-      }));
-      onUpdateItems?.(next);
-      return next;
-    });
-  };
-
-  const handleCancelGroupEdit = () => {
-    setEditingGroup(null);
-    // Reset to original data
-    if (invoice?.items) {
-      // Re-initialize from original data
-      // ... (same logic as useEffect)
-    }
-  };
+// Editable table similar to create dialog (local-only edit for now)
+function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
+  const [editingGroup, setEditingGroup] = React.useState(null);
+  const [editingRow, setEditingRow] = React.useState(null);
 
   const handleGroupFieldChange = (groupIndex, field, value) => {
-    setEditableGroups((prev) => {
-      const next = prev.map((group, idx) =>
-        idx === groupIndex ? { ...group, [field]: value } : group
-      );
-      onUpdateItems?.(next);
-      return next;
-    });
+    setGroups((prev) => prev.map((g, i) => (i === groupIndex ? { ...g, [field]: value } : g)));
   };
 
-  // Row editing handlers
-  const handleEditRow = (groupIndex, rowIndex) => {
-    setEditingRow({ groupIndex, rowIndex });
+  const handleSaveGroup = () => {
+    setEditingGroup(null);
+    setGroups((prev) =>
+      prev.map((g) => ({
+        ...g,
+        totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      }))
+    );
   };
 
+  const handleEditRow = (groupIndex, rowIndex) => setEditingRow({ groupIndex, rowIndex });
+  const handleCancelRow = () => setEditingRow(null);
   const handleSaveRow = () => {
     setEditingRow(null);
-    // Recalculate group totals and propagate latest state
-    setEditableGroups((prev) => {
-      const next = prev.map((group) => ({
-        ...group,
-        totalQty: (group.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-      }));
-      onUpdateItems?.(next);
-      return next;
-    });
+    setGroups((prev) =>
+      prev.map((g) => ({
+        ...g,
+        totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
+      }))
+    );
   };
-
-  const handleCancelRowEdit = () => {
-    setEditingRow(null);
-  };
-
   const handleRowFieldChange = (groupIndex, rowIndex, field, value) => {
-    setEditableGroups((prev) => {
-      const next = prev.map((group, gIdx) =>
-        gIdx === groupIndex
-          ? {
-              ...group,
-              rows: group.rows.map((row, rIdx) =>
-                rIdx === rowIndex ? { ...row, [field]: value } : row
-              ),
-            }
-          : group
-      );
-      onUpdateItems?.(next);
-      return next;
-    });
+    setGroups((prev) =>
+      prev.map((g, gi) =>
+        gi === groupIndex
+          ? { ...g, rows: g.rows.map((r, ri) => (ri === rowIndex ? { ...r, [field]: value } : r)) }
+          : g
+      )
+    );
   };
-
-  // Add/Delete row handlers
   const handleAddRow = (groupIndex) => {
-    const newRow = {
-      id: `new-${Date.now()}`,
-      sequence_order: editableGroups[groupIndex].rows.length + 1,
-      size: "",
-      quantity: 0,
-      unit: "ชิ้น",
-    };
-
-    setEditableGroups((prev) => {
-      const next = prev.map((group, idx) =>
-        idx === groupIndex ? { ...group, rows: [...group.rows, newRow] } : group
-      );
-      onUpdateItems?.(next);
-      return next;
-    });
+    setGroups((prev) =>
+      prev.map((g, i) =>
+        i === groupIndex
+          ? {
+              ...g,
+              rows: [...g.rows, { id: `tmp-${Date.now()}`, size: "", quantity: 0, unit: "ชิ้น" }],
+            }
+          : g
+      )
+    );
   };
-
   const handleDeleteRow = (groupIndex, rowIndex) => {
-    setEditableGroups((prev) => {
-      const next = prev.map((group, gIdx) =>
-        gIdx === groupIndex
-          ? { ...group, rows: group.rows.filter((_, rIdx) => rIdx !== rowIndex) }
-          : group
-      );
-      onUpdateItems?.(next);
-      return next;
-    });
+    setGroups((prev) =>
+      prev.map((g, gi) =>
+        gi === groupIndex ? { ...g, rows: g.rows.filter((_, ri) => ri !== rowIndex) } : g
+      )
+    );
   };
 
   return (
     <InfoCard>
       <Box sx={{ p: 2, borderBottom: `1px solid ${tokens.border}` }}>
-        <Typography variant="subtitle2">รายการสินค้าจากใบแจ้งหนี้ {invoice.number}</Typography>
+        <Typography variant="subtitle2">
+          รายการสินค้าจากใบแจ้งหนี้ {invoiceNumber || "-"}
+        </Typography>
         <Typography variant="caption" color="text.secondary">
-          แสดงข้อมูลจาก invoice_items ({editableGroups.length} กลุ่ม) - สามารถแก้ไขได้
+          แสดงข้อมูลจาก delivery_note_items ({groups.length} กลุ่ม) - สามารถแก้ไขได้
         </Typography>
       </Box>
 
-      {editableGroups.map((group, groupIndex) => (
+      {groups.map((group, groupIndex) => (
         <Box key={group.key || groupIndex} sx={{ mb: 2 }}>
-          {/* Group Header - Editable */}
           <Box sx={{ p: 2, bgcolor: "grey.50", borderBottom: `1px solid ${tokens.border}` }}>
             {editingGroup === groupIndex ? (
-              // Edit mode
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -287,7 +231,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                       size="small"
                       variant="contained"
                       startIcon={<SaveIcon />}
-                      onClick={() => handleSaveGroup(groupIndex)}
+                      onClick={handleSaveGroup}
                     >
                       บันทึก
                     </Button>
@@ -295,7 +239,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                       size="small"
                       variant="outlined"
                       startIcon={<CancelIcon />}
-                      onClick={handleCancelGroupEdit}
+                      onClick={() => setEditingGroup(null)}
                     >
                       ยกเลิก
                     </Button>
@@ -303,7 +247,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                 </Grid>
               </Grid>
             ) : (
-              // View mode
               <Box>
                 <Box
                   sx={{
@@ -317,7 +260,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                     {group.name}
                   </Typography>
                   <Tooltip title="แก้ไขข้อมูลกลุ่ม">
-                    <IconButton size="small" onClick={() => handleEditGroup(groupIndex)}>
+                    <IconButton size="small" onClick={() => setEditingGroup(groupIndex)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -343,7 +286,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
             )}
           </Box>
 
-          {/* Size Details Table - Simplified and Clean */}
           <Table size="small" sx={{ mt: 1 }}>
             <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -358,13 +300,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
             </TableHead>
             <TableBody>
               {group.rows.map((row, rowIndex) => (
-                <TableRow
-                  key={row.id}
-                  sx={{
-                    "&:nth-of-type(odd)": { bgcolor: "grey.50" },
-                    "&:hover": { bgcolor: "action.hover" },
-                  }}
-                >
+                <TableRow key={row.id}>
                   <TableCell sx={{ py: 1.5 }}>
                     {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
                       <TextField
@@ -375,12 +311,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                         size="small"
                         fullWidth
                         placeholder="ระบุไซส์..."
-                        sx={{
-                          "& .MuiInputBase-root": {
-                            borderRadius: 1.5,
-                            bgcolor: "background.paper",
-                          },
-                        }}
                       />
                     ) : (
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -408,13 +338,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                             )
                           }
                           size="small"
-                          sx={{
-                            width: 100,
-                            "& .MuiInputBase-root": {
-                              borderRadius: 1.5,
-                              bgcolor: "background.paper",
-                            },
-                          }}
+                          sx={{ width: 100 }}
                           inputProps={{ min: 0 }}
                         />
                         <TextField
@@ -423,13 +347,7 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                             handleRowFieldChange(groupIndex, rowIndex, "unit", e.target.value)
                           }
                           size="small"
-                          sx={{
-                            width: 80,
-                            "& .MuiInputBase-root": {
-                              borderRadius: 1.5,
-                              bgcolor: "background.paper",
-                            },
-                          }}
+                          sx={{ width: 80 }}
                           placeholder="หน่วย"
                         />
                       </Stack>
@@ -455,28 +373,12 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                     {editingRow?.groupIndex === groupIndex && editingRow?.rowIndex === rowIndex ? (
                       <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Tooltip title="บันทึก">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={handleSaveRow}
-                            sx={{
-                              bgcolor: "primary.main",
-                              color: "white",
-                              "&:hover": { bgcolor: "primary.dark" },
-                            }}
-                          >
+                          <IconButton size="small" color="primary" onClick={handleSaveRow}>
                             <SaveIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="ยกเลิก">
-                          <IconButton
-                            size="small"
-                            onClick={handleCancelRowEdit}
-                            sx={{
-                              bgcolor: "grey.200",
-                              "&:hover": { bgcolor: "grey.300" },
-                            }}
-                          >
+                          <IconButton size="small" onClick={handleCancelRow}>
                             <CancelIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -487,10 +389,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                           <IconButton
                             size="small"
                             onClick={() => handleEditRow(groupIndex, rowIndex)}
-                            sx={{
-                              color: "primary.main",
-                              "&:hover": { bgcolor: "primary.light", color: "primary.dark" },
-                            }}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
@@ -500,11 +398,8 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                             size="small"
                             color="error"
                             onClick={() => handleDeleteRow(groupIndex, rowIndex)}
-                            sx={{
-                              "&:hover": { bgcolor: "error.light", color: "error.dark" },
-                            }}
                           >
-                            <DeleteIcon fontSize="small" />
+                            <CancelIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Stack>
@@ -512,7 +407,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                   </TableCell>
                 </TableRow>
               ))}
-              {/* Add Row Button */}
               <TableRow>
                 <TableCell
                   colSpan={3}
@@ -524,19 +418,6 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
                     variant="outlined"
                     startIcon={<AddIcon />}
                     onClick={() => handleAddRow(groupIndex)}
-                    sx={{
-                      borderRadius: 2,
-                      borderStyle: "dashed",
-                      textTransform: "none",
-                      fontSize: "0.875rem",
-                      px: 3,
-                      py: 1,
-                      "&:hover": {
-                        borderStyle: "solid",
-                        bgcolor: "primary.light",
-                        color: "primary.dark",
-                      },
-                    }}
                   >
                     เพิ่มไซส์ใหม่
                   </Button>
@@ -547,121 +428,104 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
         </Box>
       ))}
 
-      {/* Summary Row */}
       <Box sx={{ p: 2, borderTop: `1px solid ${tokens.border}`, bgcolor: "grey.50" }}>
         <Typography variant="body2">
-          <strong>รวมทั้งหมด:</strong>{" "}
-          {editableGroups.reduce((sum, group) => sum + group.totalQty, 0)} ชิ้น
+          <strong>รวมทั้งหมด:</strong> {groups.reduce((sum, g) => sum + (g.totalQty || 0), 0)} ชิ้น
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          หมายเหตุ: ตอนนี้การแก้ไขรายการงานจะยังไม่ถูกบันทึกไปยังระบบหลังบ้าน
         </Typography>
       </Box>
     </InfoCard>
   );
-};
+}
 
-const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
-  const invoiceId = source?.invoice_id;
-  const { data: invoiceData, isFetching: invoiceLoading } = useGetInvoiceQuery(invoiceId, {
-    skip: !open || !invoiceId,
+const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) => {
+  const { data: noteResp, isLoading } = useGetDeliveryNoteQuery(deliveryNoteId, {
+    skip: !open || !deliveryNoteId,
   });
+  const note = React.useMemo(() => noteResp?.data || noteResp || null, [noteResp]);
 
-  const invoice = React.useMemo(() => invoiceData?.data || invoiceData || null, [invoiceData]);
-
-  // Fetch companies for sender selection
   const { data: companiesResp, isLoading: companiesLoading } = useGetCompaniesQuery(undefined, {
     skip: !open,
   });
-
   const companies = React.useMemo(() => {
     const list = companiesResp?.data ?? companiesResp ?? [];
     return Array.isArray(list) ? list : [];
   }, [companiesResp]);
 
-  const [createDeliveryNote, { isLoading: creating }] = useCreateDeliveryNoteMutation();
+  const [updateDeliveryNote, { isLoading: saving }] = useUpdateDeliveryNoteMutation();
 
-  // Normalize customer data from master_customers relationship (similar to InvoiceDetailDialog)
-  const normalizeCustomer = (invoice) => {
-    if (!invoice) return {};
+  const [customerDataSource, setCustomerDataSource] = React.useState("delivery");
+  const [formState, setFormState] = React.useState({
+    customer_company: "",
+    customer_tax_id: "",
+    customer_firstname: "",
+    customer_lastname: "",
+    customer_tel_1: "",
+    customer_address: "",
+    work_name: "",
+    quantity: "",
+    notes: "",
+    sender_company_id: "",
+  });
 
-    // Use customer relationship data from master_customers table
-    const customer = invoice.customer;
-    if (!customer) return {};
+  React.useEffect(() => {
+    if (!note) return;
+    setFormState({
+      customer_company: note.customer_company || "",
+      customer_tax_id: note.customer_tax_id || "",
+      customer_firstname: note.customer_firstname || "",
+      customer_lastname: note.customer_lastname || "",
+      customer_tel_1: note.customer_tel_1 || "",
+      customer_address: note.customer_address || "",
+      work_name: note.work_name || "",
+      quantity: note.quantity || "",
+      notes: note.notes || "",
+      sender_company_id: note.sender_company_id || "",
+    });
+    setCustomerDataSource(note.customer_data_source || "delivery");
+  }, [note]);
 
-    return {
-      customer_type: customer.cus_company ? "company" : "individual",
-      cus_name: customer.cus_name,
-      cus_firstname: customer.cus_firstname,
-      cus_lastname: customer.cus_lastname,
-      cus_company: customer.cus_company,
-      cus_tel_1: customer.cus_tel_1,
-      cus_tel_2: customer.cus_tel_2,
-      cus_email: customer.cus_email,
-      cus_tax_id: customer.cus_tax_id,
-      cus_address: customer.cus_address,
-      cus_zip_code: customer.cus_zip_code,
-      cus_depart: customer.cus_depart,
-      contact_name:
-        customer.cus_firstname && customer.cus_lastname
-          ? `${customer.cus_firstname} ${customer.cus_lastname}`.trim()
-          : customer.cus_name,
-      contact_nickname: customer.cus_name,
-    };
+  const handleChange = (field) => (e) => setFormState((s) => ({ ...s, [field]: e.target.value }));
+
+  const { groups, setGroups } = useGroupedNoteItems(note);
+
+  const { handleUpdate } = useSubmitUpdateDeliveryNote(updateDeliveryNote, note, formState, groups);
+  const handleSave = async () => {
+    const ok = await handleUpdate();
+    if (ok) {
+      onUpdated?.();
+      onClose?.();
+    }
   };
 
-  const customer = normalizeCustomer(invoice);
-
-  // hooks: form, items, submit
-  const { formState, handleChange, customerDataSource, handleCustomerDataSourceChange } =
-    useDeliveryNoteForm(open, source, invoice, customer);
-  const { editableItems, handleUpdateItems } = useDeliveryNoteItems();
-  const { handleSubmit } = useSubmitDeliveryNote(
-    createDeliveryNote,
-    formState,
-    invoice,
-    customer,
-    customerDataSource,
-    source,
-    editableItems,
-    onCreated
-  );
+  const invoiceNumber = note?.invoice_number || note?.invoice?.number;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>สร้างใบส่งของ</DialogTitle>
-
+      <DialogTitle>ดู / แก้ไข ใบส่งของ</DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
-        {invoiceLoading && <LoadingState message="Loading invoice details..." />}
-
-        {!invoiceLoading && (
+        {isLoading ? (
+          <Box sx={{ p: 3 }}>กำลังโหลดข้อมูล...</Box>
+        ) : !note ? (
+          <Box sx={{ p: 3 }}>ไม่พบข้อมูลใบส่งของ</Box>
+        ) : (
           <Stack spacing={3} sx={{ p: 3 }}>
-            {/* Source selection alert */}
-            {source ? (
-              source.invoice_item_id ? (
-                <Alert severity="info">
-                  รายการที่เลือก: <strong>{source.item_name}</strong> จากใบแจ้งหนี้{" "}
-                  <strong>{source.invoice_number}</strong>
-                </Alert>
-              ) : (
-                <Alert severity="info">
-                  ใบแจ้งหนี้ที่เลือก: <strong>{source.invoice_number}</strong>
-                </Alert>
-              )
-            ) : (
-              <Alert severity="warning">
-                ไม่ได้เลือกใบแจ้งหนี้ คุณสามารถสร้างใบส่งของแบบ manual ได้
+            {note.status !== "preparing" && (
+              <Alert severity="info">
+                ใบส่งของอยู่ในสถานะ <strong>{note.status}</strong> จะแก้ไขไม่ได้
               </Alert>
             )}
+            {invoiceNumber ? (
+              <Alert severity="info">
+                ใบแจ้งหนี้ที่เกี่ยวข้อง: <strong>{invoiceNumber}</strong>
+              </Alert>
+            ) : null}
 
-            {/* Customer Information Section */}
             <Section>
               <SectionHeader>
-                <Avatar
-                  sx={{
-                    bgcolor: tokens.primary,
-                    width: 32,
-                    height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
-                  }}
-                >
+                <Avatar sx={{ bgcolor: tokens.primary, width: 32, height: 32 }}>
                   <BusinessIcon />
                 </Avatar>
                 <Box>
@@ -671,16 +535,14 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                   </Typography>
                 </Box>
               </SectionHeader>
-
               <Box sx={{ p: 3 }}>
-                {/* Customer data source selection */}
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     เลือกแหล่งข้อมูลลูกค้า
                   </Typography>
                   <RadioGroup
                     value={customerDataSource}
-                    onChange={handleCustomerDataSourceChange}
+                    onChange={(e) => setCustomerDataSource(e.target.value)}
                     row
                   >
                     <FormControlLabel
@@ -694,27 +556,17 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                       label="แก้ไขข้อมูลเฉพาะใบส่งของนี้"
                     />
                   </RadioGroup>
-                  {customerDataSource === "master" && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", mt: 1 }}
-                    >
-                      ข้อมูลจะถูกดึงมาจากฐานข้อมูลลูกค้าหลัก
-                    </Typography>
-                  )}
-                  {customerDataSource === "delivery" && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", mt: 1 }}
-                    >
-                      ข้อมูลจะถูกบันทึกเฉพาะในใบส่งของนี้เท่านั้น
-                    </Typography>
-                  )}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mt: 1 }}
+                  >
+                    {customerDataSource === "master"
+                      ? "ข้อมูลจะถูกดึงมาจากฐานข้อมูลลูกค้าหลัก"
+                      : "ข้อมูลจะถูกบันทึกเฉพาะในใบส่งของนี้เท่านั้น"}
+                  </Typography>
                 </Box>
 
-                {/* Customer Info Display/Edit */}
                 <InfoCard sx={{ p: 2, mb: 3 }}>
                   <Box
                     sx={{
@@ -729,26 +581,12 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         ชื่อบริษัท
                       </Typography>
                       <Typography variant="body1" fontWeight={500}>
-                        {customerDataSource === "master"
-                          ? customer.cus_company || formState.customer_company || "-"
-                          : formState.customer_company || "-"}
+                        {formState.customer_company || "-"}
                       </Typography>
                     </Box>
-                    {(customerDataSource === "master"
-                      ? customer.cus_tax_id
-                      : formState.customer_tax_id) && (
-                      <Box>
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={
-                            customerDataSource === "master"
-                              ? customer.cus_tax_id
-                              : formState.customer_tax_id
-                          }
-                        />
-                      </Box>
-                    )}
+                    {formState.customer_tax_id ? (
+                      <Chip size="small" variant="outlined" label={formState.customer_tax_id} />
+                    ) : null}
                   </Box>
                   <Grid container spacing={1}>
                     <Grid item xs={12} md={4}>
@@ -756,36 +594,26 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         ผู้ติดต่อ
                       </Typography>
                       <Typography variant="body2">
-                        {customerDataSource === "master"
-                          ? customer.contact_name || "-"
-                          : `${formState.customer_firstname || ""} ${formState.customer_lastname || ""}`.trim() ||
-                            "-"}
+                        {(formState.customer_firstname || "") +
+                          (formState.customer_lastname ? ` ${formState.customer_lastname}` : "") ||
+                          "-"}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="caption" color="text.secondary">
                         เบอร์โทร
                       </Typography>
-                      <Typography variant="body2">
-                        {customerDataSource === "master"
-                          ? customer.cus_tel_1 || "-"
-                          : formState.customer_tel_1 || "-"}
-                      </Typography>
+                      <Typography variant="body2">{formState.customer_tel_1 || "-"}</Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography variant="caption" color="text.secondary">
                         ที่อยู่
                       </Typography>
-                      <Typography variant="body2">
-                        {customerDataSource === "master"
-                          ? customer.cus_address || "-"
-                          : formState.customer_address || "-"}
-                      </Typography>
+                      <Typography variant="body2">{formState.customer_address || "-"}</Typography>
                     </Grid>
                   </Grid>
                 </InfoCard>
 
-                {/* Editable fields when delivery source is selected */}
                 {customerDataSource === "delivery" && (
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
@@ -794,7 +622,6 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         value={formState.customer_company}
                         onChange={handleChange("customer_company")}
                         fullWidth
-                        required
                         size="small"
                       />
                     </Grid>
@@ -850,17 +677,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
               </Box>
             </Section>
 
-            {/* Company and Sender Information Section */}
             <Section>
               <SectionHeader>
-                <Avatar
-                  sx={{
-                    bgcolor: tokens.primary,
-                    width: 32,
-                    height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
-                  }}
-                >
+                <Avatar sx={{ bgcolor: tokens.primary, width: 32, height: 32 }}>
                   <BusinessIcon />
                 </Avatar>
                 <Box>
@@ -870,9 +689,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                   </Typography>
                 </Box>
               </SectionHeader>
-
               <Box sx={{ p: 3 }}>
-                {/* Sender Company Information */}
                 <Box sx={{ mb: 3, pb: 2, borderBottom: `1px solid ${tokens.border}` }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
                     ข้อมูลผู้ส่ง
@@ -952,17 +769,9 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
               </Box>
             </Section>
 
-            {/* Work Items Section */}
             <Section>
               <SectionHeader>
-                <Avatar
-                  sx={{
-                    bgcolor: tokens.primary,
-                    width: 32,
-                    height: 32,
-                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
-                  }}
-                >
+                <Avatar sx={{ bgcolor: tokens.primary, width: 32, height: 32 }}>
                   <AssignmentIcon />
                 </Avatar>
                 <Box>
@@ -972,79 +781,24 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                   </Typography>
                 </Box>
               </SectionHeader>
-
               <Box sx={{ p: 3 }}>
-                {/* Manual Work Name and Quantity for non-invoice items */}
-                {!invoice?.items?.length && (
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12} md={8}>
-                      <TextField
-                        label="ชื่องาน"
-                        value={formState.work_name}
-                        onChange={handleChange("work_name")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        label="จำนวน"
-                        value={formState.quantity}
-                        onChange={handleChange("quantity")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                  </Grid>
-                )}
-
-                {/* Invoice Items Table - Grouped by Item Type */}
-                {invoice?.items?.length > 0 ? (
-                  <InvoiceItemsTable invoice={invoice} onUpdateItems={handleUpdateItems} />
-                ) : (
-                  /* Fallback for manual items or selected specific item */
-                  <InfoCard>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>รายการ</TableCell>
-                          <TableCell align="center">จำนวน</TableCell>
-                          <TableCell align="right">หมายเหตุ</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={500}>
-                              {formState.work_name || source?.item_name || source?.work_name || "-"}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Typography variant="body2">{formState.quantity || "1"}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" color="text.secondary">
-                              {formState.notes || "-"}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </InfoCard>
-                )}
+                <NoteItemsTable
+                  groups={groups}
+                  setGroups={setGroups}
+                  invoiceNumber={invoiceNumber}
+                />
               </Box>
             </Section>
 
-            {/* Invoice Summary (if applicable) */}
-            {invoice && (
+            {note?.invoice && (
               <InfoCard sx={{ p: 2 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   สรุปใบแจ้งหนี้
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {invoice.number} • {invoice.customer_company}
-                  {invoice.final_total_amount && (
-                    <> • ยอดรวม {formatTHB(invoice.final_total_amount)}</>
+                  {note.invoice.number} • {note.invoice.customer_company}
+                  {note.invoice.final_total_amount && (
+                    <> • ยอดรวม {formatTHB(note.invoice.final_total_amount)}</>
                   )}
                 </Typography>
               </InfoCard>
@@ -1052,25 +806,21 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
           </Stack>
         )}
       </DialogContent>
-
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} disabled={creating}>
+        <Button onClick={onClose} disabled={saving}>
           ยกเลิก
         </Button>
         <Button
-          onClick={handleSubmit}
+          onClick={handleSave}
           variant="contained"
-          disabled={creating}
-          sx={{
-            bgcolor: tokens.primary,
-            "&:hover": { bgcolor: "#7A0E0E" },
-          }}
+          disabled={saving || (note && note.status !== "preparing")}
+          sx={{ bgcolor: tokens.primary, "&:hover": { bgcolor: "#7A0E0E" } }}
         >
-          {creating ? "กำลังบันทึก..." : "สร้างใบส่งของ"}
+          {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default DeliveryNoteCreateDialog;
+export default DeliveryNoteEditDialog;

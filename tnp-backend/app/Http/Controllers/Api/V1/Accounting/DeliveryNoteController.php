@@ -131,9 +131,12 @@ class DeliveryNoteController extends Controller
         try {
             $deliveryNote = \App\Models\Accounting\DeliveryNote::with([
                 'receipt',
+                'invoice',
+                'invoiceItem',
                 'customer',
                 'creator',
                 'deliveryPerson',
+                'items',
                 'documentHistory',
                 'attachments'
             ])->findOrFail($id);
@@ -250,7 +253,28 @@ class DeliveryNoteController extends Controller
                 'courier_company' => 'sometimes|string|max:100',
                 'tracking_number' => 'sometimes|string|max:100',
                 'delivery_notes' => 'sometimes|string|max:1000',
-                'notes' => 'sometimes|string|max:1000'
+                'notes' => 'sometimes|string|max:1000',
+                'customer_tel_1' => 'sometimes|string|max:50',
+                'customer_firstname' => 'sometimes|string|max:255',
+                'customer_lastname' => 'sometimes|string|max:255',
+                'customer_tax_id' => 'sometimes|string|max:50',
+                'customer_data_source' => 'sometimes|in:master,delivery',
+                'customer_snapshot' => 'sometimes',
+                'sender_company_id' => 'sometimes|string|exists:companies,id',
+                // Items update support
+                'items' => 'sometimes|array',
+                'items.*.sequence_order' => 'nullable|integer|min:1',
+                'items.*.item_name' => 'nullable|string|max:255',
+                'items.*.item_description' => 'nullable|string|max:500',
+                'items.*.pattern' => 'nullable|string|max:255',
+                'items.*.fabric_type' => 'nullable|string|max:255',
+                'items.*.color' => 'nullable|string|max:255',
+                'items.*.size' => 'nullable|string|max:255',
+                'items.*.delivered_quantity' => 'nullable|integer|min:0',
+                'items.*.unit' => 'nullable|string|max:50',
+                'items.*.invoice_id' => 'nullable|string|exists:invoices,id',
+                'items.*.invoice_item_id' => 'nullable|string|exists:invoice_items,id',
+                'items.*.item_snapshot' => 'nullable',
             ]);
 
             if ($validator->fails()) {

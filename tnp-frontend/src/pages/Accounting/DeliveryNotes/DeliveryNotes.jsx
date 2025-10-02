@@ -15,6 +15,7 @@ import accountingTheme from "../theme/accountingTheme";
 import DeliveryNoteCard from "./components/DeliveryNoteCard";
 import DeliveryNoteCreateDialog from "./components/DeliveryNoteCreateDialog";
 import DeliveryNoteDetailDialog from "./components/DeliveryNoteDetailDialog";
+import DeliveryNoteEditDialog from "./components/DeliveryNoteEditDialog";
 import DeliveryNoteSourceSelectionDialog from "./components/DeliveryNoteSourceSelectionDialog";
 import {
   useGetDeliveryNotesQuery,
@@ -50,6 +51,7 @@ const DeliveryNotes = () => {
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedDeliveryNoteId, setSelectedDeliveryNoteId] = useState(null);
@@ -121,11 +123,16 @@ const DeliveryNotes = () => {
 
   const handleViewNote = (note) => {
     setSelectedDeliveryNoteId(note.id);
-    setDetailDialogOpen(true);
+    // Open edit dialog that mirrors create UI per requirement
+    setEditDialogOpen(true);
   };
 
   const handleDetailClose = () => {
     setDetailDialogOpen(false);
+    setSelectedDeliveryNoteId(null);
+  };
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
     setSelectedDeliveryNoteId(null);
   };
 
@@ -269,6 +276,13 @@ const DeliveryNotes = () => {
         open={detailDialogOpen}
         deliveryNoteId={selectedDeliveryNoteId}
         onClose={handleDetailClose}
+        onUpdated={refetch}
+      />
+
+      <DeliveryNoteEditDialog
+        open={editDialogOpen}
+        deliveryNoteId={selectedDeliveryNoteId}
+        onClose={handleEditClose}
         onUpdated={refetch}
       />
     </ThemeProvider>

@@ -54,32 +54,65 @@ const DeliveryNoteCard = ({
   const invoice = note.invoice || {};
   const invoiceNumber = note.invoice_number || invoice.number || "-";
   const createdAt = note.created_at || invoice.created_at;
-  const customerCompany = note.customer_company || note.customer?.cus_company || "-";
-  // parse customer snapshot details for better display
-  const customerInfo = React.useMemo(() => {
-    let cs = null;
+
+  // Normalize customer snapshot (if any)
+  const cs = React.useMemo(() => {
     try {
-      cs =
-        typeof note.customer_snapshot === "string"
-          ? JSON.parse(note.customer_snapshot)
-          : note.customer_snapshot || null;
+      return typeof note.customer_snapshot === "string"
+        ? JSON.parse(note.customer_snapshot)
+        : note.customer_snapshot || null;
     } catch {
-      cs = null;
+      return null;
     }
-    const taxId = cs?.cus_tax_id || cs?.tax_id || "";
-    const tel = note.customer_tel_1 || cs?.cus_tel_1 || "";
-    const address = note.customer_address || cs?.cus_address || "";
+  }, [note.customer_snapshot]);
+
+  // Choose display fields based on customer_data_source
+  const preferDelivery = (note.customer_data_source || "master") === "delivery";
+
+  const customerCompany = React.useMemo(() => {
+    const fromDelivery = note.customer_company || cs?.customer_company || cs?.cus_company;
+    const fromMaster = note.customer?.cus_company || cs?.cus_company || cs?.customer_company;
+    return (preferDelivery ? fromDelivery : fromMaster) || fromDelivery || fromMaster || "-";
+  }, [preferDelivery, note.customer_company, note.customer, cs]);
+
+  const customerInfo = React.useMemo(() => {
+    // Tax ID
+    const taxFromDelivery =
+      note.customer_tax_id || cs?.customer_tax_id || cs?.tax_id || cs?.cus_tax_id;
+    const taxFromMaster =
+      note.customer?.cus_tax_id || cs?.cus_tax_id || cs?.tax_id || cs?.customer_tax_id;
+    const taxId =
+      (preferDelivery ? taxFromDelivery : taxFromMaster) || taxFromDelivery || taxFromMaster || "";
+
+    // Telephone
+    const telFromDelivery = note.customer_tel_1 || cs?.customer_tel_1 || cs?.cus_tel_1;
+    const telFromMaster = note.customer?.cus_tel_1 || cs?.cus_tel_1 || cs?.customer_tel_1;
+    const tel =
+      (preferDelivery ? telFromDelivery : telFromMaster) || telFromDelivery || telFromMaster || "";
+
+    // Address
+    const addrFromDelivery = note.customer_address || cs?.customer_address || cs?.cus_address;
+    const addrFromMaster = note.customer?.cus_address || cs?.cus_address || cs?.customer_address;
+    const address =
+      (preferDelivery ? addrFromDelivery : addrFromMaster) ||
+      addrFromDelivery ||
+      addrFromMaster ||
+      "";
+
+    // Contact name: prefer master (immutable contact policy), fallback to snapshot
     const contactName =
-      note.customer_firstname || note.customer_lastname
-        ? `${note.customer_firstname || ""} ${note.customer_lastname || ""}`.trim()
-        : cs?.contact_name || cs?.cus_name || "";
+      note.customer?.cus_firstname || note.customer?.cus_lastname
+        ? `${note.customer?.cus_firstname || ""} ${note.customer?.cus_lastname || ""}`.trim()
+        : note.customer?.cus_name || cs?.contact_name || cs?.cus_name || "";
+
     return { taxId, tel, address, contactName };
   }, [
-    note.customer_snapshot,
+    preferDelivery,
+    note.customer,
+    note.customer_tax_id,
     note.customer_tel_1,
     note.customer_address,
-    note.customer_firstname,
-    note.customer_lastname,
+    cs,
   ]);
 
   // Group delivery note items (delivery_note_items)

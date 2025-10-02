@@ -37,8 +37,7 @@ export function useSubmitDeliveryNote(
         customer_address: formState.customer_address,
         customer_tel_1: formState.customer_tel_1 || undefined,
         customer_tax_id: formState.customer_tax_id || undefined,
-        customer_firstname: formState.customer_firstname || undefined,
-        customer_lastname: formState.customer_lastname || undefined,
+        // ผู้ติดต่อห้ามเปลี่ยน: ไม่ส่งชื่อ/นามสกุลผู้ติดต่อในใบส่งของ
         work_name: formState.work_name,
         quantity: formState.quantity,
         notes: formState.notes || undefined,

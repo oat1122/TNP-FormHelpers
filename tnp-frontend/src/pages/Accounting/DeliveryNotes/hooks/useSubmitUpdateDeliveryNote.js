@@ -26,8 +26,7 @@ export function useSubmitUpdateDeliveryNote(
           ? {
               customer_company: formState.customer_company,
               customer_tax_id: formState.customer_tax_id || undefined,
-              customer_firstname: formState.customer_firstname || undefined,
-              customer_lastname: formState.customer_lastname || undefined,
+              // ผู้ติดต่อห้ามเปลี่ยน: ไม่ส่ง firstname/lastname ไปอัปเดต
               customer_tel_1: formState.customer_tel_1 || undefined,
               customer_address: formState.customer_address || undefined,
             }

@@ -81,6 +81,7 @@ class DeliveryNote extends Model
         'delivery_notes',
         'notes',
         'sender_company_id',
+        'manage_by',
         'created_by',
         'delivered_by'
     ];
@@ -90,6 +91,12 @@ class DeliveryNote extends Model
         'delivered_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
+    ];
+
+    // Include computed attributes in JSON
+    protected $appends = [
+        'customer_contact_name',
+        'manager_full_name',
     ];
 
     // Generate UUID when creating
@@ -164,6 +171,14 @@ class DeliveryNote extends Model
     }
 
     /**
+     * Relationship: Manager (ผู้ดูแล) from users table by numeric user_id
+     */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manage_by', 'user_id');
+    }
+
+    /**
      * Relationship: DeliveryNote has many Document History
      */
     public function documentHistory(): HasMany
@@ -228,6 +243,46 @@ class DeliveryNote extends Model
     public function getCustomerFullNameAttribute()
     {
         return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+    }
+
+    /**
+     * Computed: Preferred contact name from master customer
+     * - Prefer cus_firstname + cus_lastname
+     * - Fallback to cus_name (nickname)
+     * - Treat dash-only values ("-", "--") as empty
+     */
+    public function getCustomerContactNameAttribute()
+    {
+        $cust = $this->relationLoaded('customer') ? $this->customer : $this->customer()->first();
+        if (!$cust) return null;
+
+        $clean = function ($v) {
+            $t = trim((string)($v ?? ''));
+            if ($t === '') return '';
+            $n = str_replace(['—', '–'], '-', $t);
+            if (preg_match('/^-+$/', $n)) return '';
+            return $n;
+        };
+
+        $first = $clean($cust->cus_firstname ?? null);
+        $last = $clean($cust->cus_lastname ?? null);
+        $nick = $clean($cust->cus_name ?? null);
+        $full = trim($first . ' ' . $last);
+
+        return $full !== '' ? $full : ($nick !== '' ? $nick : null);
+    }
+
+    /**
+     * Computed: Manager full name (ผู้ดูแล)
+     */
+    public function getManagerFullNameAttribute()
+    {
+        $mgr = $this->relationLoaded('manager') ? $this->manager : $this->manager()->first();
+        if (!$mgr) return null;
+        $first = trim((string)($mgr->user_firstname ?? ''));
+        $last = trim((string)($mgr->user_lastname ?? ''));
+        $full = trim($first . ' ' . $last);
+        return $full !== '' ? $full : ($mgr->username ?? null);
     }
 
     /**

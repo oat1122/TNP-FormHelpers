@@ -502,7 +502,25 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
       lastName: c.cus_lastname || "",
       phone: c.cus_tel_1 || "",
       address: c.cus_address || "",
+      nickName: c.cus_name || "",
     };
+  }, [note?.customer]);
+
+  const masterContactName = React.useMemo(() => {
+    const clean = (v) => {
+      const t = String(v ?? "").trim();
+      if (!t) return "";
+      // Normalize dash variants and treat sequences of dashes as empty (e.g., "-", "--")
+      const n = t.replace(/[—–]/g, "-");
+      if (/^-+$/.test(n)) return "";
+      return n;
+    };
+
+    const first = clean(note?.customer?.cus_firstname);
+    const last = clean(note?.customer?.cus_lastname);
+    const nick = clean(note?.customer?.cus_name);
+    const full = [first, last].filter(Boolean).join(" ");
+    return full || nick || "";
   }, [note?.customer]);
 
   // When switching data source, if switching to 'delivery' prefill fields from master
@@ -644,15 +662,21 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                       <Typography variant="caption" color="text.secondary">
                         ผู้ติดต่อ
                       </Typography>
+                      <Typography variant="body2">{masterContactName || "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="caption" color="text.secondary">
+                        ผู้ดูแล
+                      </Typography>
                       <Typography variant="body2">
-                        {customerDataSource === "master"
-                          ? (masterCustomer?.firstName || "") +
-                              (masterCustomer?.lastName ? ` ${masterCustomer?.lastName}` : "") ||
-                            "-"
-                          : (formState.customer_firstname || "") +
-                              (formState.customer_lastname
-                                ? ` ${formState.customer_lastname}`
-                                : "") || "-"}
+                        {(() => {
+                          const m = note?.manager;
+                          if (!m) return "-";
+                          const a = (m.user_firstname || "").trim();
+                          const b = (m.user_lastname || "").trim();
+                          const full = `${a} ${b}`.trim();
+                          return full || m.username || "-";
+                        })()}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} md={4}>
@@ -694,24 +718,6 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         label="เลขประจำตัวผู้เสียภาษี"
                         value={formState.customer_tax_id}
                         onChange={handleChange("customer_tax_id")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="ชื่อ"
-                        value={formState.customer_firstname}
-                        onChange={handleChange("customer_firstname")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="นามสกุล"
-                        value={formState.customer_lastname}
-                        onChange={handleChange("customer_lastname")}
                         fullWidth
                         size="small"
                       />

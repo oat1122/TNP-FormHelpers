@@ -755,12 +755,7 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                       <Typography variant="caption" color="text.secondary">
                         ผู้ติดต่อ
                       </Typography>
-                      <Typography variant="body2">
-                        {customerDataSource === "master"
-                          ? customer.contact_name || "-"
-                          : `${formState.customer_firstname || ""} ${formState.customer_lastname || ""}`.trim() ||
-                            "-"}
-                      </Typography>
+                      <Typography variant="body2">{customer.contact_name || "-"}</Typography>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="caption" color="text.secondary">
@@ -803,24 +798,6 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
                         label="เลขประจำตัวผู้เสียภาษี"
                         value={formState.customer_tax_id}
                         onChange={handleChange("customer_tax_id")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="ชื่อ"
-                        value={formState.customer_firstname}
-                        onChange={handleChange("customer_firstname")}
-                        fullWidth
-                        size="small"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="นามสกุล"
-                        value={formState.customer_lastname}
-                        onChange={handleChange("customer_lastname")}
                         fullWidth
                         size="small"
                       />

@@ -136,6 +136,7 @@ class DeliveryNoteController extends Controller
                 'customer',
                 'creator',
                 'deliveryPerson',
+                'manager',
                 'items',
                 'documentHistory',
                 'attachments'
@@ -190,6 +191,7 @@ class DeliveryNoteController extends Controller
                 'delivery_notes' => 'nullable|string|max:1000',
                 'notes' => 'nullable|string|max:1000',
                 'sender_company_id' => 'nullable|string|exists:companies,id',
+                'manage_by' => 'nullable|integer|exists:users,user_id',
                 'items' => 'sometimes|array',
                 'items.*.sequence_order' => 'nullable|integer|min:1',
                 'items.*.item_name' => 'required_with:items|string|max:255',
@@ -261,6 +263,7 @@ class DeliveryNoteController extends Controller
                 'customer_data_source' => 'sometimes|in:master,delivery',
                 'customer_snapshot' => 'sometimes',
                 'sender_company_id' => 'sometimes|string|exists:companies,id',
+                'manage_by' => 'sometimes|integer|exists:users,user_id',
                 // Items update support
                 'items' => 'sometimes|array',
                 'items.*.sequence_order' => 'nullable|integer|min:1',

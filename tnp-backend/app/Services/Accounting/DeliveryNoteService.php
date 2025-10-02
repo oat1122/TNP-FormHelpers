@@ -403,6 +403,15 @@ class DeliveryNoteService
             $deliveryNote->delivery_notes = $data['delivery_notes'] ?? null;
             $deliveryNote->notes = $data['notes'] ?? null;
             $deliveryNote->sender_company_id = $data['sender_company_id'] ?? null;
+            // Manage_by: default from master customer unless explicitly provided
+            if (!empty($data['manage_by'])) {
+                $deliveryNote->manage_by = $data['manage_by'];
+            } elseif (!empty($deliveryNote->customer_id)) {
+                $mc = \App\Models\MasterCustomer::find($deliveryNote->customer_id);
+                if ($mc && !empty($mc->cus_manage_by)) {
+                    $deliveryNote->manage_by = $mc->cus_manage_by;
+                }
+            }
             
             // Status และ Audit
             $deliveryNote->status = 'preparing';
@@ -463,7 +472,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['customer', 'creator', 'items']);
+            return $deliveryNote->load(['customer', 'creator', 'items', 'manager']);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -553,7 +562,7 @@ class DeliveryNoteService
 
             DB::commit();
 
-            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
+            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items', 'manager']);
 
         } catch (\Exception $e) {
             DB::rollBack();

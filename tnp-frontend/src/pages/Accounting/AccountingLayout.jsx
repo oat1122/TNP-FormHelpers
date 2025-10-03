@@ -1,8 +1,6 @@
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
   Assignment as AssignmentIcon,
-  Receipt as ReceiptIcon,
   LocalShipping as DeliveryIcon,
   AccountBalance as InvoiceIcon,
   Notifications as NotificationsIcon,
@@ -50,12 +48,6 @@ const drawerWidth = 280;
 // Navigation items
 const navigationItems = [
   {
-    id: "dashboard",
-    title: "Dashboard",
-    icon: DashboardIcon,
-    path: "/accounting",
-  },
-  {
     id: "pricing",
     title: "นำเข้างาน Pricing",
     icon: ImportIcon,
@@ -72,12 +64,6 @@ const navigationItems = [
     title: "ใบแจ้งหนี้",
     icon: InvoiceIcon,
     path: "/accounting/invoices",
-  },
-  {
-    id: "receipt",
-    title: "ใบเสร็จรับเงิน",
-    icon: ReceiptIcon,
-    path: "/accounting/receipts",
   },
   {
     id: "delivery",
@@ -99,7 +85,7 @@ const getBreadcrumbs = (pathname) => {
       (item) => item.path === pathname || pathname.includes(item.id)
     );
 
-    if (currentItem && currentItem.id !== "dashboard") {
+    if (currentItem) {
       breadcrumbs.push({ title: currentItem.title, path: currentItem.path });
     }
   }
@@ -347,10 +333,10 @@ const AccountingLayout = () => {
   // Get current navigation item based on path
   const currentItem =
     navigationItems.find(
-      (item) =>
-        location.pathname === item.path ||
-        (item.path !== "/accounting" && location.pathname.includes(item.id))
-    ) || navigationItems[0];
+      (item) => location.pathname === item.path || location.pathname.includes(item.id)
+    ) ||
+    navigationItems.find((item) => item.id === "pricing") ||
+    navigationItems[0];
 
   const breadcrumbs = getBreadcrumbs(location.pathname);
 

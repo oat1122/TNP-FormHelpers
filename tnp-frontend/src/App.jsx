@@ -30,9 +30,6 @@ const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
 // Accounting components
 const AccountingLayout = lazy(() => import("./pages/Accounting/AccountingLayout"));
-const AccountingDashboard = lazy(
-  () => import("./pages/Accounting/AccountingDashboard/AccountingDashboard")
-);
 const PricingIntegration = lazy(
   () => import("./pages/Accounting/PricingIntegration/PricingIntegration")
 );
@@ -82,11 +79,10 @@ function App() {
 
               {/* Accounting Routes */}
               <Route path="/accounting" element={<AccountingLayout />}>
-                <Route index element={<AccountingDashboard />} />
+                <Route index element={<PricingIntegration />} />
                 <Route path="pricing-integration" element={<PricingIntegration />} />
                 <Route path="quotations" element={<Quotations />} />
                 <Route path="invoices" element={<Invoices />} />
-                <Route path="receipts" element={<div>Receipts (Coming Soon)</div>} />
                 <Route path="delivery-notes" element={<DeliveryNotes />} />
               </Route>
 

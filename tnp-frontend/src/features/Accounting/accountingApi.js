@@ -1,14 +1,51 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 import { apiConfig } from "../../api/apiConfig";
+import {
+  createApiCache,
+  measureExecutionTime,
+} from "../../pages/Accounting/utils/performanceUtils";
 
-export const accountingApi = createApi({
-  reducerPath: "accountingApi",
-  baseQuery: fetchBaseQuery({
+// สร้าง cache instance สำหรับ API responses
+const apiCache = createApiCache(5 * 60 * 1000); // 5 minutes TTL
+
+// Enhanced base query with caching and performance monitoring
+const enhancedBaseQuery = async (args, api, extraOptions) => {
+  const cacheKey =
+    typeof args === "string" ? args : `${args.url}_${JSON.stringify(args.params || {})}`;
+
+  // ตรวจสอบ cache ก่อน
+  const cachedData = apiCache.get(cacheKey);
+  if (cachedData && !extraOptions?.forceRefresh) {
+    return { data: cachedData };
+  }
+
+  // วัดเวลาการ execute API call
+  const startTime = performance.now();
+
+  const result = await fetchBaseQuery({
     baseUrl: `${apiConfig.baseUrl}`,
     prepareHeaders: apiConfig.prepareHeaders,
     credentials: apiConfig.credentials,
-  }),
+  })(args, api, extraOptions);
+
+  const endTime = performance.now();
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[API Performance] ${cacheKey}: ${(endTime - startTime).toFixed(2)}ms`);
+  }
+
+  // Cache successful responses
+  if (result.data && !result.error) {
+    apiCache.set(cacheKey, result.data);
+  }
+
+  return result;
+};
+
+export const accountingApi = createApi({
+  reducerPath: "accountingApi",
+  baseQuery: enhancedBaseQuery,
   tagTypes: [
     "PricingRequest",
     "Quotation",
@@ -82,7 +119,7 @@ export const accountingApi = createApi({
           params: {
             status: "complete",
             page: params.page || 1,
-            per_page: params.per_page || 20,
+            per_page: params.per_page || 50, // เพิ่ม default page size
             user: userUuid, // 🔐 ส่ง user uuid สำหรับ access control
             ...params,
           },
@@ -90,7 +127,32 @@ export const accountingApi = createApi({
       },
       providesTags: ["PricingRequest"],
       // Keep previous data while fetching new data for better UX
-      keepUnusedDataFor: 60, // 1 minute
+      keepUnusedDataFor: 300, // 5 minutes
+      // Transform response เพื่อ optimize data structure
+      transformResponse: (response) => {
+        if (response?.data) {
+          // Pre-process data for better performance
+          const processedData = response.data.map((item) => ({
+            ...item,
+            // Add computed fields to avoid runtime calculations
+            _customerId: (
+              item.customer?.cus_id ||
+              item.pr_cus_id ||
+              item.customer_id ||
+              item.cus_id ||
+              ""
+            ).toString(),
+            _displayName: item.customer?.name || item.customer?.cus_name || "Unknown Customer",
+            _totalAmount: parseFloat(item.total_amount || 0),
+          }));
+
+          return {
+            ...response,
+            data: processedData,
+          };
+        }
+        return response;
+      },
     }),
 
     getPricingRequestAutofill: builder.query({

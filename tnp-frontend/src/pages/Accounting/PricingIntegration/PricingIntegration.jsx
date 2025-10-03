@@ -30,13 +30,26 @@ import {
   addNotification,
 } from "../../../features/Accounting/accountingSlice";
 import accountingTheme from "../theme/accountingTheme";
+// Import performance optimization hooks - commented out temporarily
+// import {
+//   usePerformanceMonitor,
+//   useDebounceSearch,
+//   useOptimizedPagination,
+//   useOptimizedFilter,
+// } from "../hooks/useAccountingOptimization";
+// import { PricingRequestListSkeleton } from "../components/SkeletonLoaders";
 
 // Main Component
 const PricingIntegration = () => {
   const dispatch = useDispatch();
   const filters = useSelector(selectFilters);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  // Performance monitoring - temporarily disabled
+  // const { logCustomMetric } = usePerformanceMonitor("PricingIntegration");
+
+  // Simple search without debouncing for now
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -49,7 +62,7 @@ const PricingIntegration = () => {
   // Local overrides for customer info (to reflect edits without refetch)
   const [customerOverrides, setCustomerOverrides] = useState({}); // key by cus_id
 
-  // Pagination states
+  // Pagination states - use simple pagination for now
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -61,7 +74,7 @@ const PricingIntegration = () => {
     refetch,
     isFetching,
   } = useGetCompletedPricingRequestsQuery({
-    search: searchQuery,
+    search: searchTerm, // ใช้ searchTerm ชั่วคราว
     date_start: dateRange.start,
     date_end: dateRange.end,
     customer_id: selectedCustomer?.id,
@@ -72,17 +85,18 @@ const PricingIntegration = () => {
   // Group pricing requests by customer to avoid duplicate customer cards
   // and track quotation status to prevent duplicate quotation creation
   const groupedPricingRequests = useMemo(() => {
+    // Performance logging temporarily disabled
+    // const startTime = performance.now();
+
     if (!pricingRequests?.data) return [];
     const map = new Map();
 
     pricingRequests.data.forEach((req) => {
-      const customerId = (
-        req.customer?.cus_id ||
-        req.pr_cus_id ||
-        req.customer_id ||
-        req.cus_id ||
-        ""
-      ).toString();
+      // ใช้ pre-computed customerId จาก API transform
+      const customerId =
+        req._customerId ||
+        (req.customer?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id || "").toString();
+
       if (!customerId) return;
 
       if (!map.has(customerId)) {
@@ -123,7 +137,13 @@ const PricingIntegration = () => {
       val.total_count = val.requests.length;
     });
 
-    return Array.from(map.values());
+    const result = Array.from(map.values());
+
+    // Performance logging temporarily disabled
+    // const endTime = performance.now();
+    // logCustomMetric("groupedPricingRequests processing", `${(endTime - startTime).toFixed(2)}ms`);
+
+    return result;
   }, [pricingRequests, customerOverrides]);
 
   // Client-side pagination based on grouped customers
@@ -169,7 +189,7 @@ const PricingIntegration = () => {
   // Event Handlers
   const handleSearch = useCallback(
     (query) => {
-      setSearchQuery(query);
+      setSearchTerm(query);
       setCurrentPage(1); // Reset to first page on search
       dispatch(setFilters({ searchQuery: query }));
     },
@@ -550,7 +570,7 @@ const PricingIntegration = () => {
   }, []);
 
   const handleResetFilters = () => {
-    setSearchQuery("");
+    setSearchTerm("");
     setDateRange({ start: null, end: null });
     setSelectedCustomer(null);
     dispatch(resetFilters());
@@ -578,7 +598,7 @@ const PricingIntegration = () => {
             <Container maxWidth="xl" sx={{ py: 4 }}>
               {/* Filters Section */}
               <FilterSection
-                searchQuery={searchQuery}
+                searchQuery={searchTerm}
                 onSearchChange={handleSearch}
                 dateRange={dateRange}
                 onDateRangeChange={setDateRange}

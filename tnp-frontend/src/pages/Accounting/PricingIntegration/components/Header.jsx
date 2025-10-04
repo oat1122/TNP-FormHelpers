@@ -2,7 +2,7 @@ import { Box, Container, Typography } from "@mui/material";
 import React from "react";
 
 const Header = ({
-  title = "📊 งานใหม่จากระบบ Pricing",
+  title = "งานใหม่จากระบบ Pricing",
   subtitle = "เลือกงานที่เสร็จสมบูรณ์แล้วเพื่อสร้างใบเสนอราคา",
 }) => {
   return (
@@ -15,10 +15,12 @@ const Header = ({
       }}
     >
       <Container maxWidth="xl">
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ color: "white" }}>
           {title}
         </Typography>
-        <Typography variant="subtitle1">{subtitle}</Typography>
+        <Typography variant="subtitle1" sx={{ color: "white" }}>
+          {subtitle}
+        </Typography>
       </Container>
     </Box>
   );

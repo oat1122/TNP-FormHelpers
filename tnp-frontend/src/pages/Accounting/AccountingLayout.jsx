@@ -120,10 +120,12 @@ const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
       }}
     >
       <Box sx={{ p: 3, bgcolor: "primary.main", color: "white" }}>
-        <Typography variant="h6" component="div" fontWeight={600}>
+        <Typography variant="h6" component="div" fontWeight={600} sx={{ color: "white" }}>
           ระบบบัญชี TNP
         </Typography>
-        <Typography variant="caption">จัดการเอกสารทางการเงิน</Typography>
+        <Typography variant="caption" sx={{ color: "white" }}>
+          จัดการเอกสารทางการเงิน
+        </Typography>
       </Box>
 
       <List sx={{ p: 2 }}>
@@ -156,6 +158,7 @@ const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
                 primary={item.title}
                 primaryTypographyProps={{
                   fontWeight: selectedItem === item.id ? 600 : 400,
+                  color: selectedItem === item.id ? "white" : "inherit",
                 }}
               />
             </ListItemButton>
@@ -200,7 +203,7 @@ const Header = ({ onMenuClick, unreadCount }) => {
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: "white" }}>
           ระบบบัญชี TNP
         </Typography>
 

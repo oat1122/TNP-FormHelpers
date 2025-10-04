@@ -34,11 +34,20 @@ class AutofillService
             // ดึงข้อมูลลูกค้า
             $customer = $pricingRequest->pricingCustomer;
             
-            // ดึง Notes
-            $notes = $pricingRequest->pricingNote()
-                ->where('prn_is_deleted', 0)
-                ->orderBy('prn_created_date', 'ASC')
-                ->get();
+            // ดึง Notes โดยตรวจสอบสิทธิ์การเข้าถึง manager notes
+            $user = auth()->user();
+            $allowedRoles = ['production', 'manager', 'admin'];
+            $canViewManagerNotes = $user && in_array($user->role, $allowedRoles);
+            
+            $noteQuery = $pricingRequest->pricingNote()
+                ->where('prn_is_deleted', 0);
+                
+            // จำกัดการเข้าถึง manager notes (type 3) ตามสิทธิ์
+            if (!$canViewManagerNotes) {
+                $noteQuery->whereIn('prn_note_type', [1, 2]); // เฉพาะ sale และ price
+            }
+            
+            $notes = $noteQuery->orderBy('prn_created_date', 'ASC')->get();
 
             // จัดรูปแบบ Notes
             $formattedNotes = $notes->map(function ($note) {
@@ -458,9 +467,16 @@ class AutofillService
             }
 
             // ดึง Notes ตามเงื่อนไขที่กำหนด
+            // ตรวจสอบสิทธิ์การเข้าถึง manager notes (type 3)
+            $allowedRoles = ['production', 'manager', 'admin'];
+            $user = auth()->user();
+            $canViewManagerNotes = $user && in_array($user->role, $allowedRoles);
+            
+            $noteTypes = $canViewManagerNotes ? [1, 2, 3] : [1, 2]; // sale, price, และ manager (ถ้ามีสิทธิ์)
+            
             $notes = PricingRequestNote::with('prnCreatedBy')
                 ->where('prn_pr_id', $pricingRequestId)
-                ->whereIn('prn_note_type', [1, 2]) // เฉพาะ sale และ price
+                ->whereIn('prn_note_type', $noteTypes)
                 ->where('prn_is_deleted', 0)
                 ->orderBy('prn_created_date', 'ASC')
                 ->get();
@@ -469,12 +485,14 @@ class AutofillService
             $formattedNotes = $notes->map(function ($note) {
                 $noteTypeLabels = [
                     1 => 'Sale',
-                    2 => 'Price'
+                    2 => 'Price',
+                    3 => 'Manager'
                 ];
 
                 $noteTypeColors = [
                     1 => '#2196F3', // Blue for Sale
-                    2 => '#4CAF50'  // Green for Price
+                    2 => '#4CAF50', // Green for Price
+                    3 => '#FF9800'  // Orange for Manager
                 ];
 
                 return [
@@ -495,11 +513,13 @@ class AutofillService
             $groupedNotes = [
                 'sale_notes' => $formattedNotes->where('prn_note_type', 1)->values(),
                 'price_notes' => $formattedNotes->where('prn_note_type', 2)->values(),
+                'manager_notes' => $canViewManagerNotes ? $formattedNotes->where('prn_note_type', 3)->values() : [],
                 'all_notes' => $formattedNotes->values(),
                 'summary' => [
                     'total_notes' => $formattedNotes->count(),
                     'sale_count' => $formattedNotes->where('prn_note_type', 1)->count(),
-                    'price_count' => $formattedNotes->where('prn_note_type', 2)->count()
+                    'price_count' => $formattedNotes->where('prn_note_type', 2)->count(),
+                    'manager_count' => $canViewManagerNotes ? $formattedNotes->where('prn_note_type', 3)->count() : 0
                 ]
             ];
 

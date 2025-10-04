@@ -75,7 +75,7 @@ function DialogForm(props) {
     view: "ดู",
   };
 
-  const roleList = ["admin", "manager", "production", "graphic", "sale", "technician"];
+  const roleList = ["admin", "manager", "account", "production", "graphic", "sale", "technician"];
 
   const renderPasswordSection = () => {
     let content;

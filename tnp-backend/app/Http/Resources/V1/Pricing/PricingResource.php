@@ -56,7 +56,22 @@ class PricingResource extends JsonResource
             // note pricing
             'note_sales' => $PricingService->resultWithNoteType($this->pricingNote, 1),
             'note_price' => $PricingService->resultWithNoteType($this->pricingNote, 2),
-            'note_manager' => $PricingService->resultWithNoteType($this->pricingNote, 3),
+            'note_manager' => $this->canViewManagerNotes() ? $PricingService->resultWithNoteType($this->pricingNote, 3) : [],
         ];
+    }
+
+    /**
+     * Check if current user can view manager notes (prn_note_type = 3)
+     * Only production, manager, admin roles can see cost information
+     */
+    private function canViewManagerNotes(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        $allowedRoles = ['production', 'manager', 'admin'];
+        return in_array($user->role, $allowedRoles);
     }
 }

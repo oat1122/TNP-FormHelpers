@@ -346,48 +346,11 @@ function ControlPanel() {
         <hr />
         <div className="row col-11">
           <div className="col-md-12 col-lg-6 ms-md-1 ms-lg-2 col-basic">
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
+            <a className="btn btn-outline-danger pt-3" href="/accounting">
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaFileInvoice />
+                <FaCalendarAlt />
               </IconContext.Provider>
-              <label>QUOTATION</label>
-            </a>
-            <div className="vr vr-home"></div>
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
-              <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaFileInvoiceDollar />
-              </IconContext.Provider>
-              <label>INVOICE</label>
-            </a>
-            <div className="vr vr-home"></div>
-            <a
-              className="btn btn-outline-danger disable-link pt-3"
-              href="#"
-              style={{ width: "5.7rem" }}
-            >
-              <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaFileInvoiceDollar />
-              </IconContext.Provider>
-              <label>TAX-INVOICE</label>
-            </a>
-            <div className="vr vr-home d-none d-sm-inline-block"></div>
-            <a className="btn btn-outline-danger disable-link pt-3" href="#">
-              <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaFileAlt />
-              </IconContext.Provider>
-              <br />
-              <label>BILL</label>
-            </a>
-            <div className="vr vr-home"></div>
-            <a
-              className="btn btn-outline-danger disable-link pt-3"
-              href="#"
-              style={{ width: "6.5rem" }}
-            >
-              <IconContext.Provider value={{ className: "icon-control-panel" }}>
-                <FaTruck />
-              </IconContext.Provider>
-              <label>DELIVERY NOTE</label>
+              <label>ACCOUNTING</label>
             </a>
           </div>
         </div>

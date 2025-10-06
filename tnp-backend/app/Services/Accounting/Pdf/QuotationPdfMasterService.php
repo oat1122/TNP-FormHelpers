@@ -200,9 +200,9 @@ class QuotationPdfMasterService
     {
         return [
             // Shared base (typography + utilities) applied first
-            resource_path('views\\accounting\\pdf\shared\pdf-shared-base.css'),
-            resource_path('views\accounting\pdf\quotation\quotation-master.css'),
-            resource_path('views\pdf\partials\quotation-header.css'),
+            resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/quotation/quotation-master.css'),
+            resource_path('views/pdf/partials/quotation-header.css'),
             // resource_path('views/accounting/pdf/quotation/quotation-master.css'),
         ];
     }

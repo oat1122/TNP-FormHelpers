@@ -4,6 +4,7 @@ namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Quotation;
 use App\Services\Accounting\Pdf\CustomerInfoExtractor;
+use App\Services\CompanyLogoService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Mpdf\Config\ConfigVariables;
@@ -228,9 +229,14 @@ class QuotationPdfMasterService
         $customer  = $data['customer'];
         $isFinal   = $data['isFinal'];
 
+        // ดึงโลโก้แบบ absolute path ที่ mPDF อ่านได้
+        $companyId = $quotation->company_id ?? $quotation->customer?->company_id ?? null;
+        $logoInfo = app(\App\Services\CompanyLogoService::class)->getLogoInfo($companyId);
+        $logoPath = $logoInfo['path'] ?? public_path('images/logo.png');
+
         // Header
         $headerHtml = View::make('accounting.pdf.quotation.partials.quotation-header', compact(
-            'quotation', 'customer', 'isFinal'
+            'quotation', 'customer', 'isFinal', 'logoPath'
         ))->render();
 
         // Footer

@@ -3,7 +3,13 @@
   <tr>
     <td class="header-left">
       <div class="logo-wrap">
-        <x-company-logo :company-id="$invoice->company->id ?? null" css-class="logo-img" alt="logo" :for-pdf="true" />
+        <x-company-logo 
+          :company-id="$invoice->company->id ?? null" 
+          :logo-path="$logoPath ?? null"
+          css-class="logo-img" 
+          alt="logo" 
+          :for-pdf="true" 
+        />
       </div>
 
       <div class="company-name">{{ $invoice->company->legal_name ?? $invoice->company->name ?? 'บริษัทของคุณ' }}</div>

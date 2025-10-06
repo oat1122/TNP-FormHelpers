@@ -3,6 +3,7 @@
 namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Invoice;
+use App\Services\CompanyLogoService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Mpdf\Config\ConfigVariables;
@@ -171,9 +172,14 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
         $isFinal  = $data['isFinal'];
         $summary  = $data['summary'] ?? [];
 
+        // ดึงโลโก้แบบ absolute path ที่ mPDF อ่านได้
+        $companyId = $invoice->company_id ?? $invoice->customer?->company_id ?? null;
+        $logoInfo = app(\App\Services\CompanyLogoService::class)->getLogoInfo($companyId);
+        $logoPath = $logoInfo['path'] ?? public_path('images/logo.png');
+
         // Header เฉพาะ Receipt
         $headerHtml = View::make('accounting.pdf.receipt.partials.receipt-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary'
+            'invoice', 'customer', 'isFinal', 'summary', 'logoPath'
         ))->render();
 
         // Footer ใช้ของ invoice เดิม

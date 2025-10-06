@@ -5,6 +5,7 @@
       {{-- โลโก้บริษัท --}}
       <x-company-logo 
         :company-id="$quotation->company->id ?? null" 
+        :logo-path="$logoPath ?? null"
         css-class="logo-img" 
         alt="logo" 
         :for-pdf="true" 

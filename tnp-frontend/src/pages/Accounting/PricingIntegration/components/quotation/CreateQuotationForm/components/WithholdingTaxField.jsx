@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 
-import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
+import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 
@@ -50,8 +50,10 @@ const WithholdingTaxField = ({
   };
 
   const handlePercentageChange = (value) => {
-    const sanitizedValue = sanitizeDecimal(value, 0, 10);
-    onTaxPercentageChange?.(sanitizedValue);
+    const numValue = parseFloat(value) || 0;
+    // จำกัดค่าไม่ให้เกิน 10%
+    const clampedValue = Math.min(Math.max(numValue, 0), 10);
+    onTaxPercentageChange?.(clampedValue);
   };
 
   const calculatedTaxAmount = subtotalAmount * (taxPercentage / 100);
@@ -235,7 +237,7 @@ const WithholdingTaxField = ({
                   },
                 }}
                 value={String(taxPercentage || "")}
-                onChange={(e) => handlePercentageChange(e.target.value)}
+                onChange={createDecimalInputHandler(handlePercentageChange)}
                 placeholder="0.00"
                 disabled={disabled}
                 sx={{

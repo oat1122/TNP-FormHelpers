@@ -29,7 +29,12 @@ import Calculation from "../../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../../shared/components/PaymentTerms";
 import { useQuotationFinancials } from "../../../../shared/hooks/useQuotationFinancials";
-import { sanitizeInt, sanitizeDecimal } from "../../../../shared/inputSanitizers";
+import {
+  sanitizeInt,
+  sanitizeDecimal,
+  createIntegerInputHandler,
+  createDecimalInputHandler,
+} from "../../../../shared/inputSanitizers";
 import CustomerEditCard from "../../CustomerEditCard";
 import PricingRequestNotesButton from "../../PricingRequestNotesButton";
 import QuotationPreview from "../../QuotationPreview";
@@ -772,11 +777,11 @@ const CreateQuotationForm = ({
                                         inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
                                         value={String(row.quantity ?? "")}
                                         disabled={!isCalcEditing}
-                                        onChange={(e) =>
+                                        onChange={createIntegerInputHandler((value) =>
                                           updateSizeRow(item.id, row.uuid, {
-                                            quantity: sanitizeInt(e.target.value),
+                                            quantity: value,
                                           })
-                                        }
+                                        )}
                                       />
                                     </Grid>
                                     <Grid item xs={6} md={3}>
@@ -788,11 +793,11 @@ const CreateQuotationForm = ({
                                         inputProps={{ inputMode: "decimal" }}
                                         value={String(row.unitPrice ?? "")}
                                         disabled={!isCalcEditing}
-                                        onChange={(e) =>
+                                        onChange={createDecimalInputHandler((value) =>
                                           updateSizeRow(item.id, row.uuid, {
-                                            unitPrice: sanitizeDecimal(e.target.value),
+                                            unitPrice: value,
                                           })
-                                        }
+                                        )}
                                       />
                                     </Grid>
                                     <Grid item xs={10} md={2}>

@@ -30,6 +30,7 @@ import {
   useSubmitQuotationMutation,
 } from "../../../features/Accounting/accountingApi";
 import { addNotification } from "../../../features/Accounting/accountingSlice";
+import { useQuotationOptimisticUpdates } from "../hooks/useOptimisticUpdates";
 import {
   Header,
   FilterSection,
@@ -114,80 +115,30 @@ const Quotations = () => {
   const [uploadEvidence] = useUploadQuotationEvidenceMutation();
   const [submitQuotation] = useSubmitQuotationMutation();
 
+  // ใช้ optimistic updates hooks
+  const {
+    approveQuotation: handleApproveOptimistic,
+    rejectQuotation: handleRejectOptimistic,
+    sendBackQuotation: handleSendBackOptimistic,
+    submitQuotation: handleSubmitOptimistic,
+    uploadEvidence: handleUploadOptimistic,
+    markQuotationSent: handleMarkSentOptimistic,
+  } = useQuotationOptimisticUpdates();
+
   const handleApprove = async (id, notes) => {
-    try {
-      await approveQuotation({ id, notes }).unwrap();
-      dispatch(
-        addNotification({ type: "success", title: "อนุมัติแล้ว", message: "เอกสารถูกอนุมัติ" })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleApproveOptimistic(approveQuotation, id, notes);
   };
 
   const handleReject = async (id, reason) => {
-    try {
-      await rejectQuotation({ id, reason }).unwrap();
-      dispatch(
-        addNotification({ type: "success", title: "ปฏิเสธแล้ว", message: "ได้ปฏิเสธเอกสาร" })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleRejectOptimistic(rejectQuotation, id, reason);
   };
 
   const handleSendBack = async (id, reason) => {
-    try {
-      await sendBackQuotation({ id, reason }).unwrap();
-      dispatch(
-        addNotification({ type: "info", title: "ส่งกลับแก้ไข", message: "ส่งกลับให้ฝ่ายขายแก้ไข" })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleSendBackOptimistic(sendBackQuotation, id, reason);
   };
 
   const handleMarkSent = async (id, payload) => {
-    try {
-      await markSent({ id, ...payload }).unwrap();
-      dispatch(
-        addNotification({
-          type: "success",
-          title: "บันทึกการส่งแล้ว",
-          message: "เปลี่ยนสถานะเป็น sent",
-        })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleMarkSentOptimistic(markSent, id, payload);
   };
 
   const handleDownloadPDF = async (id) => {
@@ -208,46 +159,15 @@ const Quotations = () => {
   };
 
   const handleUploadEvidence = async (id, files, description) => {
-    try {
-      await uploadEvidence({ id, files, description }).unwrap();
-      dispatch(
-        addNotification({ type: "success", title: "อัปโหลดสำเร็จ", message: "แนบหลักฐานเรียบร้อย" })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "อัปโหลดไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleUploadOptimistic(uploadEvidence, id, files, description);
   };
 
   const handleSubmitForReview = async (id) => {
-    try {
-      await submitQuotation(id).unwrap();
-      dispatch(
-        addNotification({
-          type: "success",
-          title: "ส่งตรวจสอบแล้ว",
-          message: "สถานะเปลี่ยนเป็นรอตรวจสอบ",
-        })
-      );
-      refetch();
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ส่งตรวจสอบไม่สำเร็จ",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+    await handleSubmitOptimistic(submitQuotation, id);
   };
 
   const handleRefresh = useCallback(() => {
+    // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
     refetch();
     dispatch(
       addNotification({

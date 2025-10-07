@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 
-import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
+import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 
@@ -50,8 +50,10 @@ const VatField = ({
   };
 
   const handlePercentageChange = (value) => {
-    const sanitizedValue = sanitizeDecimal(value, 0, 100);
-    onVatPercentageChange?.(sanitizedValue);
+    const numValue = parseFloat(value) || 0;
+    // จำกัดค่าไม่ให้เกิน 100%
+    const clampedValue = Math.min(Math.max(numValue, 0), 100);
+    onVatPercentageChange?.(clampedValue);
   };
 
   const calculatedVatAmount = subtotalAmount * (vatPercentage / 100);
@@ -216,7 +218,7 @@ const VatField = ({
                   },
                 }}
                 value={String(vatPercentage || "")}
-                onChange={(e) => handlePercentageChange(e.target.value)}
+                onChange={createDecimalInputHandler(handlePercentageChange)}
                 placeholder="7.00"
                 disabled={disabled}
                 sx={{

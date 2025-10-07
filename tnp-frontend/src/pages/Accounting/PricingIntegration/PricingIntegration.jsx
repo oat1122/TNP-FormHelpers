@@ -208,6 +208,7 @@ const PricingIntegration = () => {
   }, []);
 
   const handleRefresh = useCallback(() => {
+    // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
     refetch();
     dispatch(
       addNotification({
@@ -251,8 +252,7 @@ const PricingIntegration = () => {
       setShowCreateModal(false);
       setSelectedPricingRequest(null);
 
-      // Refresh data
-      refetch();
+      // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
     } catch (error) {
       dispatch(
         addNotification({
@@ -427,7 +427,7 @@ const PricingIntegration = () => {
       // รีเซ็ตฟอร์มและกลับไปหน้าหลัก
       setShowCreateForm(false);
       setSelectedPricingRequests([]);
-      refetch(); // รีเฟรชข้อมูล pricing requests
+      // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
     } catch (error) {
       console.error("❌ Error saving draft:", error);
 
@@ -536,7 +536,7 @@ const PricingIntegration = () => {
       // รีเซ็ตฟอร์มและกลับไปหน้าหลัก
       setShowCreateForm(false);
       setSelectedPricingRequests([]);
-      refetch(); // รีเฟรชข้อมูล pricing requests
+      // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
     } catch (error) {
       console.error("❌ Error submitting quotation:", error);
 

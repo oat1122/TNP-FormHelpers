@@ -77,6 +77,7 @@ const DeliveryNotes = () => {
   const [generatePDF] = useGenerateDeliveryNotePDFMutation();
 
   const handleRefresh = () => {
+    // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
     refetch();
   };
 
@@ -120,7 +121,7 @@ const DeliveryNotes = () => {
     setCreateDialogOpen(false);
     setSelectedSource(null);
     showSuccess("Delivery note created");
-    refetch();
+    // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
   };
 
   const handleViewNote = (note) => {
@@ -278,14 +279,14 @@ const DeliveryNotes = () => {
         open={detailDialogOpen}
         deliveryNoteId={selectedDeliveryNoteId}
         onClose={handleDetailClose}
-        onUpdated={refetch}
+        onUpdated={() => {}} // RTK Query จะ invalidate cache อัตโนมัติแล้ว
       />
 
       <DeliveryNoteEditDialog
         open={editDialogOpen}
         deliveryNoteId={selectedDeliveryNoteId}
         onClose={handleEditClose}
-        onUpdated={refetch}
+        onUpdated={() => {}} // RTK Query จะ invalidate cache อัตโนมัติแล้ว
       />
     </ThemeProvider>
   );

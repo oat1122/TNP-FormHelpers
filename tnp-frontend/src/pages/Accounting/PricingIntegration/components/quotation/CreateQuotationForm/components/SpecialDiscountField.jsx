@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import React from "react";
 
-import { sanitizeDecimal } from "../../../../../shared/inputSanitizers";
+import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 
@@ -64,9 +64,14 @@ const SpecialDiscountField = ({
     discountTypeOptions.find((opt) => opt.value === discountType) || discountTypeOptions[0];
 
   const handleValueChange = (value) => {
-    const numValue = Number(value) || 0;
-    const sanitizedValue = sanitizeDecimal(numValue, 0, currentOption?.maxValue || 0);
-    onDiscountValueChange?.(sanitizedValue);
+    // ใช้ค่าที่ sanitize แล้วโดยตรงแทนการแปลงเป็นตัวเลขก่อน
+    const numValue = parseFloat(value) || 0;
+    const maxValue = currentOption?.maxValue || 0;
+
+    // จำกัดค่าไม่ให้เกินจำนวนสูงสุด
+    const clampedValue = maxValue > 0 ? Math.min(numValue, maxValue) : numValue;
+
+    onDiscountValueChange?.(clampedValue);
   };
 
   const discountPercentage =
@@ -179,7 +184,7 @@ const SpecialDiscountField = ({
               },
             }}
             value={String(safeDiscountValue || "")}
-            onChange={(e) => handleValueChange(e.target.value)}
+            onChange={createDecimalInputHandler(handleValueChange)}
             placeholder={currentOption.placeholder}
             disabled={disabled}
             sx={{

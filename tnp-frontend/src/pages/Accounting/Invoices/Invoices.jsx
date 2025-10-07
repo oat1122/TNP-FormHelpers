@@ -74,7 +74,7 @@ const Invoices = () => {
   };
 
   const handleInvoiceCreated = () => {
-    refetchInvoices();
+    // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
     setCreateDialogOpen(false);
     setSelectedQuotation(null);
   };
@@ -362,7 +362,7 @@ const Invoices = () => {
                         try {
                           if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
                           await approveInvoice({ id: inv.id, notes }).unwrap();
-                          refetchInvoices();
+                          // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
                         } catch (e) {
                           console.error("Approve invoice failed", e);
                         }
@@ -370,7 +370,7 @@ const Invoices = () => {
                       onSubmit={async () => {
                         try {
                           if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
-                          refetchInvoices();
+                          // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
                         } catch (e) {
                           console.error("Submit invoice failed", e);
                         }

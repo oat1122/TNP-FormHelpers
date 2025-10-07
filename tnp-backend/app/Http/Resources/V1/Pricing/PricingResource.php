@@ -20,7 +20,14 @@ class PricingResource extends JsonResource
         $cus_fullname = ($this->pricingCustomer->cus_firstname ?? '') . ' ' . ($this->pricingCustomer->cus_lastname ?? '');
         $images_r = $this->pr_image ? url('storage/images/pricing_req/' . $this->pr_image) : '';
 
-        return [
+        // Get user role from request to determine note visibility
+        $user_uuid = $request->input('user') ?? $request->header('user');
+        $user_role = null;
+        if ($user_uuid) {
+            $user_role = \App\Models\User::where('user_uuid', $user_uuid)->value('role');
+        }
+
+        $result = [
             'pr_id' => $this->pr_id,
             'pr_cus_id' => $this->pr_cus_id,
             'pr_mpc_id' => $this->pr_mpc_id ?? '',
@@ -56,22 +63,13 @@ class PricingResource extends JsonResource
             // note pricing
             'note_sales' => $PricingService->resultWithNoteType($this->pricingNote, 1),
             'note_price' => $PricingService->resultWithNoteType($this->pricingNote, 2),
-            'note_manager' => $this->canViewManagerNotes() ? $PricingService->resultWithNoteType($this->pricingNote, 3) : [],
         ];
-    }
 
-    /**
-     * Check if current user can view manager notes (prn_note_type = 3)
-     * Only production, manager, admin roles can see cost information
-     */
-    private function canViewManagerNotes(): bool
-    {
-        $user = auth()->user();
-        if (!$user) {
-            return false;
+        // Only include note_manager for roles other than account and sale
+        if (!in_array($user_role, ['account', 'sale'])) {
+            $result['note_manager'] = $PricingService->resultWithNoteType($this->pricingNote, 3);
         }
 
-        $allowedRoles = ['production', 'manager', 'admin'];
-        return in_array($user->role, $allowedRoles);
+        return $result;
     }
 }

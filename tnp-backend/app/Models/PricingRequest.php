@@ -8,8 +8,6 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Accounting\QuotationItem;
 
 /**
  * Class PricingRequest
@@ -88,29 +86,19 @@ class PricingRequest extends Model
 	public function pricingCustomer()
     {
         return $this->belongsTo(MasterCustomer::class, 'pr_cus_id', 'cus_id')
-			->select('cus_id', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_company', 
-					'cus_tel_1', 'cus_tel_2', 'cus_email', 'cus_tax_id', 'cus_address', 
-					'cus_zip_code', 'cus_depart');
+			->select('cus_id', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_company', 'cus_tel_1', 'cus_email');
     }
 
-    public function pricingStatus()
+	public function pricingStatus()
     {
         return $this->belongsTo(MasterStatus::class, 'pr_status_id', 'status_id')
-                        ->select('status_id', 'status_name');
+			->select('status_id', 'status_name');
     }
 
-    public function pricingNote()
+	public function pricingNote()
     {
         return $this->hasMany(PricingRequestNote::class, 'prn_pr_id', 'pr_id')
-                        ->orderBy('prn_created_date', 'desc')
-                        ->select('prn_id', 'prn_pr_id', 'prn_text', 'prn_note_type', 'prn_is_deleted', 'prn_created_date', 'prn_created_by');
-    }
-
-        /**
-     * Relationship: Pricing Request has many Quotation Items
-     */
-    public function quotationItems(): HasMany
-    {
-        return $this->hasMany(QuotationItem::class, 'pricing_request_id', 'pr_id');
+			->orderBy('prn_created_date', 'desc')
+			->select('prn_id', 'prn_pr_id', 'prn_text', 'prn_note_type', 'prn_is_deleted', 'prn_created_date', 'prn_created_by');
     }
 }

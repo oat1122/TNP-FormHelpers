@@ -44,7 +44,7 @@ class PricingController extends Controller
                     $query->where('status_is_deleted', false);
                     $query->where('pr_is_deleted', false);
 
-                    if (!in_array($user_q->role, ['admin', 'manager', 'production'])) {
+                    if (!in_array($user_q->role, ['admin', 'manager', 'production', 'account'])) {
                         $query->where('pr_created_by', $user_q->user_uuid);
                     };
 
@@ -76,8 +76,8 @@ class PricingController extends Controller
                 $prepared_statement->where('pr_status_id', $request->status);
             }
 
-            // query with user_id, if role is not admin, manager, production
-            if (!in_array($user_q->role, ['admin', 'manager', 'production'])) {
+            // query with user_id, if role is not admin, manager, production, account
+            if (!in_array($user_q->role, ['admin', 'manager', 'production', 'account'])) {
                 $prepared_statement->where('pr_created_by', $user_q->user_uuid);
                 $total_query->where('pr_created_by', $user_q->user_uuid);
             };
@@ -221,15 +221,24 @@ class PricingController extends Controller
                 'note_manager' => 3,
             ];
             
+            // Get user role to restrict note_manager access
+            $user_role = User::where('user_uuid', $data_input['pr_created_by'])->value('role');
+            
             foreach ($noteTypes as $key => $type) {
+                // Skip note_manager for account and sale roles
+                if ($key === 'note_manager' && in_array($user_role, ['account', 'sale'])) {
+                    continue;
+                }
 
-                foreach($data_input[$key] as $item) {
-                    if (!isset($item['prn_id'])) {
-                        $pricing_note = new PricingRequestNote();
-                        $pricing_note->fill($item);
-                        $pricing_note->prn_pr_id = $pr_id;
-                        $pricing_note->prn_note_type = $type;
-                        $pricing_note->save();
+                if (isset($data_input[$key])) {
+                    foreach($data_input[$key] as $item) {
+                        if (!isset($item['prn_id'])) {
+                            $pricing_note = new PricingRequestNote();
+                            $pricing_note->fill($item);
+                            $pricing_note->prn_pr_id = $pr_id;
+                            $pricing_note->prn_note_type = $type;
+                            $pricing_note->save();
+                        }
                     }
                 }
             }
@@ -377,15 +386,24 @@ class PricingController extends Controller
                 'note_manager' => 3,
             ];
             
+            // Get user role to restrict note_manager access
+            $user_role = User::where('user_uuid', $data_input['pr_updated_by'])->value('role');
+            
             foreach ($noteTypes as $key => $type) {
+                // Skip note_manager for account and sale roles
+                if ($key === 'note_manager' && in_array($user_role, ['account', 'sale'])) {
+                    continue;
+                }
 
-                foreach($data_input[$key] as $item) {
-                    if (!isset($item['prn_id'])) {
-                        $pricing_note = new PricingRequestNote();
-                        $pricing_note->fill($item);
-                        $pricing_note->prn_pr_id = $data_input['pr_id'];
-                        $pricing_note->prn_note_type = $type;
-                        $pricing_note->save();
+                if (isset($data_input[$key])) {
+                    foreach($data_input[$key] as $item) {
+                        if (!isset($item['prn_id'])) {
+                            $pricing_note = new PricingRequestNote();
+                            $pricing_note->fill($item);
+                            $pricing_note->prn_pr_id = $data_input['pr_id'];
+                            $pricing_note->prn_note_type = $type;
+                            $pricing_note->save();
+                        }
                     }
                 }
             }

@@ -193,9 +193,9 @@ class MasterCustomer extends Model
 			->select('dis_id', 'dis_pro_sort_id', 'dis_sort_id', 'dis_name_th');
 	}
 
-	public function customerProvince()
+	public function customerProvice()
 	{
-		return $this->belongsTo(MasterProvice::class, 'cus_pro_id', 'pro_id')
+		return $this->belongsTo(\App\Models\MasterProvice::class, 'cus_pro_id', 'pro_id')
 			->select('pro_id', 'pro_name_th', 'pro_sort_id');
 	}
 

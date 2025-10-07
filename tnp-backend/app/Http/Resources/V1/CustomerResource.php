@@ -52,7 +52,7 @@ class CustomerResource extends JsonResource
             'cus_address' => $this->cus_address ?? '',
             'cus_full_address' => $this->full_address ?? $this->cus_address ?? '',
             'cus_address_components' => $this->address_components ?? [],
-            'cus_province_name' => $this->customerProvince?->pro_name_th ?? '',
+            'cus_province_name' => $this->customerProvice?->pro_name_th ?? '',
             'cus_district_name' => $this->customerDistrict?->dis_name_th ?? '',
             'cus_subdistrict_name' => $this->customerSubdistrict?->sub_name_th ?? '',
             'cus_manage_by' => $this->formatManagerData(),

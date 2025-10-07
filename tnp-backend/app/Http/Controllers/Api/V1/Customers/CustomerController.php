@@ -75,7 +75,7 @@ class CustomerController extends Controller
                 ->get();
 
             // customer prepared sql
-            $customer_prepared = Customer::active()->with(['customerDetail', 'customerProvince', 'customerDistrict', 'customerSubdistrict']);
+            $customer_prepared = Customer::active()->with(['customerDetail', 'customerProvice', 'customerDistrict', 'customerSubdistrict']);
 
             // count all customer data
             $total_customers_q = Customer::active();

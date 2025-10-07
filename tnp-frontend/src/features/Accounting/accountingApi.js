@@ -1,51 +1,19 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 import { apiConfig } from "../../api/apiConfig";
-import {
-  createApiCache,
-  measureExecutionTime,
-} from "../../pages/Accounting/utils/performanceUtils";
 
-// สร้าง cache instance สำหรับ API responses
-const apiCache = createApiCache(5 * 60 * 1000); // 5 minutes TTL
-
-// Enhanced base query with caching and performance monitoring
-const enhancedBaseQuery = async (args, api, extraOptions) => {
-  const cacheKey =
-    typeof args === "string" ? args : `${args.url}_${JSON.stringify(args.params || {})}`;
-
-  // ตรวจสอบ cache ก่อน
-  const cachedData = apiCache.get(cacheKey);
-  if (cachedData && !extraOptions?.forceRefresh) {
-    return { data: cachedData };
-  }
-
-  // วัดเวลาการ execute API call
-  const startTime = performance.now();
-
-  const result = await fetchBaseQuery({
-    baseUrl: `${apiConfig.baseUrl}`,
-    prepareHeaders: apiConfig.prepareHeaders,
-    credentials: apiConfig.credentials,
-  })(args, api, extraOptions);
-
-  const endTime = performance.now();
-
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[API Performance] ${cacheKey}: ${(endTime - startTime).toFixed(2)}ms`);
-  }
-
-  // Cache successful responses
-  if (result.data && !result.error) {
-    apiCache.set(cacheKey, result.data);
-  }
-
-  return result;
-};
+// Base query configured with shared API settings for accounting endpoints
+const baseQuery = fetchBaseQuery({
+  baseUrl: `${apiConfig.baseUrl}`,
+  prepareHeaders: apiConfig.prepareHeaders,
+  credentials: apiConfig.credentials,
+});
 
 export const accountingApi = createApi({
   reducerPath: "accountingApi",
-  baseQuery: enhancedBaseQuery,
+  baseQuery,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
   tagTypes: [
     "PricingRequest",
     "Quotation",

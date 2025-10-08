@@ -2,7 +2,7 @@
 export { default as PricingRequestCard } from "./PricingRequestCard";
 export { default as CreateQuotationModal } from "./quotation/CreateQuotationModal";
 export { default as CreateQuotationForm } from "./quotation/CreateQuotationForm";
-export { default as QuotationPreview } from "./QuotationPreview";
+
 export { default as FilterSection } from "./FilterSection";
 export { default as PaginationSection } from "./PaginationSection";
 export { default as LoadingState } from "./LoadingState";

@@ -69,6 +69,11 @@ class QuotationItem extends Model
         return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
     }
 
+    public function pricingRequest(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PricingRequest::class, 'pricing_request_id', 'pr_id');
+    }
+
     /**
      * Computed subtotal for an item: (unit_price * quantity) - discount
      * If discount_amount missing, falls back to discount_percentage.

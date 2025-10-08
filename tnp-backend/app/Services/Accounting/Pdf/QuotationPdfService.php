@@ -13,7 +13,7 @@ class QuotationPdfService
      * Convert UTF-8 text to TIS-620 safely for FPDF Thai fonts.
      * Drops unsupported characters to avoid iconv warnings/exceptions.
      */
-    private function t($text): string
+    private function t(mixed $text): string
     {
         $s = iconv('UTF-8', 'TIS-620//IGNORE', (string)$text);
         return $s === false ? '' : $s;
@@ -68,7 +68,7 @@ class QuotationPdfService
             $imgW = 0; $imgH = 0; $calcH = 18.0;
             if (function_exists('getimagesize')) {
                 $info = @getimagesize($logoPath);
-                if (is_array($info) && isset($info[0], $info[1]) && $info[0] > 0) {
+                if (is_array($info) && $info[0] > 0) {
                     $calcH = ($info[1] / $info[0]) * $logoW;
                 }
             }
@@ -220,12 +220,12 @@ class QuotationPdfService
             $groupTotal = 0.0;
             if ($hasSized) {
                 foreach ($rows as $r) {
-                    $qty = (float)($r['quantity'] ?? 0);
-                    $price = (float)($r['unit_price'] ?? 0);
+                    $qty = (float)$r['quantity'];
+                    $price = (float)$r['unit_price'];
                     $line = $qty * $price;
                     $groupTotal += $line;
                     $this->pdf->Cell($wIdx, 7, '', 1, 0);
-                    $this->pdf->Cell($wDetail, 7, $this->t('ไซซ์: ' . (($r['size'] ?? '-') ?: '-')), 1, 0, 'L');
+                    $this->pdf->Cell($wDetail, 7, $this->t('ไซซ์: ' . ($r['size'] ?: '-')), 1, 0, 'L');
                     $this->pdf->Cell($wQty, 7, number_format($qty) . ' ' . $this->t($unit), 1, 0, 'R');
                     $this->pdf->Cell($wUnit, 7, number_format($price, 2), 1, 0, 'R');
                     $this->pdf->Cell($wTotal, 7, number_format($line, 2), 1, 1, 'R');
@@ -233,11 +233,11 @@ class QuotationPdfService
             } else {
                 // Collapsed single line using the first row
                 $r = $rows[0] ?? ['quantity' => 0, 'unit_price' => 0, 'notes' => ''];
-                $qty = (float)($r['quantity'] ?? 0);
-                $price = (float)($r['unit_price'] ?? 0);
+                $qty = (float)$r['quantity'];
+                $price = (float)$r['unit_price'];
                 $line = $qty * $price;
                 $groupTotal += $line;
-                $notes = trim((string)($r['notes'] ?? ''));
+                $notes = trim((string)$r['notes']);
                 $this->pdf->Cell($wIdx, 7, '', 1, 0);
                 $this->pdf->Cell($wDetail, 7, $this->t(($notes ? ('หมายเหตุ: ' . $notes) : '')), 1, 0, 'L');
                 $this->pdf->Cell($wQty, 7, number_format($qty) . ' ' . $this->t($unit), 1, 0, 'R');

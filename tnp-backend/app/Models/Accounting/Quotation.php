@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @property string $number
  * @property string|null $pricing_request_id
  * @property string|null $customer_id
+ * @property array<string,mixed>|null $customer_snapshot
  * @property string|null $customer_company
  * @property string|null $customer_tax_id
  * @property string|null $customer_address

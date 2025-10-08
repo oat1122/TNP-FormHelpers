@@ -17,6 +17,11 @@ use Mpdf\Mpdf;
  */
 class TaxInvoicePdfMasterService extends InvoicePdfMasterService
 {
+    /**
+     * @param Invoice $invoice
+     * @param array<string,mixed> $options
+     * @return array{path:string,url:string,filename:string,size:int,type:string}
+     */
     public function generatePdf(Invoice $invoice, array $options = []): array
     {
         try {
@@ -41,7 +46,12 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         }
     }
 
-    public function streamPdf(Invoice $invoice, array $options = [])
+    /**
+     * @param Invoice $invoice
+     * @param array<string,mixed> $options
+     * @return \Illuminate\Http\Response
+     */
+    public function streamPdf(Invoice $invoice, array $options = []): \Illuminate\Http\Response
     {
         $viewData = $this->buildViewData($invoice, $options);
         $mpdf = $this->createMpdf($viewData);
@@ -53,6 +63,9 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
             ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
     }
 
+    /**
+     * @param array<string,mixed> $viewData
+     */
     protected function createMpdf(array $viewData): Mpdf
     {
         $options = $viewData['options'] ?? [];
@@ -129,6 +142,9 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         return $mpdf;
     }
 
+    /**
+     * @return array<int,string>
+     */
     protected function cssFiles(): array
     {
         return [
@@ -138,6 +154,9 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         ];
     }
 
+    /**
+     * @param array<string,mixed> $data
+     */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
         $invoice  = $data['invoice'];
@@ -171,6 +190,9 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         }
     }
 
+    /**
+     * @param array<string,mixed> $options
+     */
     protected function savePdfFile(Mpdf $mpdf, Invoice $invoice, array $options = []): string
     {
         $timestamp = now()->format('Y-m-d-His');

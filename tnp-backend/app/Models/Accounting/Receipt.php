@@ -41,6 +41,18 @@ use App\Models\Company;
  * @property \Carbon\Carbon|null $approved_at
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
+ * @property string|null $payment_date
+ * @property float|null $payment_amount
+ * @property string|null $bank_name
+ * @property string|null $receipt_type
+ * @property float|null $vat_rate
+ * @property float|null $vat_amount
+ * @property string|null $created_by
+ * @property string|null $updated_by
+ * @property string|null $submitted_by
+ * @property \Carbon\Carbon|null $submitted_at
+ * @property string|null $rejected_by
+ * @property \Carbon\Carbon|null $rejected_at
  */
 class Receipt extends Model
 {
@@ -75,14 +87,31 @@ class Receipt extends Model
         'notes',
         'issued_by',
         'approved_by',
-        'approved_at'
+        'approved_at',
+        'payment_date',
+        'payment_amount',
+        'bank_name',
+        'receipt_type',
+        'vat_rate',
+        'vat_amount',
+        'created_by',
+        'updated_by',
+        'submitted_by',
+        'submitted_at',
+        'rejected_by',
+        'rejected_at'
     ];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'payment_amount' => 'decimal:2',
+        'vat_rate' => 'decimal:2',
+        'vat_amount' => 'decimal:2',
         'approved_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

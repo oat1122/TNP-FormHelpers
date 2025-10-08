@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ReceiptService
 {
-    protected $autofillService;
+    protected AutofillService $autofillService;
 
     public function __construct(AutofillService $autofillService)
     {
@@ -22,8 +22,12 @@ class ReceiptService
 
     /**
      * สร้าง Receipt จาก Payment
+     * @param mixed $invoiceId
+     * @param mixed $paymentData
+     * @param mixed $createdBy
+     * @return Receipt
      */
-    public function createFromPayment($invoiceId, $paymentData, $createdBy = null)
+    public function createFromPayment($invoiceId, $paymentData, $createdBy = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -113,8 +117,11 @@ class ReceiptService
 
     /**
      * สร้าง Receipt แบบ Manual
+     * @param mixed $receiptData
+     * @param mixed $createdBy
+     * @return Receipt
      */
-    public function create($receiptData, $createdBy = null)
+    public function create($receiptData, $createdBy = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -165,8 +172,12 @@ class ReceiptService
 
     /**
      * อัปเดต Receipt
+     * @param mixed $receiptId
+     * @param mixed $updateData
+     * @param mixed $updatedBy
+     * @return Receipt
      */
-    public function update($receiptId, $updateData, $updatedBy = null)
+    public function update($receiptId, $updateData, $updatedBy = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -215,8 +226,11 @@ class ReceiptService
 
     /**
      * ส่งใบเสร็จเพื่อขออนุมัติ
+     * @param mixed $receiptId
+     * @param mixed $submittedBy
+     * @return Receipt
      */
-    public function submit($receiptId, $submittedBy = null)
+    public function submit($receiptId, $submittedBy = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -255,8 +269,12 @@ class ReceiptService
 
     /**
      * อนุมัติใบเสร็จ (Account)
+     * @param mixed $receiptId
+     * @param mixed $approvedBy
+     * @param mixed $notes
+     * @return Receipt
      */
-    public function approve($receiptId, $approvedBy = null, $notes = null)
+    public function approve($receiptId, $approvedBy = null, $notes = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -273,7 +291,7 @@ class ReceiptService
 
             // Generate final tax invoice number ถ้าเป็นใบกำกับภาษี
             if (in_array($receipt->receipt_type, ['tax_invoice', 'full_tax_invoice']) && empty($receipt->tax_invoice_number)) {
-                $receipt->tax_invoice_number = $this->generateTaxInvoiceNumber();
+                $receipt->generateTaxInvoiceNumber();
             }
 
             $receipt->save();
@@ -289,9 +307,8 @@ class ReceiptService
                 $receiptId,
                 'pending_review',
                 'approved',
-                'อนุมัติ',
                 $approvedBy,
-                $notes
+                'อนุมัติ' . ($notes ? ': ' . $notes : '')
             );
 
             DB::commit();
@@ -307,8 +324,12 @@ class ReceiptService
 
     /**
      * ปฏิเสธใบเสร็จ
+     * @param mixed $receiptId
+     * @param mixed $reason
+     * @param mixed $rejectedBy
+     * @return Receipt
      */
-    public function reject($receiptId, $reason, $rejectedBy = null)
+    public function reject($receiptId, $reason, $rejectedBy = null): Receipt
     {
         try {
             DB::beginTransaction();
@@ -330,9 +351,8 @@ class ReceiptService
                 $receiptId,
                 'pending_review',
                 'rejected',
-                'ปฏิเสธ',
                 $rejectedBy,
-                $reason
+                'ปฏิเสธ: ' . ($reason ?? '')
             );
 
             DB::commit();
@@ -348,8 +368,13 @@ class ReceiptService
 
     /**
      * อัปโหลดหลักฐานการชำระ
+     * @param mixed $receiptId
+     * @param mixed $files
+     * @param mixed $description
+     * @param mixed $uploadedBy
+     * @return array<string,mixed>
      */
-    public function uploadEvidence($receiptId, $files, $description = null, $uploadedBy = null)
+    public function uploadEvidence($receiptId, $files, $description = null, $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -411,11 +436,14 @@ class ReceiptService
 
     /**
      * ดึงรายการ Receipt พร้อม Filter
+     * @param mixed $filters
+     * @param mixed $perPage
+     * @return mixed
      */
     public function getList($filters = [], $perPage = 20)
     {
         try {
-            $query = Receipt::with(['invoice', 'documentHistory', 'documentAttachments'])
+            $query = Receipt::with(['invoice', 'documentHistory'])
                           ->select('receipts.*');
 
             // Filters
@@ -463,8 +491,10 @@ class ReceiptService
 
     /**
      * สร้าง PDF ใบเสร็จ/ใบกำกับภาษี
+     * @param mixed $receiptId
+     * @return array<string,mixed>
      */
-    public function generatePdf($receiptId)
+    public function generatePdf($receiptId): array
     {
         try {
             $receipt = Receipt::with(['invoice'])->findOrFail($receiptId);
@@ -513,8 +543,11 @@ class ReceiptService
 
     /**
      * กำหนดประเภทใบเสร็จ
+     * @param mixed $invoice
+     * @param mixed $paymentData
+     * @return string
      */
-    private function determineReceiptType($invoice, $paymentData)
+    private function determineReceiptType($invoice, $paymentData): string
     {
         // ถ้าระบุประเภทมาแล้ว
         if (!empty($paymentData['receipt_type'])) {
@@ -531,8 +564,11 @@ class ReceiptService
 
     /**
      * คำนวณยอดเงินและ VAT
+     * @param mixed $totalAmount
+     * @param mixed $receiptType
+     * @return array<string,mixed>
      */
-    private function calculateReceiptAmounts($totalAmount, $receiptType)
+    private function calculateReceiptAmounts($totalAmount, $receiptType): array
     {
         if (in_array($receiptType, ['tax_invoice', 'full_tax_invoice'])) {
             // คำนวณ VAT 7% (ราคารวม VAT แล้ว)
@@ -559,12 +595,16 @@ class ReceiptService
 
     /**
      * อัปเดตสถานะการชำระของ Invoice
+     * @param mixed $invoiceId
+     * @param mixed $paymentAmount
+     * @return void
      */
-    private function updateInvoicePaymentStatus($invoiceId, $paymentAmount)
+    private function updateInvoicePaymentStatus($invoiceId, $paymentAmount): void
     {
         $invoice = Invoice::findOrFail($invoiceId);
         
-        $currentPaid = $invoice->paid_amount ?? 0;
+        $currentPaid = (float) ($invoice->paid_amount ?? 0);
+        $paymentAmount = (float) $paymentAmount;
         $newPaidAmount = $currentPaid + $paymentAmount;
         
         $invoice->paid_amount = $newPaidAmount;
@@ -581,8 +621,10 @@ class ReceiptService
 
     /**
      * Generate PDF filename
+     * @param mixed $receipt
+     * @return string
      */
-    private function generatePdfFilename($receipt)
+    private function generatePdfFilename($receipt): string
     {
         $type = $receipt->receipt_type === 'tax_invoice' ? 'tax-invoice' : 'receipt';
         return "{$type}-{$receipt->number}.pdf";
@@ -590,8 +632,10 @@ class ReceiptService
 
     /**
      * สร้างเนื้อหา PDF (placeholder)
+     * @param mixed $receipt
+     * @return string
      */
-    private function generatePdfContent($receipt)
+    private function generatePdfContent($receipt): string
     {
         $title = $receipt->receipt_type === 'tax_invoice' ? 'ใบกำกับภาษี' : 'ใบเสร็จรับเงิน';
         

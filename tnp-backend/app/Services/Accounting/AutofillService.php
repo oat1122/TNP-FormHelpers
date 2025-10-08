@@ -543,19 +543,36 @@ class AutofillService
 
                 return [
                     'pr_id' => $pr->pr_id,
+                    'pr_cus_id' => $pr->pr_cus_id,
+                    'pr_mpc_id' => $pr->pr_mpc_id,
+                    'pr_status_id' => $pr->pr_status_id,
                     'pr_no' => $pr->pr_no,
                     'pr_work_name' => $pr->pr_work_name,
-                    'pr_cus_id' => $pr->pr_cus_id,
                     'pr_pattern' => $pr->pr_pattern,
                     'pr_fabric_type' => $pr->pr_fabric_type,
                     'pr_color' => $pr->pr_color,
                     'pr_sizes' => $pr->pr_sizes,
                     'pr_quantity' => $pr->pr_quantity,
-                    'pr_due_date' => $pr->pr_due_date ? $pr->pr_due_date->format('Y-m-d') : null,
-                    'pr_status' => $pr->pricingStatus->status_name ?? 'Unknown',
-                    'pr_completed_at' => $pr->pr_updated_date ? $pr->pr_updated_date->format('Y-m-d\TH:i:s\Z') : null,
-                    'is_quoted' => ($pr->quotation_items_count ?? 0) > 0,
-                    'pr_image_url' => $prImageUrl,
+                    'pr_due_date' => $pr->pr_due_date,
+                    'pr_silk' => $pr->pr_silk,
+                    'pr_dft' => $pr->pr_dft,
+                    'pr_embroider' => $pr->pr_embroider,
+                    'pr_sub' => $pr->pr_sub,
+                    'pr_other_screen' => $pr->pr_other_screen,
+                    'pr_image' => $pr->pr_image,
+                    'pr_is_deleted' => $pr->pr_is_deleted,
+                    'pr_created_date' => $pr->pr_created_date,
+                    'pr_created_by' => $pr->pr_created_by,
+                    'pr_updated_date' => $pr->pr_updated_date,
+                    'pr_updated_by' => $pr->pr_updated_by,
+                    'quotation_items_count' => $pr->quotation_items_count ?? 0,
+                    'pricing_customer' => $customerPayload,
+                    'pricing_status' => [
+                        'status_id' => $pr->pricingStatus->status_id ?? null,
+                        'status_name' => $pr->pricingStatus->status_name ?? 'Unknown'
+                    ],
+                    'pricing_note' => $formattedNotes->toArray(),
+                    // เก็บ customer และ autofill ไว้สำหรับ backward compatibility
                     'customer' => $customerPayload,
                     'autofill' => $autofillPayload
                 ];

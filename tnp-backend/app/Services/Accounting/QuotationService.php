@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Schema;
 
 class QuotationService
 {
-    protected $autofillService;
+    protected AutofillService $autofillService;
 
     public function __construct(AutofillService $autofillService)
     {
@@ -28,6 +28,7 @@ class QuotationService
     /**
      * คำนวณฐานสำหรับมัดจำแบบก่อน VAT (Pre-VAT)
      * ใช้ subtotal หักด้วยส่วนลดพิเศษ ถ้ามีข้อมูลไม่ครบจะ fallback เป็น (total_amount - vat_amount - special_discount_amount)
+     * @param array<string,mixed>|null $ref
      */
     protected function computeDepositBasePreVat(Quotation $q, ?array $ref = null): float
     {
@@ -46,8 +47,12 @@ class QuotationService
 
     /**
      * สร้าง Quotation จาก Pricing Request
+     * @param mixed $pricingRequestId
+     * @param mixed $additionalData
+     * @param mixed $createdBy
+     * @return Quotation
      */
-    public function createFromPricingRequest($pricingRequestId, $additionalData = [], $createdBy = null)
+    public function createFromPricingRequest($pricingRequestId, $additionalData = [], $createdBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -88,7 +93,7 @@ class QuotationService
             // ข้อมูลเพิ่มเติมจาก user input
             $quotation->subtotal = $additionalData['subtotal'] ?? 0;
             $quotation->tax_amount = $additionalData['tax_amount'] ?? 0;
-            // ⭐ New financial fields
+            //  New financial fields
             $quotation->special_discount_percentage = $additionalData['special_discount_percentage'] ?? 0;
             $quotation->special_discount_amount = $additionalData['special_discount_amount'] ?? 0;
             $quotation->has_withholding_tax = $additionalData['has_withholding_tax'] ?? false;
@@ -139,7 +144,7 @@ class QuotationService
             if ($recomputeDepositMode === 'amount' && array_key_exists('deposit_amount', $additionalData)) {
                 $amount = max(0, floatval($additionalData['deposit_amount']));
                 if ($preVatBase > 0) {
-                    $quotation->deposit_percentage = round(($amount / $preVatBase) * 100, 4);
+                    $quotation->deposit_percentage = (int) round(($amount / $preVatBase) * 100);
                 }
                 $quotation->deposit_amount = min($amount, $preVatBase);
             } elseif (array_key_exists('deposit_percentage', $additionalData)) {
@@ -171,8 +176,11 @@ class QuotationService
 
     /**
      * สร้าง Quotation ใหม่ (ไม่ได้จาก Pricing Request)
+     * @param mixed $data
+     * @param mixed $createdBy
+     * @return Quotation
      */
-    public function create($data, $createdBy = null)
+    public function create($data, $createdBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -243,8 +251,13 @@ class QuotationService
 
     /**
      * สร้าง Quotation จาก Multiple Pricing Requests
+     * @param mixed $pricingRequestIds
+     * @param mixed $customerId
+     * @param mixed $additionalData
+     * @param mixed $createdBy
+     * @return Quotation
      */
-    public function createFromMultiplePricingRequests($pricingRequestIds, $customerId, $additionalData = [], $createdBy = null)
+    public function createFromMultiplePricingRequests($pricingRequestIds, $customerId, $additionalData = [], $createdBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -283,7 +296,7 @@ class QuotationService
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             // เลขที่เอกสารจะถูกกำหนดตอนอนุมัติ เท่านั้น
 
-            // ⭐ รองรับ multiple primary pricing request IDs (พร้อม backward compatibility)
+            // รองรับ multiple primary pricing request IDs (พร้อม backward compatibility)
             if (Schema::hasColumn('quotations', 'primary_pricing_request_ids')) {
                 $quotation->primary_pricing_request_ids = $pricingRequestIds; // จะถูก cast เป็น JSON โดย Model
             } else {
@@ -312,7 +325,7 @@ class QuotationService
             // ข้อมูลราคา
             $quotation->subtotal = $subtotal;
             $quotation->tax_amount = $taxAmount;
-            // ⭐ New financial fields (multi-create)
+            // New financial fields (multi-create)
             $quotation->special_discount_percentage = $additionalData['special_discount_percentage'] ?? 0;
             $quotation->special_discount_amount = $additionalData['special_discount_amount'] ?? 0;
             $quotation->has_withholding_tax = $additionalData['has_withholding_tax'] ?? false;
@@ -354,7 +367,7 @@ class QuotationService
             $quotation->created_by = $createdBy;
             $quotation->save();
 
-            // ⭐ สร้าง Junction Records ใน quotation_pricing_requests table (ถ้ามี)
+            // สร้าง Junction Records ใน quotation_pricing_requests table (ถ้ามี)
             if (Schema::hasTable('quotation_pricing_requests')) {
                 foreach ($pricingRequestIds as $index => $pricingRequestId) {
                     $pr = $pricingRequests->where('pr_id', $pricingRequestId)->first();
@@ -433,8 +446,12 @@ class QuotationService
 
     /**
      * อัปเดต Quotation
+     * @param mixed $id
+     * @param mixed $data
+     * @param mixed $updatedBy
+     * @return Quotation
      */
-    public function update($id, $data, $updatedBy = null)
+    public function update($id, $data, $updatedBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -559,8 +576,11 @@ class QuotationService
 
     /**
      * ส่งใบเสนอราคาเพื่อขออนุมัติ
+     * @param mixed $id
+     * @param mixed $submittedBy
+     * @return Quotation
      */
-    public function submitForReview($id, $submittedBy = null)
+    public function submitForReview($id, $submittedBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -590,8 +610,12 @@ class QuotationService
 
     /**
      * อนุมัติใบเสนอราคา
+     * @param mixed $id
+     * @param mixed $approvedBy
+     * @param mixed $notes
+     * @return Quotation
      */
-    public function approve($id, $approvedBy = null, $notes = null)
+    public function approve($id, $approvedBy = null, $notes = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -629,8 +653,12 @@ class QuotationService
 
     /**
      * ปฏิเสธใบเสนอราคา
+     * @param mixed $id
+     * @param mixed $rejectedBy
+     * @param mixed $reason
+     * @return Quotation
      */
-    public function reject($id, $rejectedBy = null, $reason = null)
+    public function reject($id, $rejectedBy = null, $reason = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -660,8 +688,12 @@ class QuotationService
 
     /**
      * แปลงเป็น Invoice
+     * @param mixed $id
+     * @param mixed $convertedBy
+     * @param mixed $additionalData
+     * @return Invoice
      */
-    public function convertToInvoice($id, $convertedBy = null, $additionalData = [])
+    public function convertToInvoice($id, $convertedBy = null, $additionalData = []): Invoice
     {
         try {
             DB::beginTransaction();
@@ -722,8 +754,12 @@ class QuotationService
 
     /**
      * ลบใบเสนอราคา (Soft Delete)
+     * @param mixed $id
+     * @param mixed $deletedBy
+     * @param mixed $reason
+     * @return bool
      */
-    public function delete($id, $deletedBy = null, $reason = null)
+    public function delete($id, $deletedBy = null, $reason = null): bool
     {
         try {
             DB::beginTransaction();
@@ -755,6 +791,9 @@ class QuotationService
 
     /**
      * ดึงรายการใบเสนอราคาพร้อม filter
+     * @param mixed $filters
+     * @param mixed $perPage
+     * @return mixed
      */
     public function getList($filters = [], $perPage = 15)
     {
@@ -881,8 +920,12 @@ class QuotationService
 
     /**
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
+     * @param mixed $quotationId
+     * @param mixed $reason
+     * @param mixed $actionBy
+     * @return Quotation
      */
-    public function sendBackForEdit($quotationId, $reason, $actionBy = null)
+    public function sendBackForEdit($quotationId, $reason, $actionBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -903,9 +946,8 @@ class QuotationService
                 $quotationId, 
                 'pending_review', 
                 'draft', 
-                'ส่งกลับแก้ไข', 
                 $actionBy, 
-                $reason
+                'ส่งกลับแก้ไข: ' . ($reason ?? '')
             );
 
             DB::commit();
@@ -921,8 +963,12 @@ class QuotationService
 
     /**
      * ยกเลิกการอนุมัติ (Account)
+     * @param mixed $quotationId
+     * @param mixed $reason
+     * @param mixed $actionBy
+     * @return Quotation
      */
-    public function revokeApproval($quotationId, $reason, $actionBy = null)
+    public function revokeApproval($quotationId, $reason, $actionBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -951,9 +997,8 @@ class QuotationService
                 $quotationId, 
                 $previousStatus, 
                 'pending_review', 
-                'ยกเลิกการอนุมัติ', 
                 $actionBy, 
-                $reason
+                'ยกเลิกการอนุมัติ: ' . ($reason ?? '')
             );
 
             DB::commit();
@@ -969,8 +1014,11 @@ class QuotationService
 
     /**
      * สร้าง PDF ใบเสนอราคา (ใหม่ - ใช้ Master Service)
+     * @param mixed $quotationId
+     * @param mixed $options
+     * @return array<string,mixed>
      */
-    public function generatePdf($quotationId, $options = [])
+    public function generatePdf($quotationId, $options = []): array
     {
         try {
             $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items', 'creator'])
@@ -1033,8 +1081,11 @@ class QuotationService
 
     /**
      * Stream PDF สำหรับดู/ดาวน์โหลดทันที
+     * @param mixed $quotationId
+     * @param mixed $options
+     * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function streamPdf($quotationId, $options = [])
+    public function streamPdf($quotationId, $options = []): \Symfony\Component\HttpFoundation\Response
     {
         try {
             $quotation = Quotation::with(['customer', 'company', 'items'])
@@ -1063,8 +1114,9 @@ class QuotationService
 
     /**
      * ตรวจสอบสถานะระบบ PDF
+     * @return array<string,mixed>
      */
-    public function checkPdfSystemStatus()
+    public function checkPdfSystemStatus(): array
     {
         try {
             $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
@@ -1092,24 +1144,28 @@ class QuotationService
     /**
      * ให้คำแนะนำสำหรับการแก้ไขระบบ PDF
      */
-    private function getPdfRecommendations($status)
+    /**
+     * @param mixed $status
+     * @return array<int,string>
+     */
+    private function getPdfRecommendations($status): array
     {
         $recommendations = [];
         
-        if (empty($status['mpdf_available']) || !$status['mpdf_available']) {
+        if (empty($status['mpdf_available'])) {
             $recommendations[] = 'ติดตั้ง mPDF: composer require carlos-meneses/laravel-mpdf';
         }
         
-        if (empty($status['thai_fonts_available']) || !$status['thai_fonts_available']) {
+        if (empty($status['thai_fonts_available'])) {
             $recommendations[] = 'ดาวน์โหลดและติดตั้งฟอนต์ Sarabun ในโฟลเดอร์ public/fonts/thsarabun/';
             $recommendations[] = 'ตรวจสอบไฟล์: Sarabun-Regular.ttf และ Sarabun-Bold.ttf';
         }
         
-        if (empty($status['storage_writable']) || !$status['storage_writable']) {
+        if (empty($status['storage_writable'])) {
             $recommendations[] = 'ตรวจสอบสิทธิ์การเขียนในโฟลเดอร์ storage/app/public';
         }
         
-        if (empty($status['views_exist']) || !$status['views_exist']) {
+        if (empty($status['views_exist'])) {
             $recommendations[] = 'สร้างไฟล์ view templates ตามที่ระบุในคู่มือ';
             $recommendations[] = 'ตรวจสอบไฟล์: pdf.quotation-master, pdf.partials.quotation-header, pdf.partials.quotation-footer';
         }
@@ -1123,8 +1179,12 @@ class QuotationService
 
     /**
      * ส่งอีเมลใบเสนอราคา
+     * @param mixed $quotationId
+     * @param mixed $emailData
+     * @param mixed $sentBy
+     * @return array<string,mixed>
      */
-    public function sendEmail($quotationId, $emailData, $sentBy = null)
+    public function sendEmail($quotationId, $emailData, $sentBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -1182,8 +1242,13 @@ class QuotationService
 
     /**
      * อัปโหลดหลักฐานการส่ง
+     * @param mixed $quotationId
+     * @param mixed $files
+     * @param mixed $description
+     * @param mixed $uploadedBy
+     * @return array<string,mixed>
      */
-    public function uploadEvidence($quotationId, $files, $description = null, $uploadedBy = null)
+    public function uploadEvidence($quotationId, $files, $description = null, $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -1245,8 +1310,12 @@ class QuotationService
 
     /**
      * อัปโหลดรูปหลักฐานการเซ็น (เฉพาะใบเสนอราคาที่ Approved แล้ว)
+     * @param mixed $quotationId
+     * @param mixed $files
+     * @param mixed $uploadedBy
+     * @return array<string,mixed>
      */
-    public function uploadSignatures($quotationId, $files, $uploadedBy = null)
+    public function uploadSignatures($quotationId, $files, $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -1311,8 +1380,12 @@ class QuotationService
 
     /**
      * ลบรูปหลักฐานการเซ็น 1 รูปโดยอ้างอิง filename หรือ index
+     * @param mixed $quotationId
+     * @param mixed $identifier
+     * @param mixed $deletedBy
+     * @return array<string,mixed>
      */
-    public function deleteSignatureImage($quotationId, $identifier, $deletedBy = null)
+    public function deleteSignatureImage($quotationId, $identifier, $deletedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -1377,8 +1450,12 @@ class QuotationService
     /**
      * Upload sample images and append to quotation->sample_images
      * Files are stored under storage/app/public/images/quotation-samples
+     * @param mixed $quotationId
+     * @param mixed $files
+     * @param mixed $uploadedBy
+     * @return array<string,mixed>
      */
-    public function uploadSampleImages($quotationId, $files, $uploadedBy = null)
+    public function uploadSampleImages($quotationId, $files, $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -1439,8 +1516,11 @@ class QuotationService
 
     /**
      * Upload sample images without persisting to any quotation (for create form)
+     * @param mixed $files
+     * @param mixed $uploadedBy
+     * @return array<string,mixed>
      */
-    public function uploadSampleImagesNoBind($files, $uploadedBy = null)
+    public function uploadSampleImagesNoBind($files, $uploadedBy = null): array
     {
         try {
             $stored = [];
@@ -1478,8 +1558,12 @@ class QuotationService
 
     /**
      * มาร์คว่าลูกค้าตอบรับแล้ว
+     * @param mixed $quotationId
+     * @param mixed $data
+     * @param mixed $completedBy
+     * @return Quotation
      */
-    public function markCompleted($quotationId, $data, $completedBy = null)
+    public function markCompleted($quotationId, $data, $completedBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -1505,9 +1589,8 @@ class QuotationService
                 $quotationId,
                 'sent',
                 'completed',
-                'ลูกค้าตอบรับ',
                 $completedBy,
-                $notes
+                'ลูกค้าตอบรับ' . ($notes ? ': ' . $notes : '')
             );
 
             DB::commit();
@@ -1523,8 +1606,12 @@ class QuotationService
 
     /**
      * บันทึกการส่งเอกสาร (อัปเดตสถานะเป็น 'sent')
+     * @param mixed $quotationId
+     * @param mixed $data
+     * @param mixed $sentBy
+     * @return Quotation
      */
-    public function markSent($quotationId, $data, $sentBy = null)
+    public function markSent($quotationId, $data, $sentBy = null): Quotation
     {
         try {
             DB::beginTransaction();
@@ -1553,9 +1640,8 @@ class QuotationService
                 $quotationId,
                 'approved',
                 'sent',
-                'ส่งเอกสาร',
                 $sentBy,
-                $notes
+                'ส่งเอกสาร: ' . $notes
             );
 
             DB::commit();

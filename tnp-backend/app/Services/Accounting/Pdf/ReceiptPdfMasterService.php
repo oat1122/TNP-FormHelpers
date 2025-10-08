@@ -21,7 +21,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
     /**
      * สร้าง PDF ใบเสร็จรับเงินเป็นไฟล์ พร้อม URL
      * @param Invoice $invoice
-     * @param array $options
+     * @param array<string,mixed> $options
      * @return array{path:string,url:string,filename:string,size:int,type:string}
      */
     public function generatePdf(Invoice $invoice, array $options = []): array
@@ -52,8 +52,11 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
     /**
      * Stream PDF แสดงบนเบราว์เซอร์ทันที
+     * @param Invoice $invoice
+     * @param array<string,mixed> $options
+     * @return \Illuminate\Http\Response
      */
-    public function streamPdf(Invoice $invoice, array $options = [])
+    public function streamPdf(Invoice $invoice, array $options = []): \Illuminate\Http\Response
     {
         $viewData = $this->buildViewData($invoice, $options);
 
@@ -68,6 +71,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
     /**
      * สร้าง mPDF instance + โหลด CSS + ตั้ง Header/Footer + เขียน Body
+     * @param array<string,mixed> $viewData
      */
     protected function createMpdf(array $viewData): Mpdf
     {
@@ -152,6 +156,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
     /**
      * ระบุรายการไฟล์ CSS ที่ต้องโหลด (reuse invoice styles)
+     * @return array<int,string>
      */
     protected function cssFiles(): array
     {
@@ -164,6 +169,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
     /**
      * เพิ่ม header และ footer ให้แสดงทุกหน้า (เปลี่ยนเฉพาะ header)
+     * @param array<string,mixed> $data
      */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
@@ -207,6 +213,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
     /**
      * บันทึกไฟล์ PDF สำหรับ Receipt
+     * @param array<string,mixed> $options
      */
     protected function savePdfFile(Mpdf $mpdf, Invoice $invoice, array $options = []): string
     {

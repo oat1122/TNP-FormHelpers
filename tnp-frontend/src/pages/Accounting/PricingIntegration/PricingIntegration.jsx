@@ -92,10 +92,13 @@ const PricingIntegration = () => {
     const map = new Map();
 
     pricingRequests.data.forEach((req) => {
+      // ใช้ข้อมูลลูกค้าจาก pricing_customer หรือ customer (fallback)
+      const customerData = req.pricing_customer || req.customer;
+      
       // ใช้ pre-computed customerId จาก API transform
       const customerId =
         req._customerId ||
-        (req.customer?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id || "").toString();
+        (customerData?.cus_id || req.pr_cus_id || req.customer_id || req.cus_id || "").toString();
 
       if (!customerId) return;
 
@@ -103,7 +106,7 @@ const PricingIntegration = () => {
         map.set(customerId, {
           _customerId: customerId,
           customer: {
-            ...req.customer,
+            ...customerData,
             ...(customerOverrides[customerId] || {}),
           },
           requests: [req],
@@ -181,8 +184,11 @@ const PricingIntegration = () => {
       dataArray: pricingRequests?.data || "No data array",
       dataLength: pricingRequests?.data?.length || 0,
       sampleRecord: pricingRequests?.data?.[0] || "No records",
+      // เพิ่ม debug สำหรับ customer data
+      sampleCustomerData: pricingRequests?.data?.[0]?.pricing_customer || pricingRequests?.data?.[0]?.customer || "No customer data",
+      groupedRequests: groupedPricingRequests.slice(0, 2), // แสดง 2 records แรกของ grouped data
     });
-  }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage, totalCustomers]);
+  }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage, totalCustomers, groupedPricingRequests]);
 
   const [createQuotationFromMultiplePricing] = useCreateQuotationFromMultiplePricingMutation();
 

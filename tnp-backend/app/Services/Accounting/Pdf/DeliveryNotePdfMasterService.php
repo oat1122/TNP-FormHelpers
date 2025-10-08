@@ -21,7 +21,7 @@ class DeliveryNotePdfMasterService
      * สร้าง PDF เป็นไฟล์ใน storage พร้อม URL
      *
      * @param DeliveryNote $deliveryNote
-     * @param array $options
+     * @param array<string, mixed> $options
      * @return array{path:string,url:string,filename:string,size:int,type:string}
      */
     public function generatePdf(DeliveryNote $deliveryNote, array $options = []): array
@@ -54,8 +54,9 @@ class DeliveryNotePdfMasterService
 
     /**
      * Stream PDF แสดงบนเบราว์เซอร์ทันที
+     * @param array<string, mixed> $options
      */
-    public function streamPdf(DeliveryNote $deliveryNote, array $options = [])
+    public function streamPdf(DeliveryNote $deliveryNote, array $options = []): \Symfony\Component\HttpFoundation\Response
     {
         $viewData = $this->buildViewData($deliveryNote, $options);
 
@@ -72,6 +73,10 @@ class DeliveryNotePdfMasterService
      |  Core builders
      * ======================================================================= */
 
+    /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
     protected function buildViewData(DeliveryNote $dn, array $options = []): array
     {
         $d = $dn->loadMissing(['company', 'customer', 'items', 'creator', 'manager', 'deliveryPerson']);
@@ -96,6 +101,9 @@ class DeliveryNotePdfMasterService
         ];
     }
 
+    /**
+     * @param array<string, mixed> $viewData
+     */
     protected function createMpdf(array $viewData): Mpdf
     {
         $options = $viewData['options'] ?? [];
@@ -172,6 +180,9 @@ class DeliveryNotePdfMasterService
         return $mpdf;
     }
 
+    /**
+     * @return array<string>
+     */
     protected function cssFiles(): array
     {
         return [
@@ -185,6 +196,7 @@ class DeliveryNotePdfMasterService
     /**
      * Render a signature section near the bottom of the last page,
      * adapting to remaining space; if insufficient, add a new page.
+     * @param array<string, mixed> $data
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
@@ -237,6 +249,9 @@ class DeliveryNotePdfMasterService
     /**
      * คำนวณขนาดที่ต้องการสำหรับลายเซ็นแบบ dynamic (ให้เหมือนกับ Quotation)
      */
+    /**
+     * @return array<string, mixed>
+     */
     protected function calculateSignatureDimensions(Mpdf $mpdf): array
     {
         $lineHeight         = 4;  // mm per line
@@ -257,6 +272,7 @@ class DeliveryNotePdfMasterService
 
     /**
      * รับข้อมูลหน้าที่แม่นยำ รวมถึง buffer สำหรับ floating/margin collapse
+     * @return array<string, mixed>
      */
     protected function getAccuratePageInfo(Mpdf $mpdf): array
     {
@@ -349,6 +365,7 @@ class DeliveryNotePdfMasterService
 
     /**
      * ระบบสำรองเมื่อการวางลายเซ็นล้มเหลว
+     * @param array<string, mixed> $data
      */
     protected function emergencySignaturePlacement(Mpdf $mpdf, string $sigHtml, array $data = []): void
     {
@@ -376,6 +393,9 @@ class DeliveryNotePdfMasterService
         }
     }
 
+    /**
+     * @param array<string> $files
+     */
     protected function writeCss(Mpdf $mpdf, array $files): void
     {
         foreach ($files as $file) {
@@ -385,6 +405,9 @@ class DeliveryNotePdfMasterService
         }
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
         $deliveryNote = $data['deliveryNote'];
@@ -411,6 +434,9 @@ class DeliveryNotePdfMasterService
      |  Grouping helpers
      * ======================================================================= */
 
+    /**
+     * @return array<int, array{name: string, pattern: string, fabric: string, color: string, unit: string, rows: array<int, array{size: string, quantity: float}>}>
+     */
     protected function groupDeliveryNoteItems(DeliveryNote $dn): array
     {
         $groups = [];
@@ -476,6 +502,9 @@ class DeliveryNotePdfMasterService
      |  System checks
      * ======================================================================= */
 
+    /**
+     * @return array<string, mixed>
+     */
     public function checkSystemStatus(): array
     {
         $status = [

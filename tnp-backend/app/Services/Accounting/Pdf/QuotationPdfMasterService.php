@@ -24,7 +24,7 @@ class QuotationPdfMasterService
      * สร้าง PDF ใบเสนอราคาเป็นไฟล์ พร้อม URL
      *
      * @param  Quotation $quotation
-     * @param  array $options ['format'=>'A4','orientation'=>'P','showPageNumbers'=>true,'showWatermark'=>bool]
+     * @param  array<string, mixed> $options ['format'=>'A4','orientation'=>'P','showPageNumbers'=>true,'showWatermark'=>bool]
      * @return array{path:string,url:string,filename:string,size:int,type:string}
      */
     public function generatePdf(Quotation $quotation, array $options = []): array
@@ -57,8 +57,9 @@ class QuotationPdfMasterService
 
     /**
      * Stream PDF แสดงบนเบราว์เซอร์ทันที
+     * @param array<string, mixed> $options
      */
-    public function streamPdf(Quotation $quotation, array $options = [])
+    public function streamPdf(Quotation $quotation, array $options = []): \Symfony\Component\HttpFoundation\Response
     {
         $viewData = $this->buildViewData($quotation, $options);
 
@@ -78,6 +79,8 @@ class QuotationPdfMasterService
 
     /**
      * เตรียมข้อมูลสำหรับ View/Template
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
      */
     protected function buildViewData(Quotation $quotation, array $options = []): array
     {
@@ -106,6 +109,7 @@ class QuotationPdfMasterService
 
     /**
      * สร้าง mPDF instance + โหลด CSS + ตั้ง Header/Footer + เขียน Body
+     * @param array<string, mixed> $viewData
      */
     protected function createMpdf(array $viewData): Mpdf
     {
@@ -195,6 +199,7 @@ class QuotationPdfMasterService
      * ตัวอย่างไฟล์:
      * tnp-backend\resources\views\pdf\partials\quotation-header.css
      * tnp-backend\resources\views\accounting\pdf\quotation\quotation-master.css
+     * @return array<string>
      */
     protected function cssFiles(): array
     {
@@ -209,6 +214,7 @@ class QuotationPdfMasterService
 
     /**
      * โหลด CSS เข้าสู่ mPDF (HEADER_CSS)
+     * @param array<string> $files
      */
     protected function writeCss(Mpdf $mpdf, array $files): void
     {
@@ -222,6 +228,7 @@ class QuotationPdfMasterService
     /**
      * เพิ่ม header และ footer ให้แสดงทุกหน้า
      * (หัว/ท้ายจะได้รับสไตล์จาก CSS ที่โหลดไว้แล้วด้านบน)
+     * @param array<string, mixed> $data
      */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
@@ -258,6 +265,7 @@ class QuotationPdfMasterService
      * วาดกล่องลายเซ็นคงที่ (fixed) บนหน้าสุดท้าย เหนือ footer
      * - ใช้ WriteFixedPosHTML เพื่อให้ยึดตำแหน่งจากก้นหน้ากระดาษ
      * - มี spacer ใน template เพื่อกันเนื้อหามาชนทับ (signature-spacer)
+     * @param array<string, mixed> $data
      */
     protected function addSignatureBlock(Mpdf $mpdf, array $data): void
     {
@@ -266,7 +274,7 @@ class QuotationPdfMasterService
             $bottomGap       = 10; // mm ระยะห่างเหนือ footer (เพิ่มหน่อยให้โปร)
 
             $lastPage = $mpdf->page; // หน้าปัจจุบันคือสุดท้ายหลัง WriteHTML
-            $mpdf->SetPage($lastPage);
+            // Note: mPDF doesn't have SetPage() method, already on current page
 
             // ตั้งตำแหน่ง Y จากด้านล่างของหน้า (mPDF: SetY(-n) = จากล่างขึ้นบน n mm)
             $mpdf->SetY(-($signatureHeight + $bottomGap));
@@ -296,6 +304,7 @@ class QuotationPdfMasterService
      * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
      * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
      * 4) มีระบบ fallback หากการวางแบบ adaptive ล้มเหลว
+     * @param array<string, mixed> $data
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
@@ -347,6 +356,7 @@ class QuotationPdfMasterService
 
     /**
      * คำนวณขนาดที่ต้องการสำหรับลายเซ็นแบบ dynamic
+     * @return array<string, mixed>
      */
     protected function calculateSignatureDimensions(Mpdf $mpdf): array
     {
@@ -371,6 +381,7 @@ class QuotationPdfMasterService
 
     /**
      * รับข้อมูลหน้าที่แม่นยำ รวมถึงการตรวจสอบ floating elements
+     * @return array<string, mixed>
      */
     protected function getAccuratePageInfo(Mpdf $mpdf): array
     {
@@ -515,6 +526,7 @@ class QuotationPdfMasterService
 
     /**
      * จัดกลุ่มรายการสินค้า/บริการ
+     * @return array<mixed>
      */
     protected function groupQuotationItems(Quotation $quotation): array
     {
@@ -548,7 +560,7 @@ class QuotationPdfMasterService
     /**
      * Key สำหรับจัดกลุ่มสินค้า
      */
-    protected function generateGroupKey($item): string
+    protected function generateGroupKey(mixed $item): string
     {
         return strtolower(implode('|', [
             $item->item_name ?? '',
@@ -562,6 +574,7 @@ class QuotationPdfMasterService
 
     /**
      * สร้างสรุปยอดเงินจากข้อมูลฐานข้อมูลโดยตรง
+     * @return array<string, mixed>
      */
     protected function buildFinancialSummary(Quotation $quotation): array
     {
@@ -626,6 +639,7 @@ class QuotationPdfMasterService
 
     /**
      * ตรวจสอบสถานะระบบ (ฟอนต์/โฟลเดอร์/วิว)
+     * @return array<string, mixed>
      */
     public function checkSystemStatus(): array
     {

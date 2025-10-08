@@ -24,6 +24,7 @@ class InvoicePdfMasterService
      *
      *     /**
      * สร้าง key สำหรับจัดกลุ่มรายการสินค้า
+     * @param array<string, mixed> $itemData
      */
     protected function generateItemGroupKey(array $itemData): string
     {
@@ -39,7 +40,7 @@ class InvoicePdfMasterService
     
     /**
      * @param Invoice $invoice
-     * @param  array $options ['format'=>'A4','orientation'=>'P','showPageNumbers'=>true,'showWatermark'=>bool]
+     * @param array<string, mixed> $options ['format'=>'A4','orientation'=>'P','showPageNumbers'=>true,'showWatermark'=>bool]
      * @return array{path:string,url:string,filename:string,size:int,type:string}
      */
     public function generatePdf(Invoice $invoice, array $options = []): array
@@ -72,8 +73,9 @@ class InvoicePdfMasterService
 
     /**
      * Stream PDF แสดงบนเบราว์เซอร์ทันที
+     * @param array<string, mixed> $options
      */
-    public function streamPdf(Invoice $invoice, array $options = [])
+    public function streamPdf(Invoice $invoice, array $options = []): \Symfony\Component\HttpFoundation\Response
     {
         $viewData = $this->buildViewData($invoice, $options);
 
@@ -93,6 +95,8 @@ class InvoicePdfMasterService
 
     /**
      * เตรียมข้อมูลสำหรับ View/Template
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
      */
     protected function buildViewData(Invoice $invoice, array $options = []): array
     {
@@ -130,6 +134,7 @@ class InvoicePdfMasterService
 
     /**
      * สร้าง mPDF instance + โหลด CSS + ตั้ง Header/Footer + เขียน Body
+     * @param array<string, mixed> $viewData
      */
     protected function createMpdf(array $viewData): Mpdf
     {
@@ -220,6 +225,7 @@ class InvoicePdfMasterService
 
     /**
      * ระบุรายการไฟล์ CSS ที่ต้องโหลด
+     * @return array<string>
      */
     protected function cssFiles(): array
     {
@@ -233,6 +239,7 @@ class InvoicePdfMasterService
 
     /**
      * โหลด CSS เข้าสู่ mPDF (HEADER_CSS)
+     * @param array<string> $files
      */
     protected function writeCss(Mpdf $mpdf, array $files): void
     {
@@ -245,6 +252,7 @@ class InvoicePdfMasterService
 
     /**
      * เพิ่ม header และ footer ให้แสดงทุกหน้า
+     * @param array<string, mixed> $data
      */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
@@ -287,6 +295,7 @@ class InvoicePdfMasterService
      * 2) ถ้าเหลือ >= requiredHeight -> แทรก signature ทันทีพร้อมดันลงด้วย margin-top
      * 3) ถ้าเหลือ < requiredHeight -> เพิ่มหน้าใหม่ แล้ววาง signature ล่างหน้าใหม่
      * 4) มีระบบ fallback หากการวางแบบ adaptive ล้มเหลว
+     * @param array<string, mixed> $data
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
@@ -338,6 +347,7 @@ class InvoicePdfMasterService
 
     /**
      * คำนวณขนาดที่ต้องการสำหรับลายเซ็นแบบ dynamic
+     * @return array<string, mixed>
      */
     protected function calculateSignatureDimensions(Mpdf $mpdf): array
     {
@@ -359,6 +369,7 @@ class InvoicePdfMasterService
 
     /**
      * รับข้อมูลหน้าที่แม่นยำ
+     * @return array<string, mixed>
      */
     protected function getAccuratePageInfo(Mpdf $mpdf): array
     {
@@ -478,6 +489,7 @@ class InvoicePdfMasterService
 
     /**
      * บันทึกไฟล์ PDF
+     * @param array<string, mixed> $options
      */
     protected function savePdfFile(Mpdf $mpdf, Invoice $invoice, array $options = []): string
     {
@@ -551,16 +563,17 @@ class InvoicePdfMasterService
 
     /**
      * ดึงรายการสินค้า/บริการจาก Invoice
+     * @return array<mixed>
      */
     protected function getInvoiceItems(Invoice $invoice): array
     {
         // หาก Invoice มี items ของตัวเอง ให้ใช้ของ Invoice (จาก invoice_items table)
-        if ($invoice->items && $invoice->items->count() > 0) {
+        if ($invoice->items->count() > 0) {
             return $invoice->items->sortBy('sequence_order')->values()->toArray();
         }
 
         // หากไม่มี ให้ดึงจาก Quotation (สำหรับใบแจ้งหนี้เก่าที่ไม่มี invoice_items)
-        if ($invoice->quotation && $invoice->quotation->items) {
+        if ($invoice->quotation?->items) {
             return $invoice->quotation->items->toArray();
         }
 
@@ -569,6 +582,7 @@ class InvoicePdfMasterService
 
     /**
      * จัดกลุ่มรายการสินค้าจาก invoice_items สำหรับแสดงในตารางแบบ quotation
+     * @return array<mixed>
      */
     protected function groupInvoiceItems(Invoice $invoice): array
     {
@@ -613,8 +627,9 @@ class InvoicePdfMasterService
 
     /**
      * แปลงข้อมูล item ให้เป็นรูปแบบเดียวกัน
+     * @return array<string, mixed>
      */
-    protected function normalizeItemData($item): array
+    protected function normalizeItemData(mixed $item): array
     {
         // ตรวจสอบว่าเป็นข้อมูลจาก invoice_items หรือ quotation_items
         $isInvoiceItem = isset($item['item_name']);
@@ -643,6 +658,7 @@ class InvoicePdfMasterService
 
     /**
      * สร้างสรุปทางการเงิน
+     * @return array<string, mixed>
      */
     protected function buildFinancialSummary(Invoice $invoice): array
     {
@@ -678,6 +694,7 @@ class InvoicePdfMasterService
 
     /**
      * คำนวณยอดเงินสำหรับใบวางบิลหลังมัดจำ
+     * @return array<string, mixed>
      */
     protected function calculateDepositAfterAmounts(Invoice $invoice): array
     {
@@ -808,6 +825,7 @@ class InvoicePdfMasterService
 
     /**
      * ตรวจสอบสถานะระบบ
+     * @return array<string, mixed>
      */
     public function checkSystemStatus(): array
     {

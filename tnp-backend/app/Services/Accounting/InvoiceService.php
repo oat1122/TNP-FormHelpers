@@ -11,10 +11,11 @@ use App\Services\Accounting\AutofillService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class InvoiceService
 {
-    protected $autofillService;
+    protected AutofillService $autofillService;
 
     public function __construct(AutofillService $autofillService)
     {
@@ -23,6 +24,8 @@ class InvoiceService
 
     /**
      * Calculate subtotal_before_vat and deposit_amount_before_vat based on business logic
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function calculateBeforeVatFields(array $data): array
     {
@@ -57,7 +60,7 @@ class InvoiceService
     /**
      * Update deposit display order (presentation preference)
      */
-    public function updateDepositDisplayOrder(string $invoiceId, string $order, ?string $updatedBy = null)
+    public function updateDepositDisplayOrder(string $invoiceId, string $order, ?string $updatedBy = null): Invoice
     {
         if (!in_array($order, ['before','after'])) {
             throw new \InvalidArgumentException('Invalid deposit display order');
@@ -96,8 +99,10 @@ class InvoiceService
 
     /**
      * Upload evidence files for an invoice
+     * @param array<mixed> $files
+     * @return array<mixed>
      */
-    public function uploadEvidence($invoiceId, $files, $description = null, $uploadedBy = null)
+    public function uploadEvidence(string $invoiceId, array $files, ?string $description = null, ?string $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -192,26 +197,9 @@ class InvoiceService
     }
 
     /**
-     * Check if invoice has evidence for specific mode
-     */
-    private function hasEvidenceForMode($invoice, $mode)
-    {
-        if (!$invoice->evidence_files) {
-            return false;
-        }
-
-        // Use the same normalization logic as upload function
-        $normalizedEvidence = $this->normalizeEvidenceStructure($invoice->evidence_files);
-        
-        return isset($normalizedEvidence[$mode]) && 
-               is_array($normalizedEvidence[$mode]) && 
-               count($normalizedEvidence[$mode]) > 0;
-    }
-
-    /**
      * Generate proper file URL for both development and production
      */
-    private function generateFileUrl($path)
+    private function generateFileUrl(string $path): string
     {
         // Clean up the path
         $cleanPath = str_replace(['public/', 'public\\'], '', $path);
@@ -229,8 +217,10 @@ class InvoiceService
 
     /**
      * Normalize evidence_files structure to prevent nested corruption
+     * @param mixed $evidenceData
+     * @return array<string, array<string>>
      */
-    private function normalizeEvidenceStructure($evidenceData)
+    private function normalizeEvidenceStructure($evidenceData): array
     {
         // Start with clean structure
         $normalized = ['before' => [], 'after' => []];
@@ -247,20 +237,20 @@ class InvoiceService
         // Handle array (legacy format)
         if (is_array($evidenceData) && !isset($evidenceData['before']) && !isset($evidenceData['after'])) {
             // Legacy array - treat as 'before' mode
-            $normalized['before'] = array_values(array_filter($evidenceData, 'is_string'));
+            $normalized['before'] = array_values(array_filter($evidenceData, fn($item) => is_string($item)));
             return $normalized;
         }
 
         // Handle object/array with structure
-        if (is_array($evidenceData) || is_object($evidenceData)) {
+        if ($evidenceData !== null) {
             $data = (array) $evidenceData;
             
             // Extract files from nested/corrupted structure
             $beforeFiles = $this->extractFilesFromNestedStructure($data, 'before');
             $afterFiles = $this->extractFilesFromNestedStructure($data, 'after');
             
-            $normalized['before'] = array_values(array_unique(array_filter($beforeFiles, 'is_string')));
-            $normalized['after'] = array_values(array_unique(array_filter($afterFiles, 'is_string')));
+            $normalized['before'] = array_values(array_unique(array_filter($beforeFiles, fn($item) => is_string($item))));
+            $normalized['after'] = array_values(array_unique(array_filter($afterFiles, fn($item) => is_string($item))));
         }
 
         return $normalized;
@@ -268,8 +258,10 @@ class InvoiceService
 
     /**
      * Recursively extract files from nested/corrupted evidence structure
+     * @param mixed $data
+     * @return array<string>
      */
-    private function extractFilesFromNestedStructure($data, $mode)
+    private function extractFilesFromNestedStructure($data, string $mode): array
     {
         $files = [];
         
@@ -317,8 +309,10 @@ class InvoiceService
 
     /**
      * Upload evidence files for an invoice (mode-specific)
+     * @param array<mixed> $files
+     * @return array<mixed>
      */
-    public function uploadEvidenceByMode($invoiceId, $files, $mode = 'before', $description = null, $uploadedBy = null)
+    public function uploadEvidenceByMode(string $invoiceId, array $files, string $mode = 'before', ?string $description = null, ?string $uploadedBy = null): array
     {
         if (!in_array($mode, ['before', 'after'])) {
             throw new \InvalidArgumentException('Invalid evidence mode');
@@ -449,13 +443,17 @@ class InvoiceService
     /**
      * Fetch quotations that are signed and approved, and have no invoice yet.
      * Used by Invoices page to list candidates for invoice creation.
+     * @param array<string, mixed> $filters
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<\App\Models\Accounting\Quotation>
      */
-    public function getQuotationsAwaiting($filters = [], $perPage = 20)
+    public function getQuotationsAwaiting(array $filters = [], int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         try {
             // Keep consistent with QuotationService eager-loads so UI gets same shape
             $with = ['customer', 'creator', 'pricingRequest', 'items', 'company'];
-            if (\Illuminate\Support\Facades\Schema::hasTable('quotation_pricing_requests')) {
+            // Check if the relation exists in the model before adding it
+            if (\Illuminate\Support\Facades\Schema::hasTable('quotation_pricing_requests') && 
+                method_exists(Quotation::class, 'pricingRequests')) {
                 $with[] = 'pricingRequests';
             }
 
@@ -518,8 +516,9 @@ class InvoiceService
 
     /**
      * One-Click Conversion จาก Quotation เป็น Invoice
+     * @param array<string, mixed> $invoiceData
      */
-    public function createFromQuotation($quotationId, $invoiceData, $createdBy = null)
+    public function createFromQuotation(string $quotationId, array $invoiceData, ?string $createdBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -567,7 +566,7 @@ class InvoiceService
             $invoice->customer_lastname = $autofillData['customer_lastname'];
 
             // Snapshot ข้อมูลลูกค้า ณ เวลาที่สร้าง Invoice
-            $invoice->customer_snapshot = [
+            $invoice->customer_snapshot = json_encode([
                 'customer_id' => $invoice->customer_id,
                 'customer_company' => $invoice->customer_company,
                 'customer_tax_id' => $invoice->customer_tax_id,
@@ -580,7 +579,7 @@ class InvoiceService
                 'original_customer_address' => $autofillData['customer_address'], // เก็บที่อยู่เดิมไว้อ้างอิง
                 'custom_address_used' => !empty($invoiceData['custom_billing_address']), // บอกว่าใช้ที่อยู่กำหนดเองหรือไม่
                 'snapshot_at' => now()->toISOString()
-            ];
+            ]);
 
             // Default customer data source to 'master' unless FE specified otherwise
             $invoice->customer_data_source = $invoiceData['customer_data_source'] ?? 'master';
@@ -656,8 +655,9 @@ class InvoiceService
             $invoice->save();
 
             // สร้าง Invoice Items จาก Quotation Items
-            if ($quotation->items && $quotation->items->count() > 0) {
-                $this->createInvoiceItemsFromQuotation($invoice->id, $quotation->items, $createdBy);
+            $quotationItems = $quotation->items;
+            if ($quotationItems->count() > 0) {
+                $this->createInvoiceItemsFromQuotation($invoice->id, $quotationItems, $createdBy);
             }
 
             // บันทึก History
@@ -682,8 +682,9 @@ class InvoiceService
 
     /**
      * สร้าง Invoice Items จาก Quotation Items
+     * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\Accounting\QuotationItem> $quotationItems
      */
-    private function createInvoiceItemsFromQuotation($invoiceId, $quotationItems, $createdBy = null)
+    private function createInvoiceItemsFromQuotation(string $invoiceId, $quotationItems, ?string $createdBy = null): void
     {
         try {
             foreach ($quotationItems as $index => $qItem) {
@@ -706,7 +707,7 @@ class InvoiceService
                 $invoiceItem->unit = $qItem->unit ?? 'ชิ้น';
                 $invoiceItem->discount_percentage = $qItem->discount_percentage ?? 0;
                 $invoiceItem->discount_amount = $qItem->discount_amount ?? 0;
-                $invoiceItem->item_images = $qItem->item_images;
+                $invoiceItem->item_images = is_string($qItem->item_images) ? json_decode($qItem->item_images, true) : $qItem->item_images;
                 $invoiceItem->notes = $qItem->notes;
                 $invoiceItem->status = 'draft';
                 $invoiceItem->created_by = $createdBy;
@@ -722,8 +723,9 @@ class InvoiceService
     /**
      * อัพเดต Invoice Items
      * รับข้อมูล items จาก Frontend และแปลงเป็น invoice_items ในฐานข้อมูล
+     * @param array<mixed> $items
      */
-    private function updateInvoiceItems($invoiceId, $items, $updatedBy = null)
+    private function updateInvoiceItems(string $invoiceId, array $items, ?string $updatedBy = null): void
     {
         try {
             // ลบ items เก่าทั้งหมดก่อน
@@ -808,8 +810,9 @@ class InvoiceService
 
     /**
      * สร้าง Invoice แบบ Manual
+     * @param array<string, mixed> $invoiceData
      */
-    public function create($invoiceData, $createdBy = null)
+    public function create(array $invoiceData, ?string $createdBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -860,8 +863,9 @@ class InvoiceService
 
     /**
      * อัปเดต Invoice
+     * @param array<string, mixed> $updateData
      */
-    public function update($invoiceId, $updateData, $updatedBy = null)
+    public function update(string $invoiceId, array $updateData, ?string $updatedBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -945,7 +949,7 @@ class InvoiceService
     /**
      * ส่งใบแจ้งหนี้เพื่อขออนุมัติฝั่ง Before Deposit (Sales → Account)
      */
-    public function submit($invoiceId, $submittedBy = null)
+    public function submit(string $invoiceId, ?string $submittedBy = null): Invoice
     {
         return $this->submitForSide($invoiceId, 'before', $submittedBy);
     }
@@ -953,7 +957,7 @@ class InvoiceService
     /**
      * Submit invoice for specific side (before/after)
      */
-    public function submitForSide($invoiceId, $side, $submittedBy = null)
+    public function submitForSide(string $invoiceId, string $side, ?string $submittedBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -983,8 +987,8 @@ class InvoiceService
                 $invoiceId,
                 $oldStatus,
                 'pending',
-                "ส่งขออนุมัติฝั่ง {$side}",
-                $submittedBy
+                $submittedBy,
+                "ส่งขออนุมัติฝั่ง {$side}"
             );
 
             DB::commit();
@@ -1001,7 +1005,7 @@ class InvoiceService
     /**
      * อนุมัติใบแจ้งหนี้ฝั่ง Before Deposit (Account)
      */
-    public function approve($invoiceId, $approvedBy = null, $notes = null)
+    public function approve(string $invoiceId, ?string $approvedBy = null, ?string $notes = null): Invoice
     {
         return $this->approveForSide($invoiceId, 'before', $approvedBy, $notes);
     }
@@ -1009,7 +1013,7 @@ class InvoiceService
     /**
      * Approve invoice for specific side (before/after)
      */
-    public function approveForSide($invoiceId, $side, $approvedBy = null, $notes = null)
+    public function approveForSide(string $invoiceId, string $side, ?string $approvedBy = null, ?string $notes = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1085,9 +1089,8 @@ class InvoiceService
                 $invoiceId,
                 $currentStatus,
                 'approved',
-                "อนุมัติฝั่ง {$side}",
                 $approvedBy,
-                $notes
+                "อนุมัติฝั่ง {$side}" . ($notes ? " - {$notes}" : "")
             );
 
             DB::commit();
@@ -1104,7 +1107,7 @@ class InvoiceService
     /**
      * ปฏิเสธใบแจ้งหนี้ (Account)
      */
-    public function reject($invoiceId, $reason, $rejectedBy = null)
+    public function reject(string $invoiceId, ?string $reason, ?string $rejectedBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1126,9 +1129,8 @@ class InvoiceService
                 $invoiceId,
                 'pending',
                 'rejected',
-                'ปฏิเสธ',
                 $rejectedBy,
-                $reason
+                "ปฏิเสธ" . ($reason ? " - {$reason}" : "")
             );
 
             DB::commit();
@@ -1145,7 +1147,7 @@ class InvoiceService
     /**
      * ส่งขออนุมัติมัดจำหลัง (เปลี่ยนสถานะเป็น pending_after)
      */
-    public function submitAfterDeposit($invoiceId, $submittedBy = null, $notes = null)
+    public function submitAfterDeposit(string $invoiceId, ?string $submittedBy = null, ?string $notes = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1180,9 +1182,8 @@ class InvoiceService
                 $invoiceId,
                 $fromStatus,
                 'pending_after',
-                'ส่งขออนุมัติมัดจำหลัง',
                 $submittedBy,
-                $notes
+                'ส่งขออนุมัติมัดจำหลัง' . ($notes ? " - {$notes}" : "")
             );
 
             DB::commit();
@@ -1199,7 +1200,7 @@ class InvoiceService
     /**
      * อนุมัติมัดจำหลัง (เปลี่ยนจาก pending_after เป็น approved)
      */
-    public function approveAfterDeposit($invoiceId, $approvedBy = null, $notes = null)
+    public function approveAfterDeposit(string $invoiceId, ?string $approvedBy = null, ?string $notes = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1228,9 +1229,8 @@ class InvoiceService
                     $invoiceId,
                     $fromStatus,
                     'pending_after',
-                    'ส่งขออนุมัติมัดจำหลัง (โดย approve-after-deposit)',
                     $approvedBy,
-                    $notes
+                    'ส่งขออนุมัติมัดจำหลัง (โดย approve-after-deposit)' . ($notes ? " - {$notes}" : "")
                 );
                 $invoice->status = 'pending_after';
                 $invoice->submitted_by = $approvedBy;
@@ -1259,9 +1259,8 @@ class InvoiceService
                 $invoiceId,
                 $fromStatus,
                 'approved',
-                'อนุมัติมัดจำหลัง',
                 $approvedBy,
-                $notes
+                'อนุมัติมัดจำหลัง' . ($notes ? " - {$notes}" : "")
             );
 
             DB::commit();
@@ -1278,7 +1277,7 @@ class InvoiceService
     /**
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
      */
-    public function sendBack($invoiceId, $reason, $actionBy = null)
+    public function sendBack(string $invoiceId, string $reason, ?string $actionBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1298,9 +1297,8 @@ class InvoiceService
                 $invoiceId,
                 'pending',
                 'draft',
-                'ส่งกลับแก้ไข',
                 $actionBy,
-                $reason
+                'ส่งกลับแก้ไข' . ($reason ? " - {$reason}" : "")
             );
 
             DB::commit();
@@ -1316,8 +1314,9 @@ class InvoiceService
 
     /**
      * ส่งใบแจ้งหนี้ให้ลูกค้า
+     * @param array<string, mixed> $sendData
      */
-    public function sendToCustomer($invoiceId, $sendData, $sentBy = null)
+    public function sendToCustomer(string $invoiceId, array $sendData, ?string $sentBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1344,9 +1343,8 @@ class InvoiceService
                 $invoiceId,
                 'approved',
                 'sent',
-                'ส่งให้ลูกค้า',
                 $sentBy,
-                $notes
+                'ส่งให้ลูกค้า - ' . $notes
             );
 
             DB::commit();
@@ -1362,8 +1360,9 @@ class InvoiceService
 
     /**
      * บันทึกการชำระเงิน
+     * @param array<string, mixed> $paymentData
      */
-    public function recordPayment($invoiceId, $paymentData, $recordedBy = null)
+    public function recordPayment(string $invoiceId, array $paymentData, ?string $recordedBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1374,18 +1373,18 @@ class InvoiceService
                 throw new \Exception('Invoice must be sent before recording payment');
             }
 
-            $paymentAmount = $paymentData['amount'];
-            $currentPaid = $invoice->paid_amount ?? 0;
+            $paymentAmount = (float) $paymentData['amount'];
+            $currentPaid = (float) ($invoice->paid_amount ?? 0);
             $newPaidAmount = $currentPaid + $paymentAmount;
 
-            if ($newPaidAmount > $invoice->total_amount) {
+            if ($newPaidAmount > (float) $invoice->total_amount) {
                 throw new \Exception('Payment amount cannot exceed invoice total');
             }
 
             $invoice->paid_amount = $newPaidAmount;
             
             // อัปเดตสถานะ
-            if ($newPaidAmount >= $invoice->total_amount) {
+            if ($newPaidAmount >= (float) $invoice->total_amount) {
                 $invoice->status = 'fully_paid';
                 $invoice->paid_at = now();
             } else {
@@ -1424,8 +1423,10 @@ class InvoiceService
 
     /**
      * ดึงรายการ Invoice พร้อม Filter
+     * @param array<string, mixed> $filters
+     * @return LengthAwarePaginator<Invoice>
      */
-    public function getList($filters = [], $perPage = 20)
+    public function getList(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         try {
             $query = Invoice::with(['quotation', 'customer', 'documentHistory', 'manager', 'items'])
@@ -1506,8 +1507,10 @@ class InvoiceService
 
     /**
      * สร้าง PDF ใบแจ้งหนี้
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
      */
-    public function generatePdf($invoiceId, $options = [])
+    public function generatePdf(string $invoiceId, array $options = []): array
     {
         try {
             $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])->findOrFail($invoiceId);
@@ -1581,7 +1584,7 @@ class InvoiceService
     /**
      * Stream PDF สำหรับดู/ดาวน์โหลดทันที
      */
-    public function streamPdf($invoiceId, $options = [])
+    public function streamPdf(string $invoiceId, mixed $options = []): \Symfony\Component\HttpFoundation\Response
     {
         try {
             $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])
@@ -1607,8 +1610,9 @@ class InvoiceService
 
     /**
      * ตรวจสอบสถานะระบบ PDF
+     * @return array<string, mixed>
      */
-    public function checkPdfSystemStatus()
+    public function checkPdfSystemStatus(): array
     {
         try {
             $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
@@ -1635,8 +1639,10 @@ class InvoiceService
 
     /**
      * คำแนะนำสำหรับการแก้ไขปัญหา PDF
+     * @param array<string, mixed> $status
+     * @return array<string>
      */
-    private function getPdfRecommendations($status)
+    private function getPdfRecommendations(array $status): array
     {
         $recommendations = [];
 
@@ -1660,88 +1666,9 @@ class InvoiceService
     }
 
     /**
-     * คำนวณยอดเงินตามประเภท Invoice
-     */
-    private function calculateInvoiceAmounts($quotation, $type, $invoiceData = [])
-    {
-        // Use VAT configuration from invoice data or fallback to quotation/default
-        $hasVat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
-        $vatPercentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
-        $vatRate = $hasVat ? ($vatPercentage / 100) : 0;
-
-        switch ($type) {
-            case 'full_amount':
-                // Use provided financial data if available, otherwise calculate from quotation
-                if (isset($invoiceData['subtotal'], $invoiceData['vat_amount'], $invoiceData['total_amount'])) {
-                    return [
-                        'subtotal' => $invoiceData['subtotal'],
-                        'tax_amount' => $invoiceData['vat_amount'],
-                        'total_amount' => $invoiceData['total_amount']
-                    ];
-                }
-                return [
-                    'subtotal' => $quotation->subtotal,
-                    'tax_amount' => $quotation->tax_amount,
-                    'total_amount' => $quotation->total_amount
-                ];
-
-            case 'remaining':
-                $totalAmount = $quotation->total_amount - ($quotation->deposit_amount ?? 0);
-                if ($hasVat && $vatRate > 0) {
-                    $subtotal = $totalAmount / (1 + $vatRate);
-                    $taxAmount = $totalAmount - $subtotal;
-                } else {
-                    $subtotal = $totalAmount;
-                    $taxAmount = 0;
-                }
-                
-                return [
-                    'subtotal' => round($subtotal, 2),
-                    'tax_amount' => round($taxAmount, 2),
-                    'total_amount' => $totalAmount
-                ];
-
-            case 'deposit':
-                $totalAmount = $quotation->deposit_amount ?? 0;
-                if ($hasVat && $vatRate > 0) {
-                    $subtotal = $totalAmount / (1 + $vatRate);
-                    $taxAmount = $totalAmount - $subtotal;
-                } else {
-                    $subtotal = $totalAmount;
-                    $taxAmount = 0;
-                }
-                
-                return [
-                    'subtotal' => round($subtotal, 2),
-                    'tax_amount' => round($taxAmount, 2),
-                    'total_amount' => $totalAmount
-                ];
-
-            case 'partial':
-                $totalAmount = $invoiceData['custom_amount'] ?? 0;
-                if ($hasVat && $vatRate > 0) {
-                    $subtotal = $totalAmount / (1 + $vatRate);
-                    $taxAmount = $totalAmount - $subtotal;
-                } else {
-                    $subtotal = $totalAmount;
-                    $taxAmount = 0;
-                }
-                
-                return [
-                    'subtotal' => round($subtotal, 2),
-                    'tax_amount' => round($taxAmount, 2),
-                    'total_amount' => $totalAmount
-                ];
-
-            default:
-                throw new \Exception('Invalid invoice type');
-        }
-    }
-
-    /**
      * คำนวณวันครบกำหนดชำระ
      */
-    private function calculateDueDate($paymentTerms)
+    private function calculateDueDate(string $paymentTerms): string
     {
         $days = 30; // Default 30 days
 
@@ -1755,7 +1682,7 @@ class InvoiceService
     /**
      * สร้างเนื้อหา PDF (placeholder)
      */
-    private function generatePdfContent($invoice)
+    private function generatePdfContent(Invoice $invoice): string
     {
         return "
 TNP GROUP
@@ -1787,7 +1714,7 @@ TNP GROUP
     /**
      * Submit for Before Deposit mode
      */
-    public function submitBefore($invoiceId, $submittedBy = null)
+    public function submitBefore(string $invoiceId, ?string $submittedBy = null): Invoice
     {
         return $this->submitForSide($invoiceId, 'before', $submittedBy);
     }
@@ -1795,7 +1722,7 @@ TNP GROUP
     /**
      * Approve for Before Deposit mode 
      */
-    public function approveBefore($invoiceId, $approvedBy = null, $notes = null)
+    public function approveBefore(string $invoiceId, ?string $approvedBy = null, ?string $notes = null): Invoice
     {
         return $this->approveForSide($invoiceId, 'before', $approvedBy, $notes);
     }
@@ -1803,7 +1730,7 @@ TNP GROUP
     /**
      * Reject for Before Deposit mode
      */
-    public function rejectBefore($invoiceId, $reason, $rejectedBy = null)
+    public function rejectBefore(string $invoiceId, string $reason, ?string $rejectedBy = null): Invoice
     {
         return $this->rejectForSide($invoiceId, 'before', $reason, $rejectedBy);
     }
@@ -1811,7 +1738,7 @@ TNP GROUP
     /**
      * Submit for After Deposit mode
      */
-    public function submitAfter($invoiceId, $submittedBy = null)
+    public function submitAfter(string $invoiceId, ?string $submittedBy = null): Invoice
     {
         return $this->submitForSide($invoiceId, 'after', $submittedBy);
     }
@@ -1819,7 +1746,7 @@ TNP GROUP
     /**
      * Approve for After Deposit mode
      */
-    public function approveAfter($invoiceId, $approvedBy = null, $notes = null)
+    public function approveAfter(string $invoiceId, ?string $approvedBy = null, ?string $notes = null): Invoice
     {
         return $this->approveForSide($invoiceId, 'after', $approvedBy, $notes);
     }
@@ -1827,7 +1754,7 @@ TNP GROUP
     /**
      * Reject for After Deposit mode
      */
-    public function rejectAfter($invoiceId, $reason, $rejectedBy = null)
+    public function rejectAfter(string $invoiceId, string $reason, ?string $rejectedBy = null): Invoice
     {
         return $this->rejectForSide($invoiceId, 'after', $reason, $rejectedBy);
     }
@@ -1835,7 +1762,7 @@ TNP GROUP
     /**
      * Reject invoice for specific side (before/after)
      */
-    public function rejectForSide($invoiceId, $side, $reason, $rejectedBy = null)
+    public function rejectForSide(string $invoiceId, string $side, string $reason, ?string $rejectedBy = null): Invoice
     {
         try {
             DB::beginTransaction();
@@ -1858,9 +1785,8 @@ TNP GROUP
                 $invoiceId,
                 $currentStatus,
                 'rejected',
-                "ปฏิเสธฝั่ง {$side}",
                 $rejectedBy,
-                $reason
+                "ปฏิเสธฝั่ง {$side}" . ($reason ? " - {$reason}" : "")
             );
 
             DB::commit();
@@ -1987,7 +1913,7 @@ TNP GROUP
     /**
      * Set deposit display mode (presentation only)
      */
-    public function setDepositMode($invoiceId, $mode, $updatedBy = null)
+    public function setDepositMode(string $invoiceId, string $mode, ?string $updatedBy = null): Invoice
     {
         if (!in_array($mode, ['before', 'after'])) {
             throw new \InvalidArgumentException('Invalid mode. Must be "before" or "after".');
@@ -2029,6 +1955,7 @@ TNP GROUP
 
     /**
      * Get invoice data with UI status for current mode
+     * @return array<string, mixed>
      */
     public function getInvoiceWithUiStatus(Invoice $invoice): array
     {

@@ -14,10 +14,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class DeliveryNoteService
 {
-    protected $autofillService;
+    protected AutofillService $autofillService;
 
     public function __construct(AutofillService $autofillService)
     {
@@ -27,7 +28,7 @@ class DeliveryNoteService
     /**
      * Get invoice items that can be converted to delivery notes
      */
-    public function getInvoiceItemSources($filters = [], $perPage = 20)
+    public function getInvoiceItemSources(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         try {
             $query = InvoiceItem::with(['invoice' => function ($invoiceQuery) {
@@ -134,7 +135,7 @@ class DeliveryNoteService
     /**
      * Get invoices that can be converted to delivery notes (with their items included)
      */
-    public function getInvoiceSources($filters = [], $perPage = 20)
+    public function getInvoiceSources(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         try {
             $query = Invoice::with(['items', 'customer'])
@@ -239,7 +240,7 @@ class DeliveryNoteService
     /**
      * สร้าง Delivery Note จาก Receipt (One-Click Conversion)
      */
-    public function createFromReceipt($receiptId, $deliveryData, $createdBy = null)
+    public function createFromReceipt(string $receiptId, array $deliveryData, ?string $createdBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -266,8 +267,8 @@ class DeliveryNoteService
             $deliveryNote->company_id = $receipt->company_id
                 ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
             $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
-            $deliveryNote->invoice_id = $data['invoice_id'] ?? null;
-            $deliveryNote->invoice_item_id = $data['invoice_item_id'] ?? null;
+            $deliveryNote->invoice_id = $deliveryData['invoice_id'] ?? null;
+            $deliveryNote->invoice_item_id = $deliveryData['invoice_item_id'] ?? null;
             $deliveryNote->receipt_id = $receipt->id;
             
             // Auto-fill ข้อมูลจาก Receipt
@@ -298,7 +299,7 @@ class DeliveryNoteService
             $deliveryNote->save();
 
             // หากอัปเดตให้ใช้ข้อมูลลูกค้าจาก master ให้ล้างค่า override บนใบส่งของนี้
-            if (!empty($data['customer_data_source']) && $data['customer_data_source'] === 'master') {
+            if (!empty($deliveryData['customer_data_source']) && $deliveryData['customer_data_source'] === 'master') {
                 $overrideFields = [
                     'customer_company',
                     'customer_address',
@@ -321,7 +322,7 @@ class DeliveryNoteService
                         'delivery_note',
                         $deliveryNote->id,
                         'customer_source_master',
-                        $updatedBy,
+                        $createdBy,
                         'เปลี่ยนแหล่งข้อมูลลูกค้าเป็น master และล้างข้อมูลเฉพาะใบส่งของ'
                     );
                 }
@@ -335,9 +336,8 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 null,
                 'preparing',
-                'สร้างใบส่งของ',
                 $createdBy,
-                'สร้างใบส่งของจากใบเสร็จ ' . $receipt->receipt_number
+                'สร้างใบส่งของจากใบเสร็จ ' . $receipt->number
             );
 
             DB::commit();
@@ -354,7 +354,7 @@ class DeliveryNoteService
     /**
      * สร้าง Delivery Note แบบ Manual
      */
-    public function create($data, $createdBy = null)
+    public function create(array $data, ?string $createdBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -466,7 +466,6 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 null,
                 'preparing',
-                'สร้างใบส่งของ',
                 $createdBy,
                 'สร้างใบส่งของแบบ Manual'
             );
@@ -485,7 +484,7 @@ class DeliveryNoteService
     /**
      * อัปเดต Delivery Note
      */
-    public function update($deliveryNoteId, $data, $updatedBy = null)
+    public function update(string $deliveryNoteId, array $data, ?string $updatedBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -575,7 +574,7 @@ class DeliveryNoteService
     /**
      * ดึงรายการ Delivery Notes พร้อม Filter
      */
-    public function getList($filters = [], $perPage = 20)
+    public function getList(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         try {
             $query = DeliveryNote::with(['receipt', 'invoice', 'invoiceItem', 'customer', 'creator', 'items']);
@@ -643,7 +642,7 @@ class DeliveryNoteService
     /**
      * เริ่มการจัดส่ง (Preparing → Shipping)
      */
-    public function startShipping($deliveryNoteId, $shippingData, $shippedBy = null)
+    public function startShipping(string $deliveryNoteId, array $shippingData, ?string $shippedBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -681,7 +680,6 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 'preparing',
                 'shipping',
-                'เริ่มการจัดส่ง',
                 $shippedBy,
                 $notes
             );
@@ -700,7 +698,7 @@ class DeliveryNoteService
     /**
      * อัปเดตสถานะการขนส่ง (Shipping → In Transit)
      */
-    public function updateTrackingStatus($deliveryNoteId, $trackingData, $updatedBy = null)
+    public function updateTrackingStatus(string $deliveryNoteId, array $trackingData, ?string $updatedBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -742,7 +740,7 @@ class DeliveryNoteService
     /**
      * ยืนยันการส่งสำเร็จ (In Transit → Delivered)
      */
-    public function markAsDelivered($deliveryNoteId, $deliveryData, $deliveredBy = null)
+    public function markAsDelivered(string $deliveryNoteId, array $deliveryData, ?string $deliveredBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -777,7 +775,6 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 'in_transit',
                 'delivered',
-                'ส่งสำเร็จ',
                 $deliveredBy,
                 $notes
             );
@@ -796,7 +793,7 @@ class DeliveryNoteService
     /**
      * ปิดงาน (Delivered → Completed)
      */
-    public function markAsCompleted($deliveryNoteId, $completionData, $completedBy = null)
+    public function markAsCompleted(string $deliveryNoteId, array $completionData, ?string $completedBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -821,7 +818,6 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 'delivered',
                 'completed',
-                'ปิดงาน',
                 $completedBy,
                 $completionData['notes'] ?? 'ปิดงานเรียบร้อย'
             );
@@ -840,7 +836,7 @@ class DeliveryNoteService
     /**
      * รายงานปัญหา (Any Status → Failed)
      */
-    public function markAsFailed($deliveryNoteId, $failureData, $reportedBy = null)
+    public function markAsFailed(string $deliveryNoteId, array $failureData, ?string $reportedBy = null): DeliveryNote
     {
         try {
             DB::beginTransaction();
@@ -862,7 +858,6 @@ class DeliveryNoteService
                 $deliveryNote->id,
                 $oldStatus,
                 'failed',
-                'รายงานปัญหา',
                 $reportedBy,
                 $failureData['reason'] ?? 'ไม่สามารถจัดส่งได้'
             );
@@ -881,7 +876,7 @@ class DeliveryNoteService
     /**
      * อัปโหลดหลักฐานการจัดส่ง
      */
-    public function uploadEvidence($deliveryNoteId, $files, $description = null, $uploadedBy = null)
+    public function uploadEvidence(string $deliveryNoteId, array $files, ?string $description = null, ?string $uploadedBy = null): array
     {
         try {
             DB::beginTransaction();
@@ -899,12 +894,11 @@ class DeliveryNoteService
                 $attachment->id = \Illuminate\Support\Str::uuid();
                 $attachment->document_type = 'delivery_note';
                 $attachment->document_id = $deliveryNote->id;
-                $attachment->file_name = $filename;
-                $attachment->original_name = $file->getClientOriginalName();
+                $attachment->filename = $filename;
+                $attachment->original_filename = $file->getClientOriginalName();
                 $attachment->file_path = $path;
                 $attachment->file_size = $file->getSize();
                 $attachment->mime_type = $file->getMimeType();
-                $attachment->description = $description;
                 $attachment->uploaded_by = $uploadedBy;
                 $attachment->save();
 
@@ -934,7 +928,7 @@ class DeliveryNoteService
     /**
      * สร้าง PDF ใบส่งของ
      */
-    public function generatePdf($deliveryNoteId)
+    public function generatePdf(string $deliveryNoteId): array
     {
         try {
             $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])->findOrFail($deliveryNoteId);
@@ -962,7 +956,7 @@ class DeliveryNoteService
                 'filename' => $result['filename'],
                 'size'     => $result['size'],
                 'engine'   => 'mPDF',
-                'type'     => $result['type'] ?? 'preview',
+                'type'     => $result['type'],
             ];
 
         } catch (\Exception $e) {
@@ -974,7 +968,7 @@ class DeliveryNoteService
     /**
      * ดึงรายการบริษัทขนส่ง
      */
-    public function getCourierCompanies()
+    public function getCourierCompanies(): array
     {
         return [
             [
@@ -1007,7 +1001,7 @@ class DeliveryNoteService
     /**
      * ดึงรายการวิธีการจัดส่ง
      */
-    public function getDeliveryMethods()
+    public function getDeliveryMethods(): array
     {
         return [
             [
@@ -1037,7 +1031,7 @@ class DeliveryNoteService
     /**
      * ดึง Timeline การจัดส่ง
      */
-    public function getDeliveryTimeline($deliveryNoteId)
+    public function getDeliveryTimeline(string $deliveryNoteId): array
     {
         try {
             $deliveryNote = DeliveryNote::with(['documentHistory' => function ($query) {
@@ -1051,7 +1045,7 @@ class DeliveryNoteService
                     'id' => $history->id,
                     'timestamp' => $history->created_at,
                     'status' => $history->new_status ?? $history->action,
-                    'description' => $history->description,
+                    'description' => $history->notes,
                     'notes' => $history->notes,
                     'user' => $history->user->user_nickname ?? 'System'
                 ];

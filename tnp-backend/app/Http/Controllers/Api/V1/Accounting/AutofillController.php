@@ -184,15 +184,22 @@ class AutofillController extends Controller
             $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page, $userInfo);
             
             Log::info('AutofillController::getCompletedPricingRequests success', [
-                'total_records' => $completedRequests['pagination']['total'] ?? 0,
+                'total_records' => $completedRequests->total(),
                 'user_id' => $userInfo['user_id'] ?? 'guest',
                 'access_control_applied' => $userInfo && $userInfo['user_id'] != 1
             ]);
             
             return response()->json([
                 'success' => true,
-                'data' => $completedRequests['data'], // ส่งเฉพาะ data array
-                'pagination' => $completedRequests['pagination'],
+                'data' => $completedRequests->items(),
+                'pagination' => [
+                    'current_page' => $completedRequests->currentPage(),
+                    'per_page' => $completedRequests->perPage(),
+                    'total' => $completedRequests->total(),
+                    'last_page' => $completedRequests->lastPage(),
+                    'from' => $completedRequests->firstItem(),
+                    'to' => $completedRequests->lastItem()
+                ],
                 'message' => 'Completed pricing requests retrieved successfully'
             ]);
 

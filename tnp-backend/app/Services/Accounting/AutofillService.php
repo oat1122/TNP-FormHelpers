@@ -343,33 +343,63 @@ class AutofillService
     public function getCompletedPricingRequests($filters = [], $perPage = 20, $page = 1, $userInfo = null)
     {
         try {
-            $query = PricingRequest::with(['pricingCustomer', 'pricingStatus'])
+            $allowedManagerRoles = ['production', 'manager', 'admin'];
+            $canViewManagerNotes = $userInfo && isset($userInfo['role']) && in_array($userInfo['role'], $allowedManagerRoles);
+
+            $query = PricingRequest::with([
+                    'pricingCustomer' => function ($customerQuery) {
+                        $customerQuery->select([
+                            'cus_id',
+                            'cus_company',
+                            'cus_name',
+                            'cus_depart',
+                            'cus_tax_id',
+                            'cus_address',
+                            'cus_zip_code',
+                            'cus_tel_1',
+                            'cus_tel_2',
+                            'cus_email',
+                            'cus_firstname',
+                            'cus_lastname'
+                        ]);
+                    },
+                    'pricingStatus' => function ($statusQuery) {
+                        $statusQuery->select('status_id', 'status_name');
+                    },
+                    'pricingNote' => function ($noteQuery) use ($canViewManagerNotes) {
+                        $noteQuery->where('prn_is_deleted', 0)
+                            ->orderBy('prn_created_date', 'ASC');
+
+                        if (!$canViewManagerNotes) {
+                            $noteQuery->whereIn('prn_note_type', [1, 2]);
+                        }
+                    },
+                    'pricingNote.prnCreatedBy' => function ($userQuery) {
+                        $userQuery->select('user_uuid', 'username', 'user_nickname');
+                    }
+                ])
                 ->withCount('quotationItems')
                 ->where('pr_is_deleted', 0);
 
-            // เพิ่มเงื่อนไขสถานะ "ได้ราคาแล้ว" เฉพาะเมื่อไม่มี customer_id filter
             if (empty($filters['customer_id'])) {
                 $query->where('pr_status_id', '20db8be1-092b-11f0-b223-38ca84abdf0a');
             }
 
-            // 🔐 Access Control: แบ่งสิทธิ์การมองเห็นตาม cus_manage_by
             if ($userInfo && isset($userInfo['user_id']) && $userInfo['user_id'] != 1) {
-                // ถ้าไม่ใช่ admin (user_id !== 1) ให้แสดงเฉพาะลูกค้าที่ตัวเองดูแล
                 $query->whereHas('pricingCustomer', function ($customerQuery) use ($userInfo) {
                     $customerQuery->where('cus_manage_by', $userInfo['user_id']);
                 });
             }
 
-            // Apply filters
             if (!empty($filters['search'])) {
                 $searchTerm = '%' . $filters['search'] . '%';
                 $query->where(function ($q) use ($searchTerm) {
-                    $q->where('pr_no', 'like', $searchTerm) // 🔍 ค้นหาด้วยหมายเลข pr_no
-                      ->orWhere('pr_work_name', 'like', $searchTerm) // 🔍 ค้นหาด้วยชื่องาน
-                      ->orWhere('pr_pattern', 'like', $searchTerm) // 🔍 ค้นหาด้วยลาย/แพทเทิร์น
-                      ->orWhere('pr_fabric_type', 'like', $searchTerm) // 🔍 ค้นหาด้วยประเภทผ้า
-                      ->orWhere('pr_color', 'like', $searchTerm) // 🔍 ค้นหาด้วยสี
-                      ->orWhere('pr_sizes', 'like', $searchTerm) // 🔍 ค้นหาด้วยไซส์
+                    $q->where('pr_no', 'like', $searchTerm)
+                      ->orWhere('pr_work_name', 'like', $searchTerm)
+                      ->orWhere('pr_pattern', 'like', $searchTerm)
+                      ->orWhere('pr_fabric_type', 'like', $searchTerm)
+                      ->orWhere('pr_color', 'like', $searchTerm)
+                      ->orWhere('pr_sizes', 'like', $searchTerm)
                       ->orWhereHas('pricingCustomer', function ($customerQuery) use ($searchTerm) {
                           $customerQuery->where('cus_company', 'like', $searchTerm)
                                       ->orWhere('cus_firstname', 'like', $searchTerm)
@@ -394,17 +424,96 @@ class AutofillService
                 $query->whereDate('pr_created_date', '<=', $filters['date_to']);
             }
 
-            // Order by latest
             $query->orderBy('pr_updated_date', 'DESC');
 
-            // Paginate with explicit page parameter
             $results = $query->paginate($perPage, ['*'], 'page', $page);
 
-            // Transform data ตาม DTO structure
-            $transformedData = $results->getCollection()->map(function ($pr) {
+            $noteTypeLabels = [
+                1 => 'Sale',
+                2 => 'Price',
+                3 => 'Manager'
+            ];
+
+            $noteTypeColors = [
+                1 => '#2196F3',
+                2 => '#4CAF50',
+                3 => '#FF9800'
+            ];
+
+            $transformedData = $results->getCollection()->map(function ($pr) use ($noteTypeLabels, $noteTypeColors) {
+                $customer = $pr->pricingCustomer;
+
+                $formattedNotes = collect($pr->pricingNote ?? [])
+                    ->where('prn_is_deleted', 0)
+                    ->values()
+                    ->map(function ($note) use ($noteTypeLabels, $noteTypeColors) {
+                        return [
+                            'prn_id' => $note->prn_id,
+                            'prn_text' => $note->prn_text,
+                            'prn_note_type' => $note->prn_note_type,
+                            'note_type_label' => $noteTypeLabels[$note->prn_note_type] ?? 'Other',
+                            'note_type_color' => $noteTypeColors[$note->prn_note_type] ?? '#757575',
+                            'prn_created_by' => $note->prn_created_by,
+                            'prn_created_date' => $note->prn_created_date,
+                            'created_name' => optional($note->prnCreatedBy)->user_nickname
+                                ?? optional($note->prnCreatedBy)->username
+                                ?? ''
+                        ];
+                    });
+
+                $initialNotes = $formattedNotes->map(function ($note) {
+                    return "[{$note['note_type_label']}] {$note['prn_text']}";
+                })->join("\n");
+
+                $prImageUrl = $pr->pr_image ? url('storage/images/pricing_req/' . $pr->pr_image) : null;
+
+                $customerPayload = [
+                    'cus_id' => $customer->cus_id ?? null,
+                    'cus_company' => $customer->cus_company ?? '',
+                    'cus_name' => $customer->cus_name ?? '',
+                    'cus_depart' => $customer->cus_depart ?? '',
+                    'cus_tax_id' => $customer->cus_tax_id ?? '',
+                    'cus_address' => $customer->cus_address ?? '',
+                    'cus_zip_code' => $customer->cus_zip_code ?? '',
+                    'cus_tel_1' => $customer->cus_tel_1 ?? '',
+                    'cus_tel_2' => $customer->cus_tel_2 ?? '',
+                    'cus_email' => $customer->cus_email ?? '',
+                    'cus_firstname' => $customer->cus_firstname ?? '',
+                    'cus_lastname' => $customer->cus_lastname ?? ''
+                ];
+
+                $autofillPayload = [
+                    'pr_id' => $pr->pr_id,
+                    'pr_no' => $pr->pr_no,
+                    'pr_work_name' => $pr->pr_work_name,
+                    'pr_pattern' => $pr->pr_pattern,
+                    'pr_fabric_type' => $pr->pr_fabric_type,
+                    'pr_color' => $pr->pr_color,
+                    'pr_sizes' => $pr->pr_sizes,
+                    'pr_quantity' => $pr->pr_quantity,
+                    'pr_due_date' => $pr->pr_due_date,
+                    'pr_silk' => $pr->pr_silk,
+                    'pr_dft' => $pr->pr_dft,
+                    'pr_embroider' => $pr->pr_embroider,
+                    'pr_sub' => $pr->pr_sub,
+                    'pr_other_screen' => $pr->pr_other_screen,
+                    'pr_image' => $prImageUrl,
+                    'pr_cus_id' => $customer->cus_id ?? null,
+                    'cus_company' => $customer->cus_company ?? '',
+                    'cus_tax_id' => $customer->cus_tax_id ?? '',
+                    'cus_address' => $customer->cus_address ?? '',
+                    'cus_zip_code' => $customer->cus_zip_code ?? '',
+                    'cus_tel_1' => $customer->cus_tel_1 ?? '',
+                    'cus_email' => $customer->cus_email ?? '',
+                    'cus_firstname' => $customer->cus_firstname ?? '',
+                    'cus_lastname' => $customer->cus_lastname ?? '',
+                    'initial_notes' => $initialNotes,
+                    'notes' => $formattedNotes->toArray()
+                ];
+
                 return [
                     'pr_id' => $pr->pr_id,
-                    'pr_no' => $pr->pr_no, // 🔢 เพิ่ม pr_no สำหรับการแสดงผล
+                    'pr_no' => $pr->pr_no,
                     'pr_work_name' => $pr->pr_work_name,
                     'pr_cus_id' => $pr->pr_cus_id,
                     'pr_pattern' => $pr->pr_pattern,
@@ -416,20 +525,9 @@ class AutofillService
                     'pr_status' => $pr->pricingStatus->status_name ?? 'Unknown',
                     'pr_completed_at' => $pr->pr_updated_date ? $pr->pr_updated_date->format('Y-m-d\TH:i:s\Z') : null,
                     'is_quoted' => ($pr->quotation_items_count ?? 0) > 0,
-                    'customer' => [
-                        'cus_id' => $pr->pricingCustomer->cus_id ?? null,
-                        'cus_company' => $pr->pricingCustomer->cus_company ?? '',
-                        // เพิ่มฟิลด์ที่ใช้ในหน้าแก้ไขลูกค้า
-                        'cus_name' => $pr->pricingCustomer->cus_name ?? '',
-                        'cus_depart' => $pr->pricingCustomer->cus_depart ?? '',
-                        'cus_tax_id' => $pr->pricingCustomer->cus_tax_id ?? '',
-                        'cus_address' => $pr->pricingCustomer->cus_address ?? '',
-                        'cus_zip_code' => $pr->pricingCustomer->cus_zip_code ?? '',
-                        'cus_tel_1' => $pr->pricingCustomer->cus_tel_1 ?? '',
-                        'cus_email' => $pr->pricingCustomer->cus_email ?? '',
-                        'cus_firstname' => $pr->pricingCustomer->cus_firstname ?? '',
-                        'cus_lastname' => $pr->pricingCustomer->cus_lastname ?? ''
-                    ]
+                    'pr_image_url' => $prImageUrl,
+                    'customer' => $customerPayload,
+                    'autofill' => $autofillPayload
                 ];
             });
 
@@ -571,3 +669,4 @@ class AutofillService
         }
     }
 }
+

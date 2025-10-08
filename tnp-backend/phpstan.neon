@@ -1,0 +1,11 @@
+includes:
+    - vendor/nunomaduro/larastan/extension.neon
+    # - phpstan-baseline.neon
+
+parameters:
+    level: 6
+    paths:
+        - app/Http/Controllers/Api/V1/Accounting
+        - app/Models/Accounting
+        - app/Services/Accounting
+    tmpDir: storage/phpstan

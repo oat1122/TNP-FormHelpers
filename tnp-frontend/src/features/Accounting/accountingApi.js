@@ -90,6 +90,29 @@ export const accountingApi = createApi({
         }
         return response;
       },
+      async onQueryStarted(_params, { dispatch, queryFulfilled }) {
+        try {
+          const { data: response } = await queryFulfilled;
+          const items = Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response)
+            ? response
+            : [];
+          items.forEach((item) => {
+            if (item?.pr_id && item?.autofill) {
+              dispatch(
+                accountingApi.util.upsertQueryData(
+                  "getPricingRequestAutofill",
+                  item.pr_id,
+                  () => ({ success: true, data: item.autofill })
+                )
+              );
+            }
+          });
+        } catch (error) {
+          console.warn("Prefill pricing request autofill cache failed", error);
+        }
+      },
     }),
     getPricingRequestAutofill: builder.query({
       query: (id) => `/pricing-requests/${id}/autofill`,

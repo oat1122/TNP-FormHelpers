@@ -212,19 +212,19 @@ Route::prefix('v1')->group(function() {
     
     // Auto-fill APIs
     Route::controller(AutofillController::class)->group(function () {
-        // Pricing Request Auto-fill
-        Route::get('/quotations/autofill/pricing-request/{id}', 'getPricingRequestAutofill');
-        Route::get('/pricing/completed-requests', 'getCompletedPricingRequests');
-        Route::post('/pricing/requests/{id}/mark-used', 'markPricingRequestAsUsed');
+        // Pricing Request Auto-fill - UNUSED ROUTES
+        // Route::get('/quotations/autofill/pricing-request/{id}', 'getPricingRequestAutofill');
+        // Route::get('/pricing/completed-requests', 'getCompletedPricingRequests');
+        // Route::post('/pricing/requests/{id}/mark-used', 'markPricingRequestAsUsed');
         
         // Customer Auto-fill
         Route::get('/customers/search', 'searchCustomers');
         Route::get('/customers/{id}/details', 'getCustomerDetails');
         
-        // Cascade Auto-fill
-        Route::get('/invoices/autofill/quotation/{id}', 'getQuotationAutofillForInvoice');
-        Route::get('/receipts/autofill/invoice/{id}', 'getInvoiceAutofillForReceipt');
-        Route::get('/delivery-notes/autofill/receipt/{id}', 'getReceiptAutofillForDeliveryNote');
+        // Cascade Auto-fill - UNUSED ROUTES
+        // Route::get('/invoices/autofill/quotation/{id}', 'getQuotationAutofillForInvoice');
+        // Route::get('/receipts/autofill/invoice/{id}', 'getInvoiceAutofillForReceipt');
+        // Route::get('/delivery-notes/autofill/receipt/{id}', 'getReceiptAutofillForDeliveryNote');
     });
 
     // Quotation APIs
@@ -239,16 +239,16 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/{id}/submit', 'submit');
         Route::post('/quotations/{id}/approve', 'approve');
         Route::post('/quotations/{id}/reject', 'reject');
-        Route::post('/quotations/{id}/convert-to-invoice', 'convertToInvoice');
+        // Route::post('/quotations/{id}/convert-to-invoice', 'convertToInvoice'); // UNUSED
         
         // Step 1 Workflow APIs
         Route::post('/quotations/{id}/send-back', 'sendBack');
         Route::post('/quotations/{id}/revoke-approval', 'revokeApproval');
         // PDF APIs (Accounting-only, mPDF-first with FPDF fallback)
         Route::match(['get', 'post'], '/quotations/{id}/generate-pdf', 'generatePdf');
-        Route::get('/quotations/{id}/pdf/stream', 'streamPdf');
-        Route::get('/quotations/{id}/pdf/download', 'downloadPdf');
-        Route::get('/quotations/{id}/pdf/test', 'testMpdf');
+        // Route::get('/quotations/{id}/pdf/stream', 'streamPdf'); // UNUSED
+        // Route::get('/quotations/{id}/pdf/download', 'downloadPdf'); // UNUSED
+        // Route::get('/quotations/{id}/pdf/test', 'testMpdf'); // UNUSED
         Route::post('/quotations/{id}/send-email', 'sendEmail');
         Route::post('/quotations/{id}/upload-evidence', 'uploadEvidence');
         // Sample images upload for quotations
@@ -264,88 +264,88 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');
     });
 
-    // System Status (PDF)
-    Route::get('/system/pdf-status', [QuotationController::class, 'checkPdfStatus']);
+    // System Status (PDF) - UNUSED
+    // Route::get('/system/pdf-status', [QuotationController::class, 'checkPdfStatus']);
 
     // Invoice APIs
     Route::controller(InvoiceController::class)->group(function () {
         Route::get('/invoices', 'index');
-        Route::post('/invoices', 'store');
+        // Route::post('/invoices', 'store'); // UNUSED
         // Static paths must come before parameterized routes
         Route::get('/invoices/quotations-awaiting', 'quotationsAwaiting');
-        Route::get('/invoices/companies', 'getCompanies');
+        // Route::get('/invoices/companies', 'getCompanies'); // UNUSED
         Route::get('/invoices/{id}', 'show');
         Route::put('/invoices/{id}', 'update');
-        Route::delete('/invoices/{id}', 'destroy');
+        // Route::delete('/invoices/{id}', 'destroy'); // UNUSED
         
         // Invoice Actions - Before Deposit Mode
         Route::post('/invoices/{id}/submit', 'submitBefore');
         Route::post('/invoices/{id}/approve', 'approveBefore');
-        Route::post('/invoices/{id}/reject', 'rejectBefore');
+        // Route::post('/invoices/{id}/reject', 'rejectBefore'); // UNUSED
         
         // Invoice Actions - After Deposit Mode  
         Route::post('/invoices/{id}/submit-after-deposit', 'submitAfter');
         Route::post('/invoices/{id}/approve-after-deposit', 'approveAfter');
-        Route::post('/invoices/{id}/reject-after-deposit', 'rejectAfter');
+        // Route::post('/invoices/{id}/reject-after-deposit', 'rejectAfter'); // UNUSED
         
         // General Actions (not side-specific)
-        Route::post('/invoices/{id}/send-back', 'sendBack');
+        // Route::post('/invoices/{id}/send-back', 'sendBack'); // UNUSED
         Route::post('/invoices/{id}/revert-to-draft', 'revertToDraft');
         
         // Deposit Mode Management
         Route::patch('/invoices/{id}/deposit-display-order', 'setDepositMode');
         
-        // Step 2 Workflow APIs
-        Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
-        Route::post('/invoices/{id}/record-payment', 'recordPayment');
-        Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
-        Route::post('/invoices/{id}/send-reminder', 'sendReminder');
-        Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
+        // Step 2 Workflow APIs - UNUSED
+        // Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
+        // Route::post('/invoices/{id}/record-payment', 'recordPayment');
+        // Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
+        // Route::post('/invoices/{id}/send-reminder', 'sendReminder');
+        // Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
     Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
         
         // PDF APIs (mPDF-first with fallback) - Mode-specific
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
-        Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // Renamed for clarity
-        Route::get('/invoices/{id}/pdf/download', 'downloadPdf');
-    // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers)
-    Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
-    Route::get('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
-    Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
-    Route::get('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
+        // Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
+        // Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
+    // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers) - UNUSED
+    // Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
+    // Route::get('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
+    // Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
+    // Route::get('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
         
-        // Legacy support (will use deposit_display_order as default mode)
-        Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
+        // Legacy support (will use deposit_display_order as default mode) - UNUSED
+        // Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
         
         // One-Click Conversion
         Route::post('/invoices/create-from-quotation', 'createFromQuotation');
     });
 
-    // System APIs
-    Route::get('/system/invoice-pdf-status', [InvoiceController::class, 'checkPdfStatus']);
+    // System APIs - UNUSED
+    // Route::get('/system/invoice-pdf-status', [InvoiceController::class, 'checkPdfStatus']);
 
     //---------- Receipt Controller (Step 3) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\ReceiptController::class)->group(function () {
         // Receipt CRUD
         Route::get('/receipts', 'index');
         Route::get('/receipts/{id}', 'show');
-        Route::post('/receipts', 'store');
+        // Route::post('/receipts', 'store'); // UNUSED
         Route::put('/receipts/{id}', 'update');
-        Route::delete('/receipts/{id}', 'destroy');
+        // Route::delete('/receipts/{id}', 'destroy'); // UNUSED
         
-        // Receipt Actions
-        Route::post('/receipts/{id}/submit', 'submit');
+        // Receipt Actions - UNUSED
+        // Route::post('/receipts/{id}/submit', 'submit');
         Route::post('/receipts/{id}/approve', 'approve');
-        Route::post('/receipts/{id}/reject', 'reject');
+        // Route::post('/receipts/{id}/reject', 'reject');
         
         // Step 3 Workflow APIs
         Route::post('/receipts/create-from-payment', 'createFromPayment');
-        Route::post('/receipts/{id}/upload-evidence', 'uploadEvidence');
+        Route::post('/receipts/{receiptId}/upload-evidence', 'uploadEvidence');
         Route::get('/receipts/{id}/generate-pdf', 'generatePdf');
         
         // Receipt Utilities
         Route::get('/receipts/calculate-vat', 'calculateVat');
-        Route::get('/receipts/types', 'getReceiptTypes');
-        Route::get('/receipts/payment-methods', 'getPaymentMethods');
+        // Route::get('/receipts/types', 'getReceiptTypes'); // UNUSED
+        // Route::get('/receipts/payment-methods', 'getPaymentMethods'); // UNUSED
     });
 
     //---------- DeliveryNote Controller (Step 4) ----------
@@ -370,13 +370,13 @@ Route::prefix('v1')->group(function() {
         Route::post('/delivery-notes/{id}/mark-failed', 'markFailed')->name('delivery-notes.mark-failed');
         
         // Step 4 Workflow APIs - Evidence & Documents
-        Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence')->name('delivery-notes.upload-evidence');
+        // Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence')->name('delivery-notes.upload-evidence'); // UNUSED
         Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf')->name('delivery-notes.generate-pdf');
         Route::get('/delivery-notes/{id}/timeline', 'getTimeline')->name('delivery-notes.timeline');
         
         // DeliveryNote Utilities
         Route::get('/delivery-notes/courier-companies', 'getCourierCompanies')->name('delivery-notes.courier-companies');
         Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods')->name('delivery-notes.delivery-methods');
-        Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses');
+        // Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses'); // UNUSED
     });
 });

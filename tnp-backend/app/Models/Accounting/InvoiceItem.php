@@ -5,6 +5,8 @@ namespace App\Models\Accounting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\User;
+use App\Models\PricingRequest;
 
 class InvoiceItem extends Model
 {
@@ -47,6 +49,7 @@ class InvoiceItem extends Model
 
     /**
      * ใบแจ้งหนี้ที่สังกัด
+     * @return BelongsTo<Invoice, InvoiceItem>
      */
     public function invoice(): BelongsTo
     {
@@ -55,6 +58,7 @@ class InvoiceItem extends Model
 
     /**
      * รายการจากใบเสนอราคา (ถ้ามี)
+     * @return BelongsTo<QuotationItem, InvoiceItem>
      */
     public function quotationItem(): BelongsTo
     {
@@ -63,26 +67,29 @@ class InvoiceItem extends Model
 
     /**
      * Pricing Request ที่อ้างอิง
+     * @return BelongsTo<PricingRequest, InvoiceItem>
      */
     public function pricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'pricing_request_id', 'pr_id');
     }
 
     /**
      * ผู้สร้าง
+     * @return BelongsTo<User, InvoiceItem>
      */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'created_by', 'user_uuid');
+        return $this->belongsTo(User::class, 'created_by', 'user_uuid');
     }
 
     /**
      * ผู้แก้ไขล่าสุด
+     * @return BelongsTo<User, InvoiceItem>
      */
     public function updater(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'updated_by', 'user_uuid');
+        return $this->belongsTo(User::class, 'updated_by', 'user_uuid');
     }
 
     /**

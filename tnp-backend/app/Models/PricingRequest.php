@@ -8,6 +8,8 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Class PricingRequest
@@ -35,6 +37,13 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $pr_created_by
  * @property Carbon|null $pr_updated_date
  * @property string|null $pr_updated_by
+ * 
+ * @property-read User|null $prCreatedBy
+ * @property-read MasterCustomer|null $pricingCustomer
+ * @property-read MasterStatus|null $pricingStatus
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, PricingRequestNote> $pricingNote
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Accounting\QuotationItem> $quotationItems
+ * @property-read int|null $quotation_items_count
  *
  * @package App\Models
  */
@@ -77,32 +86,32 @@ class PricingRequest extends Model
 		'pr_updated_by'
 	];
 
-	public function prCreatedBy()
+	public function prCreatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pr_created_by', 'user_uuid')
 			->select('user_uuid', 'username', 'user_nickname');
     }
 
-	public function pricingCustomer()
+	public function pricingCustomer(): BelongsTo
     {
         return $this->belongsTo(MasterCustomer::class, 'pr_cus_id', 'cus_id')
 			->select('cus_id', 'cus_firstname', 'cus_lastname', 'cus_name', 'cus_company', 'cus_tel_1', 'cus_email');
     }
 
-	public function pricingStatus()
+	public function pricingStatus(): BelongsTo
     {
         return $this->belongsTo(MasterStatus::class, 'pr_status_id', 'status_id')
 			->select('status_id', 'status_name');
     }
 
-	public function pricingNote()
+	public function pricingNote(): HasMany
     {
         return $this->hasMany(PricingRequestNote::class, 'prn_pr_id', 'pr_id')
 			->orderBy('prn_created_date', 'desc')
 			->select('prn_id', 'prn_pr_id', 'prn_text', 'prn_note_type', 'prn_is_deleted', 'prn_created_date', 'prn_created_by');
     }
 
-	public function quotationItems()
+	public function quotationItems(): HasMany
     {
         return $this->hasMany(\App\Models\Accounting\QuotationItem::class, 'pricing_request_id', 'pr_id');
     }

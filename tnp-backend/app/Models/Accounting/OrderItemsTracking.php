@@ -4,7 +4,9 @@ namespace App\Models\Accounting;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
+use App\Models\PricingRequest;
 
 /**
  * Class OrderItemsTracking
@@ -69,6 +71,7 @@ class OrderItemsTracking extends Model
 
     /**
      * Relationship: OrderItemsTracking belongs to Quotation
+     * @return BelongsTo<Quotation, OrderItemsTracking>
      */
     public function quotation(): BelongsTo
     {
@@ -77,16 +80,17 @@ class OrderItemsTracking extends Model
 
     /**
      * Relationship: OrderItemsTracking belongs to PricingRequest
+     * @return BelongsTo<PricingRequest, OrderItemsTracking>
      */
     public function pricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'pricing_request_id', 'pr_id');
     }
 
     /**
      * Get remaining quantity (computed attribute from database)
      */
-    public function getRemainingQuantityAttribute()
+    public function getRemainingQuantityAttribute(): int
     {
         return $this->ordered_quantity - $this->delivered_quantity;
     }
@@ -94,7 +98,7 @@ class OrderItemsTracking extends Model
     /**
      * Get delivery progress percentage
      */
-    public function getDeliveryProgressAttribute()
+    public function getDeliveryProgressAttribute(): float
     {
         if ($this->ordered_quantity <= 0) {
             return 0;
@@ -106,7 +110,7 @@ class OrderItemsTracking extends Model
     /**
      * Calculate total order value
      */
-    public function getTotalOrderValueAttribute()
+    public function getTotalOrderValueAttribute(): float
     {
         return $this->ordered_quantity * $this->unit_price;
     }
@@ -114,7 +118,7 @@ class OrderItemsTracking extends Model
     /**
      * Calculate delivered value
      */
-    public function getDeliveredValueAttribute()
+    public function getDeliveredValueAttribute(): float
     {
         return $this->delivered_quantity * $this->unit_price;
     }
@@ -122,39 +126,47 @@ class OrderItemsTracking extends Model
     /**
      * Calculate remaining value
      */
-    public function getRemainingValueAttribute()
+    public function getRemainingValueAttribute(): float
     {
         return $this->remaining_quantity * $this->unit_price;
     }
 
     /**
      * Scope: Filter by quotation
+     * @param Builder<OrderItemsTracking> $query
+     * @return Builder<OrderItemsTracking>
      */
-    public function scopeQuotation($query, $quotationId)
+    public function scopeQuotation(Builder $query, string $quotationId): Builder
     {
         return $query->where('quotation_id', $quotationId);
     }
 
     /**
      * Scope: Filter by pricing request
+     * @param Builder<OrderItemsTracking> $query
+     * @return Builder<OrderItemsTracking>
      */
-    public function scopePricingRequest($query, $pricingRequestId)
+    public function scopePricingRequest(Builder $query, string $pricingRequestId): Builder
     {
         return $query->where('pricing_request_id', $pricingRequestId);
     }
 
     /**
      * Scope: Items with remaining quantity
+     * @param Builder<OrderItemsTracking> $query
+     * @return Builder<OrderItemsTracking>
      */
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->whereRaw('ordered_quantity > delivered_quantity');
     }
 
     /**
      * Scope: Fully delivered items
+     * @param Builder<OrderItemsTracking> $query
+     * @return Builder<OrderItemsTracking>
      */
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->whereRaw('ordered_quantity <= delivered_quantity');
     }
@@ -162,7 +174,7 @@ class OrderItemsTracking extends Model
     /**
      * Record partial delivery
      */
-    public function recordDelivery($quantity, $notes = null)
+    public function recordDelivery(int $quantity, ?string $notes = null): self
     {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Delivery quantity must be greater than 0');
@@ -190,7 +202,7 @@ class OrderItemsTracking extends Model
     /**
      * Record return
      */
-    public function recordReturn($quantity, $notes = null)
+    public function recordReturn(int $quantity, ?string $notes = null): self
     {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Return quantity must be greater than 0');
@@ -218,7 +230,7 @@ class OrderItemsTracking extends Model
     /**
      * Check if order is fully delivered
      */
-    public function isFullyDelivered()
+    public function isFullyDelivered(): bool
     {
         return $this->delivered_quantity >= $this->ordered_quantity;
     }
@@ -226,7 +238,7 @@ class OrderItemsTracking extends Model
     /**
      * Check if order has pending delivery
      */
-    public function hasPendingDelivery()
+    public function hasPendingDelivery(): bool
     {
         return $this->delivered_quantity < $this->ordered_quantity;
     }
@@ -234,7 +246,7 @@ class OrderItemsTracking extends Model
     /**
      * Get status label
      */
-    public function getStatusLabelAttribute()
+    public function getStatusLabelAttribute(): string
     {
         if ($this->isFullyDelivered()) {
             return 'ส่งครบแล้ว';

@@ -5,8 +5,10 @@ namespace App\Models\Accounting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\MasterCustomer;
 use App\Models\User;
+use App\Models\Company;
 
 /**
  * Class Receipt
@@ -95,13 +97,14 @@ class Receipt extends Model
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
             if (empty($model->company_id)) {
-                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
+                $model->company_id = optional(Company::where('is_active', true)->first())->id;
             }
         });
     }
 
     /**
      * Relationship: Receipt belongs to Invoice
+     * @return BelongsTo<Invoice, Receipt>
      */
     public function invoice(): BelongsTo
     {
@@ -110,6 +113,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Customer
+     * @return BelongsTo<MasterCustomer, Receipt>
      */
     public function customer(): BelongsTo
     {
@@ -118,6 +122,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Issuer
+     * @return BelongsTo<User, Receipt>
      */
     public function issuer(): BelongsTo
     {
@@ -126,6 +131,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Approver
+     * @return BelongsTo<User, Receipt>
      */
     public function approver(): BelongsTo
     {
@@ -134,6 +140,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt has many Delivery Notes
+     * @return HasMany<DeliveryNote>
      */
     public function deliveryNotes(): HasMany
     {
@@ -142,6 +149,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt has many Document History
+     * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
@@ -151,6 +159,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt has many Document Attachments
+     * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
@@ -160,24 +169,30 @@ class Receipt extends Model
 
     /**
      * Scope: Filter by type
+     * @param Builder<Receipt> $query
+     * @return Builder<Receipt>
      */
-    public function scopeType($query, $type)
+    public function scopeType(Builder $query, string $type): Builder
     {
         return $query->where('type', $type);
     }
 
     /**
      * Scope: Filter by status
+     * @param Builder<Receipt> $query
+     * @return Builder<Receipt>
      */
-    public function scopeStatus($query, $status)
+    public function scopeStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
 
     /**
      * Scope: Filter by customer
+     * @param Builder<Receipt> $query
+     * @return Builder<Receipt>
      */
-    public function scopeCustomer($query, $customerId)
+    public function scopeCustomer(Builder $query, string $customerId): Builder
     {
         return $query->where('customer_id', $customerId);
     }
@@ -185,7 +200,7 @@ class Receipt extends Model
     /**
      * Auto-generate receipt number based on type
      */
-    public static function generateReceiptNumber(string $companyId, $type = 'receipt')
+    public static function generateReceiptNumber(string $companyId, string $type = 'receipt'): string
     {
         return app(\App\Services\Support\DocumentNumberService::class)
             ->next($companyId, $type);
@@ -194,7 +209,7 @@ class Receipt extends Model
     /**
      * Auto-generate tax invoice number
      */
-    public function generateTaxInvoiceNumber()
+    public function generateTaxInvoiceNumber(): self
     {
         if ($this->type === 'tax_invoice' || $this->type === 'full_tax_invoice') {
             $this->tax_invoice_number = app(\App\Services\Support\DocumentNumberService::class)
@@ -207,7 +222,7 @@ class Receipt extends Model
     /**
      * Get customer full name
      */
-    public function getCustomerFullNameAttribute()
+    public function getCustomerFullNameAttribute(): string
     {
         return trim($this->customer_firstname . ' ' . $this->customer_lastname);
     }
@@ -215,7 +230,7 @@ class Receipt extends Model
     /**
      * Check if receipt is approved
      */
-    public function isApproved()
+    public function isApproved(): bool
     {
         return $this->status === 'approved';
     }
@@ -223,7 +238,7 @@ class Receipt extends Model
     /**
      * Check if receipt can be converted to delivery note
      */
-    public function canConvertToDeliveryNote()
+    public function canConvertToDeliveryNote(): bool
     {
         return in_array($this->status, ['approved', 'sent']);
     }
@@ -231,7 +246,7 @@ class Receipt extends Model
     /**
      * Get type label in Thai
      */
-    public function getTypeLabelAttribute()
+    public function getTypeLabelAttribute(): string
     {
         $labels = [
             'receipt' => 'ใบเสร็จรับเงิน',

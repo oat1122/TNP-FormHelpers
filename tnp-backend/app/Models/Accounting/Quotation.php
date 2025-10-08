@@ -6,11 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\MasterCustomer;
 use App\Models\PricingRequest;
 use App\Models\User;
 use App\Models\Accounting\QuotationItem;
 use App\Models\Company;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Class Quotation
@@ -144,6 +147,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Company
+     * @return BelongsTo<Company, Quotation>
      */
     public function company(): BelongsTo
     {
@@ -152,6 +156,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to PricingRequest
+     * @return BelongsTo<PricingRequest, Quotation>
      */
     public function pricingRequest(): BelongsTo
     {
@@ -161,6 +166,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Customer
+     * @return BelongsTo<MasterCustomer, Quotation>
      */
     public function customer(): BelongsTo
     {
@@ -169,6 +175,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Creator
+     * @return BelongsTo<User, Quotation>
      */
     public function creator(): BelongsTo
     {
@@ -177,6 +184,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Approver
+     * @return BelongsTo<User, Quotation>
      */
     public function approver(): BelongsTo
     {
@@ -185,6 +193,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Invoices
+     * @return HasMany<Invoice>
      */
     public function invoices(): HasMany
     {
@@ -193,6 +202,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Order Items Tracking
+     * @return HasMany<OrderItemsTracking>
      */
     public function orderItemsTracking(): HasMany
     {
@@ -201,6 +211,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Quotation Items
+     * @return HasMany<QuotationItem>
      */
     public function items(): HasMany
     {
@@ -210,6 +221,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Pricing Requests (via junction table)
+     * @return HasMany<QuotationPricingRequest>
      */
     public function quotationPricingRequests(): HasMany
     {
@@ -219,11 +231,12 @@ class Quotation extends Model
 
     /**
      * Relationship: Many-to-Many with Pricing Requests through junction table
+     * @return BelongsToMany<PricingRequest>
      */
-    public function pricingRequests()
+    public function pricingRequests(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\PricingRequest::class,
+            PricingRequest::class,
             'quotation_pricing_requests',
             'quotation_id',
             'pricing_request_id',
@@ -236,14 +249,16 @@ class Quotation extends Model
 
     /**
      * Relationship: Primary Pricing Request (first in the list)
+     * @return BelongsTo<PricingRequest, Quotation>
      */
     public function primaryPricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
     }
 
     /**
      * Relationship: Quotation has many Document History
+     * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
@@ -253,6 +268,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Document Attachments
+     * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
@@ -262,24 +278,30 @@ class Quotation extends Model
 
     /**
      * Scope: Filter by status
+     * @param Builder<Quotation> $query
+     * @return Builder<Quotation>
      */
-    public function scopeStatus($query, $status)
+    public function scopeStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
 
     /**
      * Scope: Filter by customer
+     * @param Builder<Quotation> $query
+     * @return Builder<Quotation>
      */
-    public function scopeCustomer($query, $customerId)
+    public function scopeCustomer(Builder $query, string $customerId): Builder
     {
         return $query->where('customer_id', $customerId);
     }
 
     /**
      * Scope: Filter by date range
+     * @param Builder<Quotation> $query
+     * @return Builder<Quotation>
      */
-    public function scopeDateRange($query, $startDate, $endDate)
+    public function scopeDateRange(Builder $query, string $startDate, string $endDate): Builder
     {
         return $query->whereBetween('created_at', [$startDate, $endDate]);
     }
@@ -287,7 +309,7 @@ class Quotation extends Model
     /**
      * Auto-generate quotation number
      */
-    public static function generateQuotationNumber(string $companyId)
+    public static function generateQuotationNumber(string $companyId): string
     {
         return app(\App\Services\Support\DocumentNumberService::class)
             ->next($companyId, 'quotation');
@@ -296,7 +318,7 @@ class Quotation extends Model
     /**
      * Get customer full name
      */
-    public function getCustomerFullNameAttribute()
+    public function getCustomerFullNameAttribute(): string
     {
         return trim($this->customer_firstname . ' ' . $this->customer_lastname);
     }
@@ -304,7 +326,7 @@ class Quotation extends Model
     /**
      * Calculate remaining amount after paid
      */
-    public function getRemainingAmountAttribute()
+    public function getRemainingAmountAttribute(): float
     {
         return $this->total_amount - $this->deposit_amount;
     }
@@ -312,7 +334,7 @@ class Quotation extends Model
     /**
      * Calculate net amount after special discount (before withholding tax)
      */
-    public function getNetAfterDiscountAttribute()
+    public function getNetAfterDiscountAttribute(): float
     {
         return $this->total_amount - $this->special_discount_amount;
     }
@@ -321,7 +343,7 @@ class Quotation extends Model
      * Calculate withholding tax amount based on subtotal (before VAT)
      * ภาษีหัก ณ ที่จ่าย = ยอดก่อนภาษี × อัตราภาษี
      */
-    public function getCalculatedWithholdingTaxAttribute()
+    public function getCalculatedWithholdingTaxAttribute(): float
     {
         if (!$this->has_withholding_tax || $this->withholding_tax_percentage <= 0) {
             return 0;
@@ -333,7 +355,7 @@ class Quotation extends Model
      * Calculate final total after all deductions
      * ยอดสุทธิสุดท้าย = ยอดหลังหักส่วนลดพิเศษ - ภาษีหัก ณ ที่จ่าย
      */
-    public function getFinalNetAmountAttribute()
+    public function getFinalNetAmountAttribute(): float
     {
         $netAfterDiscount = $this->net_after_discount;
         $withholdingTax = $this->calculated_withholding_tax;
@@ -343,7 +365,7 @@ class Quotation extends Model
     /**
      * Check if quotation is approved
      */
-    public function isApproved()
+    public function isApproved(): bool
     {
         return $this->status === 'approved';
     }
@@ -351,7 +373,7 @@ class Quotation extends Model
     /**
      * Check if quotation can be converted to invoice
      */
-    public function canConvertToInvoice()
+    public function canConvertToInvoice(): bool
     {
         return in_array($this->status, ['approved', 'sent']);
     }
@@ -359,8 +381,9 @@ class Quotation extends Model
     /**
      * Get primary pricing request IDs as array
      * รองรับทั้ง primary_pricing_request_id (single) และ primary_pricing_request_ids (array)
+     * @return array<string>
      */
-    public function getPrimaryPricingRequestIdsAttribute()
+    public function getPrimaryPricingRequestIdsAttribute(): array
     {
         // ถ้ามี primary_pricing_request_ids ใช้ array นั้น
         if (!empty($this->attributes['primary_pricing_request_ids'])) {
@@ -378,8 +401,9 @@ class Quotation extends Model
 
     /**
      * Set primary pricing request IDs from array
+     * @param mixed $value
      */
-    public function setPrimaryPricingRequestIdsAttribute($value)
+    public function setPrimaryPricingRequestIdsAttribute($value): void
     {
         if (is_array($value)) {
             $this->attributes['primary_pricing_request_ids'] = json_encode($value);
@@ -396,16 +420,17 @@ class Quotation extends Model
 
     /**
      * Helper: ดึง Pricing Requests ทั้งหมดที่เชื่อมโยงกับ Quotation นี้
+     * @return Collection<int, PricingRequest>
      */
-    public function getAllPricingRequests()
+    public function getAllPricingRequests(): Collection
     {
-        return \App\Models\PricingRequest::whereIn('pr_id', $this->getPrimaryPricingRequestIdsAttribute())->get();
+        return PricingRequest::whereIn('pr_id', $this->getPrimaryPricingRequestIdsAttribute())->get();
     }
 
     /**
      * Helper: ตรวจสอบว่า Quotation นี้มี Pricing Request ID ที่ระบุหรือไม่
      */
-    public function hasPricingRequest($pricingRequestId)
+    public function hasPricingRequest(string $pricingRequestId): bool
     {
         return in_array($pricingRequestId, $this->getPrimaryPricingRequestIdsAttribute());
     }

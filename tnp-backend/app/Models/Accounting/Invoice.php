@@ -5,8 +5,11 @@ namespace App\Models\Accounting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\MasterCustomer;
 use App\Models\User;
+use App\Models\Company;
+use App\Models\PricingRequest;
 
 /**
  * Class Invoice
@@ -169,16 +172,18 @@ class Invoice extends Model
         parent::boot();
         
         static::creating(function ($model) {
+            /** @var Invoice $model */
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
             if (empty($model->company_id)) {
-                $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
+                $model->company_id = optional(Company::where('is_active', true)->first())->id;
             }
             
             // Auto-set inv_manage_by from quotation's created_by if not set
             if (empty($model->inv_manage_by) && !empty($model->quotation_id)) {
-                $quotation = \App\Models\Accounting\Quotation::find($model->quotation_id);
+                /** @var Quotation|null $quotation */
+                $quotation = Quotation::find($model->quotation_id);
                 if ($quotation && !empty($quotation->created_by)) {
                     $model->inv_manage_by = $quotation->created_by;
                 }
@@ -186,9 +191,11 @@ class Invoice extends Model
         });
         
         static::updating(function ($model) {
+            /** @var Invoice $model */
             // Auto-sync inv_manage_by if quotation_id changed and inv_manage_by is empty
             if ($model->isDirty('quotation_id') && empty($model->inv_manage_by) && !empty($model->quotation_id)) {
-                $quotation = \App\Models\Accounting\Quotation::find($model->quotation_id);
+                /** @var Quotation|null $quotation */
+                $quotation = Quotation::find($model->quotation_id);
                 if ($quotation && !empty($quotation->created_by)) {
                     $model->inv_manage_by = $quotation->created_by;
                 }
@@ -198,6 +205,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Quotation
+     * @return BelongsTo<Quotation, Invoice>
      */
     public function quotation(): BelongsTo
     {
@@ -206,6 +214,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many InvoiceItems
+     * @return HasMany<InvoiceItem>
      */
     public function items(): HasMany
     {
@@ -215,14 +224,16 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to primary pricing request
+     * @return BelongsTo<PricingRequest, Invoice>
      */
     public function primaryPricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'primary_pricing_request_id', 'pr_id');
     }
 
     /**
      * Relationship: Invoice belongs to Customer
+     * @return BelongsTo<MasterCustomer, Invoice>
      */
     public function customer(): BelongsTo
     {
@@ -231,14 +242,16 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Company
+     * @return BelongsTo<Company, Invoice>
      */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Company::class, 'company_id', 'id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 
     /**
      * Relationship: Invoice belongs to Reference Invoice (before-deposit invoice)
+     * @return BelongsTo<Invoice, Invoice>
      */
     public function referenceInvoice(): BelongsTo
     {
@@ -247,6 +260,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many after-deposit invoices
+     * @return HasMany<Invoice>
      */
     public function afterDepositInvoices(): HasMany
     {
@@ -255,6 +269,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Creator
+     * @return BelongsTo<User, Invoice>
      */
     public function creator(): BelongsTo
     {
@@ -263,6 +278,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Updater
+     * @return BelongsTo<User, Invoice>
      */
     public function updater(): BelongsTo
     {
@@ -271,6 +287,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Manager
+     * @return BelongsTo<User, Invoice>
      */
     public function manager(): BelongsTo
     {
@@ -279,6 +296,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Submitter
+     * @return BelongsTo<User, Invoice>
      */
     public function submitter(): BelongsTo
     {
@@ -287,6 +305,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Approver
+     * @return BelongsTo<User, Invoice>
      */
     public function approver(): BelongsTo
     {
@@ -295,6 +314,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Rejecter
+     * @return BelongsTo<User, Invoice>
      */
     public function rejecter(): BelongsTo
     {
@@ -303,6 +323,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Sender
+     * @return BelongsTo<User, Invoice>
      */
     public function sender(): BelongsTo
     {
@@ -311,6 +332,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many Receipts
+     * @return HasMany<Receipt>
      */
     public function receipts(): HasMany
     {
@@ -319,6 +341,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many Document History
+     * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
@@ -328,6 +351,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many Document Attachments
+     * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
@@ -337,24 +361,30 @@ class Invoice extends Model
 
     /**
      * Scope: Filter by status
+     * @param Builder<Invoice> $query
+     * @return Builder<Invoice>
      */
-    public function scopeStatus($query, $status)
+    public function scopeStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
 
     /**
      * Scope: Filter by customer
+     * @param Builder<Invoice> $query
+     * @return Builder<Invoice>
      */
-    public function scopeCustomer($query, $customerId)
+    public function scopeCustomer(Builder $query, string $customerId): Builder
     {
         return $query->where('customer_id', $customerId);
     }
 
     /**
      * Scope: Overdue invoices
+     * @param Builder<Invoice> $query
+     * @return Builder<Invoice>
      */
-    public function scopeOverdue($query)
+    public function scopeOverdue(Builder $query): Builder
     {
         return $query->where('due_date', '<', now())
                     ->whereNotIn('status', ['fully_paid']);
@@ -363,7 +393,7 @@ class Invoice extends Model
     /**
      * Auto-generate invoice number
      */
-    public static function generateInvoiceNumber(string $companyId)
+    public static function generateInvoiceNumber(string $companyId): string
     {
         return app(\App\Services\Support\DocumentNumberService::class)
             ->next($companyId, 'invoice');
@@ -372,7 +402,7 @@ class Invoice extends Model
     /**
      * Auto-generate invoice number based on deposit display order
      */
-    public static function generateInvoiceNumberByDepositMode(string $companyId, string $depositDisplayOrder = 'before')
+    public static function generateInvoiceNumberByDepositMode(string $companyId, string $depositDisplayOrder = 'before'): string
     {
         $docType = $depositDisplayOrder === 'after' ? 'invoice_after' : 'invoice_before';
         return app(\App\Services\Support\DocumentNumberService::class)
@@ -382,7 +412,7 @@ class Invoice extends Model
     /**
      * Generate and assign appropriate invoice numbers based on deposit mode
      */
-    public function assignInvoiceNumbers()
+    public function assignInvoiceNumbers(): void
     {
         $documentService = app(\App\Services\Support\DocumentNumberService::class);
         
@@ -403,7 +433,7 @@ class Invoice extends Model
     /**
      * Get customer full name
      */
-    public function getCustomerFullNameAttribute()
+    public function getCustomerFullNameAttribute(): string
     {
         return trim($this->customer_firstname . ' ' . $this->customer_lastname);
     }
@@ -411,7 +441,7 @@ class Invoice extends Model
     /**
      * Calculate remaining amount after paid
      */
-    public function getRemainingAmountAttribute()
+    public function getRemainingAmountAttribute(): float
     {
         return $this->final_total_amount - $this->paid_amount;
     }
@@ -419,7 +449,7 @@ class Invoice extends Model
     /**
      * Check if invoice is fully paid
      */
-    public function isFullyPaid()
+    public function isFullyPaid(): bool
     {
         return $this->paid_amount >= $this->final_total_amount;
     }
@@ -427,7 +457,7 @@ class Invoice extends Model
     /**
      * Check if invoice is overdue
      */
-    public function isOverdue()
+    public function isOverdue(): bool
     {
         return $this->due_date && $this->due_date < now() && !$this->isFullyPaid();
     }
@@ -435,7 +465,7 @@ class Invoice extends Model
     /**
      * Record payment
      */
-    public function recordPayment($amount, $method = null, $reference = null)
+    public function recordPayment(float $amount, ?string $method = null, ?string $reference = null): self
     {
         $this->paid_amount += $amount;
         
@@ -458,7 +488,7 @@ class Invoice extends Model
     /**
      * Check if invoice can be converted to receipt
      */
-    public function canConvertToReceipt()
+    public function canConvertToReceipt(): bool
     {
         return in_array($this->status, ['approved', 'sent', 'partial_paid', 'fully_paid']);
     }
@@ -466,7 +496,7 @@ class Invoice extends Model
     /**
      * Sync inv_manage_by from related quotation's created_by
      */
-    public function syncManagerFromQuotation()
+    public function syncManagerFromQuotation(): bool
     {
         if ($this->quotation_id && $this->quotation) {
             $this->inv_manage_by = $this->quotation->created_by;

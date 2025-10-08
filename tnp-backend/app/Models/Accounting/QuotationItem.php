@@ -5,6 +5,7 @@ namespace App\Models\Accounting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
+use App\Models\PricingRequest;
 
 /**
  * QuotationItem Model
@@ -64,28 +65,36 @@ class QuotationItem extends Model
         });
     }
 
+    /**
+     * Relationship: QuotationItem belongs to Quotation
+     * @return BelongsTo<Quotation, QuotationItem>
+     */
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
     }
 
+    /**
+     * Relationship: QuotationItem belongs to PricingRequest
+     * @return BelongsTo<PricingRequest, QuotationItem>
+     */
     public function pricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'pricing_request_id', 'pr_id');
     }
 
     /**
      * Computed subtotal for an item: (unit_price * quantity) - discount
      * If discount_amount missing, falls back to discount_percentage.
      */
-    public function getSubtotalAttribute()
+    public function getSubtotalAttribute(): float
     {
         $unitPrice = (float) ($this->unit_price ?? 0);
         $qty = (int) ($this->quantity ?? 0);
         $gross = $unitPrice * $qty;
 
         $discountAmount = (float) ($this->discount_amount ?? 0);
-        if ($discountAmount <= 0 && !is_null($this->discount_percentage)) {
+        if ($discountAmount <= 0 && $this->discount_percentage !== null && $this->discount_percentage > 0) {
             $discountAmount = $gross * ((float) $this->discount_percentage) / 100.0;
         }
 

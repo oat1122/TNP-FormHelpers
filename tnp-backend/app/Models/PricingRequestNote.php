@@ -8,6 +8,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class PricingRequestNote
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $prn_created_by
  * @property Carbon|null $prn_updated_date
  * @property string|null $prn_updated_by
+ * 
+ * @property-read User|null $prnCreatedBy
  *
  * @package App\Models
  */
@@ -49,7 +52,7 @@ class PricingRequestNote extends Model
 		'prn_updated_by'
 	];
 
-	public function prnCreatedBy()
+	public function prnCreatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'prn_created_by', 'user_uuid')
 			->select('user_uuid', 'username', 'user_nickname');

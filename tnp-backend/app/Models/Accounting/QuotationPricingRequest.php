@@ -4,6 +4,9 @@ namespace App\Models\Accounting;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\PricingRequest;
+use App\Models\User;
 
 /**
  * QuotationPricingRequest Model
@@ -57,6 +60,7 @@ class QuotationPricingRequest extends Model
 
     /**
      * Relationship: Belongs to Quotation
+     * @return BelongsTo<Quotation, QuotationPricingRequest>
      */
     public function quotation(): BelongsTo
     {
@@ -65,40 +69,48 @@ class QuotationPricingRequest extends Model
 
     /**
      * Relationship: Belongs to Pricing Request
+     * @return BelongsTo<PricingRequest, QuotationPricingRequest>
      */
     public function pricingRequest(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\PricingRequest::class, 'pricing_request_id', 'pr_id');
+        return $this->belongsTo(PricingRequest::class, 'pricing_request_id', 'pr_id');
     }
 
     /**
      * Relationship: Belongs to User (Created By)
+     * @return BelongsTo<User, QuotationPricingRequest>
      */
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'created_by', 'user_uuid');
+        return $this->belongsTo(User::class, 'created_by', 'user_uuid');
     }
 
     /**
      * Scope: Filter by quotation
+     * @param Builder<QuotationPricingRequest> $query
+     * @return Builder<QuotationPricingRequest>
      */
-    public function scopeByQuotation($query, $quotationId)
+    public function scopeByQuotation(Builder $query, string $quotationId): Builder
     {
         return $query->where('quotation_id', $quotationId);
     }
 
     /**
      * Scope: Filter by pricing request
+     * @param Builder<QuotationPricingRequest> $query
+     * @return Builder<QuotationPricingRequest>
      */
-    public function scopeByPricingRequest($query, $pricingRequestId)
+    public function scopeByPricingRequest(Builder $query, string $pricingRequestId): Builder
     {
         return $query->where('pricing_request_id', $pricingRequestId);
     }
 
     /**
      * Scope: Order by sequence
+     * @param Builder<QuotationPricingRequest> $query
+     * @return Builder<QuotationPricingRequest>
      */
-    public function scopeOrderBySequence($query)
+    public function scopeOrderBySequence(Builder $query): Builder
     {
         return $query->orderBy('sequence_order');
     }

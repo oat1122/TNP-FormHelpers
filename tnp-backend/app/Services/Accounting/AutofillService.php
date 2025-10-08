@@ -3,8 +3,10 @@
 namespace App\Services\Accounting;
 
 use App\Models\MasterCustomer;
+use App\Models\MasterStatus;
 use App\Models\PricingRequest;
 use App\Models\PricingRequestNote;
+use App\Models\User;
 use App\Models\Accounting\Quotation;
 use App\Models\Accounting\Invoice;
 use App\Models\Accounting\Receipt;
@@ -12,17 +14,20 @@ use App\Models\Accounting\DeliveryNote;
 use App\Models\Accounting\DocumentHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AutofillService
 {
     /**
      * ดึงข้อมูลสำหรับ Auto-fill จาก Pricing Request
+     * @return array<string, mixed>
      */
-    public function getAutofillDataFromPricingRequest($pricingRequestId)
+    public function getAutofillDataFromPricingRequest(string $pricingRequestId): array
     {
         try {
             // ดึงข้อมูล Pricing Request พร้อมลูกค้า
-            $pricingRequest = PricingRequest::with(['pricingCustomer', 'pricingNote.prnCreatedBy'])
+            $pricingRequest = PricingRequest::with(['pricingCustomer'])
                 ->where('pr_id', $pricingRequestId)
                 ->where('pr_is_deleted', 0)
                 ->first();
@@ -39,7 +44,7 @@ class AutofillService
             $allowedRoles = ['production', 'manager', 'admin'];
             $canViewManagerNotes = $user && in_array($user->role, $allowedRoles);
             
-            $noteQuery = $pricingRequest->pricingNote()
+            $noteQuery = PricingRequestNote::where('prn_pr_id', $pricingRequestId)
                 ->where('prn_is_deleted', 0);
                 
             // จำกัดการเข้าถึง manager notes (type 3) ตามสิทธิ์
@@ -116,16 +121,13 @@ class AutofillService
 
     /**
      * ดึงข้อมูลลูกค้าสำหรับ Auto-fill
+     * @param array<string, mixed>|null $userInfo
+     * @return array<string, mixed>
      */
-    public function getCustomerAutofillData($customerId, $userInfo = null)
+    public function getCustomerAutofillData(string $customerId, ?array $userInfo = null): array
     {
         try {
-            $query = MasterCustomer::with(['pricingRequests' => function ($q) {
-                    $q->where('pr_is_deleted', 0)
-                      ->orderBy('pr_created_date', 'DESC')
-                      ->limit(5);
-                }])
-                ->where('cus_id', $customerId)
+            $query = MasterCustomer::where('cus_id', $customerId)
                 ->where('cus_is_use', true);
 
             // 🔐 Access Control: ตรวจสอบสิทธิ์การเข้าถึงลูกค้า
@@ -140,6 +142,13 @@ class AutofillService
                 throw new \Exception('Customer not found or access denied');
             }
 
+            // Get recent pricing requests for this customer
+            $recentPricingRequests = PricingRequest::where('pr_cus_id', $customerId)
+                ->where('pr_is_deleted', 0)
+                ->orderBy('pr_created_date', 'DESC')
+                ->limit(5)
+                ->get();
+
             return [
                 'cus_id' => $customer->cus_id,
                 'cus_company' => $customer->cus_company,
@@ -153,11 +162,10 @@ class AutofillService
                 'cus_email' => $customer->cus_email,
                 'cus_firstname' => $customer->cus_firstname,
                 'cus_lastname' => $customer->cus_lastname,
-                'cus_depart' => $customer->cus_depart,
-                'recent_pricing_requests' => $customer->pricingRequests->map(function ($pr) {
+                'recent_pricing_requests' => $recentPricingRequests->map(function ($pr) {
                     return [
                         'pr_id' => $pr->pr_id,
-                        'pr_no' => $pr->pr_no, // 🔢 เพิ่ม pr_no สำหรับการแสดงผล
+                        'pr_no' => $pr->pr_no, //  เพิ่ม pr_no สำหรับการแสดงผล
                         'pr_work_name' => $pr->pr_work_name,
                         'pr_created_date' => $pr->pr_created_date
                     ];
@@ -172,8 +180,11 @@ class AutofillService
 
     /**
      * Cascade Auto-fill สำหรับ Invoice จาก Quotation
+     * 
+     * @param string $quotationId
+     * @return array<string, mixed>
      */
-    public function getCascadeAutofillForInvoice($quotationId)
+    public function getCascadeAutofillForInvoice(string $quotationId): array
     {
         try {
             $quotation = Quotation::findOrFail($quotationId);
@@ -215,8 +226,11 @@ class AutofillService
 
     /**
      * Cascade Auto-fill สำหรับ Receipt จาก Invoice
+     * 
+     * @param string $invoiceId
+     * @return array<string, mixed>
      */
-    public function getCascadeAutofillForReceipt($invoiceId)
+    public function getCascadeAutofillForReceipt(string $invoiceId): array
     {
         try {
             $invoice = Invoice::findOrFail($invoiceId);
@@ -254,8 +268,11 @@ class AutofillService
 
     /**
      * Cascade Auto-fill สำหรับ Delivery Note จาก Receipt
+     * 
+     * @param string $receiptId
+     * @return array<string, mixed>
      */
-    public function getCascadeAutofillForDeliveryNote($receiptId)
+    public function getCascadeAutofillForDeliveryNote(string $receiptId): array
     {
         try {
             $receipt = Receipt::findOrFail($receiptId);
@@ -287,13 +304,18 @@ class AutofillService
 
     /**
      * ค้นหาลูกค้า (สำหรับ Auto-complete) พร้อมการกรองตาม cus_manage_by
+     * 
+     * @param string $searchTerm
+     * @param int $limit
+     * @param array<string, mixed>|null $userInfo
+     * @return Collection<int, MasterCustomer>
      */
-    public function searchCustomers($searchTerm, $limit = 10, $userInfo = null)
+    public function searchCustomers(string $searchTerm, int $limit = 10, ?array $userInfo = null): Collection
     {
         try {
             $query = MasterCustomer::where('cus_is_use', true);
 
-            // 🔐 Access Control: แบ่งสิทธิ์การมองเห็นตาม cus_manage_by
+            //  Access Control: แบ่งสิทธิ์การมองเห็นตาม cus_manage_by
             if ($userInfo && isset($userInfo['user_id']) && $userInfo['user_id'] != 1) {
                 // ถ้าไม่ใช่ admin (user_id !== 1) ให้แสดงเฉพาะลูกค้าที่ตัวเองดูแล
                 $query->where('cus_manage_by', $userInfo['user_id']);
@@ -339,8 +361,14 @@ class AutofillService
 
     /**
      * ดึงรายการ Pricing Request ที่เสร็จแล้ว (สำหรับ Step 0: Pricing Integration)
+     * 
+     * @param array<string, mixed> $filters
+     * @param int $perPage
+     * @param int $page
+     * @param array<string, mixed>|null $userInfo
+     * @return LengthAwarePaginator<PricingRequest>
      */
-    public function getCompletedPricingRequests($filters = [], $perPage = 20, $page = 1, $userInfo = null)
+    public function getCompletedPricingRequests(array $filters = [], int $perPage = 20, int $page = 1, ?array $userInfo = null): LengthAwarePaginator
     {
         try {
             $allowedManagerRoles = ['production', 'manager', 'admin'];
@@ -440,13 +468,15 @@ class AutofillService
                 3 => '#FF9800'
             ];
 
-            $transformedData = $results->getCollection()->map(function ($pr) use ($noteTypeLabels, $noteTypeColors) {
+            $transformedData = $results->getCollection()->map(function (PricingRequest $pr) use ($noteTypeLabels, $noteTypeColors) {
                 $customer = $pr->pricingCustomer;
 
-                $formattedNotes = collect($pr->pricingNote ?? [])
+                /** @var \Illuminate\Database\Eloquent\Collection<int, PricingRequestNote> $pricingNotes */
+                $pricingNotes = $pr->pricingNote ?? collect();
+                $formattedNotes = $pricingNotes
                     ->where('prn_is_deleted', 0)
                     ->values()
-                    ->map(function ($note) use ($noteTypeLabels, $noteTypeColors) {
+                    ->map(function (PricingRequestNote $note) use ($noteTypeLabels, $noteTypeColors) {
                         return [
                             'prn_id' => $note->prn_id,
                             'prn_text' => $note->prn_text,
@@ -531,17 +561,7 @@ class AutofillService
                 ];
             });
 
-            return [
-                'data' => $transformedData,
-                'pagination' => [
-                    'total' => $results->total(),
-                    'per_page' => $results->perPage(),
-                    'current_page' => $results->currentPage(),
-                    'last_page' => $results->lastPage(),
-                    'from' => $results->firstItem(),
-                    'to' => $results->lastItem()
-                ]
-            ];
+            return $results;
 
         } catch (\Exception $e) {
             Log::error('AutofillService::getCompletedPricingRequests error: ' . $e->getMessage());
@@ -551,8 +571,11 @@ class AutofillService
 
     /**
      * ดึงข้อมูล Notes ของ Pricing Request
+     * 
+     * @param string $pricingRequestId
+     * @return array<string, mixed>
      */
-    public function getPricingRequestNotes($pricingRequestId)
+    public function getPricingRequestNotes(string $pricingRequestId): array
     {
         try {
             // ตรวจสอบ Pricing Request ที่มีอยู่
@@ -631,8 +654,12 @@ class AutofillService
 
     /**
      * มาร์ค Pricing Request ว่าใช้แล้วสำหรับสร้าง Quotation
+     * 
+     * @param string $pricingRequestId
+     * @param string|null $userId
+     * @return array<string, mixed>
      */
-    public function markPricingRequestAsUsed($pricingRequestId, $userId = null)
+    public function markPricingRequestAsUsed(string $pricingRequestId, ?string $userId = null): array
     {
         try {
             $pricingRequest = PricingRequest::where('pr_id', $pricingRequestId)

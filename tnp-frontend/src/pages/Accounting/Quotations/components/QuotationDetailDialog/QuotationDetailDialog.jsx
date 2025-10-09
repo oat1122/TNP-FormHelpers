@@ -58,6 +58,7 @@ import Calculation from "../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../shared/components/PaymentTerms";
 import { apiConfig } from "../../../../../api/apiConfig";
+import { useGetBulkPricingRequestAutofillQuery } from '../../../../../features/Accounting/accountingApi';
 
 const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     // Check user permissions first
@@ -72,6 +73,31 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
     // Parse quotation items
     const prIdsAll = getAllPrIdsFromQuotation(q);
     const items = normalizeAndGroupItems(q, prIdsAll);
+
+    // ***** Bulk Autofill Data Fetching *****
+    // 1. ดึงข้อมูล Autofill ทั้งหมดในครั้งเดียว
+    const { 
+        data: bulkAutofillData, 
+        isLoading: isAutofillLoading 
+    } = useGetBulkPricingRequestAutofillQuery(prIdsAll, {
+        skip: !open || prIdsAll.length === 0,
+    });
+
+    // 2. แปลงข้อมูลที่ได้เป็น Map เพื่อให้ง่ายต่อการค้นหา
+    const prAutofillMap = React.useMemo(() => {
+        if (!bulkAutofillData?.data) return new Map();
+        
+        const map = new Map();
+        (bulkAutofillData.data || []).forEach(item => {
+            // key ควรเป็น pr_id หรือ id ที่ตรงกับ group.prId
+            const key = item.pr_id || item.id;
+            if (key) {
+                map.set(key, item);
+            }
+        });
+        return map;
+    }, [bulkAutofillData]);
+    // ***** จบส่วน Bulk Autofill *****
     
     // 2. Hook for managing groups and editing state
     const groupsLogic = useQuotationGroups(items);
@@ -124,13 +150,15 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || (prIdsAll.length > 0 && isAutofillLoading)) {
         return (
             <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
                 <DialogContent>
                     <Box display="flex" alignItems="center" gap={1} p={2}>
                         <CircularProgress size={22} />
-                        <Typography variant="body2">กำลังโหลดรายละเอียดใบเสนอราคา…</Typography>
+                        <Typography variant="body2">
+                            {isLoading ? 'กำลังโหลดรายละเอียดใบเสนอราคา…' : 'กำลังโหลดข้อมูล autofill…'}
+                        </Typography>
                     </Box>
                 </DialogContent>
             </Dialog>
@@ -326,7 +354,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                             </InfoCard>
                                         ) : (
                                             items.map((item, idx) => (
-                                                <PRGroupSummaryCard key={item.id} group={item} index={idx} />
+                                                <PRGroupSummaryCard 
+                                                    key={item.id} 
+                                                    group={item} 
+                                                    index={idx}
+                                                    prAutofillData={prAutofillMap.get(item.prId)} 
+                                                />
                                             ))
                                         )}
                                     </Box>
@@ -373,6 +406,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                                 group={item}
                                                 index={idx}
                                                 isEditing={isEditing}
+                                                prAutofillData={prAutofillMap.get(item.prId)}
                                                 {...groupHandlers}
                                             />
                                         ))}

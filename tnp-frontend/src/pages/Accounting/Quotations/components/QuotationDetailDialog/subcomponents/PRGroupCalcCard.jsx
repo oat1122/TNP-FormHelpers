@@ -11,7 +11,7 @@ import {
   Add as AddIcon,
   DeleteOutline as DeleteOutlineIcon,
 } from "@mui/icons-material";
-import { useGetPricingRequestAutofillQuery } from "../../../../../../features/Accounting/accountingApi";
+// ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
 import { formatTHB } from "../utils/formatters";
 
 // Temporary fallback styles - replace with actual import
@@ -53,14 +53,15 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
   group,
   index,
   isEditing,
+  prAutofillData, // 👈 รับ prop ใหม่
   onAddRow,
   onChangeRow,
   onRemoveRow,
   onDeleteGroup,
   onChangeGroup,
 }) {
-  const { data: prData } = useGetPricingRequestAutofillQuery(group.prId, { skip: !group.prId });
-  const pr = prData?.data || prData || {};
+  // ✅ ใช้ข้อมูลจาก props แทน
+  const pr = prAutofillData || {};
   const name =
     group.name && group.name !== "-" ? group.name : pr.pr_work_name || pr.work_name || "-";
   const pattern = group.pattern || pr.pr_pattern || "";

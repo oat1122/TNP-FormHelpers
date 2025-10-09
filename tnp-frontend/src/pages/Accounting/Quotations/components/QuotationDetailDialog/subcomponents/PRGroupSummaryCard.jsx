@@ -1,7 +1,7 @@
 // 📁subcomponents/PRGroupSummaryCard.jsx
 import React from "react";
 import { Box, Typography, Grid, Chip } from "@mui/material";
-import { useGetPricingRequestAutofillQuery } from "../../../../../../features/Accounting/accountingApi";
+// ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
 import { formatTHB } from "../utils/formatters";
 
 // Import styles - need to check what's available
@@ -19,10 +19,10 @@ const tokens = {
   border: '#e0e0e0',
 };
 
-// Child: Summary card per PR group (fetch PR info if group has no name)
-export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index }) {
-  const { data: prData } = useGetPricingRequestAutofillQuery(group.prId, { skip: !group.prId });
-  const pr = prData?.data || prData || {};
+// Child: Summary card per PR group (use prAutofillData from props)
+export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index, prAutofillData }) {
+  // ✅ ใช้ข้อมูลจาก props แทน
+  const pr = prAutofillData || {};
   const name =
     group.name && group.name !== "-" ? group.name : pr.pr_work_name || pr.work_name || "-";
   const pattern = group.pattern || pr.pr_pattern || "";

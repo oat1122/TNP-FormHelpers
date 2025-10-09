@@ -118,6 +118,15 @@ export const accountingApi = createApi({
       query: (id) => `/pricing-requests/${id}/autofill`,
       providesTags: (r, e, id) => [{ type: "PricingRequest", id }],
     }),
+    getBulkPricingRequestAutofill: builder.query({
+      query: (prIds) => ({
+        url: `/pricing-requests/bulk-autofill`,
+        method: 'POST',
+        body: { ids: prIds },
+      }),
+      providesTags: (result, error, prIds) =>
+        (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
+    }),
 
     // ===================== QUOTATIONS =====================
     getQuotations: builder.query({
@@ -590,6 +599,7 @@ export const {
   // Pricing
   useGetCompletedPricingRequestsQuery,
   useGetPricingRequestAutofillQuery,
+  useGetBulkPricingRequestAutofillQuery,
   // Quotations
   useGetQuotationsQuery,
   useGetQuotationQuery,

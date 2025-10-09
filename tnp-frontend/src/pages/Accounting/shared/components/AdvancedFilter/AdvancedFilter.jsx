@@ -28,6 +28,7 @@ import { th } from "date-fns/locale";
  * @param {Array} [props.statusOptions=[]] - An array of { value, label } for the status dropdown.
  * @param {Array} [props.statusBeforeOptions=[]] - Options for the 'Status Before' dropdown.
  * @param {Array} [props.statusAfterOptions=[]] - Options for the 'Status After' dropdown.
+ * @param {boolean} [props.showAllStatusOption=true] - Whether to show "ทุกสถานะ" option in main status dropdown.
  */
 const AdvancedFilter = ({ 
   filters, 
@@ -36,7 +37,8 @@ const AdvancedFilter = ({
   statusOptions = [], 
   // 🔽 ADDED: New props for before/after options
   statusBeforeOptions = [], 
-  statusAfterOptions = [] 
+  statusAfterOptions = [],
+  showAllStatusOption = true
 }) => {
   const showStatusBefore = statusBeforeOptions.length > 0;
   const showStatusAfter = statusAfterOptions.length > 0;
@@ -116,7 +118,9 @@ const AdvancedFilter = ({
                 value={filters.status}
                 onChange={handlers.handleStatusChange}
               >
-                <MenuItem value="all"><em>ทุกสถานะ</em></MenuItem>
+                {showAllStatusOption && (
+                  <MenuItem value="all"><em>ทุกสถานะ</em></MenuItem>
+                )}
                 {statusOptions.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
@@ -127,35 +131,39 @@ const AdvancedFilter = ({
           )}
 
           {/* Date Range Filter */}
-          <Grid item xs={12} sm={3} md={2} lg={1.5}>
-            <DatePicker
-              label="วันที่เริ่มต้น"
-              value={filters.dateRange[0]}
-              onChange={(newValue) => {
-                handlers.handleDateRangeChange([newValue, filters.dateRange[1]]);
-              }}
-              slotProps={{
-                textField: {
-                  size: "small",
-                  fullWidth: true,
-                },
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={3} md={2} lg={1.5}>
-            <DatePicker
-              label="วันที่สิ้นสุด"
-              value={filters.dateRange[1]}
-              onChange={(newValue) => {
-                handlers.handleDateRangeChange([filters.dateRange[0], newValue]);
-              }}
-              slotProps={{
-                textField: {
-                  size: "small",
-                  fullWidth: true,
-                },
-              }}
-            />
+          <Grid item xs={12} sm={6} md={4} lg={3}>
+            <Grid container spacing={1}>
+              <Grid item xs={6}>
+                <DatePicker
+                  label="วันที่เริ่มต้น"
+                  value={filters.dateRange[0]}
+                  onChange={(newValue) => {
+                    handlers.handleDateRangeChange([newValue, filters.dateRange[1]]);
+                  }}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <DatePicker
+                  label="วันที่สิ้นสุด"
+                  value={filters.dateRange[1]}
+                  onChange={(newValue) => {
+                    handlers.handleDateRangeChange([filters.dateRange[0], newValue]);
+                  }}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
           </Grid>
 
           {/* Action Buttons */}

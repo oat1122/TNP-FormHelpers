@@ -5,10 +5,8 @@ import React, { useMemo, useState } from "react";
 
 import {
   Header,
-  FilterSection,
   PaginationSection,
   LoadingState,
-  ErrorState,
   EmptyState,
 } from "../PricingIntegration/components";
 import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
@@ -28,10 +26,7 @@ import CompanyManagerDialog from "../Quotations/components/CompanyManagerDialog"
 
 const Invoices = () => {
   // Define status options for invoices
-  const invoiceStatusOptions = [
-    { value: "draft", label: "แบบร่าง" },
-    { value: "approved", label: "อนุมัติแล้ว" },
-  ];
+
 
   // Define options for status before/after deposit
   const statusBeforeOptions = [
@@ -317,7 +312,6 @@ const Invoices = () => {
             setInvoicePage(1);
             refetchInvoices();
           }}
-          statusOptions={invoiceStatusOptions}
           statusBeforeOptions={statusBeforeOptions}
           statusAfterOptions={statusAfterOptions}
         />

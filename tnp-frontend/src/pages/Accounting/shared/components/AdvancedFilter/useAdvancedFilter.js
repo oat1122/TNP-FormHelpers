@@ -8,7 +8,7 @@ import { useState, useCallback } from "react";
 export const useAdvancedFilter = (initialFilters = {}) => {
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery || "");
   const [status, setStatus] = useState(initialFilters.status || "all");
-  // 🔽 ADDED: New states for before/after statuses
+  
   const [statusBefore, setStatusBefore] = useState(initialFilters.statusBefore || "all");
   const [statusAfter, setStatusAfter] = useState(initialFilters.statusAfter || "all");
   const [dateRange, setDateRange] = useState(initialFilters.dateRange || [null, null]);
@@ -21,13 +21,25 @@ export const useAdvancedFilter = (initialFilters = {}) => {
     setStatus(e.target.value);
   }, []);
 
-  // 🔽 ADDED: New handlers
+  
   const handleStatusBeforeChange = useCallback((e) => {
-    setStatusBefore(e.target.value);
+    const newValue = e.target.value;
+    setStatusBefore(newValue);
+    
+    // เมื่อเลือกสถานะ "ก่อนมัดจำ" ให้รีเซ็ต "หลังมัดจำ" เป็น "all"
+    if (newValue !== "all") {
+      setStatusAfter("all");
+    }
   }, []);
 
   const handleStatusAfterChange = useCallback((e) => {
-    setStatusAfter(e.target.value);
+    const newValue = e.target.value;
+    setStatusAfter(newValue);
+    
+    // เมื่อเลือกสถานะ "หลังมัดจำ" ให้รีเซ็ต "ก่อนมัดจำ" เป็น "all"
+    if (newValue !== "all") {
+      setStatusBefore("all");
+    }
   }, []);
 
   const handleDateRangeChange = useCallback((newDateRange) => {
@@ -47,7 +59,7 @@ export const useAdvancedFilter = (initialFilters = {}) => {
   const getQueryArgs = useCallback(() => ({
     search: searchQuery || undefined,
     status: status !== "all" ? status : undefined,
-    // 🔽 ADDED: Pass new statuses to query args
+  
     status_before: statusBefore !== "all" ? statusBefore : undefined,
     status_after: statusAfter !== "all" ? statusAfter : undefined,
     start_date: dateRange[0] ? dateRange[0].toISOString().split('T')[0] : undefined,
@@ -58,7 +70,7 @@ export const useAdvancedFilter = (initialFilters = {}) => {
     filters: {
       searchQuery,
       status,
-      // 🔽 ADDED: Expose new states
+      
       statusBefore,
       statusAfter,
       dateRange,
@@ -66,7 +78,7 @@ export const useAdvancedFilter = (initialFilters = {}) => {
     handlers: {
       handleSearchChange,
       handleStatusChange,
-      // 🔽 ADDED: Expose new handlers
+      
       handleStatusBeforeChange,
       handleStatusAfterChange,
       handleDateRangeChange,

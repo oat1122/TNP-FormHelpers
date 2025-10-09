@@ -266,20 +266,6 @@ const Quotations = () => {
               const canManageCompanies = userData.role === "admin" || userData.role === "account";
               return (
                 <>
-                  {!isAdmin && (
-                    <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }} icon={<span>🔐</span>}>
-                      <strong>การแบ่งสิทธิ์การเข้าถึง:</strong>{" "}
-                      คุณสามารถดูข้อมูลใบเสนอราคาได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
-                      {userData.username && (
-                        <Box
-                          component="span"
-                          sx={{ ml: 1, color: "info.dark", fontWeight: "medium" }}
-                        >
-                          (ผู้ใช้: {userData.username})
-                        </Box>
-                      )}
-                    </Alert>
-                  )}
                   {canManageCompanies && (
                     <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
                       <Button

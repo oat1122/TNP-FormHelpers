@@ -305,29 +305,6 @@ const Invoices = () => {
           }}
         />
 
-        {/* Invoice Type Filter */}
-        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: "wrap" }}>
-          {[
-            { value: "", label: "ทั้งหมด" },
-            { value: "full_amount", label: "เต็มจำนวน" },
-            { value: "remaining", label: "ยอดคงเหลือ (หักมัดจำ)" },
-            { value: "deposit", label: "มัดจำ" },
-            { value: "partial", label: "บางส่วน (กำหนดเอง)" },
-          ].map((opt) => (
-            <Button
-              key={opt.value || "all"}
-              size="small"
-              variant={invoiceTypeFilter === opt.value ? "contained" : "outlined"}
-              onClick={() => {
-                setInvoiceTypeFilter(opt.value);
-                setInvoicePage(1);
-              }}
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </Stack>
-
         {invoicesError && (
           <Alert severity="error" sx={{ mb: 2 }}>
             เกิดข้อผิดพลาดในการดึงรายการใบแจ้งหนี้: {invoicesError.message}

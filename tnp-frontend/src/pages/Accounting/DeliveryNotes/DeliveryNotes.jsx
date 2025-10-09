@@ -177,38 +177,6 @@ const DeliveryNotes = () => {
           }}
         />
 
-        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap" }}>
-          {statusFilterOptions.map((option) => (
-            <Button
-              key={`status-${option.value}`}
-              variant={statusFilter === option.value ? "contained" : "outlined"}
-              size="small"
-              onClick={() => {
-                setStatusFilter(option.value);
-                setPage(1);
-              }}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </Stack>
-
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 3, flexWrap: "wrap" }}>
-          {methodFilterOptions.map((option) => (
-            <Button
-              key={`method-${option.value}`}
-              variant={methodFilter === option.value ? "contained" : "outlined"}
-              size="small"
-              onClick={() => {
-                setMethodFilter(option.value);
-                setPage(1);
-              }}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </Stack>
-
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             Failed to load delivery notes: {error.message}

@@ -491,17 +491,30 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [customer, setCustomer] = React.useState(() => normalizeCustomer(q));
   const prIdsAll = getAllPrIdsFromQuotation(q);
   const items = normalizeAndGroupItems(q, prIdsAll);
+  
+  // Check user permissions first
+  const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
+  const canEditQuotation = ["admin", "account"].includes(userData?.role);
+  
   const {
     groups,
     setGroups,
     isEditing,
-    setIsEditing,
+    setIsEditing: originalSetIsEditing,
     onAddRow,
     onChangeRow,
     onRemoveRow,
     onDeleteGroup,
     onChangeGroup,
   } = useQuotationGroups(items);
+
+  // Wrapper function to check permissions before allowing edit mode
+  const setIsEditing = React.useCallback((value) => {
+    if (value && !canEditQuotation) {
+      return; // Block entering edit mode if user doesn't have permission
+    }
+    originalSetIsEditing(value);
+  }, [canEditQuotation, originalSetIsEditing]);
   const [quotationNotes, setQuotationNotes] = React.useState(q?.notes || "");
   const [selectedDueDate, setSelectedDueDate] = React.useState(
     q?.due_date ? new Date(q.due_date) : null
@@ -517,7 +530,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const [uploadSampleImages, { isLoading: isUploadingSamples }] =
     useUploadQuotationSampleImagesMutation();
   const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
-  const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
   const canUploadSignatures =
     ["admin", "sale"].includes(userData?.role) && q?.status === "approved";
   const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
@@ -922,13 +934,15 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                 }}
                               />
                             ) : null}
-                            <SecondaryButton
-                              size="small"
-                              startIcon={<EditIcon />}
-                              onClick={() => setEditCustomerOpen(true)}
-                            >
-                              แก้ไขลูกค้า
-                            </SecondaryButton>
+                            {canEditQuotation && (
+                              <SecondaryButton
+                                size="small"
+                                startIcon={<EditIcon />}
+                                onClick={() => setEditCustomerOpen(true)}
+                              >
+                                แก้ไขลูกค้า
+                              </SecondaryButton>
+                            )}
                           </Box>
                         </Box>
                         {(customer.contact_name || customer.cus_email) && (
@@ -1042,22 +1056,24 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                         <Typography variant="subtitle1" fontWeight={700}>
                           การคำนวณราคา
                         </Typography>
-                        <SecondaryButton
-                          size="small"
-                          startIcon={<EditIcon />}
-                          onClick={() => {
-                            const el = document.getElementById("calc-section");
-                            const y = el ? el.scrollTop : null;
-                            setIsEditing((v) => !v);
-                            // restore scroll shortly after DOM updates
-                            setTimeout(() => {
-                              const el2 = document.getElementById("calc-section");
-                              if (el2 != null && y != null) el2.scrollTop = y;
-                            }, 0);
-                          }}
-                        >
-                          {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
-                        </SecondaryButton>
+                        {canEditQuotation && (
+                          <SecondaryButton
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => {
+                              const el = document.getElementById("calc-section");
+                              const y = el ? el.scrollTop : null;
+                              setIsEditing((v) => !v);
+                              // restore scroll shortly after DOM updates
+                              setTimeout(() => {
+                                const el2 = document.getElementById("calc-section");
+                                if (el2 != null && y != null) el2.scrollTop = y;
+                              }, 0);
+                            }}
+                          >
+                            {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
+                          </SecondaryButton>
+                        )}
                       </Box>
                     </SectionHeader>
                     <Box sx={{ p: 2 }} id="calc-section">

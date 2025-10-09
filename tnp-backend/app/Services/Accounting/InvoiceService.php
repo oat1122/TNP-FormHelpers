@@ -1464,37 +1464,49 @@ class InvoiceService
                 });
             }
 
-            if (!empty($filters['status'])) {
-                $query->where('status', $filters['status']);
+            // UPDATED: Apply all status filters correctly
+            if (!empty($filters['status']) && is_array($filters['status'])) {
+                $query->where($filters['status'][0], $filters['status'][1], $filters['status'][2]);
+            } elseif (!empty($filters['status'])) {
+                $query->where('invoices.status', $filters['status']);
             }
 
+            if (!empty($filters['status_before']) && is_array($filters['status_before'])) {
+                $query->where($filters['status_before'][0], $filters['status_before'][1], $filters['status_before'][2]);
+            }
+
+            if (!empty($filters['status_after']) && is_array($filters['status_after'])) {
+                $query->where($filters['status_after'][0], $filters['status_after'][1], $filters['status_after'][2]);
+            }
+            // END UPDATED SECTION
+
             if (!empty($filters['type'])) {
-                $query->where('type', $filters['type']);
+                $query->where('invoices.type', $filters['type']);
             }
 
             if (!empty($filters['customer_id'])) {
-                $query->where('customer_id', $filters['customer_id']);
+                $query->where('invoices.customer_id', $filters['customer_id']);
             }
 
             if (!empty($filters['date_from'])) {
-                $query->whereDate('created_at', '>=', $filters['date_from']);
+                $query->whereDate('invoices.created_at', '>=', $filters['date_from']);
             }
 
             if (!empty($filters['date_to'])) {
-                $query->whereDate('created_at', '<=', $filters['date_to']);
+                $query->whereDate('invoices.created_at', '<=', $filters['date_to']);
             }
 
             if (!empty($filters['due_date_from'])) {
-                $query->whereDate('due_date', '>=', $filters['due_date_from']);
+                $query->whereDate('invoices.due_date', '>=', $filters['due_date_from']);
             }
 
             if (!empty($filters['due_date_to'])) {
-                $query->whereDate('due_date', '<=', $filters['due_date_to']);
+                $query->whereDate('invoices.due_date', '<=', $filters['due_date_to']);
             }
 
             if (!empty($filters['overdue'])) {
-                $query->where('due_date', '<', now())
-                      ->whereIn('status', ['sent', 'partial_paid']);
+                $query->where('invoices.due_date', '<', now())
+                      ->whereIn('invoices.status', ['sent', 'partial_paid']);
             }
 
             return $query->orderBy('invoices.created_at', 'desc')->paginate($perPage);

@@ -33,6 +33,17 @@ const Invoices = () => {
     { value: "approved", label: "อนุมัติแล้ว" },
   ];
 
+  // Define options for status before/after deposit
+  const statusBeforeOptions = [
+    { value: "draft", label: "แบบร่าง" },
+    { value: "approved", label: "อนุมัติแล้ว" },
+  ];
+
+  const statusAfterOptions = [
+    { value: "draft", label: "แบบร่าง" },
+    { value: "approved", label: "อนุมัติแล้ว" },
+  ];
+
   // Use the new filter hook
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
 
@@ -307,6 +318,8 @@ const Invoices = () => {
             refetchInvoices();
           }}
           statusOptions={invoiceStatusOptions}
+          statusBeforeOptions={statusBeforeOptions}
+          statusAfterOptions={statusAfterOptions}
         />
 
         {invoicesError && (

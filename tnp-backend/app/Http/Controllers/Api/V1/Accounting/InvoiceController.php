@@ -103,17 +103,29 @@ class InvoiceController extends Controller
         try {
             $filters = [
                 'search' => $request->query('search'),
-                'status' => $request->query('status'),
                 'type' => $request->query('type'),
                 'customer_id' => $request->query('customer_id'),
                 'date_from' => $request->query('date_from'),
                 'date_to' => $request->query('date_to'),
                 'due_date_from' => $request->query('due_date_from'),
                 'due_date_to' => $request->query('due_date_to'),
-                'overdue' => $request->query('overdue')
+                'overdue' => $request->query('overdue'),
+                // 🔽 UPDATED: Handle status, status_before, and status_after
+                'status' => $request->query('status') 
+                    ? ['invoices.status', '=', $request->query('status')] 
+                    : null,
+                'status_before' => $request->query('status_before') 
+                    ? ['invoices.status_before', '=', $request->query('status_before')] 
+                    : null,
+                'status_after' => $request->query('status_after') 
+                    ? ['invoices.status_after', '=', $request->query('status_after')] 
+                    : null,
             ];
 
-            $perPage = min($request->query('per_page', 20), 50);
+            // Remove null filters to avoid sending empty parameters
+            $filters = array_filter($filters, fn($value) => !is_null($value));
+            
+            $perPage = min($request->query('per_page', 20), 100);
             
             $invoices = $this->invoiceService->getList($filters, $perPage);
 
@@ -124,7 +136,9 @@ class InvoiceController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('InvoiceController::index error: ' . $e->getMessage());
+            Log::error('InvoiceController::index error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
                 'success' => false,

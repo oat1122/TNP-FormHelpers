@@ -40,6 +40,7 @@ import {
   EmptyState,
   FloatingActionButton,
 } from "../PricingIntegration/components";
+import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
 import CompanyManagerDialog from "./components/CompanyManagerDialog";
 import LinkedPricingDialog from "./components/LinkedPricingDialog";
@@ -54,8 +55,16 @@ const statusOrder = ["draft", "pending_review", "approved", "sent", "completed",
 const Quotations = () => {
   const dispatch = useDispatch();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // Define status options for this page
+  const quotationStatusOptions = [
+    { value: "draft", label: "แบบร่าง" },
+    { value: "approved", label: "อนุมัติแล้ว" },
+
+  ];
+
+  // Use the new filter hook
+  const { filters, handlers, getQueryArgs } = useAdvancedFilter();
+
   const [signatureOnly, setSignatureOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -65,11 +74,11 @@ const Quotations = () => {
   const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
+  // Pass filter arguments to the query
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
-    search: searchQuery || undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
+    ...getQueryArgs(),
     signature_uploaded: signatureOnly ? 1 : undefined,
-    page: 1,
+    page: 1, // Fetch all for client-side pagination, can be adjusted
     per_page: 1000,
   });
 
@@ -178,15 +187,8 @@ const Quotations = () => {
     );
   }, [refetch, dispatch]);
   const handleResetFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
     setSignatureOnly(false);
   };
-
-  const handleSearch = useCallback((query) => {
-    setSearchQuery(query);
-    setCurrentPage(1);
-  }, []);
 
   const handlePageChange = useCallback((e, p) => {
     setCurrentPage(p);
@@ -214,37 +216,18 @@ const Quotations = () => {
           <Header title="ใบเสนอราคา" subtitle="ตรวจสอบ อนุมัติ และจัดการเอกสาร" />
 
           <Container maxWidth="xl" sx={{ py: 4 }}>
-            <FilterSection
-              searchQuery={searchQuery}
-              onSearchChange={handleSearch}
+            {/* Render the AdvancedFilter component */}
+            <AdvancedFilter
+              filters={filters}
+              handlers={handlers}
               onRefresh={handleRefresh}
-              onResetFilters={handleResetFilters}
+              statusOptions={quotationStatusOptions}
             />
 
-            {/* Extra filters: status + signature evidence */}
+            {/* Extra filter: signature evidence */}
             <Paper sx={{ p: 2, mb: 3 }}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={8}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography variant="body2" sx={{ minWidth: 56 }}>
-                      สถานะ
-                    </Typography>
-                    <ToggleButtonGroup
-                      exclusive
-                      size="small"
-                      color="primary"
-                      value={statusFilter}
-                      onChange={(e, val) => {
-                        if (val) setStatusFilter(val);
-                      }}
-                    >
-                      <ToggleButton value="all">ทั้งหมด</ToggleButton>
-                      <ToggleButton value="draft">กำลังรอดำเนินการ</ToggleButton>
-                      <ToggleButton value="approved">อนุมัติแล้ว</ToggleButton>
-                    </ToggleButtonGroup>
-                  </Stack>
-                </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12}>
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -259,7 +242,7 @@ const Quotations = () => {
               </Grid>
             </Paper>
 
-            {/* 🔐 Access Control Information */}
+            {/* Access Control Information */}
             {(() => {
               const userData = JSON.parse(localStorage.getItem("userData") || "{}");
               const isAdmin = userData.user_id === 1;

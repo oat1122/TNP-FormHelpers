@@ -7,3 +7,6 @@ export { default as FinancialSummarySection } from "./FinancialSummarySection";
 export { default as Calculation } from "./Calculation";
 export { default as PaymentTerms } from "./PaymentTerms";
 export { default as ImageUploadGrid } from "./ImageUploadGrid";
+
+// Export AdvancedFilter
+export { AdvancedFilter, useAdvancedFilter } from "./AdvancedFilter";

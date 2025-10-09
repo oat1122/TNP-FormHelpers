@@ -11,6 +11,7 @@ import {
   LoadingState,
   EmptyState,
 } from "../PricingIntegration/components";
+import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
 import DeliveryNoteCard from "./components/DeliveryNoteCard";
 import DeliveryNoteCreateDialog from "./components/DeliveryNoteCreateDialog";
@@ -42,8 +43,19 @@ const methodFilterOptions = [
 ];
 
 const DeliveryNotes = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  // Define status options for delivery notes
+  const deliveryStatusOptions = [
+    { value: "preparing", label: "กำลังเตรียม" },
+    { value: "shipping", label: "จัดส่ง" },
+    { value: "in_transit", label: "ระหว่างขนส่ง" },
+    { value: "delivered", label: "ส่งแล้ว" },
+    { value: "completed", label: "เสร็จสมบูรณ์" },
+    { value: "failed", label: "ส่งไม่สำเร็จ" },
+  ];
+
+  // Use the new filter hook
+  const { filters, handlers, getQueryArgs } = useAdvancedFilter();
+
   const [methodFilter, setMethodFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -58,8 +70,7 @@ const DeliveryNotes = () => {
 
   const { data, error, isLoading, isFetching, refetch } = useGetDeliveryNotesQuery(
     {
-      search: searchQuery || undefined,
-      status: statusFilter || undefined,
+      ...getQueryArgs(),
       delivery_method: methodFilter || undefined,
       page,
       per_page: perPage,
@@ -161,20 +172,15 @@ const DeliveryNotes = () => {
           </Button>
         </Box>
 
-        <FilterSection
-          searchQuery={searchQuery}
-          onSearchChange={(value) => {
-            setSearchQuery(value);
+        {/* AdvancedFilter Component */}
+        <AdvancedFilter
+          filters={filters}
+          handlers={handlers}
+          onRefresh={() => {
             setPage(1);
+            refetch();
           }}
-          onRefresh={handleRefresh}
-          onResetFilters={() => {
-            setSearchQuery("");
-            setStatusFilter("");
-            setMethodFilter("");
-            setPage(1);
-            setPerPage(20);
-          }}
+          statusOptions={deliveryStatusOptions}
         />
 
         {error && (

@@ -11,6 +11,7 @@ import {
   ErrorState,
   EmptyState,
 } from "../PricingIntegration/components";
+import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
 import InvoiceCard from "./components/InvoiceCard";
 import InvoiceCreateDialog from "./components/InvoiceCreateDialog";
@@ -26,7 +27,14 @@ import {
 import CompanyManagerDialog from "../Quotations/components/CompanyManagerDialog";
 
 const Invoices = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  // Define status options for invoices
+  const invoiceStatusOptions = [
+    { value: "draft", label: "แบบร่าง" },
+    { value: "approved", label: "อนุมัติแล้ว" },
+  ];
+
+  // Use the new filter hook
+  const { filters, handlers, getQueryArgs } = useAdvancedFilter();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -48,7 +56,7 @@ const Invoices = () => {
     isFetching: invoicesFetching,
     refetch: refetchInvoices,
   } = useGetInvoicesQuery({
-    search: searchQuery || undefined,
+    ...getQueryArgs(),
     page: invoicePage,
     per_page: invoicePerPage,
     type: invoiceTypeFilter || undefined,
@@ -290,19 +298,15 @@ const Invoices = () => {
           </Stack>
         </Box>
 
-        <FilterSection
-          searchQuery={searchQuery}
-          onSearchChange={(v) => {
-            setSearchQuery(v);
+        {/* AdvancedFilter Component */}
+        <AdvancedFilter
+          filters={filters}
+          handlers={handlers}
+          onRefresh={() => {
             setInvoicePage(1);
+            refetchInvoices();
           }}
-          onRefresh={refetchInvoices}
-          onResetFilters={() => {
-            setSearchQuery("");
-            setInvoicePage(1);
-            setInvoicePerPage(20);
-            setInvoiceTypeFilter("");
-          }}
+          statusOptions={invoiceStatusOptions}
         />
 
         {invoicesError && (

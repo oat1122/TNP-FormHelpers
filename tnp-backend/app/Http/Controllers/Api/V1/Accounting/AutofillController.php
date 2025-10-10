@@ -43,6 +43,62 @@ class AutofillController extends Controller
     }
 
     /**
+     * 🔄 ดึงข้อมูล Auto-fill จาก Pricing Request หลายรายการพร้อมกัน (Bulk)
+     * POST /api/v1/pricing-requests/bulk-autofill
+     * 
+     * @param Request $request Body: { "ids": [1, 2, 3] }
+     * @return JsonResponse
+     */
+    public function getBulkPricingRequestAutofill(Request $request): JsonResponse
+    {
+        try {
+            // Validate request
+            $validated = $request->validate([
+                'ids' => 'required|array|min:1|max:50', // จำกัดไม่เกิน 50 รายการต่อครั้ง
+                'ids.*' => 'required|integer'
+            ]);
+
+            $prIds = $validated['ids'];
+            
+            // ดึงข้อมูล autofill ทั้งหมดพร้อมกัน
+            $results = [];
+            foreach ($prIds as $prId) {
+                try {
+                    $autofillData = $this->autofillService->getAutofillDataFromPricingRequest($prId);
+                    $results[] = array_merge(['pr_id' => $prId], $autofillData);
+                } catch (\Exception $e) {
+                    // Log error แต่ไม่ throw เพื่อให้ดึงข้อมูลรายการอื่นต่อ
+                    Log::warning("Failed to get autofill for PR {$prId}: " . $e->getMessage());
+                    // Skip รายการที่ error
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'message' => 'Bulk auto-fill data retrieved successfully',
+                'total' => count($results),
+                'requested' => count($prIds)
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('AutofillController::getBulkPricingRequestAutofill error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve bulk auto-fill data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * ดึงข้อมูลลูกค้าสำหรับ Auto-fill
      * GET /api/v1/customers/{id}/details
      */

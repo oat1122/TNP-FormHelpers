@@ -11,8 +11,9 @@ const baseQuery = fetchBaseQuery({
 export const accountingApi = createApi({
   reducerPath: "accountingApi",
   baseQuery,
-  refetchOnFocus: true,
+  refetchOnFocus: false, // 🔄 ปิด auto refetch เพื่อใช้ cache มากขึ้น
   refetchOnReconnect: true,
+  keepUnusedDataFor: 1800, // 🔄 ตั้งค่า global cache 30 นาที
   tagTypes: [
     "PricingRequest",
     "Quotation",
@@ -117,6 +118,10 @@ export const accountingApi = createApi({
     getPricingRequestAutofill: builder.query({
       query: (id) => `/pricing-requests/${id}/autofill`,
       providesTags: (r, e, id) => [{ type: "PricingRequest", id }],
+      keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง เพราะไม่ค่อยเปลี่ยน
+      
+      // 🔥 Performance: ป้องกัน refetch ซ้ำ
+      merge: (currentCache, newItems) => newItems,
     }),
     getBulkPricingRequestAutofill: builder.query({
       query: (prIds) => ({
@@ -126,6 +131,34 @@ export const accountingApi = createApi({
       }),
       providesTags: (result, error, prIds) =>
         (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
+      keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง
+      
+      // 🔥 Optimize: ป้องกันการ fetch ซ้ำถ้า prIds เหมือนกัน
+      serializeQueryArgs: ({ queryArgs }) => {
+        // queryArgs คือ prIds array ที่ส่งเข้ามา
+        // ตรวจสอบว่าเป็น array ก่อน sort เพื่อป้องกัน error
+        if (!Array.isArray(queryArgs)) {
+          return JSON.stringify(queryArgs);
+        }
+        return JSON.stringify([...queryArgs].sort());
+      },
+      
+      // 🔥 Optimize: Force refetch เฉพาะเมื่อ prIds เปลี่ยน
+      forceRefetch: ({ currentArg, previousArg }) => {
+        if (!Array.isArray(currentArg) || !Array.isArray(previousArg)) {
+          return true; // Force refetch if not array
+        }
+        const current = JSON.stringify([...currentArg].sort());
+        const previous = JSON.stringify([...previousArg].sort());
+        return current !== previous;
+      },
+      
+      // 🔥 Performance: ป้องกัน refetch ซ้ำเมื่อ component mount/unmount
+      // RTK Query จะ reuse cache แทนการยิง API ใหม่
+      merge: (currentCache, newItems) => {
+        // Return new items (replace cache completely)
+        return newItems;
+      },
     }),
 
     // ===================== QUOTATIONS =====================

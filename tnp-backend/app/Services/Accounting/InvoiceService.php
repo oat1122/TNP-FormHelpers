@@ -8,6 +8,7 @@ use App\Models\Accounting\Receipt;
 use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\DocumentAttachment;
 use App\Services\Accounting\AutofillService;
+use App\Traits\Uploadable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class InvoiceService
 {
+    use Uploadable;
+
     protected AutofillService $autofillService;
 
     public function __construct(AutofillService $autofillService)
@@ -113,48 +116,37 @@ class InvoiceService
                 throw new \Exception('No files received');
             }
 
-            $stored = [];
+            // ใช้ Uploadable Trait เพื่ออัปโหลดไฟล์
+            $directory = 'images/invoices/evidence';
+            $prefix = 'inv_' . $invoiceId;
+            
+            $uploadedFiles = [];
             foreach ($files as $file) {
                 if (!$file) continue;
-                $ext = $file->getClientOriginalExtension();
-                $original = $file->getClientOriginalName();
-                $filename = 'inv_' . $invoiceId . '_' . uniqid() . '.' . $ext;
-                // New target directory: storage/app/public/images/invoices/evidence
-                $path = $file->storeAs('images/invoices/evidence', $filename, 'public');
-                $stored[] = [
-                    'path' => $path,
-                    'original' => $original,
-                    'uploaded_at' => now()->toISOString(),
-                    'uploaded_by' => $uploadedBy
-                ];
-            }
-
-            // Save attachments (generic table) if exists
-            $uploadedFiles = [];
-            foreach ($stored as $item) {
-                $filenameOnly = basename($item['path']);
-                $path = $item['path'];
-                $full = storage_path('app/public/' . str_replace('public/', '', $path));
-                $size = file_exists($full) ? filesize($full) : null;
-                $mime = $size ? mime_content_type($full) : null;
-
+                
+                // ใช้ uploadFile method จาก Trait
+                $fileData = $this->uploadFile($file, $directory, $prefix, 'public');
+                
+                // บันทึกลง database
                 $attachment = DocumentAttachment::create([
                     'document_type' => 'invoice',
                     'document_id' => $invoiceId,
-                    'filename' => $filenameOnly,
-                    'original_filename' => $item['original'],
-                    'file_path' => $path,
-                    'file_size' => $size,
-                    'mime_type' => $mime,
+                    'filename' => $fileData['filename'],
+                    'original_filename' => $fileData['original_filename'],
+                    'file_path' => $fileData['path'],
+                    'file_size' => $fileData['size'],
+                    'mime_type' => $fileData['mime_type'],
                     'uploaded_by' => $uploadedBy
                 ]);
 
                 $uploadedFiles[] = [
                     'id' => $attachment->id,
-                    'filename' => $filenameOnly,
-                    'original_filename' => $item['original'],
-                    'url' => Storage::url($path),
-                    'size' => $size
+                    'filename' => $fileData['filename'],
+                    'original_filename' => $fileData['original_filename'],
+                    'url' => $fileData['url'],
+                    'size' => $fileData['size'],
+                    'uploaded_at' => now()->toISOString(),
+                    'uploaded_by' => $uploadedBy
                 ];
             }
 
@@ -164,7 +156,7 @@ class InvoiceService
                 $invoiceId,
                 'upload_evidence',
                 $uploadedBy,
-                'อัปโหลดหลักฐาน ' . count($stored) . ' ไฟล์'
+                'อัปโหลดหลักฐาน ' . count($uploadedFiles) . ' ไฟล์'
             );
 
             DB::commit();
@@ -1618,6 +1610,168 @@ class InvoiceService
                 ->header('Content-Type', 'application/pdf')
                 ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
         }
+    }
+
+    /**
+     * สร้าง PDF Bundle (หลายไฟล์พร้อม Zip)
+     * ย้าย Logic จาก Controller มาที่นี่เพื่อลดความซับซ้อน
+     * 
+     * @param string $invoiceId
+     * @param array $headerTypes รายการ header types ที่ต้องการสร้าง
+     * @param array $options ตัวเลือกเพิ่มเติม (format, orientation, showWatermark, deposit_mode)
+     * @return array ผลลัพธ์ที่มี mode (single/zip) และข้อมูลไฟล์
+     */
+    public function generatePdfBundle(string $invoiceId, array $headerTypes = [], array $options = []): array
+    {
+        try {
+            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])
+                              ->findOrFail($invoiceId);
+            
+            // ถ้าไม่มี headerTypes หรือมีแค่ตัวเดียว ใช้ generatePdf ธรรมดา
+            if (empty($headerTypes) || count($headerTypes) === 1) {
+                $singleType = !empty($headerTypes) ? $headerTypes[0] : null;
+                if ($singleType) {
+                    $options['document_header_type'] = $singleType;
+                }
+                
+                $result = $this->generatePdf($invoiceId, $options);
+                return [
+                    'mode' => 'single',
+                    'pdf_url' => $result['url'] ?? null,
+                    'filename' => $result['filename'] ?? null,
+                    'size' => $result['size'] ?? null,
+                    'header_type' => $singleType,
+                    'engine' => $result['engine'] ?? 'mPDF',
+                    'data' => $result
+                ];
+            }
+
+            // Multi-header generation: สร้าง PDF หลายไฟล์
+            $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+            $files = [];
+            
+            foreach ($headerTypes as $headerType) {
+                if (!is_string($headerType) || trim($headerType) === '') {
+                    continue;
+                }
+                
+                $localOptions = array_merge($options, ['document_header_type' => $headerType]);
+                
+                // ใช้ replicate เพื่อไม่ให้แก้ไข state เดิมระหว่าง loop
+                $pdfData = $masterService->generatePdf($invoice->replicate(), $localOptions);
+                
+                $files[] = [
+                    'type' => $headerType,
+                    'path' => $pdfData['path'],
+                    'filename' => $pdfData['filename'],
+                    'size' => $pdfData['size'],
+                    'url' => $pdfData['url']
+                ];
+            }
+
+            if (count($files) === 0) {
+                throw new \Exception('No valid header types generated');
+            }
+
+            // ถ้ามีไฟล์เดียว return แบบ single
+            if (count($files) === 1) {
+                $file = $files[0];
+                
+                // Log history
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoiceId,
+                    'generate_pdf_bundle',
+                    auth()->user()->user_uuid ?? null,
+                    "สร้าง PDF (single): {$file['filename']} ({$file['type']})"
+                );
+                
+                return [
+                    'mode' => 'single',
+                    'pdf_url' => $file['url'],
+                    'filename' => $file['filename'],
+                    'size' => $file['size'],
+                    'header_type' => $file['type'],
+                    'files' => $files
+                ];
+            }
+
+            // สร้าง ZIP file
+            $zipResult = $this->createZipFromFiles($invoice, $files, $options);
+            
+            // Log history
+            DocumentHistory::logAction(
+                'invoice',
+                $invoiceId,
+                'generate_pdf_bundle',
+                auth()->user()->user_uuid ?? null,
+                "สร้าง ZIP รวม " . count($files) . " ไฟล์ PDF: {$zipResult['filename']}"
+            );
+            
+            return array_merge($zipResult, [
+                'mode' => 'zip',
+                'files' => $files,
+                'count' => count($files)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('InvoiceService::generatePdfBundle error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้างไฟล์ ZIP จากรายการไฟล์ PDF
+     * 
+     * @param Invoice $invoice
+     * @param array $files รายการไฟล์ที่ต้องการรวมใน ZIP
+     * @param array $options ตัวเลือกเพิ่มเติม
+     * @return array ข้อมูล ZIP file
+     */
+    private function createZipFromFiles(Invoice $invoice, array $files, array $options = []): array
+    {
+        $zipDir = storage_path('app/public/pdfs/invoices/zips');
+        if (!is_dir($zipDir)) {
+            @mkdir($zipDir, 0755, true);
+        }
+
+        // สร้างชื่อไฟล์ ZIP
+        $mode = $options['deposit_mode'] ?? 'before';
+        $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
+        $zipName = sprintf(
+            'invoice-%s-multi-%s-%s.zip',
+            $invoice->number ?? $invoice->id,
+            $modeLabel,
+            now()->format('YmdHis')
+        );
+        
+        $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+
+        // สร้าง ZIP
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+            throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP ได้');
+        }
+
+        foreach ($files as $file) {
+            if (isset($file['path']) && is_file($file['path'])) {
+                $baseName = $file['filename'] ?? basename($file['path']);
+                $zip->addFile($file['path'], $baseName);
+            }
+        }
+
+        $zip->close();
+
+        // สร้าง URL
+        $zipUrl = url('storage/pdfs/invoices/zips/' . $zipName);
+        $zipSize = is_file($zipPath) ? filesize($zipPath) : 0;
+
+        return [
+            'zip_url' => $zipUrl,
+            'zip_filename' => $zipName,
+            'zip_size' => $zipSize,
+            'zip_path' => $zipPath
+        ];
     }
 
     /**

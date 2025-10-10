@@ -15,19 +15,12 @@ import InvoiceCard from "./components/InvoiceCard";
 import InvoiceCreateDialog from "./components/InvoiceCreateDialog";
 import InvoiceDetailDialog from "./components/InvoiceDetailDialog";
 import QuotationSelectionDialog from "./components/QuotationSelectionDialog";
-import { apiConfig } from "../../../api/apiConfig";
-import {
-  useGetInvoicesQuery,
-  useGenerateInvoicePDFMutation,
-  useApproveInvoiceMutation,
-  useSubmitInvoiceMutation,
-} from "../../../features/Accounting/accountingApi";
+import { useInvoiceActions } from "../../../hooks/Accounting/useInvoiceActions";
+import { useGetInvoicesQuery } from "../../../features/Accounting/accountingApi";
 import CompanyManagerDialog from "../Quotations/components/CompanyManagerDialog";
 
 const Invoices = () => {
   // Define status options for invoices
-
-
   // Define options for status before/after deposit
   const statusBeforeOptions = [
     { value: "draft", label: "แบบร่าง" },
@@ -41,6 +34,16 @@ const Invoices = () => {
 
   // Use the new filter hook
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
+
+  // Use Invoice Actions hook
+  const {
+    handleApprove,
+    handleSubmit,
+    handleSubmitAndApprove,
+    handleDownloadPDF,
+    handlePreviewPDF,
+    handleDownloadMultiHeader,
+  } = useInvoiceActions();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -74,9 +77,6 @@ const Invoices = () => {
   }, [invoicesResp]);
 
   const invoicesTotal = invoicesResp?.data?.total || invoices.length;
-  const [generateInvoicePDF] = useGenerateInvoicePDFMutation();
-  const [approveInvoice, { isLoading: approvingId }] = useApproveInvoiceMutation();
-  const [submitInvoice, { isLoading: submittingId }] = useSubmitInvoiceMutation();
 
   const handleSelectQuotation = (quotation) => {
     setSelectedQuotation(quotation);
@@ -103,179 +103,6 @@ const Invoices = () => {
   const handleViewInvoice = (invoice) => {
     setSelectedInvoiceId(invoice.id);
     setDetailDialogOpen(true);
-  };
-
-  // Multi-header PDF generation handler
-  const handleDownloadMultiHeader = async ({ invoiceId, headerTypes }) => {
-    try {
-      if (!invoiceId || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
-      const data = await generateInvoicePDF({ id: invoiceId, headerTypes }).unwrap();
-      if (data.mode === "single" && data.pdf_url) {
-        const a = document.createElement("a");
-        a.href = data.pdf_url;
-        a.download = data.filename || "invoice.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } else if (data.mode === "zip" && data.zip_url) {
-        const a = document.createElement("a");
-        a.href = data.zip_url;
-        a.download = data.zip_filename || "invoices.zip";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } else if (data.pdf_url) {
-        const a = document.createElement("a");
-        a.href = data.pdf_url;
-        a.download = data.filename || "invoice.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } else {
-        console.warn("Unexpected generateInvoicePDF response", data);
-      }
-    } catch (e) {
-      console.error("Multi-header download failed", e);
-    }
-  };
-
-  // Mode-aware PDF preview handler - using direct fetch to avoid Redux serialization issues
-  const handlePreviewPDF = async ({ invoiceId, mode }) => {
-    try {
-      if (!invoiceId) return;
-
-      // Build URL with mode parameter
-      const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/preview?mode=${mode || "before"}`;
-
-      // Get auth token from localStorage (same logic as apiConfig)
-      const authToken = localStorage.getItem("authToken");
-      const token = localStorage.getItem("token");
-      const finalToken = authToken || token;
-
-      if (!finalToken) {
-        throw new Error("No authentication token found");
-      }
-
-      // Direct fetch to avoid storing Blob in Redux
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${finalToken}`,
-          Accept: "application/pdf",
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Convert to blob and open in new tab
-      const blob = await response.blob();
-      if (blob.type === "application/pdf") {
-        const objectUrl = URL.createObjectURL(blob);
-        window.open(objectUrl, "_blank");
-        // Clean up the object URL after some delay
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
-      } else {
-        console.error("Unexpected response type for PDF preview:", blob.type);
-      }
-    } catch (e) {
-      console.error("PDF preview failed", e);
-    }
-  };
-
-  // Mode-aware PDF download handler with multi-header support - using direct fetch
-  const handleDownloadPDF = async ({ invoiceId, headerTypes, mode }) => {
-    try {
-      if (!invoiceId || !Array.isArray(headerTypes) || headerTypes.length === 0) return;
-
-      // Build URL with mode and headers
-      const params = new URLSearchParams();
-      params.append("mode", mode || "before");
-      if (headerTypes.length > 0) {
-        headerTypes.forEach((header) => params.append("headerTypes[]", header));
-      }
-
-      const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/download?${params.toString()}`;
-
-      // Get auth token (same logic as apiConfig)
-      const authToken = localStorage.getItem("authToken");
-      const token = localStorage.getItem("token");
-      const finalToken = authToken || token;
-
-      if (!finalToken) {
-        throw new Error("No authentication token found");
-      }
-
-      // Direct fetch to avoid storing Blob in Redux
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${finalToken}`,
-          Accept: "application/pdf, application/zip, application/json",
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("application/pdf") || contentType.includes("application/zip")) {
-        // Handle binary response (PDF or ZIP)
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = objectUrl;
-
-        // Determine filename based on content type and mode
-        if (contentType.includes("application/zip")) {
-          a.download = `invoices-${mode}-${Date.now()}.zip`;
-        } else {
-          a.download = `invoice-${mode}-${invoiceId}.pdf`;
-        }
-
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      } else if (contentType.includes("application/json")) {
-        // Handle JSON response (legacy format)
-        const data = await response.json();
-
-        if (data.mode === "single" && data.pdf_url) {
-          const a = document.createElement("a");
-          a.href = data.pdf_url;
-          a.download = data.filename || `invoice-${mode}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        } else if (data.mode === "zip" && data.zip_url) {
-          const a = document.createElement("a");
-          a.href = data.zip_url;
-          a.download = data.zip_filename || `invoices-${mode}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        } else if (data.pdf_url) {
-          const a = document.createElement("a");
-          a.href = data.pdf_url;
-          a.download = data.filename || `invoice-${mode}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        } else {
-          console.warn("Unexpected download response", data);
-        }
-      } else {
-        console.error("Unexpected content type:", contentType);
-      }
-    } catch (e) {
-      console.error("Mode-aware PDF download failed", e);
-    }
   };
 
   return (
@@ -347,21 +174,10 @@ const Invoices = () => {
                       onPreviewPDF={handlePreviewPDF}
                       onView={() => handleViewInvoice(inv)}
                       onApprove={async (notes) => {
-                        try {
-                          if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
-                          await approveInvoice({ id: inv.id, notes }).unwrap();
-                          // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
-                        } catch (e) {
-                          console.error("Approve invoice failed", e);
-                        }
+                        await handleSubmitAndApprove(inv, notes);
                       }}
                       onSubmit={async () => {
-                        try {
-                          if (inv.status === "draft") await submitInvoice(inv.id).unwrap();
-                          // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
-                        } catch (e) {
-                          console.error("Submit invoice failed", e);
-                        }
+                        await handleSubmit(inv.id);
                       }}
                     />
                   </Grid>

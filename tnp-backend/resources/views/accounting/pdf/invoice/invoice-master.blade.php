@@ -330,9 +330,6 @@
       </table>
     </div>
 
-    {{-- Signature spacer: กันไม่ให้เนื้อหามาชนพื้นที่ลายเซ็นคงที่ด้านล่างหน้า --}}
-    <div class="signature-spacer"></div>
-
   </div>
 </body>
 </html>

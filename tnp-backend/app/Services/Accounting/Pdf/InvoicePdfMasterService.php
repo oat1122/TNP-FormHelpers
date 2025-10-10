@@ -47,21 +47,32 @@ class InvoicePdfMasterService extends BasePdfMasterService
         $customer = $data['customer'];
         $isFinal  = $data['isFinal'];
 
-        // Header
+        // Header (คงเดิม)
         $summary = $data['summary'] ?? [];
         $headerHtml = View::make('accounting.pdf.invoice.partials.invoice-header', compact(
             'invoice', 'customer', 'isFinal', 'summary'
         ))->render();
 
-        // Footer
+        // --- ส่วนที่แก้ไข ---
+
+        // 1. Render a normal footer for all pages
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
             'invoice', 'customer', 'isFinal'
         ))->render();
 
-        $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml);
+        // 2. Render the special last page footer (with signature)
+        $lastPageFooterHtml = View::make('accounting.pdf.invoice.partials.invoice-footer-lastpage', compact(
+            'invoice', 'customer', 'isFinal'
+        ))->render();
 
-        // Watermark logic
+        // 3. Set the footers in Mpdf
+        $mpdf->SetHTMLHeader($headerHtml);
+        $mpdf->SetHTMLFooter($footerHtml); // Default footer for pages 1, 2, ...
+        $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L'); // Special footer for the LAST page ('L' flag)
+
+        // --- จบส่วนที่แก้ไข ---
+
+        // Watermark logic (คงเดิม)
         $bothDraft = (strtolower($invoice->status_before ?? '') === 'draft')
             && (strtolower($invoice->status_after ?? '') === 'draft');
         $mode = strtolower($data['options']['deposit_mode'] ?? ($invoice->deposit_display_order ?? 'before'));

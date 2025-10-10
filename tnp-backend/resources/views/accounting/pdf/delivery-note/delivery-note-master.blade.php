@@ -80,9 +80,6 @@
       <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
-    {{-- Spacer: กันเนื้อหาชนพื้นที่ลายเซ็นคงที่ (ถ้ามี) --}}
-    <div class="signature-spacer"></div>
-
   </div>
 </body>
 </html>

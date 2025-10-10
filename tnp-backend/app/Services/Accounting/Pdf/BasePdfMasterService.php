@@ -113,15 +113,10 @@ abstract class BasePdfMasterService
         $html = View::make($this->getTemplatePath($viewData), $viewData)->render();
         $mpdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 
-        // 4) Render signature at the bottom of the last page (adaptive)
-        if ($this->shouldRenderSignature()) {
-            $this->renderSignatureAdaptive($mpdf, $viewData);
-        }
-
         return $mpdf;
     }
 
-    protected function getMpdfConfig(array $options): array
+    protected function getMpdfConfig(array $options = []): array
     {
         $defaultConfig = (new ConfigVariables())->getDefaults();
         $fontDirs = $defaultConfig['fontDir'];
@@ -146,7 +141,7 @@ abstract class BasePdfMasterService
             'margin_left' => 10,
             'margin_right' => 10,
             'margin_top' => 16,
-            'margin_bottom' => 14,
+            'margin_bottom' => 50, // <--- Updated from 14
             'setAutoTopMargin' => 'stretch',
             'setAutoBottomMargin' => 'stretch',
             'default_font' => $hasThaiFonts ? 'thsarabun' : 'dejavusans',
@@ -177,124 +172,6 @@ abstract class BasePdfMasterService
         $mpdf->interpolateImages = true;
         if (property_exists($mpdf, 'jpeg_quality')) {
             $mpdf->jpeg_quality = 90;
-        }
-    }
-
-    // =======================================================================
-    // |  Signature Placement Logic
-    // =======================================================================
-
-    /**
-     * กำหนดว่าจะแสดงลายเซ็นหรือไม่ (บางเอกสารอาจไม่ต้องการ)
-     */
-    protected function shouldRenderSignature(): bool
-    {
-        return true;
-    }
-
-    protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
-    {
-        try {
-            $signatureDimensions = $this->calculateSignatureDimensions($mpdf);
-            $requiredHeight = $signatureDimensions['height'];
-            $bottomPadding  = $signatureDimensions['padding'];
-
-            $pageInfo  = $this->getAccuratePageInfo($mpdf);
-            $remaining = $pageInfo['remaining'];
-
-            $sigHtml = View::make($this->getSignatureTemplatePath(), $data)->render();
-            $signaturePlaced = false;
-
-            if ($remaining >= ($requiredHeight + $bottomPadding)) {
-                $signaturePlaced = $this->placeSignatureOnCurrentPage($mpdf, $sigHtml, $remaining, $requiredHeight, $bottomPadding);
-            }
-
-            if (!$signaturePlaced) {
-                $signaturePlaced = $this->placeSignatureOnNewPage($mpdf, $sigHtml, $requiredHeight, $bottomPadding);
-            }
-
-            if (!$signaturePlaced) {
-                $this->emergencySignaturePlacement($mpdf, $sigHtml, $data);
-            }
-
-        } catch (\Throwable $e) {
-            Log::error(static::class.' Signature adaptive render failed: '.$e->getMessage(), [
-                'model_id' => $data[strtolower($this->getFilenamePrefix())]->id ?? 'unknown',
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->emergencySignaturePlacement($mpdf, View::make($this->getSignatureTemplatePath(), $data)->render(), $data);
-        }
-    }
-
-    protected function getSignatureTemplatePath(): string
-    {
-        // Default signature, can be overridden by child class
-        return 'pdf.partials.default-signature'; 
-    }
-
-    protected function calculateSignatureDimensions(Mpdf $mpdf): array
-    {
-        // Estimate signature section height based on PDF dimensions
-        $pageHeight = $mpdf->h; // Page height in mm
-        $estimatedHeight = min(40, $pageHeight * 0.15); // 15% of page height, max 40mm
-        $padding = min(10, $pageHeight * 0.05); // 5% of page height, max 10mm
-
-        return [
-            'height' => $estimatedHeight,
-            'padding' => $padding,
-        ];
-    }
-
-    protected function getAccuratePageInfo(Mpdf $mpdf): array
-    {
-        $pageHeight = $mpdf->h;
-        $currentY = $mpdf->y;
-        $bottomMargin = $mpdf->bMargin;
-        
-        $usableBottom = $pageHeight - $bottomMargin;
-        $remaining = $usableBottom - $currentY;
-        
-        return [
-            'page_height' => $pageHeight,
-            'current_y' => $currentY,
-            'bottom_margin' => $bottomMargin,
-            'usable_bottom' => $usableBottom,
-            'remaining' => max(0, $remaining),
-        ];
-    }
-
-    protected function placeSignatureOnCurrentPage(Mpdf $mpdf, string $sigHtml, float $remaining, float $requiredHeight, float $bottomPadding): bool
-    {
-        try {
-            // Add some spacing before signature
-            $mpdf->WriteHTML('<div style="margin-top: 10mm;"></div>', HTMLParserMode::HTML_BODY);
-            $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
-            return true;
-        } catch (\Throwable $e) {
-            Log::warning('Failed to place signature on current page: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    protected function placeSignatureOnNewPage(Mpdf $mpdf, string $sigHtml, float $requiredHeight, float $bottomPadding): bool
-    {
-        try {
-            $mpdf->AddPage();
-            $mpdf->WriteHTML($sigHtml, HTMLParserMode::HTML_BODY);
-            return true;
-        } catch (\Throwable $e) {
-            Log::warning('Failed to place signature on new page: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    protected function emergencySignaturePlacement(Mpdf $mpdf, string $sigHtml, array $data): void
-    {
-        try {
-            // Last resort: just try to add it as-is
-            $mpdf->WriteHTML('<div style="page-break-before: always;"></div>' . $sigHtml, HTMLParserMode::HTML_BODY);
-        } catch (\Throwable $e) {
-            Log::error('Emergency signature placement also failed: ' . $e->getMessage());
         }
     }
 

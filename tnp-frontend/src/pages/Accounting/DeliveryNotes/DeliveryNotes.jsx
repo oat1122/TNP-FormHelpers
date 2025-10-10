@@ -21,9 +21,11 @@ import DeliveryNoteSourceSelectionDialog from "./components/DeliveryNoteSourceSe
 import {
   useGetDeliveryNotesQuery,
   useGenerateDeliveryNotePDFMutation,
+  useGenerateDeliveryNotePDFBundleMutation,
 } from "../../../features/Accounting/accountingApi";
 import { apiConfig } from "../../../api/apiConfig";
 import { showError, showSuccess } from "../utils/accountingToast";
+import { downloadFile, normalizePath } from "./utils/downloadUtils";
 
 const statusFilterOptions = [
   { value: "", label: "All statuses" },
@@ -86,13 +88,82 @@ const DeliveryNotes = () => {
   const total = data?.data?.total || notes.length;
 
   const [generatePDF] = useGenerateDeliveryNotePDFMutation();
+  const [generatePDFBundle] = useGenerateDeliveryNotePDFBundleMutation();
 
   const handleRefresh = () => {
     // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
     refetch();
   };
 
-  const handleDownloadPDF = async (note) => {
+  const handleDownloadPDF = async ({ deliveryNoteId, headerTypes }) => {
+    if (!deliveryNoteId) return;
+    
+    try {
+      // If multiple header types selected, use bundle endpoint
+      if (headerTypes && headerTypes.length > 1) {
+        const response = await generatePDFBundle({
+          id: deliveryNoteId,
+          headerTypes,
+        }).unwrap();
+
+        // Extract data from response (handle both response and response.data)
+        const data = response?.data || response;
+
+        if (data?.mode === "zip" && data?.zip?.url) {
+          // Multiple files - download ZIP
+          const zipUrl = normalizePath(data.zip.url);
+          const filename = data.zip.filename || 'delivery-notes-bundle.zip';
+          
+          // Use downloadFile utility
+          downloadFile(zipUrl, filename);
+          
+          showSuccess(`ดาวน์โหลด PDF ${headerTypes.length} ไฟล์สำเร็จ (ZIP)`);
+        } else if (data?.mode === "single" && data?.file?.url) {
+          // Single file
+          const pdfUrl = normalizePath(data.file.url);
+          window.open(pdfUrl, "_blank", "noopener");
+          showSuccess("ดาวน์โหลด PDF สำเร็จ");
+        }
+      } else {
+        // Single header type - use regular PDF endpoint
+        const headerType = headerTypes?.[0] || "ต้นฉบับ";
+        const response = await generatePDF({
+          id: deliveryNoteId,
+          options: { document_header_type: headerType },
+        }).unwrap();
+
+        const pdfUrl =
+          response?.url || response?.data?.url || response?.pdf_url || response?.data?.pdf_url;
+        
+        if (pdfUrl) {
+          const normalized = normalizePath(pdfUrl);
+          window.open(normalized, "_blank", "noopener");
+          showSuccess("ดาวน์โหลด PDF สำเร็จ");
+          return;
+        }
+
+        // Fallback
+        window.open(
+          `${apiConfig.baseUrl}/delivery-notes/${deliveryNoteId}/generate-pdf`,
+          "_blank",
+          "noopener"
+        );
+      }
+    } catch (err) {
+      console.error('Download PDF error:', err);
+      showError(err?.data?.message || "ไม่สามารถดาวน์โหลด PDF ได้");
+    }
+  };
+
+  const handlePreviewPDF = ({ deliveryNoteId, headerType }) => {
+    if (!deliveryNoteId) return;
+    
+    const headerParam = headerType ? `?document_header_type=${encodeURIComponent(headerType)}` : "";
+    const previewUrl = `${apiConfig.baseUrl}/delivery-notes/${deliveryNoteId}/pdf/stream${headerParam}`;
+    window.open(previewUrl, "_blank", "noopener");
+  };
+
+  const handleDownloadPDF_OLD = async (note) => {
     if (!note?.id) return;
     try {
       const response = await generatePDF(note.id).unwrap();
@@ -214,6 +285,7 @@ const DeliveryNotes = () => {
                     note={note}
                     onView={handleViewNote}
                     onDownloadPDF={handleDownloadPDF}
+                    onPreviewPDF={handlePreviewPDF}
                   />
                 </Grid>
               ))}

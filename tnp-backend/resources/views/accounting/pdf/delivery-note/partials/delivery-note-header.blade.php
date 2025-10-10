@@ -65,6 +65,9 @@
 
     <td class="header-right">
       <div class="doc-title">ใบส่งของ</div>
+      @if(!empty($headerType))
+        <div class="doc-subtitle">{{ $headerType }}</div>
+      @endif
 
       <div class="doc-meta">
         <div><strong>เลขที่:</strong> {{ $deliveryNote->number ?? 'DRAFT' }}</div>
@@ -86,13 +89,7 @@
         @endif
       </div>
 
-      @if ($deliveryNote->status === 'preparing')
-        <div class="badge-draft">เตรียมส่ง</div>
-      @elseif ($deliveryNote->status === 'shipping')
-        <div class="badge-shipping">จัดส่งแล้ว</div>
-      @elseif ($deliveryNote->status === 'delivered')
-        <div class="badge-delivered">ส่งสำเร็จ</div>
-      @endif
+      {{-- ไม่แสดงสถานะ --}}
     </td>
   </tr>
 </table>

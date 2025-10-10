@@ -375,6 +375,9 @@ Route::prefix('v1')->group(function() {
         // Step 4 Workflow APIs - Evidence & Documents
         // Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence')->name('delivery-notes.upload-evidence'); // UNUSED
         Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf')->name('delivery-notes.generate-pdf');
+        Route::post('/delivery-notes/{id}/generate-pdf', 'generatePdf')->name('delivery-notes.generate-pdf.post');
+        Route::post('/delivery-notes/{id}/pdf/bundle', 'generatePdfBundle')->name('delivery-notes.pdf.bundle');
+        Route::get('/delivery-notes/{id}/pdf/stream', 'streamPdf')->name('delivery-notes.pdf.stream');
         Route::get('/delivery-notes/{id}/timeline', 'getTimeline')->name('delivery-notes.timeline');
         
         // DeliveryNote Utilities

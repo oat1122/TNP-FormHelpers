@@ -126,3 +126,12 @@
     height: 0;
     border-bottom: 1pt solid #555;
 }
+
+/* Document subtitle (for header types like สำเนา) */
+.doc-subtitle {
+    font-size: 11pt;
+    color: #666;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    font-weight: normal;
+}

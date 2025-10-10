@@ -596,7 +596,18 @@ export const accountingApi = createApi({
     getCourierCompanies: builder.query({ query: () => "/delivery-notes/courier-companies" }),
     getDeliveryMethods: builder.query({ query: () => "/delivery-notes/delivery-methods" }),
     generateDeliveryNotePDF: builder.mutation({
-      query: (id) => ({ url: `/delivery-notes/${id}/generate-pdf`, method: "GET" }),
+      query: ({ id, options }) => ({
+        url: `/delivery-notes/${id}/generate-pdf`,
+        method: "POST",
+        body: { options },
+      }),
+    }),
+    generateDeliveryNotePDFBundle: builder.mutation({
+      query: ({ id, headerTypes, options }) => ({
+        url: `/delivery-notes/${id}/pdf/bundle`,
+        method: "POST",
+        body: { headerTypes, options },
+      }),
     }),
 
     // ===================== CUSTOMERS =====================
@@ -704,6 +715,7 @@ export const {
   useGetCourierCompaniesQuery,
   useGetDeliveryMethodsQuery,
   useGenerateDeliveryNotePDFMutation,
+  useGenerateDeliveryNotePDFBundleMutation,
   // Customers
   useGetCustomerDetailsQuery,
   // Utilities

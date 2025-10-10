@@ -633,12 +633,13 @@ class DeliveryNoteController extends Controller
 
     /**
      * สร้าง PDF ใบส่งของ
-     * GET /api/v1/delivery-notes/{id}/generate-pdf
+     * GET/POST /api/v1/delivery-notes/{id}/generate-pdf
      */
-    public function generatePdf($id): JsonResponse
+    public function generatePdf(Request $request, $id): JsonResponse
     {
         try {
-            $pdfData = $this->deliveryNoteService->generatePdf($id);
+            $options = $request->input('options', []);
+            $pdfData = $this->deliveryNoteService->generatePdf($id, $options);
 
             return response()->json([
                 'success' => true,
@@ -652,6 +653,57 @@ class DeliveryNoteController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to generate PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * สร้าง PDF Bundle (หลายหัวกระดาษ)
+     * POST /api/v1/delivery-notes/{id}/pdf/bundle
+     */
+    public function generatePdfBundle(Request $request, $id): JsonResponse
+    {
+        try {
+            $headerTypes = $request->input('headerTypes', ['ต้นฉบับ']);
+            $options = $request->input('options', []);
+
+            $result = $this->deliveryNoteService->generatePdfBundle($id, $headerTypes, $options);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'PDF bundle generated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteController::generatePdfBundle error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF bundle: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Stream PDF สำหรับ Preview
+     * GET /api/v1/delivery-notes/{id}/pdf/stream
+     */
+    public function streamPdf(Request $request, $id)
+    {
+        try {
+            $options = [
+                'document_header_type' => $request->query('document_header_type', 'ต้นฉบับ'),
+            ];
+
+            return $this->deliveryNoteService->streamPdf($id, $options);
+
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteController::streamPdf error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to stream PDF: ' . $e->getMessage()
             ], 500);
         }
     }

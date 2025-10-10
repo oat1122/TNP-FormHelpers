@@ -32,11 +32,11 @@ class DeliveryNotePdfMasterService
             // 1) mPDF + CSS + Header/Footer + Body
             $mpdf = $this->createMpdf($viewData);
 
-            // 2) บันทึกไฟล์
-            $filePath = $this->savePdfFile($mpdf, $viewData['deliveryNote']);
+            // 2) บันทึกไฟล์ พร้อมชื่อที่มี header type
+            $filePath = $this->savePdfFile($mpdf, $viewData['deliveryNote'], $viewData['headerType']);
 
             return [
-                'path'     => $filePath,
+                'path'     => str_replace('\\', '/', $filePath),
                 'url'      => $this->generatePublicUrl($filePath),
                 'filename' => basename($filePath),
                 'size'     => is_file($filePath) ? filesize($filePath) : 0,
@@ -82,12 +82,16 @@ class DeliveryNotePdfMasterService
 
         $isFinal = in_array($d->status, ['shipping', 'in_transit', 'delivered', 'completed'], true);
 
+        // รองรับ document_header_type ผ่าน options (ไม่บันทึก DB)
+        $headerType = $options['document_header_type'] ?? 'ต้นฉบับ';
+
         return [
-            'deliveryNote' => $d,
-            'customer'     => $customer,
-            'groups'       => $groups,
-            'isFinal'      => $isFinal,
-            'options'      => array_merge([
+            'deliveryNote'   => $d,
+            'customer'       => $customer,
+            'groups'         => $groups,
+            'isFinal'        => $isFinal,
+            'headerType'     => $headerType,
+            'options'        => array_merge([
                 'format'          => 'A4',
                 'orientation'     => 'P',
                 'showPageNumbers' => true,
@@ -390,9 +394,10 @@ class DeliveryNotePdfMasterService
         $deliveryNote = $data['deliveryNote'];
         $customer     = $data['customer'];
         $isFinal      = $data['isFinal'];
+        $headerType   = $data['headerType'] ?? 'ต้นฉบับ';
 
         // Header (ใช้ partial ที่มีอยู่แล้ว)
-        $headerHtml = View::make('accounting.pdf.delivery-note.partials.delivery-note-header', compact('deliveryNote', 'customer', 'isFinal'))->render();
+        $headerHtml = View::make('accounting.pdf.delivery-note.partials.delivery-note-header', compact('deliveryNote', 'customer', 'isFinal', 'headerType'))->render();
 
         $mpdf->SetHTMLHeader($headerHtml);
 
@@ -401,10 +406,7 @@ class DeliveryNotePdfMasterService
             $mpdf->SetHTMLFooter('<div style="text-align: right; font-size: 9pt; color: #888;">หน้า {PAGENO} / {nbpg}</div>');
         }
 
-        if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {
-            $mpdf->SetWatermarkText('PREVIEW', 0.1);
-            $mpdf->showWatermarkText = true;
-        }
+        // ไม่แสดง watermark preview
     }
 
     /* =======================================================================
@@ -448,7 +450,7 @@ class DeliveryNotePdfMasterService
      |  Output helpers
      * ======================================================================= */
 
-    protected function savePdfFile(Mpdf $mpdf, DeliveryNote $dn): string
+    protected function savePdfFile(Mpdf $mpdf, DeliveryNote $dn, string $headerType = 'ต้นฉบับ'): string
     {
         $directory = storage_path('app/public/pdfs/delivery-notes');
 
@@ -456,12 +458,37 @@ class DeliveryNotePdfMasterService
             @mkdir($directory, 0755, true);
         }
 
-        $filename = sprintf('delivery-note-%s-%s.pdf', $dn->number ?? $dn->id, date('Y-m-d-His'));
+        // สร้างชื่อไฟล์ที่ไม่ซ้ำกันด้วย header type และ microtime
+        $headerSlug = $this->slugHeaderType($headerType);
+        $timestamp = date('Y-m-d-His') . '-' . substr(str_replace('.', '', microtime(true)), -6);
+        $filename = sprintf(
+            'delivery-note-%s-%s-%s.pdf',
+            $dn->number ?? $dn->id,
+            $headerSlug,
+            $timestamp
+        );
 
         $fullPath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($fullPath, 'F');
 
         return $fullPath;
+    }
+
+    /**
+     * แปลงประเภทหัวกระดาษเป็น slug สำหรับชื่อไฟล์
+     */
+    protected function slugHeaderType(string $headerType): string
+    {
+        // Normalize: trim + remove multiple spaces
+        $normalized = preg_replace('/\s+/', '', trim($headerType));
+        
+        $map = [
+            'ต้นฉบับ'      => 'original',
+            'สำเนา'        => 'copy',
+            'สำเนา-ลูกค้า' => 'copy-customer',
+        ];
+        
+        return $map[$normalized] ?? 'original';
     }
 
     protected function generatePublicUrl(string $filePath): string

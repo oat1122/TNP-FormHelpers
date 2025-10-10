@@ -928,14 +928,14 @@ class DeliveryNoteService
     /**
      * สร้าง PDF ใบส่งของ
      */
-    public function generatePdf(string $deliveryNoteId): array
+    public function generatePdf(string $deliveryNoteId, array $options = []): array
     {
         try {
             $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])->findOrFail($deliveryNoteId);
 
             // ใช้ Master PDF Service (mPDF)
             $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
-            $result = $master->generatePdf($deliveryNote);
+            $result = $master->generatePdf($deliveryNote, $options);
 
             // Log history (optional)
             try {
@@ -961,6 +961,131 @@ class DeliveryNoteService
 
         } catch (\Exception $e) {
             Log::error('DeliveryNoteService::generatePdf error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้าง PDF Bundle (หลายไฟล์พร้อม Zip) - รองรับหลายหัวกระดาษ
+     * 
+     * @param string $deliveryNoteId
+     * @param array $headerTypes รายการ header types ที่ต้องการสร้าง ['ต้นฉบับ', 'สำเนา', 'สำเนา-ลูกค้า']
+     * @param array $options ตัวเลือกเพิ่มเติม (format, orientation)
+     * @return array ผลลัพธ์ที่มี mode (single/zip) และข้อมูลไฟล์
+     */
+    public function generatePdfBundle(string $deliveryNoteId, array $headerTypes = [], array $options = []): array
+    {
+        try {
+            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])
+                ->findOrFail($deliveryNoteId);
+
+            // ถ้าไม่ระบุ headerTypes ให้ใช้ default ต้นฉบับ
+            if (empty($headerTypes)) {
+                $headerTypes = ['ต้นฉบับ'];
+            }
+
+            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
+            $files = [];
+
+            // สร้าง PDF สำหรับแต่ละ header type
+            foreach ($headerTypes as $headerType) {
+                $pdfOptions = array_merge($options, [
+                    'document_header_type' => $headerType
+                ]);
+
+                $result = $master->generatePdf($deliveryNote, $pdfOptions);
+                $files[] = $result;
+            }
+
+            // ถ้ามีไฟล์เดียว return ไฟล์นั้นโดยตรง
+            if (count($files) === 1) {
+                return [
+                    'mode' => 'single',
+                    'file' => $files[0],
+                ];
+            }
+
+            // ถ้ามีหลายไฟล์ สร้าง ZIP
+            $zipResult = $this->createZipFromFiles($deliveryNote, $files, $options);
+
+            return [
+                'mode' => 'zip',
+                'zip' => $zipResult,
+                'files' => $files,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteService::generatePdfBundle error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้างไฟล์ ZIP จากรายการไฟล์ PDF
+     * 
+     * @param DeliveryNote $deliveryNote
+     * @param array $files รายการไฟล์ที่ต้องการรวมใน ZIP
+     * @param array $options ตัวเลือกเพิ่มเติม
+     * @return array ข้อมูล ZIP file
+     */
+    private function createZipFromFiles(DeliveryNote $deliveryNote, array $files, array $options = []): array
+    {
+        $zipDir = storage_path('app/public/pdfs/delivery-notes/zips');
+        if (!is_dir($zipDir)) {
+            @mkdir($zipDir, 0755, true);
+        }
+
+        // สร้างชื่อไฟล์ ZIP
+        $zipName = sprintf(
+            'delivery-note-%s-bundle-%s.zip',
+            $deliveryNote->number ?? $deliveryNote->id,
+            date('YmdHis')
+        );
+        
+        $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
+
+        // สร้าง ZIP
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+            throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP ได้');
+        }
+
+        foreach ($files as $file) {
+            if (is_file($file['path'])) {
+                $zip->addFile($file['path'], $file['filename']);
+            }
+        }
+
+        $zip->close();
+
+        // สร้าง URL - normalize path
+        $relativePath = str_replace(storage_path('app/public/'), '', $zipPath);
+        $relativePath = str_replace('\\', '/', $relativePath);
+        $zipUrl = url('storage/' . $relativePath);
+        $zipSize = is_file($zipPath) ? filesize($zipPath) : 0;
+
+        return [
+            'path' => str_replace('\\', '/', $zipPath),
+            'url' => $zipUrl,
+            'filename' => $zipName,
+            'size' => $zipSize,
+        ];
+    }
+
+    /**
+     * Stream PDF สำหรับดู/ดาวน์โหลดทันที
+     */
+    public function streamPdf(string $deliveryNoteId, array $options = []): \Symfony\Component\HttpFoundation\Response
+    {
+        try {
+            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])
+                ->findOrFail($deliveryNoteId);
+
+            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
+            return $master->streamPdf($deliveryNote, $options);
+            
+        } catch (\Exception $e) {
+            Log::error('DeliveryNoteService::streamPdf error: ' . $e->getMessage());
             throw $e;
         }
     }

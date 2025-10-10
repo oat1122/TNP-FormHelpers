@@ -19,6 +19,7 @@ import {
 import { format } from "date-fns";
 import React from "react";
 import { formatTHB } from "../../Invoices/utils/format";
+import DeliveryNotePDFMenu from "./DeliveryNotePDFMenu";
 
 const statusConfig = {
   preparing: { color: "default", label: "preparing" },
@@ -43,6 +44,7 @@ const DeliveryNoteCard = ({
   note,
   onView,
   onDownloadPDF,
+  onPreviewPDF,
   onStartShipping,
   onMarkDelivered,
   onMarkCompleted,
@@ -360,15 +362,11 @@ const DeliveryNoteCard = ({
             )}
         </Stack>
 
-        <Tooltip title="Download delivery note PDF">
-          <Button
-            size="small"
-            startIcon={<PictureAsPdfIcon fontSize="small" />}
-            onClick={() => onDownloadPDF?.(note)}
-          >
-            PDF
-          </Button>
-        </Tooltip>
+        <DeliveryNotePDFMenu
+          deliveryNote={note}
+          onDownloadPDF={onDownloadPDF}
+          onPreviewPDF={onPreviewPDF}
+        />
       </CardActions>
     </Card>
   );

@@ -55,7 +55,11 @@ export const useAutofillCache = (prIds = [], options = {}) => {
   // Sort prIds เพื่อให้ cache key เหมือนกันแม้ลำดับต่างกัน
   const sortedPrIds = useMemo(() => {
     if (!Array.isArray(prIds) || prIds.length === 0) return [];
-    return [...prIds].sort((a, b) => a - b);
+    // ✅ แปลงเป็น integer และ sort
+    return [...prIds]
+      .map(id => parseInt(id, 10))
+      .filter(id => !isNaN(id))
+      .sort((a, b) => a - b);
   }, [prIds]);
 
   // Use RTK Query hook with optimized settings

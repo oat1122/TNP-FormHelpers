@@ -56,7 +56,7 @@ export const normalizeCustomer = (q) => {
 export const getAllPrIdsFromQuotation = (q = {}) => {
   const set = new Set();
   const primary = q.primary_pricing_request_id || q.primary_pricing_request || null;
-  if (primary) set.add(primary);
+  if (primary) set.add(parseInt(primary, 10));
   let arr = [];
   if (Array.isArray(q.primary_pricing_request_ids)) arr = q.primary_pricing_request_ids;
   else if (
@@ -69,12 +69,13 @@ export const getAllPrIdsFromQuotation = (q = {}) => {
       // ignore
     }
   }
-  arr.forEach((id) => id && set.add(id));
+  arr.forEach((id) => id && set.add(parseInt(id, 10)));
   const items = Array.isArray(q.items) ? q.items : [];
   items.forEach((it) => {
-    if (it?.pricing_request_id) set.add(it.pricing_request_id);
+    if (it?.pricing_request_id) set.add(parseInt(it.pricing_request_id, 10));
   });
-  return Array.from(set);
+  // ✅ แปลงเป็น array และกรอง NaN ออก
+  return Array.from(set).filter(id => !isNaN(id));
 };
 
 // Build normalized quotation_items then group them by pricing_request_id

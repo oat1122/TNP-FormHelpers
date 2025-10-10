@@ -124,11 +124,18 @@ export const accountingApi = createApi({
       merge: (currentCache, newItems) => newItems,
     }),
     getBulkPricingRequestAutofill: builder.query({
-      query: (prIds) => ({
-        url: `/pricing-requests/bulk-autofill`,
-        method: 'POST',
-        body: { ids: prIds },
-      }),
+      query: (prIds) => {
+        // ✅ Validate and convert to integers
+        const validIds = Array.isArray(prIds) 
+          ? prIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+          : [];
+        
+        return {
+          url: `/pricing-requests/bulk-autofill`,
+          method: 'POST',
+          body: { ids: validIds },
+        };
+      },
       providesTags: (result, error, prIds) =>
         (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
       keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง

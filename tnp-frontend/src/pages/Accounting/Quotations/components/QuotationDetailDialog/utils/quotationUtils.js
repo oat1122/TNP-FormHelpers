@@ -50,7 +50,13 @@ export function toISODate(date) {
 // Get all PR IDs from quotation
 export function getAllPrIdsFromQuotation(quotation) {
   if (!quotation?.items) return [];
-  return [...new Set(quotation.items.map(item => item.pricing_request_id).filter(Boolean))];
+  // ✅ แปลงเป็น integer เพื่อป้องกัน validation error
+  return [...new Set(
+    quotation.items
+      .map(item => item.pricing_request_id)
+      .filter(Boolean)
+      .map(id => parseInt(id, 10))
+  )];
 }
 
 // Normalize and group items

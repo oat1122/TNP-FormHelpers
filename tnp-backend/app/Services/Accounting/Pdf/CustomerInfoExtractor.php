@@ -20,8 +20,18 @@ class CustomerInfoExtractor
      */
     public static function fromQuotation(Quotation $q): array
     {
+        $rawSnapshot = $q->customer_snapshot;
         /** @var array<string, mixed> $snap */
-        $snap = is_array($q->customer_snapshot ?? null) ? $q->customer_snapshot : [];
+        $snap = [];
+
+        if (is_string($rawSnapshot)) {
+            $decoded = json_decode($rawSnapshot, true);
+            if (is_array($decoded)) {
+                $snap = $decoded;
+            }
+        } elseif (is_array($rawSnapshot)) {
+            $snap = $rawSnapshot;
+        }
 
         /*
          * เปลี่ยนลำดับความสำคัญของข้อมูล:
@@ -115,9 +125,13 @@ class CustomerInfoExtractor
         /** @var array<string, mixed> $snap */
         $snap = [];
         if ($rawSnapshot !== null) {
-            $decoded = json_decode($rawSnapshot, true);
-            if (is_array($decoded)) {
-                $snap = $decoded;
+            if (is_string($rawSnapshot)) {
+                $decoded = json_decode($rawSnapshot, true);
+                if (is_array($decoded)) {
+                    $snap = $decoded;
+                }
+            } elseif (is_array($rawSnapshot)) {
+                $snap = $rawSnapshot;
             }
         }
         $source = $i->customer_data_source ?? 'master';
@@ -230,9 +244,13 @@ class CustomerInfoExtractor
         /** @var array<string, mixed> $snap */
         $snap = [];
         if ($rawSnapshot !== null) {
-            $decoded = json_decode($rawSnapshot, true);
-            if (is_array($decoded)) {
-                $snap = $decoded;
+            if (is_string($rawSnapshot)) {
+                $decoded = json_decode($rawSnapshot, true);
+                if (is_array($decoded)) {
+                    $snap = $decoded;
+                }
+            } elseif (is_array($rawSnapshot)) {
+                $snap = $rawSnapshot;
             }
         }
         $source = $d->customer_data_source ?? 'master';

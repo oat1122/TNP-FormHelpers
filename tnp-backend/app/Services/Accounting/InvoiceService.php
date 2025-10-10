@@ -1450,7 +1450,7 @@ class InvoiceService
                 $query->where(function($q) use ($like, $joinedMaster) {
                     $q->where('invoices.number', 'like', $like)
                       ->orWhere('invoices.customer_company', 'like', $like)
-                      ->orWhere('invoices.work_name', 'like', $like)
+                      ->orWhere('quotations.work_name', 'like', $like)
                       // Search by referenced quotation number too
                       ->orWhere('quotations.number', 'like', $like);
 

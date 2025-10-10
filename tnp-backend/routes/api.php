@@ -305,13 +305,13 @@ Route::prefix('v1')->group(function() {
         
         // PDF APIs (mPDF-first with fallback) - Mode-specific
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
-        // Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
-        // Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
+        Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
+        Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
     // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers) - UNUSED
-    // Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
-    // Route::get('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
-    // Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
-    // Route::get('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
+    Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
+    Route::get('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
+    Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
+    Route::get('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
         
         // Legacy support (will use deposit_display_order as default mode) - UNUSED
         // Route::get('/invoices/{id}/pdf/stream', 'streamPdf');

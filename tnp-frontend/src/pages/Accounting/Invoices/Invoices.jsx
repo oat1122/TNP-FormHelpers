@@ -53,6 +53,12 @@ const Invoices = () => {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
+  // Check user role - allow admin and account, but not sale
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  const isAdmin = userData.user_id === 1;
+  const isAccount = userData.role === "account";
+  const canManageInvoices = isAdmin || isAccount;
+
   // Invoices: filter + pagination
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState("");
   const [invoicePage, setInvoicePage] = useState(1);
@@ -115,20 +121,22 @@ const Invoices = () => {
           <Typography variant="h5" fontWeight={600}>
             รายการใบแจ้งหนี้
           </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Button variant="outlined" size="small" onClick={() => setCompanyDialogOpen(true)}>
-              จัดการบริษัท
-            </Button>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<AddIcon />}
-              onClick={handleCreateInvoiceClick}
-              sx={{ px: 3, py: 1.5 }}
-            >
-              สร้างใบแจ้งหนี้
-            </Button>
-          </Stack>
+          {canManageInvoices && (
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Button variant="outlined" size="small" onClick={() => setCompanyDialogOpen(true)}>
+                จัดการบริษัท
+              </Button>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<AddIcon />}
+                onClick={handleCreateInvoiceClick}
+                sx={{ px: 3, py: 1.5 }}
+              >
+                สร้างใบแจ้งหนี้
+              </Button>
+            </Stack>
+          )}
         </Box>
 
         {/* AdvancedFilter Component */}
@@ -189,19 +197,21 @@ const Invoices = () => {
       </Container>
 
       {/* Floating Action Button for Mobile */}
-      <Fab
-        color="primary"
-        aria-label="สร้างใบแจ้งหนี้"
-        onClick={handleCreateInvoiceClick}
-        sx={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          display: { xs: "flex", md: "none" }, // Show only on mobile
-        }}
-      >
-        <AddIcon />
-      </Fab>
+      {canManageInvoices && (
+        <Fab
+          color="primary"
+          aria-label="สร้างใบแจ้งหนี้"
+          onClick={handleCreateInvoiceClick}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            display: { xs: "flex", md: "none" }, // Show only on mobile
+          }}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       {/* Quotation Selection Dialog */}
       <QuotationSelectionDialog

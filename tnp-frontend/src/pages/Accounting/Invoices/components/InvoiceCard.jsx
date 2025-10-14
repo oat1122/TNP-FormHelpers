@@ -93,6 +93,18 @@ const InvoiceCard = ({
   const [taxDownloadAnchorEl, setTaxDownloadAnchorEl] = useState(null);
   const [receiptDownloadAnchorEl, setReceiptDownloadAnchorEl] = useState(null);
 
+  // Get user data for permission checks
+  const userData = React.useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("userData") || "{}");
+    } catch {
+      return {};
+    }
+  }, []);
+  const isAdmin = userData.user_id === 1;
+  const isAccount = userData.role === "account";
+  const canDownloadWithoutEvidence = isAdmin || isAccount;
+
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
   const evidenceHook = useInvoiceEvidence(invoice);
@@ -137,6 +149,17 @@ const InvoiceCard = ({
     handleCloseMenu,
     handleConfirmDownload,
   } = pdfHook;
+
+  // Check if user can download PDFs for current mode
+  // Admin/Account: always can download
+  // Others (e.g., Sale): need evidence uploaded first
+  const canDownloadForMode = React.useCallback((mode) => {
+    if (canDownloadWithoutEvidence) {
+      return true; // Admin/Account can always download
+    }
+    // For others, check if evidence exists for this mode
+    return hasEvidenceForMode(mode);
+  }, [canDownloadWithoutEvidence, hasEvidenceForMode]);
 
   // Calculate financial data
   const financials = calculateInvoiceFinancials(invoice);
@@ -920,7 +943,7 @@ const InvoiceCard = ({
             </>
           )}
           {/* Tax Invoice Download */}
-          {onDownloadPDF && (
+          {onDownloadPDF && canDownloadForMode(depositMode) && (
             <Button
               size="small"
               variant="outlined"
@@ -979,7 +1002,7 @@ const InvoiceCard = ({
           </Menu>
 
           {/* Receipt Download */}
-          {onDownloadPDF && (
+          {onDownloadPDF && canDownloadForMode(depositMode) && (
             <Button
               size="small"
               variant="outlined"

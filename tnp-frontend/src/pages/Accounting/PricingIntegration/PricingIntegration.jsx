@@ -94,7 +94,7 @@ const PricingIntegration = () => {
     pricingRequests.data.forEach((req) => {
       // ใช้ข้อมูลลูกค้าจาก pricing_customer หรือ customer (fallback)
       const customerData = req.pricing_customer || req.customer;
-      
+
       // ใช้ pre-computed customerId จาก API transform
       const customerId =
         req._customerId ||
@@ -185,10 +185,22 @@ const PricingIntegration = () => {
       dataLength: pricingRequests?.data?.length || 0,
       sampleRecord: pricingRequests?.data?.[0] || "No records",
       // เพิ่ม debug สำหรับ customer data
-      sampleCustomerData: pricingRequests?.data?.[0]?.pricing_customer || pricingRequests?.data?.[0]?.customer || "No customer data",
+      sampleCustomerData:
+        pricingRequests?.data?.[0]?.pricing_customer ||
+        pricingRequests?.data?.[0]?.customer ||
+        "No customer data",
       groupedRequests: groupedPricingRequests.slice(0, 2), // แสดง 2 records แรกของ grouped data
     });
-  }, [isLoading, isFetching, error, pricingRequests, currentPage, itemsPerPage, totalCustomers, groupedPricingRequests]);
+  }, [
+    isLoading,
+    isFetching,
+    error,
+    pricingRequests,
+    currentPage,
+    itemsPerPage,
+    totalCustomers,
+    groupedPricingRequests,
+  ]);
 
   const [createQuotationFromMultiplePricing] = useCreateQuotationFromMultiplePricingMutation();
 
@@ -611,30 +623,6 @@ const PricingIntegration = () => {
                 onRefresh={handleRefresh}
                 onResetFilters={handleResetFilters}
               />
-
-              {/* 🔐 Access Control Information */}
-              {(() => {
-                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-                const isAdmin = userData.user_id === 1;
-
-                if (!isAdmin) {
-                  return (
-                    <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }} icon={<span>🔐</span>}>
-                      <strong>การแบ่งสิทธิ์การเข้าถึง:</strong> คุณสามารถดูข้อมูล Pricing Request
-                      ได้เฉพาะลูกค้าที่คุณดูแลเท่านั้น
-                      {userData.username && (
-                        <Box
-                          component="span"
-                          sx={{ ml: 1, color: "info.dark", fontWeight: "medium" }}
-                        >
-                          (ผู้ใช้: {userData.username})
-                        </Box>
-                      )}
-                    </Alert>
-                  );
-                }
-                return null;
-              })()}
 
               {/* Content */}
               {error && (

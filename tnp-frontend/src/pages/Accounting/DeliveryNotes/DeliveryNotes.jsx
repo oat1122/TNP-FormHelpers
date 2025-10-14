@@ -45,6 +45,12 @@ const methodFilterOptions = [
 ];
 
 const DeliveryNotes = () => {
+  // Get user data for permission checks
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  const isAdmin = userData.user_id === 1;
+  const isAccount = userData.role === "account";
+  const canCreateDeliveryNote = isAdmin || isAccount;
+
   // Define status options for delivery notes
   const deliveryStatusOptions = [
     { value: "preparing", label: "กำลังเตรียม" },
@@ -52,7 +58,6 @@ const DeliveryNotes = () => {
     { value: "in_transit", label: "ระหว่างขนส่ง" },
     { value: "delivered", label: "ส่งแล้ว" },
     { value: "completed", label: "เสร็จสมบูรณ์" },
-    { value: "failed", label: "ส่งไม่สำเร็จ" },
   ];
 
   // Use the new filter hook
@@ -97,7 +102,7 @@ const DeliveryNotes = () => {
 
   const handleDownloadPDF = async ({ deliveryNoteId, headerTypes }) => {
     if (!deliveryNoteId) return;
-    
+
     try {
       // If multiple header types selected, use bundle endpoint
       if (headerTypes && headerTypes.length > 1) {
@@ -112,11 +117,11 @@ const DeliveryNotes = () => {
         if (data?.mode === "zip" && data?.zip?.url) {
           // Multiple files - download ZIP
           const zipUrl = normalizePath(data.zip.url);
-          const filename = data.zip.filename || 'delivery-notes-bundle.zip';
-          
+          const filename = data.zip.filename || "delivery-notes-bundle.zip";
+
           // Use downloadFile utility
           downloadFile(zipUrl, filename);
-          
+
           showSuccess(`ดาวน์โหลด PDF ${headerTypes.length} ไฟล์สำเร็จ (ZIP)`);
         } else if (data?.mode === "single" && data?.file?.url) {
           // Single file
@@ -134,7 +139,7 @@ const DeliveryNotes = () => {
 
         const pdfUrl =
           response?.url || response?.data?.url || response?.pdf_url || response?.data?.pdf_url;
-        
+
         if (pdfUrl) {
           const normalized = normalizePath(pdfUrl);
           window.open(normalized, "_blank", "noopener");
@@ -150,14 +155,14 @@ const DeliveryNotes = () => {
         );
       }
     } catch (err) {
-      console.error('Download PDF error:', err);
+      console.error("Download PDF error:", err);
       showError(err?.data?.message || "ไม่สามารถดาวน์โหลด PDF ได้");
     }
   };
 
   const handlePreviewPDF = ({ deliveryNoteId, headerType }) => {
     if (!deliveryNoteId) return;
-    
+
     const headerParam = headerType ? `?document_header_type=${encodeURIComponent(headerType)}` : "";
     const previewUrl = `${apiConfig.baseUrl}/delivery-notes/${deliveryNoteId}/pdf/stream${headerParam}`;
     window.open(previewUrl, "_blank", "noopener");
@@ -238,9 +243,11 @@ const DeliveryNotes = () => {
             <Chip label={`${total} records`} size="small" color="primary" variant="outlined" />
           </Stack>
 
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
-            New delivery note
-          </Button>
+          {canCreateDeliveryNote && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
+              New delivery note
+            </Button>
+          )}
         </Box>
 
         {/* AdvancedFilter Component */}
@@ -294,19 +301,21 @@ const DeliveryNotes = () => {
         )}
       </Container>
 
-      <Fab
-        color="primary"
-        aria-label="create-delivery-note"
-        onClick={handleOpenCreate}
-        sx={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          display: { xs: "flex", md: "none" },
-        }}
-      >
-        <AddIcon />
-      </Fab>
+      {canCreateDeliveryNote && (
+        <Fab
+          color="primary"
+          aria-label="create-delivery-note"
+          onClick={handleOpenCreate}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            display: { xs: "flex", md: "none" },
+          }}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       <DeliveryNoteSourceSelectionDialog
         open={selectionDialogOpen}

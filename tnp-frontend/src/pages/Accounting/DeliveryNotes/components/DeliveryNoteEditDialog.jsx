@@ -104,7 +104,7 @@ function useGroupedNoteItems(note) {
 }
 
 // Editable table similar to create dialog (local-only edit for now)
-function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
+function NoteItemsTable({ groups, setGroups, invoiceNumber, canEdit = true }) {
   const [editingGroup, setEditingGroup] = React.useState(null);
   const [editingRow, setEditingRow] = React.useState(null);
 
@@ -259,11 +259,13 @@ function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
                   <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                     {group.name}
                   </Typography>
-                  <Tooltip title="แก้ไขข้อมูลกลุ่ม">
-                    <IconButton size="small" onClick={() => setEditingGroup(groupIndex)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  {canEdit && (
+                    <Tooltip title="แก้ไขข้อมูลกลุ่ม">
+                      <IconButton size="small" onClick={() => setEditingGroup(groupIndex)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
                   {group.pattern && (
@@ -383,7 +385,7 @@ function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
                           </IconButton>
                         </Tooltip>
                       </Stack>
-                    ) : (
+                    ) : canEdit ? (
                       <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Tooltip title="แก้ไข">
                           <IconButton
@@ -403,26 +405,32 @@ function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
                           </IconButton>
                         </Tooltip>
                       </Stack>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">
+                        -
+                      </Typography>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  align="center"
-                  sx={{ py: 2, borderTop: "2px dashed", borderColor: "divider" }}
-                >
-                  <Button
-                    size="medium"
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleAddRow(groupIndex)}
+              {canEdit && (
+                <TableRow>
+                  <TableCell
+                    colSpan={3}
+                    align="center"
+                    sx={{ py: 2, borderTop: "2px dashed", borderColor: "divider" }}
                   >
-                    เพิ่มไซส์ใหม่
-                  </Button>
-                </TableCell>
-              </TableRow>
+                    <Button
+                      size="medium"
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAddRow(groupIndex)}
+                    >
+                      เพิ่มไซส์ใหม่
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </Box>
@@ -441,6 +449,12 @@ function NoteItemsTable({ groups, setGroups, invoiceNumber }) {
 }
 
 const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) => {
+  // Get user data for permission checks
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  const isAdmin = userData.user_id === 1;
+  const isAccount = userData.role === "account";
+  const canEdit = isAdmin || isAccount;
+
   const { data: noteResp, isLoading } = useGetDeliveryNoteQuery(deliveryNoteId, {
     skip: !open || !deliveryNoteId,
   });
@@ -591,13 +605,15 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                   >
                     <FormControlLabel
                       value="master"
-                      control={<Radio />}
+                      control={<Radio disabled={!canEdit} />}
                       label="ใช้ข้อมูลจากฐานข้อมูลลูกค้า (master_customers)"
+                      disabled={!canEdit}
                     />
                     <FormControlLabel
                       value="delivery"
-                      control={<Radio />}
+                      control={<Radio disabled={!canEdit} />}
                       label="แก้ไขข้อมูลเฉพาะใบส่งของนี้"
+                      disabled={!canEdit}
                     />
                   </RadioGroup>
                   <Typography
@@ -700,6 +716,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         onChange={handleChange("customer_company")}
                         fullWidth
                         size="small"
+                        disabled={!canEdit}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -709,6 +726,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         onChange={handleChange("customer_tax_id")}
                         fullWidth
                         size="small"
+                        disabled={!canEdit}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -718,6 +736,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         onChange={handleChange("customer_tel_1")}
                         fullWidth
                         size="small"
+                        disabled={!canEdit}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -729,6 +748,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         multiline
                         minRows={2}
                         size="small"
+                        disabled={!canEdit}
                       />
                     </Grid>
                   </Grid>
@@ -762,7 +782,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                         onChange={handleChange("sender_company_id")}
                         fullWidth
                         size="small"
-                        disabled={companiesLoading}
+                        disabled={companiesLoading || !canEdit}
                         helperText="เลือกบริษัทที่ทำการส่งของ"
                       >
                         <MenuItem value="">
@@ -845,6 +865,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                   groups={groups}
                   setGroups={setGroups}
                   invoiceNumber={invoiceNumber}
+                  canEdit={canEdit}
                 />
               </Box>
             </Section>
@@ -867,16 +888,18 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
         <Button onClick={onClose} disabled={saving}>
-          ยกเลิก
+          {canEdit ? "ยกเลิก" : "ปิด"}
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          disabled={saving || (note && note.status !== "preparing")}
-          sx={{ bgcolor: tokens.primary, "&:hover": { bgcolor: "#7A0E0E" } }}
-        >
-          {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={saving || (note && note.status !== "preparing")}
+            sx={{ bgcolor: tokens.primary, "&:hover": { bgcolor: "#7A0E0E" } }}
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

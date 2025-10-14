@@ -562,7 +562,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                 <ImageUploadGrid
                                     title="รูปภาพตัวอย่าง"
                                     images={sampleImages}
-                                    disabled={imageManager.isUploadingSamples}
+                                    disabled={imageManager.isUploadingSamples || !canEditQuotation}
                                     onUpload={imageManager.handleUploadSamples}
                                     helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
                                 />
@@ -596,15 +596,17 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                                         type="radio"
                                                         name="selectedSampleForPdf"
                                                         checked={checked}
+                                                        disabled={!canEditQuotation}
                                                         onClick={(e) => {
                                                             // Allow deselect by clicking the selected radio again
-                                                            if (checked) {
+                                                            if (checked && canEditQuotation) {
                                                                 e.preventDefault();
                                                                 imageManager.setSelectedSampleForPdfLocal("");
                                                                 imageManager.scheduleSyncSelectedForPdf("");
                                                             }
                                                         }}
                                                         onChange={() => {
+                                                            if (!canEditQuotation) return;
                                                             // Optimistic local update for instant feedback
                                                             imageManager.setSelectedSampleForPdfLocal(value);
                                                             imageManager.scheduleSyncSelectedForPdf(value);

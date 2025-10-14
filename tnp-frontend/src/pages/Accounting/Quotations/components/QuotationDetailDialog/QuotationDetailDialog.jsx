@@ -65,6 +65,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
   const canEditQuotation = ["admin", "account"].includes(userData?.role);
   const canUploadSignatures = ["admin", "sale"].includes(userData?.role);
+  const canUploadSampleImages = ["admin", "account", "sale"].includes(userData?.role);
 
   // 1. Main logic hook for data, state, and save handlers
   const dialogLogic = useQuotationDialogLogic(quotationId, open);
@@ -573,7 +574,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                 <ImageUploadGrid
                   title="รูปภาพตัวอย่าง"
                   images={sampleImages}
-                  disabled={imageManager.isUploadingSamples || !canEditQuotation}
+                  disabled={imageManager.isUploadingSamples || !canUploadSampleImages}
                   onUpload={imageManager.handleUploadSamples}
                   helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
                 />
@@ -607,17 +608,17 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                             type="radio"
                             name="selectedSampleForPdf"
                             checked={checked}
-                            disabled={!canEditQuotation}
+                            disabled={!canUploadSampleImages}
                             onClick={(e) => {
                               // Allow deselect by clicking the selected radio again
-                              if (checked && canEditQuotation) {
+                              if (checked && canUploadSampleImages) {
                                 e.preventDefault();
                                 imageManager.setSelectedSampleForPdfLocal("");
                                 imageManager.scheduleSyncSelectedForPdf("");
                               }
                             }}
                             onChange={() => {
-                              if (!canEditQuotation) return;
+                              if (!canUploadSampleImages) return;
                               // Optimistic local update for instant feedback
                               imageManager.setSelectedSampleForPdfLocal(value);
                               imageManager.scheduleSyncSelectedForPdf(value);

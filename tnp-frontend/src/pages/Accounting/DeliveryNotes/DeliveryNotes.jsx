@@ -11,7 +11,6 @@ import {
   LoadingState,
   EmptyState,
 } from "../PricingIntegration/components";
-import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
 import DeliveryNoteCard from "./components/DeliveryNoteCard";
 import DeliveryNoteCreateDialog from "./components/DeliveryNoteCreateDialog";
@@ -27,23 +26,6 @@ import { apiConfig } from "../../../api/apiConfig";
 import { showError, showSuccess } from "../utils/accountingToast";
 import { downloadFile, normalizePath } from "./utils/downloadUtils";
 
-const statusFilterOptions = [
-  { value: "", label: "All statuses" },
-  { value: "preparing", label: "Preparing" },
-  { value: "shipping", label: "Shipping" },
-  { value: "in_transit", label: "In transit" },
-  { value: "delivered", label: "Delivered" },
-  { value: "completed", label: "Completed" },
-  { value: "failed", label: "Failed" },
-];
-
-const methodFilterOptions = [
-  { value: "", label: "All methods" },
-  { value: "courier", label: "Courier" },
-  { value: "self_delivery", label: "Self delivery" },
-  { value: "customer_pickup", label: "Customer pickup" },
-];
-
 const DeliveryNotes = () => {
   // Get user data for permission checks
   const userData = JSON.parse(localStorage.getItem("userData") || "{}");
@@ -51,19 +33,6 @@ const DeliveryNotes = () => {
   const isAccount = userData.role === "account";
   const canCreateDeliveryNote = isAdmin || isAccount;
 
-  // Define status options for delivery notes
-  const deliveryStatusOptions = [
-    { value: "preparing", label: "กำลังเตรียม" },
-    { value: "shipping", label: "จัดส่ง" },
-    { value: "in_transit", label: "ระหว่างขนส่ง" },
-    { value: "delivered", label: "ส่งแล้ว" },
-    { value: "completed", label: "เสร็จสมบูรณ์" },
-  ];
-
-  // Use the new filter hook
-  const { filters, handlers, getQueryArgs } = useAdvancedFilter();
-
-  const [methodFilter, setMethodFilter] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
 
@@ -77,8 +46,6 @@ const DeliveryNotes = () => {
 
   const { data, error, isLoading, isFetching, refetch } = useGetDeliveryNotesQuery(
     {
-      ...getQueryArgs(),
-      delivery_method: methodFilter || undefined,
       page,
       per_page: perPage,
     },
@@ -249,17 +216,6 @@ const DeliveryNotes = () => {
             </Button>
           )}
         </Box>
-
-        {/* AdvancedFilter Component */}
-        <AdvancedFilter
-          filters={filters}
-          handlers={handlers}
-          onRefresh={() => {
-            setPage(1);
-            refetch();
-          }}
-          statusOptions={deliveryStatusOptions}
-        />
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

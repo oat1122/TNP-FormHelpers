@@ -153,13 +153,16 @@ const InvoiceCard = ({
   // Check if user can download PDFs for current mode
   // Admin/Account: always can download
   // Others (e.g., Sale): need evidence uploaded first
-  const canDownloadForMode = React.useCallback((mode) => {
-    if (canDownloadWithoutEvidence) {
-      return true; // Admin/Account can always download
-    }
-    // For others, check if evidence exists for this mode
-    return hasEvidenceForMode(mode);
-  }, [canDownloadWithoutEvidence, hasEvidenceForMode]);
+  const canDownloadForMode = React.useCallback(
+    (mode) => {
+      if (canDownloadWithoutEvidence) {
+        return true; // Admin/Account can always download
+      }
+      // For others, check if evidence exists for this mode
+      return hasEvidenceForMode(mode);
+    },
+    [canDownloadWithoutEvidence, hasEvidenceForMode]
+  );
 
   // Calculate financial data
   const financials = calculateInvoiceFinancials(invoice);

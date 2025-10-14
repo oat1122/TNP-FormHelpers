@@ -49,13 +49,20 @@ class QuotationPdfMasterService extends BasePdfMasterService
             'quotation', 'customer', 'isFinal'
         ))->render();
 
-        // Footer
+        // 1. Render a normal footer for all pages
         $footerHtml = View::make('accounting.pdf.quotation.partials.quotation-footer', compact(
             'quotation', 'customer', 'isFinal'
         ))->render();
 
+        // 2. Render the special last page footer (with signature)
+        $lastPageFooterHtml = View::make('accounting.pdf.quotation.partials.quotation-footer-lastpage', compact(
+            'quotation', 'customer', 'isFinal'
+        ))->render();
+
+        // 3. Set the footers in Mpdf
         $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml);
+        $mpdf->SetHTMLFooter($footerHtml); // Default footer for pages 1, 2, ...
+        $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L'); // Special footer for the LAST page ('L' flag)
 
         // Watermark for non-final quotations
         if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {

@@ -191,19 +191,41 @@ table {
 
 /* Override widths for the 4-column items table to sum to 100% */
 .items-table.slim col.w-desc {
-    width: 50%;  /* รายละเอียด - ลดลงให้เหลือพื้นที่สำหรับคอลัมน์อื่น */
+    width: 50%; /* รายละเอียด - ลดลงให้เหลือพื้นที่สำหรับคอลัมน์อื่น */
 }
 
 .items-table.slim col.w-unit-price {
-    width: 18%;  /* ราคาต่อหน่วย */
+    width: 18%; /* ราคาต่อหน่วย */
 }
 
 .items-table.slim col.w-qty {
-    width: 15%;  /* จำนวน */
+    width: 15%; /* จำนวน */
 }
 
 .items-table.slim col.w-total {
-    width: 17%;  /* ยอดรวม */
+    width: 17%; /* ยอดรวม */
+}
+
+/* ปรับหัวตาราง items-table ให้อยู่กลาง */
+.items-table.slim thead th {
+    font-weight: bold;
+    text-align: center; /* เปลี่ยนให้ทุกหัวคอลัมน์อยู่กลาง */
+    /* font-size: 9pt; */
+    background: #900f0f !important;
+    color: #fff !important;
+    padding: 10px 18px; /* เพิ่ม padding บน/ล่าง ซ้าย/ขวา */
+    vertical-align: middle;
+}
+
+/* กรณีต้องการให้คอลัมน์อื่นๆ ชิดขวา (ยกเว้นรายละเอียด) */
+.items-table.slim thead th:not(:first-child) {
+    text-align: right; /* คอลัมน์ตัวเลขให้ชิดขวา */
+}
+
+/* คอลัมน์รายละเอียดอยู่กลาง */
+.items-table.slim thead th.desc-head,
+.items-table.slim thead th:first-child {
+    text-align: center !important;
 }
 
 /* ===== Summary and Notes ===== */
@@ -314,7 +336,10 @@ table {
     font-weight: normal !important;
 }
 
-.summary-table tr:not(.total-row):not(.reading-row) .summary-amount .amount-main {
+.summary-table
+    tr:not(.total-row):not(.reading-row)
+    .summary-amount
+    .amount-main {
     font-size: 9pt;
     color: #333;
     font-weight: normal !important;

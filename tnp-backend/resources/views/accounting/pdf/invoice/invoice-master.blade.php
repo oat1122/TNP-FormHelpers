@@ -97,15 +97,16 @@
     @endphp
     
     @if(!empty($invoiceItems))
+      {{-- ตารางแบบ 2 คอลัมน์สำหรับ invoice-master --}}
       <table class="items-table slim table-numbers-sm invoice-items">
         <colgroup>
-          <col class="w-no">
-          <col class="w-desc">
-          <col class="w-total">
+          {{-- ปรับความกว้าง: รายละเอียด(78%) + ยอดรวม(22%) --}}
+          <col style="width: 78%;">  {{-- รายละเอียด --}}
+          <col style="width: 22%;">  {{-- จำนวนเงิน --}}
         </colgroup>
         <thead>
           <tr>
-            <th class="desc-head text-left">ลำดับ</th>
+            {{-- ลบ th ลำดับ --}}
             <th class="text-left">รายละเอียด</th>
             <th class="text-right">จำนวนเงิน</th>
           </tr>
@@ -113,8 +114,8 @@
         <tbody>
           @foreach($invoiceItems as $item)
             <tr>
-              <td class="num">{{ $no++ }}</td>
-              <td class="desc">{!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
+              {{-- ลบ td ลำดับ, เพิ่ม $no หน้า desc --}}
+              <td class="desc"><span class="item-no">{{ $no++ }}.</span> {!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
               <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
             </tr>
           @endforeach

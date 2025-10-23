@@ -1,593 +1,762 @@
 /* ===== Base ===== */
-body{
-  font-family:'thsarabun','DejaVu Sans',sans-serif;
-  font-size:11pt; /* ลดลงให้ดูกะทัดรัด */
-  line-height:1.35;
-  color:#333;
-  margin:0;
-  padding:20pt;
+body {
+    font-family: "thsarabun", "DejaVu Sans", sans-serif;
+    font-size: 11pt; /* ลดลงให้ดูกะทัดรัด */
+    line-height: 1.35;
+    color: #333;
+    margin: 0;
+    padding: 20pt;
 }
 
-h1{font-size:20pt;font-weight:bold;margin:0 0 8pt;color:#2c3e50}
-h2{font-size:16pt;font-weight:bold;margin:12pt 0 6pt;color:#34495e}
-h3{font-size:13pt;font-weight:bold;margin:10pt 0 6pt;color:#34495e}
+h1 {
+    font-size: 20pt;
+    font-weight: bold;
+    margin: 0 0 8pt;
+    color: #2c3e50;
+}
+h2 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 12pt 0 6pt;
+    color: #34495e;
+}
+h3 {
+    font-size: 13pt;
+    font-weight: bold;
+    margin: 10pt 0 6pt;
+    color: #34495e;
+}
 
 /* ===== Reset any potential Bootstrap conflicts ===== */
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 .clearfix:after {
-  content: "";
-  display: table;
-  clear: both;
+    content: "";
+    display: table;
+    clear: both;
 }
 
 /* ===== Info Box ===== */
-.info-box{
-  background:#f8f9fa;
-  border:1px solid #e9ecef;
-  border-radius:6pt;
-  padding:12pt;
-  margin-bottom:15pt;
-  width:100%;
+.info-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6pt;
+    padding: 12pt;
+    margin-bottom: 15pt;
+    width: 100%;
 }
 
 .info-box table {
-  width: 100%;
-  border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .info-box td {
-  padding: 4pt 8pt;
-  vertical-align: top;
+    padding: 4pt 8pt;
+    vertical-align: top;
 }
 
 /* ===== Tables ===== */
-table{
-  border-collapse:collapse;
-  width:100%;
-  margin-bottom: 15pt;
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 15pt;
 }
 
 /* Items table */
-.items-table th,.items-table td{
-  padding:6pt 8pt;
-  border: 1px solid #dee2e6;
+.items-table th,
+.items-table td {
+    padding: 6pt 8pt;
+    border: 1px solid #dee2e6;
 }
 
-.items-table thead th{
-  border-bottom:2px solid #fca7a7;
-  background:#eef2f5;
-  text-align:center;
-  font-weight: bold;
+.items-table thead th {
+    border-bottom: 2px solid #fca7a7;
+    background: #eef2f5;
+    text-align: center;
+    font-weight: bold;
 }
 
-.items-table .num{width:7%;text-align:center}
-.items-table .desc{width:53%}
-.items-table .qty{width:14%;text-align:center}
-.items-table .price{width:13%;text-align:right}
-.items-table .amount{width:13%;text-align:right}
+.items-table .num {
+    width: 7%;
+    text-align: center;
+}
+.items-table .desc {
+    width: 53%;
+}
+.items-table .qty {
+    width: 14%;
+    text-align: center;
+}
+.items-table .price {
+    width: 13%;
+    text-align: right;
+}
+.items-table .amount {
+    width: 13%;
+    text-align: right;
+}
+
+/* เพิ่มช่องว่างระหว่างหัวคอลัมน์ */
+table thead th {
+    padding: 10px 18px; /* ปรับเป็นค่าที่ต้องการ (บน/ล่าง ซ้าย/ขวา) */
+    text-align: center; /* เปลี่ยนจาก left เป็น center */
+    vertical-align: middle;
+}
+
+/* ถ้าต้องการเว้นระยะเฉพาะระหว่าง 'รายละเอียด' กับคอลัมน์ถัดไป ให้ปรับ nth-child ตามตำแหน่งคอลัมน์ */
+table thead th:nth-child(3) {
+    /* เปลี่ยน 3 เป็น index ของคอลัมน์ 'จำนวน' ถ้าต่างกัน */
+    padding-left: 28px;
+}
 
 /* Group styling */
-.group-body{page-break-inside:avoid}
-.group-box{
-  page-break-inside:avoid;
-  border: 1px solid #e5edf5;
-  margin: 5pt 0;
+.group-body {
+    page-break-inside: avoid;
+}
+.group-box {
+    page-break-inside: avoid;
+    border: 1px solid #e5edf5;
+    margin: 5pt 0;
 }
 
-.group-inner{
-  width:100%;
-  border-collapse:collapse;
+.group-inner {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.group-inner td{
-  padding:6pt 8pt;
-  border-bottom: 1px solid #f0f0f0;
+.group-inner td {
+    padding: 6pt 8pt;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.group-inner .title{
-  font-weight:bold;
-  background:#fafbfc;
-  border-top:2px solid #dee5ed;
-  border-bottom:1px solid #e3e9ef;
+.group-inner .title {
+    font-weight: bold;
+    background: #fafbfc;
+    border-top: 2px solid #dee5ed;
+    border-bottom: 1px solid #e3e9ef;
 }
 
-.meta-light{color:#555555;font-weight:normal}
+.meta-light {
+    color: #555555;
+    font-weight: normal;
+}
 
 /* ===== Signature Section ===== */
-.signature-section{
-  margin-top:36pt;
-  page-break-inside:avoid;
-  width: 100%;
+.signature-section {
+    margin-top: 36pt;
+    page-break-inside: avoid;
+    width: 100%;
 }
 
 .signature-table {
-  width: 100%;
-  border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .signature-cell {
-  width: 50%;
-  text-align: center;
-  vertical-align: top;
-  padding: 12pt;
+    width: 50%;
+    text-align: center;
+    vertical-align: top;
+    padding: 12pt;
 }
 
-.signature-box{
-  width:200pt;
-  height:60pt;
-  border-bottom:1pt solid #333;
-  margin-bottom:8pt;
-  display:block;
-  margin-left:auto;
-  margin-right:auto;
+.signature-box {
+    width: 200pt;
+    height: 60pt;
+    border-bottom: 1pt solid #333;
+    margin-bottom: 8pt;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Fixed signature (drawn by mPDF at bottom) */
-.signature-fixed-wrapper { font-size:10pt; }
-.signature-table.fixed { width:100%; border-collapse:collapse; }
-.signature-table.fixed .signature-cell { padding:6pt 12pt; }
-.signature-table.fixed .signature-role { font-weight:600; margin-top:6pt; font-size:10.5pt; color:#2c3e50; line-height:1.35; }
-.signature-table.fixed .signature-name-placeholder { margin-top:8pt; font-size:9pt; color:#555; font-style:italic; line-height:1.4; }
-.signature-table.fixed .signature-date-line { margin-top:8pt; font-size:8.5pt; color:#444; letter-spacing:.5pt; line-height:1.4; }
-.signature-hint { margin-top:4pt; text-align:center; font-size:7.5pt; }
-.signature-box { position:relative; }
-.signature-box:after { content:""; position:absolute; left:0; right:0; bottom:-2pt; height:0; border-bottom:1pt solid #555; }
-.signature-cell { position:relative; }
-.signature-cell:not(:last-child) { border-right:none; }
-.signature-fixed-wrapper { border:none; border-radius:0; padding:10pt 6pt 6pt; background:transparent; }
+.signature-fixed-wrapper {
+    font-size: 10pt;
+}
+.signature-table.fixed {
+    width: 100%;
+    border-collapse: collapse;
+}
+.signature-table.fixed .signature-cell {
+    padding: 6pt 12pt;
+}
+.signature-table.fixed .signature-role {
+    font-weight: 600;
+    margin-top: 6pt;
+    font-size: 10.5pt;
+    color: #2c3e50;
+    line-height: 1.35;
+}
+.signature-table.fixed .signature-name-placeholder {
+    margin-top: 8pt;
+    font-size: 9pt;
+    color: #555;
+    font-style: italic;
+    line-height: 1.4;
+}
+.signature-table.fixed .signature-date-line {
+    margin-top: 8pt;
+    font-size: 8.5pt;
+    color: #444;
+    letter-spacing: 0.5pt;
+    line-height: 1.4;
+}
+.signature-hint {
+    margin-top: 4pt;
+    text-align: center;
+    font-size: 7.5pt;
+}
+.signature-box {
+    position: relative;
+}
+.signature-box:after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2pt;
+    height: 0;
+    border-bottom: 1pt solid #555;
+}
+.signature-cell {
+    position: relative;
+}
+.signature-cell:not(:last-child) {
+    border-right: none;
+}
+.signature-fixed-wrapper {
+    border: none;
+    border-radius: 0;
+    padding: 10pt 6pt 6pt;
+    background: transparent;
+}
 
 /* Inline signature variant (allow placement in remaining space of last page) */
-.signature-inline { 
-  page-break-inside: avoid; 
-  margin-top: 18pt; 
-  padding-top: 6pt; 
-  
+.signature-inline {
+    page-break-inside: avoid;
+    margin-top: 18pt;
+    padding-top: 6pt;
 }
 
 /* Reduce spacer so we don't create unnecessary blank area */
-body .signature-spacer { height: 6mm; }
+body .signature-spacer {
+    height: 6mm;
+}
 
 /* Spacer to reserve vertical space so body content doesn't collide with fixed signature */
-.signature-spacer { height:12mm; /* minimal reserve; bottom signature now absolute via SetY */ }
+.signature-spacer {
+    height: 12mm; /* minimal reserve; bottom signature now absolute via SetY */
+}
 
 /* ===== Utility Classes ===== */
-.text-right{text-align:right}
-.text-center{text-align:center}
-.text-muted{color:#6c757d}
-.mb-3{margin-bottom:12pt}
-.mb-4{margin-bottom:16pt}
-.mt-4{margin-top:16pt}
+.text-right {
+    text-align: right;
+}
+.text-center {
+    text-align: center;
+}
+.text-muted {
+    color: #6c757d;
+}
+.mb-3 {
+    margin-bottom: 12pt;
+}
+.mb-4 {
+    margin-bottom: 16pt;
+}
+.mt-4 {
+    margin-top: 16pt;
+}
 
 /* Prevent page breaks in critical sections */
-thead{display:table-header-group}
-tfoot{display:table-footer-group}
-tr{page-break-inside:avoid}
+thead {
+    display: table-header-group;
+}
+tfoot {
+    display: table-footer-group;
+}
+tr {
+    page-break-inside: avoid;
+}
 
 /* === ตารางแบบรูปที่ 2 (Minimal lines) === */
 .items-table.slim th,
 .items-table.slim td {
-  padding: 5pt 5pt;
-  border: none;                 /* ตัดกรอบเซลล์เดิม */
-  background: transparent;
-  vertical-align: top;
-  font-size: 10pt;              /* ลดขนาดตัวอักษร */
+    padding: 5pt 5pt;
+    border: none; /* ตัดกรอบเซลล์เดิม */
+    background: transparent;
+    vertical-align: top;
+    font-size: 10pt; /* ลดขนาดตัวอักษร */
 }
 
 .items-table.slim thead th {
-  font-weight: bold;
-  text-align: right;
-  /* border-bottom: 0.6pt solid #666;  เส้นคั่นหัวตารางแบบบาง */
-  font-size: 11pt;              /* หัวตารางใหญ่กว่าเนื้อหาเล็กน้อย */
-  background:#900F0F !important; /* Override to requested color */
-  color:#fff !important;        /* White text */
+    font-weight: bold;
+    text-align: center; /* เปลี่ยนจาก right เป็น center */
+    /* border-bottom: 0.6pt solid #666;  เส้นคั่นหัวตารางแบบบาง */
+    font-size: 11pt; /* หัวตารางใหญ่กว่าเนื้อหาเล็กน้อย */
+    background: #900f0f !important; /* Override to requested color */
+    color: #fff !important; /* White text */
+    padding-left: 8pt; /* เพิ่ม padding ซ้ายขวา */
+    padding-right: 8pt;
 }
-.items-table.slim thead th:first-child { text-align: left; }
+.items-table.slim thead th:first-child {
+    text-align: center;
+} /* คงไว้สำหรับเลขที่ */
 
-.items-table.slim .desc { text-align: left; }
-.items-table.slim .num  { text-align: right; white-space: nowrap; }
-.items-table.slim .muted{ color:#ffffff; }
+.items-table.slim .desc {
+    text-align: left;
+}
+.items-table.slim .num {
+    text-align: right;
+    white-space: nowrap;
+}
+.items-table.slim .muted {
+    color: #ffffff;
+}
 
 /* หัวข้อกลุ่ม (parent) */
 .items-table.slim .group-row td {
-  font-weight: bold;
-  padding-top: 8pt;
-  padding-bottom: 5pt;
-  border-bottom: 0.6pt solid #670000;  /* เส้นคั่นใต้หัวข้อ */
-  font-size: 11pt;               /* หัวข้อกลุ่มใหญ่กว่าข้อมูลเล็กน้อย */
-  background-color: #fcd4d4;    /* สีพื้นหลังอ่อนๆ */
+    font-weight: bold;
+    padding-top: 8pt;
+    padding-bottom: 5pt;
+    border-bottom: 0.6pt solid #670000; /* เส้นคั่นใต้หัวข้อ */
+    font-size: 11pt; /* หัวข้อกลุ่มใหญ่กว่าข้อมูลเล็กน้อย */
+    background-color: #fcd4d4; /* สีพื้นหลังอ่อนๆ */
 }
 
 /* แถวรายการย่อย (child) */
 .items-table.slim .item-row td {
-  padding-top: 6pt;
-  padding-bottom: 6pt;
-  border-bottom: 0.6pt solid #ddd;   /* เส้นคั่นใต้รายการ */
-  font-size: 10pt;               /* ข้อมูลรายการย่อย */
+    padding-top: 6pt;
+    padding-bottom: 6pt;
+    border-bottom: 0.6pt solid #ddd; /* เส้นคั่นใต้รายการ */
+    font-size: 10pt; /* ข้อมูลรายการย่อย */
 }
-.items-table.slim .desc.child { 
-  padding-left: 16pt;            /* เพิ่มการย่อหน้าให้มากขึ้น */
-  text-indent: 0;                /* ไม่ใช้ text-indent */
+.items-table.slim .desc.child {
+    padding-left: 16pt; /* เพิ่มการย่อหน้าให้มากขึ้น */
+    text-indent: 0; /* ไม่ใช้ text-indent */
 }
 
 /* กล่องข้อมูลลูกค้าแบบบล็อก */
-.customer-box{
-  border-radius:6pt;
-  padding:12pt;
-  margin-top:-6pt;        /* ยกกล่องขึ้นเล็กน้อย ลดช่องว่างหลัง header */
+.customer-box {
+    border-radius: 6pt;
+    padding: 12pt;
+    margin-top: -6pt; /* ยกกล่องขึ้นเล็กน้อย ลดช่องว่างหลัง header */
 }
-.customer-name{
-  font-weight:normal;
-  font-size:9pt;          /* ให้ตามหัวบริษัทใหม่ */
-  color:#2c3e50;
-  margin-bottom:2pt;
+.customer-name {
+    font-weight: normal;
+    font-size: 9pt; /* ให้ตามหัวบริษัทใหม่ */
+    color: #2c3e50;
+    margin-bottom: 2pt;
 }
-.customer-line{
-  font-size:8.5pt;           /* ให้ตาม company-addr */
-  color:#34495e;
-  margin:2pt 0;
-  line-height:1.34;
+.customer-line {
+    font-size: 8.5pt; /* ให้ตาม company-addr */
+    color: #34495e;
+    margin: 2pt 0;
+    line-height: 1.34;
 }
-.customer-line.muted{ color:#6c757d; }
+.customer-line.muted {
+    color: #6c757d;
+}
 
 /* === Compact overrides === */
 .table-numbers-sm td.num,
-.table-numbers-sm th.text-right { font-size:10pt !important; }
+.table-numbers-sm th.text-right {
+    font-size: 10pt !important;
+}
 
-.items-table.slim.table-numbers-sm td.desc { font-size:10.5pt; }
+.items-table.slim.table-numbers-sm td.desc {
+    font-size: 10.5pt;
+}
 
 /* No items box */
-.no-items-box { text-align:center; padding:20pt; border:1px solid #dee2e6; background:#f8f9fa; }
+.no-items-box {
+    text-align: center;
+    padding: 20pt;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
 
-/* Column width helpers for items table */
-col.w-desc { width:60%; }
-col.w-unit-price { width:15%; }
-col.w-qty { width:10%; }
-col.w-total { width:15%; }
+/* Column width helpers for items table - Adjusted */
+col.w-desc {
+    width: 58%;
+} /* ลดลงจาก 60% */
+col.w-unit-price {
+    width: 15%;
+} /* คงเดิม */
+col.w-qty {
+    width: 12%;
+} /* เพิ่มขึ้นจาก 10% */
+col.w-total {
+    width: 15%;
+} /* คงเดิม */
+/* ยอดรวม = 58 + 15 + 12 + 15 = 100% */
 
 /* Signature spacing utility */
-.mt-8 { margin-top:8pt !important; }
+.mt-8 {
+    margin-top: 8pt !important;
+}
 
 /* ===== สำหรับ mPDF - แก้ไขปัญหาตัวเลขตกและคำอ่านล้น ===== */
 
 /* === Layout: Summary & Notes (table variant) === */
-.summary-notes-wrapper { 
-  page-break-inside: auto; 
-  margin-top: 15pt; 
-  width: 100%;
+.summary-notes-wrapper {
+    page-break-inside: auto;
+    margin-top: 15pt;
+    width: 100%;
 }
 
-.summary-notes-table { 
-  width: 100%; 
-  border-collapse: separate; 
-  border-spacing: 8pt 0;
-  table-layout: fixed; /* บังคับให้ใช้ width ที่กำหนด */
+.summary-notes-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 8pt 0;
+    table-layout: fixed; /* บังคับให้ใช้ width ที่กำหนด */
 }
 
 /* Panels */
-.panel-box { 
-  vertical-align: top; 
-  padding: 6pt 4pt; 
-  border: none; 
-  background: transparent; 
-  overflow: hidden;
+.panel-box {
+    vertical-align: top;
+    padding: 6pt 4pt;
+    border: none;
+    background: transparent;
+    overflow: hidden;
 }
 
-.panel-notes { 
-  background: transparent; 
-  width: 42% !important;
+.panel-notes {
+    background: transparent;
+    width: 42% !important;
 }
 
 .panel-box:last-child {
-  width: 58% !important;
+    width: 58% !important;
 }
 
-.panel-title { 
-  font-size: 12pt; 
-  font-weight: 600; 
-  margin: 0 0 4pt; 
-  color: #2f3d48; 
+.panel-title {
+    font-size: 12pt;
+    font-weight: 600;
+    margin: 0 0 4pt;
+    color: #2f3d48;
 }
 
-.panel-title--sm { 
-  font-size: 11pt; 
+.panel-title--sm {
+    font-size: 11pt;
 }
 
-.panel-title.center { 
-  text-align: center; 
+.panel-title.center {
+    text-align: center;
 }
 
 /* ===== Sample Images ===== */
 .sample-images-section {
-  page-break-inside: avoid;
-  margin-top: 12pt;
+    page-break-inside: avoid;
+    margin-top: 12pt;
 }
 .sample-images-title {
-  font-weight: bold;
-  margin-bottom: 6pt;
-  color: #2f3d48;
+    font-weight: bold;
+    margin-bottom: 6pt;
+    color: #2f3d48;
 }
-.sample-images-grid { width: 100%; }
+.sample-images-grid {
+    width: 100%;
+}
 .sample-images-grid .img-box {
-  display: inline-block;
-  width: 32%;
-  margin: 0 1% 8pt 0;
-  vertical-align: top;
+    display: inline-block;
+    width: 32%;
+    margin: 0 1% 8pt 0;
+    vertical-align: top;
 }
 .sample-images-grid .img-box img {
-  display: block;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
 }
 .sample-images-grid .img-caption {
-  font-size: 8.5pt;
-  color: #666;
-  text-align: center;
-  margin-top: 4pt;
+    font-size: 8.5pt;
+    color: #666;
+    text-align: center;
+    margin-top: 4pt;
 }
 
-.panel-content { 
-  font-size: 9.5pt; 
-  line-height: 1.35; 
-  color: #555; 
+.panel-content {
+    font-size: 9.5pt;
+    line-height: 1.35;
+    color: #555;
 }
 
 /* ===== Summary Table - แก้ไขหลักสำหรับ mPDF ===== */
 .summary-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10pt;
-  table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    table-layout: fixed;
 }
 
 .summary-table td {
-  padding: 5pt 6pt;
-  border-bottom: 1px solid #dee2e6;
-  vertical-align: top;
-  word-wrap: break-word;
+    padding: 5pt 6pt;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: top;
+    word-wrap: break-word;
 }
 
 /* ปรับสัดส่วน column ใหม่สำหรับ mPDF */
 .summary-table .summary-label {
-  text-align: left;
-  width: 42% !important;
-  font-size: 10pt;
+    text-align: left;
+    width: 42% !important;
+    font-size: 10pt;
 }
 
 .summary-table .summary-amount {
-  text-align: right;
-  width: 58% !important;
-  font-weight: bold;
-  font-size: 10pt;
-  padding-left: 8pt;
+    text-align: right;
+    width: 58% !important;
+    font-weight: bold;
+    font-size: 10pt;
+    padding-left: 8pt;
 }
 
 /* แก้ไขการแสดงผลตัวเลขสำหรับ mPDF */
-.summary-amount .amount-main { 
-  white-space: nowrap !important;
-  display: block;
-  font-size: 10pt;
-  overflow: hidden;
+.summary-amount .amount-main {
+    white-space: nowrap !important;
+    display: block;
+    font-size: 10pt;
+    overflow: hidden;
 }
 
 /* แก้ไขคำอ่านภาษาไทยสำหรับ mPDF */
 .reading {
-  color: #6c757d;
-  font-size: 8pt !important;
-  margin-top: 2pt;
-  font-style: italic;
-  display: block;
-  line-height: 1.1 !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  max-width: 100%;
-  hyphens: auto;
+    color: #6c757d;
+    font-size: 8pt !important;
+    margin-top: 2pt;
+    font-style: italic;
+    display: block;
+    line-height: 1.1 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100%;
+    hyphens: auto;
 }
 
 /* Financial row styling */
 .summary-table .discount-row {
-  color: #d32f2f; /* Red for discounts */
+    color: #d32f2f; /* Red for discounts */
 }
 
 .summary-table .withholding-tax-row {
-  color: #f57c00; /* Orange for withholding tax */
+    color: #f57c00; /* Orange for withholding tax */
 }
 
 .summary-table .deposit-row {
-  color: #388e3c; /* Green for deposits */
-  font-style: italic;
+    color: #388e3c; /* Green for deposits */
+    font-style: italic;
 }
 
-
-
 .summary-table .summary-amount.deposit {
-  color: #388e3c;
+    color: #388e3c;
 }
 
 /* Total row styling */
-.summary-table .total-row { 
-  background: transparent; 
-  border-top: 1.5pt solid #d0d7dd;
+.summary-table .total-row {
+    background: transparent;
+    border-top: 1.5pt solid #d0d7dd;
 }
 
-.summary-table .total-row td { 
-  font-weight: 600; 
-  color: #000000; 
-  padding: 8pt 6pt;
-  font-size: 10.5pt;
+.summary-table .total-row td {
+    font-weight: 600;
+    color: #000000;
+    padding: 8pt 6pt;
+    font-size: 10.5pt;
 }
 
-.summary-table .total-row .summary-amount { 
-  font-size: 10.5pt;
+.summary-table .total-row .summary-amount {
+    font-size: 10.5pt;
 }
 
 .summary-table .total-row .reading {
-  font-size: 7.5pt !important;
-  color: #000000;
-  opacity: 0.8;
-  line-height: 1.0 !important;
+    font-size: 7.5pt !important;
+    color: #000000;
+    opacity: 0.8;
+    line-height: 1 !important;
 }
 
 /* ===== เพิ่ม CSS สำหรับแถวคำอ่านที่แยกออกมา ===== */
 /* แถวคำอ่าน - แยกออกจากตัวเลข */
-.summary-table .reading-row { background: transparent; border-top: none; }
-.summary-table .reading-row td { padding: 4pt 6pt 8pt 6pt; border-bottom: none; }
+.summary-table .reading-row {
+    background: transparent;
+    border-top: none;
+}
+.summary-table .reading-row td {
+    padding: 4pt 6pt 8pt 6pt;
+    border-bottom: none;
+}
 
 /* คำอ่านแบบเต็มความกว้าง */
 .reading-full-width {
-  color: #000000;
-  font-size: 8pt !important;
-  font-style: italic;
-  text-align: center;
-  line-height: 1.2;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+    color: #000000;
+    font-size: 8pt !important;
+    font-style: italic;
+    text-align: center;
+    line-height: 1.2;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* สำหรับ compact mode */
-.summary-table.summary-compact .reading-full-width { font-size: 7.5pt !important; }
+.summary-table.summary-compact .reading-full-width {
+    font-size: 7.5pt !important;
+}
 
 /* กรณีบังคับบรรทัดเดียว */
-.reading-full-width.single-line { white-space: nowrap; overflow: visible; text-overflow: unset; }
+.reading-full-width.single-line {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+}
 
 /* ลดระยะห่างด้านล่างของแถวยอดรวมให้ชิดกับคำอ่าน */
-.summary-table .total-row td { padding-bottom: 6pt; }
+.summary-table .total-row td {
+    padding-bottom: 6pt;
+}
 
 @media print {
-  .reading-full-width { font-size: 7pt !important; line-height: 1.1; }
-  .summary-table.summary-compact .reading-full-width { font-size: 6.5pt !important; }
+    .reading-full-width {
+        font-size: 7pt !important;
+        line-height: 1.1;
+    }
+    .summary-table.summary-compact .reading-full-width {
+        font-size: 6.5pt !important;
+    }
 }
 
 /* Compact mode */
-.summary-table.summary-compact { 
-  font-size: 9pt; 
+.summary-table.summary-compact {
+    font-size: 9pt;
 }
 
 .summary-table.summary-compact td,
-.summary-table.summary-compact th { 
-  font-size: 9pt !important; 
-  padding: 4pt 5pt;
+.summary-table.summary-compact th {
+    font-size: 9pt !important;
+    padding: 4pt 5pt;
 }
 
 .summary-table.summary-compact .total-row .summary-label,
-.summary-table.summary-compact .total-row .summary-amount { 
-  font-size: 9.5pt !important; 
+.summary-table.summary-compact .total-row .summary-amount {
+    font-size: 9.5pt !important;
 }
 
 .summary-table.summary-compact .reading {
-  font-size: 7pt !important;
+    font-size: 7pt !important;
 }
 
 /* เพิ่มการจัดการสำหรับข้อความยาวในภาษาไทย */
 .thai-text-break {
-  word-break: break-all;
-  overflow-wrap: anywhere;
+    word-break: break-all;
+    overflow-wrap: anywhere;
 }
 
 /* กำหนดความกว้างสูงสุดสำหรับคำอ่าน */
 .reading-container {
-  max-width: 100%;
-  overflow: hidden;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 /* ป้องกันการล้นของตัวเลขจำนวนเงิน */
 .amount-container {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* สำหรับจำนวนเงินที่มีหลายหลัก */
 .large-amount {
-  font-size: 9pt !important;
+    font-size: 9pt !important;
 }
 
 /* ===== Sample Images Section ===== */
 .sample-images-section {
-  margin: 10pt 0 14pt 0;
-  page-break-inside: avoid;
+    margin: 10pt 0 14pt 0;
+    page-break-inside: avoid;
 }
 .sample-images-title {
-  font-weight: bold;
-  margin: 0 0 6pt 0;
-  color: #34495e;
+    font-weight: bold;
+    margin: 0 0 6pt 0;
+    color: #34495e;
 }
 .sample-images-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6pt;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6pt;
 }
 .sample-images-grid .img-box {
-  width: 31%;
-  border: 1px solid #e5edf5;
-  background: #fafbfc;
-  padding: 4pt;
-  border-radius: 4pt;
+    width: 31%;
+    border: 1px solid #e5edf5;
+    background: #fafbfc;
+    padding: 4pt;
+    border-radius: 4pt;
 }
 .sample-images-grid .img-box img {
-  width: 100%;
-  height: auto;
+    width: 100%;
+    height: auto;
 }
 .sample-images-grid .img-caption {
-  font-size: 8pt;
-  color: #666;
-  margin-top: 2pt;
-  word-break: break-all;
+    font-size: 8pt;
+    color: #666;
+    margin-top: 2pt;
+    word-break: break-all;
 }
 
 /* แก้ไขเพิ่มเติมสำหรับ mPDF ที่อาจมีปัญหากับ table layout */
 .summary-notes-table td {
-  box-sizing: border-box;
-  overflow: hidden;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* Fallback สำหรับกรณีที่ข้อความยาวเกินไป */
 .text-ellipsis {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* เพิ่มกฎเฉพาะสำหรับ mPDF ที่มีปัญหากับ text overflow */
 @media print {
-  .summary-notes-table {
-    border-spacing: 6pt 0;
-  }
-  
-  .panel-notes {
-    width: 40% !important;
-  }
-  
-  .panel-box:last-child {
-    width: 60% !important;
-  }
-  
-  .summary-table .summary-label {
-    width: 40% !important;
-    font-size: 9.5pt;
-  }
-  
-  .summary-table .summary-amount {
-    width: 60% !important;
-    font-size: 9.5pt;
-  }
-  
-  .reading {
-    font-size: 7.5pt !important;
-    line-height: 1.0 !important;
-  }
-  
-  .summary-amount .amount-main {
-    font-size: 9.5pt;
-  }
+    .summary-notes-table {
+        border-spacing: 6pt 0;
+    }
+
+    .panel-notes {
+        width: 40% !important;
+    }
+
+    .panel-box:last-child {
+        width: 60% !important;
+    }
+
+    .summary-table .summary-label {
+        width: 40% !important;
+        font-size: 9.5pt;
+    }
+
+    .summary-table .summary-amount {
+        width: 60% !important;
+        font-size: 9.5pt;
+    }
+
+    .reading {
+        font-size: 7.5pt !important;
+        line-height: 1 !important;
+    }
+
+    .summary-amount .amount-main {
+        font-size: 9.5pt;
+    }
 }
 
 /* =======================================================================
@@ -597,51 +766,112 @@ col.w-total { width:15%; }
  * ======================================================================= */
 
 /* Base and Headings */
-body { font-size: 9.5pt; }
-h1 { font-size: 17pt; }
-h2 { font-size: 13pt; }
-h3 { font-size: 11pt; }
+body {
+    font-size: 9.5pt;
+}
+h1 {
+    font-size: 17pt;
+}
+h2 {
+    font-size: 13pt;
+}
+h3 {
+    font-size: 11pt;
+}
 
 /* Tables (items) */
-.items-table.slim td { font-size: 9pt; }
-.items-table.slim .group-row td { font-size: 10pt; }
-.items-table.slim .item-row td { font-size: 9pt; }
+.items-table.slim td {
+    font-size: 9pt;
+}
+.items-table.slim .group-row td {
+    font-size: 10pt;
+}
+.items-table.slim .item-row td {
+    font-size: 9pt;
+}
 .table-numbers-sm td.num,
-.table-numbers-sm th.text-right { font-size: 9pt !important; }
-.items-table.slim.table-numbers-sm td.desc { font-size: 9.5pt; }
+.table-numbers-sm th.text-right {
+    font-size: 9pt !important;
+}
+.items-table.slim.table-numbers-sm td.desc {
+    font-size: 9.5pt;
+}
 /* Reduce header cells a notch for compact look */
-.items-table.slim thead th { font-size: 10pt; }
+.items-table.slim thead th {
+    font-size: 10pt;
+}
 
 /* Customer block */
-.customer-name { font-size: 9pt; font-weight: normal; }
-.customer-line { font-size: 8pt; }
+.customer-name {
+    font-size: 9pt;
+    font-weight: normal;
+}
+.customer-line {
+    font-size: 8pt;
+}
 
 /* Panels */
-.panel-title { font-size: 10pt; }
-.panel-title--sm { font-size: 10pt; }
-.panel-content { font-size: 8.5pt; }
+.panel-title {
+    font-size: 10pt;
+}
+.panel-title--sm {
+    font-size: 10pt;
+}
+.panel-content {
+    font-size: 8.5pt;
+}
 
 /* Summary table */
-.summary-table { font-size: 9pt; }
-.summary-table .summary-label { font-size: 9pt; }
-.summary-table .summary-amount { font-size: 9pt; }
-.summary-amount .amount-main { font-size: 9pt; }
-.reading { font-size: 7.5pt !important; }
+.summary-table {
+    font-size: 9pt;
+}
+.summary-table .summary-label {
+    font-size: 9pt;
+}
+.summary-table .summary-amount {
+    font-size: 9pt;
+}
+.summary-amount .amount-main {
+    font-size: 9pt;
+}
+.reading {
+    font-size: 7.5pt !important;
+}
 
 /* Sample captions */
-.sample-images-grid .img-caption { font-size: 7.5pt; }
+.sample-images-grid .img-caption {
+    font-size: 7.5pt;
+}
 
 /* Fixed signature sizing tweaks */
-.signature-fixed-wrapper { font-size: 9.5pt; }
-.signature-table.fixed .signature-role { font-size: 10pt; }
-.signature-table.fixed .signature-name-placeholder { font-size: 8.5pt; }
-.signature-table.fixed .signature-date-line { font-size: 8pt; }
-.signature-hint { font-size: 7pt; }
+.signature-fixed-wrapper {
+    font-size: 9.5pt;
+}
+.signature-table.fixed .signature-role {
+    font-size: 10pt;
+}
+.signature-table.fixed .signature-name-placeholder {
+    font-size: 8.5pt;
+}
+.signature-table.fixed .signature-date-line {
+    font-size: 8pt;
+}
+.signature-hint {
+    font-size: 7pt;
+}
 
 /* Print overrides for compact scale */
 @media print {
-  .summary-table .summary-label { font-size: 8.8pt; }
-  .summary-table .summary-amount { font-size: 8.8pt; }
-  .summary-amount .amount-main { font-size: 8.8pt; }
-  .reading { font-size: 7pt !important; }
+    .summary-table .summary-label {
+        font-size: 8.8pt;
+    }
+    .summary-table .summary-amount {
+        font-size: 8.8pt;
+    }
+    .summary-amount .amount-main {
+        font-size: 8.8pt;
+    }
+    .reading {
+        font-size: 7pt !important;
+    }
 }

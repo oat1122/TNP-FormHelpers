@@ -79,16 +79,18 @@
 
       <table class="items-table slim table-numbers-sm">
         <colgroup>
-          <col class="w-desc">  {{-- รายละเอียด --}}
-          <col class="w-unit-price">  {{-- Unit Price --}}
-          <col class="w-qty">  {{-- Qnt --}}
-          <col class="w-total">  {{-- Total --}}
+          {{-- ปรับความกว้างคอลัมน์ --}}
+          <col class="w-desc">       {{-- รายละเอียด --}}
+          <col class="w-qty">        {{-- จำนวน --}}
+          <col class="w-unit-price"> {{-- ราคาต่อหน่วย --}}
+          <col class="w-total">      {{-- ยอดรวม --}}
         </colgroup>
         <thead>
           <tr>
+            {{-- สลับหัวตาราง --}}
             <th class="desc-head text-center">รายละเอียด</th>
-            <th class="text-right">ราคาต่อหน่วย</th>
             <th class="text-right">จำนวน</th>
+            <th class="text-right">ราคาต่อหน่วย</th>
             <th class="text-right">ยอดรวม</th>
           </tr>
         </thead>
@@ -111,8 +113,9 @@
                     <br/><small class="item-description">{{ $it['item_description'] }}</small>
                   @endif
                 </td>
-                <td class="num">{{ number_format($it['price'], 2) }}</td>
+                {{-- สลับคอลัมน์ จำนวน และ ราคาต่อหน่วย --}}
                 <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
+                <td class="num">{{ number_format($it['price'], 2) }}</td>
                 <td class="num">
                   @if($it['discount_amount'] > 0)
                     <div>{{ number_format($it['amount'], 2) }}</div>

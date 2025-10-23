@@ -75,6 +75,7 @@ class TaxInvoiceFullPdfMasterService extends InvoicePdfMasterService
 
     /**
      * Override buildViewData เพื่อเตรียมข้อมูลให้เข้ากับ quotation-master.blade.php
+     * สำหรับใบกำกับภาษี (100%) ไม่ต้องแสดงรูปภาพตัวอย่าง
      */
     protected function buildViewData(object $invoiceModel, array $options = []): array
     {
@@ -94,9 +95,13 @@ class TaxInvoiceFullPdfMasterService extends InvoicePdfMasterService
 
         $isFinal = in_array($invoice->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
+        // **** ใช้ Clone ของ invoice และเคลียร์ sample_images ****
+        $invoiceForView = clone $invoice;
+        $invoiceForView->sample_images = []; // ไม่แสดงรูปภาพตัวอย่างในเอกสารทางการ
+
         // **** Key หลักของ Array ต้องตรงกับที่ quotation-master.blade.php คาดหวัง ****
         return [
-            'quotation' => $invoice,
+            'quotation' => $invoiceForView, // ใช้ตัวที่เคลียร์ sample_images แล้ว
             'invoice' => $invoice,
             'customer' => $customer,
             'groups' => $groups,

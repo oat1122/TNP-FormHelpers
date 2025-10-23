@@ -1046,7 +1046,7 @@ const InvoiceCard = ({
           )}
 
           {/* PDF Download Buttons Grid - 2 แถว 3 คอลัมน์ */}
-          {onDownloadPDF && canDownloadForMode(depositMode) && (
+          {onDownloadPDF && canUserApprove() && (
             <Box sx={{ width: "100%", mt: 1 }}>
               <Typography
                 variant="caption"

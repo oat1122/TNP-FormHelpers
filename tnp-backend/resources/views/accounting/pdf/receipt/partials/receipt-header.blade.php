@@ -69,8 +69,8 @@
     }
     if (empty($docNumber)) { $docNumber = 'DRAFT'; }
 
-    // Reference uses the same selected number (unmapped)
-    $referenceNo = $rawNumber ?: null;
+    // Reference uses quotation number
+    $referenceNo = !empty($invoice->quotation->number) ? $invoice->quotation->number : null;
 
     $seller      = $invoice->manager ?? $invoice->creator;
         $sellerFirst = optional($seller)->user_firstname;

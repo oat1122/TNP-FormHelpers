@@ -238,8 +238,18 @@ const PricingIntegration = () => {
   }, [refetch, dispatch]);
 
   const handleCreateQuotation = (group) => {
-    const target = group.requests.find((r) => !r.is_quoted) || group.requests[0];
-    setSelectedPricingRequest(target);
+    // เลือก target request เหมือนเดิม (อาจจะใช้แค่ ID หรือข้อมูลเฉพาะของ request)
+    const targetRequest = group.requests.find((r) => !r.is_quoted) || group.requests[0];
+
+    // *** สร้าง object ใหม่ที่จะส่งไป Modal ***
+    // โดยรวมข้อมูล request ที่เลือก และข้อมูล customer จาก group
+    const dataForModal = {
+      ...(targetRequest || {}), // ใส่ข้อมูล request ที่เลือก (pr_id, work_name etc.)
+      customer: group.customer || {}, // *** ใช้ customer จาก group ที่มีข้อมูลครบ ***
+    };
+
+    // ตั้งค่า state ด้วย object ใหม่นี้
+    setSelectedPricingRequest(dataForModal);
     setShowCreateModal(true);
   };
 
@@ -286,7 +296,8 @@ const PricingIntegration = () => {
     try {
       console.log("🔍 Debug - Data from Modal:", data);
       console.log("📋 Selected Pricing IDs:", data.pricingRequestIds);
-      console.log("🗂️ All Pricing Requests Data:", pricingRequests?.data);
+      console.log("� Customer from Modal:", data.customer);
+      console.log("�🗂️ All Pricing Requests Data:", pricingRequests?.data);
 
       setShowCreateModal(false);
 
@@ -324,12 +335,18 @@ const PricingIntegration = () => {
         return;
       }
 
-      // ใช้ข้อมูลสำรองจาก modal หากมี
+      // ใช้ข้อมูลสำรองจาก modal หากมี (มี customer แนบมาแล้ว)
       if (data.selectedRequestsData && data.selectedRequestsData.length > 0) {
         console.log("🔄 Using backup data from modal:", data.selectedRequestsData);
         setSelectedPricingRequests(data.selectedRequestsData);
       } else {
-        setSelectedPricingRequests(selectedRequests);
+        // *** ถ้าไม่มี selectedRequestsData ให้แนบ customer จาก modal เข้าไปใน requests ***
+        const requestsWithCustomer = selectedRequests.map((req) => ({
+          ...req,
+          customer: data.customer || req.customer || {},
+        }));
+        console.log("🔄 Using requests with customer attached:", requestsWithCustomer);
+        setSelectedPricingRequests(requestsWithCustomer);
       }
 
       // Add delay to ensure state update

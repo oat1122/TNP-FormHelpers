@@ -71,11 +71,19 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
       const validSelections = customerPricingRequests.filter((item) =>
         selectedPricingItems.includes(item.pr_id)
       );
+
+      // *** เพิ่ม customer ใน validSelections เพื่อให้ Form ได้ข้อมูลครบ ***
+      const selectionsWithCustomer = validSelections.map((item) => ({
+        ...item,
+        customer: pricingRequest?.customer || item.customer || {},
+      }));
+
       const submitData = {
         pricingRequestIds: selectedPricingItems,
         customerId: pricingRequest?.customer?.cus_id,
         additional_notes: additionalNotes,
-        selectedRequestsData: validSelections,
+        selectedRequestsData: selectionsWithCustomer,
+        customer: pricingRequest?.customer, // *** ส่ง customer กลับไปด้วย ***
       };
       await onSubmit?.(submitData);
       onClose();

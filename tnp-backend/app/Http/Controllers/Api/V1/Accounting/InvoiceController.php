@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Services\Accounting\Pdf\TaxInvoicePdfMasterService;
 use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
+use App\Services\Accounting\Pdf\TaxInvoiceFullPdfMasterService;
+use App\Services\Accounting\Pdf\ReceiptFullPdfMasterService;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class InvoiceController extends Controller
 {
@@ -1094,7 +1098,7 @@ class InvoiceController extends Controller
 
     /**
      * ดาวน์โหลด PDF ใบกำกับภาษี (Tax Invoice) - รองรับหลายหัวกระดาษ (zip)
-     * GET /api/v1/invoices/{id}/pdf/tax/download?mode=before|after&headerTypes[]=... 
+     * POST /api/v1/invoices/{id}/pdf/tax/download
      */
     public function downloadTaxPdf(Request $request, $id)
     {
@@ -1102,7 +1106,8 @@ class InvoiceController extends Controller
             $options = $request->only(['format', 'orientation', 'showWatermark']);
             $headerTypes = $request->input('headerTypes');
 
-            $mode = $request->query('mode');
+            // รับ mode จาก request body (POST) หรือ query string (GET - legacy)
+            $mode = $request->input('mode') ?? $request->query('mode');
             if (!in_array($mode, ['before', 'after'])) {
                 $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
                 $mode = $invoice->deposit_display_order ?? 'before';
@@ -1140,19 +1145,24 @@ class InvoiceController extends Controller
             }
 
             if (count($files) === 1) {
-                $single = $files[0]['path'];
-                return response()->download($single, basename($single), [
-                    'Content-Type' => 'application/pdf'
+                // Single file - return JSON with URL
+                $fileData = $files[0];
+                return response()->json([
+                    'message' => 'PDF generated successfully.',
+                    'pdf_url' => $fileData['url'],
+                    'filename' => $fileData['filename'],
+                    'mode' => 'single',
                 ]);
             }
 
+            // Multiple files - create ZIP and return JSON with URL
             $zipDir = storage_path('app/public/pdfs/tax-invoices/zips');
             if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
             $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
-            $zipName = sprintf('tax-invoices-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel);
+            $zipName = sprintf('tax-invoices-%s-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel, now()->format('YmdHis'));
             $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
             $zip = new \ZipArchive();
-            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
             }
             foreach ($files as $f) {
@@ -1161,8 +1171,14 @@ class InvoiceController extends Controller
                 }
             }
             $zip->close();
-            return response()->download($zipPath, $zipName, [
-                'Content-Type' => 'application/zip'
+            
+            // Return JSON with ZIP URL
+            $zipUrl = url('storage/pdfs/tax-invoices/zips/' . $zipName);
+            return response()->json([
+                'message' => 'PDF bundle generated successfully.',
+                'zip_url' => $zipUrl,
+                'zip_filename' => $zipName,
+                'mode' => 'zip',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1199,7 +1215,7 @@ class InvoiceController extends Controller
 
     /**
      * ดาวน์โหลด PDF ใบเสร็จรับเงิน (Receipt) - รองรับหลายหัวกระดาษ (zip)
-     * GET /api/v1/invoices/{id}/pdf/receipt/download?mode=before|after&headerTypes[]=... 
+     * POST /api/v1/invoices/{id}/pdf/receipt/download
      */
     public function downloadReceiptPdf(Request $request, $id)
     {
@@ -1207,7 +1223,8 @@ class InvoiceController extends Controller
             $options = $request->only(['format', 'orientation', 'showWatermark']);
             $headerTypes = $request->input('headerTypes');
 
-            $mode = $request->query('mode');
+            // รับ mode จาก request body (POST) หรือ query string (GET - legacy)
+            $mode = $request->input('mode') ?? $request->query('mode');
             if (!in_array($mode, ['before', 'after'])) {
                 $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
                 $mode = $invoice->deposit_display_order ?? 'before';
@@ -1245,19 +1262,24 @@ class InvoiceController extends Controller
             }
 
             if (count($files) === 1) {
-                $single = $files[0]['path'];
-                return response()->download($single, basename($single), [
-                    'Content-Type' => 'application/pdf'
+                // Single file - return JSON with URL
+                $fileData = $files[0];
+                return response()->json([
+                    'message' => 'PDF generated successfully.',
+                    'pdf_url' => $fileData['url'],
+                    'filename' => $fileData['filename'],
+                    'mode' => 'single',
                 ]);
             }
 
+            // Multiple files - create ZIP and return JSON with URL
             $zipDir = storage_path('app/public/pdfs/receipts/zips');
             if (!is_dir($zipDir)) @mkdir($zipDir, 0755, true);
             $modeLabel = $mode === 'after' ? 'after-deposit' : 'before-deposit';
-            $zipName = sprintf('receipts-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel);
+            $zipName = sprintf('receipts-%s-%s-%s.zip', $invoice->number ?? $invoice->id, $modeLabel, now()->format('YmdHis'));
             $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
             $zip = new \ZipArchive();
-            if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP');
             }
             foreach ($files as $f) {
@@ -1266,8 +1288,14 @@ class InvoiceController extends Controller
                 }
             }
             $zip->close();
-            return response()->download($zipPath, $zipName, [
-                'Content-Type' => 'application/zip'
+            
+            // Return JSON with ZIP URL
+            $zipUrl = url('storage/pdfs/receipts/zips/' . $zipName);
+            return response()->json([
+                'message' => 'PDF bundle generated successfully.',
+                'zip_url' => $zipUrl,
+                'zip_filename' => $zipName,
+                'mode' => 'zip',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1591,6 +1619,165 @@ class InvoiceController extends Controller
                 'success' => false,
                 'message' => 'Failed to retrieve companies: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF ใบกำกับภาษีแบบ Full (100% - ใช้ Body แบบ Quotation)
+     * POST /api/v1/invoices/{id}/pdf/tax/full/download
+     */
+    public function downloadTaxInvoiceFullPdf(Request $request, $id)
+    {
+        try {
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            $pdfService = app(TaxInvoiceFullPdfMasterService::class);
+            return $this->handlePdfDownload($request, $invoice, $pdfService, 'full');
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::downloadTaxInvoiceFullPdf error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download Tax Invoice Full PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ดาวน์โหลด PDF ใบเสร็จรับเงินแบบ Full (100% - ใช้ Body แบบ Quotation)
+     * POST /api/v1/invoices/{id}/pdf/receipt/full/download
+     */
+    public function downloadReceiptFullPdf(Request $request, $id)
+    {
+        try {
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            $pdfService = app(ReceiptFullPdfMasterService::class);
+            return $this->handlePdfDownload($request, $invoice, $pdfService, 'full');
+        } catch (\Exception $e) {
+            Log::error('InvoiceController::downloadReceiptFullPdf error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download Receipt Full PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper function to handle PDF generation and download/zip logic.
+     * Refactored to accept the specific PDF service instance.
+     */
+    protected function handlePdfDownload(Request $request, $invoice, $pdfService, ?string $mode = null)
+    {
+        // ใช้ mode จาก request ถ้ามี, หรือจาก parameter
+        $requestedMode = $request->input('mode', $mode); // 'before', 'after', 'full'
+
+        // Header types from request (array)
+        $headerTypes = $request->input('headerTypes', ['ต้นฉบับ']);
+        if (!is_array($headerTypes)) {
+            $headerTypes = ['ต้นฉบับ'];
+        }
+        // Ensure at least one header type
+        if (empty($headerTypes)) {
+            $headerTypes = [$invoice->document_header_type ?? 'ต้นฉบับ'];
+        }
+
+        $generatedFiles = [];
+        $errors = [];
+
+        foreach ($headerTypes as $headerType) {
+            try {
+                // ส่ง options ไปให้ service รวมถึง deposit_mode และ document_header_type
+                $options = [
+                    'document_header_type' => $headerType,
+                    // ส่ง deposit_mode ที่ถูกต้อง (before/after/full) ไปยัง buildViewData และ addHeaderFooter
+                    'deposit_mode' => $requestedMode ?? $invoice->deposit_display_order ?? 'before',
+                ];
+
+                $result = $pdfService->generatePdf($invoice, $options);
+                $generatedFiles[] = $result;
+            } catch (\Throwable $e) {
+                $errors[] = "Error generating PDF for header '$headerType': " . $e->getMessage();
+                Log::error("PDF Generation Error (Invoice ID: {$invoice->id}, Header: $headerType, Mode: $requestedMode): " . $e->getMessage(), ['exception' => $e]);
+            }
+        }
+
+        if (empty($generatedFiles) && !empty($errors)) {
+            return response()->json(['message' => 'Failed to generate PDF(s).', 'errors' => $errors], 500);
+        }
+
+        if (count($generatedFiles) === 1) {
+            // Single PDF download
+            $fileData = $generatedFiles[0];
+            // Ensure the path uses DIRECTORY_SEPARATOR for the server OS
+            $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileData['path']);
+
+            if (file_exists($filePath)) {
+                // Return URL for frontend to handle download
+                return response()->json([
+                    'message' => 'PDF generated successfully.',
+                    'pdf_url' => $fileData['url'],
+                    'filename' => $fileData['filename'],
+                    'mode' => 'single',
+                ]);
+                // ---- OR ----
+                // Direct file download (might be blocked by browser popup blockers)
+                // return response()->download($filePath, $fileData['filename'])->deleteFileAfterSend(true);
+            } else {
+                return response()->json(['message' => 'Generated PDF file not found.'], 404);
+            }
+        } else {
+            // Multiple PDFs, create a zip file
+            $zipFileName = sprintf('%s-%s-%s-bundle-%s.zip',
+                method_exists($pdfService, 'getFilenamePrefix') ? $pdfService->getFilenamePrefix() : 'pdf',
+                $invoice->number ?? $invoice->id,
+                $requestedMode ?? 'multi',
+                now()->format('YmdHis')
+            );
+            $zipPath = storage_path('app/public/temp/' . $zipFileName);
+
+            if (!is_dir(dirname($zipPath))) {
+                mkdir(dirname($zipPath), 0755, true);
+            }
+
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+                foreach ($generatedFiles as $fileData) {
+                    $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileData['path']);
+                    if (file_exists($filePath)) {
+                        // Sanitize filename inside zip
+                        $filenameInZip = Str::slug(pathinfo($fileData['filename'], PATHINFO_FILENAME), '-') . '.pdf';
+                        $zip->addFile($filePath, $filenameInZip);
+                    } else {
+                        Log::warning("File not found for zipping: " . $filePath);
+                    }
+                }
+                $zip->close();
+
+                // Clean up individual PDFs after zipping
+                foreach ($generatedFiles as $fileData) {
+                    $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileData['path']);
+                    if (file_exists($filePath)) {
+                        @unlink($filePath);
+                    }
+                }
+
+                // Return URL to the zip file
+                $zipUrl = Storage::url('temp/' . $zipFileName);
+                // Make sure the URL is absolute
+                if (!Str::startsWith($zipUrl, ['http://', 'https://'])) {
+                    $zipUrl = url($zipUrl);
+                }
+
+                return response()->json([
+                    'message' => 'PDF bundle generated successfully.',
+                    'zip_url' => $zipUrl,
+                    'zip_filename' => $zipFileName,
+                    'mode' => 'zip',
+                ]);
+                // ---- OR ----
+                // Direct zip download
+                // return response()->download($zipPath, $zipFileName)->deleteFileAfterSend(true);
+            } else {
+                return response()->json(['message' => 'Could not create zip file.'], 500);
+            }
         }
     }
 }

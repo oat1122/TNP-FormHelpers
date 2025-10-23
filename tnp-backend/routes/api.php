@@ -310,11 +310,15 @@ Route::prefix('v1')->group(function() {
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
         Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
         Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
-    // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers) - UNUSED
+    // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers)
     Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
-    Route::get('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
+    Route::post('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
     Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
-    Route::get('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
+    Route::post('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
+    
+    // Tax Invoice / Receipt Full PDF APIs (100% - uses quotation body template)
+    Route::post('/invoices/{id}/pdf/tax/full/download', 'downloadTaxInvoiceFullPdf');
+    Route::post('/invoices/{id}/pdf/receipt/full/download', 'downloadReceiptFullPdf');
         
         // Legacy support (will use deposit_display_order as default mode) - UNUSED
         // Route::get('/invoices/{id}/pdf/stream', 'streamPdf');

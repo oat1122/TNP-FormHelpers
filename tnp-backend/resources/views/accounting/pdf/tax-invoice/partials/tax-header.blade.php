@@ -98,13 +98,7 @@
         @if($jobName)
           <div><strong>ชื่องาน:</strong> {{ $jobName }}</div>
         @endif
-        @if(!($isFinal ?? true))
-          <div style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</div>
-        @endif
       </div>
-      @if (($invoice->status ?? 'draft') === 'draft')
-        <div class="badge-draft">ร่าง</div>
-      @endif
     </td>
   </tr>
 </table>

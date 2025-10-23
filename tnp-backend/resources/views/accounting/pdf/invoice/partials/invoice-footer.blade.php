@@ -9,9 +9,7 @@
             </td>
             <td style="width:32%; text-align:center; vertical-align:top;">
                 <div>
-                    @if(!($isFinal ?? true))
-                        <span style="color:#e74c3c; font-weight:bold;">PREVIEW - ไม่ใช่เอกสารจริง</span>
-                    @endif
+                    {{-- ไม่แสดง PREVIEW --}}
                 </div>
             </td>
             <td style="width:34%; text-align:right; vertical-align:top;">

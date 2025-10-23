@@ -376,16 +376,10 @@ const InvoiceCard = ({
 
       const data = await response.json();
       const downloadUrl = data.zip_url || data.pdf_url;
-      const downloadFilename =
-        data.zip_filename || data.filename || `tax-invoice-${mode}-${invoice.id}.pdf`;
 
       if (downloadUrl) {
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = downloadFilename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // เปิดในแท็บใหม่แทนการบังคับดาวน์โหลด
+        window.open(downloadUrl, "_blank");
       } else {
         console.error("No download URL in tax response");
       }
@@ -422,16 +416,10 @@ const InvoiceCard = ({
 
       const data = await response.json();
       const downloadUrl = data.zip_url || data.pdf_url;
-      const downloadFilename =
-        data.zip_filename || data.filename || `receipt-${mode}-${invoice.id}.pdf`;
 
       if (downloadUrl) {
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = downloadFilename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // เปิดในแท็บใหม่แทนการบังคับดาวน์โหลด
+        window.open(downloadUrl, "_blank");
       } else {
         console.error("No download URL in receipt response");
       }
@@ -475,16 +463,10 @@ const InvoiceCard = ({
 
       const data = await response.json();
       const downloadUrl = data.zip_url || data.pdf_url;
-      const downloadFilename =
-        data.zip_filename || data.filename || `tax-invoice-full-${invoice.id}.pdf`;
 
       if (downloadUrl) {
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = downloadFilename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // เปิดในแท็บใหม่แทนการบังคับดาวน์โหลด
+        window.open(downloadUrl, "_blank");
       } else {
         console.error("No download URL in response");
       }
@@ -522,16 +504,10 @@ const InvoiceCard = ({
 
       const data = await response.json();
       const downloadUrl = data.zip_url || data.pdf_url;
-      const downloadFilename =
-        data.zip_filename || data.filename || `receipt-full-${invoice.id}.pdf`;
 
       if (downloadUrl) {
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = downloadFilename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // เปิดในแท็บใหม่แทนการบังคับดาวน์โหลด
+        window.open(downloadUrl, "_blank");
       } else {
         console.error("No download URL in response");
       }

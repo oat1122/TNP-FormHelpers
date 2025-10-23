@@ -83,10 +83,6 @@
           <div><strong>ผู้ขาย:</strong> {{ $sellerFirst }}</div>
         @endif
       </div>
-
-      @if ($quotation->status === 'draft')
-        <div class="badge-draft">ร่าง</div>
-      @endif
     </td>
   </tr>
 </table>

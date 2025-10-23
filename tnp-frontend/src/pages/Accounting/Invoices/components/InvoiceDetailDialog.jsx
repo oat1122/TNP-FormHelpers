@@ -490,15 +490,22 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         headerTypes: formData?.document_header_type ? [formData.document_header_type] : undefined,
         preview: true, // hint backend this is a preview (safe to ignore if not used)
       }).unwrap();
+
       const url = res?.pdf_url || res?.url;
+
+      // ย้าย dismissToast มาก่อนเปิดแท็บใหม่
+      dismissToast(loadingId);
+
       if (url) {
-        setPdfUrl(url);
-        setShowPdfViewer(true);
+        // เปิดในแท็บใหม่โดยตรง
+        window.open(url, "_blank");
         showSuccess("สร้าง PDF สำเร็จ");
+        // ไม่ต้อง set state เพื่อเปิด Modal อีกต่อไป
+        // setPdfUrl(url);
+        // setShowPdfViewer(true);
       } else {
         showError("ไม่ได้รับลิงก์ PDF จากเซิร์ฟเวอร์");
       }
-      dismissToast(loadingId);
     } catch (e) {
       showError(e?.data?.message || e?.message || "ไม่สามารถสร้าง PDF ได้");
     }

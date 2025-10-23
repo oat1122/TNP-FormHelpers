@@ -66,16 +66,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $mpdf->SetHTMLFooter($footerHtml);
         $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L');
 
-        // **** Watermark Logic (เหมือน Parent) ****
-        $activeSideStatus = strtolower($invoice->status_before ?? ($invoice->status ?? 'draft'));
-        $activeDraft = ($activeSideStatus === 'draft');
-        // ใน mode 'full' จะไม่มี status_after
-        $shouldWatermark = (!$isFinal && ($data['options']['showWatermark'] ?? true)) || $activeDraft;
-
-        if ($shouldWatermark) {
-            $mpdf->SetWatermarkText('PREVIEW', 0.1);
-            $mpdf->showWatermarkText = true;
-        }
+        // ไม่ต้องแสดง Watermark
     }
 
     /**

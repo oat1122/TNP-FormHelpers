@@ -50,20 +50,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
         $mpdf->SetHTMLFooter($footerHtml); // Default footer for pages 1, 2, ...
         $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L'); // Special footer for the LAST page ('L' flag)
 
-        // Watermark logic (same as Invoice)
-        $bothDraft = (strtolower($invoice->status_before ?? '') === 'draft')
-            && (strtolower($invoice->status_after ?? '') === 'draft');
-        $mode = strtolower($data['options']['deposit_mode'] ?? ($invoice->deposit_display_order ?? 'before'));
-        $activeSideStatus = $mode === 'after'
-            ? strtolower($invoice->status_after ?? '')
-            : strtolower($invoice->status_before ?? '');
-        $activeDraft = ($activeSideStatus === 'draft');
-        $shouldWatermark = (!$isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft || $activeDraft;
-        
-        if ($shouldWatermark) {
-            $mpdf->SetWatermarkText('PREVIEW', 0.1);
-            $mpdf->showWatermarkText = true;
-        }
+        // ไม่ต้องแสดง Watermark
     }
 
     /**

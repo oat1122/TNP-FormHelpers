@@ -12,6 +12,8 @@ use App\Services\WorksheetPDF\MainLayout;
 
 class WorksheetPDF
 {
+  use PdfEncodingHelper;
+
   protected $pdf;
   protected $oPdf;
   protected $worksheetService;
@@ -60,7 +62,7 @@ class WorksheetPDF
     $this->work_name = $this->worksheetService->limitStringForDisplay($this->data->work_name, 25);
     $this->customer_name = $this->worksheetService->limitStringForDisplay($this->data->customer->cus_name, 15);
     $this->len_pattern_name = strlen($this->pattern_name);
-    $this->len_worksheet_note = strlen(iconv('UTF-8', 'TIS-620', $this->data->worksheet_note));
+    $this->len_worksheet_note = strlen($this->safeIconv($this->data->worksheet_note));
     $this->date_created = new DateTime($this->data->date_created);
     $this->due_date = new DateTime($this->data->due_date);
     $this->exam_date = ($this->data->exam_date == null ? null : new DateTime($this->data->exam_date));
@@ -103,9 +105,9 @@ class WorksheetPDF
     // -------------------- Fabric data -------------------- //
     $this->fabric_factory = $this->worksheetService->limitStringForDisplay($this->data->fabric->fabric_factory, 11);
     $this->fabric_name = $this->worksheetService->limitStringForDisplay($this->data->fabric->fabric_name, 39);
-    $this->fabric_no = iconv('UTF-8', 'TIS-620', $this->data->fabric->fabric_no);
-    $this->fabric_color = iconv('UTF-8', 'TIS-620', $this->data->fabric->fabric_color);
-    $this->fabric_color_no = iconv('UTF-8', 'TIS-620', $this->data->fabric->fabric_color_no);
+    $this->fabric_no = $this->safeIconv($this->data->fabric->fabric_no);
+    $this->fabric_color = $this->safeIconv($this->data->fabric->fabric_color);
+    $this->fabric_color_no = $this->safeIconv($this->data->fabric->fabric_color_no);
   }
 
   public function Worksheet($user_role)

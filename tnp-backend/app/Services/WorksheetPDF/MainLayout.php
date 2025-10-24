@@ -7,6 +7,8 @@ use App\Services\WorksheetService;
 
 class MainLayout
 {
+    use PdfEncodingHelper;
+
     protected $worksheetService;
     protected $path;
     protected $pdf;
@@ -62,7 +64,7 @@ class MainLayout
             $this->pdf->SetY(7);
             $this->pdf->SetX(100);
             $this->pdf->SetFont('PSLKittithadaBold', '', 30);
-            $this->pdf->Cell(40, 1, iconv('UTF-8', 'TIS-620', '( ใบงานเสื้อตัวอย่าง )'), 0, 0, 'C');
+            $this->pdf->Cell(40, 1, $this->safeIconv('( ใบงานเสื้อตัวอย่าง )'), 0, 0, 'C');
         }
     }
 
@@ -165,7 +167,7 @@ class MainLayout
                 $this->pdf->Cell(30, 6, '', 0);
             } else {
                 $this->pdf->SetFont('PSLKittithada', '', 13);
-                $this->pdf->Cell(30, 6, iconv('UTF-8', 'TIS-620', 'ไม่ขอตัวอย่าง'), 0);
+                $this->pdf->Cell(30, 6, $this->safeIconv('ไม่ขอตัวอย่าง'), 0);
             }
 
         } else {
@@ -259,13 +261,13 @@ class MainLayout
         $this->pdf->Cell(15, 6, 'FABRIC', 0);
         $this->pdf->Ln(6.5);
         $this->pdf->SetFont('PSLKittithadaBold', '', 18);
-        $this->pdf->Cell(9, 6, iconv('UTF-8', 'TIS-620', 'ร้าน'), 0);
+        $this->pdf->Cell(9, 6, $this->safeIconv('ร้าน'), 0);
         $this->pdf->SetFont('PSLKittithada', '', 16);
         $this->pdf->Cell(22, 6, $fabric_factory, 0, 0, 'L');
         $this->pdf->SetLeftMargin(116);
         $this->pdf->SetY(186.5);
         $this->pdf->SetFont('PSLKittithadaBold', '', 18);
-        $this->pdf->Cell(7, 6, iconv('UTF-8', 'TIS-620', 'ผ้า'), 0);
+        $this->pdf->Cell(7, 6, $this->safeIconv('ผ้า'), 0);
         $this->pdf->SetLeftMargin(123);
         $this->pdf->SetY(187.5);
         $this->pdf->SetFont('PSLKittithada', '', 15);
@@ -276,7 +278,7 @@ class MainLayout
         $this->pdf->SetLeftMargin(84);
         $this->pdf->SetY(193.5);
         $this->pdf->SetFont('PSLKittithadaBold', '', 18);
-        $this->pdf->Cell(4, 6, iconv('UTF-8', 'TIS-620', 'สี'), 0);
+        $this->pdf->Cell(4, 6, $this->safeIconv('สี'), 0);
         $this->pdf->SetLeftMargin(88);
         $this->pdf->SetY(194.8);
         $this->pdf->SetFont('PSLKittithada', '', 15);
@@ -373,7 +375,7 @@ class MainLayout
         $this->pdf->SetX(200);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
         $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->MultiCell(88, 8, iconv('UTF-8', 'TIS-620', 'แพทเทิน : ') . $pattern_name, 0, 'C');
+        $this->pdf->MultiCell(88, 8, $this->safeIconv('แพทเทิน : ') . $pattern_name, 0, 'C');
         $this->pdf->Ln(2);
         $this->pdf->SetLeftMargin(200);
 
@@ -389,14 +391,14 @@ class MainLayout
         $this->pdf->Ln(1);
 
         if ($shirtPatternType !== 1) {
-            $this->pdf->Cell(88, 9, iconv('UTF-8', 'TIS-620', $shirtPatternTitlesMap[$shirtPatternType]), 'L T B', 1, 'C', 'F');
+            $this->pdf->Cell(88, 9, $this->safeIconv($shirtPatternTitlesMap[$shirtPatternType]), 'L T B', 1, 'C', 'F');
         }
         
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'ไซซ์'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'รอบอก'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'ความยาว'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'จำนวน'), 1, 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('ไซซ์'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('รอบอก'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('ความยาว'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('จำนวน'), 1, 0, 'C', 'F');
         $this->pdf->Ln(9);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetDrawColor(69, 69, 69);
@@ -414,7 +416,7 @@ class MainLayout
 
         $this->pdf->SetX(200);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
-        $this->pdf->Cell(66, 9, iconv('UTF-8', 'TIS-620', 'รวมทั้งหมด'), 'L B', 0, 'R');
+        $this->pdf->Cell(66, 9, $this->safeIconv('รวมทั้งหมด'), 'L B', 0, 'R');
 
         //if $total_quantity unequal $sum_quantity_r set text red color
         if ($shirtPatternType == 1 && $this->data->total_quantity != $sumQuantity) {
@@ -436,15 +438,15 @@ class MainLayout
 
             if ($get_y_pattern_name <= 119) {
                 $this->pdf->SetX(200);
-                $this->pdf->Cell(88, 10, iconv('UTF-8', 'TIS-620', 'รายละเอียดไซต์เพิ่มเติม'), 0, 5, 'C');
-                $this->pdf->Cell(88, 8, iconv('UTF-8', 'TIS-620', ''), 1, 5);
+                $this->pdf->Cell(88, 10, $this->safeIconv('รายละเอียดไซต์เพิ่มเติม'), 0, 5, 'C');
+                $this->pdf->Cell(88, 8, $this->safeIconv(''), 1, 5);
             } elseif ($get_y_pattern_name > 127) {
                 $this->pdf->Cell(88, 8, '', 0, 5, 'C');
             } elseif ($get_y_pattern_name > 30) {
                 $this->pdf->SetY(138);
                 $this->pdf->SetX(200);
                 $this->pdf->SetTextColor(230, 230, 230);
-                $this->pdf->Cell(88, 8, iconv('UTF-8', 'TIS-620', 'รายละเอียดไซต์เพิ่มเติม'), 1, 5, 'C');
+                $this->pdf->Cell(88, 8, $this->safeIconv('รายละเอียดไซต์เพิ่มเติม'), 1, 5, 'C');
             }
         }
     }
@@ -469,7 +471,7 @@ class MainLayout
         $this->pdf->SetY(155);
         $this->pdf->SetX(10);
         $this->pdf->Cell(3, 8, '', 'L T B', 0);
-        $this->pdf->Cell($width['title'], 8, iconv('UTF-8', 'TIS-620', 'ข้อมูลเพิ่มเติม'), 'T R B', 3);
+        $this->pdf->Cell($width['title'], 8, $this->safeIconv('ข้อมูลเพิ่มเติม'), 'T R B', 3);
         $this->pdf->SetX(10);
         $this->pdf->Cell($width['content'], 34, '', 'L R B', 0);
     }
@@ -487,14 +489,14 @@ class MainLayout
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetY(145);
         $this->pdf->SetX($x);
-        $this->pdf->Cell(87, 10, iconv('UTF-8', 'TIS-620', 'ข้อมูลงาน'), 0, 5, 'C');
+        $this->pdf->Cell(87, 10, $this->safeIconv('ข้อมูลงาน'), 0, 5, 'C');
         $this->pdf->Cell(4, 8, '', 'L T', 0);
-        $this->pdf->Cell(18, 8, iconv('UTF-8', 'TIS-620', 'ร้านผ้า'), 'T', 0);
+        $this->pdf->Cell(18, 8, $this->safeIconv('ร้านผ้า'), 'T', 0);
         $this->pdf->Cell(5, 8, '', 'L T', 0);
         $this->pdf->Cell(60, 8, $fabric_factory, 'R T', 1);
         $this->pdf->SetX($x);
         $this->pdf->Cell(4, 8, '', 'L', 0);
-        $this->pdf->Cell(18, 8, iconv('UTF-8', 'TIS-620', 'เนื้อผ้า'), 0, 0);
+        $this->pdf->Cell(18, 8, $this->safeIconv('เนื้อผ้า'), 0, 0);
         $this->pdf->Cell(5, 8, '', 'L', 0);
        
         $sum_len_val_color = strlen($fabric_color) + strlen($fabric_color_no);
@@ -508,7 +510,7 @@ class MainLayout
         $this->pdf->SetX($x);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
         $this->pdf->Cell(4, 8, '', 'L', 0);
-        $this->pdf->Cell(18, 8, iconv('UTF-8', 'TIS-620', 'สีผ้า'), 0, 0);
+        $this->pdf->Cell(18, 8, $this->safeIconv('สีผ้า'), 0, 0);
         $this->pdf->Cell(5, 8, '', 'L', 0);
 
         if ($sum_len_val_color > 30) {
@@ -521,12 +523,12 @@ class MainLayout
         $this->pdf->SetX($x);
         $this->pdf->Cell(4, 8, '', 'T L', 0);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
-        $this->pdf->Cell(18, 8, iconv('UTF-8', 'TIS-620', 'ชื่องาน'), 'T', 0);
+        $this->pdf->Cell(18, 8, $this->safeIconv('ชื่องาน'), 'T', 0);
         $this->pdf->Cell(5, 8, '', 'T L', 0);
         $this->pdf->Cell(60, 8, $work_name, 'T R', 1);
         $this->pdf->SetX($x);
         $this->pdf->Cell(4.5, 8, '', 'T L', 0);
-        $this->pdf->Cell(17.5, 8, iconv('UTF-8', 'TIS-620', 'ใบงาน'), 'T', 0);
+        $this->pdf->Cell(17.5, 8, $this->safeIconv('ใบงาน'), 'T', 0);
         $this->pdf->Cell(5, 8, '', 'T L', 0);
         $this->pdf->SetFont('PSLKittithadaBold', '', 18);
         $this->pdf->Cell(60, 8, $date_created->format('d-m-Y'), 'T R', 0);
@@ -581,7 +583,7 @@ class MainLayout
         $this->pdf->SetX(200);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
         $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->MultiCell(88, 8, iconv('UTF-8', 'TIS-620', 'แพทเทิน : ') . $pattern_name, 0, 'C');
+        $this->pdf->MultiCell(88, 8, $this->safeIconv('แพทเทิน : ') . $pattern_name, 0, 'C');
         $this->pdf->Ln(2);
         $this->pdf->SetDrawColor(0, 0, 0);
 
@@ -596,15 +598,15 @@ class MainLayout
 
         $this->pdf->SetX(200);
         if ($shirtPatternType !== 1) {
-            $this->pdf->Cell(88, 9, iconv('UTF-8', 'TIS-620', $shirtPatternTitlesMap[$shirtPatternType]), 'L T B', 1, 'C', 'F');
+            $this->pdf->Cell(88, 9, $this->safeIconv($shirtPatternTitlesMap[$shirtPatternType]), 'L T B', 1, 'C', 'F');
         }
         
         $this->pdf->SetX(200);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'ไซซ์'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'รอบอก'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'ความยาว'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(22, 9, iconv('UTF-8', 'TIS-620', 'จำนวน'), 1, 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('ไซซ์'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('รอบอก'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('ความยาว'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(22, 9, $this->safeIconv('จำนวน'), 1, 0, 'C', 'F');
         $this->pdf->Ln(9);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetDrawColor(69, 69, 69);
@@ -624,7 +626,7 @@ class MainLayout
 
         $this->pdf->SetX(200);
         $this->pdf->SetFont('PSLKittithadaBold', '', 20);
-        $this->pdf->Cell(66, 9, iconv('UTF-8', 'TIS-620', 'รวมทั้งหมด'), 'L B', 0, 'R');
+        $this->pdf->Cell(66, 9, $this->safeIconv('รวมทั้งหมด'), 'L B', 0, 'R');
         $this->pdf->SetFont('PSLKittithadaBold', '', 18);
         $this->pdf->Cell(22, 9, $sumQuantity, 'R B', 0, 'C');
         $get_y_pattern_name = $this->pdf->GetY();
@@ -637,15 +639,15 @@ class MainLayout
 
             if ($get_y_pattern_name <= 119) {
                 $this->pdf->SetX(200);
-                $this->pdf->Cell(88, 10, iconv('UTF-8', 'TIS-620', 'รายละเอียดไซต์เพิ่มเติม'), 0, 5, 'C');
-                $this->pdf->Cell(88, 8, iconv('UTF-8', 'TIS-620', ''), 1, 5);
+                $this->pdf->Cell(88, 10, $this->safeIconv('รายละเอียดไซต์เพิ่มเติม'), 0, 5, 'C');
+                $this->pdf->Cell(88, 8, $this->safeIconv(''), 1, 5);
             } elseif ($get_y_pattern_name > 127) {
                 $this->pdf->Cell(88, 8, '', 0, 5, 'C');
             } elseif ($get_y_pattern_name > 30) {
                 $this->pdf->SetY(138);
                 $this->pdf->SetX(200);
                 $this->pdf->SetTextColor(230, 230, 230);
-                $this->pdf->Cell(88, 8, iconv('UTF-8', 'TIS-620', 'รายละเอียดไซต์เพิ่มเติม'), 1, 5, 'C');
+                $this->pdf->Cell(88, 8, $this->safeIconv('รายละเอียดไซต์เพิ่มเติม'), 1, 5, 'C');
             }
         }
     }
@@ -764,10 +766,10 @@ class MainLayout
         $this->pdf->SetDrawColor(0, 0, 0);
         $this->pdf->SetFont('PSLKittithadaBold', '', 16);
 
-        $this->pdf->Cell(22, 6.5, iconv('UTF-8', 'TIS-620', 'ไซซ์'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(26, 6.5, iconv('UTF-8', 'TIS-620', 'รอบอก'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(26, 6.5, iconv('UTF-8', 'TIS-620', 'ความยาว'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(24, 6.5, iconv('UTF-8', 'TIS-620', 'จำนวน'), 1, 0, 'C', 'F');
+        $this->pdf->Cell(22, 6.5, $this->safeIconv('ไซซ์'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(26, 6.5, $this->safeIconv('รอบอก'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(26, 6.5, $this->safeIconv('ความยาว'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(24, 6.5, $this->safeIconv('จำนวน'), 1, 0, 'C', 'F');
         $this->pdf->Ln(6.5);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetDrawColor(69, 69, 69);
@@ -784,7 +786,7 @@ class MainLayout
             }
         }
 
-        $this->pdf->Cell(74, 6.5, iconv('UTF-8', 'TIS-620', 'รวมทั้งหมด'), 'L B', 0, 'R');
+        $this->pdf->Cell(74, 6.5, $this->safeIconv('รวมทั้งหมด'), 'L B', 0, 'R');
 
         //if $total_quantity unequal $sum_quantity_r set text red color
         if ($this->data->total_quantity != $sumQuantity) {
@@ -821,13 +823,13 @@ class MainLayout
 
         // show title pattern "ชาย" or "หญิง"
         if ($shirtPatternType !== 1) {
-            $this->pdf->Cell(66, 6, iconv('UTF-8', 'TIS-620', $shirtPatternTitlesMap[$shirtPatternType]), 1, 1, 'C', 'F');
+            $this->pdf->Cell(66, 6, $this->safeIconv($shirtPatternTitlesMap[$shirtPatternType]), 1, 1, 'C', 'F');
         }
 
-        $this->pdf->Cell(14, 6, iconv('UTF-8', 'TIS-620', 'ไซซ์'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(18, 6, iconv('UTF-8', 'TIS-620', 'รอบอก'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(18, 6, iconv('UTF-8', 'TIS-620', 'ความยาว'), 'L T B', 0, 'C', 'F');
-        $this->pdf->Cell(16, 6, iconv('UTF-8', 'TIS-620', 'จำนวน'), 1, 0, 'C', 'F');
+        $this->pdf->Cell(14, 6, $this->safeIconv('ไซซ์'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(18, 6, $this->safeIconv('รอบอก'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(18, 6, $this->safeIconv('ความยาว'), 'L T B', 0, 'C', 'F');
+        $this->pdf->Cell(16, 6, $this->safeIconv('จำนวน'), 1, 0, 'C', 'F');
         $this->pdf->Ln(6);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->SetDrawColor(69, 69, 69);
@@ -856,7 +858,7 @@ class MainLayout
         }
 
         // $this->pdf->SetFont('PSLKittithadaBold', '', 16);
-        $this->pdf->Cell(50, 6, iconv('UTF-8', 'TIS-620', 'รวมทั้งหมด'), 'L B', 0, 'R');
+        $this->pdf->Cell(50, 6, $this->safeIconv('รวมทั้งหมด'), 'L B', 0, 'R');
 
         //if $total_quantity unequal $sum_quantity_r set text red color
         if ($shirtPatternType == 1 && $this->data->total_quantity != $sumQuantity) {

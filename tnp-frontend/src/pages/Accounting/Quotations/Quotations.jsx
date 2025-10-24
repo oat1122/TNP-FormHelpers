@@ -59,7 +59,6 @@ const Quotations = () => {
   const quotationStatusOptions = [
     { value: "draft", label: "แบบร่าง" },
     { value: "approved", label: "อนุมัติแล้ว" },
-
   ];
 
   // Use the new filter hook
@@ -73,6 +72,9 @@ const Quotations = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+
+  // ✅ เพิ่ม state เพื่อติดตามการบันทึก
+  const [lastSavedId, setLastSavedId] = useState(null);
 
   // Pass filter arguments to the query
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
@@ -186,6 +188,12 @@ const Quotations = () => {
       })
     );
   }, [refetch, dispatch]);
+
+  // ✅ สร้าง handler ที่จะส่งให้ Card
+  const handleCardActionSuccess = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const handleResetFilters = () => {
     setSignatureOnly(false);
   };
@@ -309,6 +317,7 @@ const Quotations = () => {
                           setSelectedQuotation(q);
                           setCreateInvoiceOpen(true);
                         }}
+                        onActionSuccess={handleCardActionSuccess} // ✅ ส่ง prop นี้เข้าไป
                       />
                     </Grid>
                   ))}
@@ -339,10 +348,22 @@ const Quotations = () => {
             onClose={() => setLinkedOpen(false)}
             quotationId={selectedQuotation?.id}
           />
+          {/* ✅ แก้ไขการเรียก QuotationDetailDialog */}
           <QuotationDetailDialog
             open={detailOpen}
-            onClose={() => setDetailOpen(false)}
+            onClose={() => {
+              setDetailOpen(false);
+              // ถ้ามีการบันทึก (lastSavedId ถูก set) ให้ refetch ทันที
+              if (lastSavedId) {
+                refetch();
+                setLastSavedId(null); // Reset flag
+              }
+            }}
             quotationId={selectedQuotation?.id}
+            // ส่ง prop นี้เข้าไปเพื่อให้ Dialog เรียกกลับเมื่อบันทึกสำเร็จ
+            onSaveSuccess={() => {
+              setLastSavedId(selectedQuotation?.id);
+            }}
           />
           <CompanyManagerDialog
             open={companyDialogOpen}

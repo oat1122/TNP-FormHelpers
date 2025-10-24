@@ -40,6 +40,7 @@ export default function QuotationCard({
   onCreateInvoice,
   creatingInvoice,
   actionButtonText,
+  onActionSuccess, // ✅ รับ prop ใหม่
 }) {
   const {
     companiesLoading,
@@ -58,7 +59,7 @@ export default function QuotationCard({
     creatorText,
     onChangeCompany,
     onApprove,
-  } = useQuotationCardLogic(data);
+  } = useQuotationCardLogic(data, onActionSuccess); // ✅ ส่ง prop ต่อไปให้ hook
 
   if ((prIds?.length || 0) === 0 || deleted) {
     return null;
@@ -95,7 +96,11 @@ export default function QuotationCard({
                   <InputLabel id={`company-select-label-${data?.id}`}>บริษัท</InputLabel>
                   <Select
                     labelId={`company-select-label-${data?.id}`}
-                    value={companies.find((company) => company.id === data?.company_id) ? data?.company_id : ""}
+                    value={
+                      companies.find((company) => company.id === data?.company_id)
+                        ? data?.company_id
+                        : ""
+                    }
                     label="บริษัท"
                     onChange={(event) => onChangeCompany(event.target.value)}
                     renderValue={(value) => {
@@ -122,11 +127,7 @@ export default function QuotationCard({
                   <Chip
                     size="small"
                     color="default"
-                    label={
-                      currentCompany?.short_code ||
-                      currentCompany?.name ||
-                      "ไม่ระบุบริษัท"
-                    }
+                    label={currentCompany?.short_code || currentCompany?.name || "ไม่ระบุบริษัท"}
                   />
                 </Tooltip>
               )}
@@ -170,7 +171,11 @@ export default function QuotationCard({
                   </Stack>
                 </Collapse>
                 <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-                  <Button size="small" onClick={() => setShowAll((value) => !value)} sx={{ textTransform: "none" }}>
+                  <Button
+                    size="small"
+                    onClick={() => setShowAll((value) => !value)}
+                    sx={{ textTransform: "none" }}
+                  >
                     {showAll ? "ย่อ" : "ดูเพิ่มเติม"}
                   </Button>
                 </Box>
@@ -237,6 +242,3 @@ export default function QuotationCard({
     </TNPCard>
   );
 }
-
-
-

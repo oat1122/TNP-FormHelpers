@@ -8,13 +8,14 @@ import {
 } from "../../../../../../features/Accounting/accountingApi";
 import { formatUserDisplay } from "../../../../../../utils/formatUser";
 
-export default function useQuotationCardLogic(data) {
+export default function useQuotationCardLogic(data, onActionSuccess) {
+  // ✅ รับ argument ใหม่
   const amountText = React.useMemo(
     () =>
       new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(
-        Number(data?.total_amount || 0),
+        Number(data?.total_amount || 0)
       ),
-    [data?.total_amount],
+    [data?.total_amount]
   );
 
   const [showAll, setShowAll] = React.useState(false);
@@ -44,19 +45,19 @@ export default function useQuotationCardLogic(data) {
 
   const canChangeCompany = React.useMemo(
     () => ["admin", "account"].includes(userData?.role),
-    [userData?.role],
+    [userData?.role]
   );
 
   const currentCompany = React.useMemo(
     () => companies.find((company) => company.id === data?.company_id),
-    [companies, data?.company_id],
+    [companies, data?.company_id]
   );
 
   const canApprove = React.useMemo(
     () =>
       ["admin", "account"].includes(userData?.role) &&
       ["draft", "pending_review"].includes(data?.status),
-    [userData?.role, data?.status],
+    [userData?.role, data?.status]
   );
 
   const prIds = React.useMemo(() => {
@@ -96,7 +97,7 @@ export default function useQuotationCardLogic(data) {
         console.error("Update company failed", error);
       }
     },
-    [data?.id, updateQuotation],
+    [data?.id, updateQuotation]
   );
 
   const onApprove = React.useCallback(async () => {
@@ -109,10 +110,11 @@ export default function useQuotationCardLogic(data) {
         }
       }
       await approveQuotation({ id: data?.id }).unwrap();
+      onActionSuccess?.(); // ✅ เรียก callback เมื่ออนุมัติสำเร็จ
     } catch (error) {
       console.error("Approve failed", error);
     }
-  }, [approveQuotation, data?.id, data?.status, submitQuotation]);
+  }, [approveQuotation, data?.id, data?.status, submitQuotation, onActionSuccess]); // ✅ เพิ่ม dependency
 
   return {
     companiesLoading,

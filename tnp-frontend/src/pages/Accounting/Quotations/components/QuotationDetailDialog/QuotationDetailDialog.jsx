@@ -60,7 +60,8 @@ import PaymentTerms from "../../../shared/components/PaymentTerms";
 import { apiConfig } from "../../../../../api/apiConfig";
 import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
 
-const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
+// ✅ รับ onSaveSuccess เพิ่ม
+const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
   // Check user permissions first
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
   const canEditQuotation = ["admin", "account"].includes(userData?.role);
@@ -152,10 +153,12 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
   }, [sampleImages, imageManager.updateSampleSelection]);
 
   // Main save handler with UI feedback
+  // ✅ แก้ไข handleSave
   const handleSave = async () => {
     const success = await dialogLogic.handleSave(groups, financials);
     if (success) {
       setIsEditing(false);
+      onSaveSuccess?.(); // ✅ เรียก onSaveSuccess เมื่อบันทึกสำเร็จ
     }
   };
 

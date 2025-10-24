@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 
 export function useDeliveryNoteForm(open, source, invoice, customer) {
+  const defaultNotesText = `สินค้าทุกชิ้นตรวจสอบก่อนส่งเรียบร้อยแล้ว  
+กรุณาตรวจสอบสินค้าทันทีเมื่อได้รับ หากพบปัญหาโปรดแจ้งภายใน 7 วันนับจากวันรับสินค้า  
+ไม่รับคืนหรือเปลี่ยนสินค้าหลังจาก 7 วัน หรือกรณีสินค้ามีการใช้งาน / ซัก / ดัดแปลงแล้ว  
+กรุณาซักด้วยมือและหลีกเลี่ยงการใช้สารฟอกขาว เพื่อยืดอายุการใช้งานของสินค้า`;
+
   const [customerDataSource, setCustomerDataSource] = useState("master");
   const [formState, setFormState] = useState({
     company_id: "",
@@ -13,7 +18,8 @@ export function useDeliveryNoteForm(open, source, invoice, customer) {
     customer_lastname: "",
     work_name: "",
     quantity: "1",
-    notes: "",
+    notes: defaultNotesText,
+    notesSource: "default",
     sender_company_id: "",
   });
 
@@ -32,12 +38,13 @@ export function useDeliveryNoteForm(open, source, invoice, customer) {
       customer_lastname: source?.customer_lastname || invoice?.customer_lastname || "",
       work_name: source?.work_name || source?.item_name || invoice?.work_name || "",
       quantity: String(source?.quantity || invoice?.quantity || "1"),
-      notes: "",
+      notes: defaultNotesText,
+      notesSource: "default",
       sender_company_id: source?.company_id || invoice?.company_id || "",
     };
     setFormState((prev) => ({ ...prev, ...hydrated }));
     setCustomerDataSource("master");
-  }, [open, source, invoice]);
+  }, [open, source, invoice, defaultNotesText]);
 
   const handleChange = (field) => (event) => {
     setFormState((prev) => ({ ...prev, [field]: event.target.value }));

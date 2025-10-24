@@ -929,6 +929,106 @@ const DeliveryNoteCreateDialog = ({ open, onClose, onCreated, source }) => {
               </Box>
             </Section>
 
+            {/* Notes Section */}
+            <Section>
+              <SectionHeader>
+                <Avatar
+                  sx={{
+                    bgcolor: tokens.primary,
+                    width: 32,
+                    height: 32,
+                    "& .MuiSvgIcon-root": { fontSize: "1rem" },
+                  }}
+                >
+                  <AssignmentIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">หมายเหตุสำหรับใบส่งของ</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ข้อความที่จะแสดงในใบส่งของ
+                  </Typography>
+                </Box>
+              </SectionHeader>
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    เลือกประเภทหมายเหตุ
+                  </Typography>
+                  <RadioGroup
+                    value={formState.notesSource || "default"}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange("notesSource")({ target: { value } });
+                      if (value === "default") {
+                        handleChange("notes")({
+                          target: {
+                            value: `สินค้าเสียหายตำหนิสามารถเคลมเปลี่ยนสินค้าใหม่ภายใน 7 วัน    
+(โดยสินค้าชิ้นนั้นจะต้องยังไม่ถูกผ่านการใช้งาน หรือการซัก)`,
+                          },
+                        });
+                      }
+                    }}
+                    row
+                  >
+                    <FormControlLabel
+                      value="default"
+                      control={<Radio />}
+                      label="ใช้ข้อความมาตรฐาน"
+                    />
+                    <FormControlLabel value="custom" control={<Radio />} label="กำหนดข้อความเอง" />
+                  </RadioGroup>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mt: 1 }}
+                  >
+                    {formState.notesSource === "custom"
+                      ? "กำหนดข้อความหมายเหตุเฉพาะสำหรับใบส่งของนี้"
+                      : "ใช้ข้อความเงื่อนไขการรับประกันและดูแลสินค้ามาตรฐาน"}
+                  </Typography>
+                </Box>
+
+                <InfoCard sx={{ p: 2, mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                    {formState.notesSource === "custom" ? "ข้อความที่กำหนด" : "ข้อความมาตรฐาน"}
+                  </Typography>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "grey.200",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-line", color: "text.secondary" }}
+                    >
+                      {formState.notesSource === "custom"
+                        ? formState.notes || "-"
+                        : `สินค้าเสียหายตำหนิสามารถเคลมเปลี่ยนสินค้าใหม่ภายใน 7 วัน    
+(โดยสินค้าชิ้นนั้นจะต้องยังไม่ถูกผ่านการใช้งาน หรือการซัก)`}
+                    </Typography>
+                  </Box>
+                </InfoCard>
+
+                {formState.notesSource === "custom" && (
+                  <TextField
+                    label="หมายเหตุ"
+                    value={formState.notes}
+                    onChange={handleChange("notes")}
+                    fullWidth
+                    multiline
+                    minRows={6}
+                    size="small"
+                    placeholder="ระบุข้อความหมายเหตุ..."
+                    helperText="ข้อความที่จะแสดงในใบส่งของ เช่น เงื่อนไขการรับประกัน การดูแลสินค้า"
+                  />
+                )}
+              </Box>
+            </Section>
+
             {/* Work Items Section */}
             <Section>
               <SectionHeader>

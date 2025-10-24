@@ -471,6 +471,7 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
   const [updateDeliveryNote, { isLoading: saving }] = useUpdateDeliveryNoteMutation();
 
   const [customerDataSource, setCustomerDataSource] = React.useState("delivery");
+  const [notesSource, setNotesSource] = React.useState("default");
   const [formState, setFormState] = React.useState({
     customer_company: "",
     customer_tax_id: "",
@@ -484,8 +485,15 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
     sender_company_id: "",
   });
 
+  // Default notes text
+  const defaultNotesText = `สินค้าเสียหายตำหนิสามารถเคลมเปลี่ยนสินค้าใหม่ภายใน 7 วัน    
+(โดยสินค้าชิ้นนั้นจะต้องยังไม่ถูกผ่านการใช้งาน หรือการซัก)`;
+
   React.useEffect(() => {
     if (!note) return;
+
+    const hasCustomNotes = note.notes && note.notes !== defaultNotesText;
+
     setFormState({
       customer_company: note.customer_company || "",
       customer_tax_id: note.customer_tax_id || "",
@@ -495,11 +503,12 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
       customer_address: note.customer_address || "",
       work_name: note.work_name || "",
       quantity: note.quantity || "",
-      notes: note.notes || "",
+      notes: note.notes || defaultNotesText,
       sender_company_id: note.sender_company_id || "",
     });
     setCustomerDataSource(note.customer_data_source || "delivery");
-  }, [note]);
+    setNotesSource(hasCustomNotes ? "custom" : "default");
+  }, [note, defaultNotesText]);
 
   const handleChange = (field) => (e) => setFormState((s) => ({ ...s, [field]: e.target.value }));
 
@@ -541,6 +550,15 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
   const handleCustomerDataSourceChange = (e) => {
     const next = e.target.value;
     setCustomerDataSource(next);
+  };
+
+  // Handle notes source change
+  const handleNotesSourceChange = (e) => {
+    const next = e.target.value;
+    setNotesSource(next);
+    if (next === "default") {
+      setFormState((s) => ({ ...s, notes: defaultNotesText }));
+    }
   };
 
   const { handleUpdate } = useSubmitUpdateDeliveryNote(
@@ -867,6 +885,87 @@ const DeliveryNoteEditDialog = ({ open, onClose, deliveryNoteId, onUpdated }) =>
                   invoiceNumber={invoiceNumber}
                   canEdit={canEdit}
                 />
+              </Box>
+            </Section>
+
+            <Section>
+              <SectionHeader>
+                <Avatar sx={{ bgcolor: tokens.primary, width: 32, height: 32 }}>
+                  <AssignmentIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1">หมายเหตุสำหรับใบส่งของ</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ข้อความที่จะแสดงในใบส่งของ
+                  </Typography>
+                </Box>
+              </SectionHeader>
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    เลือกประเภทหมายเหตุ
+                  </Typography>
+                  <RadioGroup value={notesSource} onChange={handleNotesSourceChange} row>
+                    <FormControlLabel
+                      value="default"
+                      control={<Radio disabled={!canEdit} />}
+                      label="ใช้ข้อความมาตรฐาน"
+                      disabled={!canEdit}
+                    />
+                    <FormControlLabel
+                      value="custom"
+                      control={<Radio disabled={!canEdit} />}
+                      label="กำหนดข้อความเอง"
+                      disabled={!canEdit}
+                    />
+                  </RadioGroup>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mt: 1 }}
+                  >
+                    {notesSource === "default"
+                      ? "ใช้ข้อความเงื่อนไขการรับประกันและดูแลสินค้ามาตรฐาน"
+                      : "กำหนดข้อความหมายเหตุเฉพาะสำหรับใบส่งของนี้"}
+                  </Typography>
+                </Box>
+
+                <InfoCard sx={{ p: 2, mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                    {notesSource === "default" ? "ข้อความมาตรฐาน" : "ข้อความที่กำหนด"}
+                  </Typography>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "grey.200",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-line", color: "text.secondary" }}
+                    >
+                      {notesSource === "default" ? defaultNotesText : formState.notes || "-"}
+                    </Typography>
+                  </Box>
+                </InfoCard>
+
+                {notesSource === "custom" && (
+                  <TextField
+                    label="หมายเหตุ"
+                    value={formState.notes}
+                    onChange={handleChange("notes")}
+                    fullWidth
+                    multiline
+                    minRows={6}
+                    size="small"
+                    disabled={!canEdit}
+                    placeholder="ระบุข้อความหมายเหตุ..."
+                    helperText="ข้อความที่จะแสดงในใบส่งของ เช่น เงื่อนไขการรับประกัน การดูแลสินค้า"
+                  />
+                )}
               </Box>
             </Section>
 

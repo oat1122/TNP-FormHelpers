@@ -80,6 +80,14 @@
       <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
+    {{-- หมายเหตุ --}}
+    @if(!empty($deliveryNote->notes))
+      <div class="delivery-notes-section" style="margin-top: 20px; padding: 12px 0;">
+        <div style="font-weight: bold; color: #d32f2f; font-size: 11pt; margin-bottom: 8px;">หมายเหตุ:</div>
+        <div style="color: #d32f2f; font-size: 10pt; line-height: 1.6; white-space: pre-line;">{{ $deliveryNote->notes }}</div>
+      </div>
+    @endif
+
   </div>
 </body>
 </html>

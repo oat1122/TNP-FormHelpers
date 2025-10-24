@@ -407,11 +407,21 @@ class InvoiceController extends Controller
                 'signature_images' => 'nullable|array',
                 'sample_images' => 'nullable|array',
                 
-                // Items (optional for validation but will be created from quotation items)
+                // Items (optional - can override quotation items if provided)
                 'invoice_items' => 'nullable|array',
+                'invoice_items.*.pricing_request_id' => 'nullable|string',
+                'invoice_items.*.quotation_item_id' => 'nullable|string',
                 'invoice_items.*.item_name' => 'nullable|string|max:255',
+                'invoice_items.*.item_description' => 'nullable|string|max:1000',
+                'invoice_items.*.pattern' => 'nullable|string|max:255',
+                'invoice_items.*.fabric_type' => 'nullable|string|max:255',
+                'invoice_items.*.color' => 'nullable|string|max:255',
+                'invoice_items.*.size' => 'nullable|string|max:100',
                 'invoice_items.*.quantity' => 'nullable|integer|min:0',
                 'invoice_items.*.unit_price' => 'nullable|numeric|min:0',
+                'invoice_items.*.unit' => 'nullable|string|max:50',
+                'invoice_items.*.notes' => 'nullable|string|max:1000',
+                'invoice_items.*.sequence_order' => 'nullable|integer|min:0',
             ]);
 
             if ($validator->fails()) {

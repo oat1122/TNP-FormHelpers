@@ -219,6 +219,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
 
   // Map groups → invoice items-like structure (kept for potential backend expansion)
   const mapGroupsToItems = React.useCallback(() => {
+    let globalSequence = 0; // Global counter for unique sequence_order
     return groups.flatMap((g) => {
       const unit = g.unit || "ชิ้น";
       const base = {
@@ -230,6 +231,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         unit,
       };
       return (g.sizeRows || []).map((r, idx) => {
+        globalSequence++; // Increment global sequence for each item
         const qty =
           typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);
         const price =
@@ -242,7 +244,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
           unit_price: isNaN(price) ? 0 : price,
           quantity: isNaN(qty) ? 0 : qty,
           notes: r.notes || "",
-          sequence_order: idx + 1,
+          sequence_order: globalSequence,
         };
       });
     });

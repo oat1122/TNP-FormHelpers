@@ -646,10 +646,16 @@ class InvoiceService
 
             $invoice->save();
 
-            // สร้าง Invoice Items จาก Quotation Items
-            $quotationItems = $quotation->items;
-            if ($quotationItems->count() > 0) {
-                $this->createInvoiceItemsFromQuotation($invoice->id, $quotationItems, $createdBy);
+            // สร้าง Invoice Items - ใช้จาก Frontend ถ้ามี ไม่งั้นใช้จาก Quotation Items
+            if (!empty($invoiceData['invoice_items']) && is_array($invoiceData['invoice_items'])) {
+                // ใช้ items ที่ส่งมาจาก Frontend (แก้ไขแล้วจาก UI)
+                $this->createInvoiceItemsFromArray($invoice->id, $invoiceData['invoice_items'], $createdBy);
+            } else {
+                // ใช้ items จาก Quotation (default behavior)
+                $quotationItems = $quotation->items;
+                if ($quotationItems->count() > 0) {
+                    $this->createInvoiceItemsFromQuotation($invoice->id, $quotationItems, $createdBy);
+                }
             }
 
             // บันทึก History
@@ -708,6 +714,48 @@ class InvoiceService
             }
         } catch (\Exception $e) {
             Log::error('InvoiceService::createInvoiceItemsFromQuotation error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * สร้าง Invoice Items จาก Array ที่ส่งมาจาก Frontend
+     * @param array<mixed> $items
+     */
+    private function createInvoiceItemsFromArray(string $invoiceId, array $items, ?string $createdBy = null): void
+    {
+        try {
+            foreach ($items as $index => $item) {
+                $invoiceItem = new \App\Models\Accounting\InvoiceItem();
+                $invoiceItem->id = \Illuminate\Support\Str::uuid();
+                $invoiceItem->invoice_id = $invoiceId;
+                $invoiceItem->quotation_item_id = $item['quotation_item_id'] ?? null;
+                $invoiceItem->pricing_request_id = $item['pricing_request_id'] ?? null;
+                
+                // Copy ข้อมูลจาก item array
+                $invoiceItem->item_name = $item['item_name'] ?? "รายการที่ " . ($index + 1);
+                $invoiceItem->item_description = $item['item_description'] ?? null;
+                $invoiceItem->sequence_order = $item['sequence_order'] ?? ($index + 1);
+                $invoiceItem->pattern = $item['pattern'] ?? null;
+                $invoiceItem->fabric_type = $item['fabric_type'] ?? null;
+                $invoiceItem->color = $item['color'] ?? null;
+                $invoiceItem->size = $item['size'] ?? null;
+                $invoiceItem->unit_price = (float)($item['unit_price'] ?? 0);
+                $invoiceItem->quantity = (int)($item['quantity'] ?? 0);
+                $invoiceItem->unit = $item['unit'] ?? 'ชิ้น';
+                $invoiceItem->discount_percentage = (float)($item['discount_percentage'] ?? 0);
+                $invoiceItem->discount_amount = (float)($item['discount_amount'] ?? 0);
+                $invoiceItem->item_images = isset($item['item_images']) && is_string($item['item_images']) 
+                    ? json_decode($item['item_images'], true) 
+                    : ($item['item_images'] ?? null);
+                $invoiceItem->notes = $item['notes'] ?? null;
+                $invoiceItem->status = 'draft';
+                $invoiceItem->created_by = $createdBy;
+                
+                $invoiceItem->save();
+            }
+        } catch (\Exception $e) {
+            Log::error('InvoiceService::createInvoiceItemsFromArray error: ' . $e->getMessage());
             throw $e;
         }
     }

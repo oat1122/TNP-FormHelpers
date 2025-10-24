@@ -1056,7 +1056,16 @@ const InvoiceCard = ({
               </Typography>
 
               {/* แถวที่ 1: ใบกำกับภาษี */}
-              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  mb: 1,
+                  p: 1,
+                  bgcolor: "rgba(25, 118, 210, 0.08)", // สีฟ้าอ่อน (primary)
+                  borderRadius: 1.5,
+                }}
+              >
                 {/* ใบกำกับภาษี (ก่อน) */}
                 <Button
                   size="small"
@@ -1073,6 +1082,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "grey.300",
                     color: "text.primary",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "primary.main",
                       bgcolor: "primary.50",
@@ -1099,6 +1109,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "grey.300",
                     color: "text.primary",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "primary.main",
                       bgcolor: "primary.50",
@@ -1126,6 +1137,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "secondary.300",
                     color: "secondary.main",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "secondary.main",
                       bgcolor: "secondary.50",
@@ -1138,7 +1150,15 @@ const InvoiceCard = ({
               </Stack>
 
               {/* แถวที่ 2: ใบเสร็จ */}
-              <Stack direction="row" spacing={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  p: 1,
+                  bgcolor: "rgba(237, 108, 2, 0.08)", // สีส้มอ่อน (warning/orange)
+                  borderRadius: 1.5,
+                }}
+              >
                 {/* ใบเสร็จ (ก่อน) */}
                 <Button
                   size="small"
@@ -1155,6 +1175,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "grey.300",
                     color: "text.primary",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "primary.main",
                       bgcolor: "primary.50",
@@ -1181,6 +1202,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "grey.300",
                     color: "text.primary",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "primary.main",
                       bgcolor: "primary.50",
@@ -1208,6 +1230,7 @@ const InvoiceCard = ({
                     minHeight: 28,
                     borderColor: "secondary.300",
                     color: "secondary.main",
+                    bgcolor: "white",
                     "&:hover": {
                       borderColor: "secondary.main",
                       bgcolor: "secondary.50",

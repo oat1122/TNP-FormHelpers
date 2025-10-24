@@ -1030,12 +1030,29 @@ class InvoiceController extends Controller
             }
 
             // Multi header direct download: create PDFs and zip
-            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            // โหลด Invoice พร้อม items และ relationships
+            $invoice = \App\Models\Accounting\Invoice::with([
+                'items',
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($id);
+            
+            \Log::info("🔍 Controller downloadPdf: Invoice ID {$id} loaded. Items count: " . ($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
+            
             $master = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
             $tmpFiles = [];
             foreach ($headerTypes as $ht) {
                 if (!is_string($ht) || trim($ht) === '') continue;
-                $pdfData = $master->generatePdf($invoice->replicate(), $options + ['document_header_type' => $ht]);
+                
+                \Log::info("🔍 Controller downloadPdf: Generating PDF for header '{$ht}'. Passing invoice with items.");
+                
+                // *** แก้ไข: ไม่ใช้ replicate() ใช้ $invoice ตัวเดิมที่มี items ***
+                $pdfData = $master->generatePdf($invoice, $options + ['document_header_type' => $ht]);
                 $tmpFiles[] = $pdfData['path'];
             }
             if (count($tmpFiles) === 0) {
@@ -1114,7 +1131,20 @@ class InvoiceController extends Controller
             }
             $options['deposit_mode'] = $mode;
 
-            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            // โหลด Invoice พร้อม items และ relationships
+            $invoice = \App\Models\Accounting\Invoice::with([
+                'items',
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($id);
+            
+            \Log::info("🔍 Controller downloadTaxPdf: Invoice ID {$id} loaded. Items count: " . ($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
+            
             /** @var TaxInvoicePdfMasterService $master */
             $master = app(TaxInvoicePdfMasterService::class);
 
@@ -1129,8 +1159,13 @@ class InvoiceController extends Controller
             $files = [];
             foreach ($headerTypes as $ht) {
                 if (!is_string($ht) || trim($ht) === '') continue;
+                
+                \Log::info("🔍 Controller downloadTaxPdf: Generating PDF for header '{$ht}'. Passing invoice with items.");
+                
                 $localOptions = $options + ['document_header_type' => $ht];
-                $pdfData = $master->generatePdf($invoice->replicate(), $localOptions);
+                
+                // *** แก้ไข: ไม่ใช้ replicate() ใช้ $invoice ตัวเดิมที่มี items ***
+                $pdfData = $master->generatePdf($invoice, $localOptions);
                 $files[] = [
                     'type' => $ht,
                     'path' => $pdfData['path'],
@@ -1231,7 +1266,20 @@ class InvoiceController extends Controller
             }
             $options['deposit_mode'] = $mode;
 
-            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+            // โหลด Invoice พร้อม items และ relationships
+            $invoice = \App\Models\Accounting\Invoice::with([
+                'items',
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($id);
+            
+            \Log::info("🔍 Controller downloadReceiptPdf: Invoice ID {$id} loaded. Items count: " . ($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
+            
             /** @var ReceiptPdfMasterService $master */
             $master = app(ReceiptPdfMasterService::class);
 
@@ -1246,8 +1294,13 @@ class InvoiceController extends Controller
             $files = [];
             foreach ($headerTypes as $ht) {
                 if (!is_string($ht) || trim($ht) === '') continue;
+                
+                \Log::info("🔍 Controller downloadReceiptPdf: Generating PDF for header '{$ht}'. Passing invoice with items.");
+                
                 $localOptions = $options + ['document_header_type' => $ht];
-                $pdfData = $master->generatePdf($invoice->replicate(), $localOptions);
+                
+                // *** แก้ไข: ไม่ใช้ replicate() ใช้ $invoice ตัวเดิมที่มี items ***
+                $pdfData = $master->generatePdf($invoice, $localOptions);
                 $files[] = [
                     'type' => $ht,
                     'path' => $pdfData['path'],

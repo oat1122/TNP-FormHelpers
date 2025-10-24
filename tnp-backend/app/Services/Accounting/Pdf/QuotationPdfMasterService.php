@@ -121,9 +121,9 @@ class QuotationPdfMasterService extends BasePdfMasterService
 
             if (!isset($groups[$groupKey])) {
                 $groups[$groupKey] = [
-                    'name' => $item->name ?? 'ไม่ระบุชื่องาน',
+                    'name' => $item->item_name ?? 'ไม่ระบุชื่องาน',
                     'pattern' => $item->pattern,
-                    'fabric' => $item->fabric,
+                    'fabric' => $item->fabric_type,
                     'color' => $item->color,
                     'unit' => $item->unit ?? 'ชิ้น',
                     'rows' => []
@@ -136,7 +136,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
                 'quantity' => (float)($item->quantity ?? 0),
                 'unit_price' => (float)($item->unit_price ?? 0),
                 'discount_amount' => (float)($item->discount_amount ?? 0),
-                'description' => $item->description,
+                'description' => $item->item_description,
             ];
         }
 
@@ -149,9 +149,9 @@ class QuotationPdfMasterService extends BasePdfMasterService
     protected function generateQuotationGroupKey(object $item): string
     {
         $keyParts = [
-            $item->name ?? '',
+            $item->item_name ?? '',
             $item->pattern ?? '',
-            $item->fabric ?? '',
+            $item->fabric_type ?? '',
             $item->color ?? ''
         ];
         

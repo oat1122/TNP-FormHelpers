@@ -1517,7 +1517,19 @@ class InvoiceService
     public function generatePdf(string $invoiceId, array $options = []): array
     {
         try {
-            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])->findOrFail($invoiceId);
+            // โหลด Invoice พร้อม items และ relationships อื่นๆ
+            $invoice = Invoice::with([
+                'items',              // <-- เพิ่มการโหลด items
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($invoiceId);
+            
+            \Log::info("🔍 generatePdf: Invoice ID {$invoiceId} loaded. Items count: " . ($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
 
             // กำหนดสถานะเอกสาร
             $isFinal = in_array($invoice->status, ['approved', 'sent', 'partial_paid', 'fully_paid', 'completed']);
@@ -1591,8 +1603,17 @@ class InvoiceService
     public function streamPdf(string $invoiceId, mixed $options = []): \Symfony\Component\HttpFoundation\Response
     {
         try {
-            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])
-                              ->findOrFail($invoiceId);
+            // โหลด Invoice พร้อม items และ relationships อื่นๆ
+            $invoice = Invoice::with([
+                'items',              // <-- เพิ่มการโหลด items เพื่อความสม่ำเสมอ
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($invoiceId);
                               
             // ใช้ Invoice PDF Master Service (mPDF) เป็นหลัก
             $masterService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
@@ -1624,8 +1645,19 @@ class InvoiceService
     public function generatePdfBundle(string $invoiceId, array $headerTypes = [], array $options = []): array
     {
         try {
-            $invoice = Invoice::with(['quotation', 'quotation.items', 'customer', 'company'])
-                              ->findOrFail($invoiceId);
+            // โหลด Invoice พร้อม items และ relationships อื่นๆ ที่จำเป็น
+            $invoice = Invoice::with([
+                'items',              // <-- เพิ่มการโหลด items
+                'quotation',
+                'quotation.items',
+                'customer',
+                'company',
+                'creator',
+                'manager',
+                'referenceInvoice'
+            ])->findOrFail($invoiceId);
+            
+            \Log::info("🔍 generatePdfBundle: Invoice ID {$invoiceId} loaded. Items count: " . ($invoice->relationLoaded('items') ? $invoice->items->count() : 'NOT LOADED'));
             
             // ถ้าไม่มี headerTypes หรือมีแค่ตัวเดียว ใช้ generatePdf ธรรมดา
             if (empty($headerTypes) || count($headerTypes) === 1) {
@@ -1657,8 +1689,11 @@ class InvoiceService
                 
                 $localOptions = array_merge($options, ['document_header_type' => $headerType]);
                 
-                // ใช้ replicate เพื่อไม่ให้แก้ไข state เดิมระหว่าง loop
-                $pdfData = $masterService->generatePdf($invoice->replicate(), $localOptions);
+                \Log::info("🔍 generatePdfBundle (Multi-Loop): Processing header '{$headerType}'. Passing invoice with loaded items.");
+                
+                // *** แก้ไข: ไม่ใช้ replicate() เพราะจะทำให้ relationship หายไป ***
+                // ใช้ $invoice ตัวเดิมที่โหลด items มาแล้ว
+                $pdfData = $masterService->generatePdf($invoice, $localOptions);
                 
                 $files[] = [
                     'type' => $headerType,

@@ -91,7 +91,14 @@ class InvoicePdfMasterService extends BasePdfMasterService
     protected function buildViewData(object $invoice, array $options = []): array
     {
         /** @var Invoice $i */
+        \Log::info("🔍 PDF buildViewData - Start for Invoice ID: {$invoice->id}, Type: {$invoice->type}");
+        
         $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager', 'referenceInvoice']);
+
+        // Log relationship loading status
+        $itemsLoaded = $i->relationLoaded('items');
+        $itemCount = $itemsLoaded ? $i->items->count() : 'NOT LOADED';
+        \Log::info("🔍 PDF buildViewData - Items relationship loaded: " . ($itemsLoaded ? 'YES' : 'NO') . ", Count: {$itemCount}");
 
         // Allow runtime override of document header type (ไม่บันทึกลง DB)
         if (!empty($options['document_header_type'])) {
@@ -99,13 +106,24 @@ class InvoicePdfMasterService extends BasePdfMasterService
         }
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
+        
+        \Log::info("🔍 PDF buildViewData - Calling getInvoiceItems...");
         $items    = $this->getInvoiceItems($i);
+        \Log::info("🔍 PDF buildViewData - getInvoiceItems returned " . count($items) . " items");
+        
+        if (count($items) > 0) {
+            \Log::info("🔍 PDF buildViewData - First item: " . json_encode($items[0]));
+        }
+        
         $summary  = $this->buildFinancialSummary($i);
         
         // สร้างข้อมูล groups สำหรับ deposit-after mode
         $groups = $this->groupInvoiceItems($i);
+        \Log::info("🔍 PDF buildViewData - groupInvoiceItems returned " . count($groups) . " groups");
 
         $isFinal  = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
+
+        \Log::info("🔍 PDF buildViewData - Final data: items=" . count($items) . ", groups=" . count($groups));
 
         return [
             'invoice'   => $i,
@@ -144,21 +162,29 @@ class InvoicePdfMasterService extends BasePdfMasterService
     }
 
     /**
-     * ดึงรายการสินค้า/บริการจาก Invoice
+     * ดึงรายการสินค้า/บริการจาก Invoice - แก้ไข: ใช้เฉพาะ invoice_items เท่านั้น
      * @return array<mixed>
      */
     protected function getInvoiceItems(Invoice $invoice): array
     {
-        // หาก Invoice มี items ของตัวเอง ให้ใช้ของ Invoice (จาก invoice_items table)
-        if ($invoice->items->count() > 0) {
-            return $invoice->items->sortBy('sequence_order')->values()->toArray();
+        \Log::info("🔍 getInvoiceItems - Invoice ID: {$invoice->id}");
+        
+        // ตรวจสอบให้แน่ใจว่า relationship 'items' ถูกโหลดแล้ว
+        // การเรียก $invoice->items จะพยายามโหลดถ้ายังไม่ได้โหลด
+        $invoiceItems = $invoice->items;
+        
+        \Log::info("🔍 getInvoiceItems - Retrieved items, count: " . ($invoiceItems ? $invoiceItems->count() : 'NULL'));
+
+        if ($invoiceItems && $invoiceItems->count() > 0) {
+            // ใช้ข้อมูลจาก invoice_items เท่านั้น
+            $result = $invoiceItems->sortBy('sequence_order')->values()->toArray();
+            \Log::info("🔍 getInvoiceItems - Returning " . count($result) . " items from invoice_items");
+            return $result;
         }
 
-        // หากไม่มี ให้ดึงจาก Quotation (สำหรับใบแจ้งหนี้เก่าที่ไม่มี invoice_items)
-        if ($invoice->quotation?->items) {
-            return $invoice->quotation->items->toArray();
-        }
-
+        // ไม่ต้อง fallback ไปหา quotation->items
+        // ถ้าไม่มี invoice_items ให้คืนค่า array ว่าง
+        \Log::warning("⚠️ getInvoiceItems - No invoice_items found, returning empty array");
         return [];
     }
 

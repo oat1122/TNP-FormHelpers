@@ -228,6 +228,12 @@ table {
     text-align: center !important;
 }
 
+/* Meta light styling for group details */
+.meta-light {
+    color: #555555;
+    font-weight: normal;
+}
+
 /* ===== Summary and Notes ===== */
 /* Notes/Summary panels align to shared styling; keep optional border variant */
 .panel-notes {

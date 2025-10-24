@@ -75,7 +75,16 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   const q = pickQuotation(data);
   const prIdsAll = React.useMemo(() => getAllPrIdsFromQuotation(q), [q?.id]);
   const customer = React.useMemo(() => normalizeCustomer(q), [q]);
-  const items = React.useMemo(() => normalizeAndGroupItems(q, prIdsAll), [q?.id]);
+  const items = React.useMemo(() => {
+    const allItems = normalizeAndGroupItems(q, prIdsAll);
+    // Filter out empty groups (groups with no actual data)
+    return allItems.filter(
+      (item) =>
+        item.sizeRows &&
+        item.sizeRows.length > 0 &&
+        item.sizeRows.some((row) => row.quantity > 0 || row.unitPrice > 0 || row.size)
+    );
+  }, [q?.id]);
 
   // Groups editor state (size/qty/unit price rows)
   const {
@@ -532,7 +541,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                 size="small"
                                 label="แพทเทิร์น"
                                 value={g.pattern || ""}
-                                disabled
+                                onChange={(e) => onChangeGroup(g.id, "pattern", e.target.value)}
                               />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -541,7 +550,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                 size="small"
                                 label="ประเภทผ้า"
                                 value={g.fabricType || ""}
-                                disabled
+                                onChange={(e) => onChangeGroup(g.id, "fabricType", e.target.value)}
                               />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -550,7 +559,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                 size="small"
                                 label="สี"
                                 value={g.color || ""}
-                                disabled
+                                onChange={(e) => onChangeGroup(g.id, "color", e.target.value)}
                               />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -559,7 +568,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                 size="small"
                                 label="ขนาด (สรุป)"
                                 value={g.size || ""}
-                                disabled
+                                onChange={(e) => onChangeGroup(g.id, "size", e.target.value)}
                               />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -570,7 +579,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                 SelectProps={{ native: true }}
                                 label="หน่วย"
                                 value={unit}
-                                disabled
+                                onChange={(e) => onChangeGroup(g.id, "unit", e.target.value)}
                               >
                                 <option value="ชิ้น">ชิ้น</option>
                                 <option value="ตัว">ตัว</option>
@@ -639,7 +648,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                         inputProps={{ inputMode: "text" }}
                                         label="ขนาด"
                                         value={row.size || ""}
-                                        disabled
+                                        onChange={(e) =>
+                                          onChangeRow(g.id, row.uuid, "size", e.target.value)
+                                        }
                                       />
                                     </Grid>
                                     <Grid item xs={6} md={3}>
@@ -650,7 +661,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                         inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
                                         label="จำนวน"
                                         value={row.quantity ?? ""}
-                                        disabled
+                                        onChange={(e) =>
+                                          onChangeRow(g.id, row.uuid, "quantity", e.target.value)
+                                        }
                                       />
                                     </Grid>
                                     <Grid item xs={6} md={3}>
@@ -661,7 +674,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                         inputProps={{ inputMode: "decimal" }}
                                         label="ราคาต่อหน่วย"
                                         value={row.unitPrice ?? ""}
-                                        disabled
+                                        onChange={(e) =>
+                                          onChangeRow(g.id, row.uuid, "unitPrice", e.target.value)
+                                        }
                                       />
                                     </Grid>
                                     <Grid item xs={10} md={2}>
@@ -699,7 +714,9 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                                         multiline
                                         minRows={1}
                                         value={row.notes || ""}
-                                        disabled
+                                        onChange={(e) =>
+                                          onChangeRow(g.id, row.uuid, "notes", e.target.value)
+                                        }
                                       />
                                     </Grid>
                                   </React.Fragment>
@@ -836,43 +853,6 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                     />
 
                     <Box>
-                      <Typography variant="h6" fontWeight={700} color="primary" gutterBottom>
-                        ประเภทการเรียกเก็บ
-                      </Typography>
-                      <Grid container spacing={2}>
-                        {[
-                          { value: "full_amount", label: "เต็มจำนวน" },
-                          { value: "deposit", label: "มัดจำ" },
-                          { value: "partial", label: "บางส่วน (กำหนดเอง)" },
-                        ].map((opt) => (
-                          <Grid item xs={12} md={6} key={opt.value}>
-                            <Button
-                              fullWidth
-                              size="large"
-                              variant={invoiceType === opt.value ? "contained" : "outlined"}
-                              onClick={() => setInvoiceType(opt.value)}
-                              sx={{ py: 1.5 }}
-                            >
-                              {opt.label}
-                            </Button>
-                          </Grid>
-                        ))}
-                      </Grid>
-                      {invoiceType === "partial" && (
-                        <Box sx={{ mt: 2 }}>
-                          <TextField
-                            fullWidth
-                            type="text"
-                            inputProps={{ inputMode: "decimal" }}
-                            label="จำนวนเงิน (บางส่วน)"
-                            value={partialAmount}
-                            onChange={(e) => setPartialAmount(e.target.value)}
-                          />
-                        </Box>
-                      )}
-                    </Box>
-
-                    <Box>
                       <TextField
                         fullWidth
                         multiline
@@ -992,30 +972,6 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                     })}
                   </Grid>
                 )}
-              </Paper>
-
-              {/* Attachments */}
-              <Paper elevation={1} sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={2} mb={2}>
-                  <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white }}>
-                    <AddIcon />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h6" fontWeight={700}>
-                      รูปภาพแนบ/ไฟล์ประกอบ
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      อัปโหลดได้หลายรูป ดูพรีวิวได้
-                    </Typography>
-                  </Box>
-                </Box>
-                <ImageUploadGrid
-                  images={attachments}
-                  onUpload={async (files) => {
-                    setAttachments((prev) => [...prev, ...files]);
-                  }}
-                  helperText="รองรับ JPG/PNG ขนาดไม่เกิน 5MB ต่อไฟล์"
-                />
               </Paper>
             </Stack>
           )}

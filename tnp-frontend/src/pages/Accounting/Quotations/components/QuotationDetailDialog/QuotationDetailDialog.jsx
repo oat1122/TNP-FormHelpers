@@ -710,7 +710,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                   bgcolor: "#fff",
                                   cursor: "pointer",
                                   position: "relative",
-                                  "&:hover .hover-actions": { opacity: 1 },
                                 }}
                                 onClick={() =>
                                   imageManager.setPreviewImage({
@@ -742,32 +741,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
                                       objectFit: "contain",
                                     }}
                                   />
-                                  {canUploadSignatures && (
-                                    <Box
-                                      className="hover-actions"
-                                      sx={{
-                                        position: "absolute",
-                                        top: 4,
-                                        right: 4,
-                                        display: "flex",
-                                        gap: 0.5,
-                                        opacity: 0,
-                                        transition: "opacity 0.2s",
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <SecondaryButton
-                                        size="small"
-                                        color="error"
-                                        disabled={imageManager.isDeletingSignature}
-                                        onClick={() =>
-                                          imageManager.handleDeleteSignature(img.filename)
-                                        }
-                                      >
-                                        ลบ
-                                      </SecondaryButton>
-                                    </Box>
-                                  )}
                                 </Box>
                                 <Typography
                                   variant="caption"
@@ -902,19 +875,6 @@ const QuotationDetailDialog = ({ open, onClose, quotationId }) => {
           )}
         </DialogContent>
         <DialogActions>
-          {canUploadSignatures && imageManager.previewImage && (
-            <SecondaryButton
-              color="error"
-              disabled={imageManager.isDeletingSignature}
-              onClick={async () => {
-                if (!window.confirm("ยืนยันลบรูปนี้หรือไม่?")) return;
-                await imageManager.handleDeleteSignature(imageManager.previewImage.filename || "");
-                imageManager.setPreviewImage(null);
-              }}
-            >
-              ลบรูปนี้
-            </SecondaryButton>
-          )}
           <SecondaryButton onClick={() => imageManager.setPreviewImage(null)}>ปิด</SecondaryButton>
         </DialogActions>
       </Dialog>

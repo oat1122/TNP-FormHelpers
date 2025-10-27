@@ -1120,13 +1120,13 @@ const CreateQuotationForm = ({
             ยกเลิก
           </SecondaryButton>
           <Box display="flex" gap={1}>
-            <SecondaryButton
+            {/* <SecondaryButton
               startIcon={<VisibilityIcon />}
               onClick={() => setShowPreview(true)}
               disabled={finalTotal === 0}
             >
               ดูตัวอย่าง
-            </SecondaryButton>
+            </SecondaryButton> */}
             <PrimaryButton
               onClick={() => handleSubmit("review")}
               disabled={isSubmitting || finalTotal === 0}

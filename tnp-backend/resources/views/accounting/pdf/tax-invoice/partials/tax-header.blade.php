@@ -63,8 +63,12 @@
     }
     if (empty($docNumber)) { $docNumber = 'DRAFT'; }
 
-    // Reference uses quotation number
-    $referenceNo = !empty($invoice->quotation->number) ? $invoice->quotation->number : null;
+    // Reference number based on deposit mode
+    // - ใบกำกับภาษี (ก่อน): ใช้ number_before (INVB...)
+    // - ใบกำกับภาษี (หลัง): ใช้ number_after (INVA...)
+    $referenceNo = $mode === 'after'
+      ? ($invoice->number_after ?? null)
+      : ($invoice->number_before ?? null);
 
     $seller      = $invoice->manager ?? $invoice->creator;
         $sellerFirst = optional($seller)->user_firstname;

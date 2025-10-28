@@ -49,8 +49,15 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
         // Header (คงเดิม)
         $summary = $data['summary'] ?? [];
+        
+        // ✨ Pass docNumber, referenceNo, mode to header view
+        $docNumber = $data['docNumber'] ?? null;
+        $referenceNo = $data['referenceNo'] ?? null;
+        $mode = $data['mode'] ?? null;
+        $options = $data['options'] ?? [];
+        
         $headerHtml = View::make('accounting.pdf.invoice.partials.invoice-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary'
+            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
         // --- ส่วนที่แก้ไข ---
@@ -123,16 +130,23 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
         $isFinal  = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
+        // ✨ NEW: Get document metadata (number, reference) using helper method
+        $metadata = $this->getDocumentMetadata($i, 'invoice', $options);
+
         \Log::info("🔍 PDF buildViewData - Final data: items=" . count($items) . ", groups=" . count($groups));
+        \Log::info("🔍 PDF buildViewData - Document metadata: " . json_encode($metadata));
 
         return [
-            'invoice'   => $i,
-            'customer'  => $customer,
-            'items'     => $items,
-            'groups'    => $groups,
-            'summary'   => $summary,
-            'isFinal'   => $isFinal,
-            'options'   => array_merge([
+            'invoice'     => $i,
+            'customer'    => $customer,
+            'items'       => $items,
+            'groups'      => $groups,
+            'summary'     => $summary,
+            'isFinal'     => $isFinal,
+            'docNumber'   => $metadata['docNumber'],    // ✨ NEW: Document number with appropriate prefix
+            'referenceNo' => $metadata['referenceNo'],  // ✨ NEW: Reference number
+            'mode'        => $metadata['mode'],         // ✨ NEW: Current mode (before/after/full)
+            'options'     => array_merge([
                 'format'          => 'A4',
                 'orientation'     => 'P',
                 'showPageNumbers' => true,

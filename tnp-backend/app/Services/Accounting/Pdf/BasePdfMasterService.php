@@ -239,4 +239,39 @@ abstract class BasePdfMasterService
         }
         return true;
     }
+
+    // =======================================================================
+    // |  Document Metadata Helpers
+    // =======================================================================
+
+    /**
+     * Get document metadata for PDF header (document number, reference number, mode)
+     * This method extracts the appropriate numbers based on document type and mode
+     * 
+     * @param object $document Invoice, Quotation, etc.
+     * @param string $documentType 'invoice' | 'tax_invoice' | 'receipt'
+     * @param array $options
+     * @return array ['docNumber' => string, 'referenceNo' => string|null, 'mode' => string]
+     */
+    protected function getDocumentMetadata(object $document, string $documentType, array $options = []): array
+    {
+        // Determine mode from options or document's deposit_display_order
+        $mode = $options['deposit_mode'] ?? $document->deposit_display_order ?? 'before';
+        
+        // Get appropriate document number using the model's method
+        $docNumber = method_exists($document, 'getDocumentNumber') 
+            ? $document->getDocumentNumber($documentType, $mode)
+            : ($document->number ?? 'DRAFT');
+        
+        // Get reference number using the model's method
+        $referenceNo = method_exists($document, 'getReferenceNumber')
+            ? $document->getReferenceNumber($mode)
+            : null;
+        
+        return [
+            'docNumber' => $docNumber,
+            'referenceNo' => $referenceNo,
+            'mode' => $mode,
+        ];
+    }
 }

@@ -23,6 +23,26 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
         return 'receipts';
     }
 
+    /**
+     * Override buildViewData to use receipt document type for metadata
+     */
+    protected function buildViewData(object $invoice, array $options = []): array
+    {
+        // Get base data from parent (InvoicePdfMasterService)
+        $data = parent::buildViewData($invoice, $options);
+        
+        // ✨ Override document metadata for receipt
+        $metadata = $this->getDocumentMetadata($invoice, 'receipt', $options);
+        
+        $data['docNumber'] = $metadata['docNumber'];      // e.g., RECB202510-0001
+        $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
+        $data['mode'] = $metadata['mode'];                // before/after/full
+        
+        \Log::info("🔍 ReceiptPDF buildViewData - Override metadata: " . json_encode($metadata));
+        
+        return $data;
+    }
+
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
         $invoice  = $data['invoice'];
@@ -31,8 +51,15 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
 
         // Receipt Header (different from regular invoice)
         $summary = $data['summary'] ?? [];
+        
+        // ✨ Pass docNumber, referenceNo, mode to header view
+        $docNumber = $data['docNumber'] ?? null;
+        $referenceNo = $data['referenceNo'] ?? null;
+        $mode = $data['mode'] ?? null;
+        $options = $data['options'] ?? [];
+        
         $headerHtml = View::make('accounting.pdf.receipt.partials.receipt-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary'
+            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
         // 1. Render a normal footer for all pages

@@ -46,46 +46,28 @@
     $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
     $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
 
-    // Select number by deposit_display_order
-    $mode = strtolower($invoice->deposit_display_order ?? 'before');
-    $rawNumber = $mode === 'after'
-      ? ($invoice->number_after ?? null)
-      : ($invoice->number_before ?? null);
-
-    // Map invoice prefix to TAXA/TAXB for display
-    $docNumber = $rawNumber;
-    if (is_string($docNumber)) {
-      if (str_starts_with($docNumber, 'INVA')) {
-        $docNumber = 'TAXA' . substr($docNumber, 4);
-      } elseif (str_starts_with($docNumber, 'INVB')) {
-        $docNumber = 'TAXB' . substr($docNumber, 4);
-      }
-    }
-    if (empty($docNumber)) { $docNumber = 'DRAFT'; }
-
-    // Reference number based on deposit mode
-    // - ใบกำกับภาษี (ก่อน): ใช้ number_before (INVB...)
-    // - ใบกำกับภาษี (หลัง): ใช้ number_after (INVA...)
-    $referenceNo = $mode === 'after'
-      ? ($invoice->number_after ?? null)
-      : ($invoice->number_before ?? null);
+    // ✨ Use document number and reference from service (passed as variables)
+    // Fallback to invoice methods if not provided
+    $displayDocNumber = $docNumber ?? $invoice->getDocumentNumber('tax_invoice', $mode ?? null);
+    $displayReferenceNo = $referenceNo ?? $invoice->getReferenceNumber($mode ?? null);
 
     $seller      = $invoice->manager ?? $invoice->creator;
-        $sellerFirst = optional($seller)->user_firstname;
-        $sellerLast  = optional($seller)->user_lastname;
-        $sellerUser  = optional($seller)->username;
-        $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: ($sellerUser ?? ''));
-        $jobName = $invoice->job_name ?? $invoice->project_name ?? $invoice->work_name ?? null;
-        if (is_string($jobName)) { $jobName = trim($jobName); }
+    $sellerFirst = optional($seller)->user_firstname;
+    $sellerLast  = optional($seller)->user_lastname;
+    $sellerUser  = optional($seller)->username;
+    $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: ($sellerUser ?? ''));
+    $jobName = $invoice->job_name ?? $invoice->project_name ?? $invoice->work_name ?? null;
+    if (is_string($jobName)) { $jobName = trim($jobName); }
 
-        $metaRows = [
-      ['label'=>'เลขที่','value'=>$docNumber],
-          ['label'=>'วันที่','value'=>$createdDate],
-        ];
-        if ($dueDate)       $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];
-        if ($sellerDisplay) $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
-        if ($referenceNo)   $metaRows[] = ['label'=>'อ้างอิง','value'=>$referenceNo,'format'=>'inline'];
-      @endphp
+    $metaRows = [
+      ['label'=>'เลขที่','value'=>$displayDocNumber],
+      ['label'=>'วันที่','value'=>$createdDate],
+    ];
+    // if ($dueDate)         $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate]; // Optional for Tax Invoice
+    if ($sellerDisplay)     $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
+    if ($displayReferenceNo) $metaRows[] = ['label'=>'อ้างอิง','value'=>$displayReferenceNo,'format'=>'inline'];
+
+    @endphp
 
       <div class="doc-header-section">
         <div class="doc-title">{{ $docTitle }}</div>

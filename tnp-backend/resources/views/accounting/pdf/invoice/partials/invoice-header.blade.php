@@ -45,41 +45,12 @@
         $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
         $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
         $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
-        
-        // Determine reference number based on invoice type and deposit mode
-        $referenceNo = null;
-        $isDepositAfter = ($invoice->deposit_display_order ?? '') === 'after' || 
-                         ($invoice->type ?? '') === 'remaining' || 
-                         !empty($invoice->reference_invoice_id);
-        
-        if ($isDepositAfter) {
-            // For deposit-after invoices, use the reference calculated by the service
-            // Check if we have summary data with calculated reference
-            if (isset($summary) && isset($summary['deposit_after']) && !empty($summary['deposit_after']['reference_invoice_number'])) {
-                $referenceNo = $summary['deposit_after']['reference_invoice_number'];
-            } else {
-                // Fallback: try direct fields if service data not available
-                $referenceNo = $invoice->reference_invoice_number ?? null;
-                
-                // If no direct reference number, try to get from reference invoice relationship
-                if (!$referenceNo && !empty($invoice->reference_invoice_id)) {
-                    if (isset($invoice->referenceInvoice) && $invoice->referenceInvoice) {
-                        $referenceNo = $invoice->referenceInvoice->number_before ?? $invoice->referenceInvoice->number ?? null;
-                    }
-                }
-                
-                // Last fallback: if still no reference but has quotation, use quotation number
-                if (!$referenceNo && !empty($invoice->quotation) && !empty($invoice->quotation->number)) {
-                    $referenceNo = $invoice->quotation->number;
-                }
-            }
-        } else {
-            // For regular/before invoices, show quotation number as reference
-            if (!empty($invoice->quotation) && !empty($invoice->quotation->number)) {
-                $referenceNo = $invoice->quotation->number;
-            }
-        }
-        
+
+        // ✨ Use document number and reference from service (passed as variables)
+        // Fallback to invoice methods if not provided
+        $displayDocNumber = $docNumber ?? $invoice->getDisplayNumber();
+        $displayReferenceNo = $referenceNo ?? $invoice->getReferenceNumber($mode ?? null);
+
         $seller      = $invoice->manager ?? $invoice->creator;
         $sellerFirst = optional($seller)->user_firstname;
         $sellerLast  = optional($seller)->user_lastname;
@@ -89,14 +60,13 @@
         if (is_string($jobName)) { $jobName = trim($jobName); }
 
         $metaRows = [
-          ['label'=>'เลขที่','value'=>$invoice->number ?? 'DRAFT'],
+          ['label'=>'เลขที่','value'=>$displayDocNumber],
           ['label'=>'วันที่','value'=>$createdDate],
         ];
-        if ($dueDate)      $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];
-        if ($sellerDisplay) $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
-        if ($referenceNo)  $metaRows[] = ['label'=>'อ้างอิง','value'=>$referenceNo,'format'=>'inline'];
-        
-        
+        if ($dueDate)            $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];
+        if ($sellerDisplay)      $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
+        if ($displayReferenceNo) $metaRows[] = ['label'=>'อ้างอิง','value'=>$displayReferenceNo,'format'=>'inline'];
+
       @endphp
 
       <div class="doc-header-section">

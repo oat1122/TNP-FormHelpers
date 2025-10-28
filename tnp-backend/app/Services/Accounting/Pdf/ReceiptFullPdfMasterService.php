@@ -49,9 +49,15 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $isFinal  = $data['isFinal'];
         $summary = $data['summary'] ?? [];
 
+        // ✨ Pass docNumber, referenceNo, mode to header view
+        $docNumber = $data['docNumber'] ?? null;
+        $referenceNo = $data['referenceNo'] ?? null;
+        $mode = $data['mode'] ?? 'full';
+        $options = $data['options'] ?? [];
+
         // **** ใช้ Header ของ Receipt ****
         $headerHtml = View::make('accounting.pdf.receipt.partials.receipt-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary'
+            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
         // **** ใช้ Footer/Signature Logic จาก InvoicePdfMasterService (Parent) ****
@@ -83,6 +89,9 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
             $invoice->document_header_type = $options['document_header_type'];
         }
 
+        // ✨ Force 'full' mode for 100% receipt
+        $options['deposit_mode'] = 'full';
+
         $customer = CustomerInfoExtractor::fromInvoice($invoice);
         // **** ใช้ Logic การ Group Items ให้เหมือน Quotation ****
         $groups = $this->groupItemsForQuotationTemplate($invoice);
@@ -90,9 +99,14 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
 
         $isFinal = in_array($invoice->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
+        // ✨ Get document metadata for RECF (full mode)
+        $metadata = $this->getDocumentMetadata($invoice, 'receipt', $options);
+
         // **** ใช้ Clone ของ invoice และเคลียร์ sample_images ****
         $invoiceForView = clone $invoice;
         $invoiceForView->sample_images = []; // ไม่แสดงรูปภาพตัวอย่างในเอกสารทางการ
+
+        \Log::info("🔍 ReceiptFullPDF buildViewData - Full mode metadata: " . json_encode($metadata));
 
         // **** Key หลักของ Array ต้องตรงกับที่ quotation-master.blade.php คาดหวัง ****
         return [
@@ -102,6 +116,9 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
             'groups' => $groups,
             'summary' => $summary,
             'isFinal' => $isFinal,
+            'docNumber' => $metadata['docNumber'],      // ✨ NEW: RECF202510-0001
+            'referenceNo' => $metadata['referenceNo'],  // ✨ NEW: Quotation number for full mode
+            'mode' => $metadata['mode'],                // ✨ NEW: 'full'
             'options' => array_merge([
                 'format' => 'A4',
                 'orientation' => 'P',

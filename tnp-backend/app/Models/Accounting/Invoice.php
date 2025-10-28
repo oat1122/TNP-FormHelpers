@@ -598,4 +598,123 @@ class Invoice extends Model
         $status = $this->getStatusForSide($side);
         return in_array($status, ['pending']);
     }
+
+    // =======================================================================
+    // |  Document Number Helpers (Dynamic Prefix Generation)
+    // =======================================================================
+
+    /**
+     * Get prefix for document type and mode
+     * 
+     * @param string $type 'invoice' | 'tax_invoice' | 'receipt'
+     * @param string $mode 'before' | 'after' | 'full'
+     * @return string Prefix like 'INVB', 'TAXA', 'RECF', etc.
+     */
+    protected function getDocumentPrefix(string $type, string $mode): string
+    {
+        $prefixMap = [
+            'invoice' => [
+                'before' => 'INVB',
+                'after'  => 'INVA',
+                'full'   => 'INVA', // Full mode uses INVA
+            ],
+            'tax_invoice' => [
+                'before' => 'TAXB',
+                'after'  => 'TAXA',
+                'full'   => 'TAXF',
+            ],
+            'receipt' => [
+                'before' => 'RECB',
+                'after'  => 'RECA',
+                'full'   => 'RECF',
+            ],
+        ];
+        
+        return $prefixMap[$type][$mode] ?? 'INV';
+    }
+
+    /**
+     * Get document number for specific type and mode
+     * Converts existing number with appropriate prefix dynamically
+     * 
+     * @param string $type 'invoice' | 'tax_invoice' | 'receipt'
+     * @param string|null $mode 'before' | 'after' | 'full' (null = use deposit_display_order)
+     * @return string Document number with appropriate prefix (e.g., 'TAXB202510-0001')
+     */
+    public function getDocumentNumber(string $type, ?string $mode = null): string
+    {
+        // Determine mode from deposit_display_order if not specified
+        $mode = $mode ?? $this->deposit_display_order ?? 'before';
+        
+        // Get the base number based on mode
+        $baseNumber = ($mode === 'after' || $mode === 'full') 
+            ? ($this->number_after ?? $this->number)
+            : ($this->number_before ?? $this->number);
+        
+        // Return DRAFT if no number exists
+        if (empty($baseNumber) || str_starts_with($baseNumber, 'DRAFT')) {
+            return 'DRAFT';
+        }
+        
+        // Extract numeric part (e.g., '202510-0001' from 'INVB202510-0001')
+        $numericPart = preg_replace('/^[A-Z]+/', '', $baseNumber);
+        
+        // Get appropriate prefix for this document type and mode
+        $prefix = $this->getDocumentPrefix($type, $mode);
+        
+        return $prefix . $numericPart;
+    }
+
+    /**
+     * Get reference number based on mode
+     * 
+     * @param string|null $mode 'before' | 'after' | 'full' (null = use deposit_display_order)
+     * @return string|null Reference document number
+     */
+    public function getReferenceNumber(?string $mode = null): ?string
+    {
+        $mode = $mode ?? $this->deposit_display_order ?? 'before';
+        
+        if ($mode === 'before') {
+            // Reference for 'before' mode is the quotation number
+            return $this->quotation?->number;
+        } 
+        elseif ($mode === 'after') {
+            // Reference for 'after' mode is the INVB number (number_before)
+            $refNumber = $this->number_before;
+            
+            // If number_before doesn't exist, check reference_invoice_number or referenceInvoice
+            if (empty($refNumber)) {
+                $refNumber = $this->reference_invoice_number;
+            }
+            if (empty($refNumber) && $this->referenceInvoice) {
+                $refNumber = $this->referenceInvoice->number_before ?? $this->referenceInvoice->number;
+            }
+            
+            // Don't return DRAFT numbers as references
+            if ($refNumber && str_starts_with($refNumber, 'DRAFT')) {
+                return null;
+            }
+            
+            return $refNumber;
+        } 
+        elseif ($mode === 'full') {
+            // Reference for 'full' (100%) mode is the quotation number
+            return $this->quotation?->number;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get display number based on current deposit_display_order
+     * This is the main invoice number shown in the header
+     * 
+     * @return string
+     */
+    public function getDisplayNumber(): string
+    {
+        $mode = $this->deposit_display_order ?? 'before';
+        return $this->getDocumentNumber('invoice', $mode);
+    }
 }

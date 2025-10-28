@@ -23,6 +23,26 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         return 'tax-invoices';
     }
 
+    /**
+     * Override buildViewData to use tax_invoice document type for metadata
+     */
+    protected function buildViewData(object $invoice, array $options = []): array
+    {
+        // Get base data from parent (InvoicePdfMasterService)
+        $data = parent::buildViewData($invoice, $options);
+        
+        // ✨ Override document metadata for tax invoice
+        $metadata = $this->getDocumentMetadata($invoice, 'tax_invoice', $options);
+        
+        $data['docNumber'] = $metadata['docNumber'];      // e.g., TAXB202510-0001
+        $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
+        $data['mode'] = $metadata['mode'];                // before/after/full
+        
+        \Log::info("🔍 TaxInvoicePDF buildViewData - Override metadata: " . json_encode($metadata));
+        
+        return $data;
+    }
+
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
         $invoice  = $data['invoice'];
@@ -31,8 +51,15 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
 
         // Tax Invoice Header (different from regular invoice)
         $summary = $data['summary'] ?? [];
+        
+        // ✨ Pass docNumber, referenceNo, mode to header view
+        $docNumber = $data['docNumber'] ?? null;
+        $referenceNo = $data['referenceNo'] ?? null;
+        $mode = $data['mode'] ?? null;
+        $options = $data['options'] ?? [];
+        
         $headerHtml = View::make('accounting.pdf.tax-invoice.partials.tax-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary'
+            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
         // 1. Render a normal footer for all pages

@@ -158,8 +158,8 @@ class WorksheetController extends Controller
 
                     WorksheetPoloEmbroider::create([
                         'polo_detail_id' => $polo_detail_id,
-                        'embroider_position' => $embroider_item['embroider_position'],
-                        'embroider_size' => $embroider_item['embroider_size'],
+                        'embroider_position' => $embroider_item['embroider_position'] ?? null,
+                        'embroider_size' => $embroider_item['embroider_size'] ?? '',
                         'created_at' => $worksheetService->get_datetime_now(),
                         'updated_at' => $worksheetService->get_datetime_now()
                     ]);

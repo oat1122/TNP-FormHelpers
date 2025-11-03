@@ -31,6 +31,12 @@ class StoreWorksheetRequest extends FormRequest
             'fabric_color' => ['required'],
             'fabric_factory' => ['required'],
             'pattern_name' => ['required'],
+            
+            // Polo shirt validation
+            'type_shirt' => ['required', 'string'],
+            'polo_embroider' => ['nullable', 'array', 'required_if:type_shirt,polo-shirt'],
+            'polo_embroider.*.embroider_position' => ['required', 'string'],
+            'polo_embroider.*.embroider_size' => ['nullable', 'string'],
         ];
     }
 }

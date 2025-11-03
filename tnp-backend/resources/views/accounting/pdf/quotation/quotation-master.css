@@ -295,7 +295,6 @@ tr {
 
 .items-table.slim thead th {
     font-weight: bold;
-    text-align: center; /* เปลี่ยนจาก right เป็น center */
     /* border-bottom: 0.6pt solid #666;  เส้นคั่นหัวตารางแบบบาง */
     font-size: 11pt; /* หัวตารางใหญ่กว่าเนื้อหาเล็กน้อย */
     background: #900f0f !important; /* Override to requested color */

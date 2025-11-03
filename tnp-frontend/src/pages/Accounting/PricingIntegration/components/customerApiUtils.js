@@ -275,8 +275,8 @@ export const validateCustomerData = (data) => {
     errors.cus_tel_1 = "กรุณากรอกเบอร์โทรศัพท์";
   }
 
-  // Validate phone number format
-  if (data.cus_tel_1 && !/^[0-9]{9,10}$/.test(data.cus_tel_1.replace(/[^0-9]/g, ""))) {
+  // Validate phone number format (allow 9-15 digits for company numbers)
+  if (data.cus_tel_1 && !/^[0-9]{9,15}$/.test(data.cus_tel_1.replace(/[^0-9]/g, ""))) {
     errors.cus_tel_1 = "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง";
   }
 

@@ -664,27 +664,6 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     const nextErrors = { ...(validation.errors || {}) };
     let isValid = !!validation.isValid;
 
-    // Conditional requirements based on customer_type
-    if (editData.customer_type === "individual") {
-      // Company not required for individuals
-      delete nextErrors.cus_company;
-      // Require first and last name
-      if (!editData.cus_firstname || String(editData.cus_firstname).trim() === "") {
-        nextErrors.cus_firstname = nextErrors.cus_firstname || "กรุณากรอกชื่อ";
-        isValid = false;
-      }
-      if (!editData.cus_lastname || String(editData.cus_lastname).trim() === "") {
-        nextErrors.cus_lastname = nextErrors.cus_lastname || "กรุณากรอกนามสกุล";
-        isValid = false;
-      }
-    } else {
-      // Company required for business customers
-      if (!editData.cus_company || String(editData.cus_company).trim() === "") {
-        nextErrors.cus_company = nextErrors.cus_company || "กรุณากรอกชื่อบริษัท";
-        isValid = false;
-      }
-    }
-
     // Require contact channel selection
     if (!editData.cus_channel || !["1", "2", "3"].includes(String(editData.cus_channel))) {
       nextErrors.cus_channel = "กรุณาเลือกช่องทางการติดต่อ";
@@ -902,13 +881,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             {isEditing ? (
               <StyledTextField
                 fullWidth
-                label={
-                  editData.customer_type === "individual" ? "ชื่อบริษัท (ถ้ามี)" : "ชื่อบริษัท *"
-                }
+                label="ชื่อบริษัท *"
                 value={editData.cus_company}
                 onChange={(e) => handleInputChange("cus_company", e.target.value)}
-                error={!!errors.cus_company && editData.customer_type !== "individual"}
-                helperText={editData.customer_type === "individual" ? "" : errors.cus_company || ""}
+                error={!!errors.cus_company}
+                helperText={errors.cus_company || ""}
                 size="small"
               />
             ) : (
@@ -970,32 +947,6 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 <PersonIcon /> ข้อมูลผู้ติดต่อ
               </Typography>
             </Grid>
-
-            {isEditing && (
-              <Grid item xs={12} md={6}>
-                <FormControl component="fieldset" size="small">
-                  <FormLabel component="legend" sx={{ color: "#900F0F", fontSize: "0.875rem" }}>
-                    ประเภทลูกค้า
-                  </FormLabel>
-                  <RadioGroup
-                    row
-                    value={editData.customer_type}
-                    onChange={(e) => handleInputChange("customer_type", e.target.value)}
-                  >
-                    <FormControlLabel
-                      value={"individual"}
-                      control={<Radio size="small" />}
-                      label="บุคคลธรรมดา"
-                    />
-                    <FormControlLabel
-                      value={"company"}
-                      control={<Radio size="small" />}
-                      label="บริษัท"
-                    />
-                  </RadioGroup>
-                </FormControl>
-              </Grid>
-            )}
 
             <Grid item xs={12} md={4}>
               {isEditing ? (

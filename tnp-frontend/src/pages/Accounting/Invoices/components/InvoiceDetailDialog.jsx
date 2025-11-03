@@ -1,9 +1,9 @@
 import {
-  Receipt as ReceiptIcon,
   Calculate as CalculateIcon,
   Payment as PaymentIcon,
+  Assignment as AssignmentIcon,
+  Edit as EditIcon,
   Business as BusinessIcon,
-  AttachMoney as MoneyIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -14,20 +14,19 @@ import {
   TextField,
   Divider,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Switch,
-  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
   RadioGroup,
   Radio,
-  Stack,
+  FormControlLabel,
 } from "@mui/material";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import React, { useState, useRef } from "react";
 
-import InvoiceFinancialCalcBox from "./calculation/InvoiceFinancialCalcBox";
 import InvoiceSummaryCard from "./calculation/InvoiceSummaryCard";
 import InvoiceWarningsBanner from "./calculation/InvoiceWarningsBanner";
 import { useInvoiceCalculation } from "./calculation/useInvoiceCalculation";
@@ -46,15 +45,10 @@ import {
   InfoCard,
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import {
-  DetailDialog,
-  CustomerSection,
-  WorkItemsSection,
-  ActionsSection,
-  FinancialSummarySection,
-  Calculation,
-  PaymentTerms,
-} from "../../shared/components";
+import { Calculation, PaymentTerms } from "../../shared/components";
+import { PRGroupSummaryCard } from "../../Quotations/components/QuotationDetailDialog/subcomponents/PRGroupSummaryCard";
+import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
+import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 import { formatTHB, formatDateTH } from "../utils/format";
 
@@ -188,6 +182,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   // New state for the enhanced calculation section
   const [expandedItems, setExpandedItems] = useState({});
   const [editableItems, setEditableItems] = useState([]);
+  const [discountTypeState, setDiscountTypeState] = useState("percentage"); // 👈 เพิ่ม State
 
   // Form fields for editing
   const [formData, setFormData] = useState({
@@ -251,6 +246,15 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
 
       const newInvoiceId = invoice.id;
       const invoiceChanged = prevInvoiceIdRef.current !== newInvoiceId;
+
+      // Initialize discount type state from invoice data
+      const initialDiscountType =
+        (invoice.special_discount_percentage || 0) > 0
+          ? "percentage"
+          : (invoice.special_discount_amount || 0) > 0
+            ? "amount"
+            : "percentage"; // Default
+      setDiscountTypeState(initialDiscountType);
 
       setFormData({
         type: invoice.type || "full_amount",
@@ -317,20 +321,12 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     }
   }, [invoice?.items]);
 
-  // Calculate special discount type
-  const specialDiscountType =
-    formData.special_discount_percentage > 0
-      ? "percentage"
-      : formData.special_discount_amount > 0
-        ? "amount"
-        : "percentage";
-
   // Use Invoice calculation hook
   const calculation = useInvoiceCalculation({
     items: isEditing ? editableItems : invoice?.items || [],
-    specialDiscountType,
+    specialDiscountType: discountTypeState, // 👈 ใช้ State แทน
     specialDiscountValue:
-      specialDiscountType === "percentage"
+      discountTypeState === "percentage" // 👈 ใช้ State แทน
         ? formData.special_discount_percentage
         : formData.special_discount_amount,
     hasVat: formData.has_vat,
@@ -373,8 +369,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         // Persist computed numbers from new calculation
         subtotal: calculation.subtotal,
         special_discount_amount: calculation.discountUsed,
-        special_discount_percentage:
-          specialDiscountType === "percentage" ? formData.special_discount_percentage : 0,
+        special_discount_percentage: formData.special_discount_percentage,
         vat_amount: calculation.vatAmount,
         tax_amount: calculation.vatAmount, // backward compatibility field if backend uses tax_amount
         withholding_tax_amount: calculation.withholdingTaxAmount,
@@ -679,841 +674,666 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
 
   return (
     <>
-      <DetailDialog
-        open={open}
-        onClose={onClose}
-        title="รายละเอียดใบแจ้งหนี้"
-        isLoading={isLoading}
-        error={error}
-        actions={actions}
-      >
-        <Box>
-          {/* Sticky Financial Summary Bar */}
-          <Box
-            sx={{
-              position: "sticky",
-              top: 0,
-              zIndex: 2,
-              bgcolor: "background.paper",
-              borderBottom: 1,
-              borderColor: "divider",
-              p: 1.5,
-              mb: 2,
-            }}
-          >
-            <Grid container spacing={1} alignItems="center">
-              {[
-                ["ยอดก่อนภาษี", subtotal],
-                ["VAT", vat],
-                ["รวมทั้งสิ้น", total, "primary.main", 700],
-                ["ชำระแล้ว", paid],
-                [
-                  "คงเหลือ",
-                  remaining,
-                  remaining > 0 ? (isOverdue ? "error.main" : "warning.main") : "success.main",
-                  700,
-                ],
-              ].map(([label, val, color, fw]) => (
-                <Grid item key={label} xs="auto">
-                  <Stack spacing={0.25}>
-                    <Typography variant="caption" color="text.secondary">
-                      {label}
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{ fontWeight: fw || 500, color: color || "text.primary" }}
-                    >
-                      {toMoney(val)}
-                    </Typography>
-                  </Stack>
-                </Grid>
-              ))}
-              <Box sx={{ flexGrow: 1 }} />
-              <Chip
-                size="small"
-                color={remaining > 0 ? (isOverdue ? "error" : "warning") : "success"}
-                label={remaining > 0 ? (isOverdue ? "เกินกำหนด" : "ยังไม่ได้ชำระ") : "ชำระครบ"}
-                aria-label="สถานะการชำระเงิน"
-              />
-            </Grid>
-          </Box>
-          <Grid container spacing={2}>
-            {/* Invoice Status & Info */}
-            <Grid item xs={12}>
-              <Section>
-                <SectionHeader>
-                  <Avatar
-                    sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                  >
-                    <ReceiptIcon fontSize="small" />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      ข้อมูลใบแจ้งหนี้
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      สถานะและรายละเอียด
-                    </Typography>
-                  </Box>
-                </SectionHeader>
-                <Box sx={{ p: 2 }}>
-                  <InfoCard sx={{ p: 2 }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={3}>
+      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          รายละเอียดใบแจ้งหนี้
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
+          {isLoading ? (
+            <Box display="flex" alignItems="center" gap={1} p={2}>
+              <CircularProgress size={22} />
+              <Typography variant="body2">กำลังโหลดรายละเอียด…</Typography>
+            </Box>
+          ) : error ? (
+            <Box p={2}>
+              <Typography color="error">ไม่สามารถโหลดข้อมูลได้</Typography>
+            </Box>
+          ) : (
+            <Box>
+              <Grid container spacing={2}>
+                {/* === Section 1: ข้อมูลใบแจ้งหนี้และลูกค้า === */}
+                <Grid item xs={12}>
+                  <Section>
+                    <SectionHeader>
+                      <Avatar
+                        sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                      >
+                        <AssignmentIcon fontSize="small" />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          ข้อมูลใบแจ้งหนี้และลูกค้า
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          เลขที่ใบแจ้งหนี้
+                          {isEditing ? "แก้ไขข้อมูลลูกค้า" : "ดึงข้อมูลจาก Invoice และ Customer"}
                         </Typography>
-                        <Typography variant="body1" fontWeight={700}>
-                          {getDisplayInvoiceNumber(invoice, depositMode) || "-"}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          ประเภท
-                        </Typography>
-                        {isEditing ? (
-                          <FormControl fullWidth size="small" sx={{ mt: 0.5 }}>
-                            <Select
-                              value={formData.type}
-                              onChange={(e) => handleFieldChange("type", e.target.value)}
+                      </Box>
+                    </SectionHeader>
+                    <Box sx={{ p: 2 }}>
+                      {/* === Customer Info Card (Read Only) OR (Edit Form) === */}
+                      {isEditing ? (
+                        /* === โค้ด HTML ที่ 2 (Edit Form) === */
+                        <Box>
+                          <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                              เลือกแหล่งข้อมูลลูกค้า
+                            </Typography>
+                            <RadioGroup
+                              value={customerDataSource}
+                              onChange={handleCustomerDataSourceChange}
+                              row
                             >
-                              <MenuItem value="full_amount">เต็มจำนวน</MenuItem>
-                              <MenuItem value="remaining">ยอดคงเหลือ (หลังหักมัดจำ)</MenuItem>
-                              <MenuItem value="deposit">มัดจำ</MenuItem>
-                              <MenuItem value="partial">เรียกเก็บบางส่วน</MenuItem>
-                            </Select>
-                          </FormControl>
-                        ) : (
-                          <Typography variant="body1" fontWeight={700}>
-                            {typeLabels[invoice.type] || invoice.type || "-"}
-                          </Typography>
-                        )}
-                      </Grid>
-                      <Grid item xs={12} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          สถานะ
-                        </Typography>
-                        {isEditing ? (
-                          <FormControl fullWidth size="small" sx={{ mt: 0.5 }}>
-                            <Select
-                              value={formData.status}
-                              onChange={(e) => handleFieldChange("status", e.target.value)}
+                              <FormControlLabel
+                                value="master"
+                                control={<Radio />}
+                                label="ใช้ข้อมูลจากฐานข้อมูลลูกค้า (master_customers)"
+                              />
+                              <FormControlLabel
+                                value="invoice"
+                                control={<Radio />}
+                                label="แก้ไขข้อมูลเฉพาะใบแจ้งหนี้นี้ (invoices)"
+                              />
+                            </RadioGroup>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mt: 1 }}
                             >
-                              <MenuItem value="draft">ร่าง</MenuItem>
-                              <MenuItem value="pending">รอดำเนินการ</MenuItem>
-                              <MenuItem value="approved">อนุมัติแล้ว</MenuItem>
-                              <MenuItem value="sent">ส่งแล้ว</MenuItem>
-                              <MenuItem value="partial_paid">ชำระบางส่วน</MenuItem>
-                              <MenuItem value="fully_paid">ชำระครบแล้ว</MenuItem>
-                              <MenuItem value="overdue">เกินกำหนด</MenuItem>
-                            </Select>
-                          </FormControl>
-                        ) : (
-                          <Box>
+                              {customerDataSource === "master"
+                                ? "ข้อมูลจะถูกดึงมาจากฐานข้อมูลลูกค้าหลัก"
+                                : "ข้อมูลจะถูกบันทึกเฉพาะในใบแจ้งหนี้นี้เท่านั้น"}
+                            </Typography>
+                          </Box>
+
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                label="ชื่อบริษัท"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_company || ""
+                                    : formData.customer_company
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_company", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                label="เลขประจำตัวผู้เสียภาษี"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_tax_id || ""
+                                    : formData.customer_tax_id
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_tax_id", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                label="ชื่อ (ผู้ติดต่อ)"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_firstname || ""
+                                    : formData.customer_firstname
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_firstname", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                label="นามสกุล (ผู้ติดต่อ)"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_lastname || ""
+                                    : formData.customer_lastname
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_lastname", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              <TextField
+                                fullWidth
+                                label="ที่อยู่"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_address || ""
+                                    : formData.customer_address
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_address", e.target.value)
+                                }
+                                multiline
+                                rows={2}
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                              <TextField
+                                fullWidth
+                                label="รหัสไปรษณีย์"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_zip_code || ""
+                                    : formData.customer_zip_code
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_zip_code", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                              <TextField
+                                fullWidth
+                                label="เบอร์โทรศัพท์"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_tel_1 || ""
+                                    : formData.customer_tel_1
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_tel_1", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                              <TextField
+                                fullWidth
+                                label="อีเมล์"
+                                value={
+                                  customerDataSource === "master"
+                                    ? customer.cus_email || ""
+                                    : formData.customer_email
+                                }
+                                onChange={(e) =>
+                                  customerDataSource === "invoice" &&
+                                  handleFieldChange("customer_email", e.target.value)
+                                }
+                                size="small"
+                                disabled={customerDataSource === "master"}
+                                helperText={
+                                  customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
+                                }
+                              />
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      ) : (
+                        /* === โค้ด HTML ที่ 1 (Read Only) === */
+                        <InfoCard sx={{ p: 2, mb: 1.5 }}>
+                          <Box
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            mb={1}
+                          >
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                {customer?.customer_type === "individual"
+                                  ? "ชื่อผู้ติดต่อ"
+                                  : "ชื่อบริษัท"}
+                              </Typography>
+                              <Typography variant="body1" fontWeight={700}>
+                                {customerDataSource === "master"
+                                  ? customer?.customer_type === "individual"
+                                    ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
+                                      customer?.cus_name ||
+                                      "-"
+                                    : customer?.cus_company || "-"
+                                  : formData.customer_company ||
+                                    `${formData.customer_firstname || ""} ${formData.customer_lastname || ""}`.trim() ||
+                                    "-"}
+                              </Typography>
+                            </Box>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              {customer.cus_tel_1 ? (
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label={customer.cus_tel_1}
+                                  sx={{
+                                    borderColor: tokens.primary,
+                                    color: tokens.primary,
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              ) : null}
+                            </Box>
+                          </Box>
+                          {(customer.contact_name ||
+                            customer.cus_email ||
+                            customer.cus_tax_id ||
+                            customer.cus_address) && (
+                            <Grid container spacing={1}>
+                              {customer.contact_name && (
+                                <Grid item xs={12} md={4}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    ผู้ติดต่อ
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {customer.contact_name}{" "}
+                                    {customer.contact_nickname
+                                      ? `(${customer.contact_nickname})`
+                                      : ""}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {customer.cus_email && (
+                                <Grid item xs={12} md={4}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    อีเมล
+                                  </Typography>
+                                  <Typography variant="body2">{customer.cus_email}</Typography>
+                                </Grid>
+                              )}
+                              {customer.cus_tax_id && (
+                                <Grid item xs={12} md={4}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    เลขประจำตัวผู้เสียภาษี
+                                  </Typography>
+                                  <Typography variant="body2">{customer.cus_tax_id}</Typography>
+                                </Grid>
+                              )}
+                              {customer.cus_address && (
+                                <Grid item xs={12}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    ที่อยู่
+                                  </Typography>
+                                  <Typography variant="body2">{customer.cus_address}</Typography>
+                                </Grid>
+                              )}
+                            </Grid>
+                          )}
+                        </InfoCard>
+                      )}
+
+                      {/* Invoice Info Card */}
+                      <InfoCard sx={{ p: 2, mb: 1.5 }}>
+                        <Grid container spacing={1}>
+                          <Grid item xs={12} md={3}>
+                            <Typography variant="caption" color="text.secondary">
+                              เลขที่ใบแจ้งหนี้
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700}>
+                              {getDisplayInvoiceNumber(invoice, depositMode) || "-"}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <Typography variant="caption" color="text.secondary">
+                              ประเภท
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700}>
+                              {typeLabels[invoice.type] || invoice.type || "-"}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <Typography variant="caption" color="text.secondary">
+                              สถานะ
+                            </Typography>
                             <Chip
                               label={invoice.status || "draft"}
                               color={statusColors[invoice.status] || "default"}
                               size="small"
                               variant="outlined"
                             />
-                          </Box>
-                        )}
-                      </Grid>
-                      <Grid item xs={12} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          วันที่ออกใบแจ้งหนี้
+                          </Grid>
+                          <Grid item xs={12} md={3}>
+                            <Typography variant="caption" color="text.secondary">
+                              วันที่ออกใบแจ้งหนี้
+                            </Typography>
+                            <Typography variant="body2">
+                              {formatDateTH(invoice.invoice_date)}
+                            </Typography>
+                          </Grid>
+                          {invoice.quotation_number && (
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="caption" color="text.secondary">
+                                เลขที่ใบเสนอราคา
+                              </Typography>
+                              <Typography variant="body2" fontWeight={700}>
+                                {invoice.quotation_number}
+                              </Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </InfoCard>
+
+                      {/* Work Summary (Read-only) (แสดงเมื่อ isEditing=false) */}
+                      {!isEditing && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                            รายละเอียดงาน ({editableItems.length})
+                          </Typography>
+                          {editableItems.length === 0 ? (
+                            <InfoCard sx={{ p: 3, mt: 1.5 }}>
+                              <Typography variant="body2" color="text.secondary" textAlign="center">
+                                ไม่พบรายการงาน
+                              </Typography>
+                            </InfoCard>
+                          ) : (
+                            editableItems.map((item, idx) => (
+                              <PRGroupSummaryCard key={item.id || idx} group={item} index={idx} />
+                            ))
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+                  </Section>
+                </Grid>
+
+                {/* Enhanced Validation Warnings */}
+                {(validation.hasWarnings || !validation.isValid) && (
+                  <Grid item xs={12}>
+                    <InvoiceWarningsBanner
+                      validation={validation}
+                      collapsible={validation.warnings.length > 1}
+                    />
+                  </Grid>
+                )}
+
+                {/* === Section 2: การคำนวณราคา === */}
+                <Grid item xs={12}>
+                  <Section>
+                    <SectionHeader>
+                      <Avatar
+                        sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                      >
+                        <CalculateIcon fontSize="small" />
+                      </Avatar>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                          การคำนวณราคา
                         </Typography>
-                        <Typography variant="body1">
-                          {formatDateTH(invoice.invoice_date)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} md={3}>
-                        <Typography variant="caption" color="text.secondary">
-                          วันครบกำหนด
-                        </Typography>
-                        {isEditing ? (
-                          <TextField
-                            type="date"
+                        {!validation.isReadOnly && (
+                          <SecondaryButton
                             size="small"
-                            fullWidth
-                            value={formData.due_date}
-                            onChange={(e) => handleFieldChange("due_date", e.target.value)}
-                            sx={{ mt: 0.5 }}
-                          />
-                        ) : (
-                          <Typography variant="body1" color={isOverdue ? "error.main" : "inherit"}>
-                            {formatDateTH(invoice.due_date)}
-                          </Typography>
+                            startIcon={<EditIcon />}
+                            onClick={() => {
+                              const el = document.getElementById("calc-section");
+                              const y = el ? el.scrollTop : null;
+                              setIsEditing((v) => !v);
+                              setTimeout(() => {
+                                const el2 = document.getElementById("calc-section");
+                                if (el2 != null && y != null) el2.scrollTop = y;
+                              }, 0);
+                            }}
+                          >
+                            {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
+                          </SecondaryButton>
                         )}
-                      </Grid>
-                      {invoice.quotation_number && (
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="caption" color="text.secondary">
-                            เลขที่ใบเสนอราคา
-                          </Typography>
-                          <Typography variant="body1">{invoice.quotation_number}</Typography>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </InfoCard>
-                </Box>
-              </Section>
-            </Grid>
-
-            {/* Customer Section */}
-            <Grid item xs={12}>
-              {isEditing ? (
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      <BusinessIcon fontSize="small" />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        ข้อมูลลูกค้า
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        แก้ไขข้อมูลลูกค้า
-                      </Typography>
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {/* Radio buttons for data source selection */}
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        เลือกแหล่งข้อมูลลูกค้า
-                      </Typography>
-                      <RadioGroup
-                        value={customerDataSource}
-                        onChange={handleCustomerDataSourceChange}
-                        row
-                      >
-                        <FormControlLabel
-                          value="master"
-                          control={<Radio />}
-                          label="ใช้ข้อมูลจากฐานข้อมูลลูกค้า (master_customers)"
-                        />
-                        <FormControlLabel
-                          value="invoice"
-                          control={<Radio />}
-                          label="แก้ไขข้อมูลเฉพาะใบแจ้งหนี้นี้ (invoices)"
-                        />
-                      </RadioGroup>
-                      {customerDataSource === "master" && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", mt: 1 }}
-                        >
-                          ข้อมูลจะถูกดึงมาจากฐานข้อมูลลูกค้าหลัก
-                          การเปลี่ยนแปลงจะส่งผลต่อลูกค้ารายนี้ทั้งหมด
-                        </Typography>
-                      )}
-                      {customerDataSource === "invoice" && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", mt: 1 }}
-                        >
-                          ข้อมูลจะถูกบันทึกเฉพาะในใบแจ้งหนี้นี้เท่านั้น ไม่ส่งผลต่อข้อมูลลูกค้าหลัก
-                        </Typography>
-                      )}
-                    </Box>
-
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="ชื่อบริษัท"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_company || ""
-                              : formData.customer_company
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_company", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="เลขประจำตัวผู้เสียภาษี"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_tax_id || ""
-                              : formData.customer_tax_id
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_tax_id", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="ชื่อ"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_firstname || ""
-                              : formData.customer_firstname
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_firstname", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="นามสกุล"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_lastname || ""
-                              : formData.customer_lastname
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_lastname", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="ที่อยู่"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_address || ""
-                              : formData.customer_address
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_address", e.target.value)
-                          }
-                          multiline
-                          rows={2}
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="รหัสไปรษณีย์"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_zip_code || ""
-                              : formData.customer_zip_code
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_zip_code", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="เบอร์โทรศัพท์"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_tel_1 || ""
-                              : formData.customer_tel_1
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_tel_1", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="อีเมล์"
-                          value={
-                            customerDataSource === "master"
-                              ? customer.cus_email || ""
-                              : formData.customer_email
-                          }
-                          onChange={(e) =>
-                            customerDataSource === "invoice" &&
-                            handleFieldChange("customer_email", e.target.value)
-                          }
-                          size="small"
-                          disabled={customerDataSource === "master"}
-                          helperText={
-                            customerDataSource === "master" ? "ข้อมูลจากฐานข้อมูลลูกค้า" : ""
-                          }
-                        />
-                      </Grid>
-                    </Grid>
-                  </Box>
-                </Section>
-              ) : (
-                <CustomerSection
-                  customer={
-                    customerDataSource === "invoice"
-                      ? {
-                          // Build a synthetic customer object using invoice override fields
-                          customer_type: invoice.customer_company ? "company" : "individual",
-                          cus_company: invoice.customer_company || customer.cus_company,
-                          cus_tax_id: invoice.customer_tax_id || customer.cus_tax_id,
-                          cus_address: invoice.customer_address || customer.cus_address,
-                          cus_zip_code: invoice.customer_zip_code || customer.cus_zip_code,
-                          cus_tel_1: invoice.customer_tel_1 || customer.cus_tel_1,
-                          cus_tel_2: customer.cus_tel_2,
-                          cus_email: invoice.customer_email || customer.cus_email,
-                          cus_firstname: invoice.customer_firstname || customer.cus_firstname,
-                          cus_lastname: invoice.customer_lastname || customer.cus_lastname,
-                          contact_name:
-                            (invoice.customer_firstname || customer.cus_firstname || "") +
-                            " " +
-                            (invoice.customer_lastname || customer.cus_lastname || ""),
-                          contact_nickname: customer.contact_nickname,
-                          cus_depart: customer.cus_depart,
-                        }
-                      : customer
-                  }
-                  quotationNumber={invoice.number}
-                  workName={invoice.work_name}
-                  showEditButton={false}
-                />
-              )}
-            </Grid>
-
-            {/* Work Items */}
-            <Grid item xs={12}>
-              <WorkItemsSection
-                items={items}
-                title="รายการสินค้า/บริการ"
-                icon={<BusinessIcon fontSize="small" />}
-              >
-                {items.map((item, idx) => (
-                  <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography
-                        variant="subtitle1"
-                        noWrap
-                        title={item.name}
-                        fontWeight={700}
-                        color={tokens.primary}
-                      >
-                        รายการที่ {idx + 1}: {item.name}
-                      </Typography>
-                      <Chip size="small" label={`${item.quantity} ${item.unit}`} />
-                    </Stack>
-                    <Grid container spacing={1} sx={{ mt: 1 }}>
-                      {item.pattern && (
-                        <Grid item xs={6} md={3}>
-                          <Typography variant="caption" color="text.secondary">
-                            แพทเทิร์น
-                          </Typography>
-                          <Typography variant="body2">{item.pattern}</Typography>
-                        </Grid>
-                      )}
-                      {item.fabric_type && (
-                        <Grid item xs={6} md={3}>
-                          <Typography variant="caption" color="text.secondary">
-                            ประเภทผ้า
-                          </Typography>
-                          <Typography variant="body2">{item.fabric_type}</Typography>
-                        </Grid>
-                      )}
-                      {item.color && (
-                        <Grid item xs={6} md={3}>
-                          <Typography variant="caption" color="text.secondary">
-                            สี
-                          </Typography>
-                          <Typography variant="body2">{item.color}</Typography>
-                        </Grid>
-                      )}
-                      <Grid item xs={6} md={3} sx={{ ml: "auto", textAlign: "right" }}>
-                        <Typography variant="caption" color="text.secondary">
-                          ยอดรวม
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600}>
-                          {toMoney(item.total)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </InfoCard>
-                ))}
-              </WorkItemsSection>
-            </Grid>
-
-            {/* Enhanced Validation Warnings */}
-            {(validation.hasWarnings || !validation.isValid) && (
-              <Grid item xs={12}>
-                <InvoiceWarningsBanner
-                  validation={validation}
-                  collapsible={validation.warnings.length > 1}
-                />
-              </Grid>
-            )}
-
-            {/* Enhanced Work Items with Summary Cards */}
-            <Grid item xs={12}>
-              <Section>
-                <SectionHeader>
-                  <Avatar
-                    sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                  >
-                    <ReceiptIcon fontSize="small" />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      รายการงาน ({(isEditing ? editableItems : items).length})
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      รายละเอียดงานและการคำนวณ
-                    </Typography>
-                  </Box>
-                </SectionHeader>
-                <Box sx={{ p: 2 }}>
-                  {(isEditing ? editableItems : items).length === 0 ? (
-                    <InfoCard sx={{ p: 3, textAlign: "center" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        ไม่พบรายการงาน
-                      </Typography>
-                    </InfoCard>
-                  ) : (
-                    (isEditing ? editableItems : items).map((item, idx) => (
-                      <InvoiceSummaryCard
-                        key={`${item.id || idx}-${isEditing ? "edit" : "view"}`}
-                        item={item}
-                        index={idx}
-                        isEditing={isEditing && !validation.isReadOnly}
-                        onAddRow={handleAddSizeRow}
-                        onChangeRow={handleChangeSizeRow}
-                        onRemoveRow={handleRemoveSizeRow}
-                        onDeleteItem={handleDeleteItem}
-                        onChangeItem={handleChangeItem}
-                        expanded={expandedItems[idx] || false}
-                        onToggleExpanded={handleToggleItemExpanded}
-                      />
-                    ))
-                  )}
-                </Box>
-              </Section>
-            </Grid>
-
-            {/* Enhanced Financial Calculation */}
-            <Grid item xs={12}>
-              <Section>
-                <SectionHeader>
-                  <Avatar
-                    sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                  >
-                    <CalculateIcon fontSize="small" />
-                  </Avatar>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        การคำนวณทางการเงิน
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {isEditing ? "แก้ไขข้อมูลการคำนวณ" : "สรุปการคำนวณตามใบแจ้งหนี้"}
-                      </Typography>
-                    </Box>
-                    {isEditing && !validation.isReadOnly && (
-                      <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={handleResetCalculation}
-                          sx={{ borderColor: tokens.primary, color: tokens.primary }}
-                        >
-                          รีเซ็ต
-                        </Button>
                       </Box>
-                    )}
-                  </Box>
-                </SectionHeader>
-                <Box sx={{ p: 0 }}>
-                  <InvoiceFinancialCalcBox
-                    isEditing={isEditing && !validation.isReadOnly}
-                    // Special discount
-                    specialDiscountType={specialDiscountType}
-                    specialDiscountValue={
-                      specialDiscountType === "percentage"
-                        ? formData.special_discount_percentage
-                        : formData.special_discount_amount
-                    }
-                    onSpecialDiscountTypeChange={(type) => {
-                      if (type === "percentage") {
-                        handleFieldChange("special_discount_amount", 0);
-                      } else {
-                        handleFieldChange("special_discount_percentage", 0);
-                      }
-                    }}
-                    onSpecialDiscountValueChange={(value) => {
-                      const numValue = Math.max(0, Number(value) || 0);
-                      if (specialDiscountType === "percentage") {
-                        handleFieldChange("special_discount_percentage", numValue);
-                      } else {
-                        handleFieldChange("special_discount_amount", numValue);
-                      }
-                    }}
-                    // VAT
-                    hasVat={formData.has_vat}
-                    vatPercentage={formData.vat_percentage}
-                    onHasVatChange={(checked) => handleFieldChange("has_vat", checked)}
-                    onVatPercentageChange={(value) =>
-                      handleFieldChange("vat_percentage", Math.max(0, Number(value) || 0))
-                    }
-                    // Withholding tax
-                    hasWithholdingTax={formData.has_withholding_tax}
-                    withholdingTaxPercentage={formData.withholding_tax_percentage}
-                    withholdingTaxBase={formData.withholding_tax_base}
-                    onHasWithholdingTaxChange={(checked) =>
-                      handleFieldChange("has_withholding_tax", checked)
-                    }
-                    onWithholdingTaxPercentageChange={(value) =>
-                      handleFieldChange(
-                        "withholding_tax_percentage",
-                        Math.max(0, Number(value) || 0)
-                      )
-                    }
-                    onWithholdingTaxBaseChange={(base) =>
-                      handleFieldChange("withholding_tax_base", base)
-                    }
-                    // Deposit
-                    depositMode={formData.deposit_mode}
-                    depositPercentage={formData.deposit_percentage}
-                    depositAmountInput={formData.deposit_amount}
-                    depositDisplayOrder={formData.deposit_display_order}
-                    onDepositModeChange={(mode) => handleFieldChange("deposit_mode", mode)}
-                    onDepositPercentageChange={(value) =>
-                      handleFieldChange(
-                        "deposit_percentage",
-                        Math.max(0, Math.min(100, Number(value) || 0))
-                      )
-                    }
-                    onDepositAmountInputChange={(value) =>
-                      handleFieldChange("deposit_amount", Math.max(0, Number(value) || 0))
-                    }
-                    onDepositDisplayOrderChange={(order) =>
-                      handleFieldChange("deposit_display_order", order)
-                    }
-                    // Calculated values
-                    calculation={calculation}
-                  />
-                </Box>
-              </Section>
-            </Grid>
+                    </SectionHeader>
+                    <Box sx={{ p: 2 }} id="calc-section">
+                      {/* 1. รายการ Item (ที่แก้ไขได้) */}
+                      {(isEditing ? editableItems : items).map((item, idx) => (
+                        <InvoiceSummaryCard
+                          key={`calc-${item.id || idx}`}
+                          item={item}
+                          index={idx}
+                          isEditing={isEditing && !validation.isReadOnly}
+                          onAddRow={handleAddSizeRow}
+                          onChangeRow={handleChangeSizeRow}
+                          onRemoveRow={handleRemoveSizeRow}
+                          onDeleteItem={handleDeleteItem}
+                          onChangeItem={handleChangeItem}
+                        />
+                      ))}
 
-            {/* Payment Information */}
-            {(invoice.payment_terms || invoice.deposit_amount || isEditing) && (
-              <Grid item xs={12}>
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      <PaymentIcon fontSize="small" />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        ข้อมูลการชำระเงิน
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        เงื่อนไขการชำระและมัดจำ
-                      </Typography>
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {isEditing ? (
-                      <Grid container spacing={2}>
+                      <Divider sx={{ my: 2 }} />
+
+                      {/* 2. เพิ่ม Discount และ Tax Fields */}
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
                         <Grid item xs={12} md={6}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel>เงื่อนไขการชำระ</InputLabel>
-                            <Select
-                              value={formData.payment_terms}
-                              onChange={(e) => handleFieldChange("payment_terms", e.target.value)}
-                              label="เงื่อนไขการชำระ"
-                            >
-                              <MenuItem value="">ไม่ระบุ</MenuItem>
-                              <MenuItem value="cash">เงินสด</MenuItem>
-                              <MenuItem value="credit_30">เครดิต 30 วัน</MenuItem>
-                              <MenuItem value="credit_60">เครดิต 60 วัน</MenuItem>
-                              <MenuItem value="credit_90">เครดิต 90 วัน</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <TextField
-                            fullWidth
-                            label="วิธีการชำระเงิน"
-                            value={formData.payment_method}
-                            onChange={(e) => handleFieldChange("payment_method", e.target.value)}
-                            size="small"
-                            placeholder="เช่น โอนเงิน, เงินสด, เช็ค"
+                          <SpecialDiscountField
+                            discountType={discountTypeState}
+                            discountValue={
+                              discountTypeState === "percentage"
+                                ? formData.special_discount_percentage
+                                : formData.special_discount_amount
+                            }
+                            totalAmount={calculation.subtotal}
+                            discountAmount={calculation.discountUsed}
+                            onDiscountTypeChange={(type) => {
+                              if (!isEditing) return;
+                              setDiscountTypeState(type);
+                              // เคลียร์ค่าของช่องที่ไม่ได้เลือก
+                              if (type === "percentage") {
+                                handleFieldChange("special_discount_amount", 0);
+                              } else {
+                                handleFieldChange("special_discount_percentage", 0);
+                              }
+                            }}
+                            onDiscountValueChange={(value) => {
+                              if (!isEditing) return;
+                              const numValue = Math.max(0, Number(value) || 0);
+                              // ใช้ discountTypeState ในการตัดสินใจ
+                              if (discountTypeState === "percentage") {
+                                handleFieldChange("special_discount_percentage", numValue);
+                              } else {
+                                handleFieldChange("special_discount_amount", numValue);
+                              }
+                            }}
+                            disabled={!isEditing}
                           />
                         </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel>ประเภทหัวกระดาษ</InputLabel>
-                            <Select
-                              value={formData.document_header_type}
-                              onChange={(e) =>
-                                handleFieldChange("document_header_type", e.target.value)
-                              }
-                              label="ประเภทหัวกระดาษ"
-                            >
-                              <MenuItem value="ต้นฉบับ">ต้นฉบับ</MenuItem>
-                              <MenuItem value="สำเนา">สำเนา</MenuItem>
-                              <MenuItem value="กำหนดเอง">กำหนดเอง</MenuItem>
-                            </Select>
-                          </FormControl>
+                        <Grid item xs={12} md={6}>
+                          <WithholdingTaxField
+                            hasWithholdingTax={formData.has_withholding_tax}
+                            taxPercentage={formData.withholding_tax_percentage}
+                            taxAmount={calculation.withholdingTaxAmount}
+                            subtotalAmount={calculation.effectiveSubtotal}
+                            onToggleWithholdingTax={(en) =>
+                              isEditing && handleFieldChange("has_withholding_tax", en)
+                            }
+                            onTaxPercentageChange={(p) =>
+                              isEditing &&
+                              handleFieldChange(
+                                "withholding_tax_percentage",
+                                Math.max(0, Number(p) || 0)
+                              )
+                            }
+                            disabled={!isEditing}
+                          />
                         </Grid>
                       </Grid>
-                    ) : (
-                      <Grid container spacing={2}>
-                        {invoice.payment_terms && (
-                          <Grid item xs={12} md={6}>
-                            <InfoCard sx={{ p: 2 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                เงื่อนไขการชำระ
-                              </Typography>
-                              <Typography variant="body1" fontWeight={700}>
-                                {invoice.payment_terms === "cash"
-                                  ? "เงินสด"
-                                  : invoice.payment_terms === "credit_30"
-                                    ? "เครดิต 30 วัน"
-                                    : invoice.payment_terms === "credit_60"
-                                      ? "เครดิต 60 วัน"
-                                      : invoice.payment_terms}
-                              </Typography>
-                            </InfoCard>
-                          </Grid>
-                        )}
-                        {invoice.deposit_amount && (
-                          <Grid item xs={12} md={6}>
-                            <InfoCard sx={{ p: 2 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                เงินมัดจำ
-                              </Typography>
-                              <Typography variant="body1" fontWeight={700}>
-                                {formatTHB(invoice.deposit_amount)}
-                                {invoice.deposit_percentage && ` (${invoice.deposit_percentage}%)`}
-                              </Typography>
-                            </InfoCard>
-                          </Grid>
-                        )}
-                      </Grid>
-                    )}
-                  </Box>
-                </Section>
-              </Grid>
-            )}
 
-            {/* Notes */}
-            <Grid item xs={12}>
-              <Section>
-                <SectionHeader>
-                  <Avatar
-                    sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                  >
-                    📝
-                  </Avatar>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      หมายเหตุ
-                    </Typography>
-                    {!isEditing && (
-                      <SecondaryButton size="small" onClick={enterEditMode}>
-                        แก้ไข
-                      </SecondaryButton>
-                    )}
-                  </Box>
-                </SectionHeader>
-                <Box sx={{ p: 2 }}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="หมายเหตุ"
-                    value={isEditing ? notes : invoice.notes || ""}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="เพิ่มหมายเหตุสำหรับใบแจ้งหนี้นี้..."
-                    variant={isEditing ? "outlined" : "filled"}
-                    InputProps={{ readOnly: !isEditing }}
-                  />
-                </Box>
-              </Section>
-            </Grid>
-          </Grid>
-        </Box>
-      </DetailDialog>
+                      {/* 3. เพิ่ม Calculation Summary */}
+                      <Calculation
+                        subtotal={calculation.subtotal}
+                        discountAmount={calculation.discountUsed}
+                        discountedBase={calculation.effectiveSubtotal}
+                        vat={calculation.vatAmount}
+                        totalAfterVat={calculation.totalAmount}
+                        withholdingAmount={calculation.withholdingTaxAmount}
+                        finalTotal={calculation.finalTotalAmount}
+                        vatPercentage={formData.vat_percentage}
+                        hasVat={formData.has_vat}
+                      />
+                    </Box>
+                  </Section>
+                </Grid>
+
+                {/* === Section 3: เงื่อนไขการชำระเงิน === */}
+                <Grid item xs={12}>
+                  <Section>
+                    <SectionHeader>
+                      <Avatar
+                        sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                      >
+                        <PaymentIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        เงื่อนไขการชำระเงิน
+                      </Typography>
+                    </SectionHeader>
+                    <Box sx={{ p: 2 }}>
+                      <PaymentTerms
+                        isEditing={isEditing}
+                        paymentTermsType={formData.payment_terms || "cash"}
+                        paymentTermsCustom={formData.payment_method || ""}
+                        onChangePaymentTermsType={(v) =>
+                          isEditing && handleFieldChange("payment_terms", v)
+                        }
+                        onChangePaymentTermsCustom={(v) =>
+                          isEditing && handleFieldChange("payment_method", v)
+                        }
+                        depositMode={formData.deposit_mode}
+                        onChangeDepositMode={(v) =>
+                          isEditing && handleFieldChange("deposit_mode", v)
+                        }
+                        depositPercentage={formData.deposit_percentage}
+                        depositAmountInput={formData.deposit_amount}
+                        onChangeDepositPercentage={(v) =>
+                          isEditing &&
+                          handleFieldChange(
+                            "deposit_percentage",
+                            Math.max(0, Math.min(100, Number(v) || 0))
+                          )
+                        }
+                        onChangeDepositAmount={(v) =>
+                          isEditing &&
+                          handleFieldChange("deposit_amount", Math.max(0, Number(v) || 0))
+                        }
+                        isCredit={
+                          formData.payment_terms === "credit_30" ||
+                          formData.payment_terms === "credit_60"
+                        }
+                        dueDateNode={
+                          formData.payment_terms === "credit_30" ||
+                          formData.payment_terms === "credit_60" ? (
+                            <>
+                              <Grid item xs={6}>
+                                <Typography>วันครบกำหนด</Typography>
+                              </Grid>
+                              <Grid item xs={6}>
+                                {isEditing ? (
+                                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <DatePicker
+                                      value={formData.due_date ? new Date(formData.due_date) : null}
+                                      onChange={(newVal) =>
+                                        handleFieldChange(
+                                          "due_date",
+                                          newVal ? newVal.toISOString().split("T")[0] : null
+                                        )
+                                      }
+                                      slotProps={{ textField: { size: "small", fullWidth: true } }}
+                                    />
+                                  </LocalizationProvider>
+                                ) : (
+                                  <Typography textAlign="right" fontWeight={700}>
+                                    {formatDateTH(invoice?.due_date)}
+                                  </Typography>
+                                )}
+                              </Grid>
+                            </>
+                          ) : null
+                        }
+                        finalTotal={calculation.finalTotalAmount}
+                        depositAmount={calculation.depositAmount}
+                        remainingAmount={calculation.remainingAmount}
+                      />
+
+                      {/* Notes Field */}
+                      <Box sx={{ mt: 2 }}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          label="หมายเหตุ"
+                          value={notes}
+                          disabled={!isEditing}
+                          onChange={(e) => setNotes(e.target.value)}
+                        />
+                      </Box>
+                    </Box>
+                  </Section>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions>{actions}</DialogActions>
+      </Dialog>
 
       {/* PDF Viewer Dialog */}
-      <DetailDialog
-        open={showPdfViewer}
-        onClose={() => setShowPdfViewer(false)}
-        title="ดูตัวอย่าง PDF ใบแจ้งหนี้"
-        maxWidth="lg"
-        actions={
-          <>
-            {pdfUrl && (
-              <SecondaryButton onClick={() => window.open(pdfUrl, "_blank")}>
-                เปิดในแท็บใหม่
-              </SecondaryButton>
-            )}
-            <SecondaryButton onClick={() => setShowPdfViewer(false)}>ปิด</SecondaryButton>
-          </>
-        }
-      >
-        {pdfUrl ? (
-          <iframe
-            title="invoice-pdf"
-            src={pdfUrl}
-            style={{ width: "100%", height: "80vh", border: 0 }}
-          />
-        ) : (
-          <Box display="flex" alignItems="center" gap={1} p={2}>
-            <Typography variant="body2">ไม่พบไฟล์ PDF</Typography>
-          </Box>
-        )}
-      </DetailDialog>
+      <Dialog open={showPdfViewer} onClose={() => setShowPdfViewer(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>ดูตัวอย่าง PDF ใบแจ้งหนี้</DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {pdfUrl ? (
+            <iframe
+              title="invoice-pdf"
+              src={pdfUrl}
+              style={{ width: "100%", height: "80vh", border: 0 }}
+            />
+          ) : (
+            <Box display="flex" alignItems="center" gap={1} p={2}>
+              <CircularProgress size={22} />
+              <Typography variant="body2">กำลังโหลดตัวอย่าง PDF…</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {pdfUrl && (
+            <SecondaryButton onClick={() => window.open(pdfUrl, "_blank")}>
+              เปิดในแท็บใหม่
+            </SecondaryButton>
+          )}
+          <SecondaryButton onClick={() => setShowPdfViewer(false)}>ปิด</SecondaryButton>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

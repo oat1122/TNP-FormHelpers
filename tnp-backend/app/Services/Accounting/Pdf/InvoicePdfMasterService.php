@@ -241,6 +241,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
                 'unit_price' => $itemData['unit_price'],
                 'discount_amount' => $itemData['discount_amount'],
                 'item_description' => $itemData['item_description'],
+                'notes' => $itemData['notes'] ?? null,
             ];
         }
 
@@ -273,6 +274,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
             'item_description' => $isInvoiceItem
                 ? ($item['item_description'] ?? null)
                 : ($item['description'] ?? null),
+            'notes' => $item['notes'] ?? null,
         ];
     }
 

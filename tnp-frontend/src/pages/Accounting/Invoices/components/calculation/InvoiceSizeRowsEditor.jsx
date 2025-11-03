@@ -104,11 +104,16 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
     onChangeRow?.(itemIndex, rowIndex, "size", value);
   };
 
+  const handleNotesChange = (rowIndex, value) => {
+    onChangeRow?.(itemIndex, rowIndex, "notes", value);
+  };
+
   const handleAddRow = () => {
     onAddRow?.(itemIndex, {
       size: "",
       quantity: 0,
       unitPrice: 0,
+      notes: "",
     });
   };
 
@@ -141,6 +146,7 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
               <TableCell align="right">จำนวน</TableCell>
               <TableCell align="right">ราคาต่อหน่วย</TableCell>
               <TableCell align="right">รวม</TableCell>
+              <TableCell>หมายเหตุ</TableCell>
               {isEditing && (
                 <TableCell align="center" width={60}>
                   ลบ
@@ -223,6 +229,29 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
                       {formatTHB(lineTotal)}
                     </Typography>
                   </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        multiline
+                        maxRows={2}
+                        value={row.notes || ""}
+                        onChange={(e) => handleNotesChange(rowIndex, e.target.value)}
+                        placeholder="หมายเหตุ (ถ้ามี)"
+                        sx={{
+                          minWidth: 150,
+                          "& .MuiOutlinedInput-input": {
+                            padding: "8.5px 14px",
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                        {row.notes || "-"}
+                      </Typography>
+                    )}
+                  </TableCell>
                   {isEditing && (
                     <TableCell align="center">
                       <IconButton
@@ -247,6 +276,7 @@ const InvoiceSizeRowsEditor = React.memo(function InvoiceSizeRowsEditor({
               <TableCell align="right" sx={{ fontWeight: 700, color: tokens.primary }}>
                 {formatTHB(totalAmount)}
               </TableCell>
+              <TableCell />
               {isEditing && <TableCell />}
             </TableRow>
           </TableBody>

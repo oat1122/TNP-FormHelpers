@@ -269,7 +269,10 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                           )}
                         </Box>
                       </Box>
-                      {(customer.contact_name || customer.cus_email) && (
+                      {(customer.contact_name ||
+                        customer.cus_email ||
+                        customer.cus_tax_id ||
+                        customer.cus_address) && (
                         <Grid container spacing={1}>
                           {customer.contact_name && (
                             <Grid item xs={12} md={4}>

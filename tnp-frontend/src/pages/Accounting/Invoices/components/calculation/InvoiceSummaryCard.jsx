@@ -16,16 +16,16 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import React from "react";
-
-import InvoiceSizeRowsEditor from "./InvoiceSizeRowsEditor";
 
 const tokens = {
   primary: "#900F0F",
   white: "#FFFFFF",
   bg: "#F5F5F5",
+  border: "#E0E0E0",
 };
 
 const InvoiceCard = styled(Card)(({ theme }) => ({
@@ -107,6 +107,24 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
 
   const handleItemChange = (field, value) => {
     onChangeItem?.(index, field, value);
+  };
+
+  // Sanitizer helpers
+  const sanitizeInt = (val) => {
+    if (val == null) return "";
+    let s = String(val);
+    s = s.replace(/[^0-9]/g, "");
+    return s;
+  };
+
+  const sanitizeDecimal = (val) => {
+    if (val == null) return "";
+    let s = String(val);
+    s = s.replace(/,/g, ".");
+    s = s.replace(/[^0-9.]/g, "");
+    const parts = s.split(".");
+    if (parts.length <= 1) return s;
+    return `${parts[0]}.${parts.slice(1).join("").replace(/\./g, "")}`;
   };
 
   return (
@@ -219,23 +237,171 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
           </Grid>
         </Grid>
 
-        {/* Size Details Section - Use InvoiceSizeRowsEditor */}
-        <Box sx={{ mt: 2 }}>
-          <InvoiceSizeRowsEditor
-            rows={item.sizeRows || []}
-            isEditing={isEditing}
-            onAddRow={onAddRow}
-            onChangeRow={onChangeRow}
-            onRemoveRow={onRemoveRow}
-            itemIndex={index}
-            unit={unit}
-          />
+        {/* Size Details Section - Grid Layout */}
+        <Box
+          sx={{
+            mt: 2,
+            p: 1.5,
+            border: `1px dashed ${tokens.border}`,
+            borderRadius: 1,
+            bgcolor: tokens.bg,
+          }}
+        >
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              แยกตามขนาด
+            </Typography>
+            {isEditing && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon fontSize="small" />}
+                onClick={() => onAddRow?.(index)}
+              >
+                เพิ่มแถว
+              </Button>
+            )}
+          </Box>
+
+          {/* Grid Header */}
+          <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
+            <Grid item xs={12} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                ขนาด
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                จำนวน
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                ราคาต่อหน่วย
+              </Typography>
+            </Grid>
+            <Grid item xs={10} md={2}>
+              <Typography variant="caption" color="text.secondary">
+                ยอดรวม
+              </Typography>
+            </Grid>
+            <Grid item xs={2} md={1}></Grid>
+          </Grid>
+
+          {/* Grid Rows */}
+          {(item.sizeRows || []).length === 0 ? (
+            <Box sx={{ p: 1, color: "text.secondary" }}>
+              <Typography variant="body2">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={1}>
+              {(item.sizeRows || []).map((row, rowIndex) => (
+                <React.Fragment key={row.uuid || rowIndex}>
+                  <Grid item xs={12} md={3}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      inputProps={{ inputMode: "text" }}
+                      label="ขนาด"
+                      value={row.size || ""}
+                      disabled={!isEditing}
+                      onChange={(e) => onChangeRow?.(index, rowIndex, "size", e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="จำนวน"
+                      type="text"
+                      inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                      value={row.quantity ?? ""}
+                      disabled={!isEditing}
+                      onChange={(e) =>
+                        onChangeRow?.(index, rowIndex, "quantity", sanitizeInt(e.target.value))
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={6} md={3}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="ราคาต่อหน่วย"
+                      type="text"
+                      inputProps={{ inputMode: "decimal" }}
+                      value={row.unitPrice ?? ""}
+                      disabled={!isEditing}
+                      onChange={(e) =>
+                        onChangeRow?.(index, rowIndex, "unitPrice", sanitizeDecimal(e.target.value))
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={10} md={2}>
+                    <Box
+                      sx={{
+                        p: 1,
+                        bgcolor: "#fff",
+                        border: `1px solid ${tokens.border}`,
+                        borderRadius: 1,
+                        textAlign: "center",
+                        minHeight: "40px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={700}>
+                        {(() => {
+                          const q = Number(row.quantity || 0);
+                          const p = Number(row.unitPrice || 0);
+                          const val = isNaN(q) || isNaN(p) ? 0 : q * p;
+                          return formatTHB(val);
+                        })()}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={2} md={1}>
+                    {isEditing && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => onRemoveRow?.(index, rowIndex)}
+                        sx={{ mt: 0.5 }}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="หมายเหตุ (บรรทัดนี้)"
+                      multiline
+                      minRows={1}
+                      value={row.notes || ""}
+                      disabled={!isEditing}
+                      onChange={(e) => onChangeRow?.(index, rowIndex, "notes", e.target.value)}
+                    />
+                  </Grid>
+                </React.Fragment>
+              ))}
+            </Grid>
+          )}
         </Box>
 
         {/* Total Summary */}
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={6} md={4}>
-            <Box sx={{ textAlign: "right" }}>
+          <Grid item xs={12} md={4} sx={{ ml: "auto" }}>
+            <Box
+              sx={{
+                p: 1.5,
+                border: `1px solid ${tokens.border}`,
+                borderRadius: 1.5,
+                textAlign: "center",
+                bgcolor: tokens.bg,
+              }}
+            >
               <Typography variant="caption" color="text.secondary">
                 ยอดรวม
               </Typography>

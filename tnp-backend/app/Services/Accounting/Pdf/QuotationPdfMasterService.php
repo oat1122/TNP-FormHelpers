@@ -137,6 +137,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
                 'unit_price' => (float)($item->unit_price ?? 0),
                 'discount_amount' => (float)($item->discount_amount ?? 0),
                 'description' => $item->item_description,
+                'notes' => $item->notes ?? null,
             ];
         }
 

@@ -296,8 +296,8 @@ const PricingIntegration = () => {
     try {
       console.log("🔍 Debug - Data from Modal:", data);
       console.log("📋 Selected Pricing IDs:", data.pricingRequestIds);
-      console.log("� Customer from Modal:", data.customer);
-      console.log("�🗂️ All Pricing Requests Data:", pricingRequests?.data);
+      console.log("Customer from Modal:", data.customer);
+      console.log("🗂️ All Pricing Requests Data:", pricingRequests?.data);
 
       setShowCreateModal(false);
 
@@ -385,7 +385,7 @@ const PricingIntegration = () => {
             sequence_order: (index + 1) * 100 + (rIndex + 1),
             // use selected unit from form; let backend/db default if empty
             unit: item.unit ?? "",
-            notes: item.notes || "",
+            notes: row.notes || "",
           }));
         }
         return [
@@ -494,7 +494,7 @@ const PricingIntegration = () => {
             quantity: parseInt(row.quantity, 10) || 0,
             sequence_order: (index + 1) * 100 + (rIndex + 1),
             unit: item.unit ?? "",
-            notes: item.notes || "",
+            notes: row.notes || "",
           }));
         }
         return [

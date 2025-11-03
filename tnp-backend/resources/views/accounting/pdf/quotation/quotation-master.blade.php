@@ -61,6 +61,7 @@
             $amount=$qty*$price; 
             $items[]=[
               'desc'=> ($r['size']?:'-'),
+              'notes' => $r['notes'] ?? null,
               'qty'=>$qty,
               'unit'=>$unit,
               'price'=>$price,
@@ -108,7 +109,12 @@
             {{-- แถวรายการย่อย (child) --}}
             @foreach($g['items'] as $it)
               <tr class="item-row">
-                <td class="desc child">{{ $it['desc'] }} </td>
+                <td class="desc child">
+                  {{ $it['desc'] }}
+                  @if(!empty($it['notes']))
+                    <span class="item-note-inline" style="color: #888;"> {{ $it['notes'] }}</span>
+                  @endif
+                </td>
                 {{-- สลับ td จำนวน และ ราคาต่อหน่วย --}}
                 <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
                 <td class="num">{{ number_format($it['price'], 2) }}</td>

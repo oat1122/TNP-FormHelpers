@@ -65,7 +65,8 @@
               'amount'=>$amount,
               'discount_amount'=>$discountAmount,
               'final_amount'=>$finalAmount,
-              'item_description'=>$r['item_description'] ?? null
+              'item_description'=>$r['item_description'] ?? null,
+              'notes' => $r['notes'] ?? null,
             ]; 
           }
           $groupsData[]=[
@@ -109,9 +110,13 @@
               <tr class="item-row">
                 <td class="desc child">
                   {{ $it['desc'] }}
-                  @if(!empty($it['item_description']))
-                    <br/><small class="item-description">{{ $it['item_description'] }}</small>
+                  @if(!empty($it['notes']))
+                    <span class="item-note-inline" style="color: #888;"> {{ $it['notes'] }}</span>
                   @endif
+
+                  {{-- @if(!empty($it['item_description']))
+                    <br/><small class="item-description">{{ $it['item_description'] }}</small>
+                  @endif --}}
                 </td>
                 {{-- สลับคอลัมน์ จำนวน และ ราคาต่อหน่วย --}}
                 <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>

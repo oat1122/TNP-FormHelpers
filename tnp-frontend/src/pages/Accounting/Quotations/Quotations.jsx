@@ -47,6 +47,7 @@ import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationCard from "./components/QuotationCard";
 // ApprovalPanel removed along with Drawer UI
 import QuotationDetailDialog from "./components/QuotationDetailDialog";
+import QuotationStandaloneCreateDialog from "./components/QuotationStandaloneCreateDialog";
 import usePagination from "./hooks/usePagination";
 import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
 
@@ -72,6 +73,7 @@ const Quotations = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [standaloneCreateOpen, setStandaloneCreateOpen] = useState(false);
 
   // ✅ เพิ่ม state เพื่อติดตามการบันทึก
   const [lastSavedId, setLastSavedId] = useState(null);
@@ -97,20 +99,21 @@ const Quotations = () => {
     });
   }, [data]);
 
-  // Filter out quotations without any linked pricing request (global filter affects pagination totals)
-  const hasPR = useCallback((q) => {
-    const set = new Set();
-    if (Array.isArray(q?.items))
-      q.items.forEach((it) => {
-        if (it?.pricing_request_id) set.add(it.pricing_request_id);
-      });
-    if (q?.primary_pricing_request_id) set.add(q.primary_pricing_request_id);
-    if (Array.isArray(q?.primary_pricing_request_ids))
-      q.primary_pricing_request_ids.forEach((id) => id && set.add(id));
-    return set.size > 0;
-  }, []);
+  // ✅ ลบการกรองที่ต้องมี PR - ให้แสดง quotations ทั้งหมด
+  // const hasPR = useCallback((q) => {
+  //   const set = new Set();
+  //   if (Array.isArray(q?.items))
+  //     q.items.forEach((it) => {
+  //       if (it?.pricing_request_id) set.add(it.pricing_request_id);
+  //     });
+  //   if (q?.primary_pricing_request_id) set.add(q.primary_pricing_request_id);
+  //   if (Array.isArray(q?.primary_pricing_request_ids))
+  //     q.primary_pricing_request_ids.forEach((id) => id && set.add(id));
+  //   return set.size > 0;
+  // }, []);
 
-  const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
+  // const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
+  const validQuotations = useMemo(() => quotations, [quotations]); // ✅ แสดงทั้งหมด
 
   const {
     pageData: paginated,
@@ -258,7 +261,15 @@ const Quotations = () => {
               return (
                 <>
                   {canManageCompanies && (
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mb: 2 }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => setStandaloneCreateOpen(true)}
+                      >
+                        + สร้างใบเสนอราคาใหม่
+                      </Button>
                       <Button
                         variant="outlined"
                         size="small"
@@ -373,6 +384,21 @@ const Quotations = () => {
             open={createInvoiceOpen}
             onClose={() => setCreateInvoiceOpen(false)}
             quotationId={selectedQuotation?.id}
+          />
+          <QuotationStandaloneCreateDialog
+            open={standaloneCreateOpen}
+            onClose={() => setStandaloneCreateOpen(false)}
+            onSuccess={(quotation) => {
+              setLastSavedId(quotation.id);
+              refetch();
+              dispatch(
+                addNotification({
+                  type: "success",
+                  message: `สร้างใบเสนอราคา ${quotation.number} สำเร็จ`,
+                })
+              );
+            }}
+            companyId={filters.company}
           />
           {/* Floating Action Button */}
           <FloatingActionButton onRefresh={handleRefresh} />

@@ -55,6 +55,42 @@ export const accountingApi = createApi({
       invalidatesTags: [{ type: "Company", id: "LIST" }],
     }),
 
+    // ===================== CUSTOMERS =====================
+    getCustomers: builder.query({
+      query: (params = {}) => {
+        // Get user data from localStorage
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.user_id || "";
+
+        return {
+          url: "/customers",
+          params: {
+            user: userId,
+            search: params.search || "",
+            per_page: params.per_page || 50,
+            page: params.page || 1,
+            group: "all",
+          },
+        };
+      },
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...(Array.isArray(result.data) ? result.data : []).map(({ cus_id }) => ({
+                type: "Customer",
+                id: cus_id,
+              })),
+              { type: "Customer", id: "LIST" },
+            ]
+          : [{ type: "Customer", id: "LIST" }],
+      keepUnusedDataFor: 300,
+      transformResponse: (response) => {
+        // Response structure: { data: [...], groups: [...], total_count: n, pagination: {...} }
+        // We just need the data array
+        return { data: response?.data || [] };
+      },
+    }),
+
     // ===================== PRICING REQUESTS =====================
     getCompletedPricingRequests: builder.query({
       query: (params = {}) => {
@@ -97,16 +133,15 @@ export const accountingApi = createApi({
           const items = Array.isArray(response?.data)
             ? response.data
             : Array.isArray(response)
-            ? response
-            : [];
+              ? response
+              : [];
           items.forEach((item) => {
             if (item?.pr_id && item?.autofill) {
               dispatch(
-                accountingApi.util.upsertQueryData(
-                  "getPricingRequestAutofill",
-                  item.pr_id,
-                  () => ({ success: true, data: item.autofill })
-                )
+                accountingApi.util.upsertQueryData("getPricingRequestAutofill", item.pr_id, () => ({
+                  success: true,
+                  data: item.autofill,
+                }))
               );
             }
           });
@@ -119,27 +154,27 @@ export const accountingApi = createApi({
       query: (id) => `/pricing-requests/${id}/autofill`,
       providesTags: (r, e, id) => [{ type: "PricingRequest", id }],
       keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง เพราะไม่ค่อยเปลี่ยน
-      
+
       // 🔥 Performance: ป้องกัน refetch ซ้ำ
       merge: (currentCache, newItems) => newItems,
     }),
     getBulkPricingRequestAutofill: builder.query({
       query: (prIds) => {
         // ✅ Validate and convert to integers
-        const validIds = Array.isArray(prIds) 
-          ? prIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+        const validIds = Array.isArray(prIds)
+          ? prIds.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
           : [];
-        
+
         return {
           url: `/pricing-requests/bulk-autofill`,
-          method: 'POST',
+          method: "POST",
           body: { ids: validIds },
         };
       },
       providesTags: (result, error, prIds) =>
         (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
       keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง
-      
+
       // 🔥 Optimize: ป้องกันการ fetch ซ้ำถ้า prIds เหมือนกัน
       serializeQueryArgs: ({ queryArgs }) => {
         // queryArgs คือ prIds array ที่ส่งเข้ามา
@@ -149,7 +184,7 @@ export const accountingApi = createApi({
         }
         return JSON.stringify([...queryArgs].sort());
       },
-      
+
       // 🔥 Optimize: Force refetch เฉพาะเมื่อ prIds เปลี่ยน
       forceRefetch: ({ currentArg, previousArg }) => {
         if (!Array.isArray(currentArg) || !Array.isArray(previousArg)) {
@@ -159,7 +194,7 @@ export const accountingApi = createApi({
         const previous = JSON.stringify([...previousArg].sort());
         return current !== previous;
       },
-      
+
       // 🔥 Performance: ป้องกัน refetch ซ้ำเมื่อ component mount/unmount
       // RTK Query จะ reuse cache แทนการยิง API ใหม่
       merge: (currentCache, newItems) => {
@@ -201,6 +236,37 @@ export const accountingApi = createApi({
         },
       }),
       invalidatesTags: ["Quotation", "PricingRequest", "Dashboard"],
+    }),
+    /**
+     * สร้างใบเสนอราคาแบบ Standalone (ไม่ต้องอิง Pricing Request)
+     * @param {Object} data - ข้อมูลใบเสนอราคา
+     * @param {string} data.company_id - รหัสบริษัท (required)
+     * @param {string} data.customer_id - รหัสลูกค้า (required)
+     * @param {string} data.work_name - ชื่องาน (required)
+     * @param {Array} data.items - รายการสินค้า (required, min 1 item)
+     * @param {number} [data.special_discount_percentage] - ส่วนลดพิเศษ %
+     * @param {number} [data.special_discount_amount] - จำนวนส่วนลดพิเศษ
+     * @param {boolean} [data.has_vat=true] - มี VAT หรือไม่
+     * @param {number} [data.vat_percentage=7] - เปอร์เซ็นต์ VAT
+     * @param {boolean} [data.has_withholding_tax=false] - หักภาษี ณ ที่จ่าย
+     * @param {number} [data.withholding_tax_percentage] - เปอร์เซ็นต์ภาษีหัก ณ ที่จ่าย
+     * @param {string} [data.deposit_mode='percentage'] - โหมดมัดจำ: 'percentage' | 'amount'
+     * @param {number} [data.deposit_percentage] - เปอร์เซ็นต์มัดจำ
+     * @param {number} [data.deposit_amount] - จำนวนมัดจำ
+     * @param {string} [data.payment_terms] - เงื่อนไขการชำระเงิน
+     * @param {string} [data.due_date] - วันครบกำหนด (YYYY-MM-DD)
+     * @param {string} [data.notes] - หมายเหตุ
+     * @param {string} [data.document_header_type='ต้นฉบับ'] - ประเภทหัวกระดาษ
+     * @param {Array} [data.sample_images] - รูปภาพตัวอย่าง
+     * @returns {Promise<Object>} Quotation object พร้อม relations
+     */
+    createStandaloneQuotation: builder.mutation({
+      query: (data) => ({
+        url: "/quotations/create-standalone",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Quotation", "Dashboard"],
     }),
     updateQuotation: builder.mutation({
       query: ({ id, ...data }) => ({ url: `/quotations/${id}`, method: "PUT", body: data }),
@@ -647,6 +713,8 @@ export const {
   useCreateCompanyMutation,
   useUpdateCompanyMutation,
   useDeleteCompanyMutation,
+  // Customers
+  useGetCustomersQuery,
   // Pricing
   useGetCompletedPricingRequestsQuery,
   useGetPricingRequestAutofillQuery,
@@ -657,6 +725,7 @@ export const {
   useCreateQuotationMutation,
   useCreateQuotationFromPricingMutation,
   useCreateQuotationFromMultiplePricingMutation,
+  useCreateStandaloneQuotationMutation,
   useUpdateQuotationMutation,
   useDeleteQuotationMutation,
   useSubmitQuotationMutation,

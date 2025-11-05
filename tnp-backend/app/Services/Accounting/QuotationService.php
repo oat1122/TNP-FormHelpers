@@ -250,6 +250,191 @@ class QuotationService
     }
 
     /**
+     * สร้างใบเสนอราคาแบบ Standalone (ไม่ต้องอิง Pricing Request)
+     * รองรับการกรอกข้อมูลครบถ้วนเพื่อใช้ในการสร้าง PDF
+     * @param array<string,mixed> $data
+     * @param string|null $createdBy
+     * @return Quotation
+     */
+    public function createStandalone(array $data, $createdBy = null): Quotation
+    {
+        try {
+            DB::beginTransaction();
+
+            // ดึงข้อมูล Customer
+            $customer = \App\Models\MasterCustomer::findOrFail($data['customer_id']);
+            
+            // สร้าง customer_snapshot สำหรับใช้ในการสร้าง PDF
+            $customerSnapshot = [
+                'cus_id' => $customer->cus_id,
+                'cus_company' => $customer->cus_company,
+                'cus_firstname' => $customer->cus_firstname,
+                'cus_lastname' => $customer->cus_lastname,
+                'cus_tax_id' => $customer->cus_tax_id,
+                'cus_tel_1' => $customer->cus_tel_1,
+                'cus_tel_2' => $customer->cus_tel_2,
+                'cus_email' => $customer->cus_email,
+                'cus_address' => $customer->cus_address,
+                'cus_zip_code' => $customer->cus_zip_code,
+                'cus_depart' => $customer->cus_depart,
+            ];
+
+            // คำนวณ subtotal จาก items
+            $subtotal = 0;
+            foreach ($data['items'] as $item) {
+                $unitPrice = (float) ($item['unit_price'] ?? 0);
+                $quantity = (int) ($item['quantity'] ?? 0);
+                $discountAmount = (float) ($item['discount_amount'] ?? 0);
+                $discountPercentage = (float) ($item['discount_percentage'] ?? 0);
+                
+                $itemSubtotal = $unitPrice * $quantity;
+                
+                // คำนวณส่วนลด
+                if ($discountAmount > 0) {
+                    $itemSubtotal -= $discountAmount;
+                } elseif ($discountPercentage > 0) {
+                    $itemSubtotal -= ($itemSubtotal * $discountPercentage / 100);
+                }
+                
+                $subtotal += max(0, $itemSubtotal);
+            }
+
+            // คำนวณส่วนลดพิเศษ
+            $specialDiscountPercentage = (float) ($data['special_discount_percentage'] ?? 0);
+            $specialDiscountAmount = (float) ($data['special_discount_amount'] ?? 0);
+            
+            if ($specialDiscountAmount <= 0 && $specialDiscountPercentage > 0) {
+                $specialDiscountAmount = $subtotal * $specialDiscountPercentage / 100;
+            } elseif ($specialDiscountPercentage <= 0 && $specialDiscountAmount > 0) {
+                $specialDiscountPercentage = $subtotal > 0 ? ($specialDiscountAmount / $subtotal * 100) : 0;
+            }
+
+            $subtotalAfterDiscount = $subtotal - $specialDiscountAmount;
+
+            // คำนวณ VAT
+            $hasVat = $data['has_vat'] ?? true;
+            $vatPercentage = $hasVat ? (float) ($data['vat_percentage'] ?? 7.00) : 0;
+            $vatAmount = $subtotalAfterDiscount * $vatPercentage / 100;
+
+            // คำนวณ total_amount
+            $totalAmount = $subtotalAfterDiscount + $vatAmount;
+
+            // คำนวณภาษีหัก ณ ที่จ่าย
+            $hasWithholdingTax = $data['has_withholding_tax'] ?? false;
+            $withholdingTaxPercentage = $hasWithholdingTax ? (float) ($data['withholding_tax_percentage'] ?? 0) : 0;
+            $withholdingTaxAmount = $subtotalAfterDiscount * $withholdingTaxPercentage / 100;
+
+            // คำนวณยอดสุทธิสุดท้าย
+            $finalTotalAmount = $totalAmount - $withholdingTaxAmount;
+
+            // คำนวณเงินมัดจำ
+            $depositMode = $data['deposit_mode'] ?? 'percentage';
+            $depositPercentage = 0;
+            $depositAmount = 0;
+            
+            if ($depositMode === 'percentage') {
+                $depositPercentage = (float) ($data['deposit_percentage'] ?? 0);
+                // คำนวณ deposit จาก subtotal หลังหักส่วนลดพิเศษ (ก่อน VAT)
+                $depositAmount = $subtotalAfterDiscount * $depositPercentage / 100;
+            } else {
+                $depositAmount = (float) ($data['deposit_amount'] ?? 0);
+                $depositPercentage = $subtotalAfterDiscount > 0 ? ($depositAmount / $subtotalAfterDiscount * 100) : 0;
+            }
+
+            // สร้างเลขที่ใบเสนอราคา
+            $quotationNumber = Quotation::generateQuotationNumber($data['company_id']);
+
+            // สร้าง Quotation
+            $quotation = Quotation::create([
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'company_id' => $data['company_id'],
+                'number' => $quotationNumber,
+                'customer_id' => $data['customer_id'],
+                'customer_snapshot' => $customerSnapshot,
+                'work_name' => $data['work_name'],
+                'status' => 'draft',
+                'subtotal' => round($subtotal, 2),
+                'special_discount_percentage' => round($specialDiscountPercentage, 2),
+                'special_discount_amount' => round($specialDiscountAmount, 2),
+                'has_vat' => $hasVat,
+                'vat_percentage' => round($vatPercentage, 2),
+                'vat_amount' => round($vatAmount, 2),
+                'tax_amount' => round($vatAmount, 2), // alias for backward compatibility
+                'has_withholding_tax' => $hasWithholdingTax,
+                'withholding_tax_percentage' => round($withholdingTaxPercentage, 2),
+                'withholding_tax_amount' => round($withholdingTaxAmount, 2),
+                'total_amount' => round($totalAmount, 2),
+                'final_total_amount' => round($finalTotalAmount, 2),
+                'deposit_mode' => $depositMode,
+                'deposit_percentage' => round($depositPercentage, 2),
+                'deposit_amount' => round($depositAmount, 2),
+                'payment_terms' => $data['payment_terms'] ?? null,
+                'due_date' => $data['due_date'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'document_header_type' => $data['document_header_type'] ?? 'ต้นฉบับ',
+                'sample_images' => $data['sample_images'] ?? null,
+                'created_by' => $createdBy,
+            ]);
+
+            // สร้าง Quotation Items
+            foreach ($data['items'] as $index => $itemData) {
+                $unitPrice = (float) ($itemData['unit_price'] ?? 0);
+                $quantity = (int) ($itemData['quantity'] ?? 0);
+                $discountPercentageItem = (float) ($itemData['discount_percentage'] ?? 0);
+                $discountAmountItem = (float) ($itemData['discount_amount'] ?? 0);
+                
+                // ถ้าไม่มี discount_amount แต่มี discount_percentage ให้คำนวณ
+                if ($discountAmountItem <= 0 && $discountPercentageItem > 0) {
+                    $discountAmountItem = ($unitPrice * $quantity) * $discountPercentageItem / 100;
+                }
+
+                QuotationItem::create([
+                    'id' => \Illuminate\Support\Str::uuid()->toString(),
+                    'quotation_id' => $quotation->id,
+                    'pricing_request_id' => null, // Standalone ไม่มี PR
+                    'item_name' => $itemData['item_name'],
+                    'item_description' => $itemData['item_description'] ?? null,
+                    'sequence_order' => $itemData['sequence_order'] ?? ($index + 1),
+                    'pattern' => $itemData['pattern'] ?? null,
+                    'fabric_type' => $itemData['fabric_type'] ?? null,
+                    'color' => $itemData['color'] ?? null,
+                    'size' => $itemData['size'] ?? null,
+                    'unit_price' => $unitPrice,
+                    'quantity' => $quantity,
+                    'unit' => $itemData['unit'] ?? 'ชิ้น',
+                    'discount_percentage' => $discountPercentageItem,
+                    'discount_amount' => $discountAmountItem,
+                    'notes' => $itemData['notes'] ?? null,
+                    'status' => 'draft',
+                    'created_by' => $createdBy,
+                ]);
+            }
+
+            // บันทึก Document History
+            DocumentHistory::create([
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'document_type' => 'quotation',
+                'document_id' => $quotation->id,
+                'action' => 'created',
+                'description' => 'Quotation created (standalone mode)',
+                'action_by' => $createdBy,
+            ]);
+
+            DB::commit();
+
+            // โหลดความสัมพันธ์ทั้งหมดก่อน return
+            $quotation->load(['customer', 'company', 'items', 'creator']);
+
+            return $quotation;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::createStandalone error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * สร้าง Quotation จาก Multiple Pricing Requests
      * @param mixed $pricingRequestIds
      * @param mixed $customerId

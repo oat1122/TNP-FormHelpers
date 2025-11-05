@@ -61,7 +61,8 @@ export default function QuotationCard({
     onApprove,
   } = useQuotationCardLogic(data, onActionSuccess); // ✅ ส่ง prop ต่อไปให้ hook
 
-  if ((prIds?.length || 0) === 0 || deleted) {
+  // ✅ ลบเงื่อนไขที่ return null เมื่อไม่มี prIds
+  if (deleted) {
     return null;
   }
 
@@ -154,7 +155,7 @@ export default function QuotationCard({
 
         <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>
 
-        {prIds.length > 0 && (
+        {prIds.length > 0 ? (
           <Box sx={{ mt: 1.5 }}>
             <Stack spacing={1.2}>
               {prIds.slice(0, 3).map((id) => (
@@ -181,6 +182,12 @@ export default function QuotationCard({
                 </Box>
               </>
             )}
+          </Box>
+        ) : (
+          <Box sx={{ mt: 1.5 }}>
+            <TNPBodyText color="text.secondary" sx={{ fontStyle: "italic" }}>
+              ไม่มี Pricing อ้างอิง
+            </TNPBodyText>
           </Box>
         )}
       </TNPCardContent>

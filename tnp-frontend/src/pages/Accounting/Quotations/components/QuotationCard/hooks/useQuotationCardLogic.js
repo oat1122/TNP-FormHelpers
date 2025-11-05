@@ -80,14 +80,15 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
 
   const creatorText = React.useMemo(() => formatUserDisplay(data), [data]);
 
-  React.useEffect(() => {
-    if (!data?.id || deleted) {
-      return;
-    }
-    if ((prIds?.length || 0) === 0) {
-      deleteQuotation(data.id).finally(() => setDeleted(true));
-    }
-  }, [data?.id, prIds, deleted, deleteQuotation]);
+  // ✅ ลบการ auto-delete เมื่อไม่มี pricing request
+  // React.useEffect(() => {
+  //   if (!data?.id || deleted) {
+  //     return;
+  //   }
+  //   if ((prIds?.length || 0) === 0) {
+  //     deleteQuotation(data.id).finally(() => setDeleted(true));
+  //   }
+  // }, [data?.id, prIds, deleted, deleteQuotation]);
 
   const onChangeCompany = React.useCallback(
     async (newCompanyId) => {

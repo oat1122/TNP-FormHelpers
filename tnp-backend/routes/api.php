@@ -265,6 +265,7 @@ Route::prefix('v1')->group(function() {
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
         Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');
+        Route::post('/quotations/create-standalone', 'createStandalone');
     });
 
     // System Status (PDF) - UNUSED

@@ -553,6 +553,77 @@ class QuotationController extends Controller
     }
 
     /**
+     * สร้างใบเสนอราคาแบบ Standalone (ไม่ต้องอิง Pricing Request)
+     * POST /api/v1/quotations/create-standalone
+     */
+    public function createStandalone(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'company_id' => 'required|string|exists:companies,id',
+                'customer_id' => 'required|string|exists:master_customers,cus_id',
+                'work_name' => 'required|string|max:100',
+                'items' => 'required|array|min:1',
+                'items.*.item_name' => 'required|string|max:255',
+                'items.*.item_description' => 'nullable|string',
+                'items.*.pattern' => 'nullable|string|max:255',
+                'items.*.fabric_type' => 'nullable|string|max:255',
+                'items.*.color' => 'nullable|string|max:255',
+                'items.*.size' => 'nullable|string|max:255',
+                'items.*.unit_price' => 'required|numeric|min:0',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.unit' => 'nullable|string|max:50',
+                'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'items.*.discount_amount' => 'nullable|numeric|min:0',
+                'items.*.notes' => 'nullable|string',
+                'items.*.sequence_order' => 'nullable|integer|min:1',
+                // Financial fields
+                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'special_discount_amount' => 'nullable|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'has_withholding_tax' => 'nullable|boolean',
+                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
+                'deposit_mode' => 'nullable|in:percentage,amount',
+                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
+                'deposit_amount' => 'nullable|numeric|min:0',
+                'payment_terms' => 'nullable|string|max:50',
+                'due_date' => 'nullable|date',
+                'notes' => 'nullable|string',
+                'document_header_type' => 'nullable|string|max:50',
+                'sample_images' => 'nullable|array',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $data = $validator->validated();
+            $createdBy = auth()->user()->user_uuid ?? null;
+
+            $quotation = $this->quotationService->createStandalone($data, $createdBy);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $quotation->load(['customer', 'company', 'items', 'creator']),
+                'message' => 'Quotation created successfully'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::createStandalone error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create standalone quotation: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
      * POST /api/v1/quotations/{id}/send-back
      */

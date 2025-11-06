@@ -54,6 +54,13 @@ export const customerApi = createApi({
       },
       providesTags: ["Customer"],
     }),
+    getCustomer: builder.query({
+      query: (customerId) => ({
+        url: `/customers/${customerId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, customerId) => [{ type: "Customer", id: customerId }],
+    }),
     addCustomer: builder.mutation({
       invalidatesTags: ["Customer"],
       query: (payload) => ({
@@ -63,7 +70,10 @@ export const customerApi = createApi({
       }),
     }),
     updateCustomer: builder.mutation({
-      invalidatesTags: ["Customer"],
+      invalidatesTags: (result, error, payload) => [
+        "Customer",
+        { type: "Customer", id: payload.cus_id },
+      ],
       query: (payload) => ({
         url: `/customers/${payload.cus_id}`,
         method: "PUT",
@@ -98,6 +108,8 @@ export const customerApi = createApi({
 
 export const {
   useGetAllCustomerQuery,
+  useGetCustomerQuery,
+  useLazyGetCustomerQuery,
   useAddCustomerMutation,
   useUpdateCustomerMutation,
   useDelCustomerMutation,

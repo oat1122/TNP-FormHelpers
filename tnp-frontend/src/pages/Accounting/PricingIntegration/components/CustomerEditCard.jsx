@@ -35,12 +35,7 @@ import {
 import { styled } from "@mui/material/styles";
 import React, { useState, useEffect, useCallback } from "react";
 
-import {
-  customerApi,
-  validateCustomerData,
-  formatPhoneNumber,
-  formatTaxId,
-} from "./customerApiUtils";
+import { validateCustomerData, formatPhoneNumber, formatTaxId } from "./customerApiUtils";
 import {
   normalizeManagerData,
   hydrateManagerUsername,
@@ -50,6 +45,15 @@ import {
   mergeManagerData,
 } from "./managerUtils";
 import { useGetUserByRoleQuery } from "../../../../features/globalApi";
+import {
+  useGetCustomerQuery,
+  useUpdateCustomerMutation,
+} from "../../../../features/Customer/customerApi";
+import {
+  useGetAllBusinessTypesQuery,
+  useGetAllLocationQuery,
+  useLazyGetAllLocationQuery,
+} from "../../../../features/globalApi";
 import { AddressService } from "../../../../services/AddressService";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 
@@ -200,16 +204,23 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [subdistricts, setSubdistricts] = useState([]);
-  const [businessTypes, setBusinessTypes] = useState([]);
   const [errors, setErrors] = useState({});
 
   // Loading states
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
-  // Sales list for assigning manager (cus_manage_by)
+
+  // RTK Query hooks
   const { data: userRoleData } = useGetUserByRoleQuery("sale");
+  const { data: businessTypesData } = useGetAllBusinessTypesQuery();
+  const { data: locationsData } = useGetAllLocationQuery({});
+  const [fetchDistricts, { data: districtsData }] = useLazyGetAllLocationQuery();
+  const [fetchSubdistricts, { data: subdistrictsData }] = useLazyGetAllLocationQuery();
+  const [updateCustomer, { isLoading: isUpdating }] = useUpdateCustomerMutation();
+
+  // Sales list for assigning manager (cus_manage_by)
   const salesList = (userRoleData?.sale_role || [])
-    .filter((u) => u && u.user_id != null) // ensure numeric id exists
+    .filter((u) => u && u.user_id != null)
     .map((u) => ({
       user_id: String(u.user_id),
       username: u.username || u.user_nickname || u.name || `User ${u.user_id}`,
@@ -276,67 +287,10 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         cus_manage_by: initManageObj,
       });
 
-      // Keep a local display customer and hydrate with full details if needed
+      // Keep a local display customer
       setDisplayCustomer(customer);
-      (async () => {
-        try {
-          if (customer.cus_id) {
-            const full = await customerApi.getCustomer(customer.cus_id);
-            // Merge, prefer full details
-            const src = full?.data || full?.customer || full || {};
-            const merged = mergeManagerData(customer, src);
-            setDisplayCustomer(merged);
-            // Autofill/normalize editable fields after hydration
-            setEditData((prev) => {
-              const prevCh = normalizeChannelValue(prev.cus_channel);
-              const mergedCh = normalizeChannelValue(merged.cus_channel ?? merged.channel ?? null);
-              const effectiveCh = (prevCh === "" ? mergedCh || "1" : prevCh) || "1";
-              const prevBt = prev.cus_bt_id;
-              const mergedBt =
-                merged.cus_bt_id ??
-                merged.bt_id ??
-                merged.business_type_id ??
-                merged.business_type?.bt_id ??
-                null;
-              const mergedType =
-                merged.customer_type ||
-                merged.cus_type ||
-                (merged.cus_company ? "company" : "individual");
-              // Merge cus_manage_by
-              let mergedManage = prev.cus_manage_by;
-              const mRaw = merged.cus_manage_by;
-              if (!mergedManage || !mergedManage.user_id) {
-                if (mRaw && typeof mRaw === "object") {
-                  const id = mRaw.user_id ?? mRaw.user_uuid ?? mRaw.id ?? "";
-                  const name = mRaw.username || mRaw.user_nickname || mRaw.name || "";
-                  mergedManage = { user_id: id ? String(id) : "", username: name };
-                } else if (mRaw != null && mRaw !== "") {
-                  mergedManage = { user_id: String(mRaw), username: "" };
-                }
-              }
-              return {
-                ...prev,
-                cus_channel: effectiveCh,
-                cus_bt_id:
-                  prevBt === "" || prevBt == null
-                    ? mergedBt == null
-                      ? ""
-                      : String(mergedBt)
-                    : prevBt,
-                customer_type: prev.customer_type || mergedType,
-                cus_manage_by: mergedManage,
-              };
-            });
-          }
-        } catch (e) {
-          // Silent fail; use provided customer fields
-          if (import.meta.env.VITE_DEBUG_API === "true") {
-            console.warn("Failed to hydrate customer details:", e);
-          }
-        }
-      })();
     }
-  }, [customer]);
+  }, [customer, normalizeChannelValue, isAdmin, currentUser]);
 
   // Hydrate manager username from sales list when available
   useEffect(() => {
@@ -357,15 +311,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRoleData, editData?.cus_manage_by?.user_id]);
+  }, [userRoleData, editData?.cus_manage_by?.user_id, salesList]);
 
-  // 🔧 Function definitions (moved before useEffect to avoid hoisting issues)
-  const loadMasterData = useCallback(async () => {
-    try {
-      console.log("🔄 Loading master data...");
-
-      // Load business types
-      const businessTypesData = await customerApi.getBusinessTypes();
+  // 🔧 Load master data from RTK Query
+  useEffect(() => {
+    if (businessTypesData) {
       console.log("📊 Raw business types:", businessTypesData);
 
       // Unwrap possible shapes and normalize field names
@@ -381,20 +331,19 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         .filter((bt) => bt && (bt.bt_id != null || bt.id != null) && (bt.bt_name || bt.name))
         .map((bt, index) => ({
           ...bt,
-          // normalize as string for consistent UI equality
           bt_id:
             bt.bt_id != null ? String(bt.bt_id) : bt.id != null ? String(bt.id) : `bt-${index}`,
           bt_name: bt.bt_name || bt.name || "ไม่ทราบประเภทธุรกิจ",
         }));
       console.log("✅ Valid business types:", validBusinessTypes);
-      setBusinessTypes(validBusinessTypes);
+    }
+  }, [businessTypesData]);
 
-      // Load provinces
-      const provincesData = await customerApi.getProvinces();
-      console.log("📊 Raw provinces:", provincesData);
+  useEffect(() => {
+    if (locationsData) {
+      console.log("📊 Raw provinces:", locationsData);
 
-      // Filter out invalid provinces
-      const validProvinces = (provincesData || [])
+      const validProvinces = (locationsData.master_provinces || [])
         .filter((prov) => prov && prov.pro_id && prov.pro_name_th)
         .map((prov, index) => ({
           ...prov,
@@ -402,135 +351,96 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         }));
       console.log("✅ Valid provinces:", validProvinces);
       setProvinces(validProvinces);
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || "ไม่สามารถโหลดข้อมูลได้";
-      console.error("❌ Failed to load master data:", {
-        error: errorMessage,
-        status: error.response?.status,
-        url: error.config?.url,
-      });
-      setErrors({ general: `ไม่สามารถโหลดข้อมูลได้: ${errorMessage}` });
     }
-  }, []);
+  }, [locationsData]);
 
-  // Load master data on component mount
+  // Update districts when data arrives
   useEffect(() => {
-    loadMasterData();
-  }, [loadMasterData]);
-
-  const loadDistricts = useCallback(async (provinceId) => {
-    if (!provinceId) {
-      console.warn("⚠️ loadDistricts called with empty provinceId");
-      setDistricts([]);
-      return;
-    }
-
-    setIsLoadingDistricts(true);
-    try {
-      console.log("🔄 Loading districts for province:", provinceId);
-      const districtsData = await customerApi.getDistricts(provinceId);
-      console.log("📊 Raw districts data:", districtsData);
-
-      // Filter out invalid entries and ensure unique IDs
-      const validDistricts = (districtsData || [])
+    if (districtsData) {
+      const validDistricts = (districtsData.master_district || [])
         .filter((district) => {
-          // Check for dis_name_th (Thai name) or dis_name (general name)
           const hasValidName = district.dis_name_th || district.dis_name;
           const hasValidId = district.dis_id;
-          const isValid = district && hasValidId && hasValidName;
-
-          if (!isValid) {
-            console.warn("⚠️ Invalid district data:", district);
-            console.warn("⚠️ Missing fields:", {
-              hasId: !!hasValidId,
-              hasName: !!hasValidName,
-              dis_name_th: district.dis_name_th,
-              dis_name: district.dis_name,
-            });
-          }
-          return isValid;
+          return district && hasValidId && hasValidName;
         })
-        .map((district, index) => ({
+        .map((district) => ({
           ...district,
-          // Ensure unique ID if missing
-          dis_id: district.dis_id || `district-${provinceId}-${index}`,
-          // Normalize name field for consistent usage
           dis_name: district.dis_name || district.dis_name_th,
         }));
-
-      console.log("✅ Valid districts:", validDistricts);
       setDistricts(validDistricts);
-      setSubdistricts([]); // Clear subdistricts
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || "ไม่สามารถโหลดข้อมูลอำเภอได้";
-      console.error("❌ Failed to load districts:", {
-        provinceId,
-        error: errorMessage,
-        status: error.response?.status,
-      });
-      setDistricts([]);
-    } finally {
       setIsLoadingDistricts(false);
     }
-  }, []);
+  }, [districtsData]);
 
-  const loadSubdistricts = useCallback(async (districtId) => {
-    if (!districtId) {
-      console.warn("⚠️ loadSubdistricts called with empty districtId");
-      setSubdistricts([]);
-      return;
-    }
-
-    setIsLoadingSubdistricts(true);
-    try {
-      console.log("🔄 Loading subdistricts for district:", districtId);
-      const subdistrictsData = await customerApi.getSubdistricts(districtId);
-      console.log("📊 Raw subdistricts data:", subdistrictsData);
-
-      // Filter out invalid entries and ensure unique IDs
-      const validSubdistricts = (subdistrictsData || [])
+  // Update subdistricts when data arrives
+  useEffect(() => {
+    if (subdistrictsData) {
+      const validSubdistricts = (subdistrictsData.master_subdistrict || [])
         .filter((subdistrict) => {
-          // Check for sub_name_th (Thai name) or sub_name (general name)
           const hasValidName = subdistrict.sub_name_th || subdistrict.sub_name;
           const hasValidId = subdistrict.sub_id;
-          const isValid = subdistrict && hasValidId && hasValidName;
-
-          if (!isValid) {
-            console.warn("⚠️ Invalid subdistrict data:", subdistrict);
-            console.warn("⚠️ Missing fields:", {
-              hasId: !!hasValidId,
-              hasName: !!hasValidName,
-              sub_name_th: subdistrict.sub_name_th,
-              sub_name: subdistrict.sub_name,
-            });
-          }
-          return isValid;
+          return subdistrict && hasValidId && hasValidName;
         })
-        .map((subdistrict, index) => ({
+        .map((subdistrict) => ({
           ...subdistrict,
-          // Ensure unique ID if missing
-          sub_id: subdistrict.sub_id || `subdistrict-${districtId}-${index}`,
-          // Normalize name field for consistent usage
           sub_name: subdistrict.sub_name || subdistrict.sub_name_th,
         }));
-
-      console.log("✅ Valid subdistricts:", validSubdistricts);
       setSubdistricts(validSubdistricts);
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || "ไม่สามารถโหลดข้อมูลตำบลได้";
-      console.error("❌ Failed to load subdistricts:", {
-        districtId,
-        error: errorMessage,
-        status: error.response?.status,
-      });
-      setSubdistricts([]);
-    } finally {
       setIsLoadingSubdistricts(false);
     }
-  }, []);
+  }, [subdistrictsData]);
+
+  const loadDistricts = useCallback(
+    async (provinceId) => {
+      if (!provinceId) {
+        console.warn("⚠️ loadDistricts called with empty provinceId");
+        setDistricts([]);
+        return;
+      }
+
+      setIsLoadingDistricts(true);
+      console.log("🔄 Loading districts for province:", provinceId);
+      fetchDistricts({ province_sort_id: provinceId });
+      setSubdistricts([]);
+    },
+    [fetchDistricts]
+  );
+
+  const loadSubdistricts = useCallback(
+    async (districtId) => {
+      if (!districtId) {
+        console.warn("⚠️ loadSubdistricts called with empty districtId");
+        setSubdistricts([]);
+        return;
+      }
+
+      setIsLoadingSubdistricts(true);
+      console.log("🔄 Loading subdistricts for district:", districtId);
+      fetchSubdistricts({ district_sort_id: districtId });
+    },
+    [fetchSubdistricts]
+  );
+
+  // Get business types array for Autocomplete
+  const businessTypes = React.useMemo(() => {
+    if (!businessTypesData) return [];
+
+    const btRaw = Array.isArray(businessTypesData)
+      ? businessTypesData
+      : businessTypesData?.master_business_types ||
+        businessTypesData?.master_business_type ||
+        businessTypesData?.data ||
+        businessTypesData?.items ||
+        [];
+
+    return (btRaw || [])
+      .filter((bt) => bt && (bt.bt_id != null || bt.id != null) && (bt.bt_name || bt.name))
+      .map((bt, index) => ({
+        ...bt,
+        bt_id: bt.bt_id != null ? String(bt.bt_id) : bt.id != null ? String(bt.id) : `bt-${index}`,
+        bt_name: bt.bt_name || bt.name || "ไม่ทราบประเภทธุรกิจ",
+      }));
+  }, [businessTypesData]);
 
   // 🔧 Input and form handlers
   const handleInputChange = useCallback(
@@ -692,7 +602,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
 
     setErrors(nextErrors);
     return isValid;
-  }, [editData, isAdmin, currentUser]);
+  }, [editData, isAdmin, currentUser, salesList]);
 
   // Build a display address from current selection for optimistic UI
   const buildDisplayAddress = useCallback(() => {
@@ -755,6 +665,18 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       // เตรียมข้อมูลที่อยู่สำหรับส่งไป API
       const addressData = AddressService.prepareAddressForApi(editData);
       const updateData = { ...editData, ...addressData };
+
+      // -------------------- START: FIX --------------------
+      // ตรวจสอบว่ามีการส่ง components (จังหวัด/อำเภอ/ตำบล) หรือไม่
+      const hasComponents = updateData.cus_pro_id || updateData.cus_dis_id || updateData.cus_sub_id;
+
+      // ถ้ามี components และมี cus_address (จาก text field)
+      // ให้ map ไปที่ cus_address_detail เพื่อให้ Backend (CustomerController) ทำงานถูกต้อง
+      if (hasComponents && updateData.cus_address !== undefined) {
+        updateData.cus_address_detail = updateData.cus_address;
+      }
+      // -------------------- END: FIX --------------------
+
       // normalize customer_type to backend-acceptable values
       updateData.customer_type = editData.customer_type === "individual" ? "individual" : "company";
       updateData.cus_type = updateData.customer_type;
@@ -769,7 +691,13 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       // Map manager assignment to backend field (bigint)
       updateData.cus_manage_by = prepareManagerForApi(editData.cus_manage_by, isAdmin, currentUser);
 
-      await customerApi.updateCustomer(customer.cus_id, updateData);
+      // Clean phone and tax ID
+      updateData.cus_tel_1 = updateData.cus_tel_1?.replace(/[^0-9]/g, "");
+      updateData.cus_tel_2 = updateData.cus_tel_2?.replace(/[^0-9]/g, "");
+      updateData.cus_tax_id = updateData.cus_tax_id?.replace(/[^0-9]/g, "");
+
+      // Use RTK mutation
+      const result = await updateCustomer({ cus_id: customer.cus_id, ...updateData }).unwrap();
 
       // Show success message briefly
       dismissToast(loadingId);
@@ -782,12 +710,12 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       if (onUpdate) onUpdate(originalCustomer);
 
       const errorMessage =
-        error.response?.data?.message || error.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+        error?.data?.message || error?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
       console.error("Failed to save customer data:", {
         customerId: customer.cus_id,
         error: errorMessage,
-        status: error.response?.status,
-        data: error.response?.data,
+        status: error?.status,
+        data: error?.data,
       });
       setErrors({ general: `เกิดข้อผิดพลาด: ${errorMessage}` });
       showError(errorMessage || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -798,7 +726,17 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     } finally {
       setIsSaving(false);
     }
-  }, [customer, editData, onUpdate, validateForm, displayCustomer, buildDisplayAddress]);
+  }, [
+    customer,
+    editData,
+    onUpdate,
+    validateForm,
+    displayCustomer,
+    buildDisplayAddress,
+    isAdmin,
+    currentUser,
+    updateCustomer,
+  ]);
 
   if (!customer) {
     return (

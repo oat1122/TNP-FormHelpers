@@ -429,10 +429,15 @@ const PricingIntegration = () => {
           data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0),
 
         // ข้อมูลการชำระเงิน
+        deposit_mode: data.depositMode || "percentage",
         deposit_percentage:
-          data.depositPercentage === "custom"
-            ? parseInt(data.customDepositPercentage) || 50
-            : parseInt(data.depositPercentage) || 50,
+          data.depositMode === "percentage"
+            ? parseFloat(data.depositPercentage) || 50
+            : parseFloat(data.depositPercentage) || 0,
+        deposit_amount:
+          data.depositMode === "amount"
+            ? parseFloat(data.depositAmountInput) || 0
+            : data.depositAmount || 0,
         payment_terms: data.paymentMethod || "credit_30",
 
         // รายการสินค้า
@@ -538,10 +543,15 @@ const PricingIntegration = () => {
           data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0),
 
         // ข้อมูลการชำระเงิน
+        deposit_mode: data.depositMode || "percentage",
         deposit_percentage:
-          data.depositPercentage === "custom"
-            ? parseInt(data.customDepositPercentage) || 50
-            : parseInt(data.depositPercentage) || 50,
+          data.depositMode === "percentage"
+            ? parseFloat(data.depositPercentage) || 50
+            : parseFloat(data.depositPercentage) || 0,
+        deposit_amount:
+          data.depositMode === "amount"
+            ? parseFloat(data.depositAmountInput) || 0
+            : data.depositAmount || 0,
         payment_terms: data.paymentMethod || "credit_30",
 
         // รายการสินค้า

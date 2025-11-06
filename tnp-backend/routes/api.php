@@ -235,6 +235,7 @@ Route::prefix('v1')->group(function() {
         Route::get('/quotations', 'index');
         Route::post('/quotations', 'store');
         Route::get('/quotations/{id}', 'show');
+        Route::get('/quotations/{id}/duplicate-data', 'getDuplicateData');
         Route::put('/quotations/{id}', 'update');
         Route::delete('/quotations/{id}', 'destroy');
         

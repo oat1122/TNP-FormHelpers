@@ -238,7 +238,8 @@
             @php
               // Extract financial data directly from database fields
               $subtotal = (float) ($quotation->subtotal ?? 0);
-              $taxAmount = (float) ($quotation->tax_amount ?? 0);
+              // Support both Invoice (vat_amount) and Quotation (tax_amount) models
+              $taxAmount = (float) ($quotation->vat_amount ?? $quotation->tax_amount ?? 0);
               $specialDiscountAmount = (float) ($quotation->special_discount_amount ?? 0);
               $hasWithholdingTax = (bool) ($quotation->has_withholding_tax ?? false);
               $withholdingTaxAmount = (float) ($quotation->withholding_tax_amount ?? 0);

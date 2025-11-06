@@ -2,6 +2,10 @@
 import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DownloadIcon from "@mui/icons-material/Download";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import FileCopyIcon from "@mui/icons-material/FileCopy";
 import {
   Avatar,
   Box,
@@ -10,6 +14,7 @@ import {
   CircularProgress,
   Collapse,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -38,6 +43,7 @@ export default function QuotationCard({
   onViewLinked, // kept for backward compatibility
   onViewDetail,
   onCreateInvoice,
+  onDuplicate, // ✅ เพิ่ม prop ใหม่
   creatingInvoice,
   actionButtonText,
   onActionSuccess, // ✅ รับ prop ใหม่
@@ -205,45 +211,60 @@ export default function QuotationCard({
         }}
       >
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <TNPSecondaryButton
-            size="medium"
-            onClick={onDownloadPDF}
-            disabled={data?.status !== "approved"}
-          >
-            ดาวน์โหลด PDF
-          </TNPSecondaryButton>
+          <Tooltip title="ดาวน์โหลด PDF">
+            <span>
+              <IconButton
+                size="medium"
+                onClick={onDownloadPDF}
+                disabled={data?.status !== "approved"}
+                color="primary"
+              >
+                <DownloadIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
           {canApprove && (
-            <Button
-              size="medium"
-              variant="contained"
-              color="success"
-              disabled={approving || submitting}
-              onClick={onApprove}
-            >
-              {approving || submitting ? "กำลังอนุมัติ…" : "อนุมัติ"}
-            </Button>
+            <Tooltip title="อนุมัติ">
+              <span>
+                <IconButton
+                  size="medium"
+                  color="success"
+                  disabled={approving || submitting}
+                  onClick={onApprove}
+                >
+                  {approving || submitting ? <CircularProgress size={24} /> : <CheckCircleIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
           )}
         </Box>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {onCreateInvoice && data?.status === "approved" && data?.signature_image_url && (
-            <TNPPrimaryButton
-              size="medium"
-              variant="outlined"
-              color="primary"
-              onClick={onCreateInvoice}
-              disabled={creatingInvoice}
-            >
-              {creatingInvoice ? "กำลังสร้าง..." : actionButtonText || "สร้างใบแจ้งหนี้"}
-            </TNPPrimaryButton>
+            <Tooltip title={actionButtonText || "สร้างใบแจ้งหนี้"}>
+              <span>
+                <IconButton
+                  size="medium"
+                  color="primary"
+                  onClick={onCreateInvoice}
+                  disabled={creatingInvoice}
+                >
+                  {creatingInvoice ? <CircularProgress size={24} /> : <ReceiptIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
           )}
-          <TNPPrimaryButton
-            size="medium"
-            variant="contained"
-            startIcon={<VisibilityIcon />}
-            onClick={onViewDetail}
-          >
-            ดูรายละเอียด
-          </TNPPrimaryButton>
+          {onDuplicate && (
+            <Tooltip title="ทำสำเนา">
+              <IconButton size="medium" color="secondary" onClick={onDuplicate}>
+                <FileCopyIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+          <Tooltip title="ดูรายละเอียด">
+            <IconButton size="medium" color="primary" onClick={onViewDetail}>
+              <VisibilityIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
     </TNPCard>

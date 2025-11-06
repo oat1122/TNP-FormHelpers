@@ -373,6 +373,8 @@ class QuotationService
                 'notes' => $data['notes'] ?? null,
                 'document_header_type' => $data['document_header_type'] ?? 'ต้นฉบับ',
                 'sample_images' => $data['sample_images'] ?? null,
+                'primary_pricing_request_id' => $data['primary_pricing_request_id'] ?? null,
+                'primary_pricing_request_ids' => $data['primary_pricing_request_ids'] ?? null,
                 'created_by' => $createdBy,
             ]);
 
@@ -970,6 +972,67 @@ class QuotationService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('QuotationService::delete error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * ดึงข้อมูล Quotation และ Items สำหรับการทำสำเนา (Duplicate)
+     * โดยล้างค่า ID, number, status, และรูปภาพ เพื่อให้พร้อมสำหรับการสร้างใหม่
+     *
+     * @param string $id ID ของ Quotation ต้นฉบับ
+     * @return array<string,mixed> ข้อมูลที่พร้อมสำหรับส่งให้ Frontend
+     */
+    public function getDataForDuplication(string $id): array
+    {
+        try {
+            // 1. โหลดข้อมูลต้นฉบับ (ต้องแน่ใจว่าโหลด 'items' และ 'customer' มาด้วย)
+            $original = Quotation::with(['items', 'customer'])->findOrFail($id);
+
+            // 2. แปลงเป็น array
+            $newData = $original->toArray();
+
+            // 3. ล้างข้อมูล ID และสถานะของ Quotation หลัก
+            unset($newData['id']);
+            // ✅ ไม่ลบ number เพื่อให้แสดงเลขเดิมในหน้าจอ (จะถูกสร้างใหม่ตอน save)
+            // unset($newData['number']);
+            unset($newData['created_at']);
+            unset($newData['updated_at']);
+            unset($newData['approved_at']);
+            unset($newData['approved_by']);
+            unset($newData['submitted_at']);
+            unset($newData['submitted_by']);
+            
+            // ✅ เก็บ primary_pricing_request_id และ primary_pricing_request_ids ไว้
+            // (ไม่ลบ - ให้คัดลอกมาด้วย)
+            
+            // 4. ล้างข้อมูลรูปภาพและไฟล์แนบ
+            $newData['signature_images'] = []; // ไม่คัดลอกรูป signature
+            // คงรูป sample_images ไว้ (ถ้าต้องการคัดลอก)
+            // $newData['sample_images'] = $newData['sample_images'] ?? [];
+
+            // 5. ตั้งค่าสถานะเริ่มต้น
+            $newData['status'] = 'draft'; 
+            
+            // 6. เพิ่มหมายเหตุว่าเป็นการสำเนา
+            $originalNumber = $original->number ?? 'ต้นฉบับ';
+            $newData['notes'] = ($newData['notes'] ?? '') . "\n\n(สำเนาจาก " . $originalNumber . ")";
+            
+            // 7. ล้างข้อมูล ID ของ Items (สำคัญมาก)
+            if (isset($newData['items']) && is_array($newData['items'])) {
+                $newData['items'] = array_map(function($item) {
+                    unset($item['id']);
+                    unset($item['quotation_id']);
+                    unset($item['created_at']);
+                    unset($item['updated_at']);
+                    return $item;
+                }, $newData['items']);
+            }
+
+            return $newData;
+
+        } catch (\Exception $e) {
+            Log::error('QuotationService::getDataForDuplication error: ' . $e->getMessage());
             throw $e;
         }
     }

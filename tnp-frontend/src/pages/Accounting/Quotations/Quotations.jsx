@@ -28,6 +28,7 @@ import {
   useMarkQuotationSentMutation,
   useUploadQuotationEvidenceMutation,
   useSubmitQuotationMutation,
+  useLazyGetQuotationDuplicateDataQuery,
 } from "../../../features/Accounting/accountingApi";
 import { addNotification } from "../../../features/Accounting/accountingSlice";
 import { useQuotationOptimisticUpdates } from "../hooks/useOptimisticUpdates";
@@ -47,6 +48,7 @@ import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationCard from "./components/QuotationCard";
 // ApprovalPanel removed along with Drawer UI
 import QuotationDetailDialog from "./components/QuotationDetailDialog";
+import QuotationDuplicateDialog from "./components/QuotationDuplicateDialog";
 import QuotationStandaloneCreateDialog from "./components/QuotationStandaloneCreateDialog";
 import usePagination from "./hooks/usePagination";
 import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
@@ -75,6 +77,10 @@ const Quotations = () => {
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [standaloneCreateOpen, setStandaloneCreateOpen] = useState(false);
 
+  // ✅ Duplicate Dialog State
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateData, setDuplicateData] = useState(null);
+
   // ✅ เพิ่ม state เพื่อติดตามการบันทึก
   const [lastSavedId, setLastSavedId] = useState(null);
 
@@ -99,19 +105,6 @@ const Quotations = () => {
     });
   }, [data]);
 
-  // ✅ ลบการกรองที่ต้องมี PR - ให้แสดง quotations ทั้งหมด
-  // const hasPR = useCallback((q) => {
-  //   const set = new Set();
-  //   if (Array.isArray(q?.items))
-  //     q.items.forEach((it) => {
-  //       if (it?.pricing_request_id) set.add(it.pricing_request_id);
-  //     });
-  //   if (q?.primary_pricing_request_id) set.add(q.primary_pricing_request_id);
-  //   if (Array.isArray(q?.primary_pricing_request_ids))
-  //     q.primary_pricing_request_ids.forEach((id) => id && set.add(id));
-  //   return set.size > 0;
-  // }, []);
-
   // const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
   const validQuotations = useMemo(() => quotations, [quotations]); // ✅ แสดงทั้งหมด
 
@@ -128,6 +121,10 @@ const Quotations = () => {
   const [generatePDF] = useGenerateQuotationPDFMutation();
   const [uploadEvidence] = useUploadQuotationEvidenceMutation();
   const [submitQuotation] = useSubmitQuotationMutation();
+
+  // ✅ Duplicate hook
+  const [triggerGetDuplicateData, { isLoading: isLoadingDuplicateData }] =
+    useLazyGetQuotationDuplicateDataQuery();
 
   // ใช้ optimistic updates hooks
   const {
@@ -180,6 +177,46 @@ const Quotations = () => {
     await handleSubmitOptimistic(submitQuotation, id);
   };
 
+  // ✅ Handler สำหรับทำสำเนา
+  const handleDuplicate = async (quotationId) => {
+    try {
+      // 1. เรียก API เพื่อดึงข้อมูล
+      const result = await triggerGetDuplicateData(quotationId).unwrap();
+
+      // 2. เก็บข้อมูล
+      setDuplicateData(result.data);
+
+      // 3. เปิด Dialog
+      setDuplicateOpen(true);
+    } catch (err) {
+      console.error("Failed to get duplicate data", err);
+      dispatch(
+        addNotification({
+          type: "error",
+          title: "ไม่สามารถทำสำเนาได้",
+          message: err?.data?.message || err.message || "เกิดข้อผิดพลาด",
+        })
+      );
+    }
+  };
+
+  const handleCloseDuplicateDialog = () => {
+    setDuplicateOpen(false);
+    setDuplicateData(null);
+  };
+
+  const handleSaveDuplicateSuccess = () => {
+    // Refresh list เมื่อสร้างสำเร็จ
+    refetch();
+    dispatch(
+      addNotification({
+        type: "success",
+        title: "สร้างสำเร็จ",
+        message: "สร้างใบเสนอราคา (สำเนา) เรียบร้อยแล้ว",
+      })
+    );
+  };
+
   const handleRefresh = useCallback(() => {
     // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
     refetch();
@@ -192,7 +229,7 @@ const Quotations = () => {
     );
   }, [refetch, dispatch]);
 
-  // ✅ สร้าง handler ที่จะส่งให้ Card
+  // สร้าง handler ที่จะส่งให้ Card
   const handleCardActionSuccess = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -328,6 +365,7 @@ const Quotations = () => {
                           setSelectedQuotation(q);
                           setCreateInvoiceOpen(true);
                         }}
+                        onDuplicate={() => handleDuplicate(q.id)}
                         onActionSuccess={handleCardActionSuccess} // ✅ ส่ง prop นี้เข้าไป
                       />
                     </Grid>
@@ -400,6 +438,15 @@ const Quotations = () => {
             }}
             companyId={filters.company}
           />
+          {/* ✅ Duplicate Dialog */}
+          {duplicateOpen && duplicateData && (
+            <QuotationDuplicateDialog
+              open={duplicateOpen}
+              onClose={handleCloseDuplicateDialog}
+              initialData={duplicateData}
+              onSaveSuccess={handleSaveDuplicateSuccess}
+            />
+          )}
           {/* Floating Action Button */}
           <FloatingActionButton onRefresh={handleRefresh} />
         </Box>

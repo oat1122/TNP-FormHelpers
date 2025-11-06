@@ -275,6 +275,32 @@ class QuotationController extends Controller
     }
 
     /**
+     * ดึงข้อมูลใบเสนอราคาสำหรับทำสำเนา
+     * GET /api/v1/quotations/{id}/duplicate-data
+     */
+    public function getDuplicateData($id): JsonResponse
+    {
+        try {
+            // เรียก Service เพื่อเตรียมข้อมูล
+            $duplicateData = $this->quotationService->getDataForDuplication($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $duplicateData,
+                'message' => 'Quotation data for duplication retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::getDuplicateData error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve quotation data for duplication: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
      * ส่งใบเสนอราคาเพื่อขออนุมัติ
      * POST /api/v1/quotations/{id}/submit
      */
@@ -563,6 +589,9 @@ class QuotationController extends Controller
                 'company_id' => 'required|string|exists:companies,id',
                 'customer_id' => 'required|string|exists:master_customers,cus_id',
                 'work_name' => 'required|string|max:100',
+                // ✅ เพิ่ม validation สำหรับ pricing request fields
+                'primary_pricing_request_id' => 'nullable|string',
+                'primary_pricing_request_ids' => 'nullable|array',
                 'items' => 'required|array|min:1',
                 'items.*.item_name' => 'required|string|max:255',
                 'items.*.item_description' => 'nullable|string',

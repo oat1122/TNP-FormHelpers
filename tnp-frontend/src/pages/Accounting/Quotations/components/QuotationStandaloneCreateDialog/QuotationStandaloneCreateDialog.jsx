@@ -43,7 +43,7 @@ const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบ
  * ทำหน้าที่เพียงแสดงผล UI และรับ props จาก useQuotationStandaloneForm
  */
 const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }) => {
-  // ⭐️ เรียกใช้ Hook เพื่อดึง State และ Handlers ทั้งหมด
+  // เรียกใช้ Hook เพื่อดึง State และ Handlers
   const {
     activeStep,
     errors,
@@ -64,7 +64,7 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
     setSelectedCustomer,
   } = useQuotationStandaloneForm({ open, onClose, onSuccess, companyId });
 
-  // ⭐️ Logic การ render ถูกย้ายมานี่ แต่ใช้ State จาก Hook
+  // Logic การ render ถูกย้ายมานี่ แต่ใช้ State จาก Hook
   const renderStepContent = (step) => {
     switch (step) {
       case 0: // ข้อมูลลูกค้า

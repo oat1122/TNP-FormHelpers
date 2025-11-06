@@ -1,4 +1,4 @@
-// QuotationDetailDialog.jsx (Refactored)
+// QuotationDuplicateDialog.jsx - Dialog สำหรับทำสำเนาใบเสนอราคา
 import React from "react";
 import {
   Assignment as AssignmentIcon,
@@ -25,10 +25,9 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 // Import Hooks
-import { useQuotationDialogLogic } from "./hooks/useQuotationDialogLogic";
+import { useQuotationDuplicateDialogLogic } from "./hooks/useQuotationDuplicateDialogLogic";
 import { useQuotationGroups } from "./hooks/useQuotationGroups";
 import { useQuotationFinancials } from "./hooks/useQuotationFinancials";
-import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
 
 // Import Subcomponents
 import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
@@ -61,15 +60,15 @@ import { apiConfig } from "../../../../../api/apiConfig";
 import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
 
 // ✅ รับ onSaveSuccess เพิ่ม
-const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
+const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess }) => {
   // Check user permissions first
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
   const canEditQuotation = ["admin", "account"].includes(userData?.role);
-  const canUploadSignatures = ["admin", "account", "sale"].includes(userData?.role);
+  const canUploadSignatures = false; // ไม่สามารถอัปโหลด signature ได้สำหรับใบใหม่
   const canUploadSampleImages = ["admin", "account", "sale"].includes(userData?.role);
 
-  // 1. Main logic hook for data, state, and save handlers
-  const dialogLogic = useQuotationDialogLogic(quotationId, open);
+  // 1. Main logic hook for data, state, and save handlers (ใช้ initialData แทน quotationId)
+  const dialogLogic = useQuotationDuplicateDialogLogic(initialData, open);
   const {
     q,
     isLoading,
@@ -110,11 +109,21 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
 
   // 2. Hook for managing groups and editing state
   const groupsLogic = useQuotationGroups(items);
-  const { groups, isEditing, setIsEditing: originalSetIsEditing, ...groupHandlers } = groupsLogic;
+  const {
+    groups,
+    isEditing: _isEditing,
+    setIsEditing: originalSetIsEditing,
+    ...groupHandlers
+  } = groupsLogic;
 
-  // Wrapper function to check permissions before allowing edit mode
+  // ✅ สำหรับ Duplicate Dialog: เริ่มต้นเป็นโหมดแก้ไขเสมอ
+  const isEditing = true;
   const setIsEditing = React.useCallback(
     (value) => {
+      // ไม่อนุญาตให้ออกจากโหมดแก้ไข
+      if (!value) {
+        return;
+      }
       if (value && !canEditQuotation) {
         return; // Block entering edit mode if user doesn't have permission
       }
@@ -136,21 +145,22 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
   });
 
   // 4. Hook for handling images and PDF generation
-  const imageManager = useQuotationImageManager(quotationId, isEditing, () =>
-    dialogLogic.handleSave(groups, financials)
-  );
+  // ❌ Image Manager ไม่สามารถใช้ได้ในโหมด duplicate (ยังไม่มี quotationId)
+  // const imageManager = useQuotationImageManager(quotationId, isEditing, () =>
+  //   dialogLogic.handleSave(groups, financials)
+  // );
 
   // Initialize sample image selection
-  const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
+  const signatureImages = []; // ไม่มี signature images ในโหมด duplicate
   const sampleImages = Array.isArray(q?.sample_images) ? q.sample_images : [];
 
-  React.useEffect(() => {
-    imageManager.initializeSampleSelection(sampleImages);
-  }, [q?.id, JSON.stringify(sampleImages), imageManager.initializeSampleSelection]);
+  // React.useEffect(() => {
+  //   imageManager.initializeSampleSelection(sampleImages);
+  // }, [q?.id, JSON.stringify(sampleImages), imageManager.initializeSampleSelection]);
 
-  React.useEffect(() => {
-    imageManager.updateSampleSelection(sampleImages);
-  }, [sampleImages, imageManager.updateSampleSelection]);
+  // React.useEffect(() => {
+  //   imageManager.updateSampleSelection(sampleImages);
+  // }, [sampleImages, imageManager.updateSampleSelection]);
 
   // Main save handler with UI feedback
   // ✅ แก้ไข handleSave
@@ -159,18 +169,18 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
     if (success) {
       setIsEditing(false);
       onSaveSuccess?.(); // ✅ เรียก onSaveSuccess เมื่อบันทึกสำเร็จ
+      onClose(); // ✅ ปิด Dialog หลังจากสร้างสำเร็จ
     }
   };
 
-  if (isLoading || (prIdsAll.length > 0 && isAutofillLoading)) {
+  // ไม่มี isLoading สำหรับ duplicate เพราะข้อมูลมาจาก props
+  if (prIdsAll.length > 0 && isAutofillLoading) {
     return (
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
         <DialogContent>
           <Box display="flex" alignItems="center" gap={1} p={2}>
             <CircularProgress size={22} />
-            <Typography variant="body2">
-              {isLoading ? "กำลังโหลดรายละเอียดใบเสนอราคา…" : "กำลังโหลดข้อมูล autofill…"}
-            </Typography>
+            <Typography variant="body2">กำลังโหลดข้อมูล autofill…</Typography>
           </Box>
         </DialogContent>
       </Dialog>
@@ -204,7 +214,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
     <>
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          รายละเอียดใบเสนอราคา
+          สร้างใบเสนอราคา (สำเนา)
         </DialogTitle>
         <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
           <Box>
@@ -559,100 +569,102 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
               </Grid>
             </Grid>
 
-            {/* Sample Images Section */}
-            <Section>
-              <SectionHeader>
-                <Avatar
-                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                >
-                  <AddIcon fontSize="small" />
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    รูปภาพตัวอย่าง
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    ไฟล์จะถูกแทรกลงใน PDF ใบเสนอราคา
-                  </Typography>
-                </Box>
-              </SectionHeader>
-              <Box sx={{ p: 2 }}>
-                <ImageUploadGrid
-                  title="รูปภาพตัวอย่าง"
-                  images={sampleImages}
-                  disabled={imageManager.isUploadingSamples || !canUploadSampleImages}
-                  onUpload={imageManager.handleUploadSamples}
-                  helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
-                />
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                    {(sampleImages || []).map((img) => {
-                      const value = img.filename || "";
-                      const src = img.url || "";
-                      const checked =
-                        imageManager.selectedSampleForPdfLocal !== null
-                          ? imageManager.selectedSampleForPdfLocal === value
-                          : !!img.selected_for_pdf;
-                      return (
-                        <label
-                          key={value || src}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            border: checked ? `2px solid ${tokens.primary}` : "1px solid #ddd",
-                            padding: 6,
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            userSelect: "none",
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="selectedSampleForPdf"
-                            checked={checked}
-                            disabled={!canUploadSampleImages}
-                            onClick={(e) => {
-                              // Allow deselect by clicking the selected radio again
-                              if (checked && canUploadSampleImages) {
-                                e.preventDefault();
-                                imageManager.setSelectedSampleForPdfLocal("");
-                                imageManager.scheduleSyncSelectedForPdf("");
-                              }
+            {/* ❌ Sample Images Section - ซ่อนในโหมด Duplicate เพราะยังไม่มี quotationId */}
+            {false && (
+              <Section>
+                <SectionHeader>
+                  <Avatar
+                    sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
+                  >
+                    <AddIcon fontSize="small" />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      รูปภาพตัวอย่าง
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ไฟล์จะถูกแทรกลงใน PDF ใบเสนอราคา
+                    </Typography>
+                  </Box>
+                </SectionHeader>
+                <Box sx={{ p: 2 }}>
+                  <ImageUploadGrid
+                    title="รูปภาพตัวอย่าง"
+                    images={sampleImages}
+                    disabled={imageManager.isUploadingSamples || !canUploadSampleImages}
+                    onUpload={imageManager.handleUploadSamples}
+                    helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
+                  />
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+                      {(sampleImages || []).map((img) => {
+                        const value = img.filename || "";
+                        const src = img.url || "";
+                        const checked =
+                          imageManager.selectedSampleForPdfLocal !== null
+                            ? imageManager.selectedSampleForPdfLocal === value
+                            : !!img.selected_for_pdf;
+                        return (
+                          <label
+                            key={value || src}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
+                              border: checked ? `2px solid ${tokens.primary}` : "1px solid #ddd",
+                              padding: 6,
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              userSelect: "none",
                             }}
-                            onChange={() => {
-                              if (!canUploadSampleImages) return;
-                              // Optimistic local update for instant feedback
-                              imageManager.setSelectedSampleForPdfLocal(value);
-                              imageManager.scheduleSyncSelectedForPdf(value);
-                            }}
-                            style={{ margin: 0 }}
-                          />
-                          {src ? (
-                            <img
-                              src={src}
-                              alt="sample"
-                              style={{
-                                width: 72,
-                                height: 72,
-                                objectFit: "cover",
-                                display: "block",
+                          >
+                            <input
+                              type="radio"
+                              name="selectedSampleForPdf"
+                              checked={checked}
+                              disabled={!canUploadSampleImages}
+                              onClick={(e) => {
+                                // Allow deselect by clicking the selected radio again
+                                if (checked && canUploadSampleImages) {
+                                  e.preventDefault();
+                                  imageManager.setSelectedSampleForPdfLocal("");
+                                  imageManager.scheduleSyncSelectedForPdf("");
+                                }
                               }}
+                              onChange={() => {
+                                if (!canUploadSampleImages) return;
+                                // Optimistic local update for instant feedback
+                                imageManager.setSelectedSampleForPdfLocal(value);
+                                imageManager.scheduleSyncSelectedForPdf(value);
+                              }}
+                              style={{ margin: 0 }}
                             />
-                          ) : null}
-                        </label>
-                      );
-                    })}
+                            {src ? (
+                              <img
+                                src={src}
+                                alt="sample"
+                                style={{
+                                  width: 72,
+                                  height: 72,
+                                  objectFit: "cover",
+                                  display: "block",
+                                }}
+                              />
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
-            </Section>
+              </Section>
+            )}
 
-            {/* Signature Images Section (only for approved status) */}
-            {q?.status === "approved" && (
+            {/* ❌ Signature Images Section - ซ่อนในโหมด Duplicate */}
+            {false && q?.status === "approved" && (
               <Grid item xs={12}>
                 <Section>
                   <SectionHeader>
@@ -791,25 +803,18 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
         <DialogActions>
           {isEditing ? (
             <>
-              <SecondaryButton
-                onClick={() => imageManager.handlePreviewPdf(q?.status)}
-                disabled={imageManager.isGeneratingPdf}
-              >
-                {imageManager.isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
+              <SecondaryButton disabled={true} title="สามารถดู PDF ได้หลังจากสร้างใบเสนอราคาแล้ว">
+                (ดู PDF หลังสร้าง)
               </SecondaryButton>
-              <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
+              <SecondaryButton onClick={onClose} disabled={isSaving}>
+                ยกเลิก
+              </SecondaryButton>
               <SecondaryButton onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "กำลังบันทึก…" : "บันทึก"}
+                {isSaving ? "กำลังสร้าง…" : "สร้างใบเสนอราคา"}
               </SecondaryButton>
             </>
           ) : (
             <>
-              <SecondaryButton
-                onClick={() => imageManager.handlePreviewPdf(q?.status)}
-                disabled={imageManager.isGeneratingPdf}
-              >
-                {imageManager.isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
-              </SecondaryButton>
               <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
             </>
           )}
@@ -827,65 +832,38 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
         />
       </Dialog>
 
-      {/* Backend PDF Viewer Dialog */}
-      <Dialog
-        open={imageManager.showPdfViewer}
-        onClose={() => imageManager.setShowPdfViewer(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>ดูตัวอย่าง PDF</DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          {imageManager.pdfUrl ? (
-            <iframe
-              title="quotation-pdf"
-              src={imageManager.pdfUrl}
-              style={{ width: "100%", height: "80vh", border: 0 }}
-            />
-          ) : (
+      {/* ❌ Backend PDF Viewer Dialog - ซ่อนในโหมด Duplicate */}
+      {false && (
+        <Dialog open={false} onClose={() => {}} maxWidth="lg" fullWidth>
+          <DialogTitle>ดูตัวอย่าง PDF</DialogTitle>
+          <DialogContent dividers sx={{ p: 0 }}>
             <Box display="flex" alignItems="center" gap={1} p={2}>
               <CircularProgress size={22} />
               <Typography variant="body2">กำลังโหลดตัวอย่าง PDF…</Typography>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {imageManager.pdfUrl && (
-            <SecondaryButton onClick={() => window.open(imageManager.pdfUrl, "_blank")}>
-              เปิดในแท็บใหม่
-            </SecondaryButton>
-          )}
-          <SecondaryButton onClick={() => imageManager.setShowPdfViewer(false)}>
-            ปิด
-          </SecondaryButton>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <SecondaryButton onClick={() => {}}>ปิด</SecondaryButton>
+          </DialogActions>
+        </Dialog>
+      )}
 
-      {/* Signature Image Preview Dialog */}
-      <Dialog
-        open={!!imageManager.previewImage}
-        onClose={() => imageManager.setPreviewImage(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>{imageManager.previewImage?.filename || "ภาพตัวอย่าง"}</DialogTitle>
-        <DialogContent dividers sx={{ bgcolor: "#000" }}>
-          {imageManager.previewImage && (
+      {/* ❌ Signature Image Preview Dialog - ซ่อนในโหมด Duplicate */}
+      {false && (
+        <Dialog open={false} onClose={() => {}} maxWidth="md" fullWidth>
+          <DialogTitle>ภาพตัวอย่าง</DialogTitle>
+          <DialogContent dividers sx={{ bgcolor: "#000" }}>
             <Box sx={{ position: "relative", width: "100%", textAlign: "center" }}>
-              <img
-                src={imageManager.previewImage.url}
-                alt={imageManager.previewImage.filename}
-                style={{ maxWidth: "100%", maxHeight: "75vh", objectFit: "contain" }}
-              />
+              <img src="" alt="" style={{ maxWidth: "100%", height: "auto" }} />
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <SecondaryButton onClick={() => imageManager.setPreviewImage(null)}>ปิด</SecondaryButton>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <SecondaryButton onClick={() => {}}>ปิด</SecondaryButton>
+          </DialogActions>
+        </Dialog>
+      )}
     </>
   );
 };
 
-export default QuotationDetailDialog;
+export default QuotationDuplicateDialog;

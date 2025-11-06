@@ -276,6 +276,13 @@ export const accountingApi = createApi({
       query: (id) => ({ url: `/quotations/${id}`, method: "DELETE" }),
       invalidatesTags: ["Quotation", "Dashboard"],
     }),
+    getQuotationDuplicateData: builder.query({
+      query: (id) => ({
+        url: `quotations/${id}/duplicate-data`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "Quotation", id: "DUPLICATE_DATA" }],
+    }),
     approveQuotation: builder.mutation({
       query: ({ id, ...approvalData }) => ({
         url: `/quotations/${id}/approve`,
@@ -722,6 +729,8 @@ export const {
   // Quotations
   useGetQuotationsQuery,
   useGetQuotationQuery,
+  useGetQuotationDuplicateDataQuery,
+  useLazyGetQuotationDuplicateDataQuery,
   useCreateQuotationMutation,
   useCreateQuotationFromPricingMutation,
   useCreateQuotationFromMultiplePricingMutation,

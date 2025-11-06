@@ -89,6 +89,25 @@ class QuotationPdfService
     try { $this->pdf->SetFont($regularFont, '', 12); } catch (\Throwable $e) { $this->pdf->SetFont($fallbackRegular[0], $fallbackRegular[1], 12); }
         $this->pdf->Cell(78, 6, $this->t('เลขที่: ' . ($q->number ?? '-')), 0, 2, 'R');
         $this->pdf->Cell(78, 6, $this->t('วันที่: ' . now()->format('d/m/Y')), 0, 2, 'R');
+        
+        // ดึงผู้ขายจาก customer->cus_manage_by (ผู้ดูแลลูกค้า)
+        $sellerName = null;
+        if ($q->customer_id) {
+            $customer = \App\Models\MasterCustomer::find($q->customer_id);
+            if ($customer && $customer->cus_manage_by) {
+                $manager = \App\Models\User::find($customer->cus_manage_by);
+                if ($manager) {
+                    $sellerName = $manager->username ?? $manager->user_firstname ?? null;
+                }
+            }
+        }
+        // Fallback to quotation creator if no manager found
+        if (!$sellerName && $q->creator) {
+            $sellerName = $q->creator->user_firstname ?? $q->creator->username ?? null;
+        }
+        if ($sellerName) {
+            $this->pdf->Cell(78, 6, $this->t('ผู้ขาย: ' . $sellerName), 0, 2, 'R');
+        }
 
     // Then render company block under the logo (confined to left column to avoid overlap with right meta)
     $leftColumnWidth = 186 - 90; // full content width (186) minus reserved right column (~90)

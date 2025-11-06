@@ -71,16 +71,26 @@
         @if ($quotation->due_date)
           <div><strong>กำหนดส่ง:</strong> {{ \Carbon\Carbon::parse($quotation->due_date)->format('d/m/Y') }}</div>
         @endif
-         <!-- เอาแค่ ชื่อจริงพอถ้าเอสนามสกุลด้วยมันจะล้น บรรทัด -->
+         <!-- ดึงผู้ขายจาก customer->cus_manage_by (ผู้ดูแลลูกค้า) -->
         @php
-          $sellerFirst = optional($quotation->creator)->user_firstname;
-         
-           $sellerLast  = optional($quotation->creator)->user_lastname;
-          $sellerUser  = optional($quotation->creator)->username;
-          $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: $sellerUser); 
+          $sellerName = null;
+          // ลองดึงจาก customer_id -> master_customers.cus_manage_by -> users.username
+          if ($quotation->customer_id) {
+            $customer = \App\Models\MasterCustomer::find($quotation->customer_id);
+            if ($customer && $customer->cus_manage_by) {
+              $manager = \App\Models\User::find($customer->cus_manage_by);
+              if ($manager) {
+                $sellerName = $manager->username ?? $manager->user_firstname ?? null;
+              }
+            }
+          }
+          // Fallback to quotation creator if no manager found
+          if (!$sellerName && $quotation->creator) {
+            $sellerName = $quotation->creator->user_firstname ?? $quotation->creator->username;
+          }
         @endphp
-        @if ($sellerDisplay)
-          <div><strong>ผู้ขาย:</strong> {{ $sellerFirst }}</div>
+        @if ($sellerName)
+          <div><strong>ผู้ขาย:</strong> {{ $sellerName }}</div>
         @endif
       </div>
     </td>

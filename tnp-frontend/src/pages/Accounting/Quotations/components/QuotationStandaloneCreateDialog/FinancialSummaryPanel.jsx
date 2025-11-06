@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   Box,
   Paper,
@@ -12,80 +12,23 @@ import {
   InputAdornment,
   Chip,
 } from "@mui/material";
+import { useFinancialCalculations } from "./hooks/useFinancialCalculations";
+import { formatTHB } from "./utils/formatting";
 
 /**
- * FinancialSummaryPanel Component
- * แสดงและจัดการการคำนวณทางการเงินแบบ real-time
+ * FinancialSummaryPanel Component (Dumb UI)
+ * แสดงผลการคำนวณทางการเงิน
  */
 const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
-  // คำนวณ subtotal จาก items
-  const itemsSubtotal = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const gross = (item.unit_price || 0) * (item.quantity || 0);
-      const discount = item.discount_amount || 0;
-      return sum + Math.max(0, gross - discount);
-    }, 0);
-  }, [items]);
-
-  // คำนวณส่วนลดพิเศษ
-  const specialDiscountAmount = useMemo(() => {
-    if (financials.special_discount_amount > 0) {
-      return financials.special_discount_amount;
-    }
-    return (itemsSubtotal * (financials.special_discount_percentage || 0)) / 100;
-  }, [itemsSubtotal, financials.special_discount_percentage, financials.special_discount_amount]);
-
-  // ยอดหลังหักส่วนลดพิเศษ
-  const subtotalAfterDiscount = useMemo(() => {
-    return Math.max(0, itemsSubtotal - specialDiscountAmount);
-  }, [itemsSubtotal, specialDiscountAmount]);
-
-  // คำนวณ VAT
-  const vatAmount = useMemo(() => {
-    if (!financials.has_vat) return 0;
-    return (subtotalAfterDiscount * (financials.vat_percentage || 7)) / 100;
-  }, [subtotalAfterDiscount, financials.has_vat, financials.vat_percentage]);
-
-  // คำนวณ total_amount
-  const totalAmount = useMemo(() => {
-    return subtotalAfterDiscount + vatAmount;
-  }, [subtotalAfterDiscount, vatAmount]);
-
-  // คำนวณภาษีหัก ณ ที่จ่าย
-  const withholdingTaxAmount = useMemo(() => {
-    if (!financials.has_withholding_tax) return 0;
-    return (subtotalAfterDiscount * (financials.withholding_tax_percentage || 0)) / 100;
-  }, [
+  const {
+    itemsSubtotal,
     subtotalAfterDiscount,
-    financials.has_withholding_tax,
-    financials.withholding_tax_percentage,
-  ]);
-
-  // คำนวณยอดสุทธิสุดท้าย
-  const finalTotalAmount = useMemo(() => {
-    return totalAmount - withholdingTaxAmount;
-  }, [totalAmount, withholdingTaxAmount]);
-
-  // คำนวณเงินมัดจำ
-  const depositAmount = useMemo(() => {
-    if (financials.deposit_mode === "amount") {
-      return financials.deposit_amount || 0;
-    }
-    return (subtotalAfterDiscount * (financials.deposit_percentage || 0)) / 100;
-  }, [
-    subtotalAfterDiscount,
-    financials.deposit_mode,
-    financials.deposit_percentage,
-    financials.deposit_amount,
-  ]);
-
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("th-TH", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value || 0);
-  };
+    vatAmount,
+    totalAmount,
+    withholdingTaxAmount,
+    finalTotalAmount,
+    depositAmount,
+  } = useFinancialCalculations(items, financials);
 
   const handleChange = (field, value) => {
     onChange({ ...financials, [field]: value });
@@ -104,7 +47,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             ยอดรวมจากรายการสินค้า
           </Typography>
           <Typography variant="body1" fontWeight={500}>
-            ฿{formatCurrency(itemsSubtotal)}
+            ฿{formatTHB(itemsSubtotal)}
           </Typography>
         </Box>
       </Box>
@@ -152,7 +95,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
           />
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-          ยอดหลังหักส่วนลดพิเศษ: ฿{formatCurrency(subtotalAfterDiscount)}
+          ยอดหลังหักส่วนลดพิเศษ: ฿{formatTHB(subtotalAfterDiscount)}
         </Typography>
       </Box>
 
@@ -203,7 +146,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             fontWeight={500}
             color={financials.has_vat ? "primary" : "text.disabled"}
           >
-            ฿{formatCurrency(vatAmount)}
+            ฿{formatTHB(vatAmount)}
           </Typography>
         </Box>
       </Box>
@@ -217,7 +160,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             ยอดรวมทั้งสิ้น (รวม VAT)
           </Typography>
           <Typography variant="h6" fontWeight={700} color="primary">
-            ฿{formatCurrency(totalAmount)}
+            ฿{formatTHB(totalAmount)}
           </Typography>
         </Box>
       </Box>
@@ -262,7 +205,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             fontWeight={500}
             color={financials.has_withholding_tax ? "error" : "text.disabled"}
           >
-            ฿{formatCurrency(withholdingTaxAmount)}
+            ฿{formatTHB(withholdingTaxAmount)}
           </Typography>
         </Box>
       </Box>
@@ -276,7 +219,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
                 ยอดสุทธิสุดท้าย (หลังหักภาษี ณ ที่จ่าย)
               </Typography>
               <Typography variant="h6" fontWeight={700} color="success.main">
-                ฿{formatCurrency(finalTotalAmount)}
+                ฿{formatTHB(finalTotalAmount)}
               </Typography>
             </Box>
           </Box>
@@ -332,7 +275,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             จำนวนเงินมัดจำ
           </Typography>
           <Typography variant="body1" fontWeight={600} color="warning.main">
-            ฿{formatCurrency(depositAmount)}
+            ฿{formatTHB(depositAmount)}
           </Typography>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>

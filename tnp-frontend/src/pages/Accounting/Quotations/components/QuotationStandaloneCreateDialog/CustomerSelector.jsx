@@ -42,14 +42,31 @@ const CustomerSelector = ({ value, onChange, error, helperText, required = true 
   const getOptionLabel = useCallback((option) => {
     if (typeof option === "string") return option; // Handle initial value
     if (!option) return "";
+
     const company = option.cus_company || "";
     const name = [option.cus_firstname, option.cus_lastname].filter(Boolean).join(" ");
-    return company || name || option.cus_id;
+    const result = company || name || (option.cus_id ? `Customer ${option.cus_id}` : "");
+
+    // Safety check: always return a string
+    return result || "";
   }, []);
 
   // Check if two options are equal
   const isOptionEqualToValue = useCallback((option, value) => {
-    return option.cus_id === value?.cus_id; // <-- Compare objects by ID
+    // Handle null/undefined
+    if (!option || !value) return false;
+
+    // ถ้ามี cus_id ให้เปรียบเทียบด้วย cus_id
+    if (option.cus_id && value.cus_id) {
+      return option.cus_id === value.cus_id;
+    }
+
+    // ถ้าไม่มี cus_id (กรณีลูกค้าที่เพิ่งสร้างใหม่) ให้เปรียบเทียบด้วย cus_company + cus_tel_1
+    if (option.cus_company && value.cus_company && option.cus_tel_1 && value.cus_tel_1) {
+      return option.cus_company === value.cus_company && option.cus_tel_1 === value.cus_tel_1;
+    }
+
+    return false;
   }, []);
 
   // Custom rendering for dropdown options

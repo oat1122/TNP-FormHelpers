@@ -60,6 +60,11 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
     [userData?.role, data?.status]
   );
 
+  const canRevokeApproval = React.useMemo(
+    () => ["admin", "account"].includes(userData?.role) && data?.status === "approved",
+    [userData?.role, data?.status]
+  );
+
   const prIds = React.useMemo(() => {
     const set = new Set();
     if (Array.isArray(data?.items)) {
@@ -130,6 +135,7 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
     canChangeCompany,
     currentCompany,
     canApprove,
+    canRevokeApproval,
     prIds,
     creatorText,
     onChangeCompany,

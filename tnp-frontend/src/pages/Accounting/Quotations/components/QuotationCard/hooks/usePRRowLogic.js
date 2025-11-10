@@ -13,9 +13,17 @@ export default function usePRRowLogic(prId, items) {
     if (!Array.isArray(items)) {
       return [];
     }
-    return items.filter(
-      (item) => item?.pricing_request_id === prId || item?.pricing_request_id === pr?.id,
-    );
+
+    // FIX: Enforce string conversion for both sides of the comparison
+    // to prevent issues with strict equality check (===) due to inconsistent data types.
+    const prIdString = String(prId || "");
+    const prIdFromAutofill = String(pr?.id || "");
+
+    return items.filter((item) => {
+      const itemId = String(item?.pricing_request_id || "");
+      // Compare the item's PR ID against the one passed to the hook and the one from autofill data
+      return itemId === prIdString || itemId === prIdFromAutofill;
+    });
   }, [items, prId, pr?.id]);
 
   const grouped = React.useMemo(() => {
@@ -40,14 +48,15 @@ export default function usePRRowLogic(prId, items) {
       }
 
       const quantityValue =
-        typeof item.quantity === "string" ? parseFloat(item.quantity || "0") : Number(item.quantity || 0);
+        typeof item.quantity === "string"
+          ? parseFloat(item.quantity || "0")
+          : Number(item.quantity || 0);
       const priceValue =
         typeof item.unit_price === "string"
           ? parseFloat(item.unit_price || "0")
           : Number(item.unit_price || 0);
-      const subtotal = !Number.isNaN(quantityValue) && !Number.isNaN(priceValue)
-        ? quantityValue * priceValue
-        : 0;
+      const subtotal =
+        !Number.isNaN(quantityValue) && !Number.isNaN(priceValue) ? quantityValue * priceValue : 0;
 
       map.get(key).rows.push({
         id: item.id || `${index}`,

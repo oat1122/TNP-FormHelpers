@@ -6,6 +6,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
+import UndoIcon from "@mui/icons-material/Undo";
 import {
   Avatar,
   Box,
@@ -34,8 +35,10 @@ import {
   TNPStatusChip,
 } from "../../../PricingIntegration/components/styles/StyledComponents";
 import PRRow from "./subcomponents/PRRow";
+import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
 import statusColor from "./utils/statusMap";
 import useQuotationCardLogic from "./hooks/useQuotationCardLogic";
+import { useQuotationStatusReversal } from "./hooks/useQuotationStatusReversal";
 
 export default function QuotationCard({
   data,
@@ -61,11 +64,21 @@ export default function QuotationCard({
     canChangeCompany,
     currentCompany,
     canApprove,
+    canRevokeApproval,
     prIds,
     creatorText,
     onChangeCompany,
     onApprove,
   } = useQuotationCardLogic(data, onActionSuccess); // ✅ ส่ง prop ต่อไปให้ hook
+
+  // Hook สำหรับจัดการการย้อนสถานะ
+  const {
+    isReversalDialogOpen,
+    handleOpenReversalDialog,
+    handleCloseReversalDialog,
+    handleReverseStatus,
+    isReversing,
+  } = useQuotationStatusReversal(data?.id, onActionSuccess);
 
   // ✅ ลบเงื่อนไขที่ return null เมื่อไม่มี prIds
   if (deleted) {
@@ -75,198 +88,222 @@ export default function QuotationCard({
   const items = Array.isArray(data?.items) ? data.items : [];
 
   return (
-    <TNPCard>
-      <TNPCardContent>
-        <Box display="flex" alignItems="center" mb={2.5}>
-          <Avatar
-            sx={{
-              bgcolor: "secondary.main",
-              width: 48,
-              height: 48,
-              mr: 2,
-              boxShadow: "0 2px 8px rgba(178, 0, 0, 0.2)",
-            }}
-          >
-            <BusinessIcon sx={{ fontSize: "1.5rem" }} />
-          </Avatar>
-          <Box flex={1} minWidth={0}>
-            <TNPHeading variant="h6">
-              {data?.customer?.cus_company || data?.customer_name || "-"}
-            </TNPHeading>
-            <Box sx={{ mt: 0.5, display: "flex", alignItems: "center", gap: 1, minHeight: 36 }}>
-              {canChangeCompany ? (
-                <FormControl
-                  size="small"
-                  sx={{ minWidth: 180 }}
-                  disabled={companiesLoading || updatingCompany}
-                >
-                  <InputLabel id={`company-select-label-${data?.id}`}>บริษัท</InputLabel>
-                  <Select
-                    labelId={`company-select-label-${data?.id}`}
-                    value={
-                      companies.find((company) => company.id === data?.company_id)
-                        ? data?.company_id
-                        : ""
-                    }
-                    label="บริษัท"
-                    onChange={(event) => onChangeCompany(event.target.value)}
-                    renderValue={(value) => {
-                      const found = companies.find((company) => company.id === value);
-                      return found ? found.short_code || found.name : "ไม่ระบุ";
-                    }}
-                  >
-                    {companies.map((company) => (
-                      <MenuItem key={company.id} value={company.id}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {company.short_code || company.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {company.name}
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : (
-                <Tooltip title="บริษัทที่ออกเอกสาร">
-                  <Chip
+    <>
+      <TNPCard>
+        <TNPCardContent>
+          <Box display="flex" alignItems="center" mb={2.5}>
+            <Avatar
+              sx={{
+                bgcolor: "secondary.main",
+                width: 48,
+                height: 48,
+                mr: 2,
+                boxShadow: "0 2px 8px rgba(178, 0, 0, 0.2)",
+              }}
+            >
+              <BusinessIcon sx={{ fontSize: "1.5rem" }} />
+            </Avatar>
+            <Box flex={1} minWidth={0}>
+              <TNPHeading variant="h6">
+                {data?.customer?.cus_company || data?.customer_name || "-"}
+              </TNPHeading>
+              <Box sx={{ mt: 0.5, display: "flex", alignItems: "center", gap: 1, minHeight: 36 }}>
+                {canChangeCompany ? (
+                  <FormControl
                     size="small"
-                    color="default"
-                    label={currentCompany?.short_code || currentCompany?.name || "ไม่ระบุบริษัท"}
-                  />
-                </Tooltip>
-              )}
-              {updatingCompany && <CircularProgress size={18} />}
+                    sx={{ minWidth: 180 }}
+                    disabled={companiesLoading || updatingCompany}
+                  >
+                    <InputLabel id={`company-select-label-${data?.id}`}>บริษัท</InputLabel>
+                    <Select
+                      labelId={`company-select-label-${data?.id}`}
+                      value={
+                        companies.find((company) => company.id === data?.company_id)
+                          ? data?.company_id
+                          : ""
+                      }
+                      label="บริษัท"
+                      onChange={(event) => onChangeCompany(event.target.value)}
+                      renderValue={(value) => {
+                        const found = companies.find((company) => company.id === value);
+                        return found ? found.short_code || found.name : "ไม่ระบุ";
+                      }}
+                    >
+                      {companies.map((company) => (
+                        <MenuItem key={company.id} value={company.id}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {company.short_code || company.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {company.name}
+                            </Typography>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <Tooltip title="บริษัทที่ออกเอกสาร">
+                    <Chip
+                      size="small"
+                      color="default"
+                      label={currentCompany?.short_code || currentCompany?.name || "ไม่ระบุบริษัท"}
+                    />
+                  </Tooltip>
+                )}
+                {updatingCompany && <CircularProgress size={18} />}
+              </Box>
             </Box>
           </Box>
-        </Box>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" mb={2.5}>
-          <TNPStatusChip
-            label={data?.status || "draft"}
-            size="small"
-            statuscolor={statusColor[data?.status] || "default"}
-          />
-          <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
-          {data?.number && !String(data.number).startsWith("DRAFT-") && (
-            <TNPCountChip
-              icon={<DescriptionIcon sx={{ fontSize: "1rem" }} />}
-              label={data.number}
+          <Stack direction="row" spacing={1} flexWrap="wrap" mb={2.5}>
+            <TNPStatusChip
+              label={data?.status || "draft"}
               size="small"
+              statuscolor={statusColor[data?.status] || "default"}
             />
+            <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
+            {data?.number && !String(data.number).startsWith("DRAFT-") && (
+              <TNPCountChip
+                icon={<DescriptionIcon sx={{ fontSize: "1rem" }} />}
+                label={data.number}
+                size="small"
+              />
+            )}
+          </Stack>
+
+          <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>
+
+          {prIds.length > 0 ? (
+            <Box sx={{ mt: 1.5 }}>
+              <Stack spacing={1.2}>
+                {prIds.slice(0, 3).map((id) => (
+                  <PRRow key={id} prId={id} items={items} />
+                ))}
+              </Stack>
+              {prIds.length > 3 && (
+                <>
+                  <Collapse in={showAll}>
+                    <Stack spacing={1.2} sx={{ mt: 1 }}>
+                      {prIds.slice(3).map((id) => (
+                        <PRRow key={id} prId={id} items={items} />
+                      ))}
+                    </Stack>
+                  </Collapse>
+                  <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+                    <Button
+                      size="small"
+                      onClick={() => setShowAll((value) => !value)}
+                      sx={{ textTransform: "none" }}
+                    >
+                      {showAll ? "ย่อ" : "ดูเพิ่มเติม"}
+                    </Button>
+                  </Box>
+                </>
+              )}
+            </Box>
+          ) : (
+            <Box sx={{ mt: 1.5 }}>
+              <TNPBodyText color="text.secondary" sx={{ fontStyle: "italic" }}>
+                ไม่มี Pricing อ้างอิง
+              </TNPBodyText>
+            </Box>
           )}
-        </Stack>
+        </TNPCardContent>
 
-        <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>
+        <TNPDivider />
 
-        {prIds.length > 0 ? (
-          <Box sx={{ mt: 1.5 }}>
-            <Stack spacing={1.2}>
-              {prIds.slice(0, 3).map((id) => (
-                <PRRow key={id} prId={id} items={items} />
-              ))}
-            </Stack>
-            {prIds.length > 3 && (
-              <>
-                <Collapse in={showAll}>
-                  <Stack spacing={1.2} sx={{ mt: 1 }}>
-                    {prIds.slice(3).map((id) => (
-                      <PRRow key={id} prId={id} items={items} />
-                    ))}
-                  </Stack>
-                </Collapse>
-                <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-                  <Button
-                    size="small"
-                    onClick={() => setShowAll((value) => !value)}
-                    sx={{ textTransform: "none" }}
+        <Box
+          sx={{
+            p: 2.5,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 1,
+            bgcolor: "background.light",
+          }}
+        >
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            <Tooltip title="ดาวน์โหลด PDF">
+              <span>
+                <IconButton
+                  size="medium"
+                  onClick={onDownloadPDF}
+                  disabled={data?.status !== "approved"}
+                  color="primary"
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+            {canRevokeApproval && (
+              <Tooltip title="ย้อนสถานะเป็น Draft">
+                <span>
+                  <IconButton
+                    size="medium"
+                    color="warning"
+                    onClick={handleOpenReversalDialog}
+                    disabled={isReversing}
                   >
-                    {showAll ? "ย่อ" : "ดูเพิ่มเติม"}
-                  </Button>
-                </Box>
-              </>
+                    <UndoIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            {canApprove && (
+              <Tooltip title="อนุมัติ">
+                <span>
+                  <IconButton
+                    size="medium"
+                    color="success"
+                    disabled={approving || submitting}
+                    onClick={onApprove}
+                  >
+                    {approving || submitting ? <CircularProgress size={24} /> : <CheckCircleIcon />}
+                  </IconButton>
+                </span>
+              </Tooltip>
             )}
           </Box>
-        ) : (
-          <Box sx={{ mt: 1.5 }}>
-            <TNPBodyText color="text.secondary" sx={{ fontStyle: "italic" }}>
-              ไม่มี Pricing อ้างอิง
-            </TNPBodyText>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {onCreateInvoice && data?.status === "approved" && data?.signature_image_url && (
+              <Tooltip title={actionButtonText || "สร้างใบแจ้งหนี้"}>
+                <span>
+                  <IconButton
+                    size="medium"
+                    color="primary"
+                    onClick={onCreateInvoice}
+                    disabled={creatingInvoice}
+                  >
+                    {creatingInvoice ? <CircularProgress size={24} /> : <ReceiptIcon />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            {onDuplicate && (
+              <Tooltip title="ทำสำเนา">
+                <IconButton size="medium" color="secondary" onClick={onDuplicate}>
+                  <FileCopyIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="ดูรายละเอียด">
+              <IconButton size="medium" color="primary" onClick={onViewDetail}>
+                <VisibilityIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
-        )}
-      </TNPCardContent>
-
-      <TNPDivider />
-
-      <Box
-        sx={{
-          p: 2.5,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 1,
-          bgcolor: "background.light",
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <Tooltip title="ดาวน์โหลด PDF">
-            <span>
-              <IconButton
-                size="medium"
-                onClick={onDownloadPDF}
-                disabled={data?.status !== "approved"}
-                color="primary"
-              >
-                <DownloadIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-          {canApprove && (
-            <Tooltip title="อนุมัติ">
-              <span>
-                <IconButton
-                  size="medium"
-                  color="success"
-                  disabled={approving || submitting}
-                  onClick={onApprove}
-                >
-                  {approving || submitting ? <CircularProgress size={24} /> : <CheckCircleIcon />}
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
         </Box>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          {onCreateInvoice && data?.status === "approved" && data?.signature_image_url && (
-            <Tooltip title={actionButtonText || "สร้างใบแจ้งหนี้"}>
-              <span>
-                <IconButton
-                  size="medium"
-                  color="primary"
-                  onClick={onCreateInvoice}
-                  disabled={creatingInvoice}
-                >
-                  {creatingInvoice ? <CircularProgress size={24} /> : <ReceiptIcon />}
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
-          {onDuplicate && (
-            <Tooltip title="ทำสำเนา">
-              <IconButton size="medium" color="secondary" onClick={onDuplicate}>
-                <FileCopyIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Tooltip title="ดูรายละเอียด">
-            <IconButton size="medium" color="primary" onClick={onViewDetail}>
-              <VisibilityIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-    </TNPCard>
+      </TNPCard>
+
+      {/* Dialog ยืนยันการย้อนสถานะ */}
+      <StatusReversalDialog
+        open={isReversalDialogOpen}
+        onClose={handleCloseReversalDialog}
+        onSubmit={handleReverseStatus}
+        isLoading={isReversing}
+      />
+    </>
   );
 }

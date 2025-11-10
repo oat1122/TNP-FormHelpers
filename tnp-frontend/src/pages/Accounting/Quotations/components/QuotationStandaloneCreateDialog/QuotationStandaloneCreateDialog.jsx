@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -26,6 +26,7 @@ import {
   Person as PersonIcon,
   Business as BusinessIcon,
   LocationOn as LocationOnIcon,
+  AddCircleOutline as AddCircleOutlineIcon,
 } from "@mui/icons-material";
 
 // ⭐️ นำเข้า Hook หลัก
@@ -35,6 +36,7 @@ import { useQuotationStandaloneForm } from "./hooks/useQuotationStandaloneForm";
 import CustomerSelector from "./CustomerSelector";
 import QuotationJobManager from "./QuotationJobManager";
 import FinancialSummaryPanel from "./FinancialSummaryPanel";
+import CustomerCreateDialog from "./CustomerCreateDialog";
 
 const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบเสนอราคา", "การคำนวณทางการเงิน(สรุปรวม)"];
 
@@ -43,6 +45,9 @@ const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบ
  * ทำหน้าที่เพียงแสดงผล UI และรับ props จาก useQuotationStandaloneForm
  */
 const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }) => {
+  // State สำหรับเปิด/ปิด Dialog สร้างลูกค้า
+  const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
+
   // เรียกใช้ Hook เพื่อดึง State และ Handlers
   const {
     activeStep,
@@ -103,13 +108,30 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
               <PersonIcon /> ข้อมูลลูกค้า
             </Typography>
 
-            <CustomerSelector
-              value={selectedCustomer}
-              onChange={setSelectedCustomer}
-              error={!!errors.customer_id}
-              helperText={errors.customer_id}
-              required
-            />
+            {/* เพิ่มปุ่ม "สร้างลูกค้าใหม่" ข้าง CustomerSelector */}
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+              <Box sx={{ flexGrow: 1 }}>
+                <CustomerSelector
+                  value={selectedCustomer}
+                  onChange={setSelectedCustomer}
+                  error={!!errors.customer_id}
+                  helperText={errors.customer_id}
+                  required
+                />
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<AddCircleOutlineIcon />}
+                onClick={() => setCreateCustomerOpen(true)}
+                sx={{
+                  height: "40px",
+                  whiteSpace: "nowrap",
+                  minWidth: "fit-content",
+                }}
+              >
+                สร้างลูกค้าใหม่
+              </Button>
+            </Box>
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
@@ -392,76 +414,91 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{
-        sx: { height: "90vh" },
-      }}
-    >
-      <DialogTitle>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="h6">สร้างใบเสนอราคา (Standalone)</Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { height: "90vh" },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Typography variant="h6">สร้างใบเสนอราคา (Standalone)</Typography>
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
 
-      <Divider />
+        <Divider />
 
-      <DialogContent sx={{ pt: 3 }}>
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
-        {apiError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {apiError?.data?.message || "เกิดข้อผิดพลาด"}
-          </Alert>
-        )}
-
-        <Box sx={{ minHeight: 400 }}>{renderStepContent(activeStep)}</Box>
-      </DialogContent>
-
-      <Divider />
-
-      <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
-        <Button onClick={onClose} disabled={isLoading}>
-          ยกเลิก
-        </Button>
-
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {activeStep > 0 && (
-            <Button onClick={handleBack} disabled={isLoading}>
-              ย้อนกลับ
-            </Button>
+          {apiError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {apiError?.data?.message || "เกิดข้อผิดพลาด"}
+            </Alert>
           )}
 
-          {activeStep < steps.length - 1 ? (
-            <Button variant="contained" onClick={handleNext}>
-              ถัดไป
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              disabled={isLoading}
-              startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
-            >
-              {isLoading ? "กำลังบันทึก..." : "สร้างใบเสนอราคา"}
-            </Button>
-          )}
-        </Box>
-      </DialogActions>
-    </Dialog>
+          <Box sx={{ minHeight: 400 }}>{renderStepContent(activeStep)}</Box>
+        </DialogContent>
+
+        <Divider />
+
+        <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+          <Button onClick={onClose} disabled={isLoading}>
+            ยกเลิก
+          </Button>
+
+          <Box sx={{ display: "flex", gap: 1 }}>
+            {activeStep > 0 && (
+              <Button onClick={handleBack} disabled={isLoading}>
+                ย้อนกลับ
+              </Button>
+            )}
+
+            {activeStep < steps.length - 1 ? (
+              <Button variant="contained" onClick={handleNext}>
+                ถัดไป
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                disabled={isLoading}
+                startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
+              >
+                {isLoading ? "กำลังบันทึก..." : "สร้างใบเสนอราคา"}
+              </Button>
+            )}
+          </Box>
+        </DialogActions>
+      </Dialog>
+
+      {/* Render CustomerCreateDialog */}
+      {createCustomerOpen && (
+        <CustomerCreateDialog
+          open={createCustomerOpen}
+          onClose={() => setCreateCustomerOpen(false)}
+          onSuccess={(newCustomer) => {
+            // เมื่อสร้างสำเร็จ: เลือก customer ใหม่ใน Selector
+            setSelectedCustomer(newCustomer);
+            setCreateCustomerOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 };
 

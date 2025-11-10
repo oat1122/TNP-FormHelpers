@@ -1,41 +1,39 @@
-// 📁subcomponents/PRGroupCalcCard.jsx
+// 📁 Accounting/Quotations/components/shared/PRGroupCalcCard.jsx
 import React from "react";
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Chip, 
-  TextField 
-} from "@mui/material";
 import {
-  Add as AddIcon,
-  DeleteOutline as DeleteOutlineIcon,
-} from "@mui/icons-material";
-// ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
-import { formatTHB } from "../utils/formatters";
+  Box,
+  Typography,
+  Grid,
+  Chip,
+  TextField,
+  Divider, // 👈 (Divider ยังคงใช้อยู่)
+} from "@mui/material";
+import { Add as AddIcon, DeleteOutline as DeleteOutlineIcon } from "@mui/icons-material";
+import { formatTHB } from "../QuotationDetailDialog/utils/formatters";
 
-// Temporary fallback styles - replace with actual import
+// ... (Temporary fallback styles: InfoCard, SecondaryButton, tokens ...
+// ... (เหมือนเดิม)
 const InfoCard = ({ children, sx, ...props }) => (
-  <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, ...sx }} {...props}>
+  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 1, ...sx }} {...props}>
     {children}
   </Box>
 );
 
 const SecondaryButton = ({ children, sx, ...props }) => (
-  <Box 
-    component="button" 
-    sx={{ 
-      border: '1px solid #ccc', 
-      borderRadius: 1, 
-      padding: '6px 12px',
-      background: '#fff',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
+  <Box
+    component="button"
+    sx={{
+      border: "1px solid #ccc",
+      borderRadius: 1,
+      padding: "6px 12px",
+      background: "#fff",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
       gap: 1,
-      fontSize: '0.875rem',
-      ...sx 
-    }} 
+      fontSize: "0.875rem",
+      ...sx,
+    }}
     {...props}
   >
     {children}
@@ -43,24 +41,26 @@ const SecondaryButton = ({ children, sx, ...props }) => (
 );
 
 const tokens = {
-  primary: '#1976d2',
-  border: '#e0e0e0',
-  bg: '#fafafa',
+  primary: "#1976d2",
+  border: "#e0e0e0",
+  bg: "#fafafa",
+  // ⭐️ เพิ่มสีแดงจางๆ สำหรับพื้นหลัง
+  errorBg: "rgba(211, 47, 47, 0.02)",
 };
+// ... (จบส่วน styles)
 
-// Child: Calculation card per PR group
 export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
   group,
   index,
   isEditing,
-  prAutofillData, // 👈 รับ prop ใหม่
+  prAutofillData,
   onAddRow,
   onChangeRow,
   onRemoveRow,
   onDeleteGroup,
   onChangeGroup,
 }) {
-  // ✅ ใช้ข้อมูลจาก props แทน
+  // ... (ส่วน Logic: pr, name, pattern, rows, ... เหมือนเดิม)
   const pr = prAutofillData || {};
   const name =
     group.name && group.name !== "-" ? group.name : pr.pr_work_name || pr.work_name || "-";
@@ -83,6 +83,7 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
 
   return (
     <Box component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
+      {/* ... (Card Header - เหมือนเดิม) ... */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
         <Box display="flex" alignItems="center" gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
@@ -119,11 +120,7 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
             />
           )}
           {isEditing && (
-            <SecondaryButton
-              size="small"
-              color="error"
-              onClick={() => onDeleteGroup(group.id)}
-            >
+            <SecondaryButton size="small" color="error" onClick={() => onDeleteGroup(group.id)}>
               <DeleteOutlineIcon fontSize="small" />
               ลบงานนี้
             </SecondaryButton>
@@ -131,7 +128,9 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
         </Box>
       </Box>
 
+      {/* ... (Group Details Grid - เหมือนเดิม) ... */}
       <Grid container spacing={1.5}>
+        {/* (Pattern, Fabric, Color, Size, Unit fields) */}
         <Grid item xs={12} md={3}>
           <TextField
             fullWidth
@@ -165,8 +164,6 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
         <Grid item xs={12} md={3}>
           <TextField fullWidth size="small" label="ขนาด (สรุป)" value={size} disabled />
         </Grid>
-
-        {/* Unit editor */}
         <Grid item xs={12} md={3}>
           <TextField
             fullWidth
@@ -211,6 +208,7 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
           </Grid>
         )}
 
+        {/* ⭐️⭐️⭐️ START: UI/UX Improvement Section ⭐️⭐️⭐️ */}
         <Grid item xs={12}>
           <Box
             sx={{
@@ -220,143 +218,185 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
               bgcolor: tokens.bg,
             }}
           >
+            {/* Header: "แยกตามขนาด" และ "เพิ่มแถว" */}
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
               <Typography variant="subtitle2" fontWeight={700}>
                 แยกตามขนาด
               </Typography>
               {isEditing && (
-                <SecondaryButton
-                  size="small"
-                  onClick={() => onAddRow(group.id)}
-                >
+                <SecondaryButton size="small" onClick={() => onAddRow(group.id)}>
                   <AddIcon fontSize="small" />
                   เพิ่มแถว
                 </SecondaryButton>
               )}
             </Box>
-            <Grid container spacing={1} sx={{ px: 0.5, pb: 0.5 }}>
-              <Grid item xs={12} md={3}>
+
+            {/* Header Titles (Desktop) */}
+            <Grid
+              container
+              spacing={1}
+              sx={{ px: 0.5, pb: 0.5, display: { xs: "none", md: "flex" } }}
+            >
+              <Grid item md={3}>
                 <Typography variant="caption" color="text.secondary">
                   ขนาด
                 </Typography>
               </Grid>
-              <Grid item xs={6} md={3}>
+              <Grid item md={2}>
                 <Typography variant="caption" color="text.secondary">
                   จำนวน
                 </Typography>
               </Grid>
-              <Grid item xs={6} md={3}>
+              <Grid item md={3}>
                 <Typography variant="caption" color="text.secondary">
                   ราคาต่อหน่วย
                 </Typography>
               </Grid>
-              <Grid item xs={10} md={2}>
+              <Grid item md={3}>
                 <Typography variant="caption" color="text.secondary">
                   ยอดรวม
                 </Typography>
               </Grid>
-              <Grid item xs={2} md={1}></Grid>
+              <Grid item md={1}></Grid>
             </Grid>
+
+            {/* Rows Data */}
             {rows.length === 0 ? (
               <Box sx={{ p: 1, color: "text.secondary" }}>
                 <Typography variant="body2">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
               </Box>
             ) : (
-              <Grid container spacing={1}>
-                {rows.map((row) => (
+              <>
+                {rows.map((row, rowIndex) => (
                   <React.Fragment key={row.uuid}>
-                    <Grid item xs={12} md={3}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        inputProps={{ inputMode: "text" }}
-                        label="ขนาด"
-                        value={row.size || ""}
-                        disabled={!isEditing}
-                        onChange={(e) => onChangeRow(group.id, row.uuid, "size", e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={6} md={3}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="จำนวน"
-                        type="text"
-                        inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-                        value={row.quantity ?? ""}
-                        disabled={!isEditing}
-                        onChange={(e) =>
-                          onChangeRow(group.id, row.uuid, "quantity", e.target.value)
-                        }
-                      />
-                    </Grid>
-                    <Grid item xs={6} md={3}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="ราคาต่อหน่วย"
-                        type="text"
-                        inputProps={{ inputMode: "decimal" }}
-                        value={row.unitPrice ?? ""}
-                        disabled={!isEditing}
-                        onChange={(e) =>
-                          onChangeRow(group.id, row.uuid, "unitPrice", e.target.value)
-                        }
-                      />
-                    </Grid>
-                    <Grid item xs={10} md={2}>
-                      <Box
-                        sx={{
-                          p: 1,
-                          bgcolor: "#fff",
-                          border: `1px solid ${tokens.border}`,
-                          borderRadius: 1,
-                          textAlign: "center",
-                        }}
-                      >
-                        <Typography variant="subtitle2" fontWeight={800}>
-                          {(() => {
-                            const q =
-                              typeof row.quantity === "string"
-                                ? parseFloat(row.quantity || "0")
-                                : Number(row.quantity || 0);
-                            const p =
-                              typeof row.unitPrice === "string"
-                                ? parseFloat(row.unitPrice || "0")
-                                : Number(row.unitPrice || 0);
-                            const val = isNaN(q) || isNaN(p) ? 0 : q * p;
-                            return formatTHB(val);
-                          })()}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={2} md={1}>
-                      {isEditing && (
-                        <SecondaryButton
-                          size="small"
-                          color="error"
-                          onClick={() => onRemoveRow(group.id, row.uuid)}
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </SecondaryButton>
-                      )}
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="หมายเหตุ (บรรทัดนี้)"
-                        multiline
-                        minRows={1}
-                        value={row.notes || ""}
-                        disabled={!isEditing}
-                        onChange={(e) => onChangeRow(group.id, row.uuid, "notes", e.target.value)}
-                      />
-                    </Grid>
+                    {rowIndex > 0 && (
+                      <Grid item xs={12} sx={{ pt: 2, pb: 1.5 }}>
+                        {/* ⭐️ 1. เปลี่ยน Divider ธรรมดาให้เป็นเส้นสีแดงที่ชัดเจน */}
+                        <Divider
+                          sx={{
+                            borderColor: "error.main", // สีแดง
+                            borderWidth: "1.5px", // หนาขึ้นเล็กน้อย
+                            opacity: 0.7, // ลดความเข้ม
+                          }}
+                        />
+                      </Grid>
+                    )}
+
+                    {/* ⭐️ 2. หุ้ม Grid container ด้วย Box เพื่อเพิ่ม grouping (Zebra Striping) */}
+                    <Box
+                      sx={{
+                        // สลับสีพื้นหลัง แดงจางๆ / โปร่งใส
+                        bgcolor: rowIndex % 2 === 0 ? tokens.errorBg : "transparent",
+                        borderRadius: 1,
+                        p: 0.5,
+                        mt: rowIndex > 0 ? 0.5 : 0,
+                      }}
+                    >
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} sm={6} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ขนาด"
+                            inputProps={{ inputMode: "text" }}
+                            value={row.size || ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow(group.id, row.uuid, "size", e.target.value)
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3} md={2}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="จำนวน"
+                            type="text"
+                            inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                            value={row.quantity ?? ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow(group.id, row.uuid, "quantity", e.target.value)
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ราคาต่อหน่วย"
+                            type="text"
+                            inputProps={{ inputMode: "decimal" }}
+                            value={row.unitPrice ?? ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow(group.id, row.uuid, "unitPrice", e.target.value)
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={9} sm={9} md={3}>
+                          <Box
+                            sx={{
+                              p: 1,
+                              bgcolor: "#fff",
+                              border: `1px solid ${tokens.border}`,
+                              borderRadius: 1,
+                              textAlign: "center",
+                              height: "40px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography variant="subtitle2" fontWeight={800} noWrap>
+                              {(() => {
+                                const q =
+                                  typeof row.quantity === "string"
+                                    ? parseFloat(row.quantity || "0")
+                                    : Number(row.quantity || 0);
+                                const p =
+                                  typeof row.unitPrice === "string"
+                                    ? parseFloat(row.unitPrice || "0")
+                                    : Number(row.unitPrice || 0);
+                                const val = isNaN(q) || isNaN(p) ? 0 : q * p;
+                                return formatTHB(val);
+                              })()}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={3} sm={3} md={1}>
+                          {isEditing && (
+                            <SecondaryButton
+                              size="small"
+                              color="error"
+                              onClick={() => onRemoveRow(group.id, row.uuid)}
+                              sx={{ width: "100%", height: "40px" }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </SecondaryButton>
+                          )}
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="หมายเหตุ (บรรทัดนี้)"
+                            multiline
+                            minRows={1}
+                            value={row.notes || ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow(group.id, row.uuid, "notes", e.target.value)
+                            }
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
                   </React.Fragment>
                 ))}
+
                 {hasPrQty && !qtyMatches && (
-                  <Grid item xs={12}>
+                  <Grid item xs={12} sx={{ mt: 1.5 }}>
                     <Typography variant="caption" sx={{ color: "error.main" }}>
                       จำนวนรวมทุกขนาด ({totalQty} {unit}){" "}
                       {totalQty > prQty ? "มากกว่า" : "น้อยกว่า"} จำนวนในงาน Pricing ({prQty} {unit}
@@ -364,11 +404,13 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
                     </Typography>
                   </Grid>
                 )}
-              </Grid>
+              </>
             )}
           </Box>
         </Grid>
+        {/* ⭐️⭐️⭐️ END: UI/UX Improvement Section ⭐️⭐️⭐️ */}
 
+        {/* Total Summary */}
         <Grid item xs={6} md={4}>
           <Box
             sx={{

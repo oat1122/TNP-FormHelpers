@@ -31,7 +31,7 @@ import { useQuotationFinancials } from "./hooks/useQuotationFinancials";
 
 // Import Subcomponents
 import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
-import { PRGroupCalcCard } from "./subcomponents/PRGroupCalcCard";
+import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
 
 // Import utils
 import {

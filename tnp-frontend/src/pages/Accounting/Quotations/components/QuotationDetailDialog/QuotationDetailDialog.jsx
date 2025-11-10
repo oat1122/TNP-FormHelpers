@@ -32,7 +32,7 @@ import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
 
 // Import Subcomponents
 import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
-import { PRGroupCalcCard } from "./subcomponents/PRGroupCalcCard";
+import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
 
 // Import utils
 import {

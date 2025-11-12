@@ -26,7 +26,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
     
     protected function getSignatureTemplatePath(): string
     {
-        return 'pdf.partials.quotation-signature';
+        return 'accounting.pdf.quotation.partials.quotation-signature';
     }
 
     protected function cssFiles(): array
@@ -49,20 +49,14 @@ class QuotationPdfMasterService extends BasePdfMasterService
             'quotation', 'customer', 'isFinal'
         ))->render();
 
-        // 1. Render a normal footer for all pages
+        // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.quotation.partials.quotation-footer', compact(
             'quotation', 'customer', 'isFinal'
         ))->render();
 
-        // 2. Render the special last page footer (with signature)
-        $lastPageFooterHtml = View::make('accounting.pdf.quotation.partials.quotation-footer-lastpage', compact(
-            'quotation', 'customer', 'isFinal'
-        ))->render();
-
-        // 3. Set the footers in Mpdf
+        // Set the header and footer in Mpdf
         $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml); // Default footer for pages 1, 2, ...
-        $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L'); // Special footer for the LAST page ('L' flag)
+        $mpdf->SetHTMLFooter($footerHtml); // ✨ คืนค่า: แสดงเลขหน้าในทุกหน้า
 
         // Watermark for non-final quotations
         if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {

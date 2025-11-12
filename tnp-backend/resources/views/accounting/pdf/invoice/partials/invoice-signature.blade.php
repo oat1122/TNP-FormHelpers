@@ -1,7 +1,8 @@
 {{-- resources/views/accounting/pdf/invoice/partials/invoice-signature.blade.php --}}
 {{-- NOTE: ใช้ร่วมกับ adaptive placement ใน InvoicePdfMasterService::renderSignatureAdaptive() --}}
 {{-- โครงสร้างตั้งใจให้กินความกว้างเต็ม 100%, page-break-inside: avoid; และมี class เดียวกับ Quotation เพื่อง่ายต่อการ reuse CSS --}}
-<div class="signature-fixed-wrapper signature-inline">
+{{-- ✅ FIX: Added unique class 'invoice-signature' to prevent CSS conflicts --}}
+<div class="signature-fixed-wrapper signature-inline invoice-signature">
   <table class="signature-table fixed" role="presentation">
     <tr>
       <td class="signature-cell">

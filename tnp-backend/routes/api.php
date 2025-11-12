@@ -258,8 +258,8 @@ Route::prefix('v1')->group(function() {
         // Sample images upload for quotations
         Route::post('/quotations/{id}/upload-sample-images', 'uploadSampleImages');
         Route::post('/quotations/upload-sample-images', 'uploadSampleImagesTemp');
-    Route::post('/quotations/{id}/upload-signatures', 'uploadSignatures');
-    Route::delete('/quotations/{id}/signatures/{identifier}', 'deleteSignatureImage');
+        Route::post('/quotations/{id}/upload-signatures', 'uploadSignatures');
+        Route::delete('/quotations/{id}/signatures/{identifier}', 'deleteSignatureImage');
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');
         Route::post('/quotations/{id}/mark-sent', 'markSent');
         

@@ -94,6 +94,11 @@ abstract class BasePdfMasterService
      */
     abstract protected function getTemplatePath(array $viewData): string;
 
+    /**
+     * Path ของ View Template สำหรับลายเซ็น
+     */
+    abstract protected function getSignatureTemplatePath(): string;
+
     // =======================================================================
     // |  Core Mpdf Creation
     // =======================================================================
@@ -112,6 +117,9 @@ abstract class BasePdfMasterService
         // 3) Body
         $html = View::make($this->getTemplatePath($viewData), $viewData)->render();
         $mpdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
+
+        // 4) Render signature at the bottom of the last page (adaptive)
+        $this->renderSignatureAdaptive($mpdf, $viewData);
 
         return $mpdf;
     }
@@ -141,7 +149,7 @@ abstract class BasePdfMasterService
             'margin_left' => 10,
             'margin_right' => 10,
             'margin_top' => 16,
-            'margin_bottom' => 50, // <--- Updated from 14
+            'margin_bottom' => 10, 
             'setAutoTopMargin' => 'stretch',
             'setAutoBottomMargin' => 'stretch',
             'default_font' => $hasThaiFonts ? 'thsarabun' : 'dejavusans',
@@ -238,6 +246,61 @@ abstract class BasePdfMasterService
             } 
         }
         return true;
+    }
+
+    // =======================================================================
+    // |  Absolute Signature Rendering (Fixed Position)
+    // =======================================================================
+
+    /**
+     * Render a signature section at a fixed position on the LAST page.
+     * This renders *ABOVE* the footer (which is handled by SetHTMLFooter in child classes)
+     * 
+     * ✅ FIX: Removed duplicate footer HTML rendering that caused signature overlap
+     */
+    protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
+    {
+        try {
+            // 1. Render HTML ลายเซ็นจากคลาสลูก (เช่น quotation-signature, invoice-signature)
+            $sigHtml = View::make($this->getSignatureTemplatePath(), $data)->render();
+            
+            // 2. กำหนดความสูงและตำแหน่งของลายเซ็น
+            $signature_height_mm = 30; // ความสูงของลายเซ็น (30mm)
+            
+            // 3. กำหนดตำแหน่ง bottom (เหนือ Footer 15mm)
+            $bottom_position_mm = 15; 
+
+            /*
+             * ภาพประกอบการวางตำแหน่ง:
+             * |-------------------|
+             * | (Body Content)    |
+             * |                   |
+             * | (ลายเซ็น $sigHtml) | <--- สูง 30mm (เริ่มที่ bottom: 15mm)
+             * |                   |
+             * |-------------------| ขอบล่าง Margin (10mm)
+             * | (Footer เลขหน้า)   | <--- SetHTMLFooter จะแสดงผลในพื้นที่นี้
+             * |-------------------| ขอบล่างกระดาษ (0mm)
+             */
+
+            // 4. สร้าง HTML wrapper (เฉพาะลายเซ็นชุดเดียว - ไม่ซ้ำซ้อน)
+            $wrapper = sprintf(
+                '<div style="position: absolute; width: 98%%; left: 1%%; bottom: %.2fmm; height: %.2fmm; page-break-inside: avoid;" class="signature-absolute-wrapper">
+                    %s
+                </div>',
+                $bottom_position_mm,
+                $signature_height_mm,
+                $sigHtml
+            );
+
+            // 5. เขียน HTML ลงไป (mPDF จะวางไว้ในหน้าสุดท้าย)
+            $mpdf->WriteHTML($wrapper, HTMLParserMode::HTML_BODY);
+
+        } catch (\Throwable $e) {
+            Log::error('Signature absolute placement failed: '.$e->getMessage(), [
+                'model_id' => $data[strtolower($this->getFilenamePrefix())]->id ?? 'unknown',
+                'trace'    => $e->getTraceAsString(),
+            ]);
+        }
     }
 
     // =======================================================================

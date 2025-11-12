@@ -1,6 +1,7 @@
 {{-- resources/views/accounting/pdf/quotation/partials/quotation-signature.blade.php --}}
 {{-- โครงสร้างตั้งใจให้กินความกว้างเต็ม 100%, page-break-inside: avoid; --}}
-<div class="signature-fixed-wrapper signature-inline">
+{{-- ✅ FIX: Added unique class 'quotation-signature' to prevent CSS conflicts --}}
+<div class="signature-fixed-wrapper signature-inline quotation-signature">
   <table class="signature-table fixed" role="presentation">
     <tr>
       <td class="signature-cell">

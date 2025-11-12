@@ -62,20 +62,14 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
             'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
-        // 1. Render a normal footer for all pages
+        // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
             'invoice', 'customer', 'isFinal'
         ))->render();
 
-        // 2. Render the special last page footer (with signature)
-        $lastPageFooterHtml = View::make('accounting.pdf.invoice.partials.invoice-footer-lastpage', compact(
-            'invoice', 'customer', 'isFinal'
-        ))->render();
-
-        // 3. Set the footers in Mpdf
+        // Set the header and footer in Mpdf
         $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml); // Default footer for pages 1, 2, ...
-        $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L'); // Special footer for the LAST page ('L' flag)
+        $mpdf->SetHTMLFooter($footerHtml); // ✨ คืนค่า: แสดงเลขหน้าในทุกหน้า
 
         // ไม่ต้องแสดง Watermark
     }

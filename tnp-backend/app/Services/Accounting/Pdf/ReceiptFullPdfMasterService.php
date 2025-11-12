@@ -60,17 +60,14 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
             'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
         ))->render();
 
-        // **** ใช้ Footer/Signature Logic จาก InvoicePdfMasterService (Parent) ****
+        // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
             'invoice', 'customer', 'isFinal'
         ))->render();
-        $lastPageFooterHtml = View::make('accounting.pdf.invoice.partials.invoice-footer-lastpage', compact(
-            'invoice', 'customer', 'isFinal'
-        ))->render();
 
+        // Set the header and footer in Mpdf
         $mpdf->SetHTMLHeader($headerHtml);
-        $mpdf->SetHTMLFooter($footerHtml);
-        $mpdf->SetHTMLFooter($lastPageFooterHtml, 'L');
+        $mpdf->SetHTMLFooter($footerHtml); // ✨ คืนค่า: แสดงเลขหน้าในทุกหน้า
 
         // ไม่ต้องแสดง Watermark
     }

@@ -238,7 +238,8 @@ h3 {
     font-size: 8.8pt !important;
 }
 
-/* Signature shared - Invoice overrides in invoice-master.css */
+/* ===== Signature Section (Base Styles) ===== */
+/* ✅ FIX: Moved signature base styles here to prevent duplication */
 
 .signature-box {
     position: relative;
@@ -264,6 +265,96 @@ h3 {
 
 .signature-spacer {
     height: 6mm;
+}
+
+/* Base signature styling (shared between quotation and invoice) */
+.signature-fixed-wrapper {
+    font-size: 9.5pt;
+    border: none;
+    border-radius: 0;
+    padding: 10pt 6pt 6pt;
+    background: transparent;
+}
+
+.signature-table.fixed {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.signature-table.fixed .signature-cell {
+    width: 50%;
+    text-align: center;
+    vertical-align: top;
+    padding: 6pt 12pt;
+    position: relative;
+}
+
+.signature-table.fixed .signature-cell:not(:last-child) {
+    border-right: none;
+}
+
+.signature-table.fixed .signature-role {
+    font-weight: 600;
+    margin-top: 6pt;
+    font-size: 10pt;
+    color: #2c3e50;
+    line-height: 1.35;
+}
+
+.signature-table.fixed .signature-name-placeholder {
+    margin-top: 8pt;
+    font-size: 8.5pt;
+    color: #555;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.signature-table.fixed .signature-date-line {
+    margin-top: 8pt;
+    font-size: 8pt;
+    color: #444;
+    letter-spacing: 0.5pt;
+    line-height: 1.4;
+}
+
+.signature-hint {
+    margin-top: 4pt;
+    text-align: center;
+    font-size: 7.5pt;
+}
+
+/* Quotation-specific signature sizing (matched with body content: ~10-11pt) */
+.quotation-signature .signature-fixed-wrapper {
+    font-size: 11pt !important; /* เท่ากับ body content */
+}
+
+.quotation-signature .signature-table.fixed .signature-role {
+    font-size: 11pt !important; /* ชื่อตำแหน่ง: ผู้สั่งซื้อสินค้า, ผู้อนุมัติ */
+}
+
+.quotation-signature .signature-table.fixed .signature-name-placeholder {
+    font-size: 10pt !important; /* ช่องใส่ชื่อ: ( ... ) */
+}
+
+.quotation-signature .signature-table.fixed .signature-date-line {
+    font-size: 10pt !important; /* วันที่ ... */
+}
+
+/* Invoice-specific signature sizing (matched with body content: ~10-11pt) */
+.invoice-signature .signature-fixed-wrapper {
+    font-size: 11pt !important; /* เท่ากับ body content */
+}
+
+.invoice-signature .signature-table.fixed .signature-role {
+    font-size: 11pt !important; /* ชื่อตำแหน่ง: ผู้สั่งซื้อสินค้า, ผู้อนุมัติ */
+}
+
+.invoice-signature .signature-table.fixed .signature-name-placeholder {
+    font-size: 10pt !important; /* ช่องใส่ชื่อ: ( ... ) */
+}
+
+.invoice-signature .signature-table.fixed .signature-date-line {
+    font-size: 10pt !important; /* วันที่ ... */
 }
 
 /* Utilities - Base column widths (can be overridden by specific templates) */

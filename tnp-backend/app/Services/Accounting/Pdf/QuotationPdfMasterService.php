@@ -32,7 +32,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
     protected function cssFiles(): array
     {
         return [
-            resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            // resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/quotation/quotation-master.css'),
             resource_path('views/pdf/partials/quotation-header.css'),
         ];

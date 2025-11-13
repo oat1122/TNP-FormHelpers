@@ -145,37 +145,7 @@ table thead th:nth-child(3) {
 }
 
 /* ===== Signature Section ===== */
-.signature-section {
-    margin-top: 36pt;
-    page-break-inside: avoid;
-    width: 100%;
-}
-
-.signature-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.signature-cell {
-    width: 50%;
-    text-align: center;
-    vertical-align: top;
-    padding: 12pt;
-}
-
-.signature-box {
-    width: 200pt;
-    height: 60pt;
-    border-bottom: 1pt solid #333;
-    margin-bottom: 8pt;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* ===== Signature Section ===== */
-/* ✅ FIX: Removed duplicate signature CSS - now using shared styles from pdf-shared-base.css */
-/* Quotation-specific overrides are defined in pdf-shared-base.css using .quotation-signature class */
+/* ✅ FIX: All signature styles removed - using inline styles only for better mPDF compatibility */
 
 /* ===== Utility Classes ===== */
 .text-right {
@@ -306,18 +276,18 @@ tr {
 
 /* Column width helpers for items table - Adjusted */
 col.w-desc {
-    width: 58%;
-} /* ลดลงจาก 60% */
+    width: 55%;
+} /* รายละเอียด */
 col.w-unit-price {
-    width: 15%;
-} /* คงเดิม */
-col.w-qty {
     width: 12%;
-} /* เพิ่มขึ้นจาก 10% */
+} /* จำนวน (เล็กกว่า - ตัวเลขสั้น) */
+col.w-qty {
+    width: 16%;
+} /* ราคาต่อหน่วย (กลาง) */
 col.w-total {
-    width: 15%;
-} /* คงเดิม */
-/* ยอดรวม = 58 + 15 + 12 + 15 = 100% */
+    width: 17%;
+} /* ยอดรวม (ใหญ่กว่า - ตัวเลขยาว) */
+/* ยอดรวม = 55 + 12 + 16 + 17 = 100% */
 
 /* Signature spacing utility */
 .mt-8 {

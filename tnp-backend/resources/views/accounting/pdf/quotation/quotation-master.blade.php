@@ -79,17 +79,21 @@
     @endif
 
     @if(count($groupsData))
-  <table class="items-table slim table-numbers-sm">
+      {{--
+        1. เพิ่ม class 'quotation-pdf-table' เพื่อให้ CSS ใหม่ทำงาน
+      --}}
+      <table class="items-table slim table-numbers-sm quotation-pdf-table">
         <colgroup>
-          {{-- สลับ w-qty และ w-unit-price --}}
-          <col class="w-desc">       {{-- รายละเอียด --}}
-          <col class="w-qty">        {{-- จำนวน --}}
-          <col class="w-unit-price"> {{-- ราคาต่อหน่วย --}}
-          <col class="w-total">      {{-- ยอดรวม --}}
+          {{-- 2. เปลี่ยนไปใช้ class ความกว้างใหม่ (q-col-...) ที่ไม่ซ้ำซ้อน --}}
+          {{-- ลำดับนี้คือลำดับการแสดงผลที่ถูกต้อง --}}
+          <col class="q-col-desc">       {{-- รายละเอียด (55%) --}}
+          <col class="q-col-qty">        {{-- จำนวน (12%) --}}
+          <col class="q-col-unit-price"> {{-- ราคาต่อหน่วย (16%) --}}
+          <col class="q-col-total">      {{-- ยอดรวม (17%) --}}
         </colgroup>
         <thead>
           <tr>
-            {{-- สลับ th จำนวน และ ราคาต่อหน่วย --}}
+            {{-- ลำดับของ <th> ถูกต้องอยู่แล้ว --}}
             <th class="desc-head text-center">รายละเอียด</th>
             <th class="text-right">จำนวน</th>
             <th class="text-right">ราคาต่อหน่วย</th>
@@ -115,17 +119,20 @@
                     <span class="item-note-inline" style="color: #888;"> {{ $it['notes'] }}</span>
                   @endif
                 </td>
-                {{-- สลับ td จำนวน และ ราคาต่อหน่วย --}}
-                <td class="num">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
-                <td class="num">{{ number_format($it['price'], 2) }}</td>
-                <td class="num">{{ number_format($it['amount'], 2) }}</td>
+                {{--
+                  3. เพิ่ม Inline Style กลับมา
+                     นี่เป็นวิธีที่แน่นอนที่สุดสำหรับ mPDF
+                --}}
+                <td class="num" style="text-align: right;">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
+                <td class="num" style="text-align: right;">{{ number_format($it['price'], 2) }}</td>
+                <td class="num" style="text-align: right;">{{ number_format($it['amount'], 2) }}</td>
               </tr>
             @endforeach
           @endforeach
         </tbody>
       </table>
     @else
-  <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
+      <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
     {{-- Helper: แปลงตัวเลขเป็นข้อความไทยแบบบาทสตางค์ --}}
@@ -327,6 +334,9 @@
         </tr>
       </table>
     </div>
+
+    {{-- Spacer to reserve space for signature (prevent content from overlapping signature area) --}}
+    <div style="height: 35mm; page-break-inside: avoid;"></div>
 
   </div>
 </body>

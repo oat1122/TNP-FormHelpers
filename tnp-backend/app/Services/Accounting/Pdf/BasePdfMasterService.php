@@ -256,7 +256,11 @@ abstract class BasePdfMasterService
      * Render a signature section at a fixed position on the LAST page.
      * This renders *ABOVE* the footer (which is handled by SetHTMLFooter in child classes)
      * 
-     * ✅ FIX: Removed duplicate footer HTML rendering that caused signature overlap
+     * ✅ FIX: Improved signature positioning to prevent overlap with content
+     * ✅ UPDATED: Adjusted for smaller signature size (10pt font, 220×70pt box)
+     * - Content reserves 35mm spacer at bottom
+     * - Signature positioned at bottom: 15mm (above 10mm footer margin)
+     * - Total reserved space = 35mm ensures no overlap with compact signature
      */
     protected function renderSignatureAdaptive(Mpdf $mpdf, array $data): void
     {
@@ -264,22 +268,30 @@ abstract class BasePdfMasterService
             // 1. Render HTML ลายเซ็นจากคลาสลูก (เช่น quotation-signature, invoice-signature)
             $sigHtml = View::make($this->getSignatureTemplatePath(), $data)->render();
             
-            // 2. กำหนดความสูงและตำแหน่งของลายเซ็น
-            $signature_height_mm = 30; // ความสูงของลายเซ็น (30mm)
+            // 2. กำหนดความสูงและตำแหน่งของลายเซ็น (ปรับลดเพราะ signature เล็กลง)
+            $signature_height_mm = 30; // ความสูงของลายเซ็น (30mm) - ลดจาก 40mm
             
-            // 3. กำหนดตำแหน่ง bottom (เหนือ Footer 15mm)
+            // 3. กำหนดตำแหน่ง bottom (เหนือ Footer margin 10mm + เว้นระยะ 5mm = 15mm)
             $bottom_position_mm = 15; 
 
             /*
-             * ภาพประกอบการวางตำแหน่ง:
+             * ภาพประกอบการวางตำแหน่ง (Updated for compact signature):
              * |-------------------|
              * | (Body Content)    |
              * |                   |
-             * | (ลายเซ็น $sigHtml) | <--- สูง 30mm (เริ่มที่ bottom: 15mm)
+             * | [Spacer 35mm]     | <--- จองพื้นที่ในเนื้อหา (page-break-inside: avoid)
              * |                   |
+             * | (ลายเซ็น $sigHtml) | <--- สูง 30mm (position: absolute, bottom: 15mm)
+             * |                   |     ขนาด: 10pt font, 220×70pt box
              * |-------------------| ขอบล่าง Margin (10mm)
-             * | (Footer เลขหน้า)   | <--- SetHTMLFooter จะแสดงผลในพื้นที่นี้
+             * | (Footer เลขหน้า)   | <--- SetHTMLFooter แสดงผลในพื้นที่นี้
              * |-------------------| ขอบล่างกระดาษ (0mm)
+             * 
+             * คำอธิบาย:
+             * - Spacer 35mm ในเนื้อหาจะป้องกันไม่ให้ข้อความไหลลงมาทับลายเซ็น
+             * - Signature วางแบบ absolute ที่ bottom 15mm (เหนือ footer)
+             * - ลายเซ็นมีขนาดเล็กลงเพื่อความกระชับ (font 10pt แทน 13pt)
+             * - ถ้าหน้าสุดท้ายมีเนื้อหาเต็ม spacer จะบังคับให้ขึ้นหน้าใหม่
              */
 
             // 4. สร้าง HTML wrapper (เฉพาะลายเซ็นชุดเดียว - ไม่ซ้ำซ้อน)

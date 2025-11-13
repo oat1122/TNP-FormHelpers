@@ -74,13 +74,13 @@
          <!-- ดึงผู้ขายจาก customer->cus_manage_by (ผู้ดูแลลูกค้า) -->
         @php
           $sellerName = null;
-          // ลองดึงจาก customer_id -> master_customers.cus_manage_by -> users.username
+          // ลองดึงจาก customer_id -> master_customers.cus_manage_by -> users.user_firstname
           if ($quotation->customer_id) {
             $customer = \App\Models\MasterCustomer::find($quotation->customer_id);
             if ($customer && $customer->cus_manage_by) {
               $manager = \App\Models\User::find($customer->cus_manage_by);
               if ($manager) {
-                $sellerName = $manager->username ?? $manager->user_firstname ?? null;
+                $sellerName = $manager->user_firstname ?? $manager->username ?? null;
               }
             }
           }

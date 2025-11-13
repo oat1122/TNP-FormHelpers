@@ -368,8 +368,8 @@
       </table>
     </div>
 
-    {{-- Signature spacer: กันไม่ให้เนื้อหามาชนพื้นที่ลายเซ็นคงที่ด้านล่างหน้า --}}
-    <div class="signature-spacer"></div>
+    {{-- Spacer to reserve space for signature (prevent content from overlapping signature area) --}}
+    <div style="height: 35mm; page-break-inside: avoid;"></div>
 
   </div>
 </body>

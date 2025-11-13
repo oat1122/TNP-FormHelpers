@@ -331,6 +331,9 @@
       </table>
     </div>
 
+    {{-- Spacer to reserve space for signature (prevent content from overlapping signature area) --}}
+    <div style="height: 35mm; page-break-inside: avoid;"></div>
+
   </div>
 </body>
 </html>

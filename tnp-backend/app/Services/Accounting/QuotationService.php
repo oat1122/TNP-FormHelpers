@@ -311,18 +311,31 @@ class QuotationService
 
             $subtotalAfterDiscount = $subtotal - $specialDiscountAmount;
 
-            // คำนวณ VAT
+            // คำนวณ VAT based on pricing_mode
+            $pricingMode = $data['pricing_mode'] ?? 'net'; // 'net' or 'vat_included'
             $hasVat = $data['has_vat'] ?? true;
             $vatPercentage = $hasVat ? (float) ($data['vat_percentage'] ?? 7.00) : 0;
-            $vatAmount = $subtotalAfterDiscount * $vatPercentage / 100;
+            
+            $vatAmount = 0;
+            $netSubtotal = $subtotalAfterDiscount;
+            
+            if ($pricingMode === 'vat_included' && $hasVat) {
+                // Reverse calculation: extract VAT from included price
+                // Formula: netPrice = totalPrice / (1 + vatRate)
+                $vatMultiplier = 1 + ($vatPercentage / 100);
+                $netSubtotal = $subtotalAfterDiscount / $vatMultiplier;
+                $vatAmount = $subtotalAfterDiscount - $netSubtotal;
+                $totalAmount = $subtotalAfterDiscount; // Already includes VAT
+            } else {
+                // Standard: net price + VAT
+                $vatAmount = $subtotalAfterDiscount * $vatPercentage / 100;
+                $totalAmount = $subtotalAfterDiscount + $vatAmount;
+            }
 
-            // คำนวณ total_amount
-            $totalAmount = $subtotalAfterDiscount + $vatAmount;
-
-            // คำนวณภาษีหัก ณ ที่จ่าย
+            // คำนวณภาษีหัก ณ ที่จ่าย (always on net amount)
             $hasWithholdingTax = $data['has_withholding_tax'] ?? false;
             $withholdingTaxPercentage = $hasWithholdingTax ? (float) ($data['withholding_tax_percentage'] ?? 0) : 0;
-            $withholdingTaxAmount = $subtotalAfterDiscount * $withholdingTaxPercentage / 100;
+            $withholdingTaxAmount = $netSubtotal * $withholdingTaxPercentage / 100;
 
             // คำนวณยอดสุทธิสุดท้าย
             $finalTotalAmount = $totalAmount - $withholdingTaxAmount;
@@ -358,6 +371,7 @@ class QuotationService
                 'special_discount_amount' => round($specialDiscountAmount, 2),
                 'has_vat' => $hasVat,
                 'vat_percentage' => round($vatPercentage, 2),
+                'pricing_mode' => $pricingMode,
                 'vat_amount' => round($vatAmount, 2),
                 'tax_amount' => round($vatAmount, 2), // alias for backward compatibility
                 'has_withholding_tax' => $hasWithholdingTax,
@@ -520,6 +534,10 @@ class QuotationService
             $quotation->withholding_tax_amount = $additionalData['withholding_tax_amount'] ?? 0;
             $quotation->final_total_amount = $additionalData['final_total_amount'] ?? ($totalAmount - ($additionalData['special_discount_amount'] ?? 0) - ($additionalData['withholding_tax_amount'] ?? 0));
             $quotation->total_amount = $totalAmount;
+            // VAT and pricing mode fields
+            $quotation->has_vat = $additionalData['has_vat'] ?? true;
+            $quotation->vat_percentage = $additionalData['vat_percentage'] ?? 7.00;
+            $quotation->pricing_mode = $additionalData['pricing_mode'] ?? 'net';
             // Sample images from UI
             if (array_key_exists('sample_images', $additionalData)) {
                 $quotation->sample_images = is_array($additionalData['sample_images']) ? $additionalData['sample_images'] : [];

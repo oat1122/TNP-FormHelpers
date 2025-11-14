@@ -81,6 +81,9 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'pricing_mode' => 'nullable|in:net,vat_included',
                 // Allow decimal precision for reverse-calculated percentage when amount mode is used
                 'deposit_percentage' => 'nullable|numeric|min:0|max:100',
                 'deposit_mode' => 'nullable|in:percentage,amount',
@@ -185,7 +188,7 @@ class QuotationController extends Controller
                 'work_name' => 'sometimes|string|max:100',
                 'subtotal' => 'sometimes|numeric|min:0',
                 'tax_amount' => 'sometimes|numeric|min:0',
-                // ⭐ Extended financial fields (optional on update)
+                // Extended financial fields (optional on update)
                 'special_discount_percentage' => 'sometimes|numeric|min:0|max:100',
                 'special_discount_amount' => 'sometimes|numeric|min:0',
                 'has_withholding_tax' => 'sometimes|boolean',
@@ -193,6 +196,9 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'sometimes|numeric|min:0',
                 'final_total_amount' => 'sometimes|numeric|min:0',
                 'total_amount' => 'sometimes|numeric|min:0',
+                'has_vat' => 'sometimes|boolean',
+                'vat_percentage' => 'sometimes|numeric|min:0|max:100',
+                'pricing_mode' => 'sometimes|in:net,vat_included',
                 // Allow decimal precision for reverse-calculated percentage when amount mode is used
                 'deposit_percentage' => 'nullable|numeric|min:0|max:100',
                 'deposit_mode' => 'nullable|in:percentage,amount',
@@ -456,6 +462,9 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'pricing_mode' => 'nullable|in:net,vat_included',
                 // Allow decimal precision for reverse-calculated percentage when amount mode is used
                 'deposit_percentage' => 'nullable|numeric|min:0|max:100',
                 'deposit_mode' => 'nullable|in:percentage,amount',
@@ -522,6 +531,9 @@ class QuotationController extends Controller
                 'withholding_tax_amount' => 'nullable|numeric|min:0',
                 'final_total_amount' => 'nullable|numeric|min:0',
                 'total_amount' => 'nullable|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'pricing_mode' => 'nullable|in:net,vat_included',
                 // Allow decimal precision for reverse-calculated percentage when amount mode is used
                 'deposit_percentage' => 'nullable|numeric|min:0|max:100',
                 'deposit_mode' => 'nullable|in:percentage,amount',

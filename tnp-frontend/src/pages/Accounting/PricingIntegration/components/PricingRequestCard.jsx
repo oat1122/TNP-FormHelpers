@@ -25,7 +25,7 @@ import {
 import { sortPricingRequestsByLatest } from "./utils/sortUtils";
 
 /**
- * 🎯 PricingRequestCard Component
+ *  PricingRequestCard Component
  *
  * แสดงการ์สำหรับแต่ละลูกค้าที่มี pricing requests
  *
@@ -43,15 +43,6 @@ import { sortPricingRequestsByLatest } from "./utils/sortUtils";
  */
 const PricingRequestCard = ({ group, onCreateQuotation, onEditCustomer }) => {
   const [expanded, setExpanded] = useState(false);
-  
-  // Debug log for customer data
-  console.log("🔍 PricingRequestCard - Customer Data Debug:", {
-    groupCustomer: group.customer,
-    customerId: group._customerId,
-    company: group.customer?.cus_company,
-    firstname: group.customer?.cus_firstname,
-    lastname: group.customer?.cus_lastname,
-  });
 
   // 🎨 Helper Functions for Status Management
   const getStatusColor = (status) => {

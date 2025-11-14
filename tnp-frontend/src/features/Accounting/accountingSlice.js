@@ -27,6 +27,9 @@ const initialState = {
     quotation: {
       isSubmitting: false,
       errors: {},
+      pricingMode: "net", // 'net' | 'vat_included'
+      hasVat: true,
+      vatPercentage: 7,
     },
     invoice: {
       isSubmitting: false,
@@ -153,6 +156,17 @@ const accountingSlice = createSlice({
       state.forms[formName].errors = {};
     },
 
+    // Quotation Form-Specific Actions
+    setQuotationPricingMode: (state, action) => {
+      state.forms.quotation.pricingMode = action.payload;
+    },
+
+    setQuotationVatSettings: (state, action) => {
+      const { hasVat, vatPercentage } = action.payload;
+      if (hasVat !== undefined) state.forms.quotation.hasVat = hasVat;
+      if (vatPercentage !== undefined) state.forms.quotation.vatPercentage = vatPercentage;
+    },
+
     // Current Document
     setCurrentDocument: (state, action) => {
       const { document, type } = action.payload;
@@ -261,6 +275,10 @@ export const {
   setFormSubmitting,
   setFormErrors,
   clearFormErrors,
+
+  // Quotation Form-Specific
+  setQuotationPricingMode,
+  setQuotationVatSettings,
 
   // Current Document
   setCurrentDocument,

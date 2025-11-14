@@ -171,27 +171,7 @@ const PricingIntegration = () => {
   }, [currentPage, itemsPerPage, totalCustomers]);
 
   // Debug logs
-  useEffect(() => {
-    console.log("🔍 PricingIntegration Debug Info:", {
-      isLoading,
-      isFetching,
-      error,
-      currentPage,
-      itemsPerPage,
-      totalCustomers,
-      apiUrl: `${import.meta.env.VITE_END_POINT_URL}/pricing-requests`,
-      responseStructure: pricingRequests ? Object.keys(pricingRequests) : "No data",
-      dataArray: pricingRequests?.data || "No data array",
-      dataLength: pricingRequests?.data?.length || 0,
-      sampleRecord: pricingRequests?.data?.[0] || "No records",
-      // เพิ่ม debug สำหรับ customer data
-      sampleCustomerData:
-        pricingRequests?.data?.[0]?.pricing_customer ||
-        pricingRequests?.data?.[0]?.customer ||
-        "No customer data",
-      groupedRequests: groupedPricingRequests.slice(0, 2), // แสดง 2 records แรกของ grouped data
-    });
-  }, [
+  useEffect(() => {}, [
     isLoading,
     isFetching,
     error,
@@ -294,11 +274,6 @@ const PricingIntegration = () => {
 
   const handleQuotationFromModal = async (data) => {
     try {
-      console.log("🔍 Debug - Data from Modal:", data);
-      console.log("📋 Selected Pricing IDs:", data.pricingRequestIds);
-      console.log("Customer from Modal:", data.customer);
-      console.log("🗂️ All Pricing Requests Data:", pricingRequests?.data);
-
       setShowCreateModal(false);
 
       // Filter with better error handling
@@ -309,19 +284,11 @@ const PricingIntegration = () => {
           const foundRequest = pricingRequests?.data?.find((pr) => pr.pr_id === prId);
           if (foundRequest) {
             selectedRequests.push(foundRequest);
-            console.log(`✅ Found PR ${prId}:`, foundRequest.pr_work_name);
           } else {
             console.error(`❌ Could not find PR with ID: ${prId}`);
           }
         });
       }
-
-      console.log(
-        "📊 Final Count - Expected:",
-        data.pricingRequestIds?.length,
-        "Actual:",
-        selectedRequests.length
-      );
 
       if (selectedRequests.length === 0) {
         console.error("❌ No matching pricing requests found!");
@@ -337,7 +304,6 @@ const PricingIntegration = () => {
 
       // ใช้ข้อมูลสำรองจาก modal หากมี (มี customer แนบมาแล้ว)
       if (data.selectedRequestsData && data.selectedRequestsData.length > 0) {
-        console.log("🔄 Using backup data from modal:", data.selectedRequestsData);
         setSelectedPricingRequests(data.selectedRequestsData);
       } else {
         // *** ถ้าไม่มี selectedRequestsData ให้แนบ customer จาก modal เข้าไปใน requests ***
@@ -345,7 +311,6 @@ const PricingIntegration = () => {
           ...req,
           customer: data.customer || req.customer || {},
         }));
-        console.log("🔄 Using requests with customer attached:", requestsWithCustomer);
         setSelectedPricingRequests(requestsWithCustomer);
       }
 
@@ -367,8 +332,6 @@ const PricingIntegration = () => {
 
   const handleSaveQuotationDraft = async (data) => {
     try {
-      console.log("💾 Saving quotation draft with data:", data);
-
       // เตรียมข้อมูลสำหรับส่งไป backend (เหมือนกับ submit แต่เป็น draft)
       // แปลง sizeRows เป็นรายการย่อยใน quotation_items
       const items = (data.items || []).flatMap((item, index) => {
@@ -427,6 +390,10 @@ const PricingIntegration = () => {
         final_total_amount:
           data.finalTotal ||
           data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0),
+        // ⭐ VAT and pricing mode fields
+        has_vat: data.hasVat !== undefined ? data.hasVat : true,
+        vat_percentage: data.vatPercentage || 7,
+        pricing_mode: data.pricingMode || "net",
 
         // ข้อมูลการชำระเงิน
         deposit_mode: data.depositMode || "percentage",
@@ -448,12 +415,8 @@ const PricingIntegration = () => {
         sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
       };
 
-      console.log("📤 API Draft Data:", submitData);
-
       // เรียก API mutation (status จะเป็น draft โดยอัตโนมัติใน service)
       const result = await createQuotationFromMultiplePricing(submitData).unwrap();
-
-      console.log("✅ Draft saved successfully:", result);
 
       // แสดงข้อความสำเร็จ
       dispatch(
@@ -483,8 +446,6 @@ const PricingIntegration = () => {
 
   const handleSubmitQuotationForm = async (data) => {
     try {
-      console.log("🚀 Submitting quotation form with data:", data);
-
       // เตรียมข้อมูลสำหรับส่งไป backend
       const items = (data.items || []).flatMap((item, index) => {
         if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
@@ -528,7 +489,7 @@ const PricingIntegration = () => {
         subtotal: data.subtotal || 0,
         tax_amount: data.vat || 0,
         total_amount: data.total || 0,
-        // ⭐ Extended financial fields
+        // Extended financial fields
         special_discount_percentage:
           data.specialDiscountType === "percentage" ? data.specialDiscountValue || 0 : 0,
         special_discount_amount:
@@ -541,6 +502,10 @@ const PricingIntegration = () => {
         final_total_amount:
           data.finalTotal ||
           data.total - (data.specialDiscountAmount || 0) - (data.withholdingTaxAmount || 0),
+        //  VAT and pricing mode fields
+        has_vat: data.hasVat !== undefined ? data.hasVat : true,
+        vat_percentage: data.vatPercentage || 7,
+        pricing_mode: data.pricingMode || "net",
 
         // ข้อมูลการชำระเงิน
         deposit_mode: data.depositMode || "percentage",
@@ -562,12 +527,8 @@ const PricingIntegration = () => {
         sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
       };
 
-      console.log("📤 API Submit Data:", submitData);
-
       // เรียก API mutation
       const result = await createQuotationFromMultiplePricing(submitData).unwrap();
-
-      console.log("✅ Quotation created successfully:", result);
 
       // แสดงข้อความสำเร็จ
       dispatch(

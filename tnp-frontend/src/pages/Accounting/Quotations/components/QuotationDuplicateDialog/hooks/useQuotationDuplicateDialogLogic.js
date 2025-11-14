@@ -71,6 +71,11 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
     Number(q?.withholding_tax_percentage || 0)
   );
 
+  // VAT states (NEW)
+  const [hasVat, setHasVat] = React.useState(() => q?.has_vat ?? true);
+  const [vatPercentage, setVatPercentage] = React.useState(() => Number(q?.vat_percentage || 7));
+  const [pricingMode, setPricingMode] = React.useState(() => q?.pricing_mode || "net");
+
   // Effect to sync state when initialData changes
   React.useEffect(() => {
     if (!open) return;
@@ -109,6 +114,11 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
 
     setHasWithholdingTax(!!freshQ?.has_withholding_tax);
     setWithholdingTaxPercentage(Number(freshQ?.withholding_tax_percentage || 0));
+
+    // VAT settings (NEW)
+    setHasVat(freshQ?.has_vat ?? true);
+    setVatPercentage(Number(freshQ?.vat_percentage || 7));
+    setPricingMode(freshQ?.pricing_mode || "net");
   }, [open, initialData]);
 
   // Main Save Handler (สร้างใบใหม่)
@@ -162,6 +172,7 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
 
         // Financials
         subtotal: financials.subtotal,
+        net_subtotal: financials.netSubtotal,
         tax_amount: financials.vat,
         total_amount: financials.total,
         special_discount_percentage:
@@ -170,6 +181,9 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
           specialDiscountType === "amount"
             ? Number(specialDiscountValue || 0)
             : financials.specialDiscountAmount,
+        has_vat: hasVat,
+        vat_percentage: Number(vatPercentage || 0),
+        pricing_mode: pricingMode,
         has_withholding_tax: hasWithholdingTax,
         withholding_tax_percentage: hasWithholdingTax ? Number(withholdingTaxPercentage || 0) : 0,
         withholding_tax_amount: financials.withholdingTaxAmount,
@@ -229,6 +243,12 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
     setHasWithholdingTax,
     withholdingTaxPercentage,
     setWithholdingTaxPercentage,
+    hasVat,
+    setHasVat,
+    vatPercentage,
+    setVatPercentage,
+    pricingMode,
+    setPricingMode,
     handleSave,
   };
 }

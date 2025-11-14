@@ -4,8 +4,18 @@ import {
   useGetQuotationQuery,
   useUpdateQuotationMutation,
 } from "../../../../../../features/Accounting/accountingApi";
-import { pickQuotation, normalizeCustomer, toISODate, computeTotals } from "../utils/quotationUtils";
-import { showSuccess, showError, showLoading, dismissToast } from "../../../../utils/accountingToast";
+import {
+  pickQuotation,
+  normalizeCustomer,
+  toISODate,
+  computeTotals,
+} from "../utils/quotationUtils";
+import {
+  showSuccess,
+  showError,
+  showLoading,
+  dismissToast,
+} from "../../../../utils/accountingToast";
 
 export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
@@ -24,14 +34,14 @@ export function useQuotationDialogLogic(quotationId, open) {
   const [selectedDueDate, setSelectedDueDate] = React.useState(
     q?.due_date ? new Date(q.due_date) : null
   );
-  
+
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
     (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
   const isKnownTerms = ["cash", "credit_30", "credit_60"].includes(initialRawTerms);
-  
+
   const [paymentTermsType, setPaymentTermsType] = React.useState(
     isKnownTerms ? initialRawTerms : "other"
   );
@@ -40,10 +50,8 @@ export function useQuotationDialogLogic(quotationId, open) {
   );
 
   // Deposit state (supports percentage | amount)
-  const inferredDepositPct =
-    q?.deposit_percentage ??
-    (initialRawTerms === "cash" ? 0 : 50);
-    
+  const inferredDepositPct = q?.deposit_percentage ?? (initialRawTerms === "cash" ? 0 : 50);
+
   const [depositMode, setDepositMode] = React.useState(q?.deposit_mode || "percentage");
   const [depositPct, setDepositPct] = React.useState(inferredDepositPct);
   const [depositAmountInput, setDepositAmountInput] = React.useState(
@@ -67,6 +75,11 @@ export function useQuotationDialogLogic(quotationId, open) {
     Number(q.withholding_tax_percentage || 0)
   );
 
+  // VAT states (NEW)
+  const [hasVat, setHasVat] = React.useState(() => q?.has_vat ?? true);
+  const [vatPercentage, setVatPercentage] = React.useState(() => Number(q?.vat_percentage || 7));
+  const [pricingMode, setPricingMode] = React.useState(() => q?.pricing_mode || "net");
+
   // Effect to sync state when quotation data is loaded or changed
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
@@ -75,7 +88,7 @@ export function useQuotationDialogLogic(quotationId, open) {
   React.useEffect(() => {
     // Sync notes from server when quotation changes/opened
     setQuotationNotes(q?.notes || "");
-    
+
     const raw =
       q?.payment_terms ||
       q?.payment_method ||
@@ -83,11 +96,8 @@ export function useQuotationDialogLogic(quotationId, open) {
     const known = ["cash", "credit_30", "credit_60"].includes(raw);
     setPaymentTermsType(known ? raw : "other");
     setPaymentTermsCustom(known ? "" : raw || "");
-    
-    setDepositPct(
-      q?.deposit_percentage ??
-      (raw === "cash" ? 0 : 50)
-    );
+
+    setDepositPct(q?.deposit_percentage ?? (raw === "cash" ? 0 : 50));
     setDepositMode(q?.deposit_mode || "percentage");
     setDepositAmountInput(q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : "");
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
@@ -95,6 +105,12 @@ export function useQuotationDialogLogic(quotationId, open) {
 
   // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
   const [hasInitializedFinancials, setHasInitializedFinancials] = React.useState(false);
+
+  // Reset initialization flag when quotation ID changes
+  React.useEffect(() => {
+    setHasInitializedFinancials(false);
+  }, [q?.id]);
+
   React.useEffect(() => {
     if (!q?.id) return; // nothing yet
     if (hasInitializedFinancials) return; // don't override after initial setup
@@ -114,7 +130,12 @@ export function useQuotationDialogLogic(quotationId, open) {
     // Withholding tax
     setHasWithholdingTax(!!q.has_withholding_tax);
     setWithholdingTaxPercentage(Number(q.withholding_tax_percentage || 0));
-    
+
+    // VAT settings (NEW)
+    setHasVat(q?.has_vat ?? true);
+    setVatPercentage(Number(q?.vat_percentage || 7));
+    setPricingMode(q?.pricing_mode || "net");
+
     setHasInitializedFinancials(true);
   }, [
     q?.id,
@@ -122,6 +143,9 @@ export function useQuotationDialogLogic(quotationId, open) {
     q?.special_discount_amount,
     q?.has_withholding_tax,
     q?.withholding_tax_percentage,
+    q?.has_vat,
+    q?.vat_percentage,
+    q?.pricing_mode,
     hasInitializedFinancials,
   ]);
 
@@ -159,15 +183,16 @@ export function useQuotationDialogLogic(quotationId, open) {
     const totals = computeTotals(groups, depositPct);
     const isCredit = paymentTermsType === "credit_30" || paymentTermsType === "credit_60";
     const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
-    
+
     const loadingId = showLoading("กำลังบันทึกใบเสนอราคา…");
-    
+
     try {
       await updateQuotation({
         id: q.id,
         items: flatItems,
         subtotal: totals.subtotal,
         // Use calculated values from financials hook
+        net_subtotal: financials.netSubtotal,
         tax_amount: financials.vat,
         total_amount: financials.total,
         // ⭐ Extended financial fields (from local editable states)
@@ -177,6 +202,9 @@ export function useQuotationDialogLogic(quotationId, open) {
           specialDiscountType === "amount"
             ? Number(specialDiscountValue || 0)
             : financials.specialDiscountAmount,
+        has_vat: hasVat,
+        vat_percentage: Number(vatPercentage || 0),
+        pricing_mode: pricingMode,
         has_withholding_tax: hasWithholdingTax,
         withholding_tax_percentage: hasWithholdingTax ? Number(withholdingTaxPercentage || 0) : 0,
         withholding_tax_amount: financials.withholdingTaxAmount,
@@ -233,6 +261,12 @@ export function useQuotationDialogLogic(quotationId, open) {
     setHasWithholdingTax,
     withholdingTaxPercentage,
     setWithholdingTaxPercentage,
+    hasVat,
+    setHasVat,
+    vatPercentage,
+    setVatPercentage,
+    pricingMode,
+    setPricingMode,
     handleSave,
   };
 }

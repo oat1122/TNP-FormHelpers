@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useFinancialCalculations } from "./hooks/useFinancialCalculations";
 import { formatTHB } from "./utils/formatting";
+import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 
 /**
  * FinancialSummaryPanel Component (Dumb UI)
@@ -23,6 +24,7 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
   const {
     itemsSubtotal,
     subtotalAfterDiscount,
+    netSubtotal,
     vatAmount,
     totalAmount,
     withholdingTaxAmount,
@@ -101,6 +103,16 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
 
       <Divider sx={{ my: 2 }} />
 
+      {/* Pricing Mode Selector */}
+      <Box sx={{ mb: 2 }}>
+        <PricingModeSelector
+          pricingMode={financials.pricing_mode || "net"}
+          onPricingModeChange={(mode) => handleChange("pricing_mode", mode)}
+        />
+      </Box>
+
+      <Divider sx={{ my: 2 }} />
+
       {/* VAT */}
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -137,6 +149,19 @@ const FinancialSummaryPanel = ({ items = [], financials, onChange }) => {
             }}
           />
         )}
+
+        {/* Show net subtotal when in vat_included mode */}
+        {financials.pricing_mode === "vat_included" && financials.has_vat && (
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              ยอดสุทธิ (ไม่รวม VAT)
+            </Typography>
+            <Typography variant="body1" fontWeight={500}>
+              ฿{formatTHB(netSubtotal)}
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
             จำนวน VAT

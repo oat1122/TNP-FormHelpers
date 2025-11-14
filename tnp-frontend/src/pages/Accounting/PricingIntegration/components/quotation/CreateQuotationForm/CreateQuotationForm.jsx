@@ -24,6 +24,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 // THEME & SHARED UI
 import SpecialDiscountField from "./components/SpecialDiscountField";
 import WithholdingTaxField from "./components/WithholdingTaxField";
+import PricingModeSelector from "./components/PricingModeSelector";
 import { useUploadQuotationSampleImagesTempMutation } from "../../../../../../features/Accounting/accountingApi";
 import Calculation from "../../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../../shared/components/ImageUploadGrid";
@@ -88,6 +89,10 @@ const CreateQuotationForm = ({
     specialDiscountValue: 0,
     hasWithholdingTax: false,
     withholdingTaxPercentage: 0,
+    // NEW: VAT and pricing mode fields
+    hasVat: true,
+    vatPercentage: 7,
+    pricingMode: "net", // 'net' | 'vat_included'
     sampleImages: [], // [{ path, url, filename, original_filename }]
     selectedSampleForPdf: "",
   });
@@ -140,6 +145,7 @@ const CreateQuotationForm = ({
   // ======== CALC ========
   const financials = useQuotationFinancials({
     items: formData.items,
+    pricingMode: formData.pricingMode, // NEW
     depositMode: formData.depositMode,
     depositPercentage: formData.depositPct,
     depositAmountInput: formData.depositAmountInput,
@@ -147,11 +153,14 @@ const CreateQuotationForm = ({
     specialDiscountValue: formData.specialDiscountValue,
     hasWithholdingTax: formData.hasWithholdingTax,
     withholdingTaxPercentage: formData.withholdingTaxPercentage,
+    hasVat: formData.hasVat, // NEW
+    vatPercentage: formData.vatPercentage, // NEW
   });
   const {
     subtotal,
     specialDiscountAmount,
     discountedSubtotal,
+    netSubtotal, // NEW: Extracted net amount
     vat,
     total,
     withholdingTaxAmount,
@@ -304,6 +313,11 @@ const CreateQuotationForm = ({
         hasWithholdingTax: formData.hasWithholdingTax,
         withholdingTaxPercentage: formData.withholdingTaxPercentage,
         withholdingTaxAmount,
+        // NEW: VAT and pricing mode fields
+        hasVat: formData.hasVat,
+        vatPercentage: formData.vatPercentage,
+        pricingMode: formData.pricingMode,
+        netSubtotal, // Actual net amount (extracted if VAT-included)
         // Final calculations
         finalTotal,
         depositAmount,
@@ -935,6 +949,15 @@ const CreateQuotationForm = ({
                       disabled={!isCalcEditing}
                     />
                   </Grid>
+                  <Grid item xs={12} md={6}>
+                    <PricingModeSelector
+                      pricingMode={formData.pricingMode}
+                      onPricingModeChange={(mode) =>
+                        setFormData((p) => ({ ...p, pricingMode: mode }))
+                      }
+                      disabled={!isCalcEditing}
+                    />
+                  </Grid>
                 </Grid>
 
                 {/* Calculation Summary */}
@@ -946,6 +969,10 @@ const CreateQuotationForm = ({
                   totalAfterVat={total}
                   withholdingAmount={withholdingTaxAmount}
                   finalTotal={finalTotal}
+                  pricingMode={formData.pricingMode}
+                  netSubtotal={netSubtotal}
+                  hasVat={formData.hasVat}
+                  vatPercentage={formData.vatPercentage}
                 />
               </Box>
             </Section>

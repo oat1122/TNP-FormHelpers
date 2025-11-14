@@ -40,6 +40,7 @@ const emptyFinancials = {
   special_discount_amount: 0,
   has_vat: true,
   vat_percentage: 7,
+  pricing_mode: "net",
   has_withholding_tax: false,
   withholding_tax_percentage: 0,
   deposit_mode: "percentage",

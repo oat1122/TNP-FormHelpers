@@ -46,6 +46,7 @@ import { sanitizeInt } from "./utils/sanitizers";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
 import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import {
   Section,
   SectionHeader,
@@ -135,6 +136,7 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
   // 3. Hook for financial calculations
   const financials = useQuotationFinancials({
     items: isEditing ? groups : items,
+    pricingMode: dialogLogic.pricingMode,
     depositMode: dialogLogic.depositMode,
     depositPercentage: dialogLogic.depositPct,
     depositAmountInput: dialogLogic.depositAmountInput,
@@ -142,6 +144,8 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
     specialDiscountValue: dialogLogic.specialDiscountValue,
     hasWithholdingTax: dialogLogic.hasWithholdingTax,
     withholdingTaxPercentage: dialogLogic.withholdingTaxPercentage,
+    hasVat: dialogLogic.hasVat,
+    vatPercentage: dialogLogic.vatPercentage,
   });
 
   // 4. Hook for handling images and PDF generation
@@ -463,12 +467,25 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
                           disabled={!isEditing}
                         />
                       </Grid>
+
+                      {/* Pricing Mode Selector */}
+                      {isEditing && (
+                        <Grid item xs={12}>
+                          <PricingModeSelector
+                            pricingMode={dialogLogic.pricingMode}
+                            onPricingModeChange={dialogLogic.setPricingMode}
+                            disabled={!isEditing}
+                          />
+                        </Grid>
+                      )}
                     </Grid>
 
                     <Calculation
                       subtotal={financials.subtotal}
                       discountAmount={financials.specialDiscountAmount}
                       discountedBase={financials.discountedSubtotal}
+                      netSubtotal={financials.netSubtotal}
+                      pricingMode={financials.pricingMode}
                       vat={financials.vat}
                       totalAfterVat={financials.total}
                       withholdingAmount={financials.withholdingTaxAmount}

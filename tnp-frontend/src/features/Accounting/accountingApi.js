@@ -173,9 +173,9 @@ export const accountingApi = createApi({
       },
       providesTags: (result, error, prIds) =>
         (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
-      keepUnusedDataFor: 3600, // 🔄 Cache autofill data นาน 1 ชั่วโมง
+      keepUnusedDataFor: 3600, //  Cache autofill data นาน 1 ชั่วโมง
 
-      // 🔥 Optimize: ป้องกันการ fetch ซ้ำถ้า prIds เหมือนกัน
+      //  Optimize: ป้องกันการ fetch ซ้ำถ้า prIds เหมือนกัน
       serializeQueryArgs: ({ queryArgs }) => {
         // queryArgs คือ prIds array ที่ส่งเข้ามา
         // ตรวจสอบว่าเป็น array ก่อน sort เพื่อป้องกัน error
@@ -185,7 +185,7 @@ export const accountingApi = createApi({
         return JSON.stringify([...queryArgs].sort());
       },
 
-      // 🔥 Optimize: Force refetch เฉพาะเมื่อ prIds เปลี่ยน
+      //  Optimize: Force refetch เฉพาะเมื่อ prIds เปลี่ยน
       forceRefetch: ({ currentArg, previousArg }) => {
         if (!Array.isArray(currentArg) || !Array.isArray(previousArg)) {
           return true; // Force refetch if not array

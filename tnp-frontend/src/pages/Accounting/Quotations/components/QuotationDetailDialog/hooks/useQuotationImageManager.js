@@ -31,7 +31,8 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
   const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
 
   // Sample image selection for PDF
-  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState(null);
+  // ⭐️ GOAL 2: เปลี่ยน state จาก null เป็น Set
+  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState(new Set());
   const selDebounceRef = React.useRef(null);
   const lastSyncedSelRef = React.useRef("");
   const sampleImagesRef = React.useRef([]);
@@ -109,22 +110,30 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     }
   };
 
+  // ⭐️ GOAL 2: อัปเดต logic การ sync ให้รองรับ Set
   const scheduleSyncSelectedForPdf = React.useCallback(
-    (value) => {
+    (newSelectedSet) => {
       if (selDebounceRef.current) {
         clearTimeout(selDebounceRef.current);
       }
       selDebounceRef.current = setTimeout(async () => {
         try {
+          // Sort array for consistent key
+          const selectedArray = Array.from(newSelectedSet).sort();
+          const selectedKey = JSON.stringify(selectedArray);
+
           // Avoid redundant sync if nothing changed
-          if (lastSyncedSelRef.current === value) return;
+          if (lastSyncedSelRef.current === selectedKey) return;
+
           const current = sampleImagesRef.current || [];
           const updated = current.map((it) => ({
             ...it,
-            selected_for_pdf: value ? (it.filename || "") === value : false,
+            // Mark as selected if its filename is in the new set
+            selected_for_pdf: it.filename ? newSelectedSet.has(it.filename) : false,
           }));
+
           await updateQuotation({ id: quotationId, sample_images: updated }).unwrap();
-          lastSyncedSelRef.current = value;
+          lastSyncedSelRef.current = selectedKey; // Store the new synced state
         } catch (err) {
           // keep local state; server will eventually refresh
         }
@@ -133,11 +142,19 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     [updateQuotation, quotationId]
   );
 
+  // ⭐️ GOAL 2: อัปเดต logic การ init state ให้รองรับ Set
   const initializeSampleSelection = React.useCallback((sampleImages) => {
     sampleImagesRef.current = sampleImages;
-    const initial = sampleImages.find?.((it) => !!it.selected_for_pdf)?.filename || "";
-    setSelectedSampleForPdfLocal(initial);
-    lastSyncedSelRef.current = initial;
+    // Filter all selected images and put their filenames into the Set
+    const initialSet = new Set(
+      sampleImages
+        .filter((it) => !!it.selected_for_pdf)
+        .map((it) => it.filename || "")
+        .filter(Boolean)
+    );
+    setSelectedSampleForPdfLocal(initialSet);
+    // Store sorted array as JSON string for comparison
+    lastSyncedSelRef.current = JSON.stringify(Array.from(initialSet).sort());
   }, []);
 
   const updateSampleSelection = React.useCallback((sampleImages) => {

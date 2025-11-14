@@ -196,31 +196,50 @@
         }
         return $url;
       };
-      // Pick only one image: show only if explicitly selected_for_pdf
+      
+      
+      // Pick up to 3 images: filter for selected_for_pdf
       if (!empty($sampleImages)) {
-        $sel = null;
+        $selectedImages = [];
         foreach ($sampleImages as $it) {
-          if (!empty($it['selected_for_pdf'])) { $sel = $it; break; }
+          if (!empty($it['selected_for_pdf'])) {
+            $selectedImages[] = $it;
+          }
         }
-        $sampleImages = $sel ? [$sel] : [];
+        // Take only the first 3 selected
+        $sampleImages = array_slice($selectedImages, 0, 3);
       }
     @endphp
+    
+    
     @if(count($sampleImages) > 0)
       <div class="sample-images-section">
         <div class="sample-images-title">รูปภาพตัวอย่าง</div>
-        <div class="sample-images-grid">
-          @foreach($sampleImages as $img)
-            @php
-              $u = $resolveImgSrc($img);
-              $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
-            @endphp
-            <div class="img-box">
-              @if($u)
-                <img src="{{ $u }}" alt="{{ $caption }}" />
-              @endif
-            </div>
-          @endforeach
-        </div>
+        
+        {{-- Use a table for robust horizontal layout in mPDF --}}
+        <table class="sample-images-grid-table">
+          <tr>
+            @foreach($sampleImages as $img)
+              @php
+                $u = $resolveImgSrc($img);
+                $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
+              @endphp
+              
+              {{-- Each image is in its own cell --}}
+              <td class="img-box-cell">
+                @if($u)
+                  <img src="{{ $u }}" alt="{{ $caption }}" class="sample-img" />
+                @endif
+              </td>
+            @endforeach
+            
+            {{-- Add empty cells if less than 3 images to maintain layout --}}
+            @for ($i = 0; $i < (3 - count($sampleImages)); $i++)
+              <td class="img-box-cell empty"></td>
+            @endfor
+          </tr>
+        </table>
+
       </div>
     @endif
 

@@ -586,16 +586,17 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                 />
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="caption" color="text.secondary">
-                    เลือกรูปแสดงบน PDF (เลือกได้ 1 รูป)
+                    {/* ⭐️ GOAL 1 & 2: เปลี่ยนข้อความ */}
+                    เลือกรูปแสดงบน PDF (สูงสุด 3 รูป)
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
                     {(sampleImages || []).map((img) => {
                       const value = img.filename || "";
                       const src = img.url || "";
-                      const checked =
-                        imageManager.selectedSampleForPdfLocal !== null
-                          ? imageManager.selectedSampleForPdfLocal === value
-                          : !!img.selected_for_pdf;
+                      {
+                        /* ⭐️ GOAL 2: เปลี่ยน logic การ check */
+                      }
+                      const checked = imageManager.selectedSampleForPdfLocal.has(value);
                       return (
                         <label
                           key={value || src}
@@ -610,24 +611,40 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                             userSelect: "none",
                           }}
                         >
+                          {/* ⭐️ GOAL 2: เปลี่ยน radio เป็น checkbox */}
                           <input
-                            type="radio"
-                            name="selectedSampleForPdf"
+                            type="checkbox"
                             checked={checked}
                             disabled={!canUploadSampleImages}
-                            onClick={(e) => {
-                              // Allow deselect by clicking the selected radio again
-                              if (checked && canUploadSampleImages) {
-                                e.preventDefault();
-                                imageManager.setSelectedSampleForPdfLocal("");
-                                imageManager.scheduleSyncSelectedForPdf("");
-                              }
-                            }}
                             onChange={() => {
+                              {
+                                /* ⭐️ GOAL 2: เปลี่ยน logic การ update */
+                              }
                               if (!canUploadSampleImages) return;
-                              // Optimistic local update for instant feedback
-                              imageManager.setSelectedSampleForPdfLocal(value);
-                              imageManager.scheduleSyncSelectedForPdf(value);
+
+                              const newValue = img.filename || "";
+                              if (!newValue) return; // Don't allow toggling images without filenames
+
+                              // Create a new Set based on the current local state
+                              const newSet = new Set(imageManager.selectedSampleForPdfLocal);
+
+                              if (newSet.has(newValue)) {
+                                // It's already checked, so uncheck it
+                                newSet.delete(newValue);
+                              } else {
+                                // It's not checked, so add it.
+                                // Enforce limit of 3.
+                                if (newSet.size >= 3) {
+                                  alert("คุณสามารถเลือกรูปภาพได้สูงสุด 3 รูปเท่านั้น");
+                                  return; // Don't add
+                                }
+                                newSet.add(newValue);
+                              }
+
+                              // Update local state immediately for UI feedback
+                              imageManager.setSelectedSampleForPdfLocal(newSet);
+                              // Schedule the debounced sync
+                              imageManager.scheduleSyncSelectedForPdf(newSet);
                             }}
                             style={{ margin: 0 }}
                           />
@@ -636,8 +653,9 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                               src={src}
                               alt="sample"
                               style={{
-                                width: 72,
-                                height: 72,
+                                /* ⭐️ GOAL 1: ลดขนาดรูป */
+                                width: 50,
+                                height: 50,
                                 objectFit: "cover",
                                 display: "block",
                               }}

@@ -347,27 +347,58 @@ col.w-total {
 .sample-images-section {
     page-break-inside: avoid;
     margin-top: 12pt;
+    width: 100%;
 }
 .sample-images-title {
     font-weight: bold;
     margin-bottom: 6pt;
     color: #2f3d48;
 }
-.sample-images-grid {
+
+/* ⭐️ GOAL 1 & 2: เปลี่ยน CSS ให้รองรับ Table และลดขนาด */
+.sample-images-grid-table {
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 6pt 0;
+    margin-bottom: 0;
+    page-break-inside: avoid;
+    table-layout: fixed;
 }
-.sample-images-grid .img-box {
-    display: inline-block;
-    width: 32%;
-    margin: 0 1% 8pt 0;
+.sample-images-grid-table .img-box-cell {
+    width: 33.33%;
+    padding: 4pt;
+    border: 1px solid #e5edf5;
+    background: #fafbfc;
+    border-radius: 4pt;
+    text-align: center;
     vertical-align: top;
+    height: 50pt;
+    box-sizing: border-box;
+    overflow: hidden;
 }
-.sample-images-grid .img-box img {
+.sample-images-grid-table .img-box-cell.empty {
+    border: none;
+    background: transparent;
+}
+
+/* ⭐️ แก้ไข .sample-img ให้เคารพกรอบและคงสัดส่วน (Contain method) */
+.sample-images-grid-table .sample-img {
     display: block;
-    width: 100%;
+    margin: 0 auto;
+
+    /* 1. ให้ความกว้างสูงสุด 100% (ของ <td>) */
+    max-width: 100%;
+
+    /* 2. ให้ความสูงสูงสุด 42pt 
+       (คำนวณจาก: 50pt (ความสูง <td>) - 4pt (padding บน) - 4pt (padding ล่าง)) 
+    */
+    max-height: 42pt;
+
+    /* 3. สั่งให้คงสัดส่วนอัตโนมัติ (สำคัญมาก - ป้องกันการบิดเบี้ยว) */
+    width: auto;
     height: auto;
-    object-fit: contain;
 }
+
 .sample-images-grid .img-caption {
     font-size: 8.5pt;
     color: #666;
@@ -573,7 +604,7 @@ col.w-total {
     font-size: 9pt !important;
 }
 
-/* ===== Sample Images Section ===== */
+/* ===== Sample Images Section (Duplicate - keeping for compatibility) ===== */
 .sample-images-section {
     margin: 10pt 0 14pt 0;
     page-break-inside: avoid;
@@ -583,28 +614,7 @@ col.w-total {
     margin: 0 0 6pt 0;
     color: #34495e;
 }
-.sample-images-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6pt;
-}
-.sample-images-grid .img-box {
-    width: 31%;
-    border: 1px solid #e5edf5;
-    background: #fafbfc;
-    padding: 4pt;
-    border-radius: 4pt;
-}
-.sample-images-grid .img-box img {
-    width: 100%;
-    height: auto;
-}
-.sample-images-grid .img-caption {
-    font-size: 8pt;
-    color: #666;
-    margin-top: 2pt;
-    word-break: break-all;
-}
+/* Old classes removed - using table-based layout above */
 
 /* แก้ไขเพิ่มเติมสำหรับ mPDF ที่อาจมีปัญหากับ table layout */
 .summary-notes-table td {

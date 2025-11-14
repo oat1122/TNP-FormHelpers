@@ -448,7 +448,7 @@ class QuotationController extends Controller
                 'pricing_request_id' => 'required|string|exists:pricing_requests,pr_id',
                 'subtotal' => 'required|numeric|min:0',
                 'tax_amount' => 'required|numeric|min:0',
-                // ⭐ New: support special discount & withholding tax fields
+                // New: support special discount & withholding tax fields
                 'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
                 'special_discount_amount' => 'nullable|numeric|min:0',
                 'has_withholding_tax' => 'nullable|boolean',
@@ -514,7 +514,7 @@ class QuotationController extends Controller
                 'additional_notes' => 'nullable|string',
                 'subtotal' => 'nullable|numeric|min:0',
                 'tax_amount' => 'nullable|numeric|min:0',
-                // ⭐ New: support special discount & withholding tax fields (optional on multi-create)
+                // New: support special discount & withholding tax fields (optional on multi-create)
                 'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
                 'special_discount_amount' => 'nullable|numeric|min:0',
                 'has_withholding_tax' => 'nullable|boolean',
@@ -589,7 +589,7 @@ class QuotationController extends Controller
                 'company_id' => 'required|string|exists:companies,id',
                 'customer_id' => 'required|string|exists:master_customers,cus_id',
                 'work_name' => 'required|string|max:100',
-                // ✅ เพิ่ม validation สำหรับ pricing request fields
+                // เพิ่ม validation สำหรับ pricing request fields
                 'primary_pricing_request_id' => 'nullable|string',
                 'primary_pricing_request_ids' => 'nullable|array',
                 'items' => 'required|array|min:1',

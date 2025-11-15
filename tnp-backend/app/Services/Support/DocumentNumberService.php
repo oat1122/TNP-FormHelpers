@@ -9,7 +9,7 @@ class DocumentNumberService
 {
     /**
      * Generate next document number per company, doc type and month.
-     * Ensures consistent numbering across all companies by using global sequences.
+     * Each company has independent sequences that reset monthly.
      * @param string $companyId
      * @param string $docType one of: quotation, invoice, receipt, delivery_note, tax_invoice
      * @param string|null $date Y-m-d date string (defaults to today)
@@ -36,9 +36,9 @@ class DocumentNumberService
         $prefix = $customPrefix ?? ($prefixMap[$docType] ?? strtoupper(substr($docType, 0, 3)));
         $prefix .= $year . $month;
 
-    // transaction + lock row to avoid race; use global sequence to ensure consistency across companies
-    return DB::transaction(function () use ($companyId, $docType, $year, $month, $prefix, $pad) {
-            // Find or create sequence record for this company
+        // Transaction + lock row to avoid race; use company-specific sequence
+        return DB::transaction(function () use ($companyId, $docType, $year, $month, $prefix, $pad) {
+            // Find or create sequence record for THIS COMPANY
             $row = DocumentSequence::where([
                 'company_id' => $companyId,
                 'doc_type' => $docType,
@@ -56,13 +56,6 @@ class DocumentNumberService
                 ]);
             }
 
-            // Find the global maximum sequence number across all companies for this doc type, year, month
-            $globalMaxSeq = DocumentSequence::where([
-                'doc_type' => $docType,
-                'year' => (int)$year,
-                'month' => (int)$month,
-            ])->max('last_number') ?? 0;
-
             // Map docType to model/table for existence check
             $tableMap = [
                 'quotation' => 'quotations',
@@ -76,38 +69,34 @@ class DocumentNumberService
             ];
             $table = $tableMap[$docType] ?? null;
 
-            // Auto-healing: Check if sequences are out of sync with actual data
+            // Auto-healing: Check if sequences are out of sync with actual data (FOR THIS COMPANY ONLY)
             if ($table) {
                 $actualMaxNumber = DB::table($table)
+                    ->where('company_id', $companyId)
                     ->where('number', 'like', $prefix . '-%')
                     ->selectRaw('MAX(CAST(SUBSTRING(number, -4) AS UNSIGNED)) as max_num')
                     ->first()->max_num ?? 0;
                 
-                // If sequence is ahead of actual data, it means documents were deleted
-                // Reset sequences to match reality to avoid gaps
-                if ($globalMaxSeq > $actualMaxNumber) {
-                    \Log::info("DocumentNumberService: Auto-healing sequences for {$docType} {$year}/{$month}", [
-                        'old_sequence' => $globalMaxSeq,
+                // If sequence is ahead of actual data, reset to match reality
+                if ($row->last_number > $actualMaxNumber) {
+                    \Log::info("DocumentNumberService: Auto-healing sequences for {$docType} {$year}/{$month} (Company: {$companyId})", [
+                        'old_sequence' => $row->last_number,
                         'actual_max' => $actualMaxNumber,
                         'prefix' => $prefix
                     ]);
                     
-                    DocumentSequence::where([
-                        'doc_type' => $docType,
-                        'year' => (int)$year,
-                        'month' => (int)$month,
-                    ])->update(['last_number' => $actualMaxNumber]);
-                    
-                    $globalMaxSeq = $actualMaxNumber;
+                    $row->last_number = $actualMaxNumber;
+                    $row->save();
                 }
             }
 
-            // Find next available number starting from global max + 1
-            $seqNumber = $globalMaxSeq + 1;
+            // Find next available number starting from company's last_number + 1
+            $seqNumber = $row->last_number + 1;
             
             if ($table) {
-                // Check across ALL companies to ensure global uniqueness
+                // Check only THIS COMPANY's documents to ensure uniqueness within company scope
                 $allNumbers = DB::table($table)
+                    ->where('company_id', $companyId)
                     ->where('number', 'like', $prefix . '-%')
                     ->pluck('number')
                     ->all();
@@ -133,14 +122,6 @@ class DocumentNumberService
             // Update this company's last_number
             $row->last_number = $seqNumber;
             $row->save();
-
-            // Update all other companies' sequences for this doc_type/year/month to maintain consistency
-            DocumentSequence::where([
-                'doc_type' => $docType,
-                'year' => (int)$year,
-                'month' => (int)$month,
-            ])->where('company_id', '!=', $companyId)
-            ->update(['last_number' => DB::raw("GREATEST(last_number, $seqNumber)")]);
 
             return $candidate;
         });

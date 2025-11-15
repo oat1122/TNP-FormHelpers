@@ -557,6 +557,7 @@ class QuotationService
             }
             $quotation->deposit_mode = $depositMode;
             $quotation->payment_terms = $additionalData['payment_terms'] ?? 'credit_30';
+            $quotation->due_date = $additionalData['due_date'] ?? null;
 
             // หมายเหตุ
             // ป้องกัน client ส่ง number มา

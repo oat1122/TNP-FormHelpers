@@ -337,7 +337,7 @@ const PricingIntegration = () => {
       const items = (data.items || []).flatMap((item, index) => {
         if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
           return item.sizeRows.map((row, rIndex) => ({
-            pricing_request_id: item.pricingRequestId || item.id,
+            pricing_request_id: item.isFromPR ? item.pricingRequestId || null : null,
             item_name: item.name,
             pattern: item.pattern || "",
             fabric_type: item.fabricType || "",
@@ -353,7 +353,7 @@ const PricingIntegration = () => {
         }
         return [
           {
-            pricing_request_id: item.pricingRequestId || item.id,
+            pricing_request_id: item.isFromPR ? item.pricingRequestId || null : null,
             item_name: item.name,
             pattern: item.pattern || "",
             fabric_type: item.fabricType || "",
@@ -406,6 +406,7 @@ const PricingIntegration = () => {
             ? parseFloat(data.depositAmountInput) || 0
             : data.depositAmount || 0,
         payment_terms: data.paymentMethod || "credit_30",
+        due_date: data.due_date ? data.due_date : null,
 
         // รายการสินค้า
         items,
@@ -450,7 +451,7 @@ const PricingIntegration = () => {
       const items = (data.items || []).flatMap((item, index) => {
         if (Array.isArray(item.sizeRows) && item.sizeRows.length > 0) {
           return item.sizeRows.map((row, rIndex) => ({
-            pricing_request_id: item.pricingRequestId || item.id,
+            pricing_request_id: item.isFromPR ? item.pricingRequestId || null : null,
             item_name: item.name,
             pattern: item.pattern || "",
             fabric_type: item.fabricType || "",
@@ -465,7 +466,7 @@ const PricingIntegration = () => {
         }
         return [
           {
-            pricing_request_id: item.pricingRequestId || item.id,
+            pricing_request_id: item.isFromPR ? item.pricingRequestId || null : null,
             item_name: item.name,
             pattern: item.pattern || "",
             fabric_type: item.fabricType || "",
@@ -518,6 +519,7 @@ const PricingIntegration = () => {
             ? parseFloat(data.depositAmountInput) || 0
             : data.depositAmount || 0,
         payment_terms: data.paymentMethod || "credit_30",
+        due_date: data.due_date ? data.due_date : null,
 
         // รายการสินค้า
         items,

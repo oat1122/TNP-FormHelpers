@@ -22,6 +22,9 @@ export const useInvoiceApproval = (invoice) => {
   // Current deposit display mode: 'before' | 'after'
   const [depositMode, setDepositMode] = useState(invoice?.deposit_display_order || "after");
 
+  // Loading state for approval action
+  const [isApproving, setIsApproving] = useState(false);
+
   // API hooks for approval flows
   const [submitInvoice] = useSubmitInvoiceMutation();
   const [approveInvoice] = useApproveInvoiceMutation();
@@ -55,6 +58,7 @@ export const useInvoiceApproval = (invoice) => {
 
   // Approve handler for current side
   const handleApprove = async () => {
+    setIsApproving(true);
     try {
       if (!invoice?.id) return;
 
@@ -100,6 +104,8 @@ export const useInvoiceApproval = (invoice) => {
     } catch (e) {
       console.error("Approve invoice failed", e);
       throw e;
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -133,6 +139,7 @@ export const useInvoiceApproval = (invoice) => {
     localStatusAfter,
     localStatus,
     depositMode,
+    isApproving,
     getActiveSideStatus,
     canApproveActiveSide,
     canUserApprove,

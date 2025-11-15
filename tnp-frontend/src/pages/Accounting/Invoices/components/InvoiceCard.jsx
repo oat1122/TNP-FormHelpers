@@ -1,3 +1,4 @@
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DescriptionIcon from "@mui/icons-material/Description";
 import DownloadIcon from "@mui/icons-material/Download";
 import EventIcon from "@mui/icons-material/Event";
@@ -125,6 +126,7 @@ const InvoiceCard = ({
   const {
     localStatus,
     depositMode,
+    isApproving,
     getActiveSideStatus,
     canApproveActiveSide,
     canUserApprove,
@@ -877,39 +879,6 @@ const InvoiceCard = ({
           </Box>
         )}
 
-        {/* Action Buttons - Side-specific Approve (admin/account only) */}
-        <Stack
-          direction="row"
-          spacing={0.75}
-          justifyContent="flex-end"
-          useFlexGap
-          sx={{ flexWrap: "wrap", rowGap: 1, columnGap: 1 }}
-        >
-          {canUserApprove() && canApproveActiveSide() && (
-            <Button
-              size="medium"
-              variant="contained"
-              color="success"
-              onClick={handleApprove}
-              sx={{
-                px: 2,
-                py: 1,
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                borderRadius: 2,
-                boxShadow: "none",
-                minHeight: 36,
-                "&:hover": {
-                  boxShadow: 1,
-                },
-              }}
-              aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
-            >
-              อนุมัติ ({depositMode === "before" ? "ก่อน" : "หลัง"})
-            </Button>
-          )}
-        </Stack>
-
         {/* Icon Button Actions Group */}
         <Box
           sx={{
@@ -922,6 +891,23 @@ const InvoiceCard = ({
         >
           {/* Left Side: Action Buttons Group */}
           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {/* Approve Button - Show when user can approve and side is draft */}
+            {canUserApprove() && canApproveActiveSide() && (
+              <Tooltip title={`อนุมัติ (${depositMode === "before" ? "ก่อน" : "หลัง"})`}>
+                <span>
+                  <IconButton
+                    size="medium"
+                    color="success"
+                    onClick={handleApprove}
+                    disabled={isApproving}
+                    aria-label={`อนุมัติใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+                  >
+                    {isApproving ? <CircularProgress size={24} /> : <CheckCircleIcon />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+
             {/* Revert Button - Show when approved and user has permission */}
             {canUserApprove() && activeSideStatus === "approved" && (
               <Tooltip

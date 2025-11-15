@@ -18,8 +18,11 @@ import {
   Tooltip,
   Avatar,
   Divider,
+  Alert,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 // THEME & SHARED UI
 import SpecialDiscountField from "./components/SpecialDiscountField";
@@ -54,6 +57,10 @@ import {
 import { formatTHB } from "../utils/currency";
 import { formatDateTH } from "../utils/date";
 
+// Default notes text
+const DEFAULT_NOTES = `**ไม่สามารถหักภาษี ณ ที่จ่ายได้ เนื่องจากเป็นการซื้อมาขายไป**
+มัดจำ50%ก่อนเริ่มงาน ชำระ50%ส่วนหลังก่อนส่งสินค้า`;
+
 /**
  * CreateQuotationForm — restyled to match QuotationDetailDialog
  * - ใช้โครงแบบ Section, SectionHeader, InfoCard เดียวกัน
@@ -62,7 +69,7 @@ import { formatDateTH } from "../utils/date";
  * - เติมช่องโน้ตรายบรรทัดในตารางไซซ์ และแสดง PR qty เปรียบเทียบด้วย Chip
  */
 
-const PRNameResolver = ({ prId, currentName, onResolved }) => null; // keep placeholder if used elsewhere
+const PRNameResolver = ({ prId, currentName, onResolved }) => null;
 
 const CreateQuotationForm = ({
   selectedPricingRequests = [],
@@ -76,7 +83,7 @@ const CreateQuotationForm = ({
     customer: {},
     pricingRequests: selectedPricingRequests,
     items: [],
-    notes: "",
+    notes: DEFAULT_NOTES,
     // terms (UI-facing)
     paymentTermsType: "credit_30", // 'cash' | 'credit_30' | 'credit_60' | 'other'
     paymentTermsCustom: "",
@@ -100,6 +107,7 @@ const CreateQuotationForm = ({
   const [showPreview, setShowPreview] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [isCalcEditing, setIsCalcEditing] = useState(!readOnly);
+  const [validationErrors, setValidationErrors] = useState({});
   const [uploadSamplesTemp, { isLoading: isUploadingSamples }] =
     useUploadQuotationSampleImagesTempMutation();
 
@@ -110,6 +118,7 @@ const CreateQuotationForm = ({
     const items = selectedPricingRequests.map((pr, idx) => ({
       id: pr.pr_id || pr.id || `temp_${idx}`,
       pricingRequestId: pr.pr_id,
+      isFromPR: true,
       name: pr.pr_work_name || pr.work_name || "ไม่ระบุชื่องาน",
       pattern: pr.pr_pattern || pr.pattern || "",
       fabricType: pr.pr_fabric_type || pr.fabric_type || pr.material || "",
@@ -175,6 +184,97 @@ const CreateQuotationForm = ({
     const q = Number(it?.originalData?.pr_quantity ?? it?.originalData?.quantity ?? 0);
     return isNaN(q) ? 0 : q;
   }, []);
+
+  // ======== ADD/REMOVE JOB FUNCTIONS ========
+  const addManualJob = useCallback(() => {
+    const newJob = {
+      id: `manual_${Date.now()}`,
+      isFromPR: false,
+      isManual: true,
+      name: "",
+      pattern: "",
+      fabricType: "",
+      color: "",
+      size: "",
+      unit: "ชิ้น",
+      quantity: 0,
+      unitPrice: 0,
+      notes: "",
+      sizeRows: [
+        {
+          uuid: `manual_${Date.now()}_row_1`,
+          size: "",
+          quantity: "",
+          unitPrice: "",
+          notes: "",
+        },
+      ],
+    };
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, newJob],
+    }));
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[newJob.id];
+      return newErrors;
+    });
+  }, []);
+
+  const removeJob = useCallback((itemId) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((i) => i.id !== itemId),
+    }));
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[itemId];
+      return newErrors;
+    });
+  }, []);
+
+  // ======== VALIDATION ========
+  const validateManualJob = useCallback((item) => {
+    const errors = [];
+
+    if (!item.name || item.name.trim() === "") {
+      errors.push("กรุณากรอกชื่องาน");
+    }
+
+    const hasValidRows = item.sizeRows && item.sizeRows.length > 0;
+    if (!hasValidRows) {
+      errors.push("กรุณาเพิ่มอย่างน้อย 1 รายการขนาด");
+    } else {
+      const allRowsEmpty = item.sizeRows.every(
+        (row) =>
+          (!row.quantity || row.quantity === "" || row.quantity === 0) &&
+          (!row.unitPrice || row.unitPrice === "" || row.unitPrice === 0)
+      );
+      if (allRowsEmpty) {
+        errors.push("กรุณากรอกจำนวนและราคาอย่างน้อย 1 รายการ");
+      }
+    }
+
+    return errors;
+  }, []);
+
+  const validateAllManualJobs = useCallback(() => {
+    const errors = {};
+    let hasErrors = false;
+
+    formData.items.forEach((item) => {
+      if (!item.isFromPR) {
+        const itemErrors = validateManualJob(item);
+        if (itemErrors.length > 0) {
+          errors[item.id] = itemErrors;
+          hasErrors = true;
+        }
+      }
+    });
+
+    setValidationErrors(errors);
+    return !hasErrors;
+  }, [formData.items, validateManualJob]);
 
   const setItem = (itemId, patch) =>
     setFormData((prev) => ({
@@ -296,6 +396,10 @@ const CreateQuotationForm = ({
   const activeItems = useMemo(() => formData.items, [formData.items]);
 
   const handleSubmit = async (action) => {
+    if (!validateAllManualJobs()) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -322,6 +426,7 @@ const CreateQuotationForm = ({
         finalTotal,
         depositAmount,
         remainingAmount,
+        due_date: formData.dueDate ? formData.dueDate.toISOString().split("T")[0] : null,
         // Attach sample images and flag the one to show on PDF
         sample_images: (formData.sampleImages || []).map((img) => ({
           ...img,
@@ -397,7 +502,9 @@ const CreateQuotationForm = ({
                 สร้างใบเสนอราคา
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                จาก {activeItems.length} งาน • {formData.customer?.cus_company || "กำลังโหลด…"}
+                จาก {activeItems.filter((i) => i.isFromPR).length} งาน PR +{" "}
+                {activeItems.filter((i) => !i.isFromPR).length} งานเพิ่มเติม •{" "}
+                {formData.customer?.cus_company || "กำลังโหลด…"}
               </Typography>
             </Box>
           </Box>
@@ -439,120 +546,122 @@ const CreateQuotationForm = ({
                   }}
                 >
                   <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
-                    รายละเอียดงาน ({activeItems.length})
+                    รายละเอียดงาน ({activeItems.filter((i) => i.isFromPR).length} จาก PR)
                   </Typography>
                 </Box>
 
-                {activeItems.length === 0 ? (
+                {activeItems.filter((i) => i.isFromPR).length === 0 ? (
                   <InfoCard sx={{ p: 3 }}>
                     <Typography variant="body2" color="text.secondary">
-                      ไม่พบข้อมูลงาน
+                      ไม่พบข้อมูลงานจาก PR
                     </Typography>
                   </InfoCard>
                 ) : (
-                  activeItems.map((item, idx) => {
-                    const rows = Array.isArray(item.sizeRows) ? item.sizeRows : [];
-                    const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
-                    const prQty = prQtyOf(item);
-                    const hasPrQty = prQty > 0;
-                    const qtyMatches = hasPrQty ? totalQty === prQty : true;
-                    return (
-                      <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="space-between"
-                          mb={1}
-                        >
-                          <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
-                            งานที่ {idx + 1}: {item.name}
-                          </Typography>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Chip
-                              label={`${totalQty} ${item.unit || "ชิ้น"}`}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                borderColor: tokens.primary,
-                                color: tokens.primary,
-                                fontWeight: 700,
-                              }}
-                            />
-                            {hasPrQty && (
-                              <Chip
-                                label={`PR: ${prQty} ${item.unit || "ชิ้น"}`}
-                                size="small"
-                                color={qtyMatches ? "success" : "error"}
-                                variant={qtyMatches ? "outlined" : "filled"}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-
-                        <Grid container spacing={1}>
-                          {item.pattern && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">
-                                แพทเทิร์น
-                              </Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {item.pattern}
-                              </Typography>
-                            </Grid>
-                          )}
-                          {item.fabricType && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">
-                                ประเภทผ้า
-                              </Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {item.fabricType}
-                              </Typography>
-                            </Grid>
-                          )}
-                          {item.color && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">
-                                สี
-                              </Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {item.color}
-                              </Typography>
-                            </Grid>
-                          )}
-                          {item.size && (
-                            <Grid item xs={6} md={3}>
-                              <Typography variant="caption" color="text.secondary">
-                                ขนาด
-                              </Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {item.size}
-                              </Typography>
-                            </Grid>
-                          )}
-                        </Grid>
-
-                        {item.notes && (
+                  activeItems
+                    .filter((i) => i.isFromPR)
+                    .map((item, idx) => {
+                      const rows = Array.isArray(item.sizeRows) ? item.sizeRows : [];
+                      const totalQty = rows.reduce((s, r) => s + Number(r.quantity || 0), 0);
+                      const prQty = prQtyOf(item);
+                      const hasPrQty = prQty > 0;
+                      const qtyMatches = hasPrQty ? totalQty === prQty : true;
+                      return (
+                        <InfoCard key={item.id} sx={{ p: 2, mb: 1.5 }}>
                           <Box
-                            sx={{
-                              mt: 1.5,
-                              p: 1.5,
-                              bgcolor: tokens.bg,
-                              borderRadius: 1,
-                              borderLeft: `3px solid ${tokens.primary}`,
-                            }}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            mb={1}
                           >
-                            <Typography variant="caption" color={tokens.primary} fontWeight={700}>
-                              หมายเหตุจาก PR
+                            <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
+                              งานที่ {idx + 1}: {item.name}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {item.notes}
-                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Chip
+                                label={`${totalQty} ${item.unit || "ชิ้น"}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: tokens.primary,
+                                  color: tokens.primary,
+                                  fontWeight: 700,
+                                }}
+                              />
+                              {hasPrQty && (
+                                <Chip
+                                  label={`PR: ${prQty} ${item.unit || "ชิ้น"}`}
+                                  size="small"
+                                  color={qtyMatches ? "success" : "error"}
+                                  variant={qtyMatches ? "outlined" : "filled"}
+                                />
+                              )}
+                            </Box>
                           </Box>
-                        )}
-                      </InfoCard>
-                    );
-                  })
+
+                          <Grid container spacing={1}>
+                            {item.pattern && (
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  แพทเทิร์น
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {item.pattern}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {item.fabricType && (
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  ประเภทผ้า
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {item.fabricType}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {item.color && (
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  สี
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {item.color}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {item.size && (
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" color="text.secondary">
+                                  ขนาด
+                                </Typography>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {item.size}
+                                </Typography>
+                              </Grid>
+                            )}
+                          </Grid>
+
+                          {item.notes && (
+                            <Box
+                              sx={{
+                                mt: 1.5,
+                                p: 1.5,
+                                bgcolor: tokens.bg,
+                                borderRadius: 1,
+                                borderLeft: `3px solid ${tokens.primary}`,
+                              }}
+                            >
+                              <Typography variant="caption" color={tokens.primary} fontWeight={700}>
+                                หมายเหตุจาก PR
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {item.notes}
+                              </Typography>
+                            </Box>
+                          )}
+                        </InfoCard>
+                      );
+                    })
                 )}
               </Box>
             </Section>
@@ -567,11 +676,14 @@ const CreateQuotationForm = ({
                 >
                   <CalculateIcon fontSize="small" />
                 </Avatar>
-                <Box>
+                <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle1" fontWeight={700}>
                     การคำนวณราคา
                   </Typography>
                 </Box>
+                <SecondaryButton startIcon={<AddIcon />} onClick={addManualJob} size="small">
+                  เพิ่มงานใหม่
+                </SecondaryButton>
               </SectionHeader>
 
               <Box sx={{ p: 2 }} id="calc-section">
@@ -584,9 +696,19 @@ const CreateQuotationForm = ({
                   );
                   const knownUnits = ["ชิ้น", "ตัว", "ชุด", "กล่อง", "แพ็ค"];
                   const unitSelectValue = knownUnits.includes(item.unit) ? item.unit : "อื่นๆ";
+                  const isManual = !item.isFromPR;
+                  const itemErrors = validationErrors[item.id] || [];
 
                   return (
-                    <InfoCard key={`calc-${item.id}`} sx={{ p: 2, mb: 1.5 }}>
+                    <InfoCard
+                      key={`calc-${item.id}`}
+                      sx={{
+                        p: 2,
+                        mb: 1.5,
+                        border: isManual ? `2px dashed ${tokens.primary}` : undefined,
+                        bgcolor: isManual ? `${tokens.primary}08` : undefined,
+                      }}
+                    >
                       <Box
                         display="flex"
                         alignItems="center"
@@ -594,30 +716,74 @@ const CreateQuotationForm = ({
                         mb={1.5}
                       >
                         <Box display="flex" alignItems="center" gap={1.5}>
+                          {isManual && (
+                            <Chip
+                              label="งานใหม่"
+                              size="small"
+                              color="secondary"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          )}
                           <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
                             งานที่ {idx + 1}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.name}
-                          </Typography>
-                          <PricingRequestNotesButton
-                            pricingRequestId={item.pricingRequestId || item.pr_id}
-                            workName={item.name}
-                            variant="icon"
-                            size="small"
-                          />
+                          {isManual ? (
+                            <TextField
+                              size="small"
+                              placeholder="กรอกชื่องาน *"
+                              value={item.name}
+                              onChange={(e) => setItem(item.id, { name: e.target.value })}
+                              error={itemErrors.some((e) => e.includes("ชื่องาน"))}
+                              sx={{ minWidth: 200 }}
+                            />
+                          ) : (
+                            <>
+                              <Typography variant="body2" color="text.secondary">
+                                {item.name}
+                              </Typography>
+                              {item.pricingRequestId && (
+                                <PricingRequestNotesButton
+                                  pricingRequestId={item.pricingRequestId}
+                                  workName={item.name}
+                                  variant="icon"
+                                  size="small"
+                                />
+                              )}
+                            </>
+                          )}
                         </Box>
-                        <Chip
-                          label={`${totalQty} ${item.unit || "ชิ้น"}`}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderColor: tokens.primary,
-                            color: tokens.primary,
-                            fontWeight: 700,
-                          }}
-                        />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Chip
+                            label={`${totalQty} ${item.unit || "ชิ้น"}`}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              borderColor: tokens.primary,
+                              color: tokens.primary,
+                              fontWeight: 700,
+                            }}
+                          />
+                          {isManual && (
+                            <Tooltip title="ลบงานนี้">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => removeJob(item.id)}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
                       </Box>
+
+                      {itemErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                          {itemErrors.map((err, i) => (
+                            <div key={i}>• {err}</div>
+                          ))}
+                        </Alert>
+                      )}
 
                       <Grid container spacing={1.5}>
                         <Grid item xs={12} md={3}>
@@ -1015,16 +1181,21 @@ const CreateQuotationForm = ({
                   isCredit={isCredit}
                   dueDateNode={
                     isCredit ? (
-                      <>
+                      <Grid container spacing={2} sx={{ mt: 0 }}>
                         <Grid item xs={6}>
                           <Typography>วันครบกำหนด</Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography textAlign="right" fontWeight={700}>
-                            {formatDateTH(formData.dueDate)}
-                          </Typography>
+                          <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <DatePicker
+                              value={formData.dueDate}
+                              onChange={(newVal) => setFormData((p) => ({ ...p, dueDate: newVal }))}
+                              format="dd/MM/yyyy"
+                              slotProps={{ textField: { size: "small", fullWidth: true } }}
+                            />
+                          </LocalizationProvider>
                         </Grid>
-                      </>
+                      </Grid>
                     ) : null
                   }
                   finalTotal={finalTotal}

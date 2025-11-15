@@ -17,6 +17,7 @@ import {
   FormControl,
   InputLabel,
   IconButton,
+  Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import React from "react";
@@ -26,6 +27,7 @@ const tokens = {
   white: "#FFFFFF",
   bg: "#F5F5F5",
   border: "#E0E0E0",
+  errorBg: "rgba(211, 47, 47, 0.02)", // Light red background for zebra striping
 };
 
 const InvoiceCard = styled(Card)(({ theme }) => ({
@@ -294,99 +296,137 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
               <Typography variant="body2">ไม่มีรายละเอียดรายการสำหรับงานนี้</Typography>
             </Box>
           ) : (
-            <Grid container spacing={1}>
+            <>
               {(item.sizeRows || []).map((row, rowIndex) => (
                 <React.Fragment key={row.uuid || rowIndex}>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      inputProps={{ inputMode: "text" }}
-                      label="ขนาด"
-                      value={row.size || ""}
-                      disabled={!isEditing}
-                      onChange={(e) => onChangeRow?.(index, rowIndex, "size", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="จำนวน"
-                      type="text"
-                      inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-                      value={row.quantity ?? ""}
-                      disabled={!isEditing}
-                      onChange={(e) =>
-                        onChangeRow?.(index, rowIndex, "quantity", sanitizeInt(e.target.value))
-                      }
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="ราคาต่อหน่วย"
-                      type="text"
-                      inputProps={{ inputMode: "decimal" }}
-                      value={row.unitPrice ?? ""}
-                      disabled={!isEditing}
-                      onChange={(e) =>
-                        onChangeRow?.(index, rowIndex, "unitPrice", sanitizeDecimal(e.target.value))
-                      }
-                    />
-                  </Grid>
-                  <Grid item xs={10} md={2}>
+                  {/* Add red divider between rows */}
+                  {rowIndex > 0 && (
+                    <Grid item xs={12} sx={{ pt: 2, pb: 1.5 }}>
+                      <Divider
+                        sx={{
+                          borderColor: "error.main",
+                          borderWidth: "1.5px",
+                          opacity: 0.7,
+                        }}
+                      />
+                    </Grid>
+                  )}
+
+                  {/* Wrap each row in Box for zebra striping */}
+                  <Grid item xs={12}>
                     <Box
                       sx={{
-                        p: 1,
-                        bgcolor: "#fff",
-                        border: `1px solid ${tokens.border}`,
+                        bgcolor: rowIndex % 2 === 0 ? tokens.errorBg : "transparent",
                         borderRadius: 1,
-                        textAlign: "center",
-                        minHeight: "40px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        p: 0.5,
                       }}
                     >
-                      <Typography variant="body2" fontWeight={700}>
-                        {(() => {
-                          const q = Number(row.quantity || 0);
-                          const p = Number(row.unitPrice || 0);
-                          const val = isNaN(q) || isNaN(p) ? 0 : q * p;
-                          return formatTHB(val);
-                        })()}
-                      </Typography>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            inputProps={{ inputMode: "text" }}
+                            label="ขนาด"
+                            value={row.size || ""}
+                            disabled={!isEditing}
+                            onChange={(e) => onChangeRow?.(index, rowIndex, "size", e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={6} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="จำนวน"
+                            type="text"
+                            inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                            value={row.quantity ?? ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow?.(
+                                index,
+                                rowIndex,
+                                "quantity",
+                                sanitizeInt(e.target.value)
+                              )
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={6} md={3}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="ราคาต่อหน่วย"
+                            type="text"
+                            inputProps={{ inputMode: "decimal" }}
+                            value={row.unitPrice ?? ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow?.(
+                                index,
+                                rowIndex,
+                                "unitPrice",
+                                sanitizeDecimal(e.target.value)
+                              )
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={10} md={2}>
+                          <Box
+                            sx={{
+                              p: 1,
+                              bgcolor: "#fff",
+                              border: `1px solid ${tokens.border}`,
+                              borderRadius: 1,
+                              textAlign: "center",
+                              minHeight: "40px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography variant="body2" fontWeight={700}>
+                              {(() => {
+                                const q = Number(row.quantity || 0);
+                                const p = Number(row.unitPrice || 0);
+                                const val = isNaN(q) || isNaN(p) ? 0 : q * p;
+                                return formatTHB(val);
+                              })()}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={2} md={1}>
+                          {isEditing && (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => onRemoveRow?.(index, rowIndex)}
+                              sx={{ mt: 0.5 }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="หมายเหตุ (บรรทัดนี้)"
+                            multiline
+                            minRows={1}
+                            value={row.notes || ""}
+                            disabled={!isEditing}
+                            onChange={(e) =>
+                              onChangeRow?.(index, rowIndex, "notes", e.target.value)
+                            }
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
-                  </Grid>
-                  <Grid item xs={2} md={1}>
-                    {isEditing && (
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => onRemoveRow?.(index, rowIndex)}
-                        sx={{ mt: 0.5 }}
-                      >
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="หมายเหตุ (บรรทัดนี้)"
-                      multiline
-                      minRows={1}
-                      value={row.notes || ""}
-                      disabled={!isEditing}
-                      onChange={(e) => onChangeRow?.(index, rowIndex, "notes", e.target.value)}
-                    />
                   </Grid>
                 </React.Fragment>
               ))}
-            </Grid>
+            </>
           )}
         </Box>
 

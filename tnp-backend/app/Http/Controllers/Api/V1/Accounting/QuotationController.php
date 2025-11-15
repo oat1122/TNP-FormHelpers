@@ -539,6 +539,7 @@ class QuotationController extends Controller
                 'deposit_mode' => 'nullable|in:percentage,amount',
                 'deposit_amount' => 'nullable|numeric|min:0',
                 'payment_terms' => 'nullable|string|max:50',
+                'due_date' => 'nullable|date',
                 'sample_images' => 'nullable|array',
                 'items' => 'nullable|array',
                 'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',

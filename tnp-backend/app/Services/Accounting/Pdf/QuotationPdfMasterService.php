@@ -4,6 +4,7 @@ namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Quotation;
 use App\Services\Accounting\Pdf\CustomerInfoExtractor;
+use App\Services\PdfImageOptimizer;
 use Illuminate\Support\Facades\View;
 use Mpdf\Mpdf;
 
@@ -14,6 +15,18 @@ use Mpdf\Mpdf;
  */
 class QuotationPdfMasterService extends BasePdfMasterService
 {
+    protected PdfImageOptimizer $imageOptimizer;
+
+    /**
+     * Constructor with Dependency Injection
+     *
+     * @param PdfImageOptimizer $imageOptimizer
+     */
+    public function __construct(PdfImageOptimizer $imageOptimizer)
+    {
+        $this->imageOptimizer = $imageOptimizer;
+    }
+
     protected function getFilenamePrefix(): string
     {
         return 'quotation';
@@ -82,6 +95,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
             'groups'    => $groups,
             'summary'   => $summary,
             'isFinal'   => $isFinal,
+            'imageOptimizer' => $this->imageOptimizer, // Pass optimizer to Blade template
             'options'   => array_merge([
                 'format'          => 'A4',
                 'orientation'     => 'P',

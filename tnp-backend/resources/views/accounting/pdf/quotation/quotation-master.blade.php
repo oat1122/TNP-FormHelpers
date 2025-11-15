@@ -184,17 +184,36 @@
     @php
       $sampleImages = is_array($quotation->sample_images ?? null) ? $quotation->sample_images : [];
       // Prefer local filesystem path for mPDF to avoid slow HTTP fetches
-      $resolveImgSrc = function ($img) {
+      // Use image optimizer to resize large images for better PDF performance
+      $optimizer = $imageOptimizer ?? null;
+      $resolveImgSrc = function ($img) use ($optimizer) {
         $url = $img['url'] ?? '';
         $path = $img['path'] ?? '';
         $relative = $path ? str_replace('public/', '', $path) : '';
+        $resolvedPath = '';
+        
         if ($relative) {
           $publicStorage = public_path('storage/' . $relative);
-          if (is_file($publicStorage)) return $publicStorage;
-          $absStorage = storage_path('app/' . $relative);
-          if (is_file($absStorage)) return $absStorage;
+          if (is_file($publicStorage)) {
+            $resolvedPath = $publicStorage;
+          } else {
+            $absStorage = storage_path('app/' . $relative);
+            if (is_file($absStorage)) {
+              $resolvedPath = $absStorage;
+            }
+          }
         }
-        return $url;
+        
+        if (!$resolvedPath && $url) {
+          $resolvedPath = $url;
+        }
+        
+        // Optimize image for PDF if optimizer is available
+        if ($optimizer && $resolvedPath) {
+          return $optimizer->optimizeForPdf($resolvedPath);
+        }
+        
+        return $resolvedPath;
       };
       
       
@@ -217,7 +236,7 @@
         <div class="sample-images-title">รูปภาพตัวอย่าง</div>
         
         {{-- Use a table for robust horizontal layout in mPDF --}}
-        <table class="sample-images-grid-table">
+        <table class="sample-images-grid-table img-count-{{ count($sampleImages) }}">
           <tr>
             @foreach($sampleImages as $img)
               @php
@@ -225,18 +244,15 @@
                 $caption = $img['original_filename'] ?? ($img['filename'] ?? 'image');
               @endphp
               
-              {{-- Each image is in its own cell --}}
+              {{-- Each image is in its own cell with fixed 150x150px container --}}
               <td class="img-box-cell">
                 @if($u)
-                  <img src="{{ $u }}" alt="{{ $caption }}" class="sample-img" />
+                  <div style="width: 150px; height: 150px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <img src="{{ $u }}" alt="{{ $caption }}" class="sample-img" style="width: 150px; height: 150px; display: block; object-fit: cover;" />
+                  </div>
                 @endif
               </td>
             @endforeach
-            
-            {{-- Add empty cells if less than 3 images to maintain layout --}}
-            @for ($i = 0; $i < (3 - count($sampleImages)); $i++)
-              <td class="img-box-cell empty"></td>
-            @endfor
           </tr>
         </table>
 

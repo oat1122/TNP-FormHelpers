@@ -47,4 +47,17 @@ return [
     'autoScriptToLang'       => true,
     'autoLangToFont'         => true,
 
+    // Image Optimization Configuration
+    'image_optimization' => [
+        'enabled'         => env('PDF_IMAGE_OPTIMIZATION_ENABLED', true),
+        'max_width'       => env('PDF_IMAGE_MAX_WIDTH', 800),
+            'max_height'      => env('PDF_IMAGE_MAX_HEIGHT', 800),
+            'jpeg_quality'    => env('PDF_IMAGE_JPEG_QUALITY', 85),
+        'cache_enabled'   => env('PDF_IMAGE_CACHE_ENABLED', true),
+        'cache_duration'  => env('PDF_IMAGE_CACHE_DURATION', 30), // days
+        'cache_path'      => storage_path('app/pdf-images-cache'),
+        'supported_formats' => ['jpg', 'jpeg', 'png', 'webp'],
+        'output_format'   => 'jpg', // Format for PDF output (jpg or png)
+    ],
+
 ];

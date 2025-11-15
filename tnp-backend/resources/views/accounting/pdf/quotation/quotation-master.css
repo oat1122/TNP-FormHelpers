@@ -355,48 +355,31 @@ col.w-total {
     color: #2f3d48;
 }
 
-/* ⭐️ GOAL 1 & 2: เปลี่ยน CSS ให้รองรับ Table และลดขนาด */
+/* ===== Sample Images Section - Fixed 150x150px Layout ===== */
 .sample-images-grid-table {
-    width: 100%;
     border-collapse: separate;
-    border-spacing: 6pt 0;
+    border-spacing: 8pt 0;
     margin-bottom: 0;
     page-break-inside: avoid;
-    table-layout: fixed;
+    table-layout: auto;
 }
+
+/* Fixed width for image cells (150px image + 8px padding) */
 .sample-images-grid-table .img-box-cell {
-    width: 33.33%;
+    width: 158px;
     padding: 4pt;
     border: 1px solid #e5edf5;
     background: #fafbfc;
     border-radius: 4pt;
     text-align: center;
-    vertical-align: top;
-    height: 50pt;
+    vertical-align: middle;
     box-sizing: border-box;
-    overflow: hidden;
-}
-.sample-images-grid-table .img-box-cell.empty {
-    border: none;
-    background: transparent;
 }
 
-/* ⭐️ แก้ไข .sample-img ให้เคารพกรอบและคงสัดส่วน (Contain method) */
+/* Simple image styling for mPDF compatibility */
 .sample-images-grid-table .sample-img {
     display: block;
-    margin: 0 auto;
-
-    /* 1. ให้ความกว้างสูงสุด 100% (ของ <td>) */
-    max-width: 100%;
-
-    /* 2. ให้ความสูงสูงสุด 42pt 
-       (คำนวณจาก: 50pt (ความสูง <td>) - 4pt (padding บน) - 4pt (padding ล่าง)) 
-    */
-    max-height: 42pt;
-
-    /* 3. สั่งให้คงสัดส่วนอัตโนมัติ (สำคัญมาก - ป้องกันการบิดเบี้ยว) */
-    width: auto;
-    height: auto;
+    border-radius: 2pt;
 }
 
 .sample-images-grid .img-caption {

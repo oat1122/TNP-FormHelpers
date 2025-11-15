@@ -307,13 +307,13 @@
               @endphp
 
               {{-- Show pricing mode indicator for VAT included --}}
-              @if($isVatIncluded && $hasVat)
+              <!-- @if($isVatIncluded && $hasVat)
                 <tr>
                   <td colspan="2" style="padding: 4pt 6pt; background-color: #e3f2fd; font-size: 7pt; color: #1976d2; text-align: center;">
                     <strong>โหมดราคารวม VAT:</strong> ราคาที่กรอกรวม VAT {{ $summary['vat_percentage'] ?? 7 }}% แล้ว
                   </td>
                 </tr>
-              @endif
+              @endif -->
 
               {{-- 1. Subtotal (ยอดก่อนภาษี) --}}
               <tr>

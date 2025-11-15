@@ -1,9 +1,13 @@
 import DescriptionIcon from "@mui/icons-material/Description";
+import DownloadIcon from "@mui/icons-material/Download";
 import EventIcon from "@mui/icons-material/Event";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PaymentIcon from "@mui/icons-material/Payment";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import UndoIcon from "@mui/icons-material/Undo";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
   Stack,
@@ -25,6 +29,7 @@ import {
   FormControl,
   Select,
   InputLabel,
+  IconButton,
 } from "@mui/material";
 import React from "react";
 import { apiConfig } from "../../../../api/apiConfig";
@@ -903,149 +908,126 @@ const InvoiceCard = ({
               อนุมัติ ({depositMode === "before" ? "ก่อน" : "หลัง"})
             </Button>
           )}
+        </Stack>
 
-          {/* Revert Button - Show when approved and user has permission */}
-          {canUserApprove() && activeSideStatus === "approved" && (
-            <Button
-              size="small"
-              variant="outlined"
-              color="warning"
-              onClick={() => statusReversalHook.handleRevertToDraft(depositMode)}
-              disabled={statusReversalHook.isReverting}
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                fontSize: "0.78rem",
-                fontWeight: 500,
-                borderRadius: 2,
-                minHeight: 32,
-                "&:hover": {
-                  bgcolor: "warning.50",
-                },
-              }}
-              aria-label={`ย้อนสถานะใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"} กลับเป็น draft`}
-            >
-              {statusReversalHook.isReverting
-                ? "กำลังย้อนสถานะ..."
-                : `ย้อนเป็น Draft (${depositMode === "before" ? "ก่อน" : "หลัง"})`}
-            </Button>
-          )}
-          {/* PDF Actions - Mode-specific */}
-          {onPreviewPDF && (
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => handlePreviewPDFDialog(depositMode)}
-              startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                fontSize: "0.78rem",
-                fontWeight: 500,
-                borderRadius: 2,
-                minHeight: 32,
-                borderColor: "grey.300",
-                color: "text.primary",
-                "&:hover": {
-                  borderColor: "primary.main",
-                  bgcolor: "primary.50",
-                },
-              }}
-              tabIndex={0}
-              aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
-            >
-              ดูตัวอย่าง PDF
-            </Button>
-          )}
-
-          {/* Invoice Download Button */}
-          {onDownloadPDF && (
-            <>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={handleDownloadClick}
-                startIcon={<DescriptionIcon sx={{ fontSize: "1rem" }} aria-hidden="true" />}
-                sx={{
-                  px: 1.5,
-                  py: 0.75,
-                  fontSize: "0.78rem",
-                  fontWeight: 500,
-                  borderRadius: 2,
-                  minHeight: 32,
-                  borderColor: "grey.300",
-                  color: "text.primary",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    bgcolor: "primary.50",
-                  },
-                }}
-                tabIndex={0}
-                aria-label={`ดาวน์โหลด ใบแจ้งหนี้ โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+        {/* Icon Button Actions Group */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 1,
+          }}
+        >
+          {/* Left Side: Action Buttons Group */}
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {/* Revert Button - Show when approved and user has permission */}
+            {canUserApprove() && activeSideStatus === "approved" && (
+              <Tooltip
+                title={`ย้อนสถานะเป็น Draft (${depositMode === "before" ? "ก่อน" : "หลัง"})`}
               >
-                ดาวน์โหลด ใบแจ้งหนี้
-              </Button>
-              <Menu
-                anchorEl={downloadAnchorEl}
-                open={Boolean(downloadAnchorEl)}
-                onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              >
-                <Typography sx={{ px: 2, pt: 1, fontSize: ".8rem", fontWeight: 600 }}>
-                  เลือกประเภทหัวกระดาษ ({depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})
-                </Typography>
-                <Divider />
-                {extendedHeaderOptions.map((opt) => (
-                  <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
-                    <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
-                    <ListItemText primaryTypographyProps={{ fontSize: ".8rem" }} primary={opt} />
-                  </MenuItem>
-                ))}
-                <Divider />
-                <MenuItem
-                  disabled={selectedHeaders.length === 0}
-                  onClick={() => handleConfirmDownload(depositMode)}
-                  sx={{ justifyContent: "center" }}
-                >
-                  <Typography
-                    color={selectedHeaders.length ? "primary.main" : "text.disabled"}
-                    fontSize={".8rem"}
-                    fontWeight={600}
+                <span>
+                  <IconButton
+                    size="medium"
+                    color="warning"
+                    onClick={() => statusReversalHook.handleRevertToDraft(depositMode)}
+                    disabled={statusReversalHook.isReverting}
+                    aria-label={`ย้อนสถานะใบแจ้งหนี้ฝั่ง ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"} กลับเป็น draft`}
                   >
-                    ดาวน์โหลด {selectedHeaders.length > 1 ? "(.zip)" : "(PDF)"}
+                    <UndoIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+
+            {/* PDF Actions - Mode-specific */}
+            {onPreviewPDF && (
+              <Tooltip title={`ดูตัวอย่าง PDF (${depositMode === "before" ? "ก่อน" : "หลัง"})`}>
+                <IconButton
+                  size="medium"
+                  color="info"
+                  onClick={() => handlePreviewPDFDialog(depositMode)}
+                  aria-label={`ดูตัวอย่าง PDF โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+                >
+                  <PictureAsPdfIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Invoice Download Button */}
+            {onDownloadPDF && (
+              <>
+                <Tooltip
+                  title={`ดาวน์โหลด ใบแจ้งหนี้ (${depositMode === "before" ? "ก่อน" : "หลัง"})`}
+                >
+                  <IconButton
+                    size="medium"
+                    color="primary"
+                    onClick={handleDownloadClick}
+                    aria-label={`ดาวน์โหลด ใบแจ้งหนี้ โหมด ${depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"}`}
+                  >
+                    <DownloadIcon />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={downloadAnchorEl}
+                  open={Boolean(downloadAnchorEl)}
+                  onClose={handleCloseMenu}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                >
+                  <Typography sx={{ px: 2, pt: 1, fontSize: ".8rem", fontWeight: 600 }}>
+                    เลือกประเภทหัวกระดาษ ({depositMode === "before" ? "มัดจำก่อน" : "มัดจำหลัง"})
                   </Typography>
-                </MenuItem>
-              </Menu>
-            </>
-          )}
+                  <Divider />
+                  {extendedHeaderOptions.map((opt) => (
+                    <MenuItem key={opt} dense onClick={() => toggleHeader(opt)}>
+                      <Checkbox size="small" checked={selectedHeaders.includes(opt)} />
+                      <ListItemText primaryTypographyProps={{ fontSize: ".8rem" }} primary={opt} />
+                    </MenuItem>
+                  ))}
+                  <Divider />
+                  <MenuItem
+                    disabled={selectedHeaders.length === 0}
+                    onClick={() => handleConfirmDownload(depositMode)}
+                    sx={{ justifyContent: "center" }}
+                  >
+                    <Typography
+                      color={selectedHeaders.length ? "primary.main" : "text.disabled"}
+                      fontSize={".8rem"}
+                      fontWeight={600}
+                    >
+                      ดาวน์โหลด {selectedHeaders.length > 1 ? "(.zip)" : "(PDF)"}
+                    </Typography>
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
+          </Box>
 
-          {/* View Details Button */}
+          {/* Right Side: View Details Button */}
           {onView && (
-            <Button
-              size="medium"
-              variant="contained"
-              onClick={onView}
-              color="primary"
-              sx={{
-                px: 2.5,
-                py: 1,
-                fontSize: "0.85rem",
-                fontWeight: 500,
-                borderRadius: 2,
-                boxShadow: "none",
-                minHeight: 36,
-                "&:hover": {
-                  boxShadow: 2,
-                },
-              }}
-              tabIndex={0}
-              aria-label="ดูรายละเอียดใบแจ้งหนี้"
-            >
-              ดูรายละเอียด
-            </Button>
+            <Tooltip title="ดูรายละเอียด">
+              <IconButton
+                size="medium"
+                color="primary"
+                onClick={onView}
+                aria-label="ดูรายละเอียดใบแจ้งหนี้"
+              >
+                <VisibilityIcon />
+              </IconButton>
+            </Tooltip>
           )}
+        </Box>
 
-          {/* PDF Download Buttons Grid - 2 แถว 3 คอลัมน์ */}
+        {/* PDF Download Buttons Grid - 2 แถว 3 คอลัมน์ */}
+        <Stack
+          direction="row"
+          spacing={0.75}
+          justifyContent="flex-end"
+          useFlexGap
+          sx={{ flexWrap: "wrap", rowGap: 1, columnGap: 1 }}
+        >
           {onDownloadPDF && canUserApprove() && (
             <Box sx={{ width: "100%", mt: 1 }}>
               <Typography

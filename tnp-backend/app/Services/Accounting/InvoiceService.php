@@ -36,6 +36,16 @@ class InvoiceService
         $subtotal = round(floatval($data['subtotal'] ?? 0), 2);
         $hasVat = $data['has_vat'] ?? true;
         $vatRate = $hasVat ? floatval($data['vat_percentage'] ?? 7) : 0;
+        $pricingMode = $data['pricing_mode'] ?? 'net';
+        
+        // Calculate net_subtotal based on pricing_mode
+        $netSubtotal = $subtotal;
+        if ($pricingMode === 'vat_included' && $hasVat && $vatRate > 0) {
+            // Reverse calculation: Extract VAT from included price
+            // Formula: netPrice = totalPrice / (1 + vatRate/100)
+            $vatMultiplier = 1 + ($vatRate / 100);
+            $netSubtotal = round($subtotal / $vatMultiplier, 2);
+        }
         
         // subtotal_before_vat = subtotal (by definition, subtotal is before VAT)
         $subtotalBeforeVat = $subtotal;
@@ -56,6 +66,7 @@ class InvoiceService
         
         return [
             'subtotal_before_vat' => $subtotalBeforeVat,
+            'net_subtotal' => $netSubtotal,
             'deposit_amount_before_vat' => $depositBeforeVat
         ];
     }
@@ -588,6 +599,7 @@ class InvoiceService
             // VAT configuration
             $invoice->has_vat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
             $invoice->vat_percentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
+            $invoice->pricing_mode = $invoiceData['pricing_mode'] ?? $quotation->pricing_mode ?? 'net';
             $invoice->vat_amount = $invoiceData['vat_amount'] ?? 0;
             
             // Withholding Tax configuration
@@ -609,6 +621,7 @@ class InvoiceService
                 'subtotal' => $invoice->subtotal,
                 'has_vat' => $invoice->has_vat,
                 'vat_percentage' => $invoice->vat_percentage,
+                'pricing_mode' => $invoice->pricing_mode,
                 'deposit_mode' => $invoice->deposit_mode,
                 'deposit_percentage' => $invoice->deposit_percentage,
                 'deposit_amount' => $invoice->deposit_amount
@@ -616,6 +629,7 @@ class InvoiceService
             
             $calculatedFields = $this->calculateBeforeVatFields($beforeVatData);
             $invoice->subtotal_before_vat = $calculatedFields['subtotal_before_vat'];
+            $invoice->net_subtotal = $calculatedFields['net_subtotal'];
             $invoice->deposit_amount_before_vat = $calculatedFields['deposit_amount_before_vat'];
             
             // Reference invoice information for after-deposit invoices

@@ -204,6 +204,9 @@ class InvoiceController extends Controller
                 'subtotal_before_vat' => 'nullable|numeric|min:0',
                 'tax_amount' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
+                'has_vat' => 'nullable|boolean',
+                'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'pricing_mode' => 'nullable|in:net,vat_included',
                 'payment_terms' => 'nullable|string|max:100',
                 
                 // Deposit fields
@@ -276,6 +279,7 @@ class InvoiceController extends Controller
                 'special_discount_amount' => 'sometimes|numeric|min:0',
                 'has_vat' => 'sometimes|boolean',
                 'vat_percentage' => 'sometimes|numeric|min:0|max:100',
+                'pricing_mode' => 'sometimes|in:net,vat_included',
                 'vat_amount' => 'sometimes|numeric|min:0',
                 'tax_amount' => 'sometimes|numeric|min:0', // alias for FE compatibility
                 'has_withholding_tax' => 'sometimes|boolean',
@@ -386,6 +390,7 @@ class InvoiceController extends Controller
                 'special_discount_amount' => 'nullable|numeric|min:0',
                 'has_vat' => 'nullable|boolean',
                 'vat_percentage' => 'nullable|numeric|min:0|max:100',
+                'pricing_mode' => 'nullable|in:net,vat_included',
                 'vat_amount' => 'nullable|numeric|min:0',
                 'has_withholding_tax' => 'nullable|boolean',
                 'withholding_tax_percentage' => 'nullable|numeric|min:0|max:100',

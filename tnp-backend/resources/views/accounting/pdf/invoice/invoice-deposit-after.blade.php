@@ -228,9 +228,22 @@
             
             @php
               // Extract basic financial data from summary array
-              $subtotal = (float) ($summary['subtotal'] ?? 0);
+              $pricingMode = $summary['pricing_mode'] ?? 'net';
+              $isVatIncluded = $pricingMode === 'vat_included';
+              
+              // For VAT included mode: use subtotal as display amount (it already includes VAT)
+              // For Net mode: use subtotal as is
+              if ($isVatIncluded) {
+                // In VAT included mode, subtotal already includes VAT, so we show it as-is
+                $subtotal = (float) ($summary['subtotal'] ?? 0);
+              } else {
+                // In Net mode, subtotal is before VAT
+                $subtotal = (float) ($summary['subtotal'] ?? 0);
+              }
+              
               $vatAmount = (float) ($summary['vat_amount'] ?? 0);
               $specialDiscountAmount = (float) ($summary['special_discount_amount'] ?? 0);
+              $hasVat = (bool) ($summary['has_vat'] ?? true);
               $hasWithholdingTax = (bool) ($summary['has_withholding_tax'] ?? false);
               $withholdingTaxAmount = (float) ($summary['withholding_tax_amount'] ?? 0);
               $finalTotalAmount = (float) ($summary['final_total_amount'] ?? 0);
@@ -286,11 +299,18 @@
                 <col style="width: 55%;">
               </colgroup>
 
-              
+              {{-- Show pricing mode indicator for VAT included --}}
+              @if($isVatIncluded && $hasVat)
+                <tr>
+                  <td colspan="2" style="padding: 4pt 6pt; background-color: #e3f2fd; font-size: 7pt; color: #1976d2; text-align: center;">
+                    <strong>โหมดราคารวม VAT:</strong> ราคาที่กรอกรวม VAT {{ $summary['vat_percentage'] ?? 7 }}% แล้ว
+                  </td>
+                </tr>
+              @endif
 
               {{-- 1. รวมเป็นเงิน (ก่อน VAT) = subtotal_before_vat --}}
               <tr>
-                <td class="summary-label">รวมเป็นเงิน </td>
+                <td class="summary-label">{{ $isDepositAfter ? 'รวมเป็นเงิน' : 'ยอดก่อนภาษี' }}</td>
                 <td class="summary-amount">
                   <div class="amount-container">
                     <span class="amount-main">{{ number_format($isDepositAfter ? $totalBeforeVat : $subtotal, 2) }}</span>

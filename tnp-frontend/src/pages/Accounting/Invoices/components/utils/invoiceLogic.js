@@ -153,17 +153,37 @@ export const formatDepositInfo = (invoice) => {
 export const calculateInvoiceFinancials = (invoice) => {
   if (!invoice) return null;
 
-  const subtotal = Number(invoice?.subtotal || 0);
+  const pricingMode = invoice?.pricing_mode || "net";
   const specialDiscountAmount = Number(invoice?.special_discount_amount || 0);
   const vatAmount = Number(invoice?.vat_amount || 0);
   const withholding = Number(invoice?.withholding_tax_amount || 0);
 
-  // ใช้ค่า final_total_amount จาก DB เป็นหลัก ถ้าไม่มีค่อย fallback ตามสูตรเดียวกับ trigger
-  const vatRate = (invoice?.vat_percentage || 7) / 100;
-  const fallbackTotal =
-    subtotal + (invoice?.has_vat ? subtotal * vatRate : 0) - specialDiscountAmount - withholding;
-  const total = Number(invoice?.final_total_amount ?? fallbackTotal);
-  const afterVat = subtotal + vatAmount; // เพื่อแสดง breakdown ให้ตรงกับ DB
+  // Handle pricing mode correctly:
+  // - "net": subtotal is before VAT, total = subtotal + VAT
+  // - "vat_included": subtotal includes VAT, net_subtotal is the base amount
+  let netSubtotal, subtotal, total, afterVat;
+
+  if (pricingMode === "vat_included") {
+    // VAT Included mode: subtotal already includes VAT
+    subtotal = Number(invoice?.subtotal || 0); // Total with VAT
+    netSubtotal = Number(invoice?.net_subtotal || 0); // Net amount (extracted from subtotal)
+    afterVat = subtotal; // Same as subtotal in this mode
+    total = Number(invoice?.final_total_amount ?? subtotal);
+  } else {
+    // Net mode: subtotal is before VAT
+    netSubtotal = Number(invoice?.subtotal || 0); // In net mode, subtotal = net amount
+    subtotal = netSubtotal;
+    afterVat = netSubtotal + vatAmount;
+
+    // ใช้ค่า final_total_amount จาก DB เป็นหลัก ถ้าไม่มีค่อย fallback
+    const vatRate = (invoice?.vat_percentage || 7) / 100;
+    const fallbackTotal =
+      netSubtotal +
+      (invoice?.has_vat ? netSubtotal * vatRate : 0) -
+      specialDiscountAmount -
+      withholding;
+    total = Number(invoice?.final_total_amount ?? fallbackTotal);
+  }
 
   // คำนวณยอดคงเหลือที่ถูกต้อง
   const paidAmount = Number(invoice?.paid_amount || 0);
@@ -171,7 +191,9 @@ export const calculateInvoiceFinancials = (invoice) => {
   const remaining = Math.max(total - paidAmount - depositAmount, 0);
 
   return {
-    subtotal,
+    pricingMode,
+    netSubtotal, // Net amount (before VAT)
+    subtotal, // In vat_included mode: total with VAT, in net mode: same as netSubtotal
     specialDiscountAmount,
     vatAmount,
     withholding,

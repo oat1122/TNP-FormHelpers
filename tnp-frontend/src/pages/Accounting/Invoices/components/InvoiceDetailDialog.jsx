@@ -49,6 +49,7 @@ import { Calculation, PaymentTerms } from "../../shared/components";
 import { PRGroupSummaryCard } from "../../Quotations/components/QuotationDetailDialog/subcomponents/PRGroupSummaryCard";
 import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 import { formatTHB, formatDateTH } from "../utils/format";
 
@@ -200,6 +201,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     special_discount_amount: 0,
     has_vat: true,
     vat_percentage: 7.0,
+    pricing_mode: "net",
     has_withholding_tax: false,
     withholding_tax_percentage: 0,
     withholding_tax_base: "subtotal", // 'subtotal' | 'total_after_vat'
@@ -271,6 +273,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
         special_discount_amount: invoice.special_discount_amount || 0,
         has_vat: invoice.has_vat !== undefined ? invoice.has_vat : true,
         vat_percentage: invoice.vat_percentage || 7.0,
+        pricing_mode: invoice.pricing_mode || "net",
         has_withholding_tax: invoice.has_withholding_tax || false,
         withholding_tax_percentage: invoice.withholding_tax_percentage || 0,
         deposit_percentage: invoice.deposit_percentage || 0,
@@ -324,6 +327,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   // Use Invoice calculation hook
   const calculation = useInvoiceCalculation({
     items: isEditing ? editableItems : invoice?.items || [],
+    pricingMode: formData.pricing_mode,
     specialDiscountType: discountTypeState, // 👈 ใช้ State แทน
     specialDiscountValue:
       discountTypeState === "percentage" // 👈 ใช้ State แทน
@@ -1132,6 +1136,20 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
                       ))}
 
                       <Divider sx={{ my: 2 }} />
+
+                      {/* Pricing Mode Selector */}
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid item xs={12}>
+                          <PricingModeSelector
+                            pricingMode={formData.pricing_mode}
+                            onPricingModeChange={(mode) => {
+                              if (!isEditing) return;
+                              handleFieldChange("pricing_mode", mode);
+                            }}
+                            disabled={!isEditing || formData.status !== "draft"}
+                          />
+                        </Grid>
+                      </Grid>
 
                       {/* 2. เพิ่ม Discount และ Tax Fields */}
                       <Grid container spacing={2} sx={{ mb: 2 }}>

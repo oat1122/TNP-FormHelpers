@@ -26,7 +26,7 @@ const ComponentsDemo = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom textAlign="center" color="primary">
-        🎨 Quotation Components Demo
+        Quotation Components Demo
       </Typography>
       <Typography
         variant="subtitle1"
@@ -83,7 +83,7 @@ const ComponentsDemo = () => {
         {/* Special Discount Field */}
         <Grid item xs={12} md={6}>
           <Typography variant="h6" gutterBottom>
-            🏷️ SpecialDiscountField
+            SpecialDiscountField
           </Typography>
           <SpecialDiscountField
             discountType={specialDiscountType}
@@ -98,7 +98,7 @@ const ComponentsDemo = () => {
         {/* Withholding Tax Field */}
         <Grid item xs={12} md={6}>
           <Typography variant="h6" gutterBottom>
-            🏦 WithholdingTaxField
+            WithholdingTaxField
           </Typography>
           <WithholdingTaxField
             hasWithholdingTax={hasWithholdingTax}
@@ -113,7 +113,7 @@ const ComponentsDemo = () => {
         {/* Calculation Summary */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom>
-            📋 CalculationSummary
+            CalculationSummary
           </Typography>
           <CalculationSummary
             subtotal={subtotal}
@@ -131,7 +131,7 @@ const ComponentsDemo = () => {
       {/* Code Example */}
       <Paper elevation={1} sx={{ p: 3, mt: 4, bgcolor: "#fafafa" }}>
         <Typography variant="h6" gutterBottom>
-          💻 วิธีการใช้งาน
+          วิธีการใช้งาน
         </Typography>
         <Box component="pre" sx={{ fontSize: "0.875rem", overflow: "auto" }}>
           {`// Import components

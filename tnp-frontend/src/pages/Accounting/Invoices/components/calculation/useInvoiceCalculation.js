@@ -7,15 +7,17 @@ import { useMemo } from "react";
  * 2. subtotal = Σ lineTotal
  * 3. discount_used = (special_discount_amount > 0 ? amount : subtotal * pct / 100)
  * 4. effective_subtotal = subtotal - discount_used
- * 5. vat_amount = has_vat ? effective_subtotal * vat_pct / 100 : 0
- * 6. total_amount = effective_subtotal + vat_amount
- * 7. wht_base: 'subtotal' (default) | 'total_after_vat'
- * 8. wht_amount = has_wht ? (wht_base === 'subtotal' ? effective_subtotal : total_amount) * wht_pct / 100 : 0
- * 9. final_total_amount = total_amount - wht_amount
- * 10. deposit: mode 'percentage' | 'amount' | null; keep deposit_amount_before_vat; deposit_display_order 'before' | 'after'
+ * 5. VAT calculation based on pricing_mode:
+ *    - 'net': vat_amount = has_vat ? effective_subtotal * vat_pct / 100 : 0; total = effective_subtotal + vat
+ *    - 'vat_included': net_subtotal = effective_subtotal / (1 + vat_pct/100); vat = effective_subtotal - net_subtotal; total = effective_subtotal
+ * 6. wht_base: 'subtotal' (default) | 'total_after_vat'
+ * 7. wht_amount = has_wht ? (wht_base === 'subtotal' ? net_subtotal : total_amount) * wht_pct / 100 : 0 (ALWAYS use net_subtotal)
+ * 8. final_total_amount = total_amount - wht_amount
+ * 9. deposit: mode 'percentage' | 'amount' | null; keep deposit_amount_before_vat; deposit_display_order 'before' | 'after'
  */
 export function useInvoiceCalculation({
   items = [],
+  pricingMode = "net", // 'net' | 'vat_included'
   specialDiscountType = "percentage", // 'percentage' | 'amount'
   specialDiscountValue = 0,
   hasVat = true,
@@ -32,6 +34,7 @@ export function useInvoiceCalculation({
     () =>
       computeInvoiceFinancials({
         items,
+        pricingMode,
         specialDiscountType,
         specialDiscountValue,
         hasVat,
@@ -46,6 +49,7 @@ export function useInvoiceCalculation({
       }),
     [
       items,
+      pricingMode,
       specialDiscountType,
       specialDiscountValue,
       hasVat,
@@ -63,6 +67,7 @@ export function useInvoiceCalculation({
 
 export function computeInvoiceFinancials({
   items = [],
+  pricingMode = "net", // 'net' | 'vat_included'
   specialDiscountType = "percentage",
   specialDiscountValue = 0,
   hasVat = true,
@@ -111,23 +116,36 @@ export function computeInvoiceFinancials({
   // 4. Effective subtotal after discount
   const effectiveSubtotal = toMoney(Math.max(0, subtotal - discountUsed));
 
-  // 5. VAT calculation
-  const vatAmount = hasVat ? toMoney(effectiveSubtotal * (Number(vatPercentage || 0) / 100)) : 0;
+  // 5. VAT calculation based on pricing mode
+  let vatAmount = 0;
+  let netSubtotal = effectiveSubtotal;
+  let totalAmount = 0;
 
-  // 6. Total amount after VAT
-  const totalAmount = toMoney(effectiveSubtotal + vatAmount);
-
-  // 7. Withholding tax calculation
-  let withholdingTaxAmount = 0;
-  if (hasWithholdingTax) {
-    const whtBase = withholdingTaxBase === "total_after_vat" ? totalAmount : effectiveSubtotal;
-    withholdingTaxAmount = toMoney(whtBase * (Number(withholdingTaxPercentage || 0) / 100));
+  if (pricingMode === "vat_included" && hasVat) {
+    // Reverse calculation: Extract VAT from included price
+    // Formula: netPrice = totalPrice / (1 + vatRate/100)
+    const vatRate = Number(vatPercentage || 0) / 100;
+    const vatMultiplier = 1 + vatRate;
+    netSubtotal = toMoney(effectiveSubtotal / vatMultiplier);
+    vatAmount = toMoney(effectiveSubtotal - netSubtotal);
+    totalAmount = effectiveSubtotal; // Total is the subtotal itself (already includes VAT)
+  } else {
+    // Net mode: Standard forward calculation
+    vatAmount = hasVat ? toMoney(effectiveSubtotal * (Number(vatPercentage || 0) / 100)) : 0;
+    totalAmount = toMoney(effectiveSubtotal + vatAmount);
   }
 
-  // 8. Final total amount
+  // 6. Withholding tax calculation (ALWAYS use net subtotal)
+  let withholdingTaxAmount = 0;
+  if (hasWithholdingTax) {
+    // Withholding tax should ALWAYS be calculated on net amount (before VAT)
+    withholdingTaxAmount = toMoney(netSubtotal * (Number(withholdingTaxPercentage || 0) / 100));
+  }
+
+  // 7. Final total amount
   const finalTotalAmount = toMoney(Math.max(0, totalAmount - withholdingTaxAmount));
 
-  // 9. Deposit calculation
+  // 8. Deposit calculation
   let depositAmount = 0;
   let depositAmountBeforeVat = 0;
   let calculatedDepositPercentage = 0;
@@ -151,7 +169,7 @@ export function computeInvoiceFinancials({
     depositAmountBeforeVat = depositAmount;
   }
 
-  // 10. Remaining amount
+  // 9. Remaining amount
   const remainingAmount = toMoney(Math.max(0, finalTotalAmount - depositAmount));
 
   return {
@@ -162,6 +180,7 @@ export function computeInvoiceFinancials({
     subtotal,
     discountUsed,
     effectiveSubtotal,
+    netSubtotal, // NEW: Net amount before VAT (for vat_included mode)
     vatAmount,
     totalAmount,
     withholdingTaxAmount,
@@ -174,6 +193,7 @@ export function computeInvoiceFinancials({
     remainingAmount,
 
     // Configuration
+    pricingMode, // NEW: Pricing mode
     hasVat,
     vatPercentage: Number(vatPercentage || 0),
     hasWithholdingTax,

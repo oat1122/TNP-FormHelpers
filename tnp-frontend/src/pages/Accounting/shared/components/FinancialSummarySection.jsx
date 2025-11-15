@@ -37,6 +37,7 @@ const formatPercent = (percent) => {
 const FinancialSummarySection = ({ invoice }) => {
   // Calculate values
   const subtotal = parseFloat(invoice?.subtotal || 0);
+  const netSubtotal = parseFloat(invoice?.net_subtotal || 0);
   const specialDiscountAmount = parseFloat(invoice?.special_discount_amount || 0);
   const vatAmount = parseFloat(invoice?.vat_amount || 0);
   const withholdingTaxAmount = parseFloat(invoice?.withholding_tax_amount || 0);
@@ -51,10 +52,15 @@ const FinancialSummarySection = ({ invoice }) => {
   const withholdingTaxPercentage = parseFloat(invoice?.withholding_tax_percentage || 0);
   const depositPercentage = parseFloat(invoice?.deposit_percentage || 0);
 
-  // Get boolean flags
+  // Get boolean flags and pricing mode
   const hasVat = invoice?.has_vat;
   const hasWithholdingTax = invoice?.has_withholding_tax;
   const isDepositMode = invoice?.deposit_mode;
+  const pricingMode = invoice?.pricing_mode || "net";
+  const isVatIncluded = pricingMode === "vat_included";
+
+  // Calculate discounted base
+  const discountedBase = subtotal - specialDiscountAmount;
 
   return (
     <Section>
@@ -79,11 +85,19 @@ const FinancialSummarySection = ({ invoice }) => {
             การคำนวณยอดเงิน
           </Typography>
 
+          {isVatIncluded && hasVat && (
+            <Box sx={{ mb: 1.5, p: 1, bgcolor: "info.50", borderRadius: 1 }}>
+              <Typography variant="caption" fontWeight={600} color="info.main">
+                โหมดราคารวม VAT: ราคาที่กรอกรวม VAT {formatPercent(vatPercentage)} แล้ว
+              </Typography>
+            </Box>
+          )}
+
           <Grid container spacing={1}>
             {/* Subtotal */}
             <Grid item xs={6}>
               <Typography variant="body2" color="text.secondary">
-                ยอดรวม (ไม่รวมภาษี)
+                ยอดก่อนภาษี (ก่อนส่วนลด)
               </Typography>
             </Grid>
             <Grid item xs={6}>
@@ -96,15 +110,46 @@ const FinancialSummarySection = ({ invoice }) => {
             {specialDiscountAmount > 0 && (
               <>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="error.main">
                     ส่วนลดพิเศษ{" "}
                     {specialDiscountPercentage > 0 &&
                       `(${formatPercent(specialDiscountPercentage)})`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" textAlign="right" color="error.main">
+                  <Typography variant="body2" textAlign="right" color="error.main" fontWeight={600}>
                     -฿{formatCurrency(specialDiscountAmount)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    {isVatIncluded ? "ยอดหลังส่วนลด (รวม VAT)" : "ยอดหลังส่วนลด"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" textAlign="right" fontWeight={600}>
+                    ฿{formatCurrency(discountedBase)}
+                  </Typography>
+                </Grid>
+              </>
+            )}
+
+            {/* Net Subtotal (VAT Included mode only) */}
+            {isVatIncluded && hasVat && netSubtotal > 0 && (
+              <>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="primary.main" fontWeight={600}>
+                    → ยอดสุทธิ (แยก VAT ออก)
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography
+                    variant="body2"
+                    textAlign="right"
+                    fontWeight={700}
+                    color="primary.main"
+                  >
+                    ฿{formatCurrency(netSubtotal)}
                   </Typography>
                 </Grid>
               </>
@@ -115,11 +160,12 @@ const FinancialSummarySection = ({ invoice }) => {
               <>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">
-                    ภาษีมูลค่าเพิ่ม ({formatPercent(vatPercentage)})
+                    VAT {formatPercent(vatPercentage)}
+                    {isVatIncluded && " (แยกออกมา)"}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" textAlign="right">
+                  <Typography variant="body2" textAlign="right" fontWeight={600}>
                     ฿{formatCurrency(vatAmount)}
                   </Typography>
                 </Grid>
@@ -130,12 +176,17 @@ const FinancialSummarySection = ({ invoice }) => {
             {hasWithholdingTax && withholdingTaxAmount > 0 && (
               <>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    หักภาษี ณ ที่จ่าย ({formatPercent(withholdingTaxPercentage)})
+                  <Typography variant="body2" color="warning.main">
+                    ภาษีหัก ณ ที่จ่าย ({formatPercent(withholdingTaxPercentage)})
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" textAlign="right" color="warning.main">
+                  <Typography
+                    variant="body2"
+                    textAlign="right"
+                    color="warning.main"
+                    fontWeight={600}
+                  >
                     -฿{formatCurrency(withholdingTaxAmount)}
                   </Typography>
                 </Grid>
@@ -149,7 +200,7 @@ const FinancialSummarySection = ({ invoice }) => {
             {/* Final Total */}
             <Grid item xs={6}>
               <Typography variant="body1" fontWeight={700}>
-                จำนวนเงินรวมทั้งสิ้น
+                ยอดรวมทั้งสิ้น
               </Typography>
             </Grid>
             <Grid item xs={6}>

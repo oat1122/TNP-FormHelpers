@@ -39,6 +39,7 @@ import {
 import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import VatField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
 import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import {
   Section,
   SectionHeader,
@@ -109,6 +110,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   // VAT state (NEW)
   const [hasVat, setHasVat] = React.useState(true);
   const [vatPercentage, setVatPercentage] = React.useState(7);
+  const [pricingMode, setPricingMode] = React.useState("net");
 
   React.useEffect(() => {
     const qAmt = Number(q?.special_discount_amount || 0);
@@ -123,6 +125,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     // Initialize VAT from quotation or defaults
     setHasVat(q?.has_vat !== false); // Default to true if not specified
     setVatPercentage(Number(q?.vat_percentage || 7));
+    setPricingMode(q?.pricing_mode || "net");
   }, [q?.id]);
 
   // Payment terms state
@@ -187,6 +190,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   // Financials from groups + discount-before-VAT + withholding + VAT
   const financials = useQuotationFinancials({
     items: groups,
+    pricingMode,
     depositMode,
     depositPercentage: depositPct,
     depositAmountInput,
@@ -285,6 +289,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         // VAT configuration
         has_vat: hasVat,
         vat_percentage: vatPercentage,
+        pricing_mode: pricingMode,
         vat_amount: vat,
 
         // Withholding Tax configuration
@@ -335,6 +340,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         // VAT fields
         has_vat: hasVat,
         vat_percentage: vatPercentage,
+        pricing_mode: pricingMode,
         vat_amount: vat,
       };
 
@@ -751,6 +757,17 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
                         </Paper>
                       );
                     })}
+
+                    {/* Pricing Mode Selector - แสดงโหมดที่ inherit จาก Quotation */}
+                    <Grid container spacing={3} sx={{ mb: 3 }}>
+                      <Grid item xs={12}>
+                        <PricingModeSelector
+                          pricingMode={pricingMode}
+                          onPricingModeChange={setPricingMode}
+                          disabled={true}
+                        />
+                      </Grid>
+                    </Grid>
 
                     {/* VAT, Discount and Tax */}
                     <Grid container spacing={3}>

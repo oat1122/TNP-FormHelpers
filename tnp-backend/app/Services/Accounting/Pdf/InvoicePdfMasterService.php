@@ -276,6 +276,8 @@ class InvoicePdfMasterService extends BasePdfMasterService
     {
         // Basic financial data
         $subtotal = (float) ($invoice->subtotal ?? 0);
+        $netSubtotal = (float) ($invoice->net_subtotal ?? $subtotal);
+        $pricingMode = $invoice->pricing_mode ?? 'net';
         $specialDiscountAmount = (float) ($invoice->special_discount_amount ?? 0);
         $hasVat = (bool) ($invoice->has_vat ?? true);
         $vatPercentage = (float) ($invoice->vat_percentage ?? 7.00);
@@ -288,6 +290,8 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
         return [
             'subtotal' => $subtotal,
+            'net_subtotal' => $netSubtotal,
+            'pricing_mode' => $pricingMode,
             'special_discount_percentage' => $invoice->special_discount_percentage ?? 0,
             'special_discount_amount' => $specialDiscountAmount,
             'has_vat' => $hasVat,

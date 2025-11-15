@@ -410,7 +410,7 @@ class QuotationService
                     'pricing_request_id' => null, // Standalone ไม่มี PR
                     'item_name' => $itemData['item_name'],
                     'item_description' => $itemData['item_description'] ?? null,
-                    'sequence_order' => $itemData['sequence_order'] ?? ($index + 1),
+                    'sequence_order' => $index + 1, // Force server-side sequential numbering
                     'pattern' => $itemData['pattern'] ?? null,
                     'fabric_type' => $itemData['fabric_type'] ?? null,
                     'color' => $itemData['color'] ?? null,
@@ -603,7 +603,7 @@ class QuotationService
                         'pricing_request_id' => $item['pricing_request_id'] ?? null,
                         'item_name' => $item['item_name'] ?? 'ไม่ระบุชื่องาน',
                         'item_description' => $item['item_description'] ?? null,
-                        'sequence_order' => $item['sequence_order'] ?? ($index + 1),
+                        'sequence_order' => $index + 1, // Force server-side sequential numbering
                         'pattern' => $item['pattern'] ?? null,
                         'fabric_type' => $item['fabric_type'] ?? null,
                         'color' => $item['color'] ?? null,

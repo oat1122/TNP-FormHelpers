@@ -236,7 +236,7 @@ export const useQuotationStandaloneForm = ({ open, onClose, onSuccess, companyId
           discount_percentage: 0,
           discount_amount: 0,
           notes: row.notes,
-          sequence_order: jobIndex * 100 + rowIndex + 1,
+          // sequence_order removed - backend will assign sequential numbers (1, 2, 3...)
         }))
       );
 

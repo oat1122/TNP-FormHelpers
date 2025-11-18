@@ -2,7 +2,9 @@
 
 namespace App\Models\Accounting;
 
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\MasterCustomer;
@@ -101,7 +103,7 @@ class DeliveryNote extends Model
         'manager_full_name',
     ];
 
-    // Generate UUID when creating
+    // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
@@ -112,6 +114,28 @@ class DeliveryNote extends Model
             }
             if (empty($model->company_id)) {
                 $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
+            }
+        });
+        
+        // Invalidate PDF cache when delivery note is updated
+        static::updated(function ($deliveryNote) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('delivery_note', $deliveryNote->id);
+                Log::info("DeliveryNote updated - PDF cache invalidated", ['delivery_note_id' => $deliveryNote->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on delivery note update: " . $e->getMessage());
+            }
+        });
+        
+        // Invalidate PDF cache when delivery note is deleted
+        static::deleted(function ($deliveryNote) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('delivery_note', $deliveryNote->id);
+                Log::info("DeliveryNote deleted - PDF cache invalidated", ['delivery_note_id' => $deliveryNote->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on delivery note delete: " . $e->getMessage());
             }
         });
     }

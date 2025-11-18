@@ -21,7 +21,13 @@ trait HandlesPdfGeneration
      */
     protected function extractPdfOptions(Request $request): array
     {
-        return $request->only(['format', 'orientation', 'showWatermark']);
+        $options = $request->only(['format', 'orientation', 'showWatermark', 'document_header_type', 'deposit_mode']);
+        
+        // Check for force regenerate flag
+        $options['force_regenerate'] = $request->query('force_regenerate', false) || 
+                                       $request->input('force_regenerate', false);
+        
+        return $options;
     }
 
     /**
@@ -35,20 +41,28 @@ trait HandlesPdfGeneration
     protected function generatePdfJsonResponse($service, $id, array $options = []): JsonResponse
     {
         try {
-            $result = $service->generatePdf($id, $options);
+            $useCache = !($options['force_regenerate'] ?? false);
+            $result = $service->generatePdf($id, $options, $useCache);
             
-            return response()->json([
+            $response = [
                 'success' => true,
                 'pdf_url' => $result['url'] ?? null,
                 'filename' => $result['filename'] ?? null,
                 'size' => $result['size'] ?? null,
                 'type' => $result['type'] ?? null,
                 'engine' => $result['engine'] ?? 'mPDF',
+                'cached' => $result['from_cache'] ?? false,
+                'cache_expires_at' => $result['expires_at'] ?? null,
                 'data' => $result,
-                'message' => isset($result['engine']) && $result['engine'] === 'fpdf' 
-                    ? 'PDF สร้างด้วย FPDF (fallback) เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
-                    : 'PDF สร้างด้วย mPDF สำเร็จ'
-            ]);
+                'message' => $this->generatePdfMessage($result)
+            ];
+            
+            // Add HTTP cache headers
+            return response()->json($response)
+                ->header('Cache-Control', 'public, max-age=' . $this->getCacheMaxAge($result))
+                ->header('ETag', $this->generateETag($result))
+                ->header('Last-Modified', $this->getLastModified($result));
+                
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -56,6 +70,67 @@ trait HandlesPdfGeneration
                 'error_type' => 'pdf_generation_failed'
             ], 500);
         }
+    }
+    
+    /**
+     * Generate appropriate message based on PDF generation result
+     * 
+     * @param array $result
+     * @return string
+     */
+    protected function generatePdfMessage(array $result): string
+    {
+        if ($result['from_cache'] ?? false) {
+            return 'PDF loaded from cache';
+        }
+        
+        if (isset($result['engine']) && $result['engine'] === 'fpdf') {
+            return 'PDF สร้างด้วย FPDF (fallback) เนื่องจาก mPDF ไม่พร้อมใช้งาน';
+        }
+        
+        return 'PDF สร้างด้วย mPDF สำเร็จ';
+    }
+    
+    /**
+     * Get cache max-age for HTTP header
+     * 
+     * @param array $result
+     * @return int seconds
+     */
+    protected function getCacheMaxAge(array $result): int
+    {
+        if (!isset($result['expires_at'])) {
+            return 1800; // 30 minutes default
+        }
+        
+        $expiresAt = \Carbon\Carbon::parse($result['expires_at']);
+        $secondsUntilExpiry = max(0, $expiresAt->diffInSeconds(now()));
+        
+        return $secondsUntilExpiry;
+    }
+    
+    /**
+     * Generate ETag from cache version
+     * 
+     * @param array $result
+     * @return string
+     */
+    protected function generateETag(array $result): string
+    {
+        $version = $result['cache_version'] ?? md5($result['filename'] ?? time());
+        return '"' . $version . '"';
+    }
+    
+    /**
+     * Get Last-Modified header value
+     * 
+     * @param array $result
+     * @return string
+     */
+    protected function getLastModified(array $result): string
+    {
+        $cachedAt = $result['cached_at'] ?? now();
+        return \Carbon\Carbon::parse($cachedAt)->toRfc7231String();
     }
 
     /**
@@ -90,7 +165,8 @@ trait HandlesPdfGeneration
     protected function downloadPdfResponse($service, $id, array $options = [], ?string $defaultFilename = null)
     {
         try {
-            $result = $service->generatePdf($id, $options);
+            $useCache = !($options['force_regenerate'] ?? false);
+            $result = $service->generatePdf($id, $options, $useCache);
             $filename = $result['filename'] ?? ($defaultFilename ?? "document-{$id}.pdf");
             $path = $result['path'] ?? null;
             
@@ -98,9 +174,15 @@ trait HandlesPdfGeneration
                 throw new \Exception('PDF ยังไม่พร้อมดาวน์โหลด');
             }
             
-            return response()->download($path, $filename, [
-                'Content-Type' => 'application/pdf'
+            // Add cache headers to download response
+            $response = response()->download($path, $filename, [
+                'Content-Type' => 'application/pdf',
+                'Cache-Control' => 'public, max-age=' . $this->getCacheMaxAge($result),
+                'ETag' => $this->generateETag($result),
+                'Last-Modified' => $this->getLastModified($result)
             ]);
+            
+            return $response;
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

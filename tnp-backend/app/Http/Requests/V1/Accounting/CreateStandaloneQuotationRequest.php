@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Accounting;
+namespace App\Http\Requests\V1\Accounting;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Traits\QuotationItemRules;

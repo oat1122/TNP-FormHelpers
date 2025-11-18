@@ -2,6 +2,7 @@
 
 namespace App\Models\Accounting;
 
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Models\Accounting\QuotationItem;
 use App\Models\Company;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class Quotation
@@ -136,7 +138,7 @@ class Quotation extends Model
         'final_net_amount'
     ];
 
-    // Generate UUID when creating
+    // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
@@ -148,6 +150,28 @@ class Quotation extends Model
             // Assign a default company_id if not provided (first active company)
             if (empty($model->company_id)) {
                 $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
+            }
+        });
+        
+        // Invalidate PDF cache when quotation is updated
+        static::updated(function ($quotation) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('quotation', $quotation->id);
+                Log::info("Quotation updated - PDF cache invalidated", ['quotation_id' => $quotation->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on quotation update: " . $e->getMessage());
+            }
+        });
+        
+        // Invalidate PDF cache when quotation is deleted
+        static::deleted(function ($quotation) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('quotation', $quotation->id);
+                Log::info("Quotation deleted - PDF cache invalidated", ['quotation_id' => $quotation->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on quotation delete: " . $e->getMessage());
             }
         });
     }

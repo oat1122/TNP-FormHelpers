@@ -2,7 +2,9 @@
 
 namespace App\Models\Accounting;
 
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,7 +118,7 @@ class Receipt extends Model
         'updated_at' => 'datetime'
     ];
 
-    // Generate UUID when creating
+    // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
@@ -127,6 +129,28 @@ class Receipt extends Model
             }
             if (empty($model->company_id)) {
                 $model->company_id = optional(Company::where('is_active', true)->first())->id;
+            }
+        });
+        
+        // Invalidate PDF cache when receipt is updated
+        static::updated(function ($receipt) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('receipt', $receipt->id);
+                Log::info("Receipt updated - PDF cache invalidated", ['receipt_id' => $receipt->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on receipt update: " . $e->getMessage());
+            }
+        });
+        
+        // Invalidate PDF cache when receipt is deleted
+        static::deleted(function ($receipt) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('receipt', $receipt->id);
+                Log::info("Receipt deleted - PDF cache invalidated", ['receipt_id' => $receipt->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on receipt delete: " . $e->getMessage());
             }
         });
     }

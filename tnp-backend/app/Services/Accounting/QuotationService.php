@@ -1280,65 +1280,34 @@ class QuotationService
     }
 
     /**
-     * สร้าง PDF ใบเสนอราคา (ใหม่ - ใช้ Master Service)
+     * สร้าง PDF ใบเสนอราคา (ใหม่ - ใช้ Master Service with Caching)
      * @param mixed $quotationId
      * @param mixed $options
+     * @param bool $useCache Whether to use cache (default: true)
      * @return array<string,mixed>
      */
-    public function generatePdf($quotationId, $options = []): array
+    public function generatePdf($quotationId, $options = [], bool $useCache = true): array
     {
         try {
             $quotation = Quotation::with(['customer', 'pricingRequest', 'company', 'items', 'creator'])
                                   ->findOrFail($quotationId);
 
-            // กำหนดสถานะเอกสาร
-            $isFinal = in_array($quotation->status, ['approved', 'sent', 'completed']);
-
-            // ใช้ Master PDF Service (mPDF) เป็นหลัก
-            try {
-                $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
-                $result = $masterService->generatePdf($quotation, $options);
-                
-                // บันทึก History
+            // Use Master PDF Service with caching support
+            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
+            $result = $masterService->generatePdf($quotation, $options, $useCache);
+            
+            // Log action only if PDF was actually generated (not from cache)
+            if (!($result['from_cache'] ?? false)) {
                 DocumentHistory::logAction(
                     'quotation',
                     $quotationId,
                     'generate_pdf',
                     auth()->user()->user_uuid ?? null,
-                    "สร้าง PDF (mPDF): {$result['filename']} ({$result['type']})"
+                    "สร้าง PDF: {$result['filename']} ({$result['type']})"
                 );
-
-                // ระบุ engine ที่ใช้
-                $result['engine'] = 'mPDF';
-                return $result;
-                
-            } catch (\Throwable $e) {
-                Log::warning('QuotationService::generatePdf mPDF failed, fallback to FPDF: ' . $e->getMessage());
-                
-                // Fallback to FPDF only if mPDF completely fails
-                $fpdfService = app(\App\Services\Accounting\Pdf\QuotationPdfService::class);
-                $pdfPath = $fpdfService->render($quotation);
-                $filename = basename($pdfPath);
-                $pdfUrl = url('storage/pdfs/quotations/' . $filename);
-                $fileSize = is_file($pdfPath) ? filesize($pdfPath) : 0;
-
-                DocumentHistory::logAction(
-                    'quotation',
-                    $quotationId,
-                    'generate_pdf',
-                    auth()->user()->user_uuid ?? null,
-                    "สร้าง PDF (FPDF fallback): {$filename} - " . $e->getMessage()
-                );
-
-                return [
-                    'url' => $pdfUrl,
-                    'filename' => $filename,
-                    'size' => $fileSize,
-                    'path' => $pdfPath,
-                    'type' => $isFinal ? 'final' : 'preview',
-                    'engine' => 'fpdf'
-                ];
             }
+
+            return $result;
 
         } catch (\Exception $e) {
             Log::error('QuotationService::generatePdf error: ' . $e->getMessage());

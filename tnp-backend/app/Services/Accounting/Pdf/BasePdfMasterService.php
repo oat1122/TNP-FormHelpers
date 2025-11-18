@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounting\Pdf;
 
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Mpdf\Config\ConfigVariables;
@@ -15,30 +16,107 @@ use Symfony\Component\HttpFoundation\Response;
  * - จัดการการตั้งค่า mPDF ที่ใช้ร่วมกัน
  * - จัดการกระบวนการสร้าง, บันทึก, และ stream PDF
  * - มีระบบวางลายเซ็นท้ายหน้าแบบ Adaptive
+ * - รองรับ PDF Caching เพื่อลดการสร้าง PDF ซ้ำๆ
  */
 abstract class BasePdfMasterService
 {
     /**
-     * สร้าง PDF เป็นไฟล์ใน storage พร้อม URL
+     * PDF Cache Service instance
+     */
+    protected ?PdfCacheService $cacheService = null;
+    
+    /**
+     * Get or initialize cache service (lazy loading)
+     */
+    protected function getCacheService(): PdfCacheService
+    {
+        if (!$this->cacheService) {
+            $this->cacheService = app(PdfCacheService::class);
+        }
+        return $this->cacheService;
+    }
+
+    /**
+     * สร้าง PDF เป็นไฟล์ใน storage พร้อม URL (with caching support)
      *
      * @param object $model      (เช่น Quotation, Invoice)
      * @param array<string, mixed> $options
-     * @return array{path:string,url:string,filename:string,size:int,type:string}
+     * @param bool $useCache     Whether to use cache (default: true)
+     * @return array{path:string,url:string,filename:string,size:int,type:string,from_cache:bool}
      */
-    public function generatePdf(object $model, array $options = []): array
+    public function generatePdf(object $model, array $options = [], bool $useCache = true): array
     {
         try {
+            // Get document type for cache lookup
+            $documentType = $this->getDocumentTypeFromModel($model);
+            
+            // Check cache if enabled and not forced to regenerate
+            if ($useCache && !($options['force_regenerate'] ?? false)) {
+                $cachedPdf = $this->getCacheService()->getCached($documentType, $model->id, $options);
+                
+                if ($cachedPdf) {
+                    Log::info("PDF Cache HIT - returning cached PDF", [
+                        'document_type' => $documentType,
+                        'document_id' => $model->id,
+                        'cached_at' => $cachedPdf['cached_at']
+                    ]);
+                    
+                    return [
+                        'path'           => $cachedPdf['path'],
+                        'url'            => $cachedPdf['url'],
+                        'filename'       => $cachedPdf['filename'],
+                        'size'           => $cachedPdf['size'],
+                        'type'           => 'cached',
+                        'engine'         => 'mPDF',
+                        'from_cache'     => true,
+                        'cached_at'      => $cachedPdf['cached_at'],
+                        'expires_at'     => $cachedPdf['expires_at'],
+                        'cache_version'  => $cachedPdf['cache_version']
+                    ];
+                }
+                
+                Log::info("PDF Cache MISS - generating new PDF", [
+                    'document_type' => $documentType,
+                    'document_id' => $model->id
+                ]);
+            }
+            
+            // Generate new PDF
             $viewData = $this->buildViewData($model, $options);
             $mpdf = $this->createMpdf($viewData);
             $filePath = $this->savePdfFile($mpdf, $viewData);
 
-            return [
-                'path'     => $filePath,
-                'url'      => $this->generatePublicUrl($filePath),
-                'filename' => basename($filePath),
-                'size'     => is_file($filePath) ? filesize($filePath) : 0,
-                'type'     => $viewData['isFinal'] ? 'final' : 'preview',
+            $result = [
+                'path'       => $filePath,
+                'url'        => $this->generatePublicUrl($filePath),
+                'filename'   => basename($filePath),
+                'size'       => is_file($filePath) ? filesize($filePath) : 0,
+                'type'       => $viewData['isFinal'] ? 'final' : 'preview',
+                'engine'     => 'mPDF',
+                'from_cache' => false
             ];
+            
+            // Store in cache if enabled
+            if ($useCache) {
+                try {
+                    $cacheData = $this->getCacheService()->store($model, $filePath, $options);
+                    $result['cache_stored'] = true;
+                    $result['expires_at'] = $cacheData['expires_at'];
+                    $result['cache_version'] = $this->getCacheService()->calculateCacheVersion($model);
+                    
+                    Log::info("PDF stored in cache", [
+                        'document_type' => $documentType,
+                        'document_id' => $model->id,
+                        'cache_path' => $cacheData['path']
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning("Failed to store PDF in cache: " . $e->getMessage());
+                    $result['cache_stored'] = false;
+                }
+            }
+
+            return $result;
+            
         } catch (\Throwable $e) {
             Log::error(static::class.'::generatePdf error: '.$e->getMessage(), [
                 'model_id' => $model->id ?? null,
@@ -47,6 +125,24 @@ abstract class BasePdfMasterService
             ]);
             throw $e;
         }
+    }
+    
+    /**
+     * Get document type from model instance
+     * 
+     * @param object $model
+     * @return string
+     */
+    protected function getDocumentTypeFromModel(object $model): string
+    {
+        $class = get_class($model);
+        
+        if (str_contains($class, 'Quotation')) return 'quotation';
+        if (str_contains($class, 'Invoice')) return 'invoice';
+        if (str_contains($class, 'Receipt')) return 'receipt';
+        if (str_contains($class, 'DeliveryNote')) return 'delivery_note';
+        
+        return 'unknown';
     }
 
     /**

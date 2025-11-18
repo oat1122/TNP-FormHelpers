@@ -2,7 +2,9 @@
 
 namespace App\Models\Accounting;
 
+use App\Services\Accounting\PdfCacheService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
@@ -170,7 +172,7 @@ class Invoice extends Model
         'updated_at' => 'datetime'
     ];
 
-    // Generate UUID when creating
+    // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
@@ -194,6 +196,28 @@ class Invoice extends Model
             }
         });
         
+        // Invalidate PDF cache when invoice is updated
+        static::updated(function ($invoice) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('invoice', $invoice->id);
+                Log::info("Invoice updated - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on invoice update: " . $e->getMessage());
+            }
+        });
+        
+        // Invalidate PDF cache when invoice is deleted
+        static::deleted(function ($invoice) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('invoice', $invoice->id);
+                Log::info("Invoice deleted - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on invoice delete: " . $e->getMessage());
+            }
+        });
+        
         static::updating(function ($model) {
             /** @var Invoice $model */
             // Auto-sync inv_manage_by if quotation_id changed and inv_manage_by is empty
@@ -203,6 +227,28 @@ class Invoice extends Model
                 if ($quotation && !empty($quotation->created_by)) {
                     $model->inv_manage_by = $quotation->created_by;
                 }
+            }
+        });
+        
+        // Invalidate PDF cache when invoice is updated
+        static::updated(function ($invoice) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('invoice', $invoice->id);
+                Log::info("Invoice updated - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on invoice update: " . $e->getMessage());
+            }
+        });
+        
+        // Invalidate PDF cache when invoice is deleted
+        static::deleted(function ($invoice) {
+            try {
+                $cacheService = app(PdfCacheService::class);
+                $cacheService->invalidate('invoice', $invoice->id);
+                Log::info("Invoice deleted - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+            } catch (\Exception $e) {
+                Log::warning("Failed to invalidate PDF cache on invoice delete: " . $e->getMessage());
             }
         });
     }

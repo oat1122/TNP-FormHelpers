@@ -13,6 +13,18 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('customer:update-customer-manage-by')->runInBackground();
+        
+        // PDF Cache Management - Clear expired cache every 6 hours
+        $schedule->command('pdf:clear-expired')
+                 ->everySixHours()
+                 ->runInBackground()
+                 ->withoutOverlapping()
+                 ->onSuccess(function () {
+                     \Log::info('PDF cache cleanup completed successfully');
+                 })
+                 ->onFailure(function () {
+                     \Log::error('PDF cache cleanup failed');
+                 });
     }
 
     /**

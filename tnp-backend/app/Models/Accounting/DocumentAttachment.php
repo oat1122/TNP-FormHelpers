@@ -31,17 +31,24 @@ class DocumentAttachment extends Model
         'id',
         'document_type',
         'document_id',
+        'attachment_type',
         'filename',
         'original_filename',
         'file_path',
         'file_size',
         'mime_type',
-        'uploaded_by'
+        'cache_expires_at',
+        'cache_version',
+        'cache_key',
+        'uploaded_by',
+        'deleted_at'
     ];
 
     protected $casts = [
         'file_size' => 'integer',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
+        'cache_expires_at' => 'datetime',
+        'deleted_at' => 'datetime'
     ];
 
     // Generate UUID when creating

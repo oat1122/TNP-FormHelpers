@@ -167,4 +167,21 @@ class AccountingHelper
     {
         return max($page, 1);
     }
+
+    /**
+     * Check if current authenticated user has one of the specified roles
+     * 
+     * @param array $roles Array of role names to check
+     * @return bool True if user has any of the specified roles
+     */
+    public static function hasRole(array $roles): bool
+    {
+        $user = auth()->user();
+        
+        if (!$user || !isset($user->role)) {
+            return false;
+        }
+        
+        return in_array($user->role, $roles, true);
+    }
 }

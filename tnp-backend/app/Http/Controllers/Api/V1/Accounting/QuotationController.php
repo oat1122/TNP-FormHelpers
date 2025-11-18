@@ -12,14 +12,14 @@ use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponseHelper;
 use App\Traits\HandlesPdfGeneration;
 use App\Helpers\AccountingHelper;
-use App\Http\Requests\Accounting\StoreQuotationRequest;
-use App\Http\Requests\Accounting\UpdateQuotationRequest;
-use App\Http\Requests\Accounting\CreateFromPricingRequestRequest;
-use App\Http\Requests\Accounting\CreateFromMultiplePricingRequestsRequest;
-use App\Http\Requests\Accounting\CreateStandaloneQuotationRequest;
-use App\Http\Requests\Accounting\RejectRequest;
-use App\Http\Requests\Accounting\MarkSentRequest;
-use App\Http\Requests\Accounting\SendEmailRequest;
+use App\Http\Requests\V1\Accounting\StoreQuotationRequest;
+use App\Http\Requests\V1\Accounting\UpdateQuotationRequest;
+use App\Http\Requests\V1\Accounting\CreateFromPricingRequestRequest;
+use App\Http\Requests\V1\Accounting\CreateFromMultiplePricingRequestsRequest;
+use App\Http\Requests\V1\Accounting\CreateStandaloneQuotationRequest;
+use App\Http\Requests\V1\Accounting\RejectRequest;
+use App\Http\Requests\V1\Accounting\MarkSentRequest;
+use App\Http\Requests\V1\Accounting\SendEmailRequest;
 
 class QuotationController extends Controller
 {

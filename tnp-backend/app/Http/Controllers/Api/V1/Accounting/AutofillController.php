@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Accounting\AutofillService;
 use App\Traits\ApiResponseHelper;
 use App\Helpers\AccountingHelper;
-use App\Http\Requests\Accounting\BulkAutofillRequest;
+use App\Http\Requests\V1\Accounting\BulkAutofillRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;

@@ -17,19 +17,19 @@ use Illuminate\Support\Str;
 use App\Traits\ApiResponseHelper;
 use App\Traits\HandlesPdfGeneration;
 use App\Helpers\AccountingHelper;
-use App\Http\Requests\Accounting\StoreInvoiceRequest;
-use App\Http\Requests\Accounting\UpdateInvoiceRequest;
-use App\Http\Requests\Accounting\CreateFromQuotationRequest;
-use App\Http\Requests\Accounting\RecordPaymentRequest;
-use App\Http\Requests\Accounting\ApproveInvoiceRequest;
-use App\Http\Requests\Accounting\RejectInvoiceRequest;
-use App\Http\Requests\Accounting\SendToCustomerRequest;
-use App\Http\Requests\Accounting\SendReminderRequest;
-use App\Http\Requests\Accounting\UpdateDepositModeRequest;
-use App\Http\Requests\Accounting\SubmitAfterDepositRequest;
-use App\Http\Requests\Accounting\RevertToDraftRequest;
-use App\Http\Requests\Accounting\UploadEvidenceRequest;
-use App\Http\Requests\Accounting\UploadEvidenceByModeRequest;
+use App\Http\Requests\V1\Accounting\StoreInvoiceRequest;
+use App\Http\Requests\V1\Accounting\UpdateInvoiceRequest;
+use App\Http\Requests\V1\Accounting\CreateFromQuotationRequest;
+use App\Http\Requests\V1\Accounting\RecordPaymentRequest;
+use App\Http\Requests\V1\Accounting\ApproveInvoiceRequest;
+use App\Http\Requests\V1\Accounting\RejectInvoiceRequest;
+use App\Http\Requests\V1\Accounting\SendToCustomerRequest;
+use App\Http\Requests\V1\Accounting\SendReminderRequest;
+use App\Http\Requests\V1\Accounting\UpdateDepositModeRequest;
+use App\Http\Requests\V1\Accounting\SubmitAfterDepositRequest;
+use App\Http\Requests\V1\Accounting\RevertToDraftRequest;
+use App\Http\Requests\V1\Accounting\UploadEvidenceRequest;
+use App\Http\Requests\V1\Accounting\UploadEvidenceByModeRequest;
 
 class InvoiceController extends Controller
 {

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1\Accounting;
 
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\DeliveryNoteService;
+use App\Traits\ApiResponseHelper;
+use App\Helpers\AccountingHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class DeliveryNoteController extends Controller
 {
+    use ApiResponseHelper;
+
     protected $deliveryNoteService;
 
     public function __construct(DeliveryNoteService $deliveryNoteService)
@@ -35,23 +39,13 @@ class DeliveryNoteController extends Controller
                 'date_to' => $request->query('date_to')
             ];
 
-            $perPage = min($request->query('per_page', 20), 50);
-            
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
             $deliveryNotes = $this->deliveryNoteService->getList($filters, $perPage);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNotes,
-                'message' => 'Delivery notes retrieved successfully'
-            ]);
-
+            return $this->successResponse($deliveryNotes, 'Delivery notes retrieved successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::index error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve delivery notes: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve delivery notes: ' . $e->getMessage());
         }
     }
 
@@ -70,22 +64,13 @@ class DeliveryNoteController extends Controller
                 'invoice_id' => $request->query('invoice_id'),
             ];
 
-            $perPage = min($request->query('per_page', 20), 50);
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
             $items = $this->deliveryNoteService->getInvoiceItemSources($filters, $perPage);
 
-            return response()->json([
-                'success' => true,
-                'data' => $items,
-                'message' => 'Invoice items for delivery retrieved successfully'
-            ]);
-
+            return $this->successResponse($items, 'Invoice items for delivery retrieved successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::getInvoiceItems error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve invoice items for delivery: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve invoice items for delivery: ' . $e->getMessage());
         }
     }
 
@@ -100,25 +85,16 @@ class DeliveryNoteController extends Controller
                 'search' => $request->query('search'),
                 'status' => $request->query('status', 'approved'), // Default to approved only
                 'company_id' => $request->query('company_id'),
-                'customer_id' => $request->query('customer_id'),
+                'company_id' => $request->query('company_id'),
             ];
 
-            $perPage = min($request->query('per_page', 20), 50);
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
             $invoices = $this->deliveryNoteService->getInvoiceSources($filters, $perPage);
 
-            return response()->json([
-                'success' => true,
-                'data' => $invoices,
-                'message' => 'Invoices for delivery retrieved successfully'
-            ]);
-
+            return $this->successResponse($invoices, 'Invoices for delivery retrieved successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::getInvoices error: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve invoices for delivery: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve invoices for delivery: ' . $e->getMessage());
         }
     }
 
@@ -142,19 +118,10 @@ class DeliveryNoteController extends Controller
                 'attachments'
             ])->findOrFail($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery note details retrieved successfully'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Delivery note details retrieved successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::show error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve delivery note details: ' . $e->getMessage()
-            ], 404);
+            return $this->notFoundResponse('Delivery note');
         }
     }
 
@@ -209,29 +176,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $createdBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->create($request->all(), $createdBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery note created successfully'
-            ], 201);
-
+            return $this->successResponse($deliveryNote, 'Delivery note created successfully', 201);
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::store error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create delivery note: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create delivery note: ' . $e->getMessage());
         }
     }
 
@@ -282,29 +236,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $updatedBy = auth()->user()->user_uuid ?? null;
+            $updatedBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->update($id, $request->all(), $updatedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery note updated successfully'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Delivery note updated successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::update error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update delivery note: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to update delivery note: ' . $e->getMessage());
         }
     }
 
@@ -318,26 +259,14 @@ class DeliveryNoteController extends Controller
             $deliveryNote = \App\Models\Accounting\DeliveryNote::findOrFail($id);
 
             if ($deliveryNote->status !== 'preparing') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only delivery notes in preparing status can be deleted'
-                ], 400);
+                return $this->errorResponse('Only delivery notes in preparing status can be deleted', 400);
             }
 
             $deliveryNote->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Delivery note deleted successfully'
-            ]);
-
+            return $this->successResponse(null, 'Delivery note deleted successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::destroy error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete delivery note: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to delete delivery note: ' . $e->getMessage());
         }
     }
 
@@ -361,33 +290,20 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $createdBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->createFromReceipt(
                 $request->receipt_id,
                 $request->all(),
                 $createdBy
             );
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery note created from receipt successfully'
-            ], 201);
-
+            return $this->successResponse($deliveryNote, 'Delivery note created from receipt successfully', 201);
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::createFromReceipt error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create delivery note from receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create delivery note from receipt: ' . $e->getMessage());
         }
     }
 
@@ -405,29 +321,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $shippedBy = auth()->user()->user_uuid ?? null;
+            $shippedBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->startShipping($id, $request->all(), $shippedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Shipping started successfully'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Shipping started successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::startShipping error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start shipping: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start shipping: ' . $e->getMessage());
         }
     }
 
@@ -445,29 +348,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $updatedBy = auth()->user()->user_uuid ?? null;
+            $updatedBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->updateTrackingStatus($id, $request->all(), $updatedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Tracking status updated successfully'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Tracking status updated successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::updateTracking error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update tracking status: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to update tracking status: ' . $e->getMessage());
         }
     }
 
@@ -484,29 +374,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $deliveredBy = auth()->user()->user_uuid ?? null;
+            $deliveredBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->markAsDelivered($id, $request->all(), $deliveredBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery marked as successful'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Delivery marked as successful');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::markDelivered error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark delivery as successful: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to mark delivery as successful: ' . $e->getMessage());
         }
     }
 
@@ -560,29 +437,16 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $reportedBy = auth()->user()->user_uuid ?? null;
+            $reportedBy = AccountingHelper::getCurrentUserId();
             $deliveryNote = $this->deliveryNoteService->markAsFailed($id, $request->all(), $reportedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deliveryNote,
-                'message' => 'Delivery marked as failed'
-            ]);
-
+            return $this->successResponse($deliveryNote, 'Delivery marked as failed');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::markFailed error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark delivery as failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to mark delivery as failed: ' . $e->getMessage());
         }
     }
 
@@ -600,14 +464,10 @@ class DeliveryNoteController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $uploadedBy = AccountingHelper::getCurrentUserId();
             $result = $this->deliveryNoteService->uploadEvidence(
                 $id,
                 $request->file('files'),
@@ -615,19 +475,10 @@ class DeliveryNoteController extends Controller
                 $uploadedBy
             );
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Evidence uploaded successfully'
-            ]);
-
+            return $this->successResponse($result, 'Evidence uploaded successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::uploadEvidence error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload evidence: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to upload evidence: ' . $e->getMessage());
         }
     }
 
@@ -640,20 +491,10 @@ class DeliveryNoteController extends Controller
         try {
             $options = $request->input('options', []);
             $pdfData = $this->deliveryNoteService->generatePdf($id, $options);
-
-            return response()->json([
-                'success' => true,
-                'data' => $pdfData,
-                'message' => 'PDF generated successfully'
-            ]);
-
+            return $this->successResponse($pdfData, 'PDF generated successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::generatePdf error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate PDF: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to generate PDF: ' . $e->getMessage());
         }
     }
 
@@ -666,22 +507,11 @@ class DeliveryNoteController extends Controller
         try {
             $headerTypes = $request->input('headerTypes', ['ต้นฉบับ']);
             $options = $request->input('options', []);
-
             $result = $this->deliveryNoteService->generatePdfBundle($id, $headerTypes, $options);
-
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'PDF bundle generated successfully'
-            ]);
-
+            return $this->successResponse($result, 'PDF bundle generated successfully');
         } catch (\Exception $e) {
             Log::error('DeliveryNoteController::generatePdfBundle error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate PDF bundle: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to generate PDF bundle: ' . $e->getMessage());
         }
     }
 

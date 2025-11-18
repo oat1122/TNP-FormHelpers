@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1\Accounting;
 
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\ReceiptService;
+use App\Traits\ApiResponseHelper;
+use App\Helpers\AccountingHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ReceiptController extends Controller
 {
+    use ApiResponseHelper;
+
     protected $receiptService;
 
     public function __construct(ReceiptService $receiptService)
@@ -35,23 +39,13 @@ class ReceiptController extends Controller
                 'date_to' => $request->query('date_to')
             ];
 
-            $perPage = min($request->query('per_page', 20), 50);
-            
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
             $receipts = $this->receiptService->getList($filters, $perPage);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipts,
-                'message' => 'Receipts retrieved successfully'
-            ]);
-
+            return $this->successResponse($receipts, 'Receipts retrieved successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::index error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve receipts: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve receipts: ' . $e->getMessage());
         }
     }
 
@@ -68,19 +62,10 @@ class ReceiptController extends Controller
                 'documentAttachments'
             ])->findOrFail($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt details retrieved successfully'
-            ]);
-
+            return $this->successResponse($receipt, 'Receipt details retrieved successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::show error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve receipt details: ' . $e->getMessage()
-            ], 404);
+            return $this->notFoundResponse('Receipt');
         }
     }
 
@@ -106,29 +91,16 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $createdBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->create($request->all(), $createdBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt created successfully'
-            ], 201);
-
+            return $this->successResponse($receipt, 'Receipt created successfully', 201);
         } catch (\Exception $e) {
             Log::error('ReceiptController::store error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create receipt: ' . $e->getMessage());
         }
     }
 
@@ -153,29 +125,16 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $updatedBy = auth()->user()->user_uuid ?? null;
+            $updatedBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->update($id, $request->all(), $updatedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt updated successfully'
-            ]);
-
+            return $this->successResponse($receipt, 'Receipt updated successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::update error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to update receipt: ' . $e->getMessage());
         }
     }
 
@@ -189,26 +148,14 @@ class ReceiptController extends Controller
             $receipt = \App\Models\Accounting\Receipt::findOrFail($id);
 
             if ($receipt->status !== 'draft') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Only draft receipts can be deleted'
-                ], 400);
+                return $this->errorResponse('Only draft receipts can be deleted', 400);
             }
 
             $receipt->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Receipt deleted successfully'
-            ]);
-
+            return $this->successResponse(null, 'Receipt deleted successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::destroy error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to delete receipt: ' . $e->getMessage());
         }
     }
 
@@ -231,33 +178,20 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $createdBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->createFromPayment(
                 $request->invoice_id,
                 $request->all(),
                 $createdBy
             );
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt created from payment successfully'
-            ], 201);
-
+            return $this->successResponse($receipt, 'Receipt created from payment successfully', 201);
         } catch (\Exception $e) {
             Log::error('ReceiptController::createFromPayment error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create receipt from payment: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create receipt from payment: ' . $e->getMessage());
         }
     }
 
@@ -268,22 +202,12 @@ class ReceiptController extends Controller
     public function submit($id): JsonResponse
     {
         try {
-            $submittedBy = auth()->user()->user_uuid ?? null;
+            $submittedBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->submit($id, $submittedBy);
-
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt submitted for approval successfully'
-            ]);
-
+            return $this->successResponse($receipt, 'Receipt submitted for approval successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::submit error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to submit receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to submit receipt: ' . $e->getMessage());
         }
     }
 
@@ -299,29 +223,16 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $approvedBy = auth()->user()->user_uuid ?? null;
+            $approvedBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->approve($id, $approvedBy, $request->notes);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt approved successfully'
-            ]);
-
+            return $this->successResponse($receipt, 'Receipt approved successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::approve error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to approve receipt: ' . $e->getMessage());
         }
     }
 
@@ -337,29 +248,16 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $rejectedBy = auth()->user()->user_uuid ?? null;
+            $rejectedBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->reject($id, $request->reason, $rejectedBy);
 
-            return response()->json([
-                'success' => true,
-                'data' => $receipt,
-                'message' => 'Receipt rejected successfully'
-            ]);
-
+            return $this->successResponse($receipt, 'Receipt rejected successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::reject error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reject receipt: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to reject receipt: ' . $e->getMessage());
         }
     }
 
@@ -377,14 +275,10 @@ class ReceiptController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $uploadedBy = AccountingHelper::getCurrentUserId();
             $result = $this->receiptService->uploadEvidence(
                 $id,
                 $request->file('files'),
@@ -392,19 +286,10 @@ class ReceiptController extends Controller
                 $uploadedBy
             );
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Evidence uploaded successfully'
-            ]);
-
+            return $this->successResponse($result, 'Evidence uploaded successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::uploadEvidence error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload evidence: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to upload evidence: ' . $e->getMessage());
         }
     }
 
@@ -416,20 +301,10 @@ class ReceiptController extends Controller
     {
         try {
             $pdfData = $this->receiptService->generatePdf($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $pdfData,
-                'message' => 'PDF generated successfully'
-            ]);
-
+            return $this->successResponse($pdfData, 'PDF generated successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::generatePdf error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to generate PDF: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to generate PDF: ' . $e->getMessage());
         }
     }
 
@@ -480,19 +355,10 @@ class ReceiptController extends Controller
                 ];
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => $calculation,
-                'message' => 'VAT calculation completed successfully'
-            ]);
-
+            return $this->successResponse($calculation, 'VAT calculation completed successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::calculateVat error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to calculate VAT: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to calculate VAT: ' . $e->getMessage());
         }
     }
 
@@ -524,19 +390,10 @@ class ReceiptController extends Controller
                 ]
             ];
 
-            return response()->json([
-                'success' => true,
-                'data' => $types,
-                'message' => 'Receipt types retrieved successfully'
-            ]);
-
+            return $this->successResponse($types, 'Receipt types retrieved successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::getReceiptTypes error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve receipt types: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve receipt types: ' . $e->getMessage());
         }
     }
 
@@ -574,19 +431,10 @@ class ReceiptController extends Controller
                 ]
             ];
 
-            return response()->json([
-                'success' => true,
-                'data' => $methods,
-                'message' => 'Payment methods retrieved successfully'
-            ]);
-
+            return $this->successResponse($methods, 'Payment methods retrieved successfully');
         } catch (\Exception $e) {
             Log::error('ReceiptController::getPaymentMethods error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve payment methods: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve payment methods: ' . $e->getMessage());
         }
     }
 }

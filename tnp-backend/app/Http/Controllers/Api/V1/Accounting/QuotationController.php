@@ -9,9 +9,22 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponseHelper;
+use App\Traits\HandlesPdfGeneration;
+use App\Helpers\AccountingHelper;
+use App\Http\Requests\Accounting\StoreQuotationRequest;
+use App\Http\Requests\Accounting\UpdateQuotationRequest;
+use App\Http\Requests\Accounting\CreateFromPricingRequestRequest;
+use App\Http\Requests\Accounting\CreateFromMultiplePricingRequestsRequest;
+use App\Http\Requests\Accounting\CreateStandaloneQuotationRequest;
+use App\Http\Requests\Accounting\RejectRequest;
+use App\Http\Requests\Accounting\MarkSentRequest;
+use App\Http\Requests\Accounting\SendEmailRequest;
 
 class QuotationController extends Controller
 {
+    use ApiResponseHelper, HandlesPdfGeneration;
+    
     protected $quotationService;
 
     public function __construct(QuotationService $quotationService)
@@ -35,28 +48,17 @@ class QuotationController extends Controller
                 'date_from' => $request->query('date_from'),
                 'date_to' => $request->query('date_to'),
                 'search' => $request->query('search'),
-                // New filter: show only quotations that have uploaded signature evidence
-                // Accepts: signature_uploaded=1|true or 0|false
                 'signature_uploaded' => $request->query('signature_uploaded')
             ];
 
-            $perPage = min($request->query('per_page', 15), 50); // จำกัดไม่เกิน 50 รายการต่อหน้า
-            
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 15), 15, 50);
             $quotations = $this->quotationService->getList($filters, $perPage);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotations,
-                'message' => 'Quotations retrieved successfully'
-            ]);
+            return $this->successResponse($quotations, 'Quotations retrieved successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::index error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve quotations: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve quotations: ' . $e->getMessage());
         }
     }
 
@@ -64,54 +66,12 @@ class QuotationController extends Controller
      * สร้างใบเสนอราคาใหม่
      * POST /api/v1/quotations
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreQuotationRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'company_id' => 'nullable|string|exists:companies,id',
-                'pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
-                'customer_company' => 'required|string|max:255',
-                'work_name' => 'required|string|max:100',
-                'subtotal' => 'required|numeric|min:0',
-                'tax_amount' => 'required|numeric|min:0',
-                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'special_discount_amount' => 'nullable|numeric|min:0',
-                'has_withholding_tax' => 'nullable|boolean',
-                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
-                'withholding_tax_amount' => 'nullable|numeric|min:0',
-                'final_total_amount' => 'nullable|numeric|min:0',
-                'total_amount' => 'required|numeric|min:0',
-                'has_vat' => 'nullable|boolean',
-                'vat_percentage' => 'nullable|numeric|min:0|max:100',
-                'pricing_mode' => 'nullable|in:net,vat_included',
-                // Allow decimal precision for reverse-calculated percentage when amount mode is used
-                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
-                'deposit_mode' => 'nullable|in:percentage,amount',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:50',
-                'due_date' => 'nullable|date',
-                'notes' => 'nullable|string',
-                'sample_images' => 'nullable|array',
-                'items' => 'nullable|array',
-                'items.*.item_name' => 'required_with:items|string|max:255',
-                'items.*.quantity' => 'required_with:items|integer|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-                'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'items.*.discount_amount' => 'nullable|numeric|min:0',
-            ]);
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $createdBy = auth()->user()->user_uuid ?? null;
-
-            // ถ้ามี pricing_request_id ให้สร้างจาก Pricing Request
             if (!empty($data['pricing_request_id'])) {
                 $additionalData = collect($data)->except(['pricing_request_id'])->toArray();
                 $quotation = $this->quotationService->createFromPricingRequest(
@@ -120,23 +80,14 @@ class QuotationController extends Controller
                     $createdBy
                 );
             } else {
-                // สร้างใบเสนอราคาใหม่
                 $quotation = $this->quotationService->create($data, $createdBy);
             }
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation created successfully'
-            ], 201);
+            return $this->createdResponse($quotation, 'Quotation created successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::store error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create quotation: ' . $e->getMessage());
         }
     }
 
@@ -159,19 +110,11 @@ class QuotationController extends Controller
                 'items'
             ])->findOrFail($id);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation retrieved successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation retrieved successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::show error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve quotation: ' . $e->getMessage()
-            ], 404);
+            return $this->errorResponse('Failed to retrieve quotation: ' . $e->getMessage(), 404);
         }
     }
 
@@ -179,77 +122,19 @@ class QuotationController extends Controller
      * อัปเดตใบเสนอราคา
      * PUT /api/v1/quotations/{id}
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(UpdateQuotationRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'company_id' => 'nullable|string|exists:companies,id',
-                'customer_company' => 'sometimes|string|max:255',
-                'work_name' => 'sometimes|string|max:100',
-                'subtotal' => 'sometimes|numeric|min:0',
-                'tax_amount' => 'sometimes|numeric|min:0',
-                // Extended financial fields (optional on update)
-                'special_discount_percentage' => 'sometimes|numeric|min:0|max:100',
-                'special_discount_amount' => 'sometimes|numeric|min:0',
-                'has_withholding_tax' => 'sometimes|boolean',
-                'withholding_tax_percentage' => 'sometimes|numeric|min:0|max:10',
-                'withholding_tax_amount' => 'sometimes|numeric|min:0',
-                'final_total_amount' => 'sometimes|numeric|min:0',
-                'total_amount' => 'sometimes|numeric|min:0',
-                'has_vat' => 'sometimes|boolean',
-                'vat_percentage' => 'sometimes|numeric|min:0|max:100',
-                'pricing_mode' => 'sometimes|in:net,vat_included',
-                // Allow decimal precision for reverse-calculated percentage when amount mode is used
-                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
-                'deposit_mode' => 'nullable|in:percentage,amount',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:50',
-                'due_date' => 'nullable|date',
-                'notes' => 'nullable|string',
-                'sample_images' => 'nullable|array',
-                // Optional: full replacement of quotation items when provided
-                'items' => 'nullable|array',
-                'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
-                'items.*.item_name' => 'required_with:items|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.pattern' => 'nullable|string|max:255',
-                'items.*.fabric_type' => 'nullable|string|max:255',
-                'items.*.color' => 'nullable|string|max:255',
-                'items.*.size' => 'nullable|string|max:255',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-                'items.*.quantity' => 'required_with:items|integer|min:0',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.discount_percentage' => 'nullable|numeric|min:0',
-                'items.*.discount_amount' => 'nullable|numeric|min:0',
-                'items.*.notes' => 'nullable|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $updatedBy = auth()->user()->user_uuid ?? null;
+            $data = $request->validated();
+            $updatedBy = AccountingHelper::getCurrentUserId();
 
             $quotation = $this->quotationService->update($id, $data, $updatedBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation updated successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation updated successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::update error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to update quotation: ' . $e->getMessage());
         }
     }
 
@@ -261,22 +146,15 @@ class QuotationController extends Controller
     {
         try {
             $reason = $request->input('reason');
-            $deletedBy = auth()->user()->user_uuid ?? null;
+            $deletedBy = AccountingHelper::getCurrentUserId();
 
             $this->quotationService->delete($id, $deletedBy, $reason);
             
-            return response()->json([
-                'success' => true,
-                'message' => 'Quotation deleted successfully'
-            ]);
+            return $this->successResponse(null, 'Quotation deleted successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::destroy error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to delete quotation: ' . $e->getMessage());
         }
     }
 
@@ -287,22 +165,12 @@ class QuotationController extends Controller
     public function getDuplicateData($id): JsonResponse
     {
         try {
-            // เรียก Service เพื่อเตรียมข้อมูล
             $duplicateData = $this->quotationService->getDataForDuplication($id);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $duplicateData,
-                'message' => 'Quotation data for duplication retrieved successfully'
-            ]);
+            return $this->successResponse($duplicateData, 'Quotation data for duplication retrieved successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::getDuplicateData error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve quotation data for duplication: ' . $e->getMessage()
-            ], 404);
+            return $this->errorResponse('Failed to retrieve quotation data for duplication: ' . $e->getMessage(), 404);
         }
     }
 
@@ -313,23 +181,14 @@ class QuotationController extends Controller
     public function submit($id): JsonResponse
     {
         try {
-            $submittedBy = auth()->user()->user_uuid ?? null;
-            
+            $submittedBy = AccountingHelper::getCurrentUserId();
             $quotation = $this->quotationService->submitForReview($id, $submittedBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation submitted for review successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation submitted for review successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::submit error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to submit quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to submit quotation: ' . $e->getMessage());
         }
     }
 
@@ -341,23 +200,15 @@ class QuotationController extends Controller
     {
         try {
             $notes = $request->input('notes');
-            $approvedBy = auth()->user()->user_uuid ?? null;
+            $approvedBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->approve($id, $approvedBy, $notes);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation approved successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation approved successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::approve error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to approve quotation: ' . $e->getMessage());
         }
     }
 
@@ -365,39 +216,19 @@ class QuotationController extends Controller
      * ปฏิเสธใบเสนอราคา
      * POST /api/v1/quotations/{id}/reject
      */
-    public function reject(Request $request, $id): JsonResponse
+    public function reject(RejectRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'reason' => 'required|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $reason = $request->input('reason');
-            $rejectedBy = auth()->user()->user_uuid ?? null;
+            $rejectedBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->reject($id, $rejectedBy, $reason);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation rejected successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation rejected successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::reject error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reject quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to reject quotation: ' . $e->getMessage());
         }
     }
 
@@ -415,31 +246,19 @@ class QuotationController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
             $additionalData = $validator->validated();
-            $convertedBy = auth()->user()->user_uuid ?? null;
+            $convertedBy = AccountingHelper::getCurrentUserId();
             
             $invoice = $this->quotationService->convertToInvoice($id, $convertedBy, $additionalData);
             
-            return response()->json([
-                'success' => true,
-                'data' => $invoice,
-                'message' => 'Quotation converted to invoice successfully'
-            ]);
+            return $this->successResponse($invoice, 'Quotation converted to invoice successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::convertToInvoice error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to convert quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to convert quotation: ' . $e->getMessage());
         }
     }
 
@@ -447,42 +266,11 @@ class QuotationController extends Controller
      * สร้างใบเสนอราคาจาก Pricing Request (Auto-fill)
      * POST /api/v1/quotations/create-from-pricing
      */
-    public function createFromPricingRequest(Request $request): JsonResponse
+    public function createFromPricingRequest(CreateFromPricingRequestRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'pricing_request_id' => 'required|string|exists:pricing_requests,pr_id',
-                'subtotal' => 'required|numeric|min:0',
-                'tax_amount' => 'required|numeric|min:0',
-                // New: support special discount & withholding tax fields
-                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'special_discount_amount' => 'nullable|numeric|min:0',
-                'has_withholding_tax' => 'nullable|boolean',
-                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
-                'withholding_tax_amount' => 'nullable|numeric|min:0',
-                'final_total_amount' => 'nullable|numeric|min:0',
-                'total_amount' => 'required|numeric|min:0',
-                'has_vat' => 'nullable|boolean',
-                'vat_percentage' => 'nullable|numeric|min:0|max:100',
-                'pricing_mode' => 'nullable|in:net,vat_included',
-                // Allow decimal precision for reverse-calculated percentage when amount mode is used
-                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
-                'deposit_mode' => 'nullable|in:percentage,amount',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:50',
-                'notes' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
 
             $pricingRequestId = $data['pricing_request_id'];
             $additionalData = collect($data)->except(['pricing_request_id'])->toArray();
@@ -493,19 +281,11 @@ class QuotationController extends Controller
                 $createdBy
             );
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation created from pricing request successfully'
-            ], 201);
+            return $this->createdResponse($quotation, 'Quotation created from pricing request successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::createFromPricingRequest error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create quotation from pricing request: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create quotation from pricing request: ' . $e->getMessage());
         }
     }
 
@@ -513,60 +293,11 @@ class QuotationController extends Controller
      * สร้างใบเสนอราคาจากหลาย Pricing Requests (Multi-select)
      * POST /api/v1/quotations/create-from-multiple-pricing
      */
-    public function createFromMultiplePricingRequests(Request $request): JsonResponse
+    public function createFromMultiplePricingRequests(CreateFromMultiplePricingRequestsRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'pricing_request_ids' => 'required|array|min:1',
-                'pricing_request_ids.*' => 'required|string|exists:pricing_requests,pr_id',
-                'customer_id' => 'required|string|exists:master_customers,cus_id',
-                'additional_notes' => 'nullable|string',
-                'subtotal' => 'nullable|numeric|min:0',
-                'tax_amount' => 'nullable|numeric|min:0',
-                // New: support special discount & withholding tax fields (optional on multi-create)
-                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'special_discount_amount' => 'nullable|numeric|min:0',
-                'has_withholding_tax' => 'nullable|boolean',
-                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
-                'withholding_tax_amount' => 'nullable|numeric|min:0',
-                'final_total_amount' => 'nullable|numeric|min:0',
-                'total_amount' => 'nullable|numeric|min:0',
-                'has_vat' => 'nullable|boolean',
-                'vat_percentage' => 'nullable|numeric|min:0|max:100',
-                'pricing_mode' => 'nullable|in:net,vat_included',
-                // Allow decimal precision for reverse-calculated percentage when amount mode is used
-                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
-                'deposit_mode' => 'nullable|in:percentage,amount',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:50',
-                'due_date' => 'nullable|date',
-                'sample_images' => 'nullable|array',
-                'items' => 'nullable|array',
-                'items.*.pricing_request_id' => 'nullable|string|exists:pricing_requests,pr_id',
-                'items.*.item_name' => 'required_with:items|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.pattern' => 'nullable|string|max:255',
-                'items.*.fabric_type' => 'nullable|string|max:255',
-                'items.*.color' => 'nullable|string|max:255',
-                'items.*.size' => 'nullable|string|max:255',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-                'items.*.quantity' => 'required_with:items|integer|min:0',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.discount_percentage' => 'nullable|numeric|min:0',
-                'items.*.discount_amount' => 'nullable|numeric|min:0',
-                'items.*.notes' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
 
             $quotation = $this->quotationService->createFromMultiplePricingRequests(
                 $data['pricing_request_ids'],
@@ -575,19 +306,11 @@ class QuotationController extends Controller
                 $createdBy
             );
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation created from multiple pricing requests successfully'
-            ], 201);
+            return $this->createdResponse($quotation, 'Quotation created from multiple pricing requests successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::createFromMultiplePricingRequests error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create quotation from multiple pricing requests: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create quotation from multiple pricing requests: ' . $e->getMessage());
         }
     }
 
@@ -595,73 +318,22 @@ class QuotationController extends Controller
      * สร้างใบเสนอราคาแบบ Standalone (ไม่ต้องอิง Pricing Request)
      * POST /api/v1/quotations/create-standalone
      */
-    public function createStandalone(Request $request): JsonResponse
+    public function createStandalone(CreateStandaloneQuotationRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'company_id' => 'required|string|exists:companies,id',
-                'customer_id' => 'required|string|exists:master_customers,cus_id',
-                'work_name' => 'required|string|max:100',
-                // เพิ่ม validation สำหรับ pricing request fields
-                'primary_pricing_request_id' => 'nullable|string',
-                'primary_pricing_request_ids' => 'nullable|array',
-                'items' => 'required|array|min:1',
-                'items.*.item_name' => 'required|string|max:255',
-                'items.*.item_description' => 'nullable|string',
-                'items.*.pattern' => 'nullable|string|max:255',
-                'items.*.fabric_type' => 'nullable|string|max:255',
-                'items.*.color' => 'nullable|string|max:255',
-                'items.*.size' => 'nullable|string|max:255',
-                'items.*.unit_price' => 'required|numeric|min:0',
-                'items.*.quantity' => 'required|integer|min:1',
-                'items.*.unit' => 'nullable|string|max:50',
-                'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'items.*.discount_amount' => 'nullable|numeric|min:0',
-                'items.*.notes' => 'nullable|string',
-                'items.*.sequence_order' => 'nullable|integer|min:1',
-                // Financial fields
-                'special_discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'special_discount_amount' => 'nullable|numeric|min:0',
-                'has_vat' => 'nullable|boolean',
-                'vat_percentage' => 'nullable|numeric|min:0|max:100',
-                'has_withholding_tax' => 'nullable|boolean',
-                'withholding_tax_percentage' => 'nullable|numeric|min:0|max:10',
-                'deposit_mode' => 'nullable|in:percentage,amount',
-                'deposit_percentage' => 'nullable|numeric|min:0|max:100',
-                'deposit_amount' => 'nullable|numeric|min:0',
-                'payment_terms' => 'nullable|string|max:50',
-                'due_date' => 'nullable|date',
-                'notes' => 'nullable|string',
-                'document_header_type' => 'nullable|string|max:50',
-                'sample_images' => 'nullable|array',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $createdBy = auth()->user()->user_uuid ?? null;
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
 
             $quotation = $this->quotationService->createStandalone($data, $createdBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation->load(['customer', 'company', 'items', 'creator']),
-                'message' => 'Quotation created successfully'
-            ], 201);
+            return $this->createdResponse(
+                $quotation->load(['customer', 'company', 'items', 'creator']),
+                'Quotation created successfully'
+            );
 
         } catch (\Exception $e) {
             Log::error('QuotationController::createStandalone error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create standalone quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to create standalone quotation: ' . $e->getMessage());
         }
     }
 
@@ -669,39 +341,19 @@ class QuotationController extends Controller
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
      * POST /api/v1/quotations/{id}/send-back
      */
-    public function sendBack(Request $request, $id): JsonResponse
+    public function sendBack(RejectRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'reason' => 'required|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $reason = $request->input('reason');
-            $actionBy = auth()->user()->user_uuid ?? null;
+            $actionBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->sendBackForEdit($id, $reason, $actionBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation sent back for editing successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation sent back for editing successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::sendBack error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send back quotation: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to send back quotation: ' . $e->getMessage());
         }
     }
 
@@ -709,39 +361,19 @@ class QuotationController extends Controller
      * ยกเลิกการอนุมัติ (Account)
      * POST /api/v1/quotations/{id}/revoke-approval
      */
-    public function revokeApproval(Request $request, $id): JsonResponse
+    public function revokeApproval(RejectRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'reason' => 'required|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $reason = $request->input('reason');
-            $actionBy = auth()->user()->user_uuid ?? null;
+            $actionBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->revokeApproval($id, $reason, $actionBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation approval revoked successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation approval revoked successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::revokeApproval error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to revoke approval: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to revoke approval: ' . $e->getMessage());
         }
     }
 
@@ -750,29 +382,8 @@ class QuotationController extends Controller
      */
     public function generatePdf(Request $request, $id)
     {
-        try {
-            $options = $request->only(['format', 'orientation', 'showWatermark']);
-            $result = $this->quotationService->generatePdf($id, $options);
-            
-            return response()->json([
-                'success' => true,
-                'pdf_url' => $result['url'] ?? null,
-                'filename' => $result['filename'] ?? null,
-                'size' => $result['size'] ?? null,
-                'type' => $result['type'] ?? null,
-                'engine' => $result['engine'] ?? 'mPDF',
-                'data' => $result,
-                'message' => isset($result['engine']) && $result['engine'] === 'fpdf' 
-                    ? 'PDF สร้างด้วย FPDF (fallback) เนื่องจาก mPDF ไม่พร้อมใช้งาน' 
-                    : 'PDF สร้างด้วย mPDF สำเร็จ'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error_type' => 'pdf_generation_failed'
-            ], 500);
-        }
+        $options = $this->extractPdfOptions($request);
+        return $this->generatePdfJsonResponse($this->quotationService, $id, $options);
     }
 
     /**
@@ -780,15 +391,8 @@ class QuotationController extends Controller
      */
     public function streamPdf(Request $request, $id)
     {
-        try {
-            $options = $request->only(['format', 'orientation', 'showWatermark']);
-            return $this->quotationService->streamPdf($id, $options);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ไม่สามารถแสดง PDF ได้: ' . $e->getMessage()
-            ], 500);
-        }
+        $options = $this->extractPdfOptions($request);
+        return $this->streamPdfResponse($this->quotationService, $id, $options);
     }
 
     /**
@@ -796,22 +400,9 @@ class QuotationController extends Controller
      */
     public function downloadPdf(Request $request, $id)
     {
-        try {
-            $result = $this->quotationService->generatePdf($id, $request->only(['format', 'orientation']));
-            $filename = $result['filename'] ?? ('quotation-' . $id . '.pdf');
-            $path = $result['path'] ?? null;
-            if (!$path || !is_file($path)) {
-                throw new \Exception('PDF ยังไม่พร้อมดาวน์โหลด');
-            }
-            return response()->download($path, $filename, [
-                'Content-Type' => 'application/pdf'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ไม่สามารถดาวน์โหลด PDF ได้: ' . $e->getMessage()
-            ], 500);
-        }
+        $options = $this->extractPdfOptions($request);
+        $defaultFilename = 'quotation-' . $id . '.pdf';
+        return $this->downloadPdfResponse($this->quotationService, $id, $options, $defaultFilename);
     }
 
     /**
@@ -819,23 +410,7 @@ class QuotationController extends Controller
      */
     public function checkPdfStatus()
     {
-        try {
-            $status = $this->quotationService->checkPdfSystemStatus();
-            
-            return response()->json([
-                'success' => true,
-                'system_ready' => $status['system_ready'],
-                'preferred_engine' => $status['preferred_engine'],
-                'components' => $status['components'],
-                'recommendations' => $status['recommendations']
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'preferred_engine' => 'FPDF'
-            ], 500);
-        }
+        return $this->checkPdfSystemStatusResponse($this->quotationService);
     }
 
     /**
@@ -887,42 +462,19 @@ class QuotationController extends Controller
      * ส่งอีเมลใบเสนอราคา
      * POST /api/v1/quotations/{id}/send-email
      */
-    public function sendEmail(Request $request, $id): JsonResponse
+    public function sendEmail(SendEmailRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'recipient_email' => 'required|email',
-                'subject' => 'nullable|string|max:255',
-                'message' => 'nullable|string|max:2000',
-                'include_pdf' => 'boolean'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $emailData = $validator->validated();
-            $sentBy = auth()->user()->user_uuid ?? null;
+            $emailData = $request->validated();
+            $sentBy = AccountingHelper::getCurrentUserId();
             
             $result = $this->quotationService->sendEmail($id, $emailData, $sentBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Email sent successfully'
-            ]);
+            return $this->successResponse($result, 'Email sent successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::sendEmail error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to send email: ' . $e->getMessage());
         }
     }
 
@@ -939,31 +491,19 @@ class QuotationController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
-            $uploadedBy = auth()->user()->user_uuid ?? null;
+            $uploadedBy = AccountingHelper::getCurrentUserId();
             $description = $request->input('description');
             
             $result = $this->quotationService->uploadEvidence($id, $request->file('files'), $description, $uploadedBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Evidence uploaded successfully'
-            ]);
+            return $this->successResponse($result, 'Evidence uploaded successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::uploadEvidence error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload evidence: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to upload evidence: ' . $e->getMessage());
         }
     }
 
@@ -980,55 +520,33 @@ class QuotationController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
             $user = auth()->user();
             $role = $user->role ?? null;
             if (!in_array($role, ['admin','sale'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'คุณไม่มีสิทธิ์อัปโหลดหลักฐานการเซ็น'
-                ], 403);
+                return $this->errorResponse('คุณไม่มีสิทธิ์อัปโหลดหลักฐานการเซ็น', 403);
             }
 
-        // รองรับ keys แบบ files[] จาก FormData
-        $rawFiles = $request->file('files');
+            // รองรับ keys แบบ files[] จาก FormData
+            $rawFiles = $request->file('files');
             // Normalise to array
             if ($rawFiles === null) {
-                return response()->json([
-                    'success' => false,
-            'message' => 'ไม่พบไฟล์สำหรับอัปโหลด',
-            'errors' => ['files' => ['No uploaded files found']]
-                ], 422);
+                return $this->validationErrorResponse(['files' => ['No uploaded files found']]);
             }
             $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
             if (count($files) === 0) {
-                return response()->json([
-                    'success' => false,
-            'message' => 'ไม่พบไฟล์สำหรับอัปโหลด',
-            'errors' => ['files' => ['Empty files array']]
-                ], 422);
+                return $this->validationErrorResponse(['files' => ['Empty files array']]);
             }
 
             $result = $this->quotationService->uploadSignatures($id, $files, $user->user_uuid ?? null);
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'อัปโหลดรูปหลักฐานการเซ็นเรียบร้อย'
-            ]);
+            return $this->successResponse($result, 'อัปโหลดรูปหลักฐานการเซ็นเรียบร้อย');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::uploadSignatures error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload signatures: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to upload signatures: ' . $e->getMessage());
         }
     }
 
@@ -1044,38 +562,23 @@ class QuotationController extends Controller
                 'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
             ]);
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
             $user = auth()->user();
             $rawFiles = $request->file('files');
             if ($rawFiles === null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No uploaded files found',
-                    'errors' => ['files' => ['No uploaded files found']]
-                ], 422);
+                return $this->validationErrorResponse(['files' => ['No uploaded files found']]);
             }
             $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
 
             $result = $this->quotationService->uploadSampleImages($id, $files, $user->user_uuid ?? null);
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Sample images uploaded successfully'
-            ]);
+            return $this->successResponse($result, 'Sample images uploaded successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::uploadSampleImages error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload sample images: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to upload sample images: ' . $e->getMessage());
         }
     }
 
@@ -1128,24 +631,14 @@ class QuotationController extends Controller
             $user = auth()->user();
             $role = $user->role ?? null;
             if (!in_array($role, ['admin','sale'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'คุณไม่มีสิทธิ์ลบรูปหลักฐานการเซ็น'
-                ], 403);
+                return $this->errorResponse('คุณไม่มีสิทธิ์ลบรูปหลักฐานการเซ็น', 403);
             }
 
             $result = $this->quotationService->deleteSignatureImage($id, $identifier, $user->user_uuid ?? null);
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'ลบรูปหลักฐานการเซ็นเรียบร้อย'
-            ]);
+            return $this->successResponse($result, 'ลบรูปหลักฐานการเซ็นเรียบร้อย');
         } catch (\Exception $e) {
             Log::error('QuotationController::deleteSignatureImage error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete signature image: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to delete signature image: ' . $e->getMessage());
         }
     }
 
@@ -1162,31 +655,19 @@ class QuotationController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                return $this->validationErrorResponse($validator->errors());
             }
 
             $data = $validator->validated();
-            $completedBy = auth()->user()->user_uuid ?? null;
+            $completedBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->markCompleted($id, $data, $completedBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation marked as completed successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation marked as completed successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::markCompleted error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark quotation as completed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to mark quotation as completed: ' . $e->getMessage());
         }
     }
 
@@ -1194,42 +675,19 @@ class QuotationController extends Controller
      * บันทึกการส่งเอกสาร (อัปเดตสถานะเป็น 'sent')
      * POST /api/v1/quotations/{id}/mark-sent
      */
-    public function markSent(Request $request, $id): JsonResponse
+    public function markSent(MarkSentRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'delivery_method' => 'required|in:email,hand_delivery,postal,courier',
-                'delivery_notes' => 'nullable|string|max:1000',
-                'recipient_name' => 'nullable|string|max:255',
-                'delivery_date' => 'nullable|date'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $data = $validator->validated();
-            $sentBy = auth()->user()->user_uuid ?? null;
+            $data = $request->validated();
+            $sentBy = AccountingHelper::getCurrentUserId();
             
             $quotation = $this->quotationService->markSent($id, $data, $sentBy);
             
-            return response()->json([
-                'success' => true,
-                'data' => $quotation,
-                'message' => 'Quotation marked as sent successfully'
-            ]);
+            return $this->successResponse($quotation, 'Quotation marked as sent successfully');
 
         } catch (\Exception $e) {
             Log::error('QuotationController::markSent error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark quotation as sent: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to mark quotation as sent: ' . $e->getMessage());
         }
     }
 }

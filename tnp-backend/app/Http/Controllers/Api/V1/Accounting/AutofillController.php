@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api\V1\Accounting;
 
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\AutofillService;
+use App\Traits\ApiResponseHelper;
+use App\Helpers\AccountingHelper;
+use App\Http\Requests\Accounting\BulkAutofillRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class AutofillController extends Controller
 {
+    use ApiResponseHelper;
+
     protected $autofillService;
 
     public function __construct(AutofillService $autofillService)
@@ -25,20 +30,10 @@ class AutofillController extends Controller
     {
         try {
             $autofillData = $this->autofillService->getAutofillDataFromPricingRequest($pricingRequestId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $autofillData,
-                'message' => 'Auto-fill data retrieved successfully'
-            ]);
-
+            return $this->successResponse($autofillData, 'Auto-fill data retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getPricingRequestAutofill error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve auto-fill data: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
         }
     }
 
@@ -46,19 +41,13 @@ class AutofillController extends Controller
      * 🔄 ดึงข้อมูล Auto-fill จาก Pricing Request หลายรายการพร้อมกัน (Bulk)
      * POST /api/v1/pricing-requests/bulk-autofill
      * 
-     * @param Request $request Body: { "ids": [1, 2, 3] }
+     * @param BulkAutofillRequest $request Body: { "ids": [1, 2, 3] }
      * @return JsonResponse
      */
-    public function getBulkPricingRequestAutofill(Request $request): JsonResponse
+    public function getBulkPricingRequestAutofill(BulkAutofillRequest $request): JsonResponse
     {
         try {
-            // Validate request
-            $validated = $request->validate([
-                'ids' => 'required|array|min:1|max:50', // จำกัดไม่เกิน 50 รายการต่อครั้ง
-                'ids.*' => 'required|integer'
-            ]);
-
-            $prIds = $validated['ids'];
+            $prIds = $request->validated()['ids'];
             
             // ดึงข้อมูล autofill ทั้งหมดพร้อมกัน
             $results = [];
@@ -67,34 +56,18 @@ class AutofillController extends Controller
                     $autofillData = $this->autofillService->getAutofillDataFromPricingRequest($prId);
                     $results[] = array_merge(['pr_id' => $prId], $autofillData);
                 } catch (\Exception $e) {
-                    // Log error แต่ไม่ throw เพื่อให้ดึงข้อมูลรายการอื่นต่อ
                     Log::warning("Failed to get autofill for PR {$prId}: " . $e->getMessage());
-                    // Skip รายการที่ error
                 }
             }
             
-            return response()->json([
-                'success' => true,
-                'data' => $results,
-                'message' => 'Bulk auto-fill data retrieved successfully',
-                'total' => count($results),
-                'requested' => count($prIds)
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-
+            return $this->successResponseWithMeta(
+                $results,
+                ['total' => count($results), 'requested' => count($prIds)],
+                'Bulk auto-fill data retrieved successfully'
+            );
         } catch (\Exception $e) {
             Log::error('AutofillController::getBulkPricingRequestAutofill error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve bulk auto-fill data: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve bulk auto-fill data: ' . $e->getMessage());
         }
     }
 
@@ -105,39 +78,12 @@ class AutofillController extends Controller
     public function getCustomerDetails(Request $request, $customerId): JsonResponse
     {
         try {
-            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
-            $userInfo = null;
-            if ($request->has('user') && $request->user) {
-                $user = \App\Models\User::where('user_uuid', $request->user)
-                    ->where('user_is_enable', true)
-                    ->select('user_id', 'user_uuid', 'role')
-                    ->first();
-                
-                if ($user) {
-                    $userInfo = [
-                        'user_id' => $user->user_id,
-                        'user_uuid' => $user->user_uuid,
-                        'role' => $user->role
-                    ];
-                }
-            }
-
-            // ส่ง userInfo ไป Service สำหรับ access control
+            $userInfo = AccountingHelper::getUserInfoFromRequest($request);
             $customerData = $this->autofillService->getCustomerAutofillData($customerId, $userInfo);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $customerData,
-                'message' => 'Customer details retrieved successfully'
-            ]);
-
+            return $this->successResponse($customerData, 'Customer details retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getCustomerDetails error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve customer details: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve customer details: ' . $e->getMessage());
         }
     }
 
@@ -149,49 +95,19 @@ class AutofillController extends Controller
     {
         try {
             $searchTerm = $request->query('q', '');
-            $limit = min($request->query('limit', 10), 50); // จำกัดไม่เกิน 50 รายการ
+            $limit = min($request->query('limit', 10), 50);
             
             if (strlen($searchTerm) < 2) {
-                return response()->json([
-                    'success' => true,
-                    'data' => [],
-                    'message' => 'Search term must be at least 2 characters'
-                ]);
+                return $this->successResponse([], 'Search term must be at least 2 characters');
             }
 
-            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
-            $userInfo = null;
-            if ($request->has('user') && $request->user) {
-                $user = \App\Models\User::where('user_uuid', $request->user)
-                    ->where('user_is_enable', true)
-                    ->select('user_id', 'user_uuid', 'role')
-                    ->first();
-                
-                if ($user) {
-                    $userInfo = [
-                        'user_id' => $user->user_id,
-                        'user_uuid' => $user->user_uuid,
-                        'role' => $user->role
-                    ];
-                }
-            }
-
-            // ส่ง userInfo ไป Service สำหรับ access control
+            $userInfo = AccountingHelper::getUserInfoFromRequest($request);
             $customers = $this->autofillService->searchCustomers($searchTerm, $limit, $userInfo);
             
-            return response()->json([
-                'success' => true,
-                'data' => $customers,
-                'message' => 'Customers retrieved successfully'
-            ]);
-
+            return $this->successResponse($customers, 'Customers retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::searchCustomers error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to search customers: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to search customers: ' . $e->getMessage());
         }
     }
 
@@ -202,29 +118,10 @@ class AutofillController extends Controller
     public function getCompletedPricingRequests(Request $request): JsonResponse
     {
         try {
-            // Log request parameters for debugging
-            Log::info('AutofillController::getCompletedPricingRequests called', [
-                'params' => $request->all()
-            ]);
+            Log::info('AutofillController::getCompletedPricingRequests called', ['params' => $request->all()]);
 
-            // 🔐 ดึงข้อมูล user ปัจจุบันสำหรับ access control
-            $userInfo = null;
-            if ($request->has('user') && $request->user) {
-                $user = \App\Models\User::where('user_uuid', $request->user)
-                    ->where('user_is_enable', true)
-                    ->select('user_id', 'user_uuid', 'role')
-                    ->first();
-                
-                if ($user) {
-                    $userInfo = [
-                        'user_id' => $user->user_id,
-                        'user_uuid' => $user->user_uuid,
-                        'role' => $user->role
-                    ];
-                }
-            }
+            $userInfo = AccountingHelper::getUserInfoFromRequest($request);
 
-            // รองรับ filters ตาม specification
             $filters = [
                 'search' => $request->query('search'),
                 'customer_id' => $request->query('customer_id'),
@@ -233,10 +130,9 @@ class AutofillController extends Controller
                 'work_name' => $request->query('work_name')
             ];
 
-            $perPage = min($request->query('per_page', 20), 200); // เพิ่มสูงสุดเป็น 200 รายการ
-            $page = max($request->query('page', 1), 1); // ตรวจสอบว่าหน้าไม่ต่ำกว่า 1
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 200);
+            $page = AccountingHelper::sanitizePage($request->query('page', 1));
             
-            // ส่ง userInfo ไป Service สำหรับ access control
             $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page, $userInfo);
             
             Log::info('AutofillController::getCompletedPricingRequests success', [
@@ -245,29 +141,17 @@ class AutofillController extends Controller
                 'access_control_applied' => $userInfo && $userInfo['user_id'] != 1
             ]);
             
-            return response()->json([
-                'success' => true,
-                'data' => $completedRequests->items(),
-                'pagination' => [
-                    'current_page' => $completedRequests->currentPage(),
-                    'per_page' => $completedRequests->perPage(),
-                    'total' => $completedRequests->total(),
-                    'last_page' => $completedRequests->lastPage(),
-                    'from' => $completedRequests->firstItem(),
-                    'to' => $completedRequests->lastItem()
-                ],
-                'message' => 'Completed pricing requests retrieved successfully'
-            ]);
-
+            $pagination = AccountingHelper::getPaginationMetadata($completedRequests);
+            return $this->successResponseWithPagination(
+                $completedRequests->items(),
+                $pagination,
+                'Completed pricing requests retrieved successfully'
+            );
         } catch (\Exception $e) {
             Log::error('AutofillController::getCompletedPricingRequests error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve completed pricing requests: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve completed pricing requests: ' . $e->getMessage());
         }
     }
 
@@ -279,20 +163,10 @@ class AutofillController extends Controller
     {
         try {
             $autofillData = $this->autofillService->getCascadeAutofillForInvoice($quotationId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $autofillData,
-                'message' => 'Auto-fill data for invoice retrieved successfully'
-            ]);
-
+            return $this->successResponse($autofillData, 'Auto-fill data for invoice retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getQuotationAutofillForInvoice error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve auto-fill data: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
         }
     }
 
@@ -304,20 +178,10 @@ class AutofillController extends Controller
     {
         try {
             $autofillData = $this->autofillService->getCascadeAutofillForReceipt($invoiceId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $autofillData,
-                'message' => 'Auto-fill data for receipt retrieved successfully'
-            ]);
-
+            return $this->successResponse($autofillData, 'Auto-fill data for receipt retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getInvoiceAutofillForReceipt error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve auto-fill data: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
         }
     }
 
@@ -329,20 +193,10 @@ class AutofillController extends Controller
     {
         try {
             $autofillData = $this->autofillService->getCascadeAutofillForDeliveryNote($receiptId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $autofillData,
-                'message' => 'Auto-fill data for delivery note retrieved successfully'
-            ]);
-
+            return $this->successResponse($autofillData, 'Auto-fill data for delivery note retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getReceiptAutofillForDeliveryNote error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve auto-fill data: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
         }
     }
 
@@ -354,20 +208,10 @@ class AutofillController extends Controller
     {
         try {
             $notes = $this->autofillService->getPricingRequestNotes($pricingRequestId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $notes,
-                'message' => 'Pricing request notes retrieved successfully'
-            ]);
-
+            return $this->successResponse($notes, 'Pricing request notes retrieved successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::getPricingRequestNotes error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve pricing request notes: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to retrieve pricing request notes: ' . $e->getMessage());
         }
     }
 
@@ -378,23 +222,12 @@ class AutofillController extends Controller
     public function markPricingRequestAsUsed(Request $request, $pricingRequestId): JsonResponse
     {
         try {
-            $userId = auth()->user()->user_uuid ?? null;
-            
+            $userId = AccountingHelper::getCurrentUserId();
             $result = $this->autofillService->markPricingRequestAsUsed($pricingRequestId, $userId);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Pricing request marked as used successfully'
-            ]);
-
+            return $this->successResponse($result, 'Pricing request marked as used successfully');
         } catch (\Exception $e) {
             Log::error('AutofillController::markPricingRequestAsUsed error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark pricing request as used: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to mark pricing request as used: ' . $e->getMessage());
         }
     }
 }

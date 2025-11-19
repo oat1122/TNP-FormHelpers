@@ -46,16 +46,27 @@
         $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
         $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null;
 
-        // ✨ Use document number and reference from service (passed as variables)
+        //  Use document number and reference from service (passed as variables)
         // Fallback to invoice methods if not provided
         $displayDocNumber = $docNumber ?? $invoice->getDisplayNumber();
         $displayReferenceNo = $referenceNo ?? $invoice->getReferenceNumber($mode ?? null);
 
-        $seller      = $invoice->manager ?? $invoice->creator;
-        $sellerFirst = optional($seller)->user_firstname;
-        $sellerLast  = optional($seller)->user_lastname;
-        $sellerUser  = optional($seller)->username;
-        $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: ($sellerUser ?? ''));
+        // Get seller from customer's manager (cus_manage_by)
+        $sellerName = null;
+        if ($invoice->customer_id) {
+          $customer = \App\Models\MasterCustomer::find($invoice->customer_id);
+          if ($customer && $customer->cus_manage_by) {
+            $manager = \App\Models\User::find($customer->cus_manage_by);
+            if ($manager) {
+              $sellerName = $manager->user_firstname ?? $manager->username ?? null;
+            }
+          }
+        }
+        // Fallback to invoice manager/creator if no customer manager found
+        if (!$sellerName) {
+          $seller = $invoice->manager ?? $invoice->creator;
+          $sellerName = optional($seller)->user_firstname ?? optional($seller)->username;
+        }
         $jobName = $invoice->job_name ?? $invoice->project_name ?? $invoice->work_name ?? null;
         if (is_string($jobName)) { $jobName = trim($jobName); }
 
@@ -64,7 +75,7 @@
           ['label'=>'วันที่','value'=>$createdDate],
         ];
         if ($dueDate)            $metaRows[] = ['label'=>'ครบกำหนด','value'=>$dueDate];
-        if ($sellerDisplay)      $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
+        if ($sellerName)         $metaRows[] = ['label'=>'ผู้ขาย','value'=>$sellerName];
         if ($displayReferenceNo) $metaRows[] = ['label'=>'อ้างอิง','value'=>$displayReferenceNo,'format'=>'inline'];
 
       @endphp

@@ -149,6 +149,16 @@ class PdfCacheService
             // Get file size
             $fileSize = filesize($destinationPath);
 
+            // Get current user ID (try multiple authentication methods)
+            $uploadedBy = null;
+            if (auth()->check()) {
+                $uploadedBy = auth()->user()->user_uuid ?? auth()->id();
+            } elseif (!empty($options['user_id'])) {
+                $uploadedBy = $options['user_id'];
+            } elseif (!empty($document->created_by)) {
+                $uploadedBy = $document->created_by;
+            }
+
             // Store cache entry in database
             $cacheEntry = DocumentAttachment::create([
                 'document_type' => $documentType,
@@ -162,7 +172,7 @@ class PdfCacheService
                 'cache_expires_at' => $expiresAt,
                 'cache_version' => $cacheVersion,
                 'cache_key' => $cacheKey,
-                'uploaded_by' => null // System generated
+                'uploaded_by' => $uploadedBy
             ]);
 
             Log::info("PDF Cache STORED", [

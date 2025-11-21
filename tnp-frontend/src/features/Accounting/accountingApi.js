@@ -23,6 +23,7 @@ export const accountingApi = createApi({
     "Dashboard",
     "Company",
     "Customer",
+    "SyncJob",
   ],
   endpoints: (builder) => ({
     // ===================== COMPANIES =====================
@@ -270,7 +271,13 @@ export const accountingApi = createApi({
     }),
     updateQuotation: builder.mutation({
       query: ({ id, ...data }) => ({ url: `/quotations/${id}`, method: "PUT", body: data }),
-      invalidatesTags: (r, e, { id }) => [{ type: "Quotation", id }, "Quotation", "Dashboard"],
+      invalidatesTags: (r, e, { id }) => [
+        { type: "Quotation", id },
+        "Quotation",
+        "Dashboard",
+        "Invoice",
+        { type: "SyncJob", id: "LIST" },
+      ],
     }),
     deleteQuotation: builder.mutation({
       query: (id) => ({ url: `/quotations/${id}`, method: "DELETE" }),
@@ -422,6 +429,19 @@ export const accountingApi = createApi({
             };
         return { url: `/quotations/${id}/generate-pdf`, method: "POST", body };
       },
+    }),
+    getQuotationRelatedInvoices: builder.query({
+      query: (quotationId) => `/quotations/${quotationId}/related-invoices`,
+      providesTags: (r, e, quotationId) => [
+        { type: "Invoice", id: "LIST" },
+        { type: "Quotation", id: quotationId },
+      ],
+      keepUnusedDataFor: 30,
+    }),
+    getSyncJobStatus: builder.query({
+      query: (syncJobId) => `/quotations/sync-jobs/${syncJobId}`,
+      providesTags: (r, e, syncJobId) => [{ type: "SyncJob", id: syncJobId }],
+      keepUnusedDataFor: 10,
     }),
 
     // ===================== INVOICES =====================
@@ -751,6 +771,8 @@ export const {
   useSendQuotationEmailMutation,
   useMarkQuotationCompletedMutation,
   useGenerateQuotationPDFMutation,
+  useGetQuotationRelatedInvoicesQuery,
+  useGetSyncJobStatusQuery,
   // Invoices
   useGetQuotationsAwaitingInvoiceQuery,
   useGetInvoicesQuery,

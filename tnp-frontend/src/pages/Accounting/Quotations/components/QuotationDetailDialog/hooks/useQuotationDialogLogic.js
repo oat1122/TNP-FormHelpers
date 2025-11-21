@@ -149,8 +149,8 @@ export function useQuotationDialogLogic(quotationId, open) {
     hasInitializedFinancials,
   ]);
 
-  // Main Save Handler
-  const handleSave = async (groups, financials) => {
+  // Main Save Handler with sync support
+  const handleSave = async (groups, financials, confirmSync = false) => {
     // Map editable groups back to API items
     const flatItems = groups.flatMap((g) => {
       const unit = g.unit || "ชิ้น";
@@ -187,7 +187,7 @@ export function useQuotationDialogLogic(quotationId, open) {
     const loadingId = showLoading("กำลังบันทึกใบเสนอราคา…");
 
     try {
-      await updateQuotation({
+      const response = await updateQuotation({
         id: q.id,
         items: flatItems,
         subtotal: totals.subtotal,
@@ -218,15 +218,66 @@ export function useQuotationDialogLogic(quotationId, open) {
         payment_terms: paymentTermsType === "other" ? paymentTermsCustom || "" : paymentTermsType,
         due_date: dueDateForSave,
         notes: quotationNotes || "",
+        // Sync confirmation flag
+        confirm_sync: confirmSync,
       }).unwrap();
 
       dismissToast(loadingId);
-      showSuccess("บันทึกใบเสนอราคาเรียบร้อย");
-      return true;
+
+      // Check if sync is needed (response contains sync info)
+      const syncMode = response?.data?.sync_mode;
+      const syncJobId = response?.data?.sync_job_id;
+      const syncCount = response?.data?.sync_count || 0;
+
+      if (syncMode === "queued" && syncJobId) {
+        // Background sync - return syncJobId to parent
+        showSuccess(`บันทึกเรียบร้อย กำลังซิงค์ข้อมูลไปยังใบแจ้งหนี้ ${syncCount} ใบในพื้นหลัง`);
+        return { success: true, syncJobId, syncMode };
+      } else if (syncMode === "immediate") {
+        // Immediate sync completed
+        showSuccess(`บันทึกและซิงค์ข้อมูลไปยังใบแจ้งหนี้ ${syncCount} ใบเรียบร้อย`);
+        return { success: true, syncMode };
+      } else {
+        // No sync needed (no invoices)
+        showSuccess("บันทึกใบเสนอราคาเรียบร้อย");
+        return { success: true };
+      }
     } catch (e) {
       dismissToast(loadingId);
-      showError(e?.data?.message || e?.message || "บันทึกใบเสนอราคาไม่สำเร็จ");
-      return false;
+
+      // Debug: Log error structure to understand RTK Query error format
+      console.log("🔍 Save Error Details:", {
+        status: e?.status,
+        originalStatus: e?.originalStatus,
+        data: e?.data,
+        fullError: e,
+      });
+
+      // Handle 422 - needs confirmation
+      // RTK Query can return status in e.status or e.originalStatus
+      const statusCode = e?.status || e?.originalStatus;
+      const errorData = e?.data;
+
+      if (statusCode === 422 && errorData?.requires_confirmation) {
+        console.log("✅ Detected sync confirmation needed", errorData);
+        return {
+          success: false,
+          needsConfirmation: true,
+          invoiceCount: errorData?.invoice_count || 0,
+          affectedInvoices: errorData?.affected_invoices || [],
+          message: errorData?.message,
+        };
+      }
+
+      // Handle 403 - permission denied
+      if (statusCode === 403) {
+        showError(errorData?.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้");
+        return { success: false, permissionDenied: true };
+      }
+
+      // Other errors
+      showError(errorData?.message || e?.message || "บันทึกใบเสนอราคาไม่สำเร็จ");
+      return { success: false };
     }
   };
 

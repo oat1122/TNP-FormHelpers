@@ -30,7 +30,7 @@ class InvoiceService
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    private function calculateBeforeVatFields(array $data): array
+    public function calculateBeforeVatFields(array $data): array
     {
         // Extract values with proper defaults
         $subtotal = round(floatval($data['subtotal'] ?? 0), 2);

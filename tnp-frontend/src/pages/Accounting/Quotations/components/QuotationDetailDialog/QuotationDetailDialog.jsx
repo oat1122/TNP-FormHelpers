@@ -48,6 +48,8 @@ import CustomerEditDialog from "../../../PricingIntegration/components/CustomerE
 import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
+import SyncConfirmationDialog from "../SyncConfirmationDialog";
+import SyncProgressDialog from "../SyncProgressDialog";
 import {
   Section,
   SectionHeader,
@@ -63,6 +65,11 @@ import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/A
 
 // ✅ รับ onSaveSuccess เพิ่ม
 const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
+  // Sync-related state
+  const [syncConfirmOpen, setSyncConfirmOpen] = React.useState(false);
+  const [syncJobId, setSyncJobId] = React.useState(null);
+  const [pendingSaveData, setPendingSaveData] = React.useState(null);
+
   // Check user permissions first
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
   const canEditQuotation = ["admin", "account"].includes(userData?.role);
@@ -156,13 +163,67 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
     imageManager.updateSampleSelection(sampleImages);
   }, [sampleImages, imageManager.updateSampleSelection]);
 
-  // Main save handler with UI feedback
-  // ✅ แก้ไข handleSave
+  // Main save handler with UI feedback and sync support
   const handleSave = async () => {
-    const success = await dialogLogic.handleSave(groups, financials);
-    if (success) {
+    // First attempt - without confirmation
+    const result = await dialogLogic.handleSave(groups, financials, false);
+
+    // Handle permission denied
+    if (result?.permissionDenied) {
+      return;
+    }
+
+    // Handle needs confirmation
+    if (result?.needsConfirmation) {
+      // Store current data for retry after confirmation
+      setPendingSaveData({
+        groups,
+        financials,
+        invoiceCount: result.invoiceCount,
+        affectedInvoices: result.affectedInvoices,
+      });
+      setSyncConfirmOpen(true);
+      return;
+    }
+
+    // Handle success
+    if (result?.success) {
       setIsEditing(false);
-      onSaveSuccess?.(); // ✅ เรียก onSaveSuccess เมื่อบันทึกสำเร็จ
+
+      // If queued sync, show progress dialog
+      if (result?.syncJobId) {
+        setSyncJobId(result.syncJobId);
+      }
+
+      onSaveSuccess?.();
+    }
+  };
+
+  // Handle sync confirmation
+  const handleSyncConfirm = async () => {
+    if (!pendingSaveData) return;
+
+    // Retry save with confirmation
+    const result = await dialogLogic.handleSave(
+      pendingSaveData.groups,
+      pendingSaveData.financials,
+      true // confirm_sync = true
+    );
+
+    // Clean up pending data
+    setPendingSaveData(null);
+    setSyncConfirmOpen(false);
+
+    // Handle success
+    if (result?.success) {
+      setIsEditing(false);
+
+      // If queued sync, show progress dialog
+      if (result?.syncJobId) {
+        setSyncJobId(result.syncJobId);
+      }
+
+      onSaveSuccess?.();
     }
   };
 
@@ -861,6 +922,26 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
           }}
         />
       </Dialog>
+
+      {/* Sync Confirmation Dialog */}
+      <SyncConfirmationDialog
+        open={syncConfirmOpen}
+        onClose={() => {
+          setSyncConfirmOpen(false);
+          setPendingSaveData(null);
+        }}
+        onConfirm={handleSyncConfirm}
+        quotationId={quotationId}
+        invoiceCount={pendingSaveData?.invoiceCount || 0}
+        affectedInvoices={pendingSaveData?.affectedInvoices || []}
+      />
+
+      {/* Sync Progress Dialog */}
+      <SyncProgressDialog
+        open={!!syncJobId}
+        syncJobId={syncJobId}
+        onClose={() => setSyncJobId(null)}
+      />
 
       {/* Backend PDF Viewer Dialog */}
       <Dialog

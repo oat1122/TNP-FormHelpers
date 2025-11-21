@@ -667,7 +667,19 @@ class QuotationService
             $oldStatus = $quotation->status;
             $oldCompanyId = $quotation->company_id;
 
+            // Preserve primary_pricing_request fields if not explicitly provided
+            $preservedPrimaryPrId = $quotation->primary_pricing_request_id;
+            $preservedPrimaryPrIds = $quotation->primary_pricing_request_ids;
+
             $quotation->fill($data);
+
+            // Restore preserved fields if they weren't in the update data
+            if (!array_key_exists('primary_pricing_request_id', $data)) {
+                $quotation->primary_pricing_request_id = $preservedPrimaryPrId;
+            }
+            if (!array_key_exists('primary_pricing_request_ids', $data)) {
+                $quotation->primary_pricing_request_ids = $preservedPrimaryPrIds;
+            }
 
             // หากเป็นเอกสารที่อนุมัติแล้ว/ส่งแล้ว/เสร็จสิ้น ห้ามเปลี่ยนบริษัท
             if (
@@ -1955,25 +1967,25 @@ class QuotationService
             DB::beginTransaction();
 
             $invoices = $quotation->invoices()->with('items')->get();
-            $currentQItemIds = $quotation->items->pluck('id')->toArray();
             $invoiceIds = $invoices->pluck('id')->toArray();
+
+            // Create sync job record for tracking
+            $syncJob = \App\Models\Accounting\QuotationInvoiceSyncJob::create([
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'quotation_id' => $quotation->id,
+                'affected_invoice_ids' => $invoiceIds,
+                'original_quotation_snapshot' => json_encode($quotation->load('items')->toArray()),
+                'original_invoices_snapshot' => json_encode($invoices->toArray()),
+                'status' => 'processing',
+                'progress_total' => $invoices->count(),
+                'progress_current' => 0,
+                'started_by' => $userId,
+                'started_at' => now()
+            ]);
 
             $totalUpdated = 0;
             $totalItemsUpdated = 0;
             $totalItemsDeleted = 0;
-
-            // Delete orphaned invoice items (items not in current quotation)
-            $deletedCount = \App\Models\Accounting\InvoiceItem::whereIn('invoice_id', $invoiceIds)
-                ->whereNotIn('quotation_item_id', $currentQItemIds)
-                ->delete();
-            $totalItemsDeleted += $deletedCount;
-
-            if ($deletedCount > 0) {
-                Log::info("Deleted {$deletedCount} orphaned invoice items", [
-                    'quotation_id' => $quotation->id,
-                    'invoice_ids' => $invoiceIds
-                ]);
-            }
 
             // Update each invoice
             foreach ($invoices as $invoice) {
@@ -1998,48 +2010,48 @@ class QuotationService
                 $invoice->deposit_mode = $quotation->deposit_mode ?? $invoice->deposit_mode;
                 $invoice->document_header_type = $quotation->document_header_type ?? $invoice->document_header_type;
 
-                // Sync invoice items that match quotation items
-                $itemsUpdated = 0;
+                // Delete all existing invoice items and recreate from quotation
+                $deletedCount = \App\Models\Accounting\InvoiceItem::where('invoice_id', $invoice->id)->delete();
+                $totalItemsDeleted += $deletedCount;
+
+                // Create new invoice items from quotation items
+                $itemsCreated = 0;
                 foreach ($quotation->items as $qItem) {
-                    $invoiceItem = $invoice->items->where('quotation_item_id', $qItem->id)->first();
-                    
-                    if ($invoiceItem) {
-                        $invoiceItem->item_name = $qItem->item_name;
-                        $invoiceItem->item_description = $qItem->item_description;
-                        $invoiceItem->sequence_order = $qItem->sequence_order;
-                        $invoiceItem->pattern = $qItem->pattern;
-                        $invoiceItem->fabric_type = $qItem->fabric_type;
-                        $invoiceItem->color = $qItem->color;
-                        $invoiceItem->size = $qItem->size;
-                        $invoiceItem->unit_price = $qItem->unit_price;
-                        $invoiceItem->quantity = $qItem->quantity;
-                        $invoiceItem->unit = $qItem->unit;
-                        $invoiceItem->discount_percentage = $qItem->discount_percentage;
-                        $invoiceItem->discount_amount = $qItem->discount_amount;
-                        $invoiceItem->item_images = $qItem->item_images;
-                        $invoiceItem->notes = $qItem->notes;
-                        $invoiceItem->updated_at = now();
-                        $invoiceItem->save();
-                        $itemsUpdated++;
-                    }
+                    \App\Models\Accounting\InvoiceItem::create([
+                        'id' => \Illuminate\Support\Str::uuid()->toString(),
+                        'invoice_id' => $invoice->id,
+                        'quotation_item_id' => $qItem->id,
+                        'pricing_request_id' => $qItem->pricing_request_id,
+                        'item_name' => $qItem->item_name,
+                        'item_description' => $qItem->item_description,
+                        'sequence_order' => $qItem->sequence_order,
+                        'pattern' => $qItem->pattern,
+                        'fabric_type' => $qItem->fabric_type,
+                        'color' => $qItem->color,
+                        'size' => $qItem->size,
+                        'unit_price' => $qItem->unit_price,
+                        'quantity' => $qItem->quantity,
+                        'unit' => $qItem->unit,
+                        'discount_percentage' => $qItem->discount_percentage,
+                        'discount_amount' => $qItem->discount_amount,
+                        'item_images' => $qItem->item_images,
+                        'notes' => $qItem->notes,
+                        'status' => 'draft',
+                        'created_by' => $userId,
+                        'updated_by' => $userId,
+                    ]);
+                    $itemsCreated++;
                 }
 
-                $totalItemsUpdated += $itemsUpdated;
+                $totalItemsUpdated += $itemsCreated;
 
-                // Recalculate invoice totals using InvoiceService
+                // Recalculate invoice derived fields using InvoiceService
                 $invoiceService = app(InvoiceService::class);
-                $recalculated = $invoiceService->calculateBeforeVatFields($invoice);
+                $recalculated = $invoiceService->calculateBeforeVatFields($invoice->toArray());
                 
-                $invoice->subtotal = $recalculated['subtotal'];
-                $invoice->net_subtotal = $recalculated['net_subtotal'] ?? $recalculated['subtotal'];
-                $invoice->tax_amount = $recalculated['tax_amount'];
-                $invoice->vat_amount = $recalculated['vat_amount'];
-                $invoice->total_amount = $recalculated['total_amount'];
-                $invoice->special_discount_amount = $recalculated['special_discount_amount'];
-                $invoice->withholding_tax_amount = $recalculated['withholding_tax_amount'];
-                $invoice->deposit_amount = $recalculated['deposit_amount'];
-                $invoice->deposit_amount_before_vat = $recalculated['deposit_amount_before_vat'] ?? null;
-                $invoice->final_total_amount = $recalculated['final_total_amount'];
+                $invoice->net_subtotal = $recalculated['net_subtotal'];
+                $invoice->subtotal_before_vat = $recalculated['subtotal_before_vat'];
+                $invoice->deposit_amount_before_vat = $recalculated['deposit_amount_before_vat'];
                 $invoice->updated_at = now();
                 $invoice->save();
 
@@ -2053,7 +2065,7 @@ class QuotationService
                         'quotation_id' => $quotation->id,
                         'quotation_number' => $quotation->number,
                         'sync_mode' => 'immediate',
-                        'updated_items_count' => $itemsUpdated,
+                        'updated_items_count' => $itemsCreated,
                         'deleted_items_count' => $deletedCount,
                         'timestamp' => now()->toISOString()
                     ])
@@ -2062,12 +2074,28 @@ class QuotationService
                 $totalUpdated++;
             }
 
+            // Update sync job status to completed
+            $syncJob->update([
+                'status' => 'completed',
+                'progress_current' => $totalUpdated,
+                'completed_at' => now()
+            ]);
+
             DB::commit();
+
+            Log::info('Quotation sync completed immediately', [
+                'quotation_id' => $quotation->id,
+                'sync_job_id' => $syncJob->id,
+                'invoices_updated' => $totalUpdated,
+                'items_created' => $totalItemsUpdated,
+                'items_deleted' => $totalItemsDeleted
+            ]);
 
             return [
                 'updated_count' => $totalUpdated,
-                'updated_items' => $totalItemsUpdated,
-                'deleted_items' => $totalItemsDeleted
+                'items_updated' => $totalItemsUpdated,
+                'items_deleted' => $totalItemsDeleted,
+                'sync_job_id' => $syncJob->id
             ];
 
         } catch (\Exception $e) {

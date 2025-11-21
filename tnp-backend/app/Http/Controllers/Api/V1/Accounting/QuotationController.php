@@ -172,17 +172,19 @@ class QuotationController extends Controller
             // Prepare response with sync info
             $response = [
                 'success' => true,
-                'data' => $result['quotation'] ?? $result,
                 'message' => 'Quotation updated successfully'
             ];
 
-            // Add sync info if available
+            // Add data wrapper with quotation and sync info
             if (isset($result['sync_mode'])) {
-                $response['sync_info'] = [
-                    'mode' => $result['sync_mode'],
-                    'affected_invoices_count' => $result['sync_count'] ?? 0,
-                    'sync_job_id' => $result['sync_job_id'] ?? null
+                $response['data'] = [
+                    'quotation' => $result['quotation'] ?? null,
+                    'sync_mode' => $result['sync_mode'],
+                    'sync_count' => $result['sync_count'] ?? 0,
+                    'sync_job_id' => $result['sync_job_id'] ?? null,
                 ];
+            } else {
+                $response['data'] = $result['quotation'] ?? $result;
             }
 
             return response()->json($response, 200);

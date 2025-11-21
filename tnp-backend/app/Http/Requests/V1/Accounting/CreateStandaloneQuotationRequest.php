@@ -4,6 +4,7 @@ namespace App\Http\Requests\V1\Accounting;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Traits\QuotationItemRules;
+use Illuminate\Contracts\Validation\Validator;
 
 class CreateStandaloneQuotationRequest extends FormRequest
 {
@@ -38,7 +39,7 @@ class CreateStandaloneQuotationRequest extends FormRequest
             'deposit_percentage' => 'nullable|numeric|min:0|max:100',
             'deposit_amount' => 'nullable|numeric|min:0',
             'payment_terms' => 'nullable|string|max:50',
-            'due_date' => 'nullable|date',
+            'due_date' => 'nullable|date|date_format:Y-m-d|after_or_equal:today',
             'notes' => 'nullable|string',
             'document_header_type' => 'nullable|string|max:50',
             'sample_images' => 'nullable|array',
@@ -52,6 +53,15 @@ class CreateStandaloneQuotationRequest extends FormRequest
     }
 
     /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        // Add custom validation for unique sequence orders
+        static::validateUniqueSequenceOrder($validator);
+    }
+
+    /**
      * Get custom messages for validator errors.
      */
     public function messages(): array
@@ -62,6 +72,9 @@ class CreateStandaloneQuotationRequest extends FormRequest
             'work_name.required' => 'กรุณาระบุชื่องาน',
             'items.required' => 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ',
             'items.min' => 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ',
+            'due_date.date' => 'รูปแบบวันที่ครบกำหนดไม่ถูกต้อง',
+            'due_date.date_format' => 'รูปแบบวันที่ครบกำหนดต้องเป็น Y-m-d (เช่น 2025-12-31)',
+            'due_date.after_or_equal' => 'วันที่ครบกำหนดต้องไม่เป็นวันที่ในอดีต',
         ];
     }
 }

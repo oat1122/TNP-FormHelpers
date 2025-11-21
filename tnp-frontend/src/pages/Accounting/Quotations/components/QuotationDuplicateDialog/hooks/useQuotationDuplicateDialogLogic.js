@@ -123,18 +123,23 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
 
   // Main Save Handler (สร้างใบใหม่)
   const handleSave = async (groups, financials) => {
+    // ✅ ใช้ global sequence counter เพื่อป้องกัน duplicate sequence_order
+    let globalSequence = 0;
+
     // Map editable groups back to API items
     const flatItems = groups.flatMap((g) => {
       const unit = g.unit || "ชิ้น";
       const base = {
         pricing_request_id: g.prId || null,
         item_name: g.name || "ไม่ระบุชื่องาน",
+        item_description: "",
         pattern: g.pattern || "",
         fabric_type: g.fabricType || "",
         color: g.color || "",
         unit,
       };
-      return (g.sizeRows || []).map((r, idx) => {
+      return (g.sizeRows || []).map((r) => {
+        globalSequence++; // ✅ เพิ่ม global counter
         const qty =
           typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);
         const price =
@@ -147,7 +152,7 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
           unit_price: isNaN(price) ? 0 : price,
           quantity: isNaN(qty) ? 0 : qty,
           notes: r.notes || "",
-          sequence_order: idx + 1,
+          sequence_order: globalSequence, // ✅ ใช้ global sequence
         };
       });
     });

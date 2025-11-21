@@ -61,7 +61,11 @@ import Calculation from "../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../shared/components/PaymentTerms";
 import { apiConfig } from "../../../../../api/apiConfig";
-import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
+import {
+  useGetBulkPricingRequestAutofillQuery,
+  useGetQuotationRelatedInvoicesQuery,
+} from "../../../../../features/Accounting/accountingApi";
+import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
 
 // ✅ รับ onSaveSuccess เพิ่ม
 const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
@@ -70,11 +74,40 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
   const [syncJobId, setSyncJobId] = React.useState(null);
   const [pendingSaveData, setPendingSaveData] = React.useState(null);
 
+  // Permission error state
+  const [permissionError, setPermissionError] = React.useState({
+    open: false,
+    message: "",
+    invoices: [],
+  });
+
   // Check user permissions first
   const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
-  const canEditQuotation = ["admin", "account"].includes(userData?.role);
   const canUploadSignatures = ["admin", "account", "sale"].includes(userData?.role);
   const canUploadSampleImages = ["admin", "account", "sale"].includes(userData?.role);
+
+  // Fetch related invoices to determine edit permission dynamically
+  const { data: relatedInvoicesData } = useGetQuotationRelatedInvoicesQuery(quotationId, {
+    skip: !open || !quotationId,
+  });
+
+  // Dynamic permission check based on role and invoice status
+  const canEditQuotation = React.useMemo(() => {
+    const userRole = userData?.role;
+    const hasInvoices = relatedInvoicesData?.has_invoices || false;
+
+    // Admin and Account can always edit
+    if (["admin", "account"].includes(userRole)) {
+      return true;
+    }
+
+    // Sale can only edit if no invoices are linked
+    if (userRole === "sale") {
+      return !hasInvoices;
+    }
+
+    return false;
+  }, [userData?.role, relatedInvoicesData?.has_invoices]);
 
   // 1. Main logic hook for data, state, and save handlers
   const dialogLogic = useQuotationDialogLogic(quotationId, open);
@@ -170,6 +203,11 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
 
     // Handle permission denied
     if (result?.permissionDenied) {
+      setPermissionError({
+        open: true,
+        message: result.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้",
+        invoices: result.invoices || [],
+      });
       return;
     }
 
@@ -1000,6 +1038,16 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
           <SecondaryButton onClick={() => imageManager.setPreviewImage(null)}>ปิด</SecondaryButton>
         </DialogActions>
       </Dialog>
+
+      {/* Permission Error Dialog */}
+      <PermissionErrorDialog
+        open={permissionError.open}
+        onClose={() => setPermissionError({ open: false, message: "", invoices: [] })}
+        message={permissionError.message}
+        invoices={permissionError.invoices}
+        quotationNumber={q?.number}
+        userRole={userData?.role}
+      />
     </>
   );
 };

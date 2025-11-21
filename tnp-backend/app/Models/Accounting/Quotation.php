@@ -497,14 +497,35 @@ class Quotation extends Model
     }
 
     /**
+     * Get summary of related invoices for permission checks
+     * 
+     * @return array<int, array{id: string, number: string, status: string}>
+     */
+    public function getRelatedInvoicesSummary(): array
+    {
+        return $this->invoices()
+            ->select('id', 'number', 'status', 'quotation_id')
+            ->get()
+            ->map(function($invoice) {
+                return [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'status' => $invoice->status
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
      * Check if quotation can be edited by user
      * 
      * @param User $user
-     * @return array{can_edit: bool, reason: string|null, invoice_count: int}
+     * @return array{can_edit: bool, reason: string|null, invoice_count: int, invoices: array}
      */
     public function canBeEditedBy(User $user): array
     {
         $invoiceCount = $this->getRelatedInvoicesCount();
+        $invoices = $this->getRelatedInvoicesSummary();
         $userRole = $user->role;
 
         // If no invoices linked, allow Sale/Admin/Account
@@ -513,23 +534,31 @@ class Quotation extends Model
                 return [
                     'can_edit' => true,
                     'reason' => null,
-                    'invoice_count' => 0
+                    'invoice_count' => 0,
+                    'invoices' => []
                 ];
             }
 
             return [
                 'can_edit' => false,
                 'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
-                'invoice_count' => 0
+                'invoice_count' => 0,
+                'invoices' => []
             ];
         }
 
         // If has invoices, deny Sale role
         if ($userRole === 'sale') {
+            $invoiceNumbers = implode(', ', array_column($invoices, 'number'));
             return [
                 'can_edit' => false,
-                'reason' => 'ไม่สามารถแก้ไขใบเสนอราคาที่มีใบแจ้งหนี้เชื่อมโยงแล้ว กรุณาติดต่อฝ่ายบัญชี',
-                'invoice_count' => $invoiceCount
+                'reason' => sprintf(
+                    'ไม่สามารถแก้ไขใบเสนอราคาที่มีใบแจ้งหนี้เชื่อมโยงแล้ว (%d ใบ: %s) กรุณาติดต่อฝ่ายบัญชี',
+                    $invoiceCount,
+                    $invoiceNumbers
+                ),
+                'invoice_count' => $invoiceCount,
+                'invoices' => $invoices
             ];
         }
 
@@ -538,7 +567,8 @@ class Quotation extends Model
             return [
                 'can_edit' => true,
                 'reason' => null,
-                'invoice_count' => $invoiceCount
+                'invoice_count' => $invoiceCount,
+                'invoices' => $invoices
             ];
         }
 
@@ -546,7 +576,8 @@ class Quotation extends Model
         return [
             'can_edit' => false,
             'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
-            'invoice_count' => $invoiceCount
+            'invoice_count' => $invoiceCount,
+            'invoices' => $invoices
         ];
     }
 }

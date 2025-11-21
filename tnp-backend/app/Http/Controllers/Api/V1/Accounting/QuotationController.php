@@ -141,7 +141,8 @@ class QuotationController extends Controller
                     'success' => false,
                     'message' => $permissionCheck['reason'],
                     'has_invoices' => $permissionCheck['invoice_count'] > 0,
-                    'invoice_count' => $permissionCheck['invoice_count']
+                    'invoice_count' => $permissionCheck['invoice_count'],
+                    'affected_invoices' => $permissionCheck['invoices']
                 ], 403);
             }
 

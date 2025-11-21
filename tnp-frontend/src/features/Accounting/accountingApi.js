@@ -208,10 +208,12 @@ export const accountingApi = createApi({
     getQuotations: builder.query({
       query: (params = {}) => ({ url: "/quotations", params }),
       providesTags: ["Quotation"],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
     getQuotation: builder.query({
       query: (id) => `/quotations/${id}`,
       providesTags: (r, e, id) => [{ type: "Quotation", id }],
+      keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
     createQuotation: builder.mutation({
       query: (data) => ({ url: "/quotations", method: "POST", body: data }),
@@ -276,6 +278,7 @@ export const accountingApi = createApi({
         "Quotation",
         "Dashboard",
         "Invoice",
+        { type: "Invoice", id: "LIST" },
         { type: "SyncJob", id: "LIST" },
       ],
     }),
@@ -436,7 +439,7 @@ export const accountingApi = createApi({
         { type: "Invoice", id: "LIST" },
         { type: "Quotation", id: quotationId },
       ],
-      keepUnusedDataFor: 30,
+      keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
     getSyncJobStatus: builder.query({
       query: (syncJobId) => `/quotations/sync-jobs/${syncJobId}`,
@@ -463,7 +466,13 @@ export const accountingApi = createApi({
         method: "POST",
         body: { quotation_id: quotationId, ...additionalData },
       }),
-      invalidatesTags: ["Invoice", "Quotation", "Dashboard"],
+      invalidatesTags: (r, e, { quotationId }) => [
+        "Invoice",
+        { type: "Invoice", id: "LIST" },
+        "Quotation",
+        { type: "Quotation", id: quotationId },
+        "Dashboard",
+      ],
     }),
     updateInvoice: builder.mutation({
       query: ({ id, ...data }) => ({ url: `/invoices/${id}`, method: "PUT", body: data }),

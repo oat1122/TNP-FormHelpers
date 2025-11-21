@@ -354,12 +354,14 @@ class QuotationService
                 $depositPercentage = $subtotalAfterDiscount > 0 ? ($depositAmount / $subtotalAfterDiscount * 100) : 0;
             }
 
-            // สร้างเลขที่ใบเสนอราคา
-            $quotationNumber = Quotation::generateQuotationNumber($data['company_id']);
+            // ✅ สร้าง UUID และเลขชั่วคราว DRAFT (เลขจริงจะออกตอนอนุมัติ)
+            $quotationId = \Illuminate\Support\Str::uuid()->toString();
+            $suffix = substr(str_replace('-', '', $quotationId), -8);
+            $quotationNumber = 'DRAFT-' . $suffix;
 
             // สร้าง Quotation
             $quotation = Quotation::create([
-                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'id' => $quotationId,
                 'company_id' => $data['company_id'],
                 'number' => $quotationNumber,
                 'customer_id' => $data['customer_id'],
@@ -1091,10 +1093,7 @@ class QuotationService
             // 5. ตั้งค่าสถานะเริ่มต้น
             $newData['status'] = 'draft'; 
             
-            // 6. เพิ่มหมายเหตุว่าเป็นการสำเนา
-            $originalNumber = $original->number ?? 'ต้นฉบับ';
-            $newData['notes'] = ($newData['notes'] ?? '') . "\n\n(สำเนาจาก " . $originalNumber . ")";
-            
+       
             // 7. ล้างข้อมูล ID ของ Items (สำคัญมาก)
             if (isset($newData['items']) && is_array($newData['items'])) {
                 $newData['items'] = array_map(function($item) {

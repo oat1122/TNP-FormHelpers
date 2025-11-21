@@ -49,6 +49,25 @@ trait ApiResponseHelper
     }
 
     /**
+     * Return a success JSON response with metadata
+     * 
+     * @param mixed $data The data to return
+     * @param array $meta Additional metadata
+     * @param string $message Success message
+     * @param int $code HTTP status code (default: 200)
+     * @return JsonResponse
+     */
+    protected function successResponseWithMeta($data, array $meta, string $message = 'Success', int $code = 200): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => $meta,
+            'message' => $message
+        ], $code);
+    }
+
+    /**
      * Return an error JSON response
      * 
      * @param string $message Error message

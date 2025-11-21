@@ -271,8 +271,18 @@ export function useQuotationDialogLogic(quotationId, open) {
 
       // Handle 403 - permission denied
       if (statusCode === 403) {
-        showError(errorData?.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้");
-        return { success: false, permissionDenied: true };
+        const errorMessage = errorData?.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้";
+        const affectedInvoices = errorData?.affected_invoices || [];
+
+        showError(errorMessage);
+
+        return {
+          success: false,
+          permissionDenied: true,
+          message: errorMessage,
+          invoices: affectedInvoices,
+          invoiceCount: errorData?.invoice_count || 0,
+        };
       }
 
       // Other errors

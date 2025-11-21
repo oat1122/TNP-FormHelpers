@@ -465,4 +465,88 @@ class Quotation extends Model
     {
         return in_array($pricingRequestId, $this->getPrimaryPricingRequestIdsAttribute());
     }
+
+    /**
+     * Check if quotation has linked invoices
+     * 
+     * @return bool
+     */
+    public function hasInvoices(): bool
+    {
+        return $this->invoices()->exists();
+    }
+
+    /**
+     * Get count of related invoices
+     * 
+     * @return int
+     */
+    public function getRelatedInvoicesCount(): int
+    {
+        return $this->invoices()->count();
+    }
+
+    /**
+     * Get related invoices with items eager-loaded
+     * 
+     * @return Collection<int, Invoice>
+     */
+    public function getRelatedInvoicesWithItems(): Collection
+    {
+        return $this->invoices()->with(['items', 'company'])->get();
+    }
+
+    /**
+     * Check if quotation can be edited by user
+     * 
+     * @param User $user
+     * @return array{can_edit: bool, reason: string|null, invoice_count: int}
+     */
+    public function canBeEditedBy(User $user): array
+    {
+        $invoiceCount = $this->getRelatedInvoicesCount();
+        $userRole = $user->role;
+
+        // If no invoices linked, allow Sale/Admin/Account
+        if ($invoiceCount === 0) {
+            if (in_array($userRole, ['sale', 'admin', 'account'])) {
+                return [
+                    'can_edit' => true,
+                    'reason' => null,
+                    'invoice_count' => 0
+                ];
+            }
+
+            return [
+                'can_edit' => false,
+                'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
+                'invoice_count' => 0
+            ];
+        }
+
+        // If has invoices, deny Sale role
+        if ($userRole === 'sale') {
+            return [
+                'can_edit' => false,
+                'reason' => 'ไม่สามารถแก้ไขใบเสนอราคาที่มีใบแจ้งหนี้เชื่อมโยงแล้ว กรุณาติดต่อฝ่ายบัญชี',
+                'invoice_count' => $invoiceCount
+            ];
+        }
+
+        // Allow Admin and Account roles
+        if (in_array($userRole, ['admin', 'account'])) {
+            return [
+                'can_edit' => true,
+                'reason' => null,
+                'invoice_count' => $invoiceCount
+            ];
+        }
+
+        // Default deny for other roles
+        return [
+            'can_edit' => false,
+            'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
+            'invoice_count' => $invoiceCount
+        ];
+    }
 }

@@ -263,6 +263,10 @@ Route::prefix('v1')->group(function() {
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');
         Route::post('/quotations/{id}/mark-sent', 'markSent');
         
+        // Quotation-Invoice Sync APIs
+        Route::get('/quotations/{id}/related-invoices', 'getRelatedInvoices');
+        Route::get('/quotations/sync-jobs/{jobId}', 'getSyncJobStatus');
+        
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
         Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');

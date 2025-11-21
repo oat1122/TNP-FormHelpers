@@ -127,13 +127,72 @@ class QuotationController extends Controller
         try {
             $data = $request->validated();
             $updatedBy = AccountingHelper::getCurrentUserId();
+            $user = auth()->user();
+            $userRole = $user->role;
 
-            $quotation = $this->quotationService->update($id, $data, $updatedBy);
+            // Load quotation with invoices to check permissions
+            $quotation = Quotation::with('invoices:id,number,status,quotation_id')->findOrFail($id);
+
+            // Check if user can edit this quotation
+            $permissionCheck = $quotation->canBeEditedBy($user);
             
-            return $this->successResponse($quotation, 'Quotation updated successfully');
+            if (!$permissionCheck['can_edit']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $permissionCheck['reason'],
+                    'has_invoices' => $permissionCheck['invoice_count'] > 0,
+                    'invoice_count' => $permissionCheck['invoice_count']
+                ], 403);
+            }
+
+            // If quotation has invoices and user is Admin/Account, require sync confirmation
+            if ($permissionCheck['invoice_count'] > 0 && in_array($userRole, ['admin', 'account'])) {
+                $confirmSync = $request->input('confirm_sync', false);
+                
+                if (!$confirmSync) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ต้องยืนยันการซิงค์ข้อมูลกับใบแจ้งหนี้',
+                        'requires_confirmation' => true,
+                        'affected_invoices' => $quotation->invoices->map(function($inv) {
+                            return [
+                                'id' => $inv->id,
+                                'number' => $inv->number,
+                                'status' => $inv->status
+                            ];
+                        }),
+                        'invoice_count' => $quotation->invoices->count()
+                    ], 422);
+                }
+            }
+
+            // Perform update with optional sync
+            $result = $this->quotationService->update($id, $data, $updatedBy, $request->input('confirm_sync', false));
+            
+            // Prepare response with sync info
+            $response = [
+                'success' => true,
+                'data' => $result['quotation'] ?? $result,
+                'message' => 'Quotation updated successfully'
+            ];
+
+            // Add sync info if available
+            if (isset($result['sync_mode'])) {
+                $response['sync_info'] = [
+                    'mode' => $result['sync_mode'],
+                    'affected_invoices_count' => $result['sync_count'] ?? 0,
+                    'sync_job_id' => $result['sync_job_id'] ?? null
+                ];
+            }
+
+            return response()->json($response, 200);
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::update error: ' . $e->getMessage());
+            Log::error('QuotationController::update error: ' . $e->getMessage(), [
+                'quotation_id' => $id,
+                'user_id' => AccountingHelper::getCurrentUserId(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->errorResponse('Failed to update quotation: ' . $e->getMessage());
         }
     }
@@ -688,6 +747,81 @@ class QuotationController extends Controller
         } catch (\Exception $e) {
             Log::error('QuotationController::markSent error: ' . $e->getMessage());
             return $this->errorResponse('Failed to mark quotation as sent: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ดึงรายการ Invoice ที่เชื่อมโยงกับ Quotation
+     * GET /api/v1/quotations/{id}/related-invoices
+     */
+    public function getRelatedInvoices($id): JsonResponse
+    {
+        try {
+            $quotation = Quotation::with('invoices:id,number,status,quotation_id')->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'has_invoices' => $quotation->invoices->isNotEmpty(),
+                'invoice_count' => $quotation->invoices->count(),
+                'invoices' => $quotation->invoices->map(function($inv) {
+                    return [
+                        'id' => $inv->id,
+                        'number' => $inv->number,
+                        'status' => $inv->status
+                    ];
+                })
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::getRelatedInvoices error: ' . $e->getMessage(), [
+                'quotation_id' => $id
+            ]);
+            return $this->errorResponse('Failed to retrieve related invoices: ' . $e->getMessage(), 404);
+        }
+    }
+
+    /**
+     * ดึงสถานะของ Sync Job
+     * GET /api/v1/quotations/sync-jobs/{jobId}
+     */
+    public function getSyncJobStatus($jobId): JsonResponse
+    {
+        try {
+            $job = \App\Models\Accounting\QuotationInvoiceSyncJob::with([
+                'quotation:id,number',
+                'startedBy:user_uuid,name'
+            ])->findOrFail($jobId);
+
+            $invoiceNumbers = $job->getAffectedInvoiceNumbers();
+            $elapsedSeconds = $job->getElapsedSeconds();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $job->id,
+                    'quotation_id' => $job->quotation_id,
+                    'quotation_number' => $job->quotation->number ?? null,
+                    'status' => $job->status,
+                    'progress_percentage' => $job->getProgressPercentage(),
+                    'progress_current' => $job->progress_current,
+                    'progress_total' => $job->progress_total,
+                    'affected_invoice_numbers' => $invoiceNumbers,
+                    'started_by' => [
+                        'id' => $job->startedBy->user_uuid ?? null,
+                        'name' => $job->startedBy->name ?? null
+                    ],
+                    'started_at' => $job->started_at,
+                    'completed_at' => $job->completed_at,
+                    'elapsed_seconds' => $elapsedSeconds,
+                    'error_message' => $job->error_message
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('QuotationController::getSyncJobStatus error: ' . $e->getMessage(), [
+                'job_id' => $jobId
+            ]);
+            return $this->errorResponse('Failed to retrieve sync job status: ' . $e->getMessage(), 404);
         }
     }
 }

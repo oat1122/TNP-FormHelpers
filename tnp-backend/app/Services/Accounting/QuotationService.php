@@ -655,9 +655,10 @@ class QuotationService
      * @param mixed $id
      * @param mixed $data
      * @param mixed $updatedBy
-     * @return Quotation
+     * @param bool $confirmSync
+     * @return array|Quotation
      */
-    public function update($id, $data, $updatedBy = null): Quotation
+    public function update($id, $data, $updatedBy = null, $confirmSync = false)
     {
         try {
             DB::beginTransaction();
@@ -771,7 +772,52 @@ class QuotationService
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator', 'items']);
+            // Reload quotation with relationships
+            $quotation = $quotation->load(['customer', 'creator', 'items']);
+
+            // Check if quotation has linked invoices and sync if confirmed
+            $invoices = $quotation->invoices()->get();
+            $invoiceCount = $invoices->count();
+
+            if ($invoiceCount === 0) {
+                // No invoices, return as normal
+                return [
+                    'quotation' => $quotation,
+                    'sync_mode' => 'none',
+                    'sync_count' => 0
+                ];
+            }
+
+            if ($confirmSync === true && $invoiceCount > 0) {
+                // User confirmed sync - check threshold
+                if ($invoiceCount > 3) {
+                    // Queue for background processing
+                    $syncJobId = $this->queueInvoiceSync($quotation, $updatedBy);
+                    
+                    return [
+                        'quotation' => $quotation,
+                        'sync_mode' => 'queued',
+                        'sync_count' => $invoiceCount,
+                        'sync_job_id' => $syncJobId
+                    ];
+                } else {
+                    // Sync immediately
+                    $syncResult = $this->syncToInvoicesImmediately($quotation, $updatedBy);
+                    
+                    return [
+                        'quotation' => $quotation,
+                        'sync_mode' => 'immediate',
+                        'sync_count' => $syncResult['updated_count']
+                    ];
+                }
+            }
+
+            // No sync requested, return as normal
+            return [
+                'quotation' => $quotation,
+                'sync_mode' => 'none',
+                'sync_count' => $invoiceCount
+            ];
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1895,4 +1941,205 @@ class QuotationService
      * สร้างเนื้อหา PDF (placeholder implementation)
      */
     // legacy placeholder generator removed in favor of FPDF service
+
+    /**
+     * Sync quotation changes to related invoices immediately (for <=3 invoices)
+     * 
+     * @param Quotation $quotation
+     * @param string|null $userId
+     * @return array
+     */
+    private function syncToInvoicesImmediately(Quotation $quotation, ?string $userId): array
+    {
+        try {
+            DB::beginTransaction();
+
+            $invoices = $quotation->invoices()->with('items')->get();
+            $currentQItemIds = $quotation->items->pluck('id')->toArray();
+            $invoiceIds = $invoices->pluck('id')->toArray();
+
+            $totalUpdated = 0;
+            $totalItemsUpdated = 0;
+            $totalItemsDeleted = 0;
+
+            // Delete orphaned invoice items (items not in current quotation)
+            $deletedCount = \App\Models\Accounting\InvoiceItem::whereIn('invoice_id', $invoiceIds)
+                ->whereNotIn('quotation_item_id', $currentQItemIds)
+                ->delete();
+            $totalItemsDeleted += $deletedCount;
+
+            if ($deletedCount > 0) {
+                Log::info("Deleted {$deletedCount} orphaned invoice items", [
+                    'quotation_id' => $quotation->id,
+                    'invoice_ids' => $invoiceIds
+                ]);
+            }
+
+            // Update each invoice
+            foreach ($invoices as $invoice) {
+                // Sync header fields from quotation
+                $invoice->customer_company = $quotation->customer_company ?? $invoice->customer_company;
+                $invoice->customer_tax_id = $quotation->customer_tax_id ?? $invoice->customer_tax_id;
+                $invoice->customer_address = $quotation->customer_address ?? $invoice->customer_address;
+                $invoice->customer_zip_code = $quotation->customer_zip_code ?? $invoice->customer_zip_code;
+                $invoice->customer_tel_1 = $quotation->customer_tel_1 ?? $invoice->customer_tel_1;
+                $invoice->customer_email = $quotation->customer_email ?? $invoice->customer_email;
+                $invoice->customer_firstname = $quotation->customer_firstname ?? $invoice->customer_firstname;
+                $invoice->customer_lastname = $quotation->customer_lastname ?? $invoice->customer_lastname;
+                $invoice->customer_snapshot = $quotation->customer_snapshot ?? $invoice->customer_snapshot;
+                $invoice->payment_terms = $quotation->payment_terms ?? $invoice->payment_terms;
+                $invoice->notes = $quotation->notes ?? $invoice->notes;
+                $invoice->has_vat = $quotation->has_vat;
+                $invoice->vat_percentage = $quotation->vat_percentage;
+                $invoice->pricing_mode = $quotation->pricing_mode;
+                $invoice->has_withholding_tax = $quotation->has_withholding_tax;
+                $invoice->withholding_tax_percentage = $quotation->withholding_tax_percentage;
+                $invoice->deposit_percentage = $quotation->deposit_percentage;
+                $invoice->deposit_mode = $quotation->deposit_mode ?? $invoice->deposit_mode;
+                $invoice->document_header_type = $quotation->document_header_type ?? $invoice->document_header_type;
+
+                // Sync invoice items that match quotation items
+                $itemsUpdated = 0;
+                foreach ($quotation->items as $qItem) {
+                    $invoiceItem = $invoice->items->where('quotation_item_id', $qItem->id)->first();
+                    
+                    if ($invoiceItem) {
+                        $invoiceItem->item_name = $qItem->item_name;
+                        $invoiceItem->item_description = $qItem->item_description;
+                        $invoiceItem->sequence_order = $qItem->sequence_order;
+                        $invoiceItem->pattern = $qItem->pattern;
+                        $invoiceItem->fabric_type = $qItem->fabric_type;
+                        $invoiceItem->color = $qItem->color;
+                        $invoiceItem->size = $qItem->size;
+                        $invoiceItem->unit_price = $qItem->unit_price;
+                        $invoiceItem->quantity = $qItem->quantity;
+                        $invoiceItem->unit = $qItem->unit;
+                        $invoiceItem->discount_percentage = $qItem->discount_percentage;
+                        $invoiceItem->discount_amount = $qItem->discount_amount;
+                        $invoiceItem->item_images = $qItem->item_images;
+                        $invoiceItem->notes = $qItem->notes;
+                        $invoiceItem->updated_at = now();
+                        $invoiceItem->save();
+                        $itemsUpdated++;
+                    }
+                }
+
+                $totalItemsUpdated += $itemsUpdated;
+
+                // Recalculate invoice totals using InvoiceService
+                $invoiceService = app(InvoiceService::class);
+                $recalculated = $invoiceService->calculateBeforeVatFields($invoice);
+                
+                $invoice->subtotal = $recalculated['subtotal'];
+                $invoice->net_subtotal = $recalculated['net_subtotal'] ?? $recalculated['subtotal'];
+                $invoice->tax_amount = $recalculated['tax_amount'];
+                $invoice->vat_amount = $recalculated['vat_amount'];
+                $invoice->total_amount = $recalculated['total_amount'];
+                $invoice->special_discount_amount = $recalculated['special_discount_amount'];
+                $invoice->withholding_tax_amount = $recalculated['withholding_tax_amount'];
+                $invoice->deposit_amount = $recalculated['deposit_amount'];
+                $invoice->deposit_amount_before_vat = $recalculated['deposit_amount_before_vat'] ?? null;
+                $invoice->final_total_amount = $recalculated['final_total_amount'];
+                $invoice->updated_at = now();
+                $invoice->save();
+
+                // Log history for this invoice
+                DocumentHistory::logAction(
+                    'invoice',
+                    $invoice->id,
+                    'synced_from_quotation',
+                    $userId,
+                    json_encode([
+                        'quotation_id' => $quotation->id,
+                        'quotation_number' => $quotation->number,
+                        'sync_mode' => 'immediate',
+                        'updated_items_count' => $itemsUpdated,
+                        'deleted_items_count' => $deletedCount,
+                        'timestamp' => now()->toISOString()
+                    ])
+                );
+
+                $totalUpdated++;
+            }
+
+            DB::commit();
+
+            return [
+                'updated_count' => $totalUpdated,
+                'updated_items' => $totalItemsUpdated,
+                'deleted_items' => $totalItemsDeleted
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('QuotationService::syncToInvoicesImmediately error: ' . $e->getMessage(), [
+                'quotation_id' => $quotation->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Queue invoice sync job for background processing (for >3 invoices)
+     * 
+     * @param Quotation $quotation
+     * @param string|null $userId
+     * @return string Sync job ID
+     */
+    private function queueInvoiceSync(Quotation $quotation, ?string $userId): string
+    {
+        try {
+            // Capture pre-sync snapshot
+            $quotationSnapshot = $quotation->load('items')->toArray();
+            $invoicesSnapshot = $quotation->invoices()->with('items')->get()->toArray();
+            $invoiceIds = array_column($invoicesSnapshot, 'id');
+
+            // Create sync job record
+            $syncJob = \App\Models\Accounting\QuotationInvoiceSyncJob::create([
+                'quotation_id' => $quotation->id,
+                'affected_invoice_ids' => $invoiceIds,
+                'original_quotation_snapshot' => $quotationSnapshot,
+                'original_invoices_snapshot' => $invoicesSnapshot,
+                'status' => 'pending',
+                'progress_current' => 0,
+                'progress_total' => count($invoiceIds),
+                'started_by' => $userId
+            ]);
+
+            // Dispatch queue job
+            \App\Jobs\Accounting\SyncQuotationToInvoicesJob::dispatch(
+                $quotation->id,
+                $syncJob->id,
+                $userId
+            )->onQueue('accounting-sync');
+
+            // Log action
+            DocumentHistory::logAction(
+                'quotation',
+                $quotation->id,
+                'sync_queued',
+                $userId,
+                json_encode([
+                    'sync_job_id' => $syncJob->id,
+                    'invoice_count' => count($invoiceIds)
+                ])
+            );
+
+            Log::info('Quotation sync job queued', [
+                'quotation_id' => $quotation->id,
+                'sync_job_id' => $syncJob->id,
+                'invoice_count' => count($invoiceIds)
+            ]);
+
+            return $syncJob->id;
+
+        } catch (\Exception $e) {
+            Log::error('QuotationService::queueInvoiceSync error: ' . $e->getMessage(), [
+                'quotation_id' => $quotation->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
 }

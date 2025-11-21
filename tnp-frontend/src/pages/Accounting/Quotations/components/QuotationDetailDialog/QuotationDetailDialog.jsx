@@ -491,22 +491,33 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                         การคำนวณราคา
                       </Typography>
                       {canEditQuotation && (
-                        <SecondaryButton
-                          size="small"
-                          startIcon={<EditIcon />}
-                          onClick={() => {
-                            const el = document.getElementById("calc-section");
-                            const y = el ? el.scrollTop : null;
-                            setIsEditing((v) => !v);
-                            // restore scroll shortly after DOM updates
-                            setTimeout(() => {
-                              const el2 = document.getElementById("calc-section");
-                              if (el2 != null && y != null) el2.scrollTop = y;
-                            }, 0);
-                          }}
-                        >
-                          {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
-                        </SecondaryButton>
+                        <>
+                          <SecondaryButton
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => {
+                              const el = document.getElementById("calc-section");
+                              const y = el ? el.scrollTop : null;
+                              setIsEditing((v) => !v);
+                              // restore scroll shortly after DOM updates
+                              setTimeout(() => {
+                                const el2 = document.getElementById("calc-section");
+                                if (el2 != null && y != null) el2.scrollTop = y;
+                              }, 0);
+                            }}
+                          >
+                            {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
+                          </SecondaryButton>
+                          {isEditing && (
+                            <SecondaryButton
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={groupHandlers.onAddNewGroup}
+                            >
+                              เพิ่มงานใหม่
+                            </SecondaryButton>
+                          )}
+                        </>
                       )}
                     </Box>
                   </SectionHeader>

@@ -82,14 +82,36 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
   const qtyMatches = hasPrQty ? totalQty === prQty : true;
 
   return (
-    <Box component={InfoCard} sx={{ p: 2, mb: 1.5 }}>
+    <Box
+      component={InfoCard}
+      sx={{
+        p: 2,
+        mb: 1.5,
+        // Add distinct styling for manual jobs
+        border: group.isManual ? `2px dashed ${tokens.primary}` : undefined,
+        bgcolor: group.isManual ? `${tokens.primary}08` : undefined,
+      }}
+    >
       {/* ... (Card Header - เหมือนเดิม) ... */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
         <Box display="flex" alignItems="center" gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
+          {group.isManual && (
+            <Chip label="งานใหม่" size="small" color="secondary" sx={{ fontWeight: 600 }} />
+          )}
           <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
             งานที่ {index + 1}
           </Typography>
-          {isEditing ? (
+          {isEditing && group.isManual ? (
+            <TextField
+              size="small"
+              label="ชื่องาน"
+              value={name}
+              onChange={(e) => onChangeGroup(group.id, "name", e.target.value)}
+              sx={{ flex: 1, minWidth: 200 }}
+              placeholder="กรุณาระบุชื่องาน *"
+              required
+            />
+          ) : isEditing ? (
             <TextField
               size="small"
               label="ชื่องาน"
@@ -119,7 +141,7 @@ export const PRGroupCalcCard = React.memo(function PRGroupCalcCard({
               variant={qtyMatches ? "outlined" : "filled"}
             />
           )}
-          {isEditing && (
+          {isEditing && group.isManual && (
             <SecondaryButton size="small" color="error" onClick={() => onDeleteGroup(group.id)}>
               <DeleteOutlineIcon fontSize="small" />
               ลบงานนี้

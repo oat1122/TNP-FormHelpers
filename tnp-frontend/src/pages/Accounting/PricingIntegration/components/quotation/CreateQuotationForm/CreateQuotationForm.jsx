@@ -573,9 +573,23 @@ const CreateQuotationForm = ({
                             justifyContent="space-between"
                             mb={1}
                           >
-                            <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
-                              งานที่ {idx + 1}: {item.name}
-                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1.5}>
+                              <Typography
+                                variant="subtitle1"
+                                fontWeight={700}
+                                color={tokens.primary}
+                              >
+                                งานที่ {idx + 1}: {item.name}
+                              </Typography>
+                              {item.pricingRequestId && (
+                                <PricingRequestNotesButton
+                                  pricingRequestId={item.pricingRequestId}
+                                  workName={item.name}
+                                  variant="icon"
+                                  size="small"
+                                />
+                              )}
+                            </Box>
                             <Box display="flex" alignItems="center" gap={1}>
                               <Chip
                                 label={`${totalQty} ${item.unit || "ชิ้น"}`}
@@ -727,29 +741,21 @@ const CreateQuotationForm = ({
                           <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
                             งานที่ {idx + 1}
                           </Typography>
-                          {isManual ? (
-                            <TextField
+                          <TextField
+                            size="small"
+                            placeholder={isManual ? "กรอกชื่องาน *" : "ชื่องาน"}
+                            value={item.name}
+                            onChange={(e) => setItem(item.id, { name: e.target.value })}
+                            error={isManual && itemErrors.some((e) => e.includes("ชื่องาน"))}
+                            sx={{ minWidth: 200 }}
+                          />
+                          {item.pricingRequestId && (
+                            <PricingRequestNotesButton
+                              pricingRequestId={item.pricingRequestId}
+                              workName={item.name}
+                              variant="icon"
                               size="small"
-                              placeholder="กรอกชื่องาน *"
-                              value={item.name}
-                              onChange={(e) => setItem(item.id, { name: e.target.value })}
-                              error={itemErrors.some((e) => e.includes("ชื่องาน"))}
-                              sx={{ minWidth: 200 }}
                             />
-                          ) : (
-                            <>
-                              <Typography variant="body2" color="text.secondary">
-                                {item.name}
-                              </Typography>
-                              {item.pricingRequestId && (
-                                <PricingRequestNotesButton
-                                  pricingRequestId={item.pricingRequestId}
-                                  workName={item.name}
-                                  variant="icon"
-                                  size="small"
-                                />
-                              )}
-                            </>
                           )}
                         </Box>
                         <Box display="flex" alignItems="center" gap={1}>

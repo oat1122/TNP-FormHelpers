@@ -31,7 +31,6 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
   const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
 
   // Sample image selection for PDF
-  // ⭐️ GOAL 2: เปลี่ยน state จาก null เป็น Set
   const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState(new Set());
   const selDebounceRef = React.useRef(null);
   const lastSyncedSelRef = React.useRef("");
@@ -110,7 +109,6 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     }
   };
 
-  // ⭐️ GOAL 2: อัปเดต logic การ sync ให้รองรับ Set
   const scheduleSyncSelectedForPdf = React.useCallback(
     (newSelectedSet) => {
       if (selDebounceRef.current) {
@@ -142,7 +140,6 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     [updateQuotation, quotationId]
   );
 
-  // ⭐️ GOAL 2: อัปเดต logic การ init state ให้รองรับ Set
   const initializeSampleSelection = React.useCallback((sampleImages) => {
     sampleImagesRef.current = sampleImages;
     // Filter all selected images and put their filenames into the Set

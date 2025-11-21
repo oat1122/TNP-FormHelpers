@@ -67,6 +67,31 @@ export function useQuotationGroups(initialItems) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, [field]: value } : g)));
   }, []);
 
+  const onAddNewGroup = React.useCallback(() => {
+    const newGroup = {
+      id: `manual_${Date.now()}`,
+      isManual: true,
+      isFromPR: false,
+      prId: null,
+      name: "",
+      pattern: "",
+      fabricType: "",
+      color: "",
+      size: "",
+      unit: "ชิ้น",
+      sizeRows: [
+        {
+          uuid: `manual_${Date.now()}_row_1`,
+          size: "",
+          quantity: "",
+          unitPrice: "",
+          notes: "",
+        },
+      ],
+    };
+    setGroups((prev) => [...prev, newGroup]);
+  }, []);
+
   return {
     groups,
     setGroups,
@@ -77,5 +102,6 @@ export function useQuotationGroups(initialItems) {
     onRemoveRow,
     onDeleteGroup,
     onChangeGroup,
+    onAddNewGroup,
   };
 }

@@ -17,6 +17,31 @@ import {
   dismissToast,
 } from "../../../../utils/accountingToast";
 
+// Validation helper for manual jobs
+function validateManualJob(group) {
+  const errors = [];
+
+  if (!group.name || group.name.trim() === "") {
+    errors.push("กรุณากรอกชื่องาน");
+  }
+
+  const hasValidRows = group.sizeRows && group.sizeRows.length > 0;
+  if (!hasValidRows) {
+    errors.push("กรุณาเพิ่มอย่างน้อย 1 รายการขนาด");
+  } else {
+    const allRowsEmpty = group.sizeRows.every(
+      (row) =>
+        (!row.quantity || row.quantity === "" || row.quantity === 0) &&
+        (!row.unitPrice || row.unitPrice === "" || row.unitPrice === 0)
+    );
+    if (allRowsEmpty) {
+      errors.push("กรุณากรอกจำนวนและราคาอย่างน้อย 1 รายการ");
+    }
+  }
+
+  return errors;
+}
+
 export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
     skip: !open || !quotationId,
@@ -151,7 +176,35 @@ export function useQuotationDialogLogic(quotationId, open) {
 
   // Main Save Handler with sync support
   const handleSave = async (groups, financials, confirmSync = false) => {
-    // ✅ ใช้ global sequence counter เพื่อป้องกัน duplicate sequence_order
+    // Validate manual jobs before saving
+    const manualJobErrors = {};
+    let hasValidationErrors = false;
+
+    groups.forEach((group, index) => {
+      if (group.isManual) {
+        const errors = validateManualJob(group);
+        if (errors.length > 0) {
+          manualJobErrors[group.id] = errors;
+          hasValidationErrors = true;
+        }
+      }
+    });
+
+    if (hasValidationErrors) {
+      // Show validation errors
+      const errorMessages = Object.entries(manualJobErrors)
+        .map(([groupId, errors]) => {
+          const groupIndex = groups.findIndex((g) => g.id === groupId);
+          const groupName = groups[groupIndex]?.name || `งานที่ ${groupIndex + 1}`;
+          return `${groupName}: ${errors.join(", ")}`;
+        })
+        .join("\n");
+
+      showError(`กรุณาตรวจสอบข้อมูลงานที่สร้างใหม่:\n${errorMessages}`);
+      return { success: false, validationError: true };
+    }
+
+    // ใช้ global sequence counter เพื่อป้องกัน duplicate sequence_order
     let globalSequence = 0;
 
     // Map editable groups back to API items
@@ -167,7 +220,7 @@ export function useQuotationDialogLogic(quotationId, open) {
         unit,
       };
       return (g.sizeRows || []).map((r) => {
-        globalSequence++; // ✅ เพิ่ม global counter
+        globalSequence++; // ใช้ global counter
         const qty =
           typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);
         const price =
@@ -180,7 +233,7 @@ export function useQuotationDialogLogic(quotationId, open) {
           unit_price: isNaN(price) ? 0 : price,
           quantity: isNaN(qty) ? 0 : qty,
           notes: r.notes || "",
-          sequence_order: globalSequence, // ✅ ใช้ global sequence
+          sequence_order: globalSequence, // ใช้ global sequence
         };
       });
     });
@@ -200,7 +253,7 @@ export function useQuotationDialogLogic(quotationId, open) {
         net_subtotal: financials.netSubtotal,
         tax_amount: financials.vat,
         total_amount: financials.total,
-        // ⭐ Extended financial fields (from local editable states)
+        // Extended financial fields (from local editable states)
         special_discount_percentage:
           specialDiscountType === "percentage" ? Number(specialDiscountValue || 0) : 0,
         special_discount_amount:
@@ -251,7 +304,7 @@ export function useQuotationDialogLogic(quotationId, open) {
       dismissToast(loadingId);
 
       // Debug: Log error structure to understand RTK Query error format
-      console.log("🔍 Save Error Details:", {
+      console.log("Save Error Details:", {
         status: e?.status,
         originalStatus: e?.originalStatus,
         data: e?.data,
@@ -264,7 +317,7 @@ export function useQuotationDialogLogic(quotationId, open) {
       const errorData = e?.data;
 
       if (statusCode === 422 && errorData?.requires_confirmation) {
-        console.log("✅ Detected sync confirmation needed", errorData);
+        console.log("Detected sync confirmation needed", errorData);
         return {
           success: false,
           needsConfirmation: true,

@@ -3,6 +3,79 @@
  * Note: API calls have been migrated to RTK Query (see customerApi.js)
  */
 
+// API Helper Functions
+const getApiHeaders = () => {
+  const authToken = localStorage.getItem("authToken") || localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: authToken ? `Bearer ${authToken}` : "",
+  };
+};
+
+const getApiUrl = (endpoint) => {
+  const baseUrl = import.meta.env.VITE_END_POINT_URL;
+  return `${baseUrl}${endpoint}`;
+};
+
+// API Functions
+export const customerApi = {
+  /**
+   * Fetch full customer details by ID
+   * @param {number|string} customerId - Customer ID
+   * @returns {Promise<object|null>} Customer data or null
+   */
+  async getCustomer(customerId) {
+    try {
+      const response = await fetch(getApiUrl(`/customers/${customerId}`), {
+        headers: getApiHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Normalize manager data (Logic จากไฟล์เก่า)
+        if (data && data.cus_manage_by) {
+          // กรณีเป็น Object แต่ไม่มี username ให้ใช้ sales_name แทน
+          if (typeof data.cus_manage_by === "object") {
+            if (!data.cus_manage_by.username && data.sales_name) {
+              data.cus_manage_by.username = data.sales_name;
+            }
+          }
+          // กรณีเป็นตัวเลข (ID) ให้แปลงเป็น Object
+          else if (!isNaN(data.cus_manage_by)) {
+            data.cus_manage_by = {
+              user_id: String(data.cus_manage_by),
+              username: data.sales_name || "กำลังโหลด...",
+            };
+          }
+        }
+        return data;
+      }
+      throw new Error("Failed to fetch customer");
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Update customer data
+   * @param {number|string} customerId - Customer ID
+   * @param {object} customerData - Customer data to update
+   * @returns {Promise<object>} Updated customer data
+   */
+  async updateCustomer(customerId, customerData) {
+    const response = await fetch(getApiUrl(`/customers/${customerId}`), {
+      method: "PUT",
+      headers: getApiHeaders(),
+      body: JSON.stringify(customerData),
+    });
+    if (!response.ok) throw new Error("Update failed");
+    return await response.json();
+  },
+};
+
 // Validation utilities
 export const validateCustomerData = (data) => {
   const errors = {};

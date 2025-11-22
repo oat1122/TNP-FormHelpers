@@ -35,7 +35,12 @@ import {
 import { styled } from "@mui/material/styles";
 import React, { useState, useEffect, useCallback } from "react";
 
-import { validateCustomerData, formatPhoneNumber, formatTaxId } from "./customerApiUtils";
+import {
+  customerApi,
+  validateCustomerData,
+  formatPhoneNumber,
+  formatTaxId,
+} from "./customerApiUtils";
 import {
   normalizeManagerData,
   hydrateManagerUsername,
@@ -195,6 +200,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
   const [isEditing, setIsEditing] = useState(startInEdit);
   const [isExpanded, setIsExpanded] = useState(startInEdit);
   const [isSaving, setIsSaving] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
   const [editData, setEditData] = useState({
     // Safe defaults to show selected state immediately
     cus_channel: "1",
@@ -291,6 +297,68 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       setDisplayCustomer(customer);
     }
   }, [customer, normalizeChannelValue, isAdmin, currentUser]);
+
+  // Hydrate full customer data from API
+  useEffect(() => {
+    if (!customer?.cus_id) return;
+
+    const fetchFullDetails = async () => {
+      setIsHydrating(true);
+      try {
+        const fullData = await customerApi.getCustomer(customer.cus_id);
+        const src = fullData?.data || fullData || {};
+
+        // Merge data between Props (customer) and Full Data (src)
+        // Give priority to src as it's more recent
+        const merged = { ...customer, ...src };
+
+        // Update display customer
+        setDisplayCustomer(merged);
+
+        // Update form data
+        setEditData((prev) => {
+          const mergedCh = normalizeChannelValue(merged.cus_channel ?? merged.channel);
+          const effectiveCh = mergedCh || prev.cus_channel || "1";
+
+          const mergedBt = merged.cus_bt_id ?? merged.bt_id ?? merged.business_type_id ?? "";
+
+          // Handle Manager data
+          let mergedManage = prev.cus_manage_by;
+          const mRaw = merged.cus_manage_by;
+
+          // If form doesn't have data or incomplete, use loaded data
+          if (!mergedManage?.user_id || mergedManage?.username === "กำลังโหลด...") {
+            if (mRaw && typeof mRaw === "object") {
+              mergedManage = {
+                user_id: String(mRaw.user_id || mRaw.id || ""),
+                username: mRaw.username || mRaw.name || merged.sales_name || "",
+              };
+            } else if (mRaw) {
+              mergedManage = {
+                user_id: String(mRaw),
+                username: merged.sales_name || "",
+              };
+            }
+          }
+
+          return {
+            ...prev,
+            cus_channel: effectiveCh,
+            cus_bt_id: mergedBt ? String(mergedBt) : prev.cus_bt_id,
+            cus_tax_id: merged.cus_tax_id || prev.cus_tax_id,
+            cus_manage_by: mergedManage,
+          };
+        });
+      } catch (err) {
+        console.warn("Failed to hydrate customer details:", err);
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
+    fetchFullDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.cus_id]);
 
   // Hydrate manager username from sales list when available
   useEffect(() => {
@@ -750,6 +818,26 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
 
   return (
     <CustomerCard>
+      {/* Loading indicator when hydrating data */}
+      {isHydrating && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            background: "linear-gradient(90deg, #900F0F 0%, #E36264 50%, #900F0F 100%)",
+            backgroundSize: "200% 100%",
+            animation: "loading 1.5s infinite ease-in-out",
+            zIndex: 10,
+            "@keyframes loading": {
+              "0%": { backgroundPosition: "200% 0" },
+              "100%": { backgroundPosition: "-200% 0" },
+            },
+          }}
+        />
+      )}
       <CardContent sx={{ padding: "24px" }}>
         {/* Success/Error Messages */}
         {errors.success && (
@@ -771,7 +859,11 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                 ข้อมูลลูกค้า
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {isEditing ? "กำลังแก้ไขข้อมูล" : "คลิกเพื่อแก้ไขข้อมูลลูกค้า"}
+                {isEditing
+                  ? isHydrating
+                    ? "กำลังดึงข้อมูลล่าสุด..."
+                    : "กำลังแก้ไขข้อมูล"
+                  : "คลิกเพื่อแก้ไขข้อมูลลูกค้า"}
               </Typography>
             </Box>
           </Box>
@@ -798,14 +890,18 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
               <Box display="flex" gap={1}>
                 <SaveButton
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={isSaving || isHydrating}
                   startIcon={
-                    isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />
+                    isSaving || isHydrating ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <SaveIcon />
+                    )
                   }
                 >
-                  {isSaving ? "กำลังบันทึก..." : "บันทึก"}
+                  {isSaving ? "กำลังบันทึก..." : isHydrating ? "กำลังโหลด..." : "บันทึก"}
                 </SaveButton>
-                <CancelButton onClick={handleCancel} disabled={isSaving}>
+                <CancelButton onClick={handleCancel} disabled={isSaving || isHydrating}>
                   ยกเลิก
                 </CancelButton>
               </Box>
@@ -1135,12 +1231,17 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                         }
                         value={(() => {
                           const id = editData?.cus_manage_by?.user_id || "";
-                          return id
-                            ? salesList.find((u) => String(u.user_id) === String(id)) || {
-                                user_id: id,
-                                username: editData?.cus_manage_by?.username || "",
-                              }
-                            : null;
+                          if (!id) return null;
+
+                          // Try to find in sales list
+                          const found = salesList.find((u) => String(u.user_id) === String(id));
+                          if (found) return found;
+
+                          // If not found, use current value (from hydration)
+                          return {
+                            user_id: id,
+                            username: editData?.cus_manage_by?.username || "กำลังโหลด...",
+                          };
                         })()}
                         onChange={(event, newValue) => {
                           handleInputChange(

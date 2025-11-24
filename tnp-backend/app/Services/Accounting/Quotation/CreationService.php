@@ -583,12 +583,69 @@ class CreationService
             $quotation->created_by = $createdBy;
             $quotation->save();
 
+            // ✅ บันทึก Quotation Items (รองรับ items จาก Frontend)
+            if (!empty($additionalData['items']) && is_array($additionalData['items'])) {
+                Log::info('Creating quotation items', [
+                    'quotation_id' => $quotation->id,
+                    'item_count' => count($additionalData['items'])
+                ]);
+
+                // ตรวจสอบและป้องกัน sequence_order ซ้ำ
+                $seqSeen = [];
+                
+                foreach ($additionalData['items'] as $index => $item) {
+                    // คำนวณ sequence ที่ไม่ซ้ำ
+                    $seq = isset($item['sequence_order']) && is_numeric($item['sequence_order'])
+                        ? intval($item['sequence_order'])
+                        : ($index + 1);
+                    
+                    // ถ้าซ้ำ ให้ใช้ sequence ถัดไป
+                    while (isset($seqSeen[$seq])) {
+                        $seq++;
+                    }
+                    $seqSeen[$seq] = true;
+
+                    $quotationItem = new \App\Models\Accounting\QuotationItem();
+                    $quotationItem->id = \Illuminate\Support\Str::uuid();
+                    $quotationItem->quotation_id = $quotation->id;
+                    $quotationItem->pricing_request_id = $item['pricing_request_id'] ?? null;
+                    $quotationItem->item_name = $item['item_name'] ?? 'ไม่ระบุชื่องาน';
+                    $quotationItem->item_description = $item['item_description'] ?? null;
+                    $quotationItem->sequence_order = $seq;
+                    $quotationItem->pattern = $item['pattern'] ?? null;
+                    $quotationItem->fabric_type = $item['fabric_type'] ?? null;
+                    $quotationItem->color = $item['color'] ?? null;
+                    $quotationItem->size = $item['size'] ?? null;
+                    $quotationItem->quantity = (int) ($item['quantity'] ?? 0);
+                    $quotationItem->unit = $item['unit'] ?? 'ชิ้น';
+                    $quotationItem->unit_price = (float) ($item['unit_price'] ?? 0);
+                    $quotationItem->discount_percentage = (float) ($item['discount_percentage'] ?? 0);
+                    $quotationItem->discount_amount = (float) ($item['discount_amount'] ?? 0);
+                    $quotationItem->notes = $item['notes'] ?? null;
+                    $quotationItem->status = 'draft';
+                    $quotationItem->created_by = $createdBy;
+                    $quotationItem->updated_by = $createdBy;
+                    
+                    $quotationItem->save();
+                }
+
+                Log::info('Quotation items created successfully', [
+                    'quotation_id' => $quotation->id,
+                    'item_count' => count($additionalData['items']),
+                    'sequences' => array_keys($seqSeen)
+                ]);
+            } else {
+                Log::warning('No items provided for quotation', [
+                    'quotation_id' => $quotation->id
+                ]);
+            }
+
             // บันทึก History
             DocumentHistory::logCreation('quotation', $quotation->id, $createdBy, 'สร้างใบเสนอราคาจาก Multiple Pricing Requests');
 
             DB::commit();
 
-            return $quotation->load(['customer', 'creator', 'company']);
+            return $quotation->load(['customer', 'creator', 'company', 'items']);
 
         } catch (\Exception $e) {
             DB::rollBack();

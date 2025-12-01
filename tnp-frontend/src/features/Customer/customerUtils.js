@@ -108,3 +108,67 @@ export function genCustomerNo(lastCustomerNumber = null) {
 
   return `${currentYear}${nextId.toString().padStart(6, "0")}`;
 }
+
+/**
+ * Get display name for customer source
+ *
+ * @param {string} source - Customer source value (sales, telesales, online, office)
+ * @returns {string} Display name
+ */
+export const getSourceDisplayName = (source) => {
+  const sourceNames = {
+    sales: "Sales",
+    telesales: "Telesales",
+    online: "Online",
+    office: "Office",
+  };
+
+  return sourceNames[source] || source || "Unknown";
+};
+
+/**
+ * Get color for customer source badge
+ *
+ * @param {string} source - Customer source value
+ * @returns {string} MUI color name
+ */
+export const getSourceColor = (source) => {
+  const sourceColors = {
+    sales: "primary", // Blue
+    telesales: "success", // Green
+    online: "warning", // Orange
+    office: "info", // Light Blue
+  };
+
+  return sourceColors[source] || "default";
+};
+
+/**
+ * Get display name for allocation status
+ *
+ * @param {string} status - Allocation status (pool, allocated)
+ * @returns {string} Display name
+ */
+export const getAllocationStatusDisplayName = (status) => {
+  const statusNames = {
+    pool: "รอจัดสรร",
+    allocated: "จัดสรรแล้ว",
+  };
+
+  return statusNames[status] || status || "Unknown";
+};
+
+/**
+ * Get color for allocation status badge
+ *
+ * @param {string} status - Allocation status
+ * @returns {string} MUI color name
+ */
+export const getAllocationStatusColor = (status) => {
+  const statusColors = {
+    pool: "warning", // Orange - waiting
+    allocated: "success", // Green - completed
+  };
+
+  return statusColors[status] || "default";
+};

@@ -1006,10 +1006,39 @@ class CustomerController extends Controller
                 ], 400);
             }
 
-            // Get customers in pool
-            $customers = Customer::whereIn('cus_id', $customerIds)
-                ->where('cus_allocation_status', 'pool')
-                ->get();
+            // Get all requested customers (both pool and allocated)
+            $allCustomers = Customer::whereIn('cus_id', $customerIds)->get();
+
+            if ($allCustomers->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No customers found with the provided IDs'
+                ], 404);
+            }
+
+            // Check for already allocated customers
+            $alreadyAllocated = $allCustomers->where('cus_allocation_status', 'allocated');
+            
+            if ($alreadyAllocated->isNotEmpty() && !$request->input('force', false)) {
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => "Found {$alreadyAllocated->count()} customer(s) already allocated. Use 'force=true' to override.",
+                    'already_allocated_count' => $alreadyAllocated->count(),
+                    'already_allocated_customers' => $alreadyAllocated->map(function($customer) {
+                        return [
+                            'cus_id' => $customer->cus_id,
+                            'cus_name' => $customer->cus_name,
+                            'cus_company' => $customer->cus_company,
+                            'current_manager' => $customer->cusManageBy ? $customer->cusManageBy->username : null
+                        ];
+                    })->values()
+                ], 400);
+            }
+
+            // Get customers that will be assigned (pool only, or all if force=true)
+            $customers = $request->input('force', false) 
+                ? $allCustomers 
+                : $allCustomers->where('cus_allocation_status', 'pool');
 
             if ($customers->isEmpty()) {
                 return response()->json([

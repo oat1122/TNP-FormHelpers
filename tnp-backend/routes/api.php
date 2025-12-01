@@ -60,6 +60,26 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
         Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
     });
+
+    //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::controller(CustomerController::class)->group(function () {
+        Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
+        Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
+    });
+
+    //---------- Notifications (Protected Routes) ----------
+    Route::controller(NotificationController::class)->group(function () {
+        Route::get('/notifications/unread', 'checkUnread'); // Check unread notifications count
+        Route::get('/notifications', 'index'); // Get all notifications
+        Route::post('/notifications/mark-as-read', 'markAsRead'); // Mark specific notifications as read
+        Route::post('/notifications/mark-all-as-read', 'markAllAsRead'); // Mark all notifications as read
+    });
+
+    //---------- Stats & KPI (Protected Routes) ----------
+    Route::controller(StatsController::class)->group(function () {
+        Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
+        Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
+    });
 });
 
 Route::prefix('v1')->group(function() {
@@ -93,22 +113,6 @@ Route::prefix('v1')->group(function() {
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
         Route::post('/customers/{id}/recall', 'recall');
         Route::patch('/customers/{id}/change-grade', 'changeGrade');
-        
-        // Telesales & Allocation routes
-        Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool
-        Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales
-    });
-
-    // Notification routes
-    Route::controller(NotificationController::class)->group(function () {
-        Route::get('/notifications/unread', 'checkUnread'); // Check unread notifications count
-        Route::get('/notifications', 'index'); // Get all notifications
-    });
-
-    // Stats & KPI routes
-    Route::controller(StatsController::class)->group(function () {
-        Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
-        Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
     });
 
     Route::apiResources([

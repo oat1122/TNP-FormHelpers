@@ -14,7 +14,7 @@ import {
   BsInputGroup,
 } from "../../utils/import_lib";
 
-import { Button, styled, Autocomplete, TextField, Paper } from "@mui/material";
+import { Button, styled, Autocomplete, TextField, Paper, Badge, IconButton } from "@mui/material";
 
 import "./AppHeader.css";
 import NavDropdown from "react-bootstrap/NavDropdown";
@@ -24,6 +24,8 @@ import { FiSearch } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
 import { RxHome } from "react-icons/rx";
+import { MdNotifications } from "react-icons/md";
+import { useNotificationPolling } from "../../hooks/useNotificationPolling";
 
 import DialogChangePass from "./DialogChangePass";
 import { searchKeyword } from "../../features/globalSlice";
@@ -83,6 +85,9 @@ function AppHeader() {
 
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
+
+  // Notification polling for sales role
+  const { unreadCount, markAllAsRead } = useNotificationPolling(30000);
   const pathList = [
     "/monitor",
     "/worksheet",
@@ -206,6 +211,24 @@ function AppHeader() {
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
+            {/* Notification Badge (only for sales role) */}
+            {user.role === "sale" && (
+              <BsNav.Item className="me-3 d-flex align-items-center">
+                <IconButton
+                  onClick={() => {
+                    markAllAsRead();
+                    navigate("/customer");
+                  }}
+                  size="small"
+                  sx={{ color: "#c55050" }}
+                >
+                  <Badge badgeContent={unreadCount} color="error">
+                    <MdNotifications size={24} />
+                  </Badge>
+                </IconButton>
+              </BsNav.Item>
+            )}
+
             {/* Display username and change password */}
             <NavDropdown
               title={

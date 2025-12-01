@@ -326,4 +326,20 @@ class MasterCustomer extends Model
 		
 		return $this;
 	}
+
+	/**
+	 * Get notification reads for this customer
+	 */
+	public function notificationReads()
+	{
+		return $this->hasMany(CustomerNotificationRead::class, 'cus_id', 'cus_id');
+	}
+
+	/**
+	 * Check if this customer notification has been read by a user
+	 */
+	public function isReadBy(int $userId): bool
+	{
+		return CustomerNotificationRead::isRead($this->cus_id, $userId);
+	}
 }

@@ -44,6 +44,9 @@ const MaxSupplyForm = lazy(() => import("./pages/MaxSupply/MaxSupplyForm"));
 
 const WorksheetListForMaxSupply = lazy(() => import("./pages/MaxSupply/WorksheetList"));
 
+// Telesales components
+const TelesalesDashboard = lazy(() => import("./pages/Telesales/TelesalesDashboard"));
+
 function App() {
   return (
     <AppTheme>
@@ -67,6 +70,7 @@ function App() {
               <Route path="/shirt-price" element={<FabricMain />} />
               <Route path="/user-management" element={<UserList />} />
               <Route path="/customer" element={<CustomerList />} />
+              <Route path="/telesales-dashboard" element={<TelesalesDashboard />} />
 
               <Route path="/worksheet" element={<WorksheetList />} />
               <Route path="/worksheet-create/:typeShirt" element={<WorksheetCreate />} />

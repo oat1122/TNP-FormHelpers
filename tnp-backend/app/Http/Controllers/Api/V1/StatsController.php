@@ -186,8 +186,8 @@ class StatsController extends Controller
     }
 
     /**
-     * Get personal dashboard stats for telesales
-     * Shows today's performance
+     * Get comprehensive dashboard stats for telesales with role-based data scope
+     * Supports date range filtering and team overview for admin/manager
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -195,61 +195,163 @@ class StatsController extends Controller
     public function telesalesDashboard(Request $request)
     {
         $user = auth()->user();
-
-        if (!$user || !AccountingHelper::isTelesales()) {
+        
+        // Check authorization - allow admin, manager, and telesales
+        if (!AccountingHelper::hasRole(['admin', 'manager', 'telesale'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized: Only telesales can access this endpoint'
+                'message' => 'Unauthorized: Access denied'
             ], 403);
         }
 
         try {
-            $today = now()->format('Y-m-d');
-            $thisMonth = now()->startOfMonth()->format('Y-m-d');
+            // Validate inputs
+            $request->validate([
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date',
+                'target_user_id' => 'nullable|integer'
+            ]);
 
-            // Today's stats
-            $todayStats = MasterCustomer::where('cus_created_by', $user->user_id)
-                ->whereDate('cus_created_date', $today)
-                ->select(
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw('SUM(CASE WHEN cus_allocation_status = "pool" THEN 1 ELSE 0 END) as in_pool'),
-                    DB::raw('SUM(CASE WHEN cus_allocation_status = "allocated" THEN 1 ELSE 0 END) as allocated')
-                )
-                ->first();
+            // Validate date range
+            if ($request->start_date && $request->end_date) {
+                $startDate = \Carbon\Carbon::parse($request->start_date);
+                $endDate = \Carbon\Carbon::parse($request->end_date);
+                
+                if ($startDate->gt($endDate)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด'
+                    ], 400);
+                }
+            }
 
-            // This month's stats
-            $monthStats = MasterCustomer::where('cus_created_by', $user->user_id)
-                ->whereDate('cus_created_date', '>=', $thisMonth)
-                ->select(
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw('SUM(CASE WHEN cus_allocation_status = "pool" THEN 1 ELSE 0 END) as in_pool'),
-                    DB::raw('SUM(CASE WHEN cus_allocation_status = "allocated" THEN 1 ELSE 0 END) as allocated')
-                )
-                ->first();
+            // Determine data scope based on role and target_user_id
+            $isTeamView = false;
+            $targetUserId = null;
+            
+            if ($request->target_user_id && AccountingHelper::hasRole(['admin', 'manager'])) {
+                // Admin/Manager viewing specific user
+                $targetUserId = $request->target_user_id;
+            } elseif (AccountingHelper::hasRole(['admin', 'manager'])) {
+                // Admin/Manager viewing team overview
+                $isTeamView = true;
+            } else {
+                // Telesales viewing own data
+                $targetUserId = $user->user_id;
+            }
+
+            // Date ranges
+            $today = now()->startOfDay();
+            $weekStart = now()->startOfWeek();
+            $monthStart = now()->startOfMonth();
+            $customStart = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->startOfDay() : null;
+            $customEnd = $request->end_date ? \Carbon\Carbon::parse($request->end_date)->endOfDay() : null;
+
+            // Base query for pool customers
+            $poolQuery = MasterCustomer::where('cus_allocation_status', 'pool')
+                ->where('cus_is_use', true);
+            
+            if (!$isTeamView) {
+                $poolQuery->where('cus_created_by', $targetUserId);
+            }
+            
+            $totalPool = $poolQuery->count();
+
+            // Allocated customers queries
+            $baseAllocatedQuery = MasterCustomer::where('cus_allocation_status', 'allocated')
+                ->where('cus_is_use', true);
+            
+            if (!$isTeamView) {
+                $baseAllocatedQuery->where('cus_allocated_by', $targetUserId);
+            }
+
+            // Today's allocations
+            $allocatedToday = (clone $baseAllocatedQuery)
+                ->whereDate('cus_allocated_at', '>=', $today)
+                ->count();
+
+            // This week's allocations
+            $allocatedWeek = (clone $baseAllocatedQuery)
+                ->whereDate('cus_allocated_at', '>=', $weekStart)
+                ->count();
+
+            // This month's allocations
+            $allocatedMonth = (clone $baseAllocatedQuery)
+                ->whereDate('cus_allocated_at', '>=', $monthStart)
+                ->count();
+
+            // By source distribution (use custom date range if provided)
+            $sourceQuery = MasterCustomer::where('cus_is_use', true);
+            
+            if (!$isTeamView) {
+                $sourceQuery->where('cus_created_by', $targetUserId);
+            }
+            
+            if ($customStart && $customEnd) {
+                $sourceQuery->whereBetween('cus_created_date', [$customStart, $customEnd]);
+            }
+
+            $bySource = $sourceQuery
+                ->select('cus_source', DB::raw('COUNT(*) as count'))
+                ->groupBy('cus_source')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'source' => $item->cus_source ?? 'unknown',
+                        'count' => $item->count
+                    ];
+                });
+
+            // Recent allocations (last 5)
+            $recentAllocationsQuery = MasterCustomer::where('cus_allocation_status', 'allocated')
+                ->where('cus_is_use', true)
+                ->with(['allocatedBy:user_id,username,user_firstname,user_lastname']);
+            
+            if (!$isTeamView) {
+                $recentAllocationsQuery->where('cus_allocated_by', $targetUserId);
+            }
+
+            $recentAllocations = $recentAllocationsQuery
+                ->orderBy('cus_allocated_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function ($customer) {
+                    return [
+                        'cus_id' => $customer->cus_id,
+                        'cus_name' => $customer->cus_name ?? $customer->cus_company,
+                        'cus_source' => $customer->cus_source,
+                        'cus_allocated_at' => $customer->cus_allocated_at,
+                        'allocated_by_name' => $customer->allocatedBy ? 
+                            ($customer->allocatedBy->user_firstname . ' ' . $customer->allocatedBy->user_lastname) : null
+                    ];
+                });
 
             return response()->json([
                 'status' => 'success',
                 'data' => [
-                    'user' => [
-                        'user_id' => $user->user_id,
-                        'username' => $user->username,
-                        'name' => $user->user_firstname . ' ' . $user->user_lastname,
-                    ],
-                    'today' => [
-                        'total_created' => $todayStats->total,
-                        'in_pool' => $todayStats->in_pool,
-                        'allocated' => $todayStats->allocated,
-                    ],
-                    'this_month' => [
-                        'total_created' => $monthStats->total,
-                        'in_pool' => $monthStats->in_pool,
-                        'allocated' => $monthStats->allocated,
+                    'total_pool' => $totalPool,
+                    'total_allocated_today' => $allocatedToday,
+                    'total_allocated_week' => $allocatedWeek,
+                    'total_allocated_month' => $allocatedMonth,
+                    'by_source' => $bySource,
+                    'recent_allocations' => $recentAllocations
+                ],
+                'meta' => [
+                    'user_role' => $user->role,
+                    'is_team_view' => $isTeamView,
+                    'target_user_id' => $targetUserId,
+                    'date_range' => [
+                        'start' => $customStart?->format('Y-m-d'),
+                        'end' => $customEnd?->format('Y-m-d')
                     ]
                 ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Telesales dashboard error: ' . $e);
+            Log::error('Telesales dashboard error: ' . $e->getMessage(), [
+                'user_id' => $user->user_id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error fetching dashboard stats: ' . $e->getMessage()

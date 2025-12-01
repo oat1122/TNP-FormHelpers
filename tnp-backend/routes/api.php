@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\V1\Customers\CustomerController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
@@ -91,6 +93,22 @@ Route::prefix('v1')->group(function() {
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
         Route::post('/customers/{id}/recall', 'recall');
         Route::patch('/customers/{id}/change-grade', 'changeGrade');
+        
+        // Telesales & Allocation routes
+        Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool
+        Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales
+    });
+
+    // Notification routes
+    Route::controller(NotificationController::class)->group(function () {
+        Route::get('/notifications/unread', 'checkUnread'); // Check unread notifications count
+        Route::get('/notifications', 'index'); // Get all notifications
+    });
+
+    // Stats & KPI routes
+    Route::controller(StatsController::class)->group(function () {
+        Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
+        Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
     });
 
     Route::apiResources([

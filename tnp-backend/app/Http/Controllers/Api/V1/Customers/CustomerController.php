@@ -10,6 +10,7 @@ use App\Http\Resources\V1\CustomerResource;
 use App\Services\WorksheetService;
 use App\Services\CustomerService;
 use App\Services\AddressService;
+use App\Helpers\AccountingHelper;
 use App\Models\MasterCustomer as Customer;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Models\CustomerDetail;
@@ -244,20 +245,13 @@ class CustomerController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(\App\Http\Requests\V1\StoreCustomerRequest $request)
     {
         $customer = new Customer();
         $customer_detail = new CustomerDetail();
         $rel_cus_user = new CustomerUser();
 
-        $request->validate([
-            'cus_channel' => 'required',
-            'cus_company' => 'required',
-            'cus_firstname' => 'required',
-            'cus_lastname' => 'required',
-            'cus_name' => 'required',
-            'cus_tel_1' => 'required',
-        ]);
+        // Validation handled by StoreCustomerRequest
 
         $data_input = $request->all();
 
@@ -295,8 +289,20 @@ class CustomerController extends Controller
             $customer->cus_id = Str::uuid();
             $customer->cus_no = $this->customer_service->genCustomerNo($customer_q->cus_no);
             $customer->cus_mcg_id = $group_q->mcg_id; // Set default grade (D)
-            // Accept both object shape { user_id } and scalar for cus_manage_by
-            $customer->cus_manage_by = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
+            
+            // Telesales Flow: Auto-set source and allocation status
+            if (AccountingHelper::isTelesales()) {
+                $customer->cus_source = 'telesales';
+                $customer->cus_allocation_status = 'pool';
+                $customer->cus_manage_by = null; // No manager assigned yet
+            } else {
+                // Regular flow (Sales/Admin/Manager create customer directly)
+                $customer->cus_source = $data_input['cus_source'] ?? 'sales';
+                $customer->cus_allocation_status = 'allocated';
+                // Accept both object shape { user_id } and scalar for cus_manage_by
+                $customer->cus_manage_by = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
+            }
+            
             $customer->cus_created_date = now();
             $customer->cus_created_by = Auth::id();
             $customer->cus_updated_date = now();
@@ -318,13 +324,23 @@ class CustomerController extends Controller
             $customer_detail->cd_updated_by = Auth::id();
             $customer_detail->save();
 
-            $rel_cus_user->rcs_cus_id = $cus_id;
-            $rel_cus_user->rcs_user_id = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
-            $rel_cus_user->save();
+            // Only create relation if customer is allocated (not in pool)
+            if ($customer->cus_allocation_status === 'allocated' && $customer->cus_manage_by) {
+                $rel_cus_user->rcs_cus_id = $cus_id;
+                $rel_cus_user->rcs_user_id = $customer->cus_manage_by;
+                $rel_cus_user->save();
+            }
 
             DB::commit();
             return response()->json([
                 'status' => 'success',
+                'message' => AccountingHelper::isTelesales() 
+                    ? 'สร้างลูกค้าสำเร็จ กำลังรอการจัดสรรงาน' 
+                    : 'สร้างลูกค้าสำเร็จ',
+                'data' => [
+                    'customer_id' => $cus_id,
+                    'allocation_status' => $customer->cus_allocation_status
+                ]
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -859,6 +875,209 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'error', 
                 'message' => 'เกิดข้อผิดพลาดในการสร้างที่อยู่: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get customers in pool (waiting for allocation)
+     * Only accessible by admin and manager
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPoolCustomers(Request $request)
+    {
+        // Check permission
+        if (!AccountingHelper::canAllocateCustomers()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: Only admin and manager can access pool customers'
+            ], 403);
+        }
+
+        try {
+            $query = Customer::inPool()
+                ->with(['customerDetail', 'customerProvice', 'customerDistrict', 'customerSubdistrict'])
+                ->select([
+                    'cus_id',
+                    'cus_no',
+                    'cus_source',
+                    'cus_channel',
+                    'cus_bt_id',
+                    'cus_company',
+                    'cus_firstname',
+                    'cus_lastname',
+                    'cus_name',
+                    'cus_tel_1',
+                    'cus_tel_2',
+                    'cus_email',
+                    'cus_tax_id',
+                    'cus_pro_id',
+                    'cus_dis_id',
+                    'cus_sub_id',
+                    'cus_zip_code',
+                    'cus_address',
+                    'cus_allocation_status',
+                    'cus_created_by',
+                    'cus_created_date',
+                ])
+                ->orderBy('cus_created_date', 'desc');
+
+            // Filter by source if provided
+            if ($request->has('source')) {
+                $query->where('cus_source', $request->source);
+            }
+
+            // Search functionality
+            if ($request->has('search')) {
+                $search_term = '%' . trim($request->search) . '%';
+                $query->where(function ($q) use ($search_term) {
+                    $q->where('cus_name', 'like', $search_term)
+                        ->orWhere('cus_company', 'like', $search_term)
+                        ->orWhere('cus_no', 'like', $search_term)
+                        ->orWhere('cus_tel_1', 'like', $search_term);
+                });
+            }
+
+            $perPage = $request->input('per_page', 20);
+            $customers = $query->paginate($perPage);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => CustomerResource::collection($customers),
+                'pagination' => [
+                    'current_page' => $customers->currentPage(),
+                    'per_page' => $customers->perPage(),
+                    'total_pages' => $customers->lastPage(),
+                    'total_items' => $customers->total()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get pool customers error: ' . $e);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching pool customers: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign customers from pool to a sales person
+     * Only accessible by admin and manager
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function assignCustomers(Request $request)
+    {
+        // Check permission
+        if (!AccountingHelper::canAllocateCustomers()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: Only admin and manager can allocate customers'
+            ], 403);
+        }
+
+        $request->validate([
+            'customer_ids' => 'required|array',
+            'customer_ids.*' => 'required|string|size:36', // UUID format
+            'sales_user_id' => 'required|integer|exists:users,user_id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $customerIds = $request->customer_ids;
+            $salesUserId = $request->sales_user_id;
+            $allocatorId = Auth::id();
+
+            // Verify sales user exists and has correct role
+            $salesUser = User::where('user_id', $salesUserId)
+                ->where('user_is_enable', true)
+                ->whereIn('role', ['sale', 'admin', 'manager'])
+                ->first();
+
+            if (!$salesUser) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid sales user or user is not active'
+                ], 400);
+            }
+
+            // Get customers in pool
+            $customers = Customer::whereIn('cus_id', $customerIds)
+                ->where('cus_allocation_status', 'pool')
+                ->get();
+
+            if ($customers->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No valid customers found in pool'
+                ], 404);
+            }
+
+            // Update customers with error handling for partial success
+            $successCount = 0;
+            $failedCustomers = [];
+            
+            foreach ($customers as $customer) {
+                try {
+                    $customer->update([
+                        'cus_allocation_status' => 'allocated',
+                        'cus_manage_by' => $salesUserId,
+                        'cus_allocated_by' => $allocatorId,
+                        'cus_allocated_at' => now(),
+                        'cus_updated_by' => $allocatorId,
+                        'cus_updated_date' => now()
+                    ]);
+
+                    // Create relation
+                    $rel = new CustomerUser();
+                    $rel->rcs_cus_id = $customer->cus_id;
+                    $rel->rcs_user_id = $salesUserId;
+                    $rel->save();
+                    
+                    $successCount++;
+                } catch (\Exception $e) {
+                    Log::warning("Failed to assign customer {$customer->cus_id}: " . $e->getMessage());
+                    $failedCustomers[] = [
+                        'customer_id' => $customer->cus_id,
+                        'customer_name' => $customer->cus_name,
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            DB::commit();
+
+            $status = empty($failedCustomers) ? 'success' : ($successCount > 0 ? 'partial_success' : 'error');
+            $message = empty($failedCustomers) 
+                ? "จัดสรรลูกค้าสำเร็จ {$successCount} รายให้กับ {$salesUser->username}"
+                : "จัดสรรลูกค้าสำเร็จ {$successCount} ราย, ล้มเหลว " . count($failedCustomers) . " ราย";
+
+            return response()->json([
+                'status' => $status,
+                'message' => $message,
+                'data' => [
+                    'allocated_count' => $successCount,
+                    'failed_count' => count($failedCustomers),
+                    'failed_customers' => $failedCustomers,
+                    'sales_user' => [
+                        'user_id' => $salesUser->user_id,
+                        'username' => $salesUser->username,
+                        'name' => $salesUser->user_firstname . ' ' . $salesUser->user_lastname
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Assign customers error: ' . $e);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error assigning customers: ' . $e->getMessage()
             ], 500);
         }
     }

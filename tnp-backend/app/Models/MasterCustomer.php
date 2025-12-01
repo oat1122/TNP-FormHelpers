@@ -17,7 +17,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $cus_id
  * @property string|null $cus_mcg_id
  * @property string|null $cus_no
- * @property int|null $cus_channel
+ * @property int|null $cus_channel Channel for contact: 1=sales, 2=online, 3=office
+ * @property string|null $cus_source Customer source: sales, telesales, online, office
+ * @property string|null $cus_allocation_status Allocation status: pool, allocated
+ * @property int|null $cus_allocated_by User ID who allocated this customer from pool
+ * @property Carbon|null $cus_allocated_at Timestamp when customer was allocated
+ * @property string|null $cus_bt_id Business Type ID
  * @property string|null $cus_firstname
  * @property string|null $cus_lastname
  * @property string|null $cus_name
@@ -27,17 +32,26 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $cus_tel_2
  * @property string|null $cus_email
  * @property string|null $cus_tax_id
- * @property string|null $cus_pro_id
- * @property string|null $cus_dis_id
- * @property string|null $cus_sub_id
+ * @property string|null $cus_pro_id Province ID
+ * @property string|null $cus_dis_id District ID
+ * @property string|null $cus_sub_id Subdistrict ID
  * @property string|null $cus_zip_code
  * @property string|null $cus_address
- * @property int|null $cus_manage_by
- * @property bool $cus_is_use
+ * @property int|null $cus_manage_by User ID of sales manager
+ * @property bool $cus_is_use Active status
  * @property Carbon|null $cus_created_date
  * @property int|null $cus_created_by
  * @property Carbon|null $cus_updated_date
  * @property int|null $cus_updated_by
+ *
+ * @property-read CustomerDetail|null $customerDetail
+ * @property-read User|null $cusManageBy Sales manager who manages this customer
+ * @property-read User|null $allocatedBy Manager who allocated this customer from pool
+ * @property-read MasterDistrict|null $customerDistrict
+ * @property-read MasterProvice|null $customerProvice
+ * @property-read MasterSubdistrict|null $customerSubdistrict
+ * @property-read MasterBusinessType|null $businessType
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PricingRequest[] $pricingRequests
  *
  * @package App\Models
  */
@@ -56,13 +70,19 @@ class MasterCustomer extends Model
 		'cus_created_date' => 'datetime',
 		'cus_created_by' => 'int',
 		'cus_updated_date' => 'datetime',
-		'cus_updated_by' => 'int'
+		'cus_updated_by' => 'int',
+		'cus_allocated_by' => 'int',
+		'cus_allocated_at' => 'datetime'
 	];
 
 	protected $fillable = [
 		'cus_mcg_id',
 		'cus_no',
 		'cus_channel',		// [1=sales, 2=online, 3=office]
+		'cus_source',		// [sales, telesales, online, office] - customer source
+		'cus_allocation_status',	// [pool, allocated] - allocation status
+		'cus_allocated_by',	// User ID who allocated from pool
+		'cus_allocated_at',	// Timestamp of allocation
 		'cus_bt_id',       // Business Type ID
 		'cus_firstname',
 		'cus_lastname',
@@ -88,6 +108,26 @@ class MasterCustomer extends Model
 
 	public function scopeActive($query) {
 		return $query->where('cus_is_use', true);
+	}
+
+	/**
+	 * Scope a query to filter customers in pool (waiting for allocation)
+	 *
+	 * @param \Illuminate\Database\Eloquent\Builder $query
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public function scopeInPool($query) {
+		return $query->where('cus_allocation_status', 'pool');
+	}
+
+	/**
+	 * Scope a query to filter customers from telesales
+	 *
+	 * @param \Illuminate\Database\Eloquent\Builder $query
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public function scopeFromTelesales($query) {
+		return $query->where('cus_source', 'telesales');
 	}
 
 	/**
@@ -185,6 +225,12 @@ class MasterCustomer extends Model
     {
         return $this->belongsTo(User::class, 'cus_manage_by', 'user_id')
 			->select('user_id', 'username');
+    }
+
+	public function allocatedBy()
+    {
+        return $this->belongsTo(User::class, 'cus_allocated_by', 'user_id')
+			->select('user_id', 'username', 'user_firstname', 'user_lastname');
     }
 
 	public function customerDistrict()

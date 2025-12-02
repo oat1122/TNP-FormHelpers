@@ -26,6 +26,7 @@ import { IoSearch } from "react-icons/io5";
 import { RxHome } from "react-icons/rx";
 import { MdNotifications } from "react-icons/md";
 import { useNotificationPolling } from "../../hooks/useNotificationPolling";
+import NotificationMenu from "./NotificationMenu";
 
 import DialogChangePass from "./DialogChangePass";
 import { searchKeyword } from "../../features/globalSlice";
@@ -86,8 +87,8 @@ function AppHeader() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
 
-  // Notification polling for sales role
-  const { unreadCount, markAllAsRead } = useNotificationPolling(30000);
+  // Notification polling for admin, manager, and sales roles
+  const { unreadCount, notifications, markAsRead, markAllAsRead } = useNotificationPolling(30000);
   const pathList = [
     "/monitor",
     "/worksheet",
@@ -98,6 +99,7 @@ function AppHeader() {
   ];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
   let content;
 
   const handlelogout = async () => {
@@ -211,14 +213,11 @@ function AppHeader() {
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
-            {/* Notification Badge (only for sales role) */}
-            {user.role === "sale" && (
+            {/* Notification Badge (for admin, manager, and sales roles) */}
+            {['admin', 'manager', 'sale'].includes(user.role) && (
               <BsNav.Item className="me-3 d-flex align-items-center">
                 <IconButton
-                  onClick={() => {
-                    markAllAsRead();
-                    navigate("/customer");
-                  }}
+                  onClick={(e) => setNotificationAnchor(e.currentTarget)}
                   size="small"
                   sx={{ color: "#c55050" }}
                 >
@@ -274,6 +273,23 @@ function AppHeader() {
           </BsNavbar.Collapse>
         </BsContainer>
       </BsNavbar>
+
+      {/* Notification Dropdown Menu */}
+      {['admin', 'manager', 'sale'].includes(user.role) && (
+        <NotificationMenu
+          anchorEl={notificationAnchor}
+          open={Boolean(notificationAnchor)}
+          onClose={() => setNotificationAnchor(null)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAsRead={markAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          onNotificationClick={(notification) => {
+            // Navigate to customer page when notification is clicked
+            navigate("/customer");
+          }}
+        />
+      )}
     </>
   );
 }

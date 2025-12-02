@@ -29,8 +29,8 @@ class NotificationController extends Controller
             ], 401);
         }
 
-        // Only sales can receive allocation notifications
-        if (!AccountingHelper::hasRole(['sale'])) {
+        // Only admin, manager, and sales can receive allocation notifications
+        if (!AccountingHelper::hasRole(['admin', 'manager', 'sale'])) {
             return response()->json([
                 'status' => 'success',
                 'unread_count' => 0,

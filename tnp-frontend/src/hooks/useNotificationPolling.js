@@ -30,8 +30,8 @@ export const useNotificationPolling = (interval = 30000) => {
   };
   const user = getUserData();
 
-  // Only poll if user is logged in and is a sales role
-  const shouldPoll = authToken && user.role === "sale";
+  // Only poll if user is logged in and has appropriate role (admin, manager, or sale)
+  const shouldPoll = authToken && ['admin', 'manager', 'sale'].includes(user.role);
 
   /**
    * Fetch unread notifications from API

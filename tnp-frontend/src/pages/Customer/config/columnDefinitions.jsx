@@ -8,7 +8,13 @@ import { MdOutlineManageSearch } from "react-icons/md";
 import { PiClockClockwise, PiArrowFatLinesUpFill, PiArrowFatLinesDownFill } from "react-icons/pi";
 
 import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
-import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
+import {
+  formatCustomRelativeTime,
+  getSourceDisplayName,
+  getSourceColor,
+  getAllocationStatusDisplayName,
+  getAllocationStatusColor,
+} from "../../../features/Customer/customerUtils";
 import { channelMap } from "../components/UtilityComponents";
 
 // Helper function to check if recall date is expired

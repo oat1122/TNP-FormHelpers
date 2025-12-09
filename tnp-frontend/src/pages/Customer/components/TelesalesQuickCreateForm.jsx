@@ -174,10 +174,11 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     try {
       await addCustomer({
         ...formData,
-        source: "telesales",
-        allocation_status: "pool",
+        cus_source: "telesales",
+        cus_allocation_status: "pool",
         cus_created_by: user.user_id,
         cus_manage_by: null,
+        cus_allocated_by: user.user_id,
         is_possible_duplicate: !!duplicateWarning,
       }).unwrap();
 
@@ -196,10 +197,11 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     try {
       await addCustomer({
         ...formData,
-        source: "telesales",
-        allocation_status: "pool",
+        cus_source: "telesales",
+        cus_allocation_status: "pool",
         cus_created_by: user.user_id,
         cus_manage_by: null,
+        cus_allocated_by: user.user_id,
         is_possible_duplicate: !!duplicateWarning,
       }).unwrap();
 

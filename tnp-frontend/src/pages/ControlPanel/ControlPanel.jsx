@@ -221,6 +221,16 @@ function ControlPanel() {
             <label>CUSTOMER</label>
           </a>
         </div>
+        {(user.role === "admin" || user.role === "manager" || user.role === "telesale") && (
+          <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
+            <a className="btn btn-outline-danger pt-3" href="/telesales-dashboard">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaChartBar />
+              </IconContext.Provider>
+              <label>TELESALES</label>
+            </a>
+          </div>
+        )}
         <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
           <a
             className="btn btn-outline-danger pt-3"

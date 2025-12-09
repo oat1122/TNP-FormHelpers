@@ -103,6 +103,56 @@ export const customerApi = createApi({
         body: { direction: payload.direction },
       }),
     }),
+    // Telesales & Allocation endpoints
+    getPoolCustomers: builder.query({
+      query: (payload) => {
+        const queryParams = {
+          page: payload?.page + 1,
+          per_page: payload?.per_page || 30,
+          search: payload?.search,
+          source: payload?.source, // Filter by source (telesales, online, etc)
+        };
+
+        const queryString = qs.stringify(queryParams, { skipNulls: true });
+        const url = queryString ? `/customers/pool?${queryString}` : "/customers/pool";
+
+        return {
+          url: url,
+          method: "GET",
+        };
+      },
+      providesTags: ["Customer"],
+    }),
+    assignCustomers: builder.mutation({
+      invalidatesTags: ["Customer"],
+      query: (payload) => ({
+        url: `/customers/assign`,
+        method: "PATCH",
+        body: {
+          customer_ids: payload.customer_ids,
+          sales_user_id: payload.sales_user_id,
+          force: payload.force || false,
+        },
+      }),
+    }),
+    getTelesalesStats: builder.query({
+      query: (payload) => {
+        const queryParams = {
+          start_date: payload?.start_date,
+          end_date: payload?.end_date,
+        };
+
+        const queryString = qs.stringify(queryParams, { skipNulls: true });
+        const url = queryString
+          ? `/stats/telesales-dashboard?${queryString}`
+          : "/stats/telesales-dashboard";
+
+        return {
+          url: url,
+          method: "GET",
+        };
+      },
+    }),
   }),
 });
 
@@ -115,4 +165,9 @@ export const {
   useDelCustomerMutation,
   useUpdateRecallMutation,
   useChangeGradeMutation,
+  useGetPoolCustomersQuery,
+  useLazyGetPoolCustomersQuery,
+  useAssignCustomersMutation,
+  useGetTelesalesStatsQuery,
+  useLazyGetTelesalesStatsQuery,
 } = customerApi;

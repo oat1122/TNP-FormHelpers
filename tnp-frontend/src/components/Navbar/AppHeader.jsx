@@ -14,7 +14,18 @@ import {
   BsInputGroup,
 } from "../../utils/import_lib";
 
-import { Button, styled, Autocomplete, TextField, Paper } from "@mui/material";
+import {
+  Button,
+  styled,
+  Autocomplete,
+  TextField,
+  Paper,
+  Badge,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import { BusinessCenter as BusinessCenterIcon } from "@mui/icons-material";
 
 import "./AppHeader.css";
 import NavDropdown from "react-bootstrap/NavDropdown";
@@ -24,6 +35,9 @@ import { FiSearch } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
 import { RxHome } from "react-icons/rx";
+import { MdNotifications } from "react-icons/md";
+import { useNotificationPolling } from "../../hooks/useNotificationPolling";
+import NotificationMenu from "./NotificationMenu";
 
 import DialogChangePass from "./DialogChangePass";
 import { searchKeyword } from "../../features/globalSlice";
@@ -83,6 +97,9 @@ function AppHeader() {
 
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
+
+  // Notification polling for admin, manager, and sales roles
+  const { unreadCount, notifications, markAsRead, markAllAsRead } = useNotificationPolling(30000);
   const pathList = [
     "/monitor",
     "/worksheet",
@@ -93,6 +110,8 @@ function AppHeader() {
   ];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const [crmMenuAnchor, setCrmMenuAnchor] = useState(null);
   let content;
 
   const handlelogout = async () => {
@@ -206,6 +225,76 @@ function AppHeader() {
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
+            {/* CRM Menu Group */}
+            <BsNav.Item className="me-3 d-flex align-items-center">
+              <Button
+                onClick={(e) => setCrmMenuAnchor(e.currentTarget)}
+                startIcon={<BusinessCenterIcon />}
+                sx={{
+                  color: "#c55050",
+                  textTransform: "none",
+                  fontSize: "0.95rem",
+                  "&:hover": { backgroundColor: "rgba(197, 80, 80, 0.1)" },
+                }}
+                aria-controls={Boolean(crmMenuAnchor) ? "crm-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={Boolean(crmMenuAnchor) ? "true" : undefined}
+              >
+                CRM
+              </Button>
+              <Menu
+                id="crm-menu"
+                anchorEl={crmMenuAnchor}
+                open={Boolean(crmMenuAnchor)}
+                onClose={() => setCrmMenuAnchor(null)}
+                MenuListProps={{ "aria-labelledby": "crm-button" }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    navigate("/customer");
+                    setCrmMenuAnchor(null);
+                  }}
+                >
+                  รายชื่อลูกค้า
+                </MenuItem>
+                {["admin", "manager"].includes(user.role) && (
+                  <MenuItem
+                    onClick={() => {
+                      navigate("/allocation-hub");
+                      setCrmMenuAnchor(null);
+                    }}
+                  >
+                    จัดสรรลูกค้า
+                  </MenuItem>
+                )}
+                {["admin", "manager", "telesale"].includes(user.role) && (
+                  <MenuItem
+                    onClick={() => {
+                      navigate("/telesales-dashboard");
+                      setCrmMenuAnchor(null);
+                    }}
+                  >
+                    Dashboard Telesales
+                  </MenuItem>
+                )}
+              </Menu>
+            </BsNav.Item>
+
+            {/* Notification Badge (for admin, manager, and sales roles) */}
+            {["admin", "manager", "sale"].includes(user.role) && (
+              <BsNav.Item className="me-3 d-flex align-items-center">
+                <IconButton
+                  onClick={(e) => setNotificationAnchor(e.currentTarget)}
+                  size="small"
+                  sx={{ color: "#c55050" }}
+                >
+                  <Badge badgeContent={unreadCount} color="error">
+                    <MdNotifications size={24} />
+                  </Badge>
+                </IconButton>
+              </BsNav.Item>
+            )}
+
             {/* Display username and change password */}
             <NavDropdown
               title={
@@ -251,6 +340,23 @@ function AppHeader() {
           </BsNavbar.Collapse>
         </BsContainer>
       </BsNavbar>
+
+      {/* Notification Dropdown Menu */}
+      {["admin", "manager", "sale"].includes(user.role) && (
+        <NotificationMenu
+          anchorEl={notificationAnchor}
+          open={Boolean(notificationAnchor)}
+          onClose={() => setNotificationAnchor(null)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAsRead={markAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          onNotificationClick={(notification) => {
+            // Navigate to customer page when notification is clicked
+            navigate("/customer");
+          }}
+        />
+      )}
     </>
   );
 }

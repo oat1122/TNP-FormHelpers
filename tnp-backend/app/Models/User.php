@@ -67,7 +67,7 @@ class User extends Model implements Authenticatable
 		'user_uuid',
 		'username',
 		'password',
-		'role',		// ['admin','manager','production','graphic','sale','technician']
+		'role',		// ['admin','manager','production','graphic','sale','technician','telesale']
 		'user_emp_no',
 		'user_firstname',
 		'user_lastname',
@@ -85,4 +85,25 @@ class User extends Model implements Authenticatable
 		'user_updated_date',
 		'user_updated_by'
 	];
+
+	/**
+	 * Get all notification reads by this user
+	 */
+	public function notificationReads()
+	{
+		return $this->hasMany(CustomerNotificationRead::class, 'user_id', 'user_id');
+	}
+
+	/**
+	 * Get unread customer allocations for this user
+	 */
+	public function unreadAllocations()
+	{
+		return MasterCustomer::where('cus_manage_by', $this->user_id)
+			->where('cus_allocation_status', 'allocated')
+			->whereNotNull('cus_allocated_at')
+			->whereDoesntHave('notificationReads', function($query) {
+				$query->where('user_id', $this->user_id);
+			});
+	}
 }

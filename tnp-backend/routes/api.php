@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\V1\Customers\CustomerController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
@@ -57,6 +59,26 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [MaxSupplyController::class, 'update']);
         Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
         Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
+    });
+
+    //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::controller(CustomerController::class)->group(function () {
+        Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
+        Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
+    });
+
+    //---------- Notifications (Protected Routes) ----------
+    Route::controller(NotificationController::class)->group(function () {
+        Route::get('/notifications/unread', 'checkUnread'); // Check unread notifications count
+        Route::get('/notifications', 'index'); // Get all notifications
+        Route::post('/notifications/mark-as-read', 'markAsRead'); // Mark specific notifications as read
+        Route::post('/notifications/mark-all-as-read', 'markAllAsRead'); // Mark all notifications as read
+    });
+
+    //---------- Stats & KPI (Protected Routes) ----------
+    Route::controller(StatsController::class)->group(function () {
+        Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
+        Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
     });
 });
 

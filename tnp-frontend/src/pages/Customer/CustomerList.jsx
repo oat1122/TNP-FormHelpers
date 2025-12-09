@@ -10,6 +10,7 @@ import CustomerViewDialog from "./components/CustomerViewDialog";
 import { NoDataComponent } from "./components/UtilityComponents";
 import { useColumnDefinitions } from "./config/columnDefinitions";
 import DialogForm from "./DialogForm";
+import TelesalesQuickCreateForm from "./components/TelesalesQuickCreateForm";
 import FilterPanel from "./FilterPanel";
 import FilterTab from "./FilterTab";
 import FilterTags from "./FilterTags";
@@ -74,17 +75,20 @@ function CustomerList() {
   const [totalItems, setTotalItems] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [quickFormOpen, setQuickFormOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [serverSortModel, setServerSortModel] = useState([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     cus_no: false,
     cus_channel: true,
+    cus_source: true,
+    cus_allocation_status: true,
     cus_manage_by: true,
     cus_name: true,
     cus_company: false,
     cus_tel_1: true,
     cd_note: true,
-    business_type: true, // เพิ่ม business_type
+    business_type: true,
     cd_last_datetime: true,
     cus_created_date: true,
     cus_email: false,
@@ -93,6 +97,8 @@ function CustomerList() {
   });
   const [columnOrderModel, setColumnOrderModel] = useState([
     "cus_channel",
+    "cus_source",
+    "cus_allocation_status",
     "cus_manage_by",
     "cus_name",
     "cus_tel_1",
@@ -110,58 +116,90 @@ function CustomerList() {
   // Refs
   const tableContainerRef = useRef(null);
 
-  // Load column preferences from localStorage on mount
+  // Load column preferences from localStorage on mount with v2 migration
   useEffect(() => {
     try {
-      const savedVisibility = localStorage.getItem("customerTableColumnVisibility");
-      const savedOrder = localStorage.getItem("customerTableColumnOrder");
+      const savedVisibilityV2 = localStorage.getItem("customerTableColumnVisibility_v2");
+      const savedOrderV2 = localStorage.getItem("customerTableColumnOrder_v2");
 
-      if (savedVisibility) {
-        const parsed = JSON.parse(savedVisibility);
+      if (savedVisibilityV2) {
+        const parsed = JSON.parse(savedVisibilityV2);
         // ตรวจสอบว่า column ใหม่ที่จำเป็นมีอยู่หรือไม่
-        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+        const requiredColumns = [
+          "cus_channel",
+          "cd_note",
+          "business_type",
+          "cus_source",
+          "cus_allocation_status",
+        ];
         const hasAllRequired = requiredColumns.every((col) => col in parsed.model);
 
         if (hasAllRequired) {
           setColumnVisibilityModel(parsed.model);
         } else {
-          // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
+          // ถ้าไม่ครบ ให้ใช้ default
           console.log("Column preferences outdated, using defaults");
-          localStorage.removeItem("customerTableColumnVisibility");
         }
+      } else {
+        // Check for old v1 keys and remove them
+        const oldV1Visibility = localStorage.getItem("customerTableColumnVisibility");
+        const oldV1Order = localStorage.getItem("customerTableColumnOrder");
+
+        if (oldV1Visibility || oldV1Order) {
+          console.log("Migrating from v1 to v2 column preferences");
+          localStorage.removeItem("customerTableColumnVisibility");
+          localStorage.removeItem("customerTableColumnOrder");
+        }
+        // Use default state which already includes new columns
       }
 
-      if (savedOrder) {
-        const parsed = JSON.parse(savedOrder);
-        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
+      if (savedOrderV2) {
+        const parsed = JSON.parse(savedOrderV2);
+        const requiredColumns = [
+          "cus_channel",
+          "cd_note",
+          "business_type",
+          "cus_source",
+          "cus_allocation_status",
+        ];
         const hasAllRequired = requiredColumns.every((col) => parsed.order.includes(col));
 
         if (hasAllRequired) {
           setColumnOrderModel(parsed.order);
         } else {
-          // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
+          // ถ้าไม่ครบ ให้ใช้ default
           console.log("Column order outdated, using defaults");
-          localStorage.removeItem("customerTableColumnOrder");
         }
       }
     } catch (error) {
       console.warn("Failed to load column preferences from localStorage", error);
       // ลบ localStorage ที่เสียหาย
-      localStorage.removeItem("customerTableColumnVisibility");
-      localStorage.removeItem("customerTableColumnOrder");
+      localStorage.removeItem("customerTableColumnVisibility_v2");
+      localStorage.removeItem("customerTableColumnOrder_v2");
     }
   }, []); // Empty dependency array - run once on mount
 
-  // API Query
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery({
-    group: groupSelected,
-    page: paginationModel.page,
-    per_page: paginationModel.pageSize,
-    user_id: user.user_id,
-    search: keyword,
-    filters: filters,
-    sortModel: serverSortModel,
-  });
+  // API Query with role-based filtering
+  const queryPayload = useMemo(() => {
+    const basePayload = {
+      group: groupSelected,
+      page: paginationModel.page,
+      per_page: paginationModel.pageSize,
+      user_id: user.user_id,
+      search: keyword,
+      filters: filters,
+      sortModel: serverSortModel,
+    };
+
+    // Sales users only see their assigned customers
+    if (user.role === "sale") {
+      basePayload.user_id = user.user_id;
+    }
+
+    return basePayload;
+  }, [groupSelected, paginationModel, user, keyword, filters, serverSortModel]);
+
+  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery(queryPayload);
 
   // Scroll to top function
   const scrollToTop = useCallback(() => {
@@ -305,7 +343,7 @@ function CustomerList() {
         username: user?.username || "unknown",
       };
 
-      localStorage.setItem("customerTableColumnVisibility", JSON.stringify(columnPreferences));
+      localStorage.setItem("customerTableColumnVisibility_v2", JSON.stringify(columnPreferences));
     } catch (error) {
       console.warn("Failed to save column visibility to localStorage", error);
     }
@@ -322,7 +360,7 @@ function CustomerList() {
         username: user?.username || "unknown",
       };
 
-      localStorage.setItem("customerTableColumnOrder", JSON.stringify(columnOrderPreferences));
+      localStorage.setItem("customerTableColumnOrder_v2", JSON.stringify(columnOrderPreferences));
     } catch (error) {
       console.warn("Failed to save column order to localStorage", error);
     }
@@ -485,19 +523,32 @@ function CustomerList() {
           }}
         >
           {/* Top Controls */}
-          <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2, gap: 1 }}>
             {(user.role === "sale" || user.role === "admin") && (
               <Button
                 variant="icon-contained"
                 color="grey"
                 onClick={() => handleOpenDialogWithState("create")}
                 sx={{
-                  marginRight: 3,
                   height: 40,
                   padding: 0,
                 }}
               >
                 <RiAddLargeFill style={{ width: 24, height: 24 }} />
+              </Button>
+            )}
+            {(user.role === "telesale" || user.role === "admin") && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<RiAddLargeFill />}
+                onClick={() => setQuickFormOpen(true)}
+                sx={{
+                  height: 40,
+                }}
+                aria-label="เปิดฟอร์มเพิ่มลูกค้าด่วน"
+              >
+                เพิ่มลูกค้าด่วน
               </Button>
             )}
             <Box sx={{ flexGrow: 1 }}>
@@ -632,6 +683,9 @@ function CustomerList() {
 
         {/* Floating scroll to top button */}
         <ScrollTopButton />
+
+        {/* Telesales Quick Create Form */}
+        <TelesalesQuickCreateForm open={quickFormOpen} onClose={() => setQuickFormOpen(false)} />
       </div>
     </ScrollContext.Provider>
   );

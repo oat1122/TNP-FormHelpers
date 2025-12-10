@@ -25,7 +25,6 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { BusinessCenter as BusinessCenterIcon } from "@mui/icons-material";
 
 import "./AppHeader.css";
 import NavDropdown from "react-bootstrap/NavDropdown";
@@ -111,7 +110,6 @@ function AppHeader() {
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
-  const [crmMenuAnchor, setCrmMenuAnchor] = useState(null);
   let content;
 
   const handlelogout = async () => {
@@ -225,61 +223,6 @@ function AppHeader() {
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
-            {/* CRM Menu Group */}
-            <BsNav.Item className="me-3 d-flex align-items-center">
-              <Button
-                onClick={(e) => setCrmMenuAnchor(e.currentTarget)}
-                startIcon={<BusinessCenterIcon />}
-                sx={{
-                  color: "#c55050",
-                  textTransform: "none",
-                  fontSize: "0.95rem",
-                  "&:hover": { backgroundColor: "rgba(197, 80, 80, 0.1)" },
-                }}
-                aria-controls={Boolean(crmMenuAnchor) ? "crm-menu" : undefined}
-                aria-haspopup="true"
-                aria-expanded={Boolean(crmMenuAnchor) ? "true" : undefined}
-              >
-                CRM
-              </Button>
-              <Menu
-                id="crm-menu"
-                anchorEl={crmMenuAnchor}
-                open={Boolean(crmMenuAnchor)}
-                onClose={() => setCrmMenuAnchor(null)}
-                MenuListProps={{ "aria-labelledby": "crm-button" }}
-              >
-                <MenuItem
-                  onClick={() => {
-                    navigate("/customer");
-                    setCrmMenuAnchor(null);
-                  }}
-                >
-                  รายชื่อลูกค้า
-                </MenuItem>
-                {["admin", "manager"].includes(user.role) && (
-                  <MenuItem
-                    onClick={() => {
-                      navigate("/allocation-hub");
-                      setCrmMenuAnchor(null);
-                    }}
-                  >
-                    จัดสรรลูกค้า
-                  </MenuItem>
-                )}
-                {["admin", "manager", "telesale"].includes(user.role) && (
-                  <MenuItem
-                    onClick={() => {
-                      navigate("/telesales-dashboard");
-                      setCrmMenuAnchor(null);
-                    }}
-                  >
-                    Dashboard Telesales
-                  </MenuItem>
-                )}
-              </Menu>
-            </BsNav.Item>
-
             {/* Notification Badge (for admin, manager, and sales roles) */}
             {["admin", "manager", "sale"].includes(user.role) && (
               <BsNav.Item className="me-3 d-flex align-items-center">

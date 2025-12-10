@@ -6,12 +6,13 @@
  * - จัดการ state ด้วย local useState เท่านั้น
  * - ใช้ Lazy Query สำหรับโหลด location แบบ cascade
  * - รองรับการทำงานแบบ standalone
+ * - ✅ NEW: Duplicate checking for phone & company
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useAddCustomerMutation,
-  useGetAllCustomerQuery,
+  useCheckDuplicateCustomerMutation,
 } from "../../../features/Customer/customerApi";
 import {
   useGetAllBusinessTypesQuery,
@@ -51,8 +52,16 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   // ==================== Local State (ไม่ใช้ Redux) ====================
   const [formData, setFormData] = useState(initialFormData);
   const [fieldErrors, setFieldErrors] = useState({});
-  const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [showLocationWarning, setShowLocationWarning] = useState(false);
+
+  // ✅ NEW: Duplicate checking states
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateDialogData, setDuplicateDialogData] = useState(null);
+  const [companyWarning, setCompanyWarning] = useState(null);
+
+  // Track last checked values to avoid redundant API calls
+  const lastCheckedPhone = useRef("");
+  const lastCheckedCompany = useRef("");
 
   // Location data - จัดการใน local state เท่านั้น
   const [provinces, setProvinces] = useState([]);
@@ -63,6 +72,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
 
   // ==================== API Hooks ====================
   const [addCustomer, { isLoading }] = useAddCustomerMutation();
+  const [checkDuplicate] = useCheckDuplicateCustomerMutation(); // ✅ NEW
 
   // Business Types
   const { data: businessTypesData, isFetching: businessTypesIsFetching } =
@@ -74,18 +84,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   // Districts & Subdistricts - โหลดแบบ lazy ตาม user selection
   const [fetchDistricts, { data: districtsData }] = useLazyGetAllLocationQuery();
   const [fetchSubdistricts, { data: subdistrictsData }] = useLazyGetAllLocationQuery();
-
-  // Duplicate check
-  const { refetch: checkDuplicate } = useGetAllCustomerQuery(
-    {
-      search: formData.cus_tel_1,
-      page: 0,
-      per_page: 5,
-    },
-    {
-      skip: true,
-    }
-  );
 
   const businessTypesList = businessTypesData || [];
 
@@ -167,6 +165,11 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         });
       }
 
+      // ✅ NEW: Clear company warning when user modifies company field
+      if (field === "cus_company") {
+        setCompanyWarning(null);
+      }
+
       // Hide location warning if user starts filling location
       if (["cus_pro_id", "cus_dis_id", "cus_sub_id"].includes(field) && value) {
         setShowLocationWarning(false);
@@ -227,7 +230,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
 
   // Subdistrict change - auto-fill zip code
   const handleSubdistrictChange = useCallback((event, newValue) => {
-    console.log("🏡 [Telesales] Subdistrict changed:", newValue?.sub_name);
+    console.log(" [Telesales] Subdistrict changed:", newValue?.sub_name);
 
     setFormData((prev) => ({
       ...prev,
@@ -237,28 +240,92 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     }));
   }, []);
 
-  // Phone blur - check for duplicates
+  // ✅ NEW: Phone blur - check for duplicates (with Dialog)
   const handlePhoneBlur = useCallback(async () => {
     const phone = formData.cus_tel_1.trim();
 
-    if (phone && phone.match(/^0\d{9}$/)) {
-      try {
-        const result = await checkDuplicate();
-        if (result.data?.data?.length > 0) {
-          setDuplicateWarning(result.data.data[0]);
-        } else {
-          setDuplicateWarning(null);
-        }
-      } catch (error) {
-        console.error("Failed to check duplicate", error);
-      }
-    } else if (phone) {
+    // Skip if empty
+    if (!phone) return;
+
+    // Clean phone number (remove spaces, dashes, parentheses)
+    const cleanPhone = phone.replace(/[\s\-()]/g, "");
+
+    // Validate: Must contain at least 9 digits
+    const digitCount = cleanPhone.replace(/\D/g, "").length;
+    if (digitCount < 9) {
       setFieldErrors((prev) => ({
         ...prev,
-        cus_tel_1: "รูปแบบเบอร์โทรไม่ถูกต้อง (ต้องเป็น 0812345678)",
+        cus_tel_1: "กรุณากรอกเบอร์โทรอย่างน้อย 9 หลัก",
       }));
+      return;
+    }
+
+    // ✅ Check if value changed (avoid redundant API calls)
+    if (cleanPhone === lastCheckedPhone.current) {
+      return;
+    }
+
+    lastCheckedPhone.current = cleanPhone;
+
+    try {
+      console.log("📞 [Duplicate Check] Checking phone:", cleanPhone);
+      const result = await checkDuplicate({
+        type: "phone",
+        value: cleanPhone,
+      }).unwrap();
+
+      if (result.found && result.data.length > 0) {
+        console.log("⚠️ [Duplicate Found] Phone exists:", result.data[0]);
+        setDuplicateDialogData(result.data[0]);
+        setDuplicateDialogOpen(true);
+      }
+    } catch (error) {
+      console.error("❌ [Duplicate Check] Failed:", error);
     }
   }, [formData.cus_tel_1, checkDuplicate]);
+
+  // ✅ NEW: Company blur - check for duplicates (with Alert)
+  const handleCompanyBlur = useCallback(async () => {
+    const company = formData.cus_company.trim();
+
+    // Skip if empty or too short (< 3 characters)
+    if (!company || company.length < 3) {
+      return;
+    }
+
+    // ✅ Check if value changed (avoid redundant API calls)
+    if (company === lastCheckedCompany.current) {
+      return;
+    }
+
+    lastCheckedCompany.current = company;
+
+    try {
+      console.log("🏢 [Duplicate Check] Checking company:", company);
+      const result = await checkDuplicate({
+        type: "company",
+        value: company,
+      }).unwrap();
+
+      if (result.found && result.data.length > 0) {
+        console.log("⚠️ [Duplicate Found] Company exists:", result.data);
+        setCompanyWarning({
+          count: result.data.length,
+          examples: result.data.slice(0, 2), // Show max 2 examples
+        });
+      } else {
+        setCompanyWarning(null);
+      }
+    } catch (error) {
+      console.error("❌ [Duplicate Check] Failed:", error);
+    }
+  }, [formData.cus_company, checkDuplicate]);
+
+  // ✅ NEW: Close duplicate dialog handler
+  const handleCloseDuplicateDialog = useCallback(() => {
+    setDuplicateDialogOpen(false);
+    // Keep data for reference, don't clear it
+  }, []);
 
   // Form validation
   const validateForm = useCallback(() => {
@@ -279,8 +346,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
 
     if (!formData.cus_tel_1.trim()) {
       errors.cus_tel_1 = "กรุณากรอกเบอร์โทร";
-    } else if (!formData.cus_tel_1.match(/^0\d{9}$/)) {
-      errors.cus_tel_1 = "รูปแบบเบอร์โทรไม่ถูกต้อง (10 หลัก)";
+    } else {
+      const cleanPhone = formData.cus_tel_1.replace(/[\s\-()]/g, "");
+      const digitCount = cleanPhone.replace(/\D/g, "").length;
+      if (digitCount < 9) {
+        errors.cus_tel_1 = "กรุณากรอกเบอร์โทรอย่างน้อย 9 หลัก";
+      }
     }
 
     // Location warning (ไม่บล็อกการ submit)
@@ -298,10 +369,14 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
     setFieldErrors({});
-    setDuplicateWarning(null);
     setShowLocationWarning(false);
+    setDuplicateDialogOpen(false);
+    setDuplicateDialogData(null);
+    setCompanyWarning(null);
     setDistricts([]);
     setSubdistricts([]);
+    lastCheckedPhone.current = "";
+    lastCheckedCompany.current = "";
   }, [initialFormData]);
 
   // Save handler
@@ -316,7 +391,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_created_by: user.user_id,
         cus_manage_by: null,
         cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!duplicateWarning,
+        is_possible_duplicate: !!(duplicateDialogData || companyWarning),
       }).unwrap();
 
       console.log("✅ [Telesales] Customer created successfully");
@@ -328,7 +403,16 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         submit: error.data?.message || "เกิดข้อผิดพลาดในการบันทึก",
       });
     }
-  }, [validateForm, addCustomer, formData, user.user_id, duplicateWarning, onClose, resetForm]);
+  }, [
+    validateForm,
+    addCustomer,
+    formData,
+    user.user_id,
+    duplicateDialogData,
+    companyWarning,
+    onClose,
+    resetForm,
+  ]);
 
   // Save and create another handler
   const handleSaveAndNew = useCallback(async () => {
@@ -342,7 +426,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_created_by: user.user_id,
         cus_manage_by: null,
         cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!duplicateWarning,
+        is_possible_duplicate: !!(duplicateDialogData || companyWarning),
       }).unwrap();
 
       console.log("✅ [Telesales] Customer created successfully, ready for next entry");
@@ -363,7 +447,8 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     addCustomer,
     formData,
     user.user_id,
-    duplicateWarning,
+    duplicateDialogData,
+    companyWarning,
     resetForm,
     nameFieldRef,
   ]);
@@ -379,8 +464,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     // Form state
     formData,
     fieldErrors,
-    duplicateWarning,
     showLocationWarning,
+
+    // ✅ NEW: Duplicate states
+    duplicateDialogOpen,
+    duplicateDialogData,
+    companyWarning,
 
     // Location data
     provinces,
@@ -402,9 +491,10 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     handleDistrictChange,
     handleSubdistrictChange,
     handlePhoneBlur,
+    handleCompanyBlur, // ✅ NEW
+    handleCloseDuplicateDialog, // ✅ NEW
     handleSave,
     handleSaveAndNew,
     handleClose,
-    setDuplicateWarning,
   };
 };

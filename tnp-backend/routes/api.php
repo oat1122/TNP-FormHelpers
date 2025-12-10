@@ -110,6 +110,7 @@ Route::prefix('v1')->group(function() {
     Route::controller(CustomerController::class)->group(function () {
         Route::post('/customers/parse-address', 'parseAddress');
         Route::post('/customers/build-address', 'buildAddress');
+        Route::post('/customers/check-duplicate', 'checkDuplicate');
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
         Route::post('/customers/{id}/recall', 'recall');
         Route::patch('/customers/{id}/change-grade', 'changeGrade');

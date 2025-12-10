@@ -16,6 +16,10 @@ import {
   Box,
   Typography,
   Autocomplete,
+  Dialog as MuiDialog,
+  DialogTitle as MuiDialogTitle,
+  DialogContent as MuiDialogContent,
+  DialogActions as MuiDialogActions,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -54,8 +58,11 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     // Form state
     formData,
     fieldErrors,
-    duplicateWarning,
     showLocationWarning,
+    // Duplicate states
+    duplicateDialogOpen,
+    duplicateDialogData,
+    companyWarning,
     // Location data
     provinces,
     districts,
@@ -73,10 +80,11 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     handleDistrictChange,
     handleSubdistrictChange,
     handlePhoneBlur,
+    handleCompanyBlur,
+    handleCloseDuplicateDialog,
     handleSave,
     handleSaveAndNew,
     handleClose,
-    setDuplicateWarning,
   } = useTelesalesQuickForm({ open, onClose, nameFieldRef });
 
   // Keyboard shortcuts
@@ -108,12 +116,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
       fullWidth
       aria-labelledby="quick-form-title"
     >
-      <DialogTitle id="quick-form-title">
-        <Box display="flex" alignItems="center" gap={1}>
-          เพิ่มลูกค้าด่วน (Telesales Quick Form)
-          <Chip label="15+ ช่อง" size="small" color="success" />
-        </Box>
-      </DialogTitle>
+      <DialogTitle id="quick-form-title">เพิ่มลูกค้าด่วน (Telesales Quick Form)</DialogTitle>
 
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 0.5 }}>
@@ -185,36 +188,17 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               onChange={handleChange("cus_tel_1")}
               onBlur={handlePhoneBlur}
               error={!!fieldErrors.cus_tel_1}
-              helperText={fieldErrors.cus_tel_1 || "รูปแบบ: 0812345678 (10 หลัก)"}
+              helperText={
+                fieldErrors.cus_tel_1 || "เบอร์มือถือ 10 หลัก หรือเบอร์บริษัท (เช่น 02-xxx-xxxx)"
+              }
               inputProps={{
                 tabIndex: 4,
-                pattern: "0[0-9]{9}",
-                maxLength: 10,
+                maxLength: 20,
                 "aria-required": true,
                 "aria-label": "เบอร์โทรศัพท์",
-                "aria-describedby": duplicateWarning ? "duplicate-warning" : undefined,
               }}
             />
           </Grid>
-
-          {/* Duplicate Warning */}
-          {duplicateWarning && (
-            <Grid item xs={12}>
-              <Alert
-                severity="warning"
-                onClose={() => setDuplicateWarning(null)}
-                id="duplicate-warning"
-                role="alert"
-                icon={<WarningIcon />}
-              >
-                พบเบอร์โทรนี้ในระบบแล้ว: <strong>{duplicateWarning.cus_name}</strong>
-                <br />
-                <Typography variant="caption">
-                  คุณสามารถบันทึกต่อได้ (ระบบจะ Flag เป็น Possible Duplicate)
-                </Typography>
-              </Alert>
-            </Grid>
-          )}
 
           {/* Business Type */}
           <Grid item xs={12}>
@@ -252,10 +236,34 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               label="บริษัท"
               value={formData.cus_company}
               onChange={handleChange("cus_company")}
+              onBlur={handleCompanyBlur}
               placeholder="เช่น บริษัท ABC จำกัด"
               inputProps={{ tabIndex: 6, "aria-label": "บริษัท" }}
             />
           </Grid>
+
+          {/* Company Warning Alert */}
+          {companyWarning && (
+            <Grid item xs={12}>
+              <Alert
+                severity="warning"
+                onClose={() => setCompanyWarning(null)}
+                icon={<WarningIcon />}
+              >
+                <Typography variant="body2">
+                  <strong>พบชื่อบริษัทคล้ายกันในระบบ ({companyWarning.count} รายการ)</strong>
+                </Typography>
+                {companyWarning.examples.map((ex, idx) => (
+                  <Typography key={idx} variant="caption" display="block" sx={{ mt: 0.5 }}>
+                    • {ex.cus_company} ({ex.cus_name}) - ผู้ดูแล: {ex.sales_name}
+                  </Typography>
+                ))}
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  คุณสามารถบันทึกต่อได้ (ระบบจะ Flag เป็น Possible Duplicate)
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
 
           {/* Channel */}
           <Grid item xs={12}>
@@ -492,6 +500,75 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
           บันทึก & เพิ่มใหม่
         </Button>
       </DialogActions>
+
+      {/* Duplicate Phone Dialog (Blocking) */}
+      <MuiDialog open={duplicateDialogOpen} maxWidth="sm" fullWidth disableEscapeKeyDown>
+        <MuiDialogTitle sx={{ bgcolor: "warning.light", color: "warning.contrastText" }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <WarningIcon />
+            <Typography variant="h6">พบเบอร์โทรนี้ในระบบแล้ว</Typography>
+          </Box>
+        </MuiDialogTitle>
+        <MuiDialogContent sx={{ mt: 2 }}>
+          {duplicateDialogData && (
+            <Box>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                เบอร์โทรนี้มีอยู่ในระบบแล้ว อาจเป็นลูกค้าคนเดียวกัน
+              </Alert>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    ชื่อลูกค้า
+                  </Typography>
+                  <Typography variant="body1" fontWeight="bold">
+                    {duplicateDialogData.cus_name}
+                  </Typography>
+                </Grid>
+
+                {duplicateDialogData.cus_company && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      บริษัท
+                    </Typography>
+                    <Typography variant="body1">{duplicateDialogData.cus_company}</Typography>
+                  </Grid>
+                )}
+
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    เบอร์โทร
+                  </Typography>
+                  <Typography variant="body1">{duplicateDialogData.cus_tel_1}</Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    ผู้ดูแลลูกค้า
+                  </Typography>
+                  <Typography variant="body1" color="primary.main" fontWeight="medium">
+                    {duplicateDialogData.sales_fullname || duplicateDialogData.sales_name}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>คำแนะนำ:</strong> หากเป็นลูกค้าคนเดียวกัน ควรติดต่อ{" "}
+                  <strong>{duplicateDialogData.sales_name}</strong> ก่อนดำเนินการ
+                  <br />
+                  หากยืนยันว่าเป็นคนละคน สามารถกดรับทราบและบันทึกต่อได้
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </MuiDialogContent>
+        <MuiDialogActions>
+          <Button variant="contained" onClick={handleCloseDuplicateDialog} fullWidth size="large">
+            รับทราบ (ดำเนินการต่อ)
+          </Button>
+        </MuiDialogActions>
+      </MuiDialog>
     </Dialog>
   );
 };

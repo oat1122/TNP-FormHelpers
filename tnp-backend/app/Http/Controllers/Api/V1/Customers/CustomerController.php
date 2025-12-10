@@ -1143,4 +1143,88 @@ class CustomerController extends Controller
         // Non-numeric (e.g., UUID) is not valid for this column
         return null;
     }
+
+    /**
+     * Check for duplicate customers by phone or company name
+     * POST /api/v1/customers/check-duplicate
+     */
+    public function checkDuplicate(Request $request)
+    {
+        try {
+            $type = $request->input('type'); // 'phone' or 'company'
+            $value = $request->input('value');
+
+            if (!$type || !$value) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Type and value are required'
+                ], 400);
+            }
+
+            $query = Customer::active()
+                ->with(['cusManageBy:user_id,username,user_firstname,user_lastname']);
+
+            if ($type === 'phone') {
+                // Exact match for phone number
+                $cleanPhone = preg_replace('/[^0-9]/', '', $value);
+                $query->where('cus_tel_1', $cleanPhone);
+            } elseif ($type === 'company') {
+                // Like match for company name
+                $query->where('cus_company', 'like', '%' . $value . '%');
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid type. Use "phone" or "company"'
+                ], 400);
+            }
+
+            $duplicates = $query
+                ->select([
+                    'cus_id',
+                    'cus_name',
+                    'cus_company',
+                    'cus_tel_1',
+                    'cus_manage_by',
+                    'cus_created_date'
+                ])
+                ->limit(5)
+                ->get();
+
+            if ($duplicates->isEmpty()) {
+                return response()->json([
+                    'status' => 'success',
+                    'found' => false,
+                    'data' => []
+                ]);
+            }
+
+            // Format the response
+            $formattedData = $duplicates->map(function ($customer) {
+                return [
+                    'cus_id' => $customer->cus_id,
+                    'cus_name' => $customer->cus_name,
+                    'cus_company' => $customer->cus_company,
+                    'cus_tel_1' => $customer->cus_tel_1,
+                    'sales_name' => $customer->cusManageBy ? $customer->cusManageBy->username : 'ไม่มีผู้ดูแล',
+                    'sales_fullname' => $customer->cusManageBy 
+                        ? trim(($customer->cusManageBy->user_firstname ?? '') . ' ' . ($customer->cusManageBy->user_lastname ?? ''))
+                        : 'ไม่มีผู้ดูแล',
+                    'created_date' => $customer->cus_created_date
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'found' => true,
+                'data' => $formattedData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Check duplicate customer error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to check duplicate: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

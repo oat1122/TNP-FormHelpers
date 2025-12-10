@@ -153,6 +153,16 @@ export const customerApi = createApi({
         };
       },
     }),
+    checkDuplicateCustomer: builder.mutation({
+      query: (payload) => ({
+        url: `/customers/check-duplicate`,
+        method: "POST",
+        body: {
+          type: payload.type, // 'phone' or 'company'
+          value: payload.value,
+        },
+      }),
+    }),
   }),
 });
 
@@ -170,4 +180,5 @@ export const {
   useAssignCustomersMutation,
   useGetTelesalesStatsQuery,
   useLazyGetTelesalesStatsQuery,
+  useCheckDuplicateCustomerMutation,
 } = customerApi;

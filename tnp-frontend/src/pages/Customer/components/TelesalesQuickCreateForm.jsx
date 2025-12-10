@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,73 +17,67 @@ import {
   Typography,
   Autocomplete,
 } from "@mui/material";
-import { Save as SaveIcon, Add as AddIcon, Warning as WarningIcon } from "@mui/icons-material";
+import {
+  Save as SaveIcon,
+  Add as AddIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+} from "@mui/icons-material";
 
 import { QUICK_NOTE_TEMPLATES } from "../constants/quickNoteTemplates";
 import { channelMap } from "./UtilityComponents";
-import {
-  useAddCustomerMutation,
-  useGetAllCustomerQuery,
-} from "../../../features/Customer/customerApi";
-import { useGetAllBusinessTypesQuery } from "../../../features/globalApi";
+import { useTelesalesQuickForm } from "../hooks/useTelesalesQuickForm";
 
 /**
- * TelesalesQuickCreateForm - Fast customer entry form for telesales with accessibility
- * Features: 12 fields, quick notes, duplicate check, keyboard shortcuts, optimistic UI
+ * TelesalesQuickCreateForm - Fast customer entry form for telesales
+ *
+ * 🎯 Features:
+ * - 15+ fields including location (province, district, subdistrict)
+ * - Quick notes templates
+ * - Duplicate phone check
+ * - Keyboard shortcuts (Ctrl+S, Ctrl+Shift+S)
+ * - Auto-fill zip code from subdistrict
+ * - Optional location fields with warning
+ * - Optimistic UI for fast data entry
+ *
+ * ⚠️ Important: ไม่ใช้ Redux state ร่วมกับฟอร์มปกติเพื่อป้องกันการทับซ้อน
+ *
+ * @param {boolean} open - Dialog open state
+ * @param {function} onClose - Callback when dialog closes
  */
 const TelesalesQuickCreateForm = ({ open, onClose }) => {
-  const user = JSON.parse(localStorage.getItem("userData"));
-
-  // Initial form state
-  const initialFormData = {
-    cus_name: "",
-    cus_firstname: "",
-    cus_lastname: "",
-    cus_tel_1: "",
-    cus_company: "",
-    cus_bt_id: "",
-    cus_channel: 1,
-    cd_note: "",
-    cus_email: "",
-    cus_address: "",
-    cus_tax_id: "",
-  };
-
-  // State management
-  const [formData, setFormData] = useState(initialFormData);
-  const [duplicateWarning, setDuplicateWarning] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
-
   // Refs
   const nameFieldRef = useRef(null);
 
-  // API hooks
-  const [addCustomer, { isLoading }] = useAddCustomerMutation();
-  const { data: businessTypesData, isFetching: businessTypesIsFetching } =
-    useGetAllBusinessTypesQuery();
-
-  const businessTypesList = businessTypesData || [];
-
-  // For duplicate check - using query with skip and refetch
-  const { refetch: checkDuplicate } = useGetAllCustomerQuery(
-    {
-      search: formData.cus_tel_1,
-      page: 0,
-      per_page: 5,
-    },
-    {
-      skip: true, // Don't auto-fetch
-    }
-  );
-
-  // Auto-focus on first field when dialog opens
-  useEffect(() => {
-    if (open && nameFieldRef.current) {
-      setTimeout(() => {
-        nameFieldRef.current?.focus();
-      }, 100);
-    }
-  }, [open]);
+  // Custom hook for all business logic (แยกจากฟอร์มปกติ)
+  const {
+    // Form state
+    formData,
+    fieldErrors,
+    duplicateWarning,
+    showLocationWarning,
+    // Location data
+    provinces,
+    districts,
+    subdistricts,
+    isLoadingDistricts,
+    isLoadingSubdistricts,
+    // Business types
+    businessTypesList,
+    businessTypesIsFetching,
+    // Loading state
+    isLoading,
+    // Handlers
+    handleChange,
+    handleProvinceChange,
+    handleDistrictChange,
+    handleSubdistrictChange,
+    handlePhoneBlur,
+    handleSave,
+    handleSaveAndNew,
+    handleClose,
+    setDuplicateWarning,
+  } = useTelesalesQuickForm({ open, onClose, nameFieldRef });
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -104,141 +98,21 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, formData]);
-
-  // Handle input changes
-  const handleChange = (field) => (e) => {
-    const value = e.target?.value !== undefined ? e.target.value : e;
-    setFormData({ ...formData, [field]: value });
-
-    // Clear field error when user starts typing
-    if (fieldErrors[field]) {
-      setFieldErrors({ ...fieldErrors, [field]: null });
-    }
-  };
-
-  // Handle phone blur - check for duplicates
-  const handlePhoneBlur = async () => {
-    const phone = formData.cus_tel_1.trim();
-
-    // Validate phone format
-    if (phone && phone.match(/^0\d{9}$/)) {
-      try {
-        const result = await checkDuplicate();
-        if (result.data?.data?.length > 0) {
-          setDuplicateWarning(result.data.data[0]);
-        } else {
-          setDuplicateWarning(null);
-        }
-      } catch (error) {
-        console.error("Failed to check duplicate", error);
-      }
-    } else if (phone) {
-      setFieldErrors({
-        ...fieldErrors,
-        cus_tel_1: "รูปแบบเบอร์โทรไม่ถูกต้อง (ต้องเป็น 0812345678)",
-      });
-    }
-  };
-
-  // Validate form
-  const validateForm = () => {
-    const errors = {};
-
-    if (!formData.cus_name.trim()) {
-      errors.cus_name = "กรุณากรอกชื่อเล่น";
-    }
-
-    if (!formData.cus_firstname.trim()) {
-      errors.cus_firstname = "กรุณากรอกชื่อจริง";
-    }
-
-    if (!formData.cus_lastname.trim()) {
-      errors.cus_lastname = "กรุณากรอกนามสกุล";
-    }
-
-    if (!formData.cus_tel_1.trim()) {
-      errors.cus_tel_1 = "กรุณากรอกเบอร์โทร";
-    } else if (!formData.cus_tel_1.match(/^0\d{9}$/)) {
-      errors.cus_tel_1 = "รูปแบบเบอร์โทรไม่ถูกต้อง (10 หลัก)";
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Handle save
-  const handleSave = async () => {
-    if (!validateForm()) return;
-
-    try {
-      await addCustomer({
-        ...formData,
-        cus_source: "telesales",
-        cus_allocation_status: "pool",
-        cus_created_by: user.user_id,
-        cus_manage_by: null,
-        cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!duplicateWarning,
-      }).unwrap();
-
-      onClose();
-      resetForm();
-    } catch (error) {
-      console.error("Failed to add customer", error);
-      setFieldErrors({ submit: error.data?.message || "เกิดข้อผิดพลาดในการบันทึก" });
-    }
-  };
-
-  // Handle save and create another
-  const handleSaveAndNew = async () => {
-    if (!validateForm()) return;
-
-    try {
-      await addCustomer({
-        ...formData,
-        cus_source: "telesales",
-        cus_allocation_status: "pool",
-        cus_created_by: user.user_id,
-        cus_manage_by: null,
-        cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!duplicateWarning,
-      }).unwrap();
-
-      // Optimistic reset - <100ms target
-      setTimeout(() => {
-        resetForm();
-        nameFieldRef.current?.focus();
-      }, 0);
-    } catch (error) {
-      console.error("Failed to add customer", error);
-      setFieldErrors({ submit: error.data?.message || "เกิดข้อผิดพลาดในการบันทึก" });
-    }
-  };
-
-  // Reset form
-  const resetForm = () => {
-    setFormData(initialFormData);
-    setDuplicateWarning(null);
-    setFieldErrors({});
-  };
-
-  // Handle dialog close
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
+  }, [open, handleSave, handleSaveAndNew]);
 
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       aria-labelledby="quick-form-title"
     >
       <DialogTitle id="quick-form-title">
-        เพิ่มลูกค้าด่วน (Telesales Quick Form) <Chip label="12 ช่อง" size="small" color="success" />
+        <Box display="flex" alignItems="center" gap={1}>
+          เพิ่มลูกค้าด่วน (Telesales Quick Form)
+          <Chip label="15+ ช่อง" size="small" color="success" />
+        </Box>
       </DialogTitle>
 
       <DialogContent>
@@ -403,6 +277,131 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
             </FormControl>
           </Grid>
 
+          {/* ========== ที่อยู่ (Optional with Warning) ========== */}
+
+          {/* Location Warning */}
+          {showLocationWarning && (
+            <Grid item xs={12}>
+              <Alert severity="info" icon={<InfoIcon />}>
+                <Typography variant="body2">
+                  <strong>แนะนำ:</strong> กรุณากรอกข้อมูลที่อยู่ (จังหวัด/อำเภอ/ตำบล)
+                  เพื่อความสมบูรณ์ของข้อมูล
+                </Typography>
+              </Alert>
+            </Grid>
+          )}
+
+          {/* Province */}
+          <Grid item xs={12} sm={4}>
+            <Autocomplete
+              fullWidth
+              options={provinces}
+              getOptionLabel={(option) => option.pro_name_th || ""}
+              value={provinces.find((p) => p.pro_id === formData.cus_pro_id) || null}
+              onChange={handleProvinceChange}
+              isOptionEqualToValue={(option, value) => option.pro_id === value.pro_id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="จังหวัด"
+                  placeholder="เลือกจังหวัด"
+                  helperText="ไม่บังคับ แต่แนะนำให้กรอก"
+                  inputProps={{
+                    ...params.inputProps,
+                    tabIndex: 8,
+                    "aria-label": "จังหวัด",
+                  }}
+                />
+              )}
+            />
+          </Grid>
+
+          {/* District */}
+          <Grid item xs={12} sm={4}>
+            <Autocomplete
+              fullWidth
+              options={districts}
+              loading={isLoadingDistricts}
+              disabled={!formData.cus_pro_id}
+              getOptionLabel={(option) => option.dis_name || ""}
+              value={districts.find((d) => d.dis_id === formData.cus_dis_id) || null}
+              onChange={handleDistrictChange}
+              isOptionEqualToValue={(option, value) => option.dis_id === value.dis_id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="อำเภอ/เขต"
+                  placeholder={formData.cus_pro_id ? "เลือกอำเภอ/เขต" : "เลือกจังหวัดก่อน"}
+                  inputProps={{
+                    ...params.inputProps,
+                    tabIndex: 9,
+                    "aria-label": "อำเภอหรือเขต",
+                  }}
+                />
+              )}
+            />
+          </Grid>
+
+          {/* Subdistrict */}
+          <Grid item xs={12} sm={4}>
+            <Autocomplete
+              fullWidth
+              options={subdistricts}
+              loading={isLoadingSubdistricts}
+              disabled={!formData.cus_dis_id}
+              getOptionLabel={(option) => option.sub_name || ""}
+              value={subdistricts.find((s) => s.sub_id === formData.cus_sub_id) || null}
+              onChange={handleSubdistrictChange}
+              isOptionEqualToValue={(option, value) => option.sub_id === value.sub_id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="ตำบล/แขวง"
+                  placeholder={formData.cus_dis_id ? "เลือกตำบล/แขวง" : "เลือกอำเภอก่อน"}
+                  inputProps={{
+                    ...params.inputProps,
+                    tabIndex: 10,
+                    "aria-label": "ตำบลหรือแขวง",
+                  }}
+                />
+              )}
+            />
+          </Grid>
+
+          {/* Address Detail */}
+          <Grid item xs={12} sm={8}>
+            <TextField
+              fullWidth
+              label="รายละเอียดที่อยู่"
+              multiline
+              rows={2}
+              value={formData.cus_address}
+              onChange={handleChange("cus_address")}
+              placeholder="เลขที่ ซอย ถนน"
+              inputProps={{ tabIndex: 11, "aria-label": "รายละเอียดที่อยู่" }}
+            />
+          </Grid>
+
+          {/* Zip Code - Auto-fill from subdistrict but allow override */}
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="รหัสไปรษณีย์"
+              value={formData.cus_zip_code}
+              onChange={handleChange("cus_zip_code")}
+              placeholder="10110"
+              helperText={formData.cus_sub_id ? "เติมอัตโนมัติจากตำบล" : ""}
+              inputProps={{
+                tabIndex: 12,
+                maxLength: 5,
+                pattern: "[0-9]{5}",
+                "aria-label": "รหัสไปรษณีย์",
+              }}
+            />
+          </Grid>
+
+          {/* ========== ข้อมูลเพิ่มเติม (Optional) ========== */}
+
           {/* Note with Quick Templates */}
           <Grid item xs={12}>
             <Autocomplete
@@ -419,7 +418,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
                   helperText="เลือก Template หรือพิมพ์เอง"
                   inputProps={{
                     ...params.inputProps,
-                    tabIndex: 8,
+                    tabIndex: 13,
                     "aria-label": "หมายเหตุ",
                   }}
                 />
@@ -428,41 +427,31 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
           </Grid>
 
           {/* Email */}
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               type="email"
               label="Email"
               value={formData.cus_email}
               onChange={handleChange("cus_email")}
-              inputProps={{ tabIndex: 9, "aria-label": "อีเมล" }}
-            />
-          </Grid>
-
-          {/* Address */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="ที่อยู่"
-              multiline
-              rows={2}
-              value={formData.cus_address}
-              onChange={handleChange("cus_address")}
-              inputProps={{ tabIndex: 10, "aria-label": "ที่อยู่" }}
+              placeholder="example@email.com"
+              inputProps={{ tabIndex: 14, "aria-label": "อีเมล" }}
             />
           </Grid>
 
           {/* Tax ID */}
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label="เลขประจำตัวผู้เสียภาษี"
               value={formData.cus_tax_id}
               onChange={handleChange("cus_tax_id")}
               helperText="13 หลัก (ไม่บังคับ)"
+              placeholder="1234567890123"
               inputProps={{
-                tabIndex: 11,
+                tabIndex: 15,
                 maxLength: 13,
+                pattern: "[0-9]{13}",
                 "aria-label": "เลขประจำตัวผู้เสียภาษี",
               }}
             />
@@ -478,7 +467,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={handleClose} disabled={isLoading}>
+        <Button onClick={handleClose} disabled={isLoading} tabIndex={16}>
           ยกเลิก
         </Button>
         <Button
@@ -486,7 +475,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
           onClick={handleSave}
           disabled={isLoading}
           startIcon={<SaveIcon />}
-          tabIndex={12}
+          tabIndex={17}
           aria-label="บันทึกลูกค้า (Ctrl+S)"
         >
           บันทึก
@@ -497,7 +486,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
           disabled={isLoading}
           startIcon={<SaveIcon />}
           endIcon={<AddIcon />}
-          tabIndex={13}
+          tabIndex={18}
           aria-label="บันทึกและเพิ่มลูกค้าใหม่ (Ctrl+Shift+S)"
         >
           บันทึก & เพิ่มใหม่

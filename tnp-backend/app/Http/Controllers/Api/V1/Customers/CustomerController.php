@@ -290,15 +290,18 @@ class CustomerController extends Controller
             $customer->cus_no = $this->customer_service->genCustomerNo($customer_q->cus_no);
             $customer->cus_mcg_id = $group_q->mcg_id; // Set default grade (D)
             
-            // Telesales Flow: Auto-set source and allocation status
-            if (AccountingHelper::isTelesales()) {
-                $customer->cus_source = 'telesales';
-                $customer->cus_allocation_status = 'pool';
-                $customer->cus_manage_by = null; // No manager assigned yet
+            // Use values from Frontend if provided, otherwise use role-based defaults
+            $customer->cus_source = $data_input['cus_source'] ?? 
+                (AccountingHelper::isTelesales() ? 'telesales' : 'sales');
+            
+            $customer->cus_allocation_status = $data_input['cus_allocation_status'] ?? 
+                (AccountingHelper::isTelesales() ? 'pool' : 'allocated');
+            
+            // Set cus_manage_by based on allocation status
+            // Pool customers should have NULL manager
+            if ($customer->cus_allocation_status === 'pool') {
+                $customer->cus_manage_by = null;
             } else {
-                // Regular flow (Sales/Admin/Manager create customer directly)
-                $customer->cus_source = $data_input['cus_source'] ?? 'sales';
-                $customer->cus_allocation_status = 'allocated';
                 // Accept both object shape { user_id } and scalar for cus_manage_by
                 $customer->cus_manage_by = $this->extractManagerId($data_input['cus_manage_by'] ?? null);
             }

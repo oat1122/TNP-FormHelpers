@@ -229,7 +229,7 @@ Route::prefix('v1')->group(function() {
     
     Route::get('/pricing-requests/{id}/autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestAutofill']);
     
-    // 🔄 NEW: Bulk autofill for multiple pricing requests (Cache Optimization)
+    // NEW: Bulk autofill for multiple pricing requests (Cache Optimization)
     Route::post('/pricing-requests/bulk-autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getBulkPricingRequestAutofill']);
     
     // NEW: Pricing Request Notes API

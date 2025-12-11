@@ -136,8 +136,12 @@ const AdditionalInfoTab = ({
   inputList = {},
   errors = {},
   handleInputChange,
+  handleSelectLocation,
   mode = "create",
   salesList = [],
+  provincesList = [],
+  districtList = [],
+  subDistrictList = [],
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -219,60 +223,176 @@ const AdditionalInfoTab = ({
             placeholder="เช่น 39/3 หมู่ 3 ถนนสุโขทัย"
           />
 
-          {/* รหัสไปรษณีย์ + จังหวัด + อำเภอ */}
+          {/* จังหวัด + อำเภอ + ตำบล (Dropdowns) */}
           <Grid container spacing={2}>
+            {/* จังหวัด */}
             <Grid xs={12} sm={4}>
-              <StyledTextField
-                mode={mode}
-                name="cus_zip_code"
-                label="รหัสไปรษณีย์"
-                value={inputList.cus_zip_code || ""}
-                onChange={handleInputChange}
-                error={!!errors.cus_zip_code}
-                helperText={errors.cus_zip_code || "พิมพ์แล้วจะ auto-fill ที่อยู่"}
-                placeholder="เช่น 13260"
-                inputProps={{
-                  maxLength: 5,
-                  pattern: "[0-9]*",
-                }}
-              />
+              <FormControl fullWidth size="small" disabled={mode === "view"}>
+                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>จังหวัด</InputLabel>
+                <Select
+                  name="cus_pro_id"
+                  value={inputList.cus_pro_id || ""}
+                  onChange={handleSelectLocation}
+                  label="จังหวัด"
+                  error={!!errors.cus_pro_id}
+                  sx={{
+                    fontFamily: "Kanit",
+                    fontSize: 14,
+                    bgcolor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 300 },
+                    },
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
+                    -- เลือกจังหวัด --
+                  </MenuItem>
+                  {provincesList.map((province) => (
+                    <MenuItem
+                      key={province.pro_id}
+                      value={province.pro_id}
+                      sx={{ fontFamily: "Kanit" }}
+                    >
+                      {province.pro_name_th}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.cus_pro_id && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
+                    {errors.cus_pro_id}
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
+
+            {/* อำเภอ */}
             <Grid xs={12} sm={4}>
-              <StyledTextField
-                mode={mode}
-                name="cus_province_text"
-                label="จังหวัด"
-                value={inputList.cus_province_text || ""}
-                onChange={handleInputChange}
-                error={!!errors.cus_province_text}
-                helperText={errors.cus_province_text}
-                placeholder="เช่น พระนครศรีอยุธยา"
-              />
+              <FormControl
+                fullWidth
+                size="small"
+                disabled={mode === "view" || !inputList.cus_pro_id}
+              >
+                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>เขต/อำเภอ</InputLabel>
+                <Select
+                  name="cus_dis_id"
+                  value={inputList.cus_dis_id || ""}
+                  onChange={handleSelectLocation}
+                  label="เขต/อำเภอ"
+                  error={!!errors.cus_dis_id}
+                  sx={{
+                    fontFamily: "Kanit",
+                    fontSize: 14,
+                    bgcolor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 300 },
+                    },
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
+                    {inputList.cus_pro_id ? "-- เลือกอำเภอ --" : "กรุณาเลือกจังหวัดก่อน"}
+                  </MenuItem>
+                  {districtList.map((district) => (
+                    <MenuItem
+                      key={district.dis_id}
+                      value={district.dis_id}
+                      sx={{ fontFamily: "Kanit" }}
+                    >
+                      {district.dis_name_th}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.cus_dis_id && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
+                    {errors.cus_dis_id}
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
+
+            {/* ตำบล */}
             <Grid xs={12} sm={4}>
-              <StyledTextField
-                mode={mode}
-                name="cus_district_text"
-                label="เขต/อำเภอ"
-                value={inputList.cus_district_text || ""}
-                onChange={handleInputChange}
-                error={!!errors.cus_district_text}
-                helperText={errors.cus_district_text}
-                placeholder="เช่น นครหลวง"
-              />
+              <FormControl
+                fullWidth
+                size="small"
+                disabled={mode === "view" || !inputList.cus_dis_id}
+              >
+                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>แขวง/ตำบล</InputLabel>
+                <Select
+                  name="cus_sub_id"
+                  value={inputList.cus_sub_id || ""}
+                  onChange={handleSelectLocation}
+                  label="แขวง/ตำบล"
+                  error={!!errors.cus_sub_id}
+                  sx={{
+                    fontFamily: "Kanit",
+                    fontSize: 14,
+                    bgcolor: "white",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: PRIMARY_RED,
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 300 },
+                    },
+                  }}
+                >
+                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
+                    {inputList.cus_dis_id ? "-- เลือกตำบล --" : "กรุณาเลือกอำเภอก่อน"}
+                  </MenuItem>
+                  {subDistrictList.map((subDistrict) => (
+                    <MenuItem
+                      key={subDistrict.sub_id}
+                      value={subDistrict.sub_id}
+                      sx={{ fontFamily: "Kanit" }}
+                    >
+                      {subDistrict.sub_name_th}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.cus_sub_id && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
+                    {errors.cus_sub_id}
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
           </Grid>
 
-          {/* ตำบล */}
+          {/* รหัสไปรษณีย์ (Auto-filled) */}
           <StyledTextField
             mode={mode}
-            name="cus_subdistrict_text"
-            label="แขวง/ตำบล"
-            value={inputList.cus_subdistrict_text || ""}
+            name="cus_zip_code"
+            label="รหัสไปรษณีย์"
+            value={inputList.cus_zip_code || ""}
             onChange={handleInputChange}
-            error={!!errors.cus_subdistrict_text}
-            helperText={errors.cus_subdistrict_text}
-            placeholder="เช่น บ่อโพง"
+            error={!!errors.cus_zip_code}
+            helperText={errors.cus_zip_code || "รหัสไปรษณีย์จะถูกกรอกอัตโนมัติเมื่อเลือกตำบล"}
+            placeholder="เช่น 13260"
+            inputProps={{
+              maxLength: 5,
+              pattern: "[0-9]*",
+            }}
+            sx={{ maxWidth: { xs: "100%", sm: "200px" } }}
           />
         </Stack>
       </Box>

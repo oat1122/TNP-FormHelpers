@@ -174,32 +174,12 @@ function DialogForm(props) {
     };
 
     // อัพเดท cus_address เมื่อมีการเปลี่ยนแปลงในฟิลด์ที่อยู่
-    if (
-      [
-        "cus_address_detail",
-        "cus_subdistrict_text",
-        "cus_district_text",
-        "cus_province_text",
-        "cus_zip_code",
-      ].includes(name)
-    ) {
+    if (["cus_address_detail", "cus_zip_code"].includes(name)) {
       const fullAddress = [
         name === "cus_address_detail" ? value : newInputList.cus_address_detail || "",
-        name === "cus_subdistrict_text"
-          ? `ต.${value}`
-          : newInputList.cus_subdistrict_text
-            ? `ต.${newInputList.cus_subdistrict_text}`
-            : "",
-        name === "cus_district_text"
-          ? `อ.${value}`
-          : newInputList.cus_district_text
-            ? `อ.${newInputList.cus_district_text}`
-            : "",
-        name === "cus_province_text"
-          ? `จ.${value}`
-          : newInputList.cus_province_text
-            ? `จ.${newInputList.cus_province_text}`
-            : "",
+        newInputList.cus_subdistrict_text ? `ต.${newInputList.cus_subdistrict_text}` : "",
+        newInputList.cus_district_text ? `อ.${newInputList.cus_district_text}` : "",
+        newInputList.cus_province_text ? `จ.${newInputList.cus_province_text}` : "",
         name === "cus_zip_code" ? value : newInputList.cus_zip_code || "",
       ]
         .filter(Boolean)
@@ -507,19 +487,24 @@ function DialogForm(props) {
                   inputList={inputList}
                   errors={errors}
                   handleInputChange={handleInputChange}
+                  handleSelectLocation={handleSelectLocation}
                   mode={mode}
                   salesList={salesList}
+                  provincesList={provincesList}
+                  districtList={districtList}
+                  subDistrictList={subDistrictList}
                 />
               )}
             </Box>
           </DialogContent>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Separated to opposite ends */}
           <DialogActions
             sx={{
               borderTop: "1px solid #e0e0e0",
               backgroundColor: "#fff",
               p: { xs: 1.5, sm: 2 },
+              justifyContent: "space-between",
               flexDirection: { xs: "column-reverse", sm: "row" },
               gap: { xs: 1, sm: 1 },
             }}

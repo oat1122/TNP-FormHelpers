@@ -19,7 +19,7 @@ export const useLocationSelection = (
     (e) => {
       const { name, value } = e.target;
 
-      // 🛡️ เพิ่ม validation logic ป้องกันการเลือกผิดลำดับ
+      // เพิ่ม validation logic ป้องกันการเลือกผิดลำดับ
       if (name === "cus_dis_id" && !inputList.cus_pro_id) {
         alert("กรุณาเลือกจังหวัดก่อน");
         return;
@@ -41,12 +41,33 @@ export const useLocationSelection = (
         });
       };
 
+      // Helper function สร้าง cus_address จากข้อมูลทั้งหมด
+      const buildFullAddress = (data) => {
+        const parts = [
+          data.cus_address_detail || "",
+          data.cus_subdistrict_text ? `ต.${data.cus_subdistrict_text}` : "",
+          data.cus_district_text ? `อ.${data.cus_district_text}` : "",
+          data.cus_province_text ? `จ.${data.cus_province_text}` : "",
+          data.cus_zip_code || "",
+        ].filter(Boolean);
+        return parts.join(" ");
+      };
+
       switch (name) {
         case "cus_pro_id": {
           clearDependentDropdowns(["cus_dis_id", "cus_sub_id", "cus_zip_code"]);
           const provincesResult = provincesList.find((find) => find.pro_id === value);
           if (provincesResult) {
-            console.log("🏗️ Province selected, updating locationSearch and refetching...");
+            // เก็บชื่อจังหวัดลงใน cus_province_text
+            updatedInputList = {
+              ...updatedInputList,
+              cus_province_text: provincesResult.pro_name_th || "",
+              cus_district_text: "", // Clear dependent text fields
+              cus_subdistrict_text: "",
+            };
+            // สร้าง cus_address ใหม่
+            updatedInputList.cus_address = buildFullAddress(updatedInputList);
+
             dispatch(
               setLocationSearch({
                 province_sort_id: provincesResult.pro_sort_id,
@@ -56,20 +77,16 @@ export const useLocationSelection = (
 
             // Manual refetch เพื่อโหลด district list ใหม่
             if (refetchLocations) {
-              console.log("🔄 Manually refetching location data...");
               try {
                 // รอให้ refetch เสร็จ (ถ้าเป็น async)
                 const refetchResult = refetchLocations();
                 if (refetchResult && typeof refetchResult.then === "function") {
                   refetchResult
-                    .then(() => {
-                      console.log("✅ Refetch completed successfully");
-                    })
+                    .then(() => {})
                     .catch((error) => {
                       console.error("❌ Refetch failed:", error);
                     });
                 } else {
-                  console.log("✅ Refetch triggered (sync)");
                 }
               } catch (error) {
                 console.error("❌ Refetch failed:", error);
@@ -86,6 +103,15 @@ export const useLocationSelection = (
           clearDependentDropdowns(["cus_sub_id", "cus_zip_code"]);
           const districtResult = districtList.find((find) => find.dis_id === value);
           if (districtResult) {
+            // เก็บชื่ออำเภอลงใน cus_district_text
+            updatedInputList = {
+              ...updatedInputList,
+              cus_district_text: districtResult.dis_name_th || "",
+              cus_subdistrict_text: "", // Clear dependent text field
+            };
+            // สร้าง cus_address ใหม่
+            updatedInputList.cus_address = buildFullAddress(updatedInputList);
+
             dispatch(
               setLocationSearch({
                 ...locationSearch,
@@ -95,19 +121,15 @@ export const useLocationSelection = (
 
             // Manual refetch เพื่อโหลด subdistrict list ใหม่
             if (refetchLocations) {
-              console.log("🔄 Manually refetching location data for subdistricts...");
               try {
                 const refetchResult = refetchLocations();
                 if (refetchResult && typeof refetchResult.then === "function") {
                   refetchResult
-                    .then(() => {
-                      console.log("✅ Subdistrict refetch completed successfully");
-                    })
+                    .then(() => {})
                     .catch((error) => {
                       console.error("❌ Subdistrict refetch failed:", error);
                     });
                 } else {
-                  console.log("✅ Subdistrict refetch triggered (sync)");
                 }
               } catch (error) {
                 console.error("❌ Subdistrict refetch failed:", error);
@@ -122,10 +144,14 @@ export const useLocationSelection = (
         case "cus_sub_id": {
           const subDistrictResult = subDistrictList.find((find) => find.sub_id === value);
           if (subDistrictResult) {
+            // เก็บชื่อตำบลและรหัสไปรษณีย์
             updatedInputList = {
               ...updatedInputList,
-              cus_zip_code: subDistrictResult.sub_zip_code,
+              cus_subdistrict_text: subDistrictResult.sub_name_th || "",
+              cus_zip_code: subDistrictResult.sub_zip_code || "",
             };
+            // สร้าง cus_address ใหม่
+            updatedInputList.cus_address = buildFullAddress(updatedInputList);
           }
           break;
         }

@@ -6,7 +6,7 @@
  * - จัดการ state ด้วย local useState เท่านั้น
  * - ใช้ Lazy Query สำหรับโหลด location แบบ cascade
  * - รองรับการทำงานแบบ standalone
- * - ✅ NEW: Duplicate checking for phone & company
+ * -  NEW: Duplicate checking for phone & company
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -165,12 +165,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         });
       }
 
-      // ✅ NEW: Clear company warning when user modifies company field
+      // Clear company warning when user modifies company field
       if (field === "cus_company") {
         setCompanyWarning(null);
       }
 
-      // ✅ NEW: Clear phone duplicate state when user modifies phone field
+      // Clear phone duplicate state when user modifies phone field
       if (field === "cus_tel_1" && duplicateDialogData) {
         setDuplicateDialogData(null);
         lastCheckedPhone.current = "";
@@ -187,8 +187,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   // Province change - โหลด districts และ clear ข้อมูลที่ขึ้นต่อกัน
   const handleProvinceChange = useCallback(
     (event, newValue) => {
-      console.log("🏙️ [Telesales] Province changed:", newValue?.pro_name_th);
-
       setFormData((prev) => ({
         ...prev,
         cus_pro_id: newValue?.pro_id || "",
@@ -213,8 +211,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   // District change - โหลด subdistricts และ clear ข้อมูลที่ขึ้นต่อกัน
   const handleDistrictChange = useCallback(
     (event, newValue) => {
-      console.log("🏘️ [Telesales] District changed:", newValue?.dis_name);
-
       setFormData((prev) => ({
         ...prev,
         cus_dis_id: newValue?.dis_id || "",
@@ -236,8 +232,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
 
   // Subdistrict change - auto-fill zip code
   const handleSubdistrictChange = useCallback((event, newValue) => {
-    console.log(" [Telesales] Subdistrict changed:", newValue?.sub_name);
-
     setFormData((prev) => ({
       ...prev,
       cus_sub_id: newValue?.sub_id || "",
@@ -246,7 +240,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     }));
   }, []);
 
-  // ✅ NEW: Phone blur - check for duplicates (with Dialog)
+  // NEW: Phone blur - check for duplicates (with Dialog)
   const handlePhoneBlur = useCallback(async () => {
     const phone = formData.cus_tel_1.trim();
 
@@ -266,7 +260,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
       return;
     }
 
-    // ✅ Check if value changed (avoid redundant API calls)
+    //Check if value changed (avoid redundant API calls)
     if (cleanPhone === lastCheckedPhone.current) {
       return;
     }
@@ -274,14 +268,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     lastCheckedPhone.current = cleanPhone;
 
     try {
-      console.log("📞 [Duplicate Check] Checking phone:", cleanPhone);
       const result = await checkDuplicate({
         type: "phone",
         value: cleanPhone,
       }).unwrap();
 
       if (result.found && result.data.length > 0) {
-        console.log("⚠️ [Duplicate Found] Phone exists:", result.data[0]);
         setDuplicateDialogData(result.data[0]);
         setDuplicateDialogOpen(true);
       }
@@ -290,7 +282,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     }
   }, [formData.cus_tel_1, checkDuplicate]);
 
-  // ✅ NEW: Company blur - check for duplicates (with Alert)
+  // NEW: Company blur - check for duplicates (with Alert)
   const handleCompanyBlur = useCallback(async () => {
     const company = formData.cus_company.trim();
 
@@ -299,7 +291,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
       return;
     }
 
-    // ✅ Check if value changed (avoid redundant API calls)
+    //Check if value changed (avoid redundant API calls)
     if (company === lastCheckedCompany.current) {
       return;
     }
@@ -307,14 +299,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     lastCheckedCompany.current = company;
 
     try {
-      console.log("🏢 [Duplicate Check] Checking company:", company);
       const result = await checkDuplicate({
         type: "company",
         value: company,
       }).unwrap();
 
       if (result.found && result.data.length > 0) {
-        console.log("⚠️ [Duplicate Found] Company exists:", result.data);
         setCompanyWarning({
           count: result.data.length,
           examples: result.data.slice(0, 2), // Show max 2 examples
@@ -327,7 +317,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     }
   }, [formData.cus_company, checkDuplicate]);
 
-  // ✅ NEW: Close duplicate dialog handler
+  // NEW: Close duplicate dialog handler
   const handleCloseDuplicateDialog = useCallback(() => {
     setDuplicateDialogOpen(false);
     // Keep data for reference, don't clear it
@@ -400,7 +390,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         is_possible_duplicate: !!(duplicateDialogData || companyWarning),
       }).unwrap();
 
-      console.log("✅ [Telesales] Customer created successfully");
       onClose();
       resetForm();
     } catch (error) {
@@ -434,8 +423,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_allocated_by: user.user_id,
         is_possible_duplicate: !!(duplicateDialogData || companyWarning),
       }).unwrap();
-
-      console.log("✅ [Telesales] Customer created successfully, ready for next entry");
 
       // Optimistic reset
       setTimeout(() => {
@@ -472,11 +459,11 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     fieldErrors,
     showLocationWarning,
 
-    // ✅ NEW: Duplicate states
+    // NEW: Duplicate states
     duplicateDialogOpen,
     duplicateDialogData,
     companyWarning,
-    isPhoneBlocked: !!duplicateDialogData, // ✅ NEW: For disabling save button
+    isPhoneBlocked: !!duplicateDialogData, // NEW: For disabling save button
 
     // Location data
     provinces,
@@ -498,8 +485,8 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     handleDistrictChange,
     handleSubdistrictChange,
     handlePhoneBlur,
-    handleCompanyBlur, // ✅ NEW
-    handleCloseDuplicateDialog, // ✅ NEW
+    handleCompanyBlur,
+    handleCloseDuplicateDialog,
     handleSave,
     handleSaveAndNew,
     handleClose,

@@ -16,17 +16,24 @@ import {
   Box,
   Typography,
   Autocomplete,
+  IconButton,
+  Divider,
   Dialog as MuiDialog,
   DialogTitle as MuiDialogTitle,
   DialogContent as MuiDialogContent,
   DialogActions as MuiDialogActions,
 } from "@mui/material";
 import {
-  Save as SaveIcon,
-  Add as AddIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-} from "@mui/icons-material";
+  MdSave,
+  MdCancel,
+  MdClose,
+  MdAdd,
+  MdPerson,
+  MdBusiness,
+  MdLocationOn,
+  MdNote,
+} from "react-icons/md";
+import { Warning as WarningIcon, Info as InfoIcon } from "@mui/icons-material";
 
 import { QUICK_NOTE_TEMPLATES } from "../constants/quickNoteTemplates";
 import { channelMap } from "./UtilityComponents";
@@ -63,7 +70,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     duplicateDialogOpen,
     duplicateDialogData,
     companyWarning,
-    isPhoneBlocked, // ✅ NEW: For disabling save button
+    isPhoneBlocked, //  NEW: For disabling save button
     // Location data
     provinces,
     districts,
@@ -109,6 +116,16 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     return () => document.removeEventListener("keydown", handler);
   }, [open, handleSave, handleSaveAndNew]);
 
+  // Section Header Component
+  const SectionHeader = ({ icon, title }) => (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2, mt: 1 }}>
+      {icon}
+      <Typography variant="subtitle1" fontWeight={600} color="#9e0000" sx={{ fontFamily: "Kanit" }}>
+        {title}
+      </Typography>
+    </Box>
+  );
+
   return (
     <Dialog
       open={open}
@@ -116,11 +133,53 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
       maxWidth="md"
       fullWidth
       aria-labelledby="quick-form-title"
+      PaperProps={{
+        sx: {
+          display: "flex",
+          flexDirection: "column",
+          width: { xs: "95vw", sm: "90vw", md: "80vw" },
+          maxWidth: { xs: "95vw", sm: "90vw", md: "900px" },
+          margin: { xs: "10px", sm: "20px" },
+          height: { xs: "95vh", sm: "auto" },
+          maxHeight: { xs: "95vh", sm: "90vh" },
+        },
+      }}
     >
-      <DialogTitle id="quick-form-title">เพิ่มลูกค้าด่วน (Telesales Quick Form)</DialogTitle>
+      {/* Dialog Header - Matching DialogForm Style */}
+      <DialogTitle
+        id="quick-form-title"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "#9e0000",
+          color: "white",
+          py: { xs: 1, sm: 2 },
+          px: { xs: 2, sm: 3 },
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "Kanit",
+            fontWeight: 600,
+            fontSize: "1.1rem",
+            color: "white",
+          }}
+        >
+          เพิ่มลูกค้าด่วน (Telesales)
+        </span>
+        <IconButton onClick={handleClose} sx={{ color: "white", p: { xs: 1, sm: 1.5 } }}>
+          <MdClose size={20} />
+        </IconButton>
+      </DialogTitle>
 
-      <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+      <DialogContent
+        dividers
+        sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 }, bgcolor: "#fafafa" }}
+      >
+        {/* ========== ข้อมูลหลัก (Required) ========== */}
+        <SectionHeader icon={<MdPerson size={20} color="#9e0000" />} title="ข้อมูลหลัก" />
+        <Grid container spacing={2}>
           {/* Name - Required */}
           <Grid item xs={12}>
             <TextField
@@ -203,9 +262,14 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               }}
             />
           </Grid>
+        </Grid>
 
+        {/* ========== ข้อมูลธุรกิจ ========== */}
+        <Divider sx={{ my: 3 }} />
+        <SectionHeader icon={<MdBusiness size={20} color="#9e0000" />} title="ข้อมูลธุรกิจ" />
+        <Grid container spacing={2}>
           {/* Business Type */}
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <Autocomplete
               fullWidth
               loading={businessTypesIsFetching}
@@ -220,7 +284,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
                 <TextField
                   {...params}
                   label="ประเภทธุรกิจ"
-                  placeholder="ค้นหาและเลือกปราะเภทธุรกิจ..."
+                  placeholder="ค้นหาและเลือกประเภทธุรกิจ..."
                   error={!!fieldErrors.cus_bt_id}
                   helperText={fieldErrors.cus_bt_id}
                   inputProps={{
@@ -233,6 +297,26 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
             />
           </Grid>
 
+          {/* Channel */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel id="channel-label">ช่องทาง</InputLabel>
+              <Select
+                labelId="channel-label"
+                label="ช่องทาง"
+                value={formData.cus_channel}
+                onChange={handleChange("cus_channel")}
+                inputProps={{ tabIndex: 6, "aria-label": "ช่องทางการติดต่อ" }}
+              >
+                {Object.entries(channelMap).map(([value, label]) => (
+                  <MenuItem key={value} value={parseInt(value)}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
           {/* Company */}
           <Grid item xs={12}>
             <TextField
@@ -242,7 +326,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               onChange={handleChange("cus_company")}
               onBlur={handleCompanyBlur}
               placeholder="เช่น บริษัท ABC จำกัด"
-              inputProps={{ tabIndex: 6, "aria-label": "บริษัท" }}
+              inputProps={{ tabIndex: 7, "aria-label": "บริษัท" }}
             />
           </Grid>
 
@@ -268,41 +352,25 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               </Alert>
             </Grid>
           )}
+        </Grid>
+        {/* ========== ที่อยู่ (Optional) ========== */}
+        <Divider sx={{ my: 3 }} />
+        <SectionHeader
+          icon={<MdLocationOn size={20} color="#9e0000" />}
+          title="ที่อยู่ (ไม่บังคับ)"
+        />
 
-          {/* Channel */}
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel id="channel-label">ช่องทาง</InputLabel>
-              <Select
-                labelId="channel-label"
-                label="ช่องทาง"
-                value={formData.cus_channel}
-                onChange={handleChange("cus_channel")}
-                inputProps={{ tabIndex: 7, "aria-label": "ช่องทางการติดต่อ" }}
-              >
-                {Object.entries(channelMap).map(([value, label]) => (
-                  <MenuItem key={value} value={parseInt(value)}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+        {/* Location Warning */}
+        {showLocationWarning && (
+          <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>แนะนำ:</strong> กรุณากรอกข้อมูลที่อยู่ (จังหวัด/อำเภอ/ตำบล)
+              เพื่อความสมบูรณ์ของข้อมูล
+            </Typography>
+          </Alert>
+        )}
 
-          {/* ========== ที่อยู่ (Optional with Warning) ========== */}
-
-          {/* Location Warning */}
-          {showLocationWarning && (
-            <Grid item xs={12}>
-              <Alert severity="info" icon={<InfoIcon />}>
-                <Typography variant="body2">
-                  <strong>แนะนำ:</strong> กรุณากรอกข้อมูลที่อยู่ (จังหวัด/อำเภอ/ตำบล)
-                  เพื่อความสมบูรณ์ของข้อมูล
-                </Typography>
-              </Alert>
-            </Grid>
-          )}
-
+        <Grid container spacing={2}>
           {/* Province */}
           <Grid item xs={12} sm={4}>
             <Autocomplete
@@ -411,9 +479,15 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               }}
             />
           </Grid>
+        </Grid>
 
-          {/* ========== ข้อมูลเพิ่มเติม (Optional) ========== */}
-
+        {/* ========== ข้อมูลเพิ่มเติม (Optional) ========== */}
+        <Divider sx={{ my: 3 }} />
+        <SectionHeader
+          icon={<MdNote size={20} color="#9e0000" />}
+          title="ข้อมูลเพิ่มเติม (ไม่บังคับ)"
+        />
+        <Grid container spacing={2}>
           {/* Note with Quick Templates */}
           <Grid item xs={12}>
             <Autocomplete
@@ -426,7 +500,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
                   {...params}
                   label="หมายเหตุ"
                   multiline
-                  rows={3}
+                  rows={2}
                   helperText="เลือก Template หรือพิมพ์เอง"
                   inputProps={{
                     ...params.inputProps,
@@ -478,40 +552,45 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
         </Grid>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isLoading} tabIndex={16}>
-          ยกเลิก
-        </Button>
+      {/* Action Buttons - Separated to opposite ends */}
+      <DialogActions
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          backgroundColor: "#fff",
+          p: { xs: 1.5, sm: 2 },
+          justifyContent: "space-between",
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          gap: { xs: 1, sm: 1 },
+        }}
+      >
         <Button
           variant="outlined"
-          onClick={handleSave}
-          disabled={isLoading || isPhoneBlocked}
-          startIcon={<SaveIcon />}
-          tabIndex={17}
-          aria-label="บันทึกลูกค้า (Ctrl+S)"
+          color="error"
+          onClick={handleClose}
+          disabled={isLoading}
+          startIcon={<MdCancel />}
+          tabIndex={16}
           sx={{
-            ...(isPhoneBlocked && {
-              bgcolor: "#888",
-              color: "white",
-              "&:hover": { bgcolor: "#888" },
-            }),
+            minWidth: { xs: "100%", sm: "120px" },
+            fontFamily: "Kanit",
           }}
         >
-          {isPhoneBlocked ? "เบอร์ซ้ำ" : "บันทึก"}
+          ยกเลิก
         </Button>
         <Button
           variant="contained"
           onClick={handleSaveAndNew}
           disabled={isLoading || isPhoneBlocked}
-          startIcon={<SaveIcon />}
-          endIcon={<AddIcon />}
-          tabIndex={18}
+          startIcon={<MdSave />}
+          endIcon={<MdAdd />}
+          tabIndex={17}
           aria-label="บันทึกและเพิ่มลูกค้าใหม่ (Ctrl+Shift+S)"
           sx={{
-            ...(isPhoneBlocked && {
-              bgcolor: "#888",
-              "&:hover": { bgcolor: "#888" },
-            }),
+            backgroundColor: isPhoneBlocked ? "#888" : "#9e0000",
+            "&:hover": { backgroundColor: isPhoneBlocked ? "#888" : "#d32f2f" },
+            minWidth: { xs: "100%", sm: "180px" },
+            fontFamily: "Kanit",
+            fontWeight: 600,
           }}
         >
           {isPhoneBlocked ? "เบอร์ซ้ำ" : "บันทึก & เพิ่มใหม่"}

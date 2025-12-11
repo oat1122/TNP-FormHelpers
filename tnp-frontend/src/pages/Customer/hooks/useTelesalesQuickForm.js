@@ -54,7 +54,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showLocationWarning, setShowLocationWarning] = useState(false);
 
-  // ✅ NEW: Duplicate checking states
+  //  NEW: Duplicate checking states
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateDialogData, setDuplicateDialogData] = useState(null);
   const [companyWarning, setCompanyWarning] = useState(null);
@@ -170,12 +170,18 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         setCompanyWarning(null);
       }
 
+      // ✅ NEW: Clear phone duplicate state when user modifies phone field
+      if (field === "cus_tel_1" && duplicateDialogData) {
+        setDuplicateDialogData(null);
+        lastCheckedPhone.current = "";
+      }
+
       // Hide location warning if user starts filling location
       if (["cus_pro_id", "cus_dis_id", "cus_sub_id"].includes(field) && value) {
         setShowLocationWarning(false);
       }
     },
-    [fieldErrors]
+    [fieldErrors, duplicateDialogData]
   );
 
   // Province change - โหลด districts และ clear ข้อมูลที่ขึ้นต่อกัน
@@ -470,6 +476,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     duplicateDialogOpen,
     duplicateDialogData,
     companyWarning,
+    isPhoneBlocked: !!duplicateDialogData, // ✅ NEW: For disabling save button
 
     // Location data
     provinces,

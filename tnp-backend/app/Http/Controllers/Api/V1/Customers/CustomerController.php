@@ -1161,7 +1161,9 @@ class CustomerController extends Controller
                 ], 400);
             }
 
-            $query = Customer::active()
+            // ใช้ Customer::query() แทน Customer::active() เพื่อตรวจสอบรวมลูกค้าที่ถูก soft delete
+            // เพราะ DB มี unique index บน cus_tel_1 ทำให้ไม่สามารถเพิ่มเบอร์ซ้ำได้แม้ลูกค้าจะถูกลบแล้ว
+            $query = Customer::query()
                 ->with(['cusManageBy:user_id,username,user_firstname,user_lastname']);
 
             if ($type === 'phone') {

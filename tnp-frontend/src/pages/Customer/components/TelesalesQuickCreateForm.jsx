@@ -63,6 +63,7 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
     duplicateDialogOpen,
     duplicateDialogData,
     companyWarning,
+    isPhoneBlocked, // ✅ NEW: For disabling save button
     // Location data
     provinces,
     districts,
@@ -187,9 +188,12 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
               value={formData.cus_tel_1}
               onChange={handleChange("cus_tel_1")}
               onBlur={handlePhoneBlur}
-              error={!!fieldErrors.cus_tel_1}
+              error={!!fieldErrors.cus_tel_1 || isPhoneBlocked}
               helperText={
-                fieldErrors.cus_tel_1 || "เบอร์มือถือ 10 หลัก หรือเบอร์บริษัท (เช่น 02-xxx-xxxx)"
+                fieldErrors.cus_tel_1 ||
+                (isPhoneBlocked
+                  ? `⚠️ เบอร์ซ้ำกับ ${duplicateDialogData?.cus_name} (แก้ไขเบอร์เพื่อบันทึกต่อ)`
+                  : "เบอร์มือถือ 10 หลัก หรือเบอร์บริษัท (เช่น 02-xxx-xxxx)")
               }
               inputProps={{
                 tabIndex: 4,
@@ -481,23 +485,36 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
         <Button
           variant="outlined"
           onClick={handleSave}
-          disabled={isLoading}
+          disabled={isLoading || isPhoneBlocked}
           startIcon={<SaveIcon />}
           tabIndex={17}
           aria-label="บันทึกลูกค้า (Ctrl+S)"
+          sx={{
+            ...(isPhoneBlocked && {
+              bgcolor: "#888",
+              color: "white",
+              "&:hover": { bgcolor: "#888" },
+            }),
+          }}
         >
-          บันทึก
+          {isPhoneBlocked ? "เบอร์ซ้ำ" : "บันทึก"}
         </Button>
         <Button
           variant="contained"
           onClick={handleSaveAndNew}
-          disabled={isLoading}
+          disabled={isLoading || isPhoneBlocked}
           startIcon={<SaveIcon />}
           endIcon={<AddIcon />}
           tabIndex={18}
           aria-label="บันทึกและเพิ่มลูกค้าใหม่ (Ctrl+Shift+S)"
+          sx={{
+            ...(isPhoneBlocked && {
+              bgcolor: "#888",
+              "&:hover": { bgcolor: "#888" },
+            }),
+          }}
         >
-          บันทึก & เพิ่มใหม่
+          {isPhoneBlocked ? "เบอร์ซ้ำ" : "บันทึก & เพิ่มใหม่"}
         </Button>
       </DialogActions>
 

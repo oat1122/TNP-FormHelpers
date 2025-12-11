@@ -9,15 +9,19 @@ import {
   Typography,
 } from "@mui/material";
 import { useState, useEffect, useRef, useContext } from "react";
-import { MdSave, MdCancel, MdNavigateNext, MdNavigateBefore, MdClose } from "react-icons/md";
+import { MdSave, MdCancel, MdClose } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
-import BusinessDetailStepSimple from "./components/BusinessDetailStepSimple";
-import BusinessTypeStepSimple from "./components/BusinessTypeStepSimple";
-import CustomerStepper from "./components/CustomerStepper";
-import VerificationStepSimple from "./components/VerificationStepSimple";
-import YourDetailsStepSimple from "./components/YourDetailsStepSimple";
+// New Tab-based components
+import AdditionalInfoTab from "./components/AdditionalInfoTab";
+import CustomerFormTabs from "./components/CustomerFormTabs";
+import DuplicatePhoneDialog from "./components/DuplicatePhoneDialog";
+import EssentialInfoTab from "./components/EssentialInfoTab";
+import FormSummaryPreview from "./components/FormSummaryPreview";
+import QuickActionsBar from "./components/QuickActionsBar";
+
 import { useDialogApiData } from "./hooks/useDialogApiData";
+import { useDuplicateCheck } from "./hooks/useDuplicateCheck";
 import { useLocationSelection } from "./hooks/useLocationSelection";
 import { useStepperValidation } from "./hooks/useStepperValidation";
 import ScrollContext from "./ScrollContext";
@@ -34,10 +38,11 @@ import {
   open_dialog_loading,
 } from "../../utils/import_lib";
 
-// Import stepper components and hooks
-
-// Main DialogForm component
-
+/**
+ * DialogForm - Customer form dialog with 2-tab layout
+ * Tab 1: Essential Info (required fields)
+ * Tab 2: Additional Info (optional fields like address, notes)
+ */
 function DialogForm(props) {
   const dispatch = useDispatch();
   const user = JSON.parse(localStorage.getItem("userData"));
@@ -50,7 +55,7 @@ function DialogForm(props) {
   // Local state
   const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeTab, setActiveTab] = useState(0); // 0 = Essential, 1 = Additional
 
   // Refs
   const formRef = useRef(null);
@@ -73,7 +78,6 @@ function DialogForm(props) {
   } = useStepperValidation();
 
   const {
-    // Processed data
     provincesList,
     districtList,
     subDistrictList,
@@ -93,35 +97,31 @@ function DialogForm(props) {
     refetchLocations
   );
 
+  // Duplicate check hook
+  const {
+    duplicatePhoneDialogOpen,
+    duplicatePhoneData,
+    companyWarning,
+    isCheckingPhone,
+    checkPhoneDuplicate,
+    checkCompanyDuplicate,
+    closeDuplicatePhoneDialog,
+    clearCompanyWarning,
+    clearDuplicatePhoneData,
+    resetDuplicateChecks,
+    hasDuplicateWarning,
+  } = useDuplicateCheck({
+    mode,
+    currentCustomerId: inputList?.cus_id || null,
+  });
+
   // API hooks
   const [addCustomer] = useAddCustomerMutation();
   const [updateCustomer] = useUpdateCustomerMutation();
 
-  // Stepper handlers
-  const handleStepChange = (targetStep) => {
-    if (canNavigateToStep(targetStep, activeStep, inputList)) {
-      setActiveStep(targetStep);
-    } else {
-      // แจ้งเตือนหากยังไม่สามารถไปยังขั้นตอนนั้นได้
-      open_dialog_error("กรุณากรอกข้อมูลในขั้นตอนปัจจุบันให้ครบถ้วนก่อน");
-    }
-  };
-
-  const handleNextStep = () => {
-    if (validateCurrentStep(activeStep, inputList, formRef)) {
-      if (activeStep < 3) {
-        setActiveStep(activeStep + 1);
-      } else if (activeStep === 3) {
-        // เมื่ออยู่ที่ step การยืนยัน (step 3) และกด "ถัดไป" ให้ทำการบันทึก
-        handleSubmit();
-      }
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (activeStep > 0) {
-      setActiveStep(activeStep - 1);
-    }
+  // Tab change handler
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
   };
 
   // Business type handlers
@@ -152,12 +152,9 @@ function DialogForm(props) {
     if (name === "cus_tax_id" || name === "cus_zip_code") {
       value = value.replace(/[^0-9]/g, "");
     } else if (name === "cus_manage_by") {
-      // รองรับทั้ง object (จาก YourDetailsStep) และ string (legacy)
       if (typeof value === "object" && value !== null) {
-        // ใช้ object ที่ส่งมาจาก YourDetailsStep
         value = value;
       } else if (typeof value === "string") {
-        // แปลง user_id เป็น object (สำหรับ legacy support)
         const selectedUser = salesList.find((user) => String(user.user_id) === String(value));
         value = selectedUser
           ? {
@@ -215,100 +212,163 @@ function DialogForm(props) {
     clearFieldError(name);
   };
 
+  // Quick Actions: Copy from last customer
+  const handleCopyLastCustomer = (copyData) => {
+    dispatch(
+      setInputList({
+        ...inputList,
+        ...copyData,
+      })
+    );
+  };
+
+  // Validate essential fields only
+  const validateEssentialFields = () => {
+    const newErrors = {};
+
+    if (!inputList.cus_bt_id) {
+      newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจ";
+    }
+    if (!inputList.cus_company?.trim()) {
+      newErrors.cus_company = "กรุณากรอกชื่อบริษัท";
+    }
+    if (!inputList.cus_firstname?.trim()) {
+      newErrors.cus_firstname = "กรุณากรอกชื่อจริง";
+    }
+    if (!inputList.cus_lastname?.trim()) {
+      newErrors.cus_lastname = "กรุณากรอกนามสกุล";
+    }
+    if (!inputList.cus_name?.trim()) {
+      newErrors.cus_name = "กรุณากรอกชื่อเล่น";
+    }
+    if (!inputList.cus_tel_1?.trim()) {
+      newErrors.cus_tel_1 = "กรุณากรอกเบอร์โทรหลัก";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Check if essential tab is complete
+  const isEssentialComplete = () => {
+    return (
+      inputList.cus_bt_id &&
+      inputList.cus_company?.trim() &&
+      inputList.cus_firstname?.trim() &&
+      inputList.cus_lastname?.trim() &&
+      inputList.cus_name?.trim() &&
+      inputList.cus_tel_1?.trim()
+    );
+  };
+
+  // Check if essential tab has errors
+  const essentialHasError = () => {
+    return !!(
+      errors.cus_bt_id ||
+      errors.cus_company ||
+      errors.cus_firstname ||
+      errors.cus_lastname ||
+      errors.cus_name ||
+      errors.cus_tel_1
+    );
+  };
+
+  // Check if additional tab has any data
+  const additionalHasData = () => {
+    return !!(
+      inputList.cus_address_detail ||
+      inputList.cus_province_text ||
+      inputList.cus_tax_id ||
+      inputList.cd_note
+    );
+  };
+
   const handleSubmit = async (e) => {
-    // ป้องกัน default form submission (ถ้ามี event)
     if (e && e.preventDefault) {
       e.preventDefault();
     }
 
-    // ตรวจสอบข้อมูลทั้งหมดก่อนบันทึก
-    if (validateAllSteps(inputList, formRef)) {
-      setSaveLoading(true);
+    // Validate essential fields
+    if (!validateEssentialFields()) {
+      // Switch to essential tab if there are errors
+      setActiveTab(0);
+      return;
+    }
 
-      try {
-        open_dialog_loading();
+    setSaveLoading(true);
 
-        const res =
-          mode === "create" ? await addCustomer(inputList) : await updateCustomer(inputList);
+    try {
+      open_dialog_loading();
 
-        if (res?.data?.status === "success") {
-          props.handleCloseDialog();
+      const res =
+        mode === "create" ? await addCustomer(inputList) : await updateCustomer(inputList);
 
-          // ดึง customer ID ที่เพิ่งบันทึก
-          const savedCustomerId =
-            mode === "create"
-              ? res?.data?.customer_id || res?.data?.data?.cus_id
-              : inputList.cus_id;
+      if (res?.data?.status === "success") {
+        props.handleCloseDialog();
 
-          open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
-            setSaveLoading(false);
-            dispatch(resetInputList());
-            scrollToTop();
+        const savedCustomerId =
+          mode === "create" ? res?.data?.customer_id || res?.data?.data?.cus_id : inputList.cus_id;
 
-            // เรียกใช้ callback เพื่อเปิด view dialog (หากมี)
-            if (props.onAfterSave && savedCustomerId) {
-              props.onAfterSave(savedCustomerId);
-            }
-          });
-        } else {
+        open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then((result) => {
           setSaveLoading(false);
-          open_dialog_error(res?.data?.message || "เกิดข้อผิดพลาดในการบันทึก");
-          console.error(res?.data?.message || "Unknown error");
-        }
-      } catch (error) {
-        setSaveLoading(false);
+          dispatch(resetInputList());
+          scrollToTop();
 
-        // จัดการ error สำหรับ validation (422) และ error อื่นๆ
-        let errorMessage = "เกิดข้อผิดพลาดในการบันทึก";
-
-        if (error?.error?.status === 422) {
-          // Validation error from backend
-          errorMessage = "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบข้อมูลที่กรอก";
-
-          // ดึง validation errors จาก response (ถ้ามี)
-          if (error?.error?.data?.errors) {
-            const validationErrors = error.error.data.errors;
-            const errorMessages = Object.values(validationErrors).flat();
-            errorMessage += "\n" + errorMessages.join("\n");
+          if (props.onAfterSave && savedCustomerId) {
+            props.onAfterSave(savedCustomerId);
           }
-        } else if (error?.error?.data?.message) {
-          errorMessage = error.error.data.message;
-        } else if (error?.message) {
-          errorMessage = error.message;
-        }
-
-        open_dialog_error(errorMessage);
-        console.error("Submit error:", error);
+        });
+      } else {
+        setSaveLoading(false);
+        open_dialog_error(res?.data?.message || "เกิดข้อผิดพลาดในการบันทึก");
+        console.error(res?.data?.message || "Unknown error");
       }
-    } else {
-      // หากข้อมูลไม่ครบ ไปยังขั้นตอนแรกที่มีข้อผิดพลาด
-      const errorStep = getFirstErrorStep(inputList);
-      setActiveStep(errorStep);
+    } catch (error) {
+      setSaveLoading(false);
+
+      let errorMessage = "เกิดข้อผิดพลาดในการบันทึก";
+
+      if (error?.error?.status === 422) {
+        errorMessage = "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบข้อมูลที่กรอก";
+
+        if (error?.error?.data?.errors) {
+          const validationErrors = error.error.data.errors;
+          const errorMessages = Object.values(validationErrors).flat();
+          errorMessage += "\n" + errorMessages.join("\n");
+        }
+      } else if (error?.error?.data?.message) {
+        errorMessage = error.error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      open_dialog_error(errorMessage);
+      console.error("Submit error:", error);
     }
   };
 
   const handleCloseDialog = () => {
     props.handleCloseDialog();
     clearAllErrors();
+    setActiveTab(0);
+    resetDuplicateChecks();
   };
 
-  // Effect to reset activeStep when dialog opens
+  // Effect to reset activeTab when dialog opens
   useEffect(() => {
     if (props.openDialog) {
-      setActiveStep(0); // เริ่มต้นที่ step แรก "ประเภทธุรกิจ" เสมอ
+      setActiveTab(0);
     }
   }, [props.openDialog]);
 
   // Effects for customer creation logic
   useEffect(() => {
     if (mode === "create") {
-      // Generate customer number
       const maxCusNo = String(
         Math.max(...itemList.map((customer) => parseInt(customer.cus_no, 10)))
       );
       const newCusNo = genCustomerNo(maxCusNo);
 
-      // Get group ID
       const cus_mcg_id =
         groupList.length > 0
           ? groupList.reduce(
@@ -345,7 +405,7 @@ function DialogForm(props) {
         PaperProps={{
           sx: {
             display: "flex",
-            flexDirection: "column", // ✅ ต้องให้ Dialog มี flex column
+            flexDirection: "column",
             width: { xs: "95vw", sm: "90vw", md: "80vw" },
             maxWidth: { xs: "95vw", sm: "90vw", md: "900px" },
             margin: { xs: "10px", sm: "20px" },
@@ -360,6 +420,7 @@ function DialogForm(props) {
           onSubmit={handleSubmit}
           style={{ display: "flex", flexDirection: "column", height: "100%" }}
         >
+          {/* Dialog Header */}
           <DialogTitle
             sx={{
               display: "flex",
@@ -376,6 +437,7 @@ function DialogForm(props) {
                 fontFamily: "Kanit",
                 fontWeight: 600,
                 fontSize: { xs: "1rem", sm: "1.1rem" },
+                color: "white",
               }}
             >
               {mode === "create" && "เพิ่มลูกค้าใหม่"}
@@ -392,149 +454,117 @@ function DialogForm(props) {
               <MdClose size={20} />
             </IconButton>
           </DialogTitle>
+
+          {/* Tab Navigation */}
+          <CustomerFormTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            essentialComplete={isEssentialComplete()}
+            essentialHasError={essentialHasError()}
+            additionalComplete={additionalHasData()}
+            mode={mode}
+          />
+
+          {/* Dialog Content */}
           <DialogContent
             dividers
             sx={{
-              flex: 1, // ✅ ใช้ flex: 1 เพื่อให้ scroll ได้เฉพาะ content
+              flex: 1,
               overflowY: "auto",
               p: 0,
+              bgcolor: "#fafafa",
             }}
           >
-            <Box sx={{ p: { xs: 1, sm: 2 } }}>
-              {/* Stepper - แสดงเฉพาะ mode create และ edit */}
-              {mode !== "view" && (
-                <CustomerStepper
-                  activeStep={activeStep}
-                  {...getStepStatuses(inputList)}
-                  onStepClick={handleStepChange}
+            {/* Summary Preview */}
+            <Box sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 3 } }}>
+              <FormSummaryPreview inputList={inputList} mode={mode} />
+            </Box>
+
+            {/* Tab Content */}
+            <Box sx={{ minHeight: { xs: 300, sm: 400 } }}>
+              {/* Tab 1: Essential Info */}
+              {activeTab === 0 && (
+                <EssentialInfoTab
+                  inputList={inputList}
+                  errors={errors}
+                  handleInputChange={handleInputChange}
+                  businessTypesList={businessTypesList}
+                  handleOpenBusinessTypeManager={handleOpenBusinessTypeManager}
+                  businessTypesIsFetching={businessTypesIsFetching}
+                  mode={mode}
+                  onPhoneBlur={checkPhoneDuplicate}
+                  onPhoneChange={clearDuplicatePhoneData}
+                  onCompanyBlur={checkCompanyDuplicate}
+                  companyWarning={companyWarning}
+                  onClearCompanyWarning={clearCompanyWarning}
+                  duplicatePhoneData={duplicatePhoneData}
                 />
               )}
 
-              {/* Step Content */}
-              <Box sx={{ minHeight: { xs: 300, sm: 400 } }}>
-                {/* Step 1: Business Type */}
-                {activeStep === 0 && (
-                  <BusinessTypeStepSimple
-                    inputList={inputList}
-                    errors={errors}
-                    handleInputChange={handleInputChange}
-                    businessTypesList={businessTypesList}
-                    handleOpenBusinessTypeManager={handleOpenBusinessTypeManager}
-                    businessTypesIsFetching={businessTypesIsFetching}
-                    mode={mode}
-                  />
-                )}
-
-                {/* Step 2: Business Detail */}
-                {activeStep === 1 && (
-                  <BusinessDetailStepSimple
-                    inputList={inputList}
-                    errors={errors}
-                    handleInputChange={handleInputChange}
-                    handleSelectLocation={handleSelectLocation}
-                    provincesList={provincesList}
-                    districtList={districtList}
-                    subDistrictList={subDistrictList}
-                    isLoading={isLoading}
-                    mode={mode}
-                    refetchLocations={refetchLocations}
-                  />
-                )}
-
-                {/* Step 3: Your Details */}
-                {activeStep === 2 && (
-                  <YourDetailsStepSimple
-                    inputList={inputList}
-                    errors={errors}
-                    handleInputChange={handleInputChange}
-                    mode={mode}
-                    salesList={salesList} // ส่ง salesList จาก dialogApiData
-                  />
-                )}
-
-                {/* Step 4: Verification */}
-                {activeStep === 3 && <VerificationStepSimple inputList={inputList} mode={mode} />}
-              </Box>
+              {/* Tab 2: Additional Info */}
+              {activeTab === 1 && (
+                <AdditionalInfoTab
+                  inputList={inputList}
+                  errors={errors}
+                  handleInputChange={handleInputChange}
+                  mode={mode}
+                  salesList={salesList}
+                />
+              )}
             </Box>
           </DialogContent>
 
-          {/* Action Button: อยู่นอก DialogContent เพื่อไม่โดน scroll */}
+          {/* Action Buttons */}
           <DialogActions
             sx={{
               borderTop: "1px solid #e0e0e0",
               backgroundColor: "#fff",
-              p: { xs: 1, sm: 2 },
+              p: { xs: 1.5, sm: 2 },
               flexDirection: { xs: "column-reverse", sm: "row" },
-              gap: { xs: 1, sm: 0 },
+              gap: { xs: 1, sm: 1 },
             }}
           >
-            {/* Close Button */}
             <Button
               variant="outlined"
               color="error"
               disabled={saveLoading}
               onClick={handleCloseDialog}
               startIcon={<MdCancel />}
-              fullWidth={mode === "view"}
               sx={{
-                order: { xs: 2, sm: 1 },
-                minWidth: { xs: "auto", sm: "120px" },
-                width: mode === "view" ? "100%" : { xs: "100%", sm: "auto" },
+                minWidth: { xs: "100%", sm: "120px" },
+                fontFamily: "Kanit",
               }}
             >
               {mode === "view" ? "ปิด" : "ยกเลิก"}
             </Button>
 
-            {/* Navigation Buttons */}
             {mode !== "view" && (
-              <Box
+              <Button
+                variant="contained"
+                type="submit"
+                disabled={saveLoading || !!duplicatePhoneData}
+                startIcon={<MdSave />}
                 sx={{
-                  display: "flex",
-                  gap: 1,
-                  width: "100%",
-                  order: { xs: 1, sm: 2 },
+                  backgroundColor: duplicatePhoneData ? "#888" : "#9e0000",
+                  "&:hover": { backgroundColor: duplicatePhoneData ? "#888" : "#d32f2f" },
+                  minWidth: { xs: "100%", sm: "140px" },
+                  fontFamily: "Kanit",
+                  fontWeight: 600,
                 }}
               >
-                <Button
-                  variant="outlined"
-                  onClick={handlePrevStep}
-                  disabled={activeStep === 0 || saveLoading}
-                  startIcon={<MdNavigateBefore />}
-                  fullWidth
-                  sx={{ minWidth: { xs: "auto", sm: "120px" } }}
-                >
-                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                    ก่อนหน้า
-                  </Box>
-                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                    ก่อนหน้า
-                  </Box>
-                </Button>
-
-                <Button
-                  variant="contained"
-                  onClick={activeStep < 3 ? handleNextStep : handleSubmit}
-                  disabled={saveLoading}
-                  endIcon={<MdNavigateNext />}
-                  fullWidth
-                  sx={{
-                    backgroundColor: "#9e0000",
-                    "&:hover": { backgroundColor: "#d32f2f" },
-                    minWidth: { xs: "auto", sm: "120px" },
-                  }}
-                >
-                  <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                    {activeStep < 3 ? "ถัดไป" : "บันทึก"}
-                  </Box>
-                  <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                    {activeStep < 3 ? "ถัดไป" : "บันทึก"}
-                  </Box>
-                </Button>
-              </Box>
+                {saveLoading ? "กำลังบันทึก..." : duplicatePhoneData ? "เบอร์ซ้ำ" : "บันทึก"}
+              </Button>
             )}
           </DialogActions>
         </form>
       </Dialog>
+
+      {/* Duplicate Phone Dialog */}
+      <DuplicatePhoneDialog
+        open={duplicatePhoneDialogOpen}
+        onClose={closeDuplicatePhoneDialog}
+        duplicateData={duplicatePhoneData}
+      />
     </>
   );
 }

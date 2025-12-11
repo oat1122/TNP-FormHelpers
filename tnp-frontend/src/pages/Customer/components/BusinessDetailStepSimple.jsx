@@ -3,9 +3,7 @@ import React from "react";
 
 import AddressFormSection from "./BusinessDetailStep/AddressFormSection";
 import ContactInfoSection from "./BusinessDetailStep/ContactInfoSection";
-import GpsAutoFillSection from "./BusinessDetailStep/GpsAutoFillSection";
 import HeaderSection from "./BusinessDetailStep/HeaderSection";
-import { useGpsHelper } from "./BusinessDetailStep/useGpsHelper";
 
 // สี theme ของบริษัท
 const PRIMARY_RED = "#9e0000";
@@ -22,9 +20,6 @@ const BusinessDetailStepSimple = ({
   handleInputChange,
   mode = "create",
 }) => {
-  // ใช้ GPS Helper Hook
-  const gpsHelperProps = useGpsHelper(inputList);
-
   return (
     <Box>
       <HeaderSection mode={mode} PRIMARY_RED={PRIMARY_RED} SECONDARY_RED={SECONDARY_RED} />
@@ -37,13 +32,6 @@ const BusinessDetailStepSimple = ({
           mode={mode}
           PRIMARY_RED={PRIMARY_RED}
           BACKGROUND_COLOR={BACKGROUND_COLOR}
-        />
-
-        <GpsAutoFillSection
-          mode={mode}
-          PRIMARY_RED={PRIMARY_RED}
-          BACKGROUND_COLOR={BACKGROUND_COLOR}
-          {...gpsHelperProps}
         />
 
         <AddressFormSection

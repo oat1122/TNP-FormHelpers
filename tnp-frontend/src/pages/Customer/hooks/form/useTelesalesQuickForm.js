@@ -13,12 +13,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useAddCustomerMutation,
   useCheckDuplicateCustomerMutation,
-} from "../../../features/Customer/customerApi";
+} from "../../../../features/Customer/customerApi";
 import {
   useGetAllBusinessTypesQuery,
   useGetAllLocationQuery,
   useLazyGetAllLocationQuery,
-} from "../../../features/globalApi";
+} from "../../../../features/globalApi";
 
 export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const user = JSON.parse(localStorage.getItem("userData"));

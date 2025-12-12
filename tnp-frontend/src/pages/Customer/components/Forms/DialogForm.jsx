@@ -13,39 +13,43 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { MdSave, MdCancel, MdClose, MdSwapHoriz, MdHistory } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
-// New Tab-based components
-import AdditionalInfoTab from "./components/AdditionalInfoTab";
-import CustomerFormTabs from "./components/CustomerFormTabs";
-import DuplicatePhoneDialog from "./components/DuplicatePhoneDialog";
-import EssentialInfoTab from "./components/EssentialInfoTab";
-import FormSummaryPreview from "./components/FormSummaryPreview";
-import QuickActionsBar from "./components/QuickActionsBar";
+// Form Tab and Part components (relative to this file in Forms/)
+import { CustomerFormTabs, FormSummaryPreview } from "./parts";
+import { EssentialInfoTab, AdditionalInfoTab } from "./tabs";
+import DuplicatePhoneDialog from "./DuplicatePhoneDialog";
+
+// Common components
+import { QuickActionsBar } from "../Common";
+
+// Data display components
+import { ScrollContext } from "../DataDisplay";
 
 // Transfer components
-import {
-  TransferToSalesDialog,
-  TransferToOnlineDialog,
-  TransferHistoryDialog,
-} from "./components/transfer";
-import { canUserTransfer, TRANSFER_DIRECTIONS } from "./constants/customerChannel";
+import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } from "../transfer";
 
-import { useDialogApiData } from "./hooks/useDialogApiData";
-import { useDuplicateCheck } from "./hooks/useDuplicateCheck";
-// useLocationSelection ถูกแทนที่ด้วย handlers ใน useDialogApiData
-import { useStepperValidation } from "./hooks/useStepperValidation";
-import ScrollContext from "./ScrollContext";
-import BusinessTypeManager from "../../components/BusinessTypeManager";
+// Constants (relative path from Forms/)
+import { canUserTransfer, TRANSFER_DIRECTIONS } from "../../constants/customerChannel";
+
+// Hooks (relative path from Forms/)
+import { useDialogApiData, useDuplicateCheck, useStepperValidation } from "../../hooks";
+
+// Shared components
+import BusinessTypeManager from "../../../../components/BusinessTypeManager";
+
+// Redux
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
-} from "../../features/Customer/customerApi";
-import { setInputList, resetInputList } from "../../features/Customer/customerSlice";
-import { genCustomerNo } from "../../features/Customer/customerUtils";
+} from "../../../../features/Customer/customerApi";
+import { setInputList, resetInputList } from "../../../../features/Customer/customerSlice";
+import { genCustomerNo } from "../../../../features/Customer/customerUtils";
+
+// Utils
 import {
   open_dialog_ok_timer,
   open_dialog_error,
   open_dialog_loading,
-} from "../../utils/import_lib";
+} from "../../../../utils/import_lib";
 
 /**
  * DialogForm - Customer form dialog with 2-tab layout

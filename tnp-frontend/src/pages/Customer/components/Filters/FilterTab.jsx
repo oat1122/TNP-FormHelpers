@@ -11,13 +11,16 @@ import {
 import React, { useState, useContext, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
-import ScrollContext from "./ScrollContext";
-import { apiConfig } from "../../api/apiConfig";
+// Data display components
+import { ScrollContext } from "../DataDisplay";
+
+// API and Redux
+import { apiConfig } from "../../../../api/apiConfig";
 import {
   setGroupSelected,
   setPaginationModel,
   fetchFilteredCustomers,
-} from "../../features/Customer/customerSlice";
+} from "../../../../features/Customer/customerSlice";
 
 function FilterTab() {
   const dispatch = useDispatch();

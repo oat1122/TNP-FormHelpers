@@ -4,18 +4,23 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { RiAddLargeFill } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
 
-import { CustomPagination, CustomToolbar } from "./components/CustomComponents";
-import CustomerCardList from "./components/CustomerCardList";
-import { NoDataComponent } from "./components/UtilityComponents";
+// Common components
+import {
+  CustomPagination,
+  CustomToolbar,
+  NoDataComponent,
+  ScrollTopButton,
+} from "./components/Common";
+// Data display components
+import { CustomerCardList, ScrollContext } from "./components/DataDisplay";
+// Filter components
+import { FilterPanel, FilterTab, FilterTags } from "./components/Filters";
+// Form components
+import { DialogForm, TelesalesQuickCreateForm } from "./components/Forms";
+// Config
 import { useColumnDefinitions } from "./config/columnDefinitions";
-import DialogForm from "./DialogForm";
-import TelesalesQuickCreateForm from "./components/TelesalesQuickCreateForm";
-import FilterPanel from "./FilterPanel";
-import FilterTab from "./FilterTab";
-import FilterTags from "./FilterTags";
-import { useCustomerActions } from "./hooks/useCustomerActions";
-import ScrollContext from "./ScrollContext";
-import ScrollTopButton from "./ScrollTopButton";
+// Hooks
+import { useCustomerActions } from "./hooks";
 import { StyledDataGrid } from "./styles/StyledComponents";
 import TitleBar from "../../components/TitleBar";
 import { useGetAllCustomerQuery } from "../../features/Customer/customerApi";

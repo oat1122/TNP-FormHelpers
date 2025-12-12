@@ -4,9 +4,15 @@ import React, { useContext } from "react";
 import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
-import ScrollContext from "./ScrollContext";
-import { resetFilters } from "../../features/Customer/customerSlice";
-import { getChannelDisplayName, formatDaysToText } from "../../features/Customer/customerUtils";
+// Data display components
+import { ScrollContext } from "../DataDisplay";
+
+// Redux
+import { resetFilters } from "../../../../features/Customer/customerSlice";
+import {
+  getChannelDisplayName,
+  formatDaysToText,
+} from "../../../../features/Customer/customerUtils";
 
 /**
  * Component to display active filters as tags

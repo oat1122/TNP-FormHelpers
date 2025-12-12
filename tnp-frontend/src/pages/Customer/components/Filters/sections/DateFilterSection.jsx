@@ -4,7 +4,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import React from "react";
 import { MdDateRange, MdClear } from "react-icons/md";
 
-import { dateRangeOptions, filterValidation } from "../constants/filterConstants";
+// Constants (relative path from sections/)
+import { dateRangeOptions, filterValidation } from "../../../constants/filterConstants";
+// Styled components (relative path from sections/)
 import {
   FilterSectionPaper,
   FilterHeaderBox,
@@ -13,8 +15,9 @@ import {
   FilterDescription,
   FilterContentBox,
   QuickButton,
-} from "../styles/FilterStyledComponents";
-import { AdapterBuddhistDayjs } from "../utils/dateAdapters";
+} from "../../../styles/FilterStyledComponents";
+// Utils (relative path from sections/)
+import { AdapterBuddhistDayjs } from "../../../utils/dateAdapters";
 
 /**
  * Date Filter Section Component

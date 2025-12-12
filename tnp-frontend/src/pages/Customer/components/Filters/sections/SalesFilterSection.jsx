@@ -18,7 +18,9 @@ import {
 import React from "react";
 import { MdPerson } from "react-icons/md";
 
-import { filterPanelConfig } from "../constants/filterConstants";
+// Constants (relative path from sections/)
+import { filterPanelConfig } from "../../../constants/filterConstants";
+// Styled components (relative path from sections/)
 import {
   FilterSectionPaper,
   FilterHeaderBox,
@@ -27,7 +29,7 @@ import {
   FilterDescription,
   FilterContentBox,
   StyledFormControl,
-} from "../styles/FilterStyledComponents";
+} from "../../../styles/FilterStyledComponents";
 
 /**
  * Sales Filter Section Component

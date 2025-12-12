@@ -35,9 +35,14 @@ import {
 } from "react-icons/md";
 import { Warning as WarningIcon, Info as InfoIcon } from "@mui/icons-material";
 
-import { QUICK_NOTE_TEMPLATES } from "../constants/quickNoteTemplates";
-import { channelMap } from "./UtilityComponents";
-import { useTelesalesQuickForm } from "../hooks/useTelesalesQuickForm";
+// Constants (relative path from Forms/)
+import { QUICK_NOTE_TEMPLATES } from "../../constants/quickNoteTemplates";
+
+// Common components (relative path from Forms/)
+import { channelMap } from "../Common/UtilityComponents";
+
+// Hooks (relative path from Forms/)
+import { useTelesalesQuickForm } from "../../hooks";
 
 /**
  * TelesalesQuickCreateForm - Fast customer entry form for telesales

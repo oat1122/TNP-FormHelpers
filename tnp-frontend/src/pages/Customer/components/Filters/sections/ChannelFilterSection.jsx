@@ -16,7 +16,9 @@ import {
 import React from "react";
 import { MdSignalCellularAlt } from "react-icons/md";
 
-import { channelOptions, filterPanelConfig } from "../constants/filterConstants";
+// Constants (relative path from sections/)
+import { channelOptions, filterPanelConfig } from "../../../constants/filterConstants";
+// Styled components (relative path from sections/)
 import {
   FilterSectionPaper,
   FilterHeaderBox,
@@ -25,7 +27,7 @@ import {
   FilterDescription,
   FilterContentBox,
   StyledFormControl,
-} from "../styles/FilterStyledComponents";
+} from "../../../styles/FilterStyledComponents";
 
 /**
  * Channel Filter Section Component

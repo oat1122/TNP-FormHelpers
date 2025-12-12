@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { tabFieldMapping } from "../constants/dialogConstants";
+import { tabFieldMapping } from "../../constants/dialogConstants";
 
 export const useFormValidation = () => {
   const [errors, setErrors] = useState({});

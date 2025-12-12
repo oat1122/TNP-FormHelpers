@@ -15,7 +15,7 @@ import {
   getAllocationStatusDisplayName,
   getAllocationStatusColor,
 } from "../../../features/Customer/customerUtils";
-import { channelMap } from "../components/UtilityComponents";
+import { channelMap } from "../components/Common";
 
 // Helper function to check if recall date is expired
 const isRecallExpired = (dateString) => {

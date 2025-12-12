@@ -2,7 +2,8 @@ import { Fab, Zoom, useTheme } from "@mui/material";
 import React, { useState, useEffect, useContext } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 
-import ScrollContext from "./ScrollContext";
+// Data display components
+import { ScrollContext } from "../DataDisplay";
 
 /**
  * A button that appears when the user scrolls down and allows them to

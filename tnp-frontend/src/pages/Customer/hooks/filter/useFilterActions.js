@@ -7,9 +7,9 @@ import {
   setPaginationModel,
   resetFilters,
   fetchFilteredCustomers,
-} from "../../../features/Customer/customerSlice";
-import { filterPanelConfig } from "../constants/filterConstants";
-import ScrollContext from "../ScrollContext";
+} from "../../../../features/Customer/customerSlice";
+import { filterPanelConfig } from "../../constants/filterConstants";
+import ScrollContext from "../../components/DataDisplay/ScrollContext";
 
 /**
  * Custom hook for managing filter actions

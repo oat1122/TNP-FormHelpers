@@ -19,8 +19,8 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 
 import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
-import { setPaginationModel } from "../../../features/Customer/customerSlice";
-import { StyledPagination } from "../styles/StyledComponents";
+import { setPaginationModel } from "../../../../features/Customer/customerSlice";
+import { StyledPagination } from "../../styles/StyledComponents";
 
 // Component Pagination ที่กำหนดเอง
 export const CustomPagination = ({ paginationModel, totalItems, scrollToTop }) => {

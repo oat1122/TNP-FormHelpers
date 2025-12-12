@@ -1,24 +1,23 @@
 /**
  * Custom Hook สำหรับ TelesalesQuickCreateForm เท่านั้น
  *
+ * REFACTORED: ใช้ shared hooks แทนการ re-implement
+ * - useAddressManager: จัดการ location selection (Province > District > Subdistrict)
+ * - useDuplicateCheck: ตรวจสอบเบอร์โทร/บริษัทซ้ำ
+ *
  * แยก Logic ออกจากฟอร์มปกติ (DialogForm) เพื่อป้องกันการทับซ้อน:
  * - ไม่ใช้ Redux state (inputList, customerSlice)
  * - จัดการ state ด้วย local useState เท่านั้น
- * - ใช้ Lazy Query สำหรับโหลด location แบบ cascade
  * - รองรับการทำงานแบบ standalone
- * -  NEW: Duplicate checking for phone & company
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  useAddCustomerMutation,
-  useCheckDuplicateCustomerMutation,
-} from "../../../../features/Customer/customerApi";
-import {
-  useGetAllBusinessTypesQuery,
-  useGetAllLocationQuery,
-  useLazyGetAllLocationQuery,
-} from "../../../../features/globalApi";
+import { useState, useEffect, useCallback } from "react";
+import { useAddCustomerMutation } from "../../../../features/Customer/customerApi";
+import { useGetAllBusinessTypesQuery } from "../../../../features/globalApi";
+
+// Use shared hooks instead of re-implementing
+import { useAddressManager } from "./useAddressManager";
+import { useDuplicateCheck } from "../useDuplicateCheck";
 
 export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const user = JSON.parse(localStorage.getItem("userData"));
@@ -54,89 +53,46 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showLocationWarning, setShowLocationWarning] = useState(false);
 
-  //  NEW: Duplicate checking states
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateDialogData, setDuplicateDialogData] = useState(null);
-  const [companyWarning, setCompanyWarning] = useState(null);
+  // ==================== Shared Hooks ====================
 
-  // Track last checked values to avoid redundant API calls
-  const lastCheckedPhone = useRef("");
-  const lastCheckedCompany = useRef("");
+  // Address Manager for location selection
+  const {
+    provinces,
+    districts,
+    subdistricts,
+    isLoadingDistricts,
+    isLoadingSubdistricts,
+    handleProvinceChange: addressProvinceChange,
+    handleDistrictChange: addressDistrictChange,
+    handleSubdistrictChange: addressSubdistrictChange,
+    buildFullAddress,
+    resetLocationData,
+  } = useAddressManager({ skip: !open });
 
-  // Location data - จัดการใน local state เท่านั้น
-  const [provinces, setProvinces] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [subdistricts, setSubdistricts] = useState([]);
-  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
-  const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
+  // Duplicate Check for phone and company
+  const {
+    duplicatePhoneDialogOpen,
+    duplicatePhoneData,
+    companyWarning,
+    checkPhoneDuplicate,
+    checkCompanyDuplicate,
+    closeDuplicatePhoneDialog,
+    clearCompanyWarning,
+    clearDuplicatePhoneData,
+    resetDuplicateChecks,
+    hasDuplicateWarning,
+  } = useDuplicateCheck({ mode: "create" });
 
   // ==================== API Hooks ====================
   const [addCustomer, { isLoading }] = useAddCustomerMutation();
-  const [checkDuplicate] = useCheckDuplicateCustomerMutation(); // ✅ NEW
 
   // Business Types
   const { data: businessTypesData, isFetching: businessTypesIsFetching } =
     useGetAllBusinessTypesQuery();
 
-  // Provinces - โหลดครั้งเดียวตอนเปิด dialog
-  const { data: locationsData } = useGetAllLocationQuery({}, { skip: !open });
-
-  // Districts & Subdistricts - โหลดแบบ lazy ตาม user selection
-  const [fetchDistricts, { data: districtsData }] = useLazyGetAllLocationQuery();
-  const [fetchSubdistricts, { data: subdistrictsData }] = useLazyGetAllLocationQuery();
-
   const businessTypesList = businessTypesData || [];
 
   // ==================== Effects ====================
-
-  // โหลด Provinces เมื่อเปิด dialog
-  useEffect(() => {
-    if (locationsData?.master_provinces) {
-      const validProvinces = locationsData.master_provinces
-        .filter((prov) => prov?.pro_id && prov?.pro_name_th)
-        .map((prov, index) => ({
-          ...prov,
-          pro_id: prov.pro_id || `prov-${index}`,
-        }));
-      setProvinces(validProvinces);
-    }
-  }, [locationsData]);
-
-  // อัพเดท Districts เมื่อโหลดเสร็จ
-  useEffect(() => {
-    if (districtsData?.master_district) {
-      const validDistricts = districtsData.master_district
-        .filter((district) => {
-          const hasValidName = district.dis_name_th || district.dis_name;
-          const hasValidId = district.dis_id;
-          return district && hasValidId && hasValidName;
-        })
-        .map((district) => ({
-          ...district,
-          dis_name: district.dis_name || district.dis_name_th,
-        }));
-      setDistricts(validDistricts);
-      setIsLoadingDistricts(false);
-    }
-  }, [districtsData]);
-
-  // อัพเดท Subdistricts เมื่อโหลดเสร็จ
-  useEffect(() => {
-    if (subdistrictsData?.master_subdistrict) {
-      const validSubdistricts = subdistrictsData.master_subdistrict
-        .filter((subdistrict) => {
-          const hasValidName = subdistrict.sub_name_th || subdistrict.sub_name;
-          const hasValidId = subdistrict.sub_id;
-          return subdistrict && hasValidId && hasValidName;
-        })
-        .map((subdistrict) => ({
-          ...subdistrict,
-          sub_name: subdistrict.sub_name || subdistrict.sub_name_th,
-        }));
-      setSubdistricts(validSubdistricts);
-      setIsLoadingSubdistricts(false);
-    }
-  }, [subdistrictsData]);
 
   // Auto-focus on first field
   useEffect(() => {
@@ -167,13 +123,12 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
 
       // Clear company warning when user modifies company field
       if (field === "cus_company") {
-        setCompanyWarning(null);
+        clearCompanyWarning();
       }
 
       // Clear phone duplicate state when user modifies phone field
-      if (field === "cus_tel_1" && duplicateDialogData) {
-        setDuplicateDialogData(null);
-        lastCheckedPhone.current = "";
+      if (field === "cus_tel_1" && duplicatePhoneData) {
+        clearDuplicatePhoneData();
       }
 
       // Hide location warning if user starts filling location
@@ -181,66 +136,49 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         setShowLocationWarning(false);
       }
     },
-    [fieldErrors, duplicateDialogData]
+    [fieldErrors, duplicatePhoneData, clearCompanyWarning, clearDuplicatePhoneData]
   );
 
-  // Province change - โหลด districts และ clear ข้อมูลที่ขึ้นต่อกัน
+  // Province change - uses useAddressManager
   const handleProvinceChange = useCallback(
     (event, newValue) => {
+      const updatedFields = addressProvinceChange(event, newValue);
+
       setFormData((prev) => ({
         ...prev,
-        cus_pro_id: newValue?.pro_id || "",
-        cus_dis_id: "",
-        cus_sub_id: "",
-        cus_zip_code: "",
+        ...updatedFields,
       }));
-
-      // Clear dependent data
-      setDistricts([]);
-      setSubdistricts([]);
-
-      // Load districts
-      if (newValue?.pro_sort_id) {
-        setIsLoadingDistricts(true);
-        fetchDistricts({ province_sort_id: newValue.pro_sort_id });
-      }
     },
-    [fetchDistricts]
+    [addressProvinceChange]
   );
 
-  // District change - โหลด subdistricts และ clear ข้อมูลที่ขึ้นต่อกัน
+  // District change - uses useAddressManager
   const handleDistrictChange = useCallback(
     (event, newValue) => {
+      const updatedFields = addressDistrictChange(event, newValue);
+
       setFormData((prev) => ({
         ...prev,
-        cus_dis_id: newValue?.dis_id || "",
-        cus_sub_id: "",
-        cus_zip_code: "",
+        ...updatedFields,
       }));
-
-      // Clear dependent data
-      setSubdistricts([]);
-
-      // Load subdistricts
-      if (newValue?.dis_sort_id) {
-        setIsLoadingSubdistricts(true);
-        fetchSubdistricts({ district_sort_id: newValue.dis_sort_id });
-      }
     },
-    [fetchSubdistricts]
+    [addressDistrictChange]
   );
 
-  // Subdistrict change - auto-fill zip code
-  const handleSubdistrictChange = useCallback((event, newValue) => {
-    setFormData((prev) => ({
-      ...prev,
-      cus_sub_id: newValue?.sub_id || "",
-      // Auto-fill zip code but preserve if user manually changed it
-      cus_zip_code: newValue?.sub_zip_code || prev.cus_zip_code,
-    }));
-  }, []);
+  // Subdistrict change - uses useAddressManager with auto-fill zip code
+  const handleSubdistrictChange = useCallback(
+    (event, newValue) => {
+      const updatedFields = addressSubdistrictChange(event, newValue, formData.cus_zip_code);
 
-  // NEW: Phone blur - check for duplicates (with Dialog)
+      setFormData((prev) => ({
+        ...prev,
+        ...updatedFields,
+      }));
+    },
+    [addressSubdistrictChange, formData.cus_zip_code]
+  );
+
+  // Phone blur - uses useDuplicateCheck
   const handlePhoneBlur = useCallback(async () => {
     const phone = formData.cus_tel_1.trim();
 
@@ -260,29 +198,11 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
       return;
     }
 
-    //Check if value changed (avoid redundant API calls)
-    if (cleanPhone === lastCheckedPhone.current) {
-      return;
-    }
+    // Use shared duplicate check
+    await checkPhoneDuplicate(cleanPhone);
+  }, [formData.cus_tel_1, checkPhoneDuplicate]);
 
-    lastCheckedPhone.current = cleanPhone;
-
-    try {
-      const result = await checkDuplicate({
-        type: "phone",
-        value: cleanPhone,
-      }).unwrap();
-
-      if (result.found && result.data.length > 0) {
-        setDuplicateDialogData(result.data[0]);
-        setDuplicateDialogOpen(true);
-      }
-    } catch (error) {
-      console.error("❌ [Duplicate Check] Failed:", error);
-    }
-  }, [formData.cus_tel_1, checkDuplicate]);
-
-  // NEW: Company blur - check for duplicates (with Alert)
+  // Company blur - uses useDuplicateCheck
   const handleCompanyBlur = useCallback(async () => {
     const company = formData.cus_company.trim();
 
@@ -291,37 +211,14 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
       return;
     }
 
-    //Check if value changed (avoid redundant API calls)
-    if (company === lastCheckedCompany.current) {
-      return;
-    }
+    // Use shared duplicate check
+    await checkCompanyDuplicate(company);
+  }, [formData.cus_company, checkCompanyDuplicate]);
 
-    lastCheckedCompany.current = company;
-
-    try {
-      const result = await checkDuplicate({
-        type: "company",
-        value: company,
-      }).unwrap();
-
-      if (result.found && result.data.length > 0) {
-        setCompanyWarning({
-          count: result.data.length,
-          examples: result.data.slice(0, 2), // Show max 2 examples
-        });
-      } else {
-        setCompanyWarning(null);
-      }
-    } catch (error) {
-      console.error("❌ [Duplicate Check] Failed:", error);
-    }
-  }, [formData.cus_company, checkDuplicate]);
-
-  // NEW: Close duplicate dialog handler
+  // Close duplicate dialog handler - uses useDuplicateCheck
   const handleCloseDuplicateDialog = useCallback(() => {
-    setDuplicateDialogOpen(false);
-    // Keep data for reference, don't clear it
-  }, []);
+    closeDuplicatePhoneDialog();
+  }, [closeDuplicatePhoneDialog]);
 
   // Form validation
   const validateForm = useCallback(() => {
@@ -366,14 +263,9 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     setFormData(initialFormData);
     setFieldErrors({});
     setShowLocationWarning(false);
-    setDuplicateDialogOpen(false);
-    setDuplicateDialogData(null);
-    setCompanyWarning(null);
-    setDistricts([]);
-    setSubdistricts([]);
-    lastCheckedPhone.current = "";
-    lastCheckedCompany.current = "";
-  }, [initialFormData]);
+    resetDuplicateChecks();
+    resetLocationData();
+  }, [initialFormData, resetDuplicateChecks, resetLocationData]);
 
   // Save handler
   const handleSave = useCallback(async () => {
@@ -387,7 +279,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_created_by: user.user_id,
         cus_manage_by: null,
         cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!(duplicateDialogData || companyWarning),
+        is_possible_duplicate: hasDuplicateWarning,
       }).unwrap();
 
       onClose();
@@ -398,16 +290,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         submit: error.data?.message || "เกิดข้อผิดพลาดในการบันทึก",
       });
     }
-  }, [
-    validateForm,
-    addCustomer,
-    formData,
-    user.user_id,
-    duplicateDialogData,
-    companyWarning,
-    onClose,
-    resetForm,
-  ]);
+  }, [validateForm, addCustomer, formData, user.user_id, hasDuplicateWarning, onClose, resetForm]);
 
   // Save and create another handler
   const handleSaveAndNew = useCallback(async () => {
@@ -421,7 +304,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_created_by: user.user_id,
         cus_manage_by: null,
         cus_allocated_by: user.user_id,
-        is_possible_duplicate: !!(duplicateDialogData || companyWarning),
+        is_possible_duplicate: hasDuplicateWarning,
       }).unwrap();
 
       // Optimistic reset
@@ -440,8 +323,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     addCustomer,
     formData,
     user.user_id,
-    duplicateDialogData,
-    companyWarning,
+    hasDuplicateWarning,
     resetForm,
     nameFieldRef,
   ]);
@@ -459,13 +341,13 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     fieldErrors,
     showLocationWarning,
 
-    // NEW: Duplicate states
-    duplicateDialogOpen,
-    duplicateDialogData,
+    // Duplicate states (from useDuplicateCheck)
+    duplicateDialogOpen: duplicatePhoneDialogOpen,
+    duplicateDialogData: duplicatePhoneData,
     companyWarning,
-    isPhoneBlocked: !!duplicateDialogData, // NEW: For disabling save button
+    isPhoneBlocked: !!duplicatePhoneData,
 
-    // Location data
+    // Location data (from useAddressManager)
     provinces,
     districts,
     subdistricts,

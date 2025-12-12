@@ -9,8 +9,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\CustomerResource;
 use App\Services\WorksheetService;
 use App\Services\CustomerService;
+use App\Services\CustomerTransferService;
 use App\Services\AddressService;
 use App\Helpers\AccountingHelper;
+use App\Constants\CustomerChannel;
 use App\Models\MasterCustomer as Customer;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Models\CustomerDetail;
@@ -25,12 +27,14 @@ class CustomerController extends Controller
     protected $worksheet_service;
     protected $customer_service;
     protected $address_service;
+    protected $transfer_service;
 
     public function __construct()
     {
         $this->worksheet_service = new WorksheetService;
         $this->customer_service = new CustomerService;
         $this->address_service = new AddressService;
+        $this->transfer_service = new CustomerTransferService;
     }
 
     /**
@@ -86,11 +90,19 @@ class CustomerController extends Controller
                 $customer_prepared->where('cus_mcg_id', $request->group);
             }
 
-            // query with user_id, if role is not admin
-            if ($user_q->role !== 'admin') {
+            // Role-based visibility filtering (Clean Code: using Constants)
+            $visibleChannels = CustomerChannel::getVisibleChannels($user_q->role);
+            
+            if (!empty($visibleChannels)) {
+                // Role has specific channel visibility (head_online, head_offline)
+                $customer_prepared->whereIn('cus_channel', $visibleChannels);
+                $total_customers_q->whereIn('cus_channel', $visibleChannels);
+            } elseif ($user_q->role !== 'admin') {
+                // Regular users see only their assigned customers
                 $customer_prepared->where('cus_manage_by', $user_q->user_id);
                 $total_customers_q->where('cus_manage_by', $user_q->user_id);
             }
+            // Admin sees everything - no filter needed
 
             // for search
             if ($request->has('search')) {
@@ -1226,6 +1238,155 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to check duplicate: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Customer Transfer Methods
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Transfer customer to Sales channel
+     * POST /api/v1/customers/{id}/transfer-to-sales
+     * 
+     * @param Request $request
+     * @param string $id Customer UUID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function transferToSales(Request $request, string $id)
+    {
+        return $this->handleTransfer($request, $id, 'transferToSales', ['admin', 'head_online']);
+    }
+
+    /**
+     * Transfer customer to Online channel
+     * POST /api/v1/customers/{id}/transfer-to-online
+     * 
+     * @param Request $request
+     * @param string $id Customer UUID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function transferToOnline(Request $request, string $id)
+    {
+        return $this->handleTransfer($request, $id, 'transferToOnline', ['admin', 'head_offline']);
+    }
+
+    /**
+     * Get customer transfer history
+     * GET /api/v1/customers/{id}/transfer-history
+     * 
+     * @param string $id Customer UUID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTransferHistory(string $id)
+    {
+        try {
+            $history = $this->transfer_service->getHistory($id);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $history
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get transfer history error: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถดึงประวัติการโอนได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get transfer info for a customer (can user transfer this customer?)
+     * GET /api/v1/customers/{id}/transfer-info
+     * 
+     * @param string $id Customer UUID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTransferInfo(string $id)
+    {
+        try {
+            $customer = Customer::findOrFail($id);
+            $user = Auth::user();
+            
+            $info = $this->transfer_service->getTransferInfo($user->role, $customer->cus_channel);
+            $info['customer_id'] = $id;
+            $info['customer_name'] = $customer->cus_name ?? $customer->cus_company;
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $info
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get transfer info error: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generic transfer handler (DRY - Don't Repeat Yourself)
+     * 
+     * @param Request $request
+     * @param string $id Customer UUID
+     * @param string $method Transfer service method name
+     * @param array $allowedRoles Roles that can perform this transfer
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function handleTransfer(Request $request, string $id, string $method, array $allowedRoles)
+    {
+        $request->validate([
+            'new_manage_by' => 'nullable|integer|exists:users,user_id',
+            'remark' => 'nullable|string|max:500'
+        ]);
+
+        $user = Auth::user();
+        
+        // Permission check
+        if (!in_array($user->role, $allowedRoles)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่มีสิทธิ์ในการโอนลูกค้า'
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+            
+            $result = $this->transfer_service->$method(
+                $id,
+                $request->new_manage_by,
+                $request->remark
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "โอนไป {$result['new_channel_label']} สำเร็จ",
+                'data' => $result
+            ]);
+
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Transfer error ({$method}): " . $e->getMessage());
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'โอนลูกค้าไม่สำเร็จ: ' . $e->getMessage()
             ], 500);
         }
     }

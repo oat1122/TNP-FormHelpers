@@ -342,4 +342,22 @@ class MasterCustomer extends Model
 	{
 		return CustomerNotificationRead::isRead($this->cus_id, $userId);
 	}
+
+	/**
+	 * Get transfer history for this customer
+	 */
+	public function transferHistory()
+	{
+		return $this->hasMany(CustomerTransferHistory::class, 'customer_id', 'cus_id')
+			->orderByDesc('created_at');
+	}
+
+	/**
+	 * Get channel label using Constants
+	 */
+	public function getChannelLabelAttribute(): string
+	{
+		return \App\Constants\CustomerChannel::getLabel($this->cus_channel);
+	}
 }
+

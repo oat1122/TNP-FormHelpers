@@ -508,6 +508,10 @@ function CustomerList() {
           onClose={handleCloseViewDialog}
           customerData={selectedCustomer}
           onEdit={handleEditFromView}
+          onTransferSuccess={() => {
+            // Refetch customer list after transfer
+            refetch();
+          }}
         />
 
         <TitleBar title="customer" />

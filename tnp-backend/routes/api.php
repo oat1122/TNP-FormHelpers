@@ -65,6 +65,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::controller(CustomerController::class)->group(function () {
         Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
         Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
+        
+        // Customer Transfer Routes
+        Route::post('/customers/{id}/transfer-to-sales', 'transferToSales'); // Transfer to Sales channel
+        Route::post('/customers/{id}/transfer-to-online', 'transferToOnline'); // Transfer to Online channel
+        Route::get('/customers/{id}/transfer-history', 'getTransferHistory'); // Get transfer history
+        Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
     });
 
     //---------- Notifications (Protected Routes) ----------

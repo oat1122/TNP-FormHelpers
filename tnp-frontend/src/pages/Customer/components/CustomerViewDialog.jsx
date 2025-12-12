@@ -33,10 +33,20 @@ import {
   MdEdit,
   MdContactPhone,
   MdHistory,
+  MdSwapHoriz,
 } from "react-icons/md";
 
 import { parseFullAddress } from "./BusinessDetailStepSimple";
 import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
+
+// Transfer components
+import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } from "./transfer";
+import {
+  TRANSFER_ROLES,
+  canUserTransfer,
+  getChannelColor,
+  TRANSFER_DIRECTIONS,
+} from "../constants/customerChannel";
 
 // Styled components - ปรับสีตาม theme
 const ViewCard = styled(Card)(({ theme }) => ({
@@ -119,10 +129,14 @@ const CustomerAvatar = styled(Avatar)(({ theme }) => ({
  * @param {Object} props.customerData - ข้อมูลลูกค้า
  * @param {Function} props.onEdit - callback เมื่อกดปุ่มแก้ไข
  */
-const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
+const CustomerViewDialog = ({ open, onClose, customerData, onEdit, onTransferSuccess }) => {
   // ✅ ย้าย hooks มาไว้ก่อน early return
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Get user role from localStorage
+  const user = JSON.parse(localStorage.getItem("userData") || "{}");
+  const userRole = user?.role || "";
 
   const [expandedSections, setExpandedSections] = useState({
     basic: true,
@@ -131,10 +145,42 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
     notes: false,
   });
 
+  // Transfer dialog states
+  const [transferToSalesOpen, setTransferToSalesOpen] = useState(false);
+  const [transferToOnlineOpen, setTransferToOnlineOpen] = useState(false);
+  const [transferHistoryOpen, setTransferHistoryOpen] = useState(false);
+
   // Early return หลังจาก hooks แล้ว
   if (!customerData || !open) {
     return null;
   }
+
+  // Check if user can transfer this customer
+  const transferInfo = canUserTransfer(userRole, customerData.cus_channel);
+
+  // Handle transfer button click
+  const handleTransferClick = () => {
+    if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES) {
+      setTransferToSalesOpen(true);
+    } else if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_ONLINE) {
+      setTransferToOnlineOpen(true);
+    }
+  };
+
+  // Handle transfer success
+  const handleTransferSuccessCallback = (result) => {
+    // Close all transfer dialogs
+    setTransferToSalesOpen(false);
+    setTransferToOnlineOpen(false);
+
+    // Call parent callback if provided
+    if (onTransferSuccess) {
+      onTransferSuccess(result);
+    }
+
+    // Close the view dialog since customer data has changed
+    onClose();
+  };
 
   // Toggle section expansion
   const toggleSection = (section) => {
@@ -719,6 +765,43 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
           justifyContent: isMobile ? "center" : "flex-end",
         }}
       >
+        {/* Transfer Button - แสดงตาม Role */}
+        {transferInfo.canTransfer && (
+          <>
+            <Tooltip title="ดูประวัติการโอน">
+              <Button
+                variant="outlined"
+                color="inherit"
+                size={isMobile ? "medium" : "small"}
+                startIcon={<MdHistory />}
+                onClick={() => setTransferHistoryOpen(true)}
+                fullWidth={isMobile}
+                sx={{
+                  mr: isMobile ? 0 : 1,
+                  mb: isMobile ? 1 : 0,
+                }}
+              >
+                ประวัติโอน
+              </Button>
+            </Tooltip>
+            <Button
+              variant="contained"
+              color={transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES ? "warning" : "info"}
+              startIcon={<MdSwapHoriz />}
+              onClick={handleTransferClick}
+              fullWidth={isMobile}
+              sx={{
+                mr: isMobile ? 0 : 1,
+                mb: isMobile ? 1 : 0,
+                fontSize: isMobile ? "0.9rem" : "0.875rem",
+              }}
+            >
+              {transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES
+                ? "โอนไป Sales"
+                : "โอนไป Online"}
+            </Button>
+          </>
+        )}
         {onEdit && (
           <Button
             variant="contained"
@@ -756,6 +839,32 @@ const CustomerViewDialog = ({ open, onClose, customerData, onEdit }) => {
           ปิด
         </Button>
       </DialogActions>
+
+      {/* Transfer to Sales Dialog */}
+      <TransferToSalesDialog
+        open={transferToSalesOpen}
+        onClose={() => setTransferToSalesOpen(false)}
+        customer={customerData}
+        salesUsers={[]} // TODO: Fetch sales users from API
+        onSuccess={handleTransferSuccessCallback}
+      />
+
+      {/* Transfer to Online Dialog */}
+      <TransferToOnlineDialog
+        open={transferToOnlineOpen}
+        onClose={() => setTransferToOnlineOpen(false)}
+        customer={customerData}
+        onlineUsers={[]} // TODO: Fetch online users from API
+        onSuccess={handleTransferSuccessCallback}
+      />
+
+      {/* Transfer History Dialog */}
+      <TransferHistoryDialog
+        open={transferHistoryOpen}
+        onClose={() => setTransferHistoryOpen(false)}
+        customerId={customerData?.cus_id}
+        customerName={customerData?.cus_name || customerData?.cus_company}
+      />
     </Dialog>
   );
 };

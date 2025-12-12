@@ -88,10 +88,19 @@ export const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     color: theme.vars.palette.grey.dark,
   },
 
+  // แก้ไขปัญหา row สุดท้ายถูก footer ทับ (เพราะ row มี marginTop)
+  "& .MuiDataGrid-virtualScrollerContent": {
+    paddingBottom: "20px",
+  },
+
   "& .MuiDataGrid-footerContainer": {
     borderWidth: 0,
     justifyContent: "center",
     padding: "16px 0",
+    marginTop: "10px",
+    backgroundColor: "#fff",
+    position: "relative",
+    zIndex: 1,
   },
 
   "& .uppercase-cell": {

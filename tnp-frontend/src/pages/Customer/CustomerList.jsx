@@ -583,22 +583,26 @@ function CustomerList() {
               )}
             </>
           ) : (
-            // Desktop Table View
+            // Desktop Table View - ใช้ autoHeight เพื่อให้ Page เป็นตัว scroll หลัก
             <Box
               sx={{
-                height: "auto",
-                minHeight: Math.min(500, totalItems * 60 + 120),
-                maxHeight: 800,
                 width: "100%",
-                "& .MuiDataGrid-main": {
-                  overflow: "hidden",
-                },
                 "& .MuiDataGrid-root": {
-                  transition: "height 0.3s ease",
+                  border: "none",
+                },
+                // ป้องกัน row สุดท้ายถูก footer ทับ
+                "& .MuiDataGrid-main": {
+                  paddingBottom: "8px",
+                },
+                // ให้ footer มี spacing ที่เหมาะสม
+                "& .MuiDataGrid-footerContainer": {
+                  marginTop: "8px",
+                  borderTop: "1px solid #e0e0e0",
                 },
               }}
             >
               <DataGridWithRowIdFix
+                autoHeight // ให้ตารางขยายตามจำนวนข้อมูล แล้ว Page เป็นตัว scroll
                 disableRowSelectionOnClick
                 paginationMode="server"
                 sortingMode="server"

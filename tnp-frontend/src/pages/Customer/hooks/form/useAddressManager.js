@@ -4,17 +4,19 @@
  * Consolidates location logic that was duplicated across:
  * - useDialogApiData.js
  * - useTelesalesQuickForm.js
- * - useLocationSelection.js (now deprecated)
  *
  * Features:
  * - Province > District > Subdistrict cascade loading
  * - Auto-fill zip code when subdistrict selected
- * - Builds full address string automatically
+ * - Builds full address string using centralized utility
  * - Supports both Redux-backed and local state modes
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { useGetAllLocationQuery, useLazyGetAllLocationQuery } from "../../../../features/globalApi";
+
+// Import centralized address utility
+import { buildFullAddress as buildAddressFromUtils } from "../../utils/addressUtils";
 
 /**
  * @param {Object} options
@@ -96,17 +98,17 @@ export const useAddressManager = ({
   // ==================== Helper Functions ====================
 
   /**
-   * Build full address string from address components
+   * Build full address string from form data (cus_* fields)
+   * Maps form field names to utility parameter names
    */
-  const buildFullAddress = useCallback((data) => {
-    const parts = [
-      data.cus_address_detail || "",
-      data.cus_subdistrict_text ? `ต.${data.cus_subdistrict_text}` : "",
-      data.cus_district_text ? `อ.${data.cus_district_text}` : "",
-      data.cus_province_text ? `จ.${data.cus_province_text}` : "",
-      data.cus_zip_code || "",
-    ].filter(Boolean);
-    return parts.join(" ");
+  const buildFullAddress = useCallback((formData) => {
+    return buildAddressFromUtils({
+      address: formData.cus_address_detail || "",
+      subdistrict: formData.cus_subdistrict_text || "",
+      district: formData.cus_district_text || "",
+      province: formData.cus_province_text || "",
+      zipCode: formData.cus_zip_code || "",
+    });
   }, []);
 
   // ==================== Change Handlers ====================

@@ -11,6 +11,7 @@ import {
   useTheme,
   useMediaQuery,
   Grid2 as Grid,
+  Autocomplete,
 } from "@mui/material";
 import React, { useEffect } from "react";
 import { MdLocationOn, MdNote, MdSupervisorAccount, MdInfo } from "react-icons/md";
@@ -136,7 +137,12 @@ const AdditionalInfoTab = ({
   inputList = {},
   errors = {},
   handleInputChange,
-  handleSelectLocation,
+  // Location handlers (Autocomplete)
+  handleProvinceChange,
+  handleDistrictChange,
+  handleSubdistrictChange,
+  isLoadingDistricts = false,
+  isLoadingSubdistricts = false,
   mode = "create",
   salesList = [],
   provincesList = [],
@@ -223,158 +229,131 @@ const AdditionalInfoTab = ({
             placeholder="เช่น 39/3 หมู่ 3 ถนนสุโขทัย"
           />
 
-          {/* จังหวัด + อำเภอ + ตำบล (Dropdowns) */}
+          {/* จังหวัด + อำเภอ + ตำบล (Autocomplete) */}
           <Grid container spacing={2}>
             {/* จังหวัด */}
-            <Grid xs={12} sm={4}>
-              <FormControl fullWidth size="small" disabled={mode === "view"}>
-                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>จังหวัด</InputLabel>
-                <Select
-                  name="cus_pro_id"
-                  value={inputList.cus_pro_id || ""}
-                  onChange={handleSelectLocation}
-                  label="จังหวัด"
-                  error={!!errors.cus_pro_id}
-                  sx={{
-                    fontFamily: "Kanit",
-                    fontSize: 14,
-                    bgcolor: "white",
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 300 },
-                    },
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
-                    -- เลือกจังหวัด --
-                  </MenuItem>
-                  {provincesList.map((province) => (
-                    <MenuItem
-                      key={province.pro_id}
-                      value={province.pro_id}
-                      sx={{ fontFamily: "Kanit" }}
-                    >
-                      {province.pro_name_th}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.cus_pro_id && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
-                    {errors.cus_pro_id}
-                  </Typography>
+            <Grid xs={12} sm={6} md={4}>
+              <Autocomplete
+                fullWidth
+                disabled={mode === "view"}
+                options={provincesList}
+                getOptionLabel={(option) => option.pro_name_th || ""}
+                value={provincesList.find((p) => p.pro_id === inputList.cus_pro_id) || null}
+                onChange={handleProvinceChange}
+                isOptionEqualToValue={(option, value) => option.pro_id === value?.pro_id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="จังหวัด"
+                    size="small"
+                    placeholder="ค้นหาจังหวัด..."
+                    error={!!errors.cus_pro_id}
+                    helperText={errors.cus_pro_id}
+                    InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                    sx={{
+                      bgcolor: "white",
+                      "& .MuiOutlinedInput-root": {
+                        fontFamily: "Kanit",
+                        fontSize: 14,
+                        "&:hover fieldset": { borderColor: PRIMARY_RED },
+                        "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                      },
+                      "& .MuiInputBase-input": {
+                        overflow: "visible",
+                        textOverflow: "clip",
+                      },
+                    }}
+                  />
                 )}
-              </FormControl>
+                sx={{
+                  minWidth: 180,
+                  "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                }}
+              />
             </Grid>
 
             {/* อำเภอ */}
-            <Grid xs={12} sm={4}>
-              <FormControl
+            <Grid xs={12} sm={6} md={4}>
+              <Autocomplete
                 fullWidth
-                size="small"
                 disabled={mode === "view" || !inputList.cus_pro_id}
-              >
-                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>เขต/อำเภอ</InputLabel>
-                <Select
-                  name="cus_dis_id"
-                  value={inputList.cus_dis_id || ""}
-                  onChange={handleSelectLocation}
-                  label="เขต/อำเภอ"
-                  error={!!errors.cus_dis_id}
-                  sx={{
-                    fontFamily: "Kanit",
-                    fontSize: 14,
-                    bgcolor: "white",
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 300 },
-                    },
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
-                    {inputList.cus_pro_id ? "-- เลือกอำเภอ --" : "กรุณาเลือกจังหวัดก่อน"}
-                  </MenuItem>
-                  {districtList.map((district) => (
-                    <MenuItem
-                      key={district.dis_id}
-                      value={district.dis_id}
-                      sx={{ fontFamily: "Kanit" }}
-                    >
-                      {district.dis_name_th}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.cus_dis_id && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
-                    {errors.cus_dis_id}
-                  </Typography>
+                loading={isLoadingDistricts}
+                options={districtList}
+                getOptionLabel={(option) => option.dis_name_th || option.dis_name || ""}
+                value={districtList.find((d) => d.dis_id === inputList.cus_dis_id) || null}
+                onChange={handleDistrictChange}
+                isOptionEqualToValue={(option, value) => option.dis_id === value?.dis_id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="เขต/อำเภอ"
+                    size="small"
+                    placeholder={inputList.cus_pro_id ? "ค้นหาอำเภอ..." : "เลือกจังหวัดก่อน"}
+                    error={!!errors.cus_dis_id}
+                    helperText={errors.cus_dis_id}
+                    InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                    sx={{
+                      bgcolor: "white",
+                      "& .MuiOutlinedInput-root": {
+                        fontFamily: "Kanit",
+                        fontSize: 14,
+                        "&:hover fieldset": { borderColor: PRIMARY_RED },
+                        "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                      },
+                      "& .MuiInputBase-input": {
+                        overflow: "visible",
+                        textOverflow: "clip",
+                      },
+                    }}
+                  />
                 )}
-              </FormControl>
+                sx={{
+                  minWidth: 180,
+                  "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                }}
+              />
             </Grid>
 
             {/* ตำบล */}
-            <Grid xs={12} sm={4}>
-              <FormControl
+            <Grid xs={12} sm={6} md={4}>
+              <Autocomplete
                 fullWidth
-                size="small"
                 disabled={mode === "view" || !inputList.cus_dis_id}
-              >
-                <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>แขวง/ตำบล</InputLabel>
-                <Select
-                  name="cus_sub_id"
-                  value={inputList.cus_sub_id || ""}
-                  onChange={handleSelectLocation}
-                  label="แขวง/ตำบล"
-                  error={!!errors.cus_sub_id}
-                  sx={{
-                    fontFamily: "Kanit",
-                    fontSize: 14,
-                    bgcolor: "white",
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: PRIMARY_RED,
-                    },
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 300 },
-                    },
-                  }}
-                >
-                  <MenuItem value="" sx={{ fontFamily: "Kanit" }}>
-                    {inputList.cus_dis_id ? "-- เลือกตำบล --" : "กรุณาเลือกอำเภอก่อน"}
-                  </MenuItem>
-                  {subDistrictList.map((subDistrict) => (
-                    <MenuItem
-                      key={subDistrict.sub_id}
-                      value={subDistrict.sub_id}
-                      sx={{ fontFamily: "Kanit" }}
-                    >
-                      {subDistrict.sub_name_th}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.cus_sub_id && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, fontFamily: "Kanit" }}>
-                    {errors.cus_sub_id}
-                  </Typography>
+                loading={isLoadingSubdistricts}
+                options={subDistrictList}
+                getOptionLabel={(option) => option.sub_name_th || option.sub_name || ""}
+                value={subDistrictList.find((s) => s.sub_id === inputList.cus_sub_id) || null}
+                onChange={handleSubdistrictChange}
+                isOptionEqualToValue={(option, value) => option.sub_id === value?.sub_id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="แขวง/ตำบล"
+                    size="small"
+                    placeholder={inputList.cus_dis_id ? "ค้นหาตำบล..." : "เลือกอำเภอก่อน"}
+                    error={!!errors.cus_sub_id}
+                    helperText={errors.cus_sub_id}
+                    InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                    sx={{
+                      bgcolor: "white",
+                      "& .MuiOutlinedInput-root": {
+                        fontFamily: "Kanit",
+                        fontSize: 14,
+                        "&:hover fieldset": { borderColor: PRIMARY_RED },
+                        "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                      },
+                      "& .MuiInputBase-input": {
+                        overflow: "visible",
+                        textOverflow: "clip",
+                      },
+                    }}
+                  />
                 )}
-              </FormControl>
+                sx={{
+                  minWidth: 180,
+                  "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                }}
+              />
             </Grid>
           </Grid>
 

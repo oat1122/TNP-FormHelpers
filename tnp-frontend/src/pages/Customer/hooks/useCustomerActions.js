@@ -52,9 +52,31 @@ export const useCustomerActions = (scrollToTop) => {
           }
         }
 
+        // Parse cus_address_detail จาก cus_address (ถ้าไม่มี cus_address_detail แยก)
+        let addressDetail = itemFill.cus_address_detail || "";
+        if (!addressDetail && itemFill.cus_address) {
+          // Pattern: "ที่อยู่ แขวงXXX เขตXXX จังหวัดXXX XXXXX" หรือ "ที่อยู่ ต.XXX อ.XXX จ.XXX XXXXX"
+          // ดึงส่วนก่อน แขวง/ตำบล/ต. ออกมา
+          const address = itemFill.cus_address;
+          const patterns = [
+            /^(.+?)(?:\s+แขวง)/, // ก่อน "แขวง"
+            /^(.+?)(?:\s+ตำบล)/, // ก่อน "ตำบล"
+            /^(.+?)(?:\s+ต\.)/, // ก่อน "ต."
+          ];
+
+          for (const pattern of patterns) {
+            const match = address.match(pattern);
+            if (match && match[1]) {
+              addressDetail = match[1].trim();
+              break;
+            }
+          }
+        }
+
         const formattedItem = {
           ...itemFill,
           cus_manage_by: managedBy,
+          cus_address_detail: addressDetail,
         };
 
         dispatch(setInputList(formattedItem));

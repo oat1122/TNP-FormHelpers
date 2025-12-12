@@ -95,6 +95,12 @@ const FormSummaryPreview = ({ inputList = {}, mode = "create" }) => {
 
   // Build full address string
   const getFullAddress = () => {
+    // ถ้ามี cus_address ให้ใช้เลย (ข้อมูลจาก database ที่สมบูรณ์แล้ว)
+    if (hasValue(inputList.cus_address)) {
+      return inputList.cus_address;
+    }
+
+    // Fallback: สร้างจาก text fields แยก
     const parts = [
       inputList.cus_address_detail,
       inputList.cus_subdistrict_text ? `ต.${inputList.cus_subdistrict_text}` : null,

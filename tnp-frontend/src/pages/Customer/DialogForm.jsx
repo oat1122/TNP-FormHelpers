@@ -31,7 +31,7 @@ import { canUserTransfer, TRANSFER_DIRECTIONS } from "./constants/customerChanne
 
 import { useDialogApiData } from "./hooks/useDialogApiData";
 import { useDuplicateCheck } from "./hooks/useDuplicateCheck";
-import { useLocationSelection } from "./hooks/useLocationSelection";
+// useLocationSelection ถูกแทนที่ด้วย handlers ใน useDialogApiData
 import { useStepperValidation } from "./hooks/useStepperValidation";
 import ScrollContext from "./ScrollContext";
 import BusinessTypeManager from "../../components/BusinessTypeManager";
@@ -102,14 +102,13 @@ function DialogForm(props) {
     businessTypesData,
     businessTypesIsFetching,
     refetchLocations,
+    // Location handlers (Autocomplete)
+    handleProvinceChange,
+    handleDistrictChange,
+    handleSubdistrictChange,
+    isLoadingDistricts,
+    isLoadingSubdistricts,
   } = useDialogApiData(props.openDialog);
-
-  const { handleSelectLocation } = useLocationSelection(
-    provincesList,
-    districtList,
-    subDistrictList,
-    refetchLocations
-  );
 
   // Duplicate check hook
   const {
@@ -501,7 +500,12 @@ function DialogForm(props) {
                   inputList={inputList}
                   errors={errors}
                   handleInputChange={handleInputChange}
-                  handleSelectLocation={handleSelectLocation}
+                  // Location handlers (Autocomplete)
+                  handleProvinceChange={handleProvinceChange}
+                  handleDistrictChange={handleDistrictChange}
+                  handleSubdistrictChange={handleSubdistrictChange}
+                  isLoadingDistricts={isLoadingDistricts}
+                  isLoadingSubdistricts={isLoadingSubdistricts}
                   mode={mode}
                   salesList={salesList}
                   provincesList={provincesList}

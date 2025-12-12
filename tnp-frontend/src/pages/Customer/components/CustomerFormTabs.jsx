@@ -178,7 +178,6 @@ const CustomerFormTabs = ({
           label="ข้อมูลหลัก"
           id="customer-tab-0"
           aria-controls="customer-tabpanel-0"
-          disabled={mode === "view"}
         />
         <Tab
           icon={
@@ -192,7 +191,6 @@ const CustomerFormTabs = ({
           label="ที่อยู่ & ข้อมูลเพิ่มเติม"
           id="customer-tab-1"
           aria-controls="customer-tabpanel-1"
-          disabled={mode === "view"}
         />
       </Tabs>
     </Box>

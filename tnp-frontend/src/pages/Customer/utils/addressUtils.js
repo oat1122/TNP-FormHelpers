@@ -1,53 +1,16 @@
-import { Box, Container } from "@mui/material";
-import React from "react";
-
-import AddressFormSection from "./BusinessDetailStep/AddressFormSection";
-import ContactInfoSection from "./BusinessDetailStep/ContactInfoSection";
-import HeaderSection from "./BusinessDetailStep/HeaderSection";
-
-// สี theme ของบริษัท
-const PRIMARY_RED = "#9e0000";
-const SECONDARY_RED = "#d32f2f";
-const BACKGROUND_COLOR = "#fffaf9";
+/**
+ * Address Utilities
+ *
+ * Utility functions for parsing and formatting Thai addresses
+ */
 
 /**
- * Enhanced BusinessDetailStepSimple with separated components
- * Main shell component that orchestrates sub-components
+ * Parse full Thai address string into components
+ * Format: "ที่อยู่ ต.ตำบล อ.อำเภอ จ.จังหวัด รหัสไปรษณีย์"
+ *
+ * @param {string} fullAddress - Full address string
+ * @returns {Object} Parsed address components
  */
-const BusinessDetailStepSimple = ({
-  inputList = {},
-  errors = {},
-  handleInputChange,
-  mode = "create",
-}) => {
-  return (
-    <Box>
-      <HeaderSection mode={mode} PRIMARY_RED={PRIMARY_RED} SECONDARY_RED={SECONDARY_RED} />
-
-      <Container maxWidth="md" sx={{ pb: { xs: 10, sm: 4 }, pt: { xs: 2, sm: 0 } }}>
-        <ContactInfoSection
-          inputList={inputList}
-          errors={errors}
-          handleInputChange={handleInputChange}
-          mode={mode}
-          PRIMARY_RED={PRIMARY_RED}
-          BACKGROUND_COLOR={BACKGROUND_COLOR}
-        />
-
-        <AddressFormSection
-          inputList={inputList}
-          errors={errors}
-          handleInputChange={handleInputChange}
-          mode={mode}
-          PRIMARY_RED={PRIMARY_RED}
-          BACKGROUND_COLOR={BACKGROUND_COLOR}
-        />
-      </Container>
-    </Box>
-  );
-};
-
-// ✅ Parse Full Address Function (สำหรับ CustomerViewDialog.jsx)
 export const parseFullAddress = (fullAddress) => {
   if (!fullAddress || typeof fullAddress !== "string") {
     return {
@@ -123,4 +86,22 @@ export const parseFullAddress = (fullAddress) => {
   }
 };
 
-export default BusinessDetailStepSimple;
+/**
+ * Build full address string from components
+ *
+ * @param {Object} components - Address components
+ * @returns {string} Full address string
+ */
+export const buildFullAddress = (components) => {
+  const { address, subdistrict, district, province, zipCode } = components || {};
+
+  const parts = [
+    address || "",
+    subdistrict ? `ต.${subdistrict}` : "",
+    district ? `อ.${district}` : "",
+    province ? `จ.${province}` : "",
+    zipCode || "",
+  ].filter(Boolean);
+
+  return parts.join(" ");
+};

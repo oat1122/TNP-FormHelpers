@@ -7,9 +7,10 @@ import {
   DialogActions,
   IconButton,
   Typography,
+  Tooltip,
 } from "@mui/material";
 import { useState, useEffect, useRef, useContext } from "react";
-import { MdSave, MdCancel, MdClose } from "react-icons/md";
+import { MdSave, MdCancel, MdClose, MdSwapHoriz, MdHistory } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
 // New Tab-based components
@@ -19,6 +20,14 @@ import DuplicatePhoneDialog from "./components/DuplicatePhoneDialog";
 import EssentialInfoTab from "./components/EssentialInfoTab";
 import FormSummaryPreview from "./components/FormSummaryPreview";
 import QuickActionsBar from "./components/QuickActionsBar";
+
+// Transfer components
+import {
+  TransferToSalesDialog,
+  TransferToOnlineDialog,
+  TransferHistoryDialog,
+} from "./components/transfer";
+import { canUserTransfer, TRANSFER_DIRECTIONS } from "./constants/customerChannel";
 
 import { useDialogApiData } from "./hooks/useDialogApiData";
 import { useDuplicateCheck } from "./hooks/useDuplicateCheck";
@@ -56,6 +65,11 @@ function DialogForm(props) {
   const [isBusinessTypeManagerOpen, setIsBusinessTypeManagerOpen] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0); // 0 = Essential, 1 = Additional
+
+  // Transfer dialog states (view mode only)
+  const [transferToSalesOpen, setTransferToSalesOpen] = useState(false);
+  const [transferToOnlineOpen, setTransferToOnlineOpen] = useState(false);
+  const [transferHistoryOpen, setTransferHistoryOpen] = useState(false);
 
   // Refs
   const formRef = useRef(null);
@@ -523,6 +537,50 @@ function DialogForm(props) {
               {mode === "view" ? "ปิด" : "ยกเลิก"}
             </Button>
 
+            {/* Transfer Buttons - View mode only */}
+            {mode === "view" &&
+              (() => {
+                const transferInfo = canUserTransfer(user.role, inputList?.cus_channel);
+                if (!transferInfo.canTransfer) return null;
+
+                return (
+                  <Box
+                    sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}
+                  >
+                    <Tooltip title="ดูประวัติการโอน">
+                      <Button
+                        variant="outlined"
+                        color="inherit"
+                        size="small"
+                        startIcon={<MdHistory />}
+                        onClick={() => setTransferHistoryOpen(true)}
+                      >
+                        ประวัติโอน
+                      </Button>
+                    </Tooltip>
+                    <Button
+                      variant="contained"
+                      color={
+                        transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES ? "warning" : "info"
+                      }
+                      startIcon={<MdSwapHoriz />}
+                      onClick={() => {
+                        if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES) {
+                          setTransferToSalesOpen(true);
+                        } else if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_ONLINE) {
+                          setTransferToOnlineOpen(true);
+                        }
+                      }}
+                      sx={{ fontFamily: "Kanit" }}
+                    >
+                      {transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES
+                        ? "โอนไป Sales"
+                        : "โอนไป Online"}
+                    </Button>
+                  </Box>
+                );
+              })()}
+
             {mode !== "view" && (
               <Button
                 variant="contained"
@@ -550,6 +608,41 @@ function DialogForm(props) {
         onClose={closeDuplicatePhoneDialog}
         duplicateData={duplicatePhoneData}
       />
+
+      {/* Transfer Dialogs - View mode only */}
+      {mode === "view" && (
+        <>
+          <TransferToSalesDialog
+            open={transferToSalesOpen}
+            onClose={() => setTransferToSalesOpen(false)}
+            customerData={inputList}
+            onSuccess={(result) => {
+              setTransferToSalesOpen(false);
+              handleCloseDialog();
+              if (props.onTransferSuccess) {
+                props.onTransferSuccess(result);
+              }
+            }}
+          />
+          <TransferToOnlineDialog
+            open={transferToOnlineOpen}
+            onClose={() => setTransferToOnlineOpen(false)}
+            customerData={inputList}
+            onSuccess={(result) => {
+              setTransferToOnlineOpen(false);
+              handleCloseDialog();
+              if (props.onTransferSuccess) {
+                props.onTransferSuccess(result);
+              }
+            }}
+          />
+          <TransferHistoryDialog
+            open={transferHistoryOpen}
+            onClose={() => setTransferHistoryOpen(false)}
+            customerId={inputList?.cus_id}
+          />
+        </>
+      )}
     </>
   );
 }

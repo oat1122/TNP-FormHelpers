@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { CustomPagination, CustomToolbar } from "./components/CustomComponents";
 import CustomerCardList from "./components/CustomerCardList";
-import CustomerViewDialog from "./components/CustomerViewDialog";
 import { NoDataComponent } from "./components/UtilityComponents";
 import { useColumnDefinitions } from "./config/columnDefinitions";
 import DialogForm from "./DialogForm";
@@ -74,9 +73,7 @@ function CustomerList() {
   // Local state
   const [totalItems, setTotalItems] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openViewDialog, setOpenViewDialog] = useState(false);
   const [quickFormOpen, setQuickFormOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [serverSortModel, setServerSortModel] = useState([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({
     cus_no: false,
@@ -268,28 +265,9 @@ function CustomerList() {
     handleCloseDialog();
   };
 
-  // Handle view dialog actions
+  // Handle view dialog actions - เปิด DialogForm ใน view mode
   const handleOpenViewDialog = (customerId) => {
-    // ใช้ validRows แทน itemList เพื่อความปลอดภัย
-    const customer = validRows.find((item) => item.cus_id === customerId);
-    if (customer) {
-      setSelectedCustomer(customer);
-      setOpenViewDialog(true);
-    } else {
-      console.warn("Customer not found:", customerId);
-    }
-  };
-
-  const handleCloseViewDialog = () => {
-    setOpenViewDialog(false);
-    setSelectedCustomer(null);
-  };
-
-  // Handle edit from view action
-  const handleEditFromView = (customerId) => {
-    setOpenViewDialog(false);
-    setSelectedCustomer(null);
-    handleOpenDialogWithState("edit", customerId);
+    handleOpenDialogWithState("view", customerId);
   };
 
   // Handle after save action - เปิด view dialog หลังจากบันทึกเสร็จ
@@ -472,9 +450,8 @@ function CustomerList() {
 
   // Reset เมื่อเปลี่ยนกลุ่มหรือกรองข้อมูล เพื่อป้องกัน DataGrid error
   useEffect(() => {
-    // Reset selected customer เมื่อข้อมูลเปลี่ยน
-    setSelectedCustomer(null);
-    setOpenViewDialog(false);
+    // Reset เมื่อข้อมูลเปลี่ยน - ปิด dialog ถ้าเปิดอยู่
+    setOpenDialog(false);
   }, [groupSelected, filters.dateRange, filters.salesName, filters.channel]);
 
   // Filter rows ที่มี ID ที่ถูกต้องและข้อมูลครบ
@@ -501,13 +478,6 @@ function CustomerList() {
           handleCloseDialog={handleCloseDialogWithState}
           handleRecall={handleRecall}
           onAfterSave={handleAfterSave}
-        />
-
-        <CustomerViewDialog
-          open={openViewDialog}
-          onClose={handleCloseViewDialog}
-          customerData={selectedCustomer}
-          onEdit={handleEditFromView}
           onTransferSuccess={() => {
             // Refetch customer list after transfer
             refetch();

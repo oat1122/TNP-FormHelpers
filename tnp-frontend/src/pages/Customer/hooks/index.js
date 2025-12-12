@@ -5,6 +5,9 @@ export { useCustomerActions } from "./useCustomerActions";
 export { useDialogApiData } from "./useDialogApiData";
 export { useDuplicateCheck } from "./useDuplicateCheck";
 
+// List hooks (for CustomerList page)
+export * from "./list";
+
 // Filter hooks
 export * from "./filter";
 

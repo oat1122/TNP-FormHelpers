@@ -1,9 +1,8 @@
 // filepath: src/pages/Customer/components/Filters/FilterPanel.jsx
 import { Box, Grid2 as Grid, Typography, Stack, Alert, CircularProgress } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { MdExpandMore, MdFilterList } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
-import { useDispatch } from "react-redux";
 
 // Filter section components (relative to this file in Filters/)
 import { DateFilterSection, SalesFilterSection, ChannelFilterSection } from "./sections";
@@ -14,6 +13,7 @@ import {
   useFilterActions,
   useFilterState,
   useSelectionHelpers,
+  useFilterInitializer,
 } from "../../hooks";
 
 // Styled components (relative path from Filters/)
@@ -29,18 +29,13 @@ import {
   SecondaryActionButton,
 } from "../../styles/FilterStyledComponents";
 
-// Redux
-import { setSalesList } from "../../../../features/Customer/customerSlice";
-import { useGetUserByRoleQuery } from "../../../../features/globalApi";
-
 function FilterPanel() {
-  const dispatch = useDispatch();
   const [expanded, setExpanded] = useState(false);
 
-  // Get sales list from API
-  const { data: salesData, isLoading: salesLoading } = useGetUserByRoleQuery("sale");
+  // 1. Initializer Hook - syncs sales list from API to Redux
+  useFilterInitializer();
 
-  // Custom hooks for state management
+  // 2. Filter State Hook
   const {
     filters,
     draftFilters,
@@ -52,20 +47,19 @@ function FilterPanel() {
     resetDraftFilters,
   } = useFilterState();
 
+  // 3. Filter Actions Hook
   const { isFiltering, errorMessage, handleApplyFilters, handleResetFilters, clearErrorMessage } =
     useFilterActions();
 
-  // Helper hooks
+  // 4. Helper Hooks
   const dateHelpers = useDateRangeHelpers(setDraftFilters);
   const selectionHelpers = useSelectionHelpers(setDraftFilters, salesList);
 
-  // Update sales list from API (only once when data is loaded)
-  useEffect(() => {
-    if (salesData?.sale_role?.length > 0) {
-      const salesNames = salesData.sale_role.map((user) => user.username).filter(Boolean);
-      dispatch(setSalesList(salesNames));
-    }
-  }, [salesData, dispatch]);
+  // Data transformation ย้ายมาที่ parent (จุดที่ 2)
+  const salesOptions = (salesList || []).map((name) => ({
+    value: name,
+    label: name,
+  }));
 
   // Handle accordion expand/collapse
   const handleAccordionChange = (_, isExpanded) => {
@@ -247,6 +241,7 @@ function FilterPanel() {
             <SalesFilterSection
               draftFilters={draftFilters}
               salesList={salesList}
+              salesOptions={salesOptions}
               selectionHelpers={selectionHelpers}
             />
 

@@ -5,17 +5,11 @@ import { apiConfig } from "../../../../api/apiConfig";
  * useFilterGroupCounts - Hook สำหรับจัดการการดึงจำนวนข้อมูลในแต่ละกลุ่มตาม Filter
  * แยก Logic การดึง group counts ออกจาก FilterTab
  * @param {Object} filters - Current active filters from Redux
+ * @param {boolean} hasActiveFilters - Whether any filter is currently active (from useFilterState)
  */
-export const useFilterGroupCounts = (filters) => {
+export const useFilterGroupCounts = (filters, hasActiveFilters) => {
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
   const [allGroupCounts, setAllGroupCounts] = useState({});
-
-  // เช็คว่ามีการกรองข้อมูลอยู่หรือไม่
-  const hasActiveFilters =
-    filters.dateRange.startDate ||
-    filters.dateRange.endDate ||
-    (filters.salesName && filters.salesName.length > 0) ||
-    (filters.channel && filters.channel.length > 0);
 
   useEffect(() => {
     const fetchAllGroupCounts = async () => {

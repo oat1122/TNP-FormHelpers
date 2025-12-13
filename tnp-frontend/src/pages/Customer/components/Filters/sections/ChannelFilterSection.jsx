@@ -3,7 +3,7 @@ import React from "react";
 import { MdSignalCellularAlt } from "react-icons/md";
 
 // Constants
-import { channelOptions } from "../../../constants/filterConstants";
+import { channelOptions, filterColors } from "../../../constants/filterConstants";
 // Styled components
 import { StyledFormControl } from "../../../styles/FilterStyledComponents";
 // UI Components
@@ -44,8 +44,8 @@ const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
               label={`${draftFilters.channel.length}/${channelOptions.length}`}
               size="small"
               sx={{
-                bgcolor: "rgba(148, 12, 12, 0.1)",
-                color: "#940c0c",
+                bgcolor: filterColors.primaryLight,
+                color: filterColors.primary,
                 fontWeight: 600,
                 fontSize: "0.75rem",
                 height: "20px",
@@ -71,8 +71,8 @@ const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
               mt: 2,
               p: 1.5,
               borderRadius: 2,
-              backgroundColor: "rgba(148, 12, 12, 0.05)",
-              border: "1px solid rgba(148, 12, 12, 0.15)",
+              backgroundColor: filterColors.primaryLight,
+              border: `1px solid ${filterColors.primaryBorder}`,
             }}
           >
             <Typography
@@ -98,7 +98,7 @@ const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
                     label={channel?.label}
                     size="small"
                     sx={{
-                      bgcolor: channel?.color || "rgba(148, 12, 12, 0.1)",
+                      bgcolor: channel?.color || filterColors.primaryLight,
                       color: "white",
                       fontWeight: 600,
                       borderRadius: "8px",
@@ -150,8 +150,8 @@ const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
                   px: 1,
                   py: 0.5,
                   borderRadius: 1,
-                  bgcolor: isSelected ? "rgba(148, 12, 12, 0.1)" : "transparent",
-                  color: isSelected ? "primary.main" : "text.secondary",
+                  bgcolor: isSelected ? filterColors.primaryLight : "transparent",
+                  color: isSelected ? filterColors.primary : "text.secondary",
                   fontSize: "0.7rem",
                   fontWeight: isSelected ? 600 : 400,
                 }}
@@ -170,17 +170,17 @@ const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
           p: { xs: 1.5, sm: 1.5 },
           borderRadius: 2,
           bgcolor:
-            draftFilters.channel.length > 0 ? "rgba(148, 12, 12, 0.06)" : "rgba(0, 0, 0, 0.04)",
+            draftFilters.channel.length > 0 ? filterColors.primaryLight : "rgba(0, 0, 0, 0.04)",
           border:
             draftFilters.channel.length > 0
-              ? "1px dashed rgba(148, 12, 12, 0.3)"
+              ? `1px dashed ${filterColors.primaryBorder}`
               : "1px dashed rgba(0, 0, 0, 0.1)",
         }}
       >
         <Typography
           variant="caption"
           sx={{
-            color: draftFilters.channel.length > 0 ? "#940c0c" : "text.secondary",
+            color: draftFilters.channel.length > 0 ? filterColors.primary : "text.secondary",
             fontWeight: 600,
             fontSize: { xs: "0.75rem", sm: "0.8rem" },
             display: "flex",

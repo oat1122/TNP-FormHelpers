@@ -120,27 +120,6 @@ export const useCustomerTableConfig = (user, scrollToTop) => {
     }
   }, []); // Empty dependency array - run once on mount
 
-  // Load saved column settings (v1 fallback)
-  useEffect(() => {
-    try {
-      const savedVisibilityPrefs = localStorage.getItem("customerTableColumnVisibility");
-      if (savedVisibilityPrefs) {
-        const savedPrefs = JSON.parse(savedVisibilityPrefs);
-        const savedModel = savedPrefs.model || savedPrefs;
-        setColumnVisibilityModel(savedModel);
-      }
-
-      const savedOrderPrefs = localStorage.getItem("customerTableColumnOrder");
-      if (savedOrderPrefs) {
-        const savedOrderData = JSON.parse(savedOrderPrefs);
-        const savedOrder = savedOrderData.order || savedOrderData;
-        setColumnOrderModel(savedOrder);
-      }
-    } catch (error) {
-      console.warn("Failed to load saved column settings", error);
-    }
-  }, []);
-
   // Responsive column visibility
   useEffect(() => {
     const hasSavedPreferences = localStorage.getItem("customerTableColumnVisibility");

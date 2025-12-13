@@ -1,18 +1,21 @@
 import { Box, Chip, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import React, { useContext } from "react";
-import { MdDateRange, MdPerson, MdSignalCellularAlt, MdPhone } from "react-icons/md";
+import { MdDateRange, MdPerson, MdSignalCellularAlt } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
 // Data display components
 import { ScrollContext } from "../DataDisplay";
 
+// Hooks
+import { useFilterState } from "../../hooks";
+
 // Redux
 import { resetFilters } from "../../../../features/Customer/customerSlice";
-import {
-  getChannelDisplayName,
-  formatDaysToText,
-} from "../../../../features/Customer/customerUtils";
+import { getChannelDisplayName } from "../../../../features/Customer/customerUtils";
+
+// Constants - ใช้ filterColors จาก central config
+import { filterColors } from "../../constants/filterConstants";
 
 /**
  * Component to display active filters as tags
@@ -22,14 +25,15 @@ function FilterTags() {
   const filters = useSelector((state) => state.customer.filters);
   const { scrollToTop } = useContext(ScrollContext);
 
-  // Check if any filters are active
+  // ใช้ hasActiveFilters จาก useFilterState (centralized logic)
+  const { hasActiveFilters } = useFilterState();
+
+  // Check individual filter types for display
   const hasDateFilter = filters.dateRange.startDate || filters.dateRange.endDate;
   const hasSalesFilter = filters.salesName && filters.salesName.length > 0;
   const hasChannelFilter = filters.channel && filters.channel.length > 0;
 
-  const hasAnyFilters = hasDateFilter || hasSalesFilter || hasChannelFilter;
-
-  if (!hasAnyFilters) {
+  if (!hasActiveFilters) {
     return null;
   }
 
@@ -69,17 +73,17 @@ function FilterTags() {
         gap: 1.2,
         mb: 2.5,
         mt: 1.5,
-        backgroundColor: "rgba(245, 245, 245, 0.5)",
+        backgroundColor: filterColors.primaryLight,
         borderRadius: 2,
-        p: hasAnyFilters ? 1.5 : 0,
-        border: hasAnyFilters ? "1px dashed rgba(0, 0, 0, 0.12)" : "none",
+        p: hasActiveFilters ? 1.5 : 0,
+        border: hasActiveFilters ? `1px dashed ${filterColors.primaryBorder}` : "none",
       }}
     >
-      {hasAnyFilters && (
+      {hasActiveFilters && (
         <Typography
           variant="body2"
           sx={{
-            color: "#1976d2",
+            color: filterColors.primary,
             mr: 1,
             fontWeight: 600,
             display: "flex",
@@ -94,19 +98,20 @@ function FilterTags() {
       {/* Date Range Filter Tag */}
       {hasDateFilter && (
         <Chip
-          icon={<MdDateRange style={{ color: "#1976d2" }} />}
+          icon={<MdDateRange style={{ color: filterColors.primary }} />}
           label={`วันที่: ${getDateRangeLabel()}`}
           size="medium"
-          color="primary"
           variant="outlined"
           sx={{
             borderRadius: "16px",
             fontWeight: 500,
             px: 0.5,
+            borderColor: filterColors.primaryBorder,
+            color: filterColors.primary,
             "& .MuiChip-icon": {
-              color: "#1976d2",
+              color: filterColors.primary,
             },
-            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            boxShadow: "0 1px 3px rgba(148, 12, 12, 0.1)",
           }}
         />
       )}
@@ -114,19 +119,20 @@ function FilterTags() {
       {/* Sales Name Filter Tag */}
       {hasSalesFilter && (
         <Chip
-          icon={<MdPerson style={{ color: "#1976d2" }} />}
+          icon={<MdPerson style={{ color: filterColors.primary }} />}
           label={`Sales: ${filters.salesName.length} คน`}
           size="medium"
-          color="primary"
           variant="outlined"
           sx={{
             borderRadius: "16px",
             fontWeight: 500,
             px: 0.5,
+            borderColor: filterColors.primaryBorder,
+            color: filterColors.primary,
             "& .MuiChip-icon": {
-              color: "#1976d2",
+              color: filterColors.primary,
             },
-            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            boxShadow: "0 1px 3px rgba(148, 12, 12, 0.1)",
           }}
         />
       )}
@@ -134,38 +140,41 @@ function FilterTags() {
       {/* Channel Filter Tag */}
       {hasChannelFilter && (
         <Chip
-          icon={<MdSignalCellularAlt style={{ color: "#1976d2" }} />}
+          icon={<MdSignalCellularAlt style={{ color: filterColors.primary }} />}
           label={`ช่องทาง: ${filters.channel.map((c) => getChannelDisplayName(c)).join(", ")}`}
           size="medium"
-          color="primary"
           variant="outlined"
           sx={{
             borderRadius: "16px",
             fontWeight: 500,
             px: 0.5,
+            borderColor: filterColors.primaryBorder,
+            color: filterColors.primary,
             "& .MuiChip-icon": {
-              color: "#1976d2",
+              color: filterColors.primary,
             },
-            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            boxShadow: "0 1px 3px rgba(148, 12, 12, 0.1)",
           }}
         />
       )}
       {/* Recall Filter Tag has been removed */}
 
       {/* Clear All Filters */}
-      {hasAnyFilters && (
+      {hasActiveFilters && (
         <Chip
           label="ล้างตัวกรองทั้งหมด"
           size="medium"
-          color="error"
           onClick={handleClearAllFilters}
           sx={{
             ml: "auto",
             fontWeight: 600,
             borderRadius: "16px",
-            boxShadow: "0 2px 5px rgba(211, 47, 47, 0.2)",
+            bgcolor: filterColors.primary,
+            color: "#ffffff",
+            boxShadow: "0 2px 5px rgba(148, 12, 12, 0.2)",
             "&:hover": {
-              boxShadow: "0 2px 8px rgba(211, 47, 47, 0.3)",
+              bgcolor: filterColors.primaryHover,
+              boxShadow: "0 2px 8px rgba(148, 12, 12, 0.3)",
             },
           }}
         />

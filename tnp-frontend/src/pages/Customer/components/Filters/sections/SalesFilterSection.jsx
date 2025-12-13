@@ -1,9 +1,9 @@
 import { Typography, Box, Button, Divider, Chip } from "@mui/material";
 import React from "react";
-import { MdPerson } from "react-icons/md";
+import { MdPerson, MdSelectAll, MdClear } from "react-icons/md";
 
 // Constants
-import { filterPanelConfig } from "../../../constants/filterConstants";
+import { filterPanelConfig, filterColors } from "../../../constants/filterConstants";
 // Styled components
 import { StyledFormControl } from "../../../styles/FilterStyledComponents";
 // UI Components
@@ -11,7 +11,7 @@ import { FilterSectionFrame, FilterMultiSelect } from "../ui";
 
 /**
  * Sales Filter Section Component
- * ✅ Presentational Component - รับ salesOptions ที่แปลงแล้วจาก parent
+ * Presentational Component - รับ salesOptions ที่แปลงแล้วจาก parent
  */
 const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHelpers }) => {
   const { handleSalesChange, selectAllSales, clearSalesSelection } = selectionHelpers;
@@ -44,8 +44,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
               label={`${draftFilters.salesName.length}/${salesList?.length || 0}`}
               size="small"
               sx={{
-                bgcolor: "rgba(148, 12, 12, 0.1)",
-                color: "#940c0c",
+                bgcolor: filterColors.primaryLight,
+                color: filterColors.primary,
                 fontWeight: 600,
                 fontSize: "0.75rem",
                 height: "20px",
@@ -54,7 +54,7 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
           )}
         </Typography>
 
-        {/* ✅ ใช้ salesOptions ที่ส่งมาจาก parent */}
+        {/*ใช้ salesOptions ที่ส่งมาจาก parent */}
         <FilterMultiSelect
           options={salesOptions}
           value={draftFilters.salesName}
@@ -71,8 +71,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
               mt: 2,
               p: 1.5,
               borderRadius: 2,
-              backgroundColor: "rgba(148, 12, 12, 0.05)",
-              border: "1px solid rgba(148, 12, 12, 0.15)",
+              backgroundColor: filterColors.primaryLight,
+              border: `1px solid ${filterColors.primaryBorder}`,
             }}
           >
             <Typography
@@ -96,8 +96,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
                     label={name}
                     size="small"
                     sx={{
-                      bgcolor: "rgba(148, 12, 12, 0.1)",
-                      color: "#940c0c",
+                      bgcolor: filterColors.primaryLight,
+                      color: filterColors.primary,
                       fontWeight: 600,
                       borderRadius: "8px",
                       height: { xs: "24px", sm: "26px" },
@@ -110,8 +110,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
                   label={`+${draftFilters.salesName.length - (filterPanelConfig.maxSalesSelection || 6)} คน`}
                   size="small"
                   sx={{
-                    bgcolor: "rgba(148, 12, 12, 0.15)",
-                    color: "#940c0c",
+                    bgcolor: filterColors.primaryBorder,
+                    color: filterColors.primary,
                     fontWeight: 700,
                     borderRadius: "8px",
                     height: { xs: "24px", sm: "26px" },
@@ -136,7 +136,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
       >
         <Button
           size="small"
-          variant="text"
+          variant="outlined"
+          startIcon={<MdSelectAll />}
           onClick={selectAllSales}
           disabled={
             !salesList ||
@@ -144,7 +145,8 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
             draftFilters.salesName.length === salesList.length
           }
           sx={{
-            color: "#940c0c",
+            color: filterColors.primary,
+            borderColor: filterColors.primaryBorder,
             textTransform: "none",
             fontWeight: 600,
             borderRadius: 2,
@@ -152,8 +154,14 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
             py: { xs: 1, sm: 0.8 },
             minHeight: { xs: "36px", sm: "auto" },
             width: { xs: "100%", sm: "auto" },
-            "&:hover": { bgcolor: "rgba(148, 12, 12, 0.08)" },
-            "&.Mui-disabled": { color: "rgba(0, 0, 0, 0.26)" },
+            "&:hover": {
+              bgcolor: filterColors.primaryLight,
+              borderColor: filterColors.primary,
+            },
+            "&.Mui-disabled": {
+              color: "rgba(0, 0, 0, 0.26)",
+              borderColor: "rgba(0, 0, 0, 0.12)",
+            },
           }}
         >
           เลือกทั้งหมด ({salesList?.length || 0})
@@ -164,18 +172,22 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
         <Button
           size="small"
           variant="text"
+          startIcon={<MdClear />}
           onClick={clearSalesSelection}
           disabled={draftFilters.salesName.length === 0}
           sx={{
-            color: "#940c0c",
+            color: "text.secondary",
             textTransform: "none",
-            fontWeight: 600,
+            fontWeight: 500,
             borderRadius: 2,
             px: { xs: 2, sm: 2.5 },
             py: { xs: 1, sm: 0.8 },
             minHeight: { xs: "36px", sm: "auto" },
             width: { xs: "100%", sm: "auto" },
-            "&:hover": { bgcolor: "rgba(148, 12, 12, 0.08)" },
+            "&:hover": {
+              bgcolor: "rgba(0, 0, 0, 0.04)",
+              color: filterColors.primary,
+            },
             "&.Mui-disabled": { color: "rgba(0, 0, 0, 0.26)" },
           }}
         >
@@ -190,17 +202,17 @@ const SalesFilterSection = ({ draftFilters, salesList, salesOptions, selectionHe
           p: { xs: 1.5, sm: 1.5 },
           borderRadius: 2,
           bgcolor:
-            draftFilters.salesName.length > 0 ? "rgba(148, 12, 12, 0.06)" : "rgba(0, 0, 0, 0.04)",
+            draftFilters.salesName.length > 0 ? filterColors.primaryLight : "rgba(0, 0, 0, 0.04)",
           border:
             draftFilters.salesName.length > 0
-              ? "1px dashed rgba(148, 12, 12, 0.3)"
+              ? `1px dashed ${filterColors.primaryBorder}`
               : "1px dashed rgba(0, 0, 0, 0.1)",
         }}
       >
         <Typography
           variant="caption"
           sx={{
-            color: draftFilters.salesName.length > 0 ? "#940c0c" : "text.secondary",
+            color: draftFilters.salesName.length > 0 ? filterColors.primary : "text.secondary",
             fontWeight: 600,
             fontSize: { xs: "0.75rem", sm: "0.8rem" },
             display: "flex",

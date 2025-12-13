@@ -9,7 +9,7 @@ import { ScrollContext } from "../DataDisplay";
 import { FilterGroupMobile, FilterGroupDesktop } from "./parts";
 
 // Hooks
-import { useFilterGroupCounts } from "../../hooks";
+import { useFilterGroupCounts, useFilterState } from "../../hooks";
 
 // Redux
 import {
@@ -32,8 +32,11 @@ function FilterTab() {
   const filters = useSelector((state) => state.customer.filters);
   const { scrollToTop } = useContext(ScrollContext);
 
-  // Use hook for group counts
-  const { allGroupCounts, isLoadingCounts, hasActiveFilters } = useFilterGroupCounts(filters);
+  // Get hasActiveFilters from useFilterState (centralized logic)
+  const { hasActiveFilters } = useFilterState();
+
+  // Use hook for group counts - pass hasActiveFilters as parameter
+  const { allGroupCounts, isLoadingCounts } = useFilterGroupCounts(filters, hasActiveFilters);
 
   // Sort groups by mcg_sort
   const sortedGroupList = [...groupList].sort((a, b) => a.mcg_sort - b.mcg_sort);
@@ -69,7 +72,7 @@ function FilterTab() {
     onSelectGroup: handleSelectGroup,
     sortedGroupList,
     totalCount,
-    computedTotalCount, // ✅ ส่งค่าที่คำนวณแล้ว
+    computedTotalCount, // ส่งค่าที่คำนวณแล้ว
     allGroupCounts,
     isLoadingCounts,
     hasActiveFilters,

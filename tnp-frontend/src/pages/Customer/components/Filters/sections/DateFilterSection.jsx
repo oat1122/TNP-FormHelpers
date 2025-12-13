@@ -1,15 +1,21 @@
 import { Typography, Box, InputAdornment, IconButton } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import React from "react";
+import React, { useMemo } from "react";
 import { MdDateRange, MdClear } from "react-icons/md";
 
 // Constants (relative path from sections/)
-import { dateRangeOptions, filterValidation } from "../../../constants/filterConstants";
+import { dateRangeOptions, filterColors } from "../../../constants/filterConstants";
 // Styled components (relative path from sections/)
 import { QuickButton } from "../../../styles/FilterStyledComponents";
 // Utils (relative path from sections/)
 import { AdapterBuddhistDayjs } from "../../../utils/dateAdapters";
+import {
+  createDatePickerProps,
+  datePickerClearButtonSx,
+  dateRangeIndicatorSx,
+  datePickerIconStyle,
+} from "../../../utils/datePickerConfig";
 // UI Frame
 import { FilterSectionFrame } from "../ui";
 
@@ -21,74 +27,8 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
   const { handleQuickDateRange, clearStartDate, clearEndDate, setStartDate, setEndDate } =
     dateHelpers;
 
-  // Date picker common props for consistent styling
-  const datePickerCommonProps = {
-    slotProps: {
-      textField: {
-        size: "medium",
-        fullWidth: true,
-        sx: {
-          "& .MuiInputLabel-root": {
-            color: "text.secondary",
-            fontSize: "0.95rem",
-          },
-          "& .MuiInputLabel-root.Mui-focused": {
-            color: "#940c0c",
-          },
-          "& .MuiOutlinedInput-root": {
-            "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: "rgba(148, 12, 12, 0.5)",
-            },
-          },
-          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#940c0c",
-            borderWidth: "1.5px",
-          },
-        },
-        InputProps: {
-          sx: {
-            "&.Mui-focused": {
-              boxShadow: "0 0 0 2px rgba(148, 12, 12, 0.2)",
-            },
-            borderRadius: 1.5,
-            height: 48,
-          },
-        },
-      },
-      day: {
-        sx: {
-          fontWeight: "bold",
-          "&.Mui-selected": {
-            bgcolor: "#940c0c",
-            "&:hover": {
-              bgcolor: "#b71c1c",
-            },
-          },
-        },
-      },
-      calendarHeader: {
-        sx: { bgcolor: "rgba(148, 12, 12, 0.08)", py: 1 },
-      },
-      layout: {
-        sx: {
-          ".MuiPickersCalendarHeader-root": {
-            fontWeight: "bold",
-            color: "#940c0c",
-          },
-        },
-      },
-      popper: {
-        sx: {
-          "& .MuiPaper-root": {
-            boxShadow: "0px 5px 20px rgba(0,0,0,0.15)",
-            borderRadius: "16px",
-            border: "1px solid rgba(148, 12, 12, 0.2)",
-          },
-        },
-      },
-    },
-    format: filterValidation.dateFormat,
-  };
+  // Get DatePicker props from config - memoized for performance
+  const datePickerCommonProps = useMemo(() => createDatePickerProps(), []);
 
   return (
     <FilterSectionFrame
@@ -120,12 +60,7 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
                   ...datePickerCommonProps.slotProps.textField.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <MdDateRange
-                        style={{
-                          color: "#940c0c",
-                          fontSize: "1.2rem",
-                        }}
-                      />
+                      <MdDateRange style={datePickerIconStyle} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -136,12 +71,7 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
                           aria-label="clear start date"
                           onClick={clearStartDate}
                           edge="end"
-                          sx={{
-                            color: "#940c0c",
-                            "&:hover": {
-                              bgcolor: "rgba(148, 12, 12, 0.1)",
-                            },
-                          }}
+                          sx={datePickerClearButtonSx}
                         >
                           <MdClear />
                         </IconButton>
@@ -167,12 +97,7 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
                   ...datePickerCommonProps.slotProps.textField.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <MdDateRange
-                        style={{
-                          color: "#940c0c",
-                          fontSize: "1.2rem",
-                        }}
-                      />
+                      <MdDateRange style={datePickerIconStyle} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -183,12 +108,7 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
                           aria-label="clear end date"
                           onClick={clearEndDate}
                           edge="end"
-                          sx={{
-                            color: "#940c0c",
-                            "&:hover": {
-                              bgcolor: "rgba(148, 12, 12, 0.1)",
-                            },
-                          }}
+                          sx={datePickerClearButtonSx}
                         >
                           <MdClear />
                         </IconButton>
@@ -242,7 +162,7 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
             sx={{
               "&:hover": {
                 transform: "translateY(-1px)",
-                boxShadow: "0 4px 8px rgba(148, 12, 12, 0.2)",
+                boxShadow: `0 4px 8px ${filterColors.primaryBorder}`,
               },
             }}
           >
@@ -258,8 +178,8 @@ const DateFilterSection = ({ draftFilters, dateHelpers }) => {
             mt: 1,
             p: 1.5,
             borderRadius: 1.5,
-            backgroundColor: "rgba(148, 12, 12, 0.05)",
-            border: "1px solid rgba(148, 12, 12, 0.2)",
+            backgroundColor: filterColors.primaryLight,
+            border: `1px solid ${filterColors.primaryBorder}`,
           }}
         >
           <Typography

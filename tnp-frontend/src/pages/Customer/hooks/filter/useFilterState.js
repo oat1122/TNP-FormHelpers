@@ -1,6 +1,18 @@
 import dayjs from "dayjs";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
+
+/**
+ * Initial state for draft filters - ใช้เป็น single source of truth
+ */
+const INITIAL_DRAFT_FILTERS = {
+  dateRange: {
+    startDate: null,
+    endDate: null,
+  },
+  salesName: [],
+  channel: [],
+};
 
 /**
  * Custom hook for managing filter state
@@ -11,31 +23,31 @@ export const useFilterState = () => {
   const salesList = useSelector((state) => state.customer.salesList);
   const itemList = useSelector((state) => state.customer.itemList);
 
-  // Create working draft of filter values
-  const [draftFilters, setDraftFilters] = useState({
-    dateRange: {
-      startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
-      endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
-    },
-    salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
-    channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-  });
+  // Create working draft of filter values - ใช้ factory function เพื่อสร้าง initial state
+  const createDraftFromFilters = useCallback(
+    (sourceFilters) => ({
+      dateRange: {
+        startDate: sourceFilters.dateRange.startDate
+          ? dayjs(sourceFilters.dateRange.startDate)
+          : null,
+        endDate: sourceFilters.dateRange.endDate ? dayjs(sourceFilters.dateRange.endDate) : null,
+      },
+      salesName: Array.isArray(sourceFilters.salesName) ? [...sourceFilters.salesName] : [],
+      channel: Array.isArray(sourceFilters.channel) ? [...sourceFilters.channel] : [],
+    }),
+    []
+  );
+
+  const [draftFilters, setDraftFilters] = useState(() => createDraftFromFilters(filters));
 
   // Sync Redux filters to draft state when Redux filters change
   useEffect(() => {
     try {
-      setDraftFilters({
-        dateRange: {
-          startDate: filters.dateRange.startDate ? dayjs(filters.dateRange.startDate) : null,
-          endDate: filters.dateRange.endDate ? dayjs(filters.dateRange.endDate) : null,
-        },
-        salesName: Array.isArray(filters.salesName) ? [...filters.salesName] : [],
-        channel: Array.isArray(filters.channel) ? [...filters.channel] : [],
-      });
+      setDraftFilters(createDraftFromFilters(filters));
     } catch (error) {
       console.warn("Error updating draft filters from Redux state:", error);
     }
-  }, [filters]);
+  }, [filters, createDraftFromFilters]);
 
   // Count filtered items
   const filteredCount = useMemo(() => {
@@ -49,6 +61,16 @@ export const useFilterState = () => {
     if (filters.salesName?.length > 0) count++;
     if (filters.channel?.length > 0) count++;
     return count;
+  }, [filters]);
+
+  // Check if any filter is active - centralized logic for other hooks to use
+  const hasActiveFilters = useMemo(() => {
+    return !!(
+      filters.dateRange.startDate ||
+      filters.dateRange.endDate ||
+      (filters.salesName && filters.salesName.length > 0) ||
+      (filters.channel && filters.channel.length > 0)
+    );
   }, [filters]);
 
   // Helper function to prepare filters for API
@@ -76,17 +98,10 @@ export const useFilterState = () => {
     return draftFilters.dateRange.endDate?.format("DD/MM/YYYY") || "";
   }, [draftFilters.dateRange.endDate]);
 
-  // Reset draft filters to initial state
-  const resetDraftFilters = () => {
-    setDraftFilters({
-      dateRange: {
-        startDate: null,
-        endDate: null,
-      },
-      salesName: [],
-      channel: [],
-    });
-  };
+  // Reset draft filters to initial state - ใช้ INITIAL_DRAFT_FILTERS constant
+  const resetDraftFilters = useCallback(() => {
+    setDraftFilters({ ...INITIAL_DRAFT_FILTERS });
+  }, []);
 
   return {
     // State
@@ -96,6 +111,7 @@ export const useFilterState = () => {
     salesList,
     filteredCount,
     activeFilterCount,
+    hasActiveFilters,
     formattedStartDate,
     formattedEndDate,
 

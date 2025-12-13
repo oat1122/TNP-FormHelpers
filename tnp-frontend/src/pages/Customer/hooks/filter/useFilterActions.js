@@ -1,5 +1,4 @@
-import { debounce } from "lodash";
-import { useState, useEffect, useRef, useCallback, useContext } from "react";
+import { useState, useCallback, useContext } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -13,7 +12,7 @@ import ScrollContext from "../../components/DataDisplay/ScrollContext";
 
 /**
  * Custom hook for managing filter actions
- * Handles apply, reset, and debounced filter operations
+ * Handles apply, reset filter operations
  */
 export const useFilterActions = () => {
   const dispatch = useDispatch();
@@ -22,25 +21,6 @@ export const useFilterActions = () => {
 
   const [isFiltering, setIsFiltering] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-
-  // Create a ref for the debounce function to properly handle cleanup
-  const debouncedApplyFiltersRef = useRef();
-
-  // Setup debounced filter function (created only once)
-  useEffect(() => {
-    debouncedApplyFiltersRef.current = debounce((filtersToApply) => {
-      dispatch(setPaginationModel({ page: 0, pageSize: filterPanelConfig.defaultPageSize }));
-      dispatch(setFilters(filtersToApply));
-      console.log("🔥 Applying debounced filters:", filtersToApply);
-    }, filterPanelConfig.debounceDelay);
-
-    // Cleanup debounced function on unmount
-    return () => {
-      if (debouncedApplyFiltersRef.current?.cancel) {
-        debouncedApplyFiltersRef.current.cancel();
-      }
-    };
-  }, [dispatch]);
 
   // Apply filters handler
   const handleApplyFilters = useCallback(

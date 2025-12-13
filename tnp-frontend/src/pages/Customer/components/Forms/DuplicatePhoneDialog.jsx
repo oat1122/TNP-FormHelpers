@@ -12,7 +12,9 @@ import {
 } from "@mui/material";
 import { MdWarning } from "react-icons/md";
 
-const PRIMARY_RED = "#9e0000";
+// Theme constants
+import { FORM_THEME } from "./ui/FormFields";
+const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
 
 /**
  * DuplicatePhoneDialog - Dialog แจ้งเตือนเมื่อพบเบอร์โทรซ้ำ

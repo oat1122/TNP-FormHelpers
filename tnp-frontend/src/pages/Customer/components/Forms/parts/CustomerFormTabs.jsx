@@ -2,9 +2,10 @@ import { Box, Tabs, Tab, Chip, useTheme, useMediaQuery, Badge } from "@mui/mater
 import React from "react";
 import { MdAssignment, MdLocationOn, MdCheck, MdWarning } from "react-icons/md";
 
-// สี theme ของบริษัท
-const PRIMARY_RED = "#9e0000";
-const SECONDARY_RED = "#d32f2f";
+// Theme constants
+import { FORM_THEME } from "../ui/FormFields";
+const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
+const SECONDARY_RED = FORM_THEME.SECONDARY_RED;
 
 /**
  * CustomerFormTabs - Tab header component for customer form

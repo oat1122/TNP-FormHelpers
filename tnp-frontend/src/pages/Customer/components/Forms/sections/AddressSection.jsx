@@ -8,7 +8,7 @@
  * Features:
  * - Progressive Disclosure (collapsible section)
  * - Visual Grouping with Paper wrapper
- * - Skeleton Loading for dropdown states
+ * - Loading states shown in-field (not replacing fields)
  * - Cascading province > district > subdistrict dropdowns
  * - Auto-fill zip code from subdistrict selection
  *
@@ -24,7 +24,6 @@ import {
   Paper,
   Collapse,
   Button,
-  Skeleton,
   Typography,
   Chip,
 } from "@mui/material";
@@ -200,139 +199,130 @@ export const AddressSection = ({
             <Grid container spacing={2}>
               {/* จังหวัด */}
               <Grid xs={12} sm={6} md={4}>
-                {isLoadingProvinces ? (
-                  <Skeleton variant="rounded" height={40} />
-                ) : (
-                  <Autocomplete
-                    fullWidth
-                    disabled={mode === "view"}
-                    options={provincesList}
-                    getOptionLabel={(option) => option.pro_name_th || ""}
-                    value={provincesList.find((p) => p.pro_id === inputList.cus_pro_id) || null}
-                    onChange={handleProvinceChange}
-                    isOptionEqualToValue={(option, value) => option.pro_id === value?.pro_id}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="จังหวัด"
-                        size="small"
-                        placeholder="ค้นหาจังหวัด..."
-                        error={!!errors.cus_pro_id}
-                        helperText={errors.cus_pro_id}
-                        InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
-                        sx={{
-                          bgcolor: "white",
-                          "& .MuiOutlinedInput-root": {
-                            fontFamily: "Kanit",
-                            fontSize: 14,
-                            "&:hover fieldset": { borderColor: PRIMARY_RED },
-                            "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
-                          },
-                          "& .MuiInputBase-input": {
-                            overflow: "visible",
-                            textOverflow: "clip",
-                          },
-                        }}
-                      />
-                    )}
-                    sx={{
-                      minWidth: 180,
-                      "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
-                    }}
-                  />
-                )}
+                <Autocomplete
+                  fullWidth
+                  disabled={mode === "view"}
+                  loading={isLoadingProvinces}
+                  options={provincesList}
+                  getOptionLabel={(option) => option.pro_name_th || ""}
+                  value={provincesList.find((p) => p.pro_id === inputList.cus_pro_id) || null}
+                  onChange={handleProvinceChange}
+                  isOptionEqualToValue={(option, value) => option.pro_id === value?.pro_id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="จังหวัด"
+                      size="small"
+                      placeholder="ค้นหาจังหวัด..."
+                      error={!!errors.cus_pro_id}
+                      helperText={errors.cus_pro_id || (isLoadingProvinces ? "กำลังโหลด..." : "")}
+                      InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                      sx={{
+                        bgcolor: "white",
+                        "& .MuiOutlinedInput-root": {
+                          fontFamily: "Kanit",
+                          fontSize: 14,
+                          "&:hover fieldset": { borderColor: PRIMARY_RED },
+                          "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                        },
+                        "& .MuiInputBase-input": {
+                          overflow: "visible",
+                          textOverflow: "clip",
+                        },
+                      }}
+                    />
+                  )}
+                  sx={{
+                    minWidth: 180,
+                    "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                  }}
+                />
               </Grid>
 
               {/* อำเภอ */}
               <Grid xs={12} sm={6} md={4}>
-                {isLoadingDistricts ? (
-                  <Skeleton variant="rounded" height={40} />
-                ) : (
-                  <Autocomplete
-                    fullWidth
-                    disabled={mode === "view" || !inputList.cus_pro_id}
-                    loading={isLoadingDistricts}
-                    options={districtList}
-                    getOptionLabel={(option) => option.dis_name_th || option.dis_name || ""}
-                    value={districtList.find((d) => d.dis_id === inputList.cus_dis_id) || null}
-                    onChange={handleDistrictChange}
-                    isOptionEqualToValue={(option, value) => option.dis_id === value?.dis_id}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="เขต/อำเภอ"
-                        size="small"
-                        placeholder={inputList.cus_pro_id ? "ค้นหาอำเภอ..." : "เลือกจังหวัดก่อน"}
-                        error={!!errors.cus_dis_id}
-                        helperText={errors.cus_dis_id}
-                        InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
-                        sx={{
-                          bgcolor: "white",
-                          "& .MuiOutlinedInput-root": {
-                            fontFamily: "Kanit",
-                            fontSize: 14,
-                            "&:hover fieldset": { borderColor: PRIMARY_RED },
-                            "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
-                          },
-                          "& .MuiInputBase-input": {
-                            overflow: "visible",
-                            textOverflow: "clip",
-                          },
-                        }}
-                      />
-                    )}
-                    sx={{
-                      minWidth: 180,
-                      "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
-                    }}
-                  />
-                )}
+                <Autocomplete
+                  fullWidth
+                  disabled={mode === "view" || !inputList.cus_pro_id}
+                  loading={isLoadingDistricts}
+                  options={districtList}
+                  getOptionLabel={(option) => option.dis_name_th || option.dis_name || ""}
+                  value={districtList.find((d) => d.dis_id === inputList.cus_dis_id) || null}
+                  onChange={handleDistrictChange}
+                  isOptionEqualToValue={(option, value) => option.dis_id === value?.dis_id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="เขต/อำเภอ"
+                      size="small"
+                      placeholder={inputList.cus_pro_id ? "ค้นหาอำเภอ..." : "เลือกจังหวัดก่อน"}
+                      error={!!errors.cus_dis_id}
+                      helperText={errors.cus_dis_id || (isLoadingDistricts ? "กำลังโหลด..." : "")}
+                      InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                      sx={{
+                        bgcolor: "white",
+                        "& .MuiOutlinedInput-root": {
+                          fontFamily: "Kanit",
+                          fontSize: 14,
+                          "&:hover fieldset": { borderColor: PRIMARY_RED },
+                          "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                        },
+                        "& .MuiInputBase-input": {
+                          overflow: "visible",
+                          textOverflow: "clip",
+                        },
+                      }}
+                    />
+                  )}
+                  sx={{
+                    minWidth: 180,
+                    "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                  }}
+                />
               </Grid>
 
               {/* ตำบล */}
               <Grid xs={12} sm={6} md={4}>
-                {isLoadingSubdistricts ? (
-                  <Skeleton variant="rounded" height={40} />
-                ) : (
-                  <Autocomplete
-                    fullWidth
-                    disabled={mode === "view" || !inputList.cus_dis_id}
-                    loading={isLoadingSubdistricts}
-                    options={subDistrictList}
-                    getOptionLabel={(option) => option.sub_name_th || option.sub_name || ""}
-                    value={subDistrictList.find((s) => s.sub_id === inputList.cus_sub_id) || null}
-                    onChange={handleSubdistrictChange}
-                    isOptionEqualToValue={(option, value) => option.sub_id === value?.sub_id}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="แขวง/ตำบล"
-                        size="small"
-                        placeholder={inputList.cus_dis_id ? "ค้นหาตำบล..." : "เลือกอำเภอก่อน"}
-                        error={!!errors.cus_sub_id}
-                        helperText={errors.cus_sub_id}
-                        InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
-                        sx={{
-                          bgcolor: "white",
-                          "& .MuiOutlinedInput-root": {
-                            fontFamily: "Kanit",
-                            fontSize: 14,
-                            "&:hover fieldset": { borderColor: PRIMARY_RED },
-                            "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
-                          },
-                          "& .MuiInputBase-input": {
-                            overflow: "visible",
-                            textOverflow: "clip",
-                          },
-                        }}
-                      />
-                    )}
-                    sx={{
-                      minWidth: 180,
-                      "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
-                    }}
-                  />
-                )}
+                <Autocomplete
+                  fullWidth
+                  disabled={mode === "view" || !inputList.cus_dis_id}
+                  loading={isLoadingSubdistricts}
+                  options={subDistrictList}
+                  getOptionLabel={(option) => option.sub_name_th || option.sub_name || ""}
+                  value={subDistrictList.find((s) => s.sub_id === inputList.cus_sub_id) || null}
+                  onChange={handleSubdistrictChange}
+                  isOptionEqualToValue={(option, value) => option.sub_id === value?.sub_id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="แขวง/ตำบล"
+                      size="small"
+                      placeholder={inputList.cus_dis_id ? "ค้นหาตำบล..." : "เลือกอำเภอก่อน"}
+                      error={!!errors.cus_sub_id}
+                      helperText={
+                        errors.cus_sub_id || (isLoadingSubdistricts ? "กำลังโหลด..." : "")
+                      }
+                      InputLabelProps={{ style: { fontFamily: "Kanit", fontSize: 14 } }}
+                      sx={{
+                        bgcolor: "white",
+                        "& .MuiOutlinedInput-root": {
+                          fontFamily: "Kanit",
+                          fontSize: 14,
+                          "&:hover fieldset": { borderColor: PRIMARY_RED },
+                          "&.Mui-focused fieldset": { borderColor: PRIMARY_RED },
+                        },
+                        "& .MuiInputBase-input": {
+                          overflow: "visible",
+                          textOverflow: "clip",
+                        },
+                      }}
+                    />
+                  )}
+                  sx={{
+                    minWidth: 180,
+                    "& .MuiAutocomplete-option": { fontFamily: "Kanit" },
+                  }}
+                />
               </Grid>
             </Grid>
 

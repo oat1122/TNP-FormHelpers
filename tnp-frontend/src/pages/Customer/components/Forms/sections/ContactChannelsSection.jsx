@@ -5,6 +5,11 @@
  * - EssentialInfoTab (DialogForm)
  * - TelesalesQuickCreateForm
  *
+ * Features:
+ * - Phone duplicate check with inline warning
+ * - Collapsible secondary phone field
+ * - Email and channel fields (optional)
+ *
  * @module Forms/sections/ContactChannelsSection
  */
 import React, { useState } from "react";
@@ -36,9 +41,13 @@ const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
  * @param {string} mode - "create" | "edit" | "view"
  * @param {function} onPhoneBlur - Phone blur handler for duplicate check
  * @param {function} onPhoneChange - Phone change handler to clear duplicate state
- * @param {object} duplicatePhoneData - Duplicate phone data (blocking)
+ * @param {object} duplicatePhoneData - Duplicate phone data (for DialogForm pattern)
+ * @param {boolean} isPhoneBlocked - Phone is blocked due to duplicate (for TelesalesQuickCreateForm pattern)
+ * @param {string} customPhoneHelperText - Custom helper text to override default
  * @param {boolean} showHeader - Whether to show section header (default: true)
- * @param {boolean} showSecondPhone - Whether to show second phone field initially
+ * @param {boolean} showEmail - Whether to show email field (default: true)
+ * @param {boolean} showChannel - Whether to show channel dropdown (default: true)
+ * @param {boolean} showSecondPhoneInitially - Whether to show second phone field initially
  */
 export const ContactChannelsSection = ({
   inputList = {},
@@ -48,12 +57,32 @@ export const ContactChannelsSection = ({
   onPhoneBlur,
   onPhoneChange,
   duplicatePhoneData,
+  isPhoneBlocked = false,
+  customPhoneHelperText,
   showHeader = true,
+  showEmail = true,
+  showChannel = true,
   showSecondPhoneInitially = false,
 }) => {
   const [showSecondPhone, setShowSecondPhone] = useState(
     showSecondPhoneInitially || !!inputList.cus_tel_2
   );
+
+  // Determine if phone has error (support both patterns)
+  const hasPhoneError = !!errors.cus_tel_1 || !!duplicatePhoneData || isPhoneBlocked;
+
+  // Get helper text (priority: error > custom > duplicate data > default)
+  const getPhoneHelperText = () => {
+    if (errors.cus_tel_1) return errors.cus_tel_1;
+    if (customPhoneHelperText) return customPhoneHelperText;
+    if (duplicatePhoneData) {
+      return `⚠️ เบอร์ซ้ำกับ ${duplicatePhoneData.cus_name} (แก้ไขเบอร์เพื่อบันทึกต่อ)`;
+    }
+    if (isPhoneBlocked) {
+      return "⚠️ เบอร์ซ้ำในระบบ (แก้ไขเบอร์เพื่อบันทึกต่อ)";
+    }
+    return "ตรวจสอบเบอร์ซ้ำอัตโนมัติ";
+  };
 
   // Handle phone blur with duplicate check
   const handlePhoneBlur = () => {
@@ -65,7 +94,7 @@ export const ContactChannelsSection = ({
   // Handle phone change - clear duplicate data to re-enable save button
   const handlePhoneInputChange = (e) => {
     // Clear duplicate state when user starts typing new phone
-    if (onPhoneChange && duplicatePhoneData) {
+    if (onPhoneChange && (duplicatePhoneData || isPhoneBlocked)) {
       onPhoneChange();
     }
     handleInputChange(e);
@@ -86,7 +115,7 @@ export const ContactChannelsSection = ({
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gridTemplateColumns: { xs: "1fr", sm: showEmail ? "1fr 1fr" : "1fr" },
             gap: 2,
           }}
         >
@@ -98,13 +127,8 @@ export const ContactChannelsSection = ({
             value={inputList.cus_tel_1 || ""}
             onChange={handlePhoneInputChange}
             onBlur={handlePhoneBlur}
-            error={!!errors.cus_tel_1 || !!duplicatePhoneData}
-            helperText={
-              errors.cus_tel_1 ||
-              (duplicatePhoneData
-                ? `⚠️ เบอร์ซ้ำกับ ${duplicatePhoneData.cus_name} (แก้ไขเบอร์เพื่อบันทึกต่อ)`
-                : "ตรวจสอบเบอร์ซ้ำอัตโนมัติ")
-            }
+            error={hasPhoneError}
+            helperText={getPhoneHelperText()}
             placeholder="เช่น 0812345678"
             InputProps={{
               style: { fontFamily: "Kanit", fontSize: 14 },
@@ -113,7 +137,7 @@ export const ContactChannelsSection = ({
                   sx={{
                     mr: 1,
                     display: "flex",
-                    color: duplicatePhoneData ? "error.main" : "text.secondary",
+                    color: hasPhoneError ? "error.main" : "text.secondary",
                   }}
                 >
                   <MdPhone size={18} />
@@ -121,25 +145,28 @@ export const ContactChannelsSection = ({
               ),
             }}
           />
-          <StyledTextField
-            mode={mode}
-            name="cus_email"
-            label="อีเมล"
-            type="email"
-            value={inputList.cus_email || ""}
-            onChange={handleInputChange}
-            error={!!errors.cus_email}
-            helperText={errors.cus_email}
-            placeholder="example@email.com"
-            InputProps={{
-              style: { fontFamily: "Kanit", fontSize: 14 },
-              startAdornment: (
-                <Box sx={{ mr: 1, display: "flex", color: "text.secondary" }}>
-                  <MdEmail size={18} />
-                </Box>
-              ),
-            }}
-          />
+
+          {showEmail && (
+            <StyledTextField
+              mode={mode}
+              name="cus_email"
+              label="อีเมล"
+              type="email"
+              value={inputList.cus_email || ""}
+              onChange={handleInputChange}
+              error={!!errors.cus_email}
+              helperText={errors.cus_email}
+              placeholder="example@email.com"
+              InputProps={{
+                style: { fontFamily: "Kanit", fontSize: 14 },
+                startAdornment: (
+                  <Box sx={{ mr: 1, display: "flex", color: "text.secondary" }}>
+                    <MdEmail size={18} />
+                  </Box>
+                ),
+              }}
+            />
+          )}
         </Box>
 
         {/* เบอร์โทรสำรอง - Collapsible */}
@@ -182,30 +209,32 @@ export const ContactChannelsSection = ({
         </Collapse>
 
         {/* ช่องทางการติดต่อ */}
-        <FormControl fullWidth disabled={mode === "view"} size="small">
-          <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>ช่องทางการติดต่อ</InputLabel>
-          <Select
-            name="cus_channel"
-            value={inputList.cus_channel || 1}
-            onChange={handleInputChange}
-            label="ช่องทางการติดต่อ"
-            sx={{
-              fontFamily: "Kanit",
-              fontSize: 14,
-              bgcolor: "white",
-            }}
-          >
-            <MenuItem value={1} sx={{ fontFamily: "Kanit" }}>
-              Sales
-            </MenuItem>
-            <MenuItem value={2} sx={{ fontFamily: "Kanit" }}>
-              Online
-            </MenuItem>
-            <MenuItem value={3} sx={{ fontFamily: "Kanit" }}>
-              Office
-            </MenuItem>
-          </Select>
-        </FormControl>
+        {showChannel && (
+          <FormControl fullWidth disabled={mode === "view"} size="small">
+            <InputLabel sx={{ fontFamily: "Kanit", fontSize: 14 }}>ช่องทางการติดต่อ</InputLabel>
+            <Select
+              name="cus_channel"
+              value={inputList.cus_channel || 1}
+              onChange={handleInputChange}
+              label="ช่องทางการติดต่อ"
+              sx={{
+                fontFamily: "Kanit",
+                fontSize: 14,
+                bgcolor: "white",
+              }}
+            >
+              <MenuItem value={1} sx={{ fontFamily: "Kanit" }}>
+                Sales
+              </MenuItem>
+              <MenuItem value={2} sx={{ fontFamily: "Kanit" }}>
+                Online
+              </MenuItem>
+              <MenuItem value={3} sx={{ fontFamily: "Kanit" }}>
+                Office
+              </MenuItem>
+            </Select>
+          </FormControl>
+        )}
       </Stack>
     </Box>
   );

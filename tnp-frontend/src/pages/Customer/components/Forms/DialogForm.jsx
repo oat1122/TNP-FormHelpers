@@ -131,7 +131,11 @@ function DialogForm(props) {
     setErrors,
     setActiveTab,
     onSuccess: () => {
+      // Call local function for proper cleanup (clearErrors, resetTab, resetDuplicateChecks)
       props.handleCloseDialog();
+      clearAllErrors();
+      setActiveTab(0);
+      resetDuplicateChecks();
     },
     onAfterSave: props.onAfterSave,
     scrollToTop,
@@ -241,7 +245,7 @@ function DialogForm(props) {
           style={{ display: "flex", flexDirection: "column", height: "100%" }}
         >
           {/* Dialog Header */}
-          <DialogHeader mode={mode} onClose={handleCloseDialog} />
+          <DialogHeader mode={mode} onClose={handleCloseDialog} useModeBgColor />
 
           {/* Tab Navigation */}
           <CustomerFormTabs

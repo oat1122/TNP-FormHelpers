@@ -22,9 +22,9 @@ import {
   MdSupervisorAccount,
 } from "react-icons/md";
 
-// สี theme ของบริษัท
-const PRIMARY_RED = "#9e0000";
-const SECONDARY_RED = "#d32f2f";
+// Theme constants
+import { FORM_THEME } from "../ui/FormFields";
+const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
 
 /**
  * FormSummaryPreview - Real-time summary of filled form data

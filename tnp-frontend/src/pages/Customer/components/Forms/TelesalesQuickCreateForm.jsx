@@ -29,7 +29,7 @@ import { StyledTextField, FORM_THEME } from "./ui/FormFields";
 import { DialogHeader, DialogActionsBar } from "./layout";
 
 // Section Components
-import { ContactPersonSection, AddressSection, TaxInfoSection } from "./sections";
+import { ContactPersonSection, ContactChannelsSection, AddressSection } from "./sections";
 
 // Hooks
 import { useTelesalesQuickForm } from "../../hooks";
@@ -155,25 +155,23 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
           nameFieldRef={nameFieldRef}
         />
 
-        {/* Phone field - kept inline due to unique duplicate check UI */}
+        {/* Phone field using ContactChannelsSection */}
         <Box sx={{ mt: 2 }}>
-          <StyledTextField
+          <ContactChannelsSection
+            inputList={inputListAdapter}
+            errors={fieldErrors}
+            handleInputChange={handleInputChangeAdapter}
             mode="create"
-            name="cus_tel_1"
-            label="เบอร์โทร"
-            required
-            value={formData.cus_tel_1 || ""}
-            onChange={(e) => handleChange("cus_tel_1")(e.target.value)}
-            onBlur={handlePhoneBlur}
-            error={!!fieldErrors.cus_tel_1 || isPhoneBlocked}
-            helperText={
-              fieldErrors.cus_tel_1 ||
-              (isPhoneBlocked
+            showHeader={false}
+            showEmail={false}
+            showChannel={false}
+            onPhoneBlur={handlePhoneBlur}
+            isPhoneBlocked={isPhoneBlocked}
+            customPhoneHelperText={
+              isPhoneBlocked
                 ? `⚠️ เบอร์ซ้ำกับ ${duplicateDialogData?.cus_name} (แก้ไขเบอร์เพื่อบันทึกต่อ)`
-                : "เบอร์มือถือ 10 หลัก หรือเบอร์บริษัท")
+                : "เบอร์มือถือ 10 หลัก หรือเบอร์บริษัท"
             }
-            placeholder="เช่น 0812345678"
-            inputProps={{ maxLength: 20 }}
           />
         </Box>
 
@@ -328,7 +326,8 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
             />
           </Grid>
 
-          {/* Email */}
+          {/* Email & Tax ID - kept inline with StyledTextField for Grid layout flexibility
+              (ContactChannelsSection places Email next to Phone, but here we want Email next to Tax ID) */}
           <Grid item xs={12} sm={6}>
             <StyledTextField
               mode="create"
@@ -341,7 +340,6 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
             />
           </Grid>
 
-          {/* Tax ID */}
           <Grid item xs={12} sm={6}>
             <StyledTextField
               mode="create"

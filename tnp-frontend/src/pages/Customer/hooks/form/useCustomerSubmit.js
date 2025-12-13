@@ -11,6 +11,7 @@ import {
   open_dialog_error,
   open_dialog_loading,
 } from "../../../../utils/import_lib";
+import { validateEssentialFields as validateFields } from "../../constants/validationConstants";
 
 /**
  * useCustomerSubmit - จัดการ Validation และ Submit form
@@ -46,32 +47,13 @@ export const useCustomerSubmit = ({
 
   /**
    * Validate Essential Fields (ฟิลด์ที่จำเป็น)
+   * ใช้ utility function จาก validationConstants เพื่อ consistency
    * @returns {boolean} true ถ้าผ่าน validation
    */
   const validateEssentialFields = () => {
-    const newErrors = {};
-
-    if (!inputList.cus_bt_id) {
-      newErrors.cus_bt_id = "กรุณาเลือกประเภทธุรกิจ";
-    }
-    if (!inputList.cus_company?.trim()) {
-      newErrors.cus_company = "กรุณากรอกชื่อบริษัท";
-    }
-    if (!inputList.cus_firstname?.trim()) {
-      newErrors.cus_firstname = "กรุณากรอกชื่อจริง";
-    }
-    if (!inputList.cus_lastname?.trim()) {
-      newErrors.cus_lastname = "กรุณากรอกนามสกุล";
-    }
-    if (!inputList.cus_name?.trim()) {
-      newErrors.cus_name = "กรุณากรอกชื่อเล่น";
-    }
-    if (!inputList.cus_tel_1?.trim()) {
-      newErrors.cus_tel_1 = "กรุณากรอกเบอร์โทรหลัก";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const { isValid, errors: validationErrors } = validateFields(inputList);
+    setErrors(validationErrors);
+    return isValid;
   };
 
   /**

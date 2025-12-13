@@ -1,15 +1,6 @@
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
+import { Box, Dialog, DialogContent } from "@mui/material";
 import { useState, useEffect, useRef, useContext } from "react";
-import { MdSave, MdCancel, MdClose, MdSwapHoriz, MdHistory } from "react-icons/md";
+import { MdSwapHoriz, MdHistory } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
 // Form Tab and Part components (relative to this file in Forms/)
@@ -25,6 +16,9 @@ import { ScrollContext } from "../DataDisplay";
 
 // Transfer components
 import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } from "../transfer";
+
+// Layout Components
+import { DialogHeader, DialogActionsBar } from "./layout";
 
 // Constants (relative path from Forms/)
 import { canUserTransfer, TRANSFER_DIRECTIONS } from "../../constants/customerChannel";
@@ -247,39 +241,7 @@ function DialogForm(props) {
           style={{ display: "flex", flexDirection: "column", height: "100%" }}
         >
           {/* Dialog Header */}
-          <DialogTitle
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: "#9e0000",
-              color: "white",
-              py: { xs: 1, sm: 2 },
-              px: { xs: 2, sm: 3 },
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "Kanit",
-                fontWeight: 600,
-                fontSize: { xs: "1rem", sm: "1.1rem" },
-                color: "white",
-              }}
-            >
-              {mode === "create" && "เพิ่มลูกค้าใหม่"}
-              {mode === "edit" && "แก้ไขข้อมูลลูกค้า"}
-              {mode === "view" && "ดูข้อมูลลูกค้า"}
-            </span>
-            <IconButton
-              onClick={handleCloseDialog}
-              sx={{
-                color: "white",
-                p: { xs: 1, sm: 1.5 },
-              }}
-            >
-              <MdClose size={20} />
-            </IconButton>
-          </DialogTitle>
+          <DialogHeader mode={mode} onClose={handleCloseDialog} />
 
           {/* Tab Navigation */}
           <CustomerFormTabs
@@ -349,93 +311,34 @@ function DialogForm(props) {
             </Box>
           </DialogContent>
 
-          {/* Action Buttons - Separated to opposite ends */}
-          <DialogActions
-            sx={{
-              borderTop: "1px solid #e0e0e0",
-              backgroundColor: "#fff",
-              p: { xs: 1.5, sm: 2 },
-              justifyContent: "space-between",
-              flexDirection: { xs: "column-reverse", sm: "row" },
-              gap: { xs: 1, sm: 1 },
-            }}
-          >
-            <Button
-              variant="outlined"
-              color="error"
-              disabled={saveLoading}
-              onClick={handleCloseDialog}
-              startIcon={<MdCancel />}
-              sx={{
-                minWidth: { xs: "100%", sm: "120px" },
-                fontFamily: "Kanit",
-              }}
-            >
-              {mode === "view" ? "ปิด" : "ยกเลิก"}
-            </Button>
-
-            {/* Transfer Buttons - View mode only */}
-            {mode === "view" &&
-              (() => {
-                const transferInfo = canUserTransfer(user.role, inputList?.cus_channel);
-                if (!transferInfo.canTransfer) return null;
-
-                return (
-                  <Box
-                    sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}
-                  >
-                    <Tooltip title="ดูประวัติการโอน">
-                      <Button
-                        variant="outlined"
-                        color="inherit"
-                        size="small"
-                        startIcon={<MdHistory />}
-                        onClick={() => setTransferHistoryOpen(true)}
-                      >
-                        ประวัติโอน
-                      </Button>
-                    </Tooltip>
-                    <Button
-                      variant="contained"
-                      color={
-                        transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES ? "warning" : "info"
+          {/* Action Buttons */}
+          <DialogActionsBar
+            mode={mode}
+            onClose={handleCloseDialog}
+            saveLoading={saveLoading}
+            saveDisabled={!!duplicatePhoneData}
+            transferConfig={
+              mode === "view"
+                ? {
+                    show: canUserTransfer(user.role, inputList?.cus_channel).canTransfer,
+                    direction:
+                      canUserTransfer(user.role, inputList?.cus_channel).direction ===
+                      TRANSFER_DIRECTIONS.TO_SALES
+                        ? "to_sales"
+                        : "to_online",
+                    onTransfer: () => {
+                      const transferInfo = canUserTransfer(user.role, inputList?.cus_channel);
+                      if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES) {
+                        setTransferToSalesOpen(true);
+                      } else if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_ONLINE) {
+                        setTransferToOnlineOpen(true);
                       }
-                      startIcon={<MdSwapHoriz />}
-                      onClick={() => {
-                        if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES) {
-                          setTransferToSalesOpen(true);
-                        } else if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_ONLINE) {
-                          setTransferToOnlineOpen(true);
-                        }
-                      }}
-                      sx={{ fontFamily: "Kanit" }}
-                    >
-                      {transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES
-                        ? "โอนไป Sales"
-                        : "โอนไป Online"}
-                    </Button>
-                  </Box>
-                );
-              })()}
-
-            {mode !== "view" && (
-              <Button
-                variant="contained"
-                type="submit"
-                disabled={saveLoading || !!duplicatePhoneData}
-                startIcon={<MdSave />}
-                sx={{
-                  backgroundColor: duplicatePhoneData ? "#888" : "#9e0000",
-                  "&:hover": { backgroundColor: duplicatePhoneData ? "#888" : "#d32f2f" },
-                  minWidth: { xs: "100%", sm: "140px" },
-                  fontFamily: "Kanit",
-                  fontWeight: 600,
-                }}
-              >
-                {saveLoading ? "กำลังบันทึก..." : duplicatePhoneData ? "เบอร์ซ้ำ" : "บันทึก"}
-              </Button>
-            )}
-          </DialogActions>
+                    },
+                    onHistory: () => setTransferHistoryOpen(true),
+                  }
+                : undefined
+            }
+          />
         </form>
       </Dialog>
 

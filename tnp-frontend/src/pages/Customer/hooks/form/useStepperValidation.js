@@ -1,15 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { STEP_REQUIRED_FIELDS } from "../../constants/validationConstants";
 
 export const useStepperValidation = () => {
   const [errors, setErrors] = useState({});
 
-  // กำหนด required fields สำหรับแต่ละ step
-  const stepRequiredFields = {
-    0: ["cus_company", "cus_firstname", "cus_lastname", "cus_name", "cus_bt_id", "cus_channel"], // ประเภทธุรกิจ
-    1: ["cus_tel_1"], // รายละเอียดธุรกิจ - เบอร์โทรเท่านั้น (ที่อยู่ไม่บังคับ)
-    2: [], // ข้อมูลของคุณ (ไม่มี required fields เพิ่มเติม)
-    3: [], // การยืนยัน (ไม่มี fields ที่ต้องกรอก)
-  };
+  // ใช้ constants กลาง (Single Source of Truth)
+  const stepRequiredFields = STEP_REQUIRED_FIELDS;
 
   // คำนวณสถานะของแต่ละ step
   const calculateStepStatus = (stepIndex, inputList) => {

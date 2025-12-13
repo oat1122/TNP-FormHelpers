@@ -1,5 +1,6 @@
 import { useDispatch } from "react-redux";
 import { setInputList } from "../../../../features/Customer/customerSlice";
+import { buildFullAddress } from "../../utils/addressUtils";
 
 /**
  * useCustomerFormHandler - จัดการ Input Change และการแปลงค่าพิเศษ
@@ -52,18 +53,15 @@ export const useCustomerFormHandler = ({ inputList, salesList, clearFieldError }
     };
 
     // อัพเดท cus_address เมื่อมีการเปลี่ยนแปลงในฟิลด์ที่อยู่
+    // ใช้ utility function จาก addressUtils เพื่อ consistency
     if (["cus_address_detail", "cus_zip_code"].includes(name)) {
-      const fullAddress = [
-        name === "cus_address_detail" ? value : newInputList.cus_address_detail || "",
-        newInputList.cus_subdistrict_text ? `ต.${newInputList.cus_subdistrict_text}` : "",
-        newInputList.cus_district_text ? `อ.${newInputList.cus_district_text}` : "",
-        newInputList.cus_province_text ? `จ.${newInputList.cus_province_text}` : "",
-        name === "cus_zip_code" ? value : newInputList.cus_zip_code || "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      newInputList.cus_address = fullAddress;
+      newInputList.cus_address = buildFullAddress({
+        address: name === "cus_address_detail" ? value : newInputList.cus_address_detail,
+        subdistrict: newInputList.cus_subdistrict_text,
+        district: newInputList.cus_district_text,
+        province: newInputList.cus_province_text,
+        zipCode: name === "cus_zip_code" ? value : newInputList.cus_zip_code,
+      });
     }
 
     dispatch(setInputList(newInputList));

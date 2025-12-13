@@ -18,6 +18,7 @@ import { useGetAllBusinessTypesQuery } from "../../../../features/globalApi";
 // Use shared hooks instead of re-implementing
 import { useAddressManager } from "./useAddressManager";
 import { useDuplicateCheck } from "../useDuplicateCheck";
+import { useSanitizeInput } from "./useSanitizeInput";
 
 export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const user = JSON.parse(localStorage.getItem("userData"));
@@ -82,6 +83,9 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     resetDuplicateChecks,
     hasDuplicateWarning,
   } = useDuplicateCheck({ mode: "create" });
+
+  // Sanitize input hook - ตัดตัวอักษรพิเศษก่อนบันทึก
+  const { sanitizeFormData } = useSanitizeInput();
 
   // ==================== API Hooks ====================
   const [addCustomer, { isLoading }] = useAddCustomerMutation();
@@ -272,8 +276,11 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     if (!validateForm()) return;
 
     try {
+      // Sanitize ข้อมูลก่อนบันทึก - ตัดตัวอักษรพิเศษป้องกัน SQL Injection และ XSS
+      const sanitizedData = sanitizeFormData(formData);
+
       await addCustomer({
-        ...formData,
+        ...sanitizedData,
         cus_source: "telesales",
         cus_allocation_status: "pool",
         cus_created_by: user.user_id,
@@ -297,8 +304,11 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     if (!validateForm()) return;
 
     try {
+      // Sanitize ข้อมูลก่อนบันทึก - ตัดตัวอักษรพิเศษป้องกัน SQL Injection และ XSS
+      const sanitizedData = sanitizeFormData(formData);
+
       await addCustomer({
-        ...formData,
+        ...sanitizedData,
         cus_source: "telesales",
         cus_allocation_status: "pool",
         cus_created_by: user.user_id,

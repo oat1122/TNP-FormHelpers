@@ -11,6 +11,7 @@ import {
   open_dialog_error,
   open_dialog_loading,
 } from "../../../../utils/import_lib";
+import { dialog_confirm_yes_no } from "../../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { validateEssentialFields as validateFields } from "../../constants/validationConstants";
 
 /**
@@ -73,6 +74,14 @@ export const useCustomerSubmit = ({
       return;
     }
 
+    // Show confirmation dialog before saving
+    const confirmMessage =
+      mode === "create" ? "ยืนยันการสร้างข้อมูลลูกค้า?" : "ยืนยันการบันทึกข้อมูล?";
+    const confirmed = await dialog_confirm_yes_no(confirmMessage);
+    if (!confirmed) {
+      return;
+    }
+
     setSaveLoading(true);
 
     try {
@@ -100,10 +109,7 @@ export const useCustomerSubmit = ({
           if (scrollToTop) {
             scrollToTop();
           }
-
-          if (onAfterSave && savedCustomerId) {
-            onAfterSave(savedCustomerId);
-          }
+          // ปิด dialog แล้วให้ user เปิดดูเอง (ไม่ auto-open View mode)
         });
       } else {
         setSaveLoading(false);

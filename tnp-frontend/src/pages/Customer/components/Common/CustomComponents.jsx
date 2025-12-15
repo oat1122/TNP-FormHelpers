@@ -23,43 +23,64 @@ import { useDispatch } from "react-redux";
 import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
 import { setPaginationModel } from "../../../../features/Customer/customerSlice";
 
-// Styled Pagination component
+// Styled Pagination component - Modern Premium Design
 const StyledPagination = styled(Pagination)(({ theme }) => ({
   "& .MuiPaginationItem-root": {
     fontFamily: "Kanit",
+    fontWeight: 500,
+    fontSize: "0.9rem",
+    borderRadius: "10px",
+    margin: "0 3px",
+    transition: "all 0.2s ease-in-out",
   },
-  "& .MuiPaginationItem-previousNext": {
-    backgroundColor: theme.vars?.palette?.error?.dark || theme.palette.error.dark,
+  "& .MuiPaginationItem-previousNext, & .MuiPaginationItem-firstLast": {
+    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
     color: "#fff",
-    height: 30,
+    height: 38,
     width: 38,
+    border: "none",
+    boxShadow: "0 3px 8px rgba(211, 47, 47, 0.3)",
     "&:hover": {
-      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+      background: `linear-gradient(135deg, ${theme.palette.error.light} 0%, ${theme.palette.error.main} 100%)`,
+      transform: "translateY(-2px)",
+      boxShadow: "0 5px 15px rgba(211, 47, 47, 0.4)",
+    },
+    "&.Mui-disabled": {
+      background: theme.palette.grey[300],
+      color: theme.palette.grey[500],
+      boxShadow: "none",
     },
   },
   "& .MuiPaginationItem-page": {
-    backgroundColor: theme.vars?.palette?.grey?.outlinedInput || "#f5f5f5",
-    height: 30,
+    backgroundColor: "#ffffff",
+    border: `1px solid ${theme.palette.grey[300]}`,
+    height: 38,
     width: 38,
     "&:hover": {
-      backgroundColor: theme.vars?.palette?.grey?.light || "#e0e0e0",
+      backgroundColor: theme.palette.grey[100],
+      borderColor: theme.palette.error.light,
+      transform: "translateY(-2px)",
+      boxShadow: "0 3px 8px rgba(0,0,0,0.1)",
     },
   },
   "& .MuiPaginationItem-ellipsis": {
-    backgroundColor: theme.vars?.palette?.grey?.outlinedInput || "#f5f5f5",
-    borderRadius: theme.shape.borderRadius,
-    height: 30,
+    backgroundColor: "transparent",
+    border: "none",
+    height: 38,
     width: 38,
     alignContent: "center",
+    color: theme.palette.grey[600],
+    fontWeight: "bold",
   },
   "& .MuiPaginationItem-page.Mui-selected": {
-    backgroundColor: theme.vars?.palette?.error?.light || theme.palette.error.light,
+    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, #b71c1c 100%)`,
     color: "#fff",
-    fontWeight: "bold",
-    transform: "scale(1.05)",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+    fontWeight: 600,
+    border: "none",
+    transform: "scale(1.1)",
+    boxShadow: "0 4px 12px rgba(183, 28, 28, 0.4)",
     "&:hover": {
-      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+      background: `linear-gradient(135deg, ${theme.palette.error.light} 0%, ${theme.palette.error.main} 100%)`,
     },
   },
 }));

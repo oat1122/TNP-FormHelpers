@@ -136,6 +136,40 @@ export const useDialogApiData = (openDialog) => {
     }
   }, [locationIsFetching, roleIsFetching, businessTypesIsFetching]);
 
+  // === Pre-load location data for View/Edit mode ===
+
+  // Pre-load districts when viewing/editing a customer with province
+  useEffect(() => {
+    if (openDialog && inputList?.cus_pro_id && provincesList.length > 0) {
+      const province = provincesList.find((p) => p.pro_id === inputList.cus_pro_id);
+      if (province?.pro_sort_id && districtList.length === 0) {
+        loadDistrictsForProvince(province.pro_sort_id);
+      }
+    }
+  }, [
+    openDialog,
+    inputList?.cus_pro_id,
+    provincesList,
+    districtList.length,
+    loadDistrictsForProvince,
+  ]);
+
+  // Pre-load subdistricts when viewing/editing a customer with district
+  useEffect(() => {
+    if (openDialog && inputList?.cus_dis_id && districtList.length > 0) {
+      const district = districtList.find((d) => d.dis_id === inputList.cus_dis_id);
+      if (district?.dis_sort_id && subDistrictList.length === 0) {
+        loadSubdistrictsForDistrict(district.dis_sort_id);
+      }
+    }
+  }, [
+    openDialog,
+    inputList?.cus_dis_id,
+    districtList,
+    subDistrictList.length,
+    loadSubdistrictsForDistrict,
+  ]);
+
   // Check if any API call has errors
   const hasErrors = roleError || businessTypesError;
   const isLoading = locationIsFetching || roleIsFetching || businessTypesIsFetching;

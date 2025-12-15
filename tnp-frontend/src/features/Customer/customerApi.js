@@ -1,16 +1,30 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import qs from "qs";
+import { createApi } from "@reduxjs/toolkit/query/react";
 
-import { apiConfig } from "../../api/apiConfig";
+import axiosBaseQuery from "./axiosBaseQuery";
+
+/**
+ * Helper function to ensure each row has a unique ID
+ * Prevents MissingRowIdError in DataGrid
+ */
+const ensureRowIds = (data) => {
+  if (!Array.isArray(data)) return data;
+  return data.map((row) => {
+    if (!row.cus_id) {
+      return { ...row, cus_id: `row-${Math.random().toString(36).substring(2, 15)}` };
+    }
+    return row;
+  });
+};
 
 export const customerApi = createApi({
   reducerPath: "customerApi",
-  baseQuery: fetchBaseQuery(apiConfig),
-  tagTypes: ["Customer"],
+  baseQuery: axiosBaseQuery(),
+  tagTypes: ["Customer", "CustomerCounts"],
   endpoints: (builder) => ({
     getAllCustomer: builder.query({
       query: (payload) => {
-        const queryParams = {
+        // Build params object - Axios will handle URL encoding
+        const params = {
           group: payload?.group,
           page: payload?.page + 1,
           per_page: payload?.per_page,
@@ -20,37 +34,38 @@ export const customerApi = createApi({
 
         // Add sort parameters if they exist
         if (payload?.sortModel && payload.sortModel.length > 0) {
-          queryParams.sort_field = payload.sortModel[0].field;
-          queryParams.sort_direction = payload.sortModel[0].sort;
+          params.sort_field = payload.sortModel[0].field;
+          params.sort_direction = payload.sortModel[0].sort;
         }
 
         // Add advanced filter parameters if they exist
         if (payload?.filters) {
-          // Date Range
-          if (payload.filters.dateRange.startDate) {
-            queryParams.start_date = payload.filters.dateRange.startDate;
+          if (payload.filters.dateRange?.startDate) {
+            params.start_date = payload.filters.dateRange.startDate;
           }
-          if (payload.filters.dateRange.endDate) {
-            queryParams.end_date = payload.filters.dateRange.endDate;
+          if (payload.filters.dateRange?.endDate) {
+            params.end_date = payload.filters.dateRange.endDate;
           }
-
-          // Sales Name filter
           if (Array.isArray(payload.filters.salesName) && payload.filters.salesName.length > 0) {
-            queryParams.sales_names = payload.filters.salesName.join(",");
+            params.sales_names = payload.filters.salesName.join(",");
           }
-          // Channel filter
           if (Array.isArray(payload.filters.channel) && payload.filters.channel.length > 0) {
-            queryParams.channels = payload.filters.channel.join(",");
+            params.channels = payload.filters.channel.join(",");
           }
         }
 
-        const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString ? `/customers?${queryString}` : "/customers";
-
         return {
-          url: url,
+          url: "/customers",
           method: "GET",
+          params, // Let Axios handle query string
         };
+      },
+      // Transform response to ensure row IDs before caching
+      transformResponse: (response) => {
+        if (response.data) {
+          return { ...response, data: ensureRowIds(response.data) };
+        }
+        return response;
       },
       providesTags: ["Customer"],
     }),
@@ -66,7 +81,7 @@ export const customerApi = createApi({
       query: (payload) => ({
         url: `/customers`,
         method: "POST",
-        body: payload,
+        data: payload,
       }),
     }),
     updateCustomer: builder.mutation({
@@ -77,7 +92,7 @@ export const customerApi = createApi({
       query: (payload) => ({
         url: `/customers/${payload.cus_id}`,
         method: "PUT",
-        body: payload,
+        data: payload,
       }),
     }),
     delCustomer: builder.mutation({
@@ -92,7 +107,7 @@ export const customerApi = createApi({
       query: (payload) => ({
         url: `/customerRecall/${payload.cd_id}`,
         method: "PUT",
-        body: payload,
+        data: payload,
       }),
     }),
     changeGrade: builder.mutation({
@@ -100,27 +115,21 @@ export const customerApi = createApi({
       query: (payload) => ({
         url: `/customerChangeGrade/${payload.customerId}`,
         method: "PUT",
-        body: { direction: payload.direction },
+        data: { direction: payload.direction },
       }),
     }),
     // Telesales & Allocation endpoints
     getPoolCustomers: builder.query({
-      query: (payload) => {
-        const queryParams = {
+      query: (payload) => ({
+        url: "/customers/pool",
+        method: "GET",
+        params: {
           page: payload?.page + 1,
           per_page: payload?.per_page || 30,
           search: payload?.search,
-          source: payload?.source, // Filter by source (telesales, online, etc)
-        };
-
-        const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString ? `/customers/pool?${queryString}` : "/customers/pool";
-
-        return {
-          url: url,
-          method: "GET",
-        };
-      },
+          source: payload?.source,
+        },
+      }),
       providesTags: ["Customer"],
     }),
     assignCustomers: builder.mutation({
@@ -128,7 +137,7 @@ export const customerApi = createApi({
       query: (payload) => ({
         url: `/customers/assign`,
         method: "PATCH",
-        body: {
+        data: {
           customer_ids: payload.customer_ids,
           sales_user_id: payload.sales_user_id,
           force: payload.force || false,
@@ -136,32 +145,55 @@ export const customerApi = createApi({
       }),
     }),
     getTelesalesStats: builder.query({
-      query: (payload) => {
-        const queryParams = {
+      query: (payload) => ({
+        url: "/stats/telesales-dashboard",
+        method: "GET",
+        params: {
           start_date: payload?.start_date,
           end_date: payload?.end_date,
-        };
-
-        const queryString = qs.stringify(queryParams, { skipNulls: true });
-        const url = queryString
-          ? `/stats/telesales-dashboard?${queryString}`
-          : "/stats/telesales-dashboard";
-
-        return {
-          url: url,
-          method: "GET",
-        };
-      },
+        },
+      }),
     }),
     checkDuplicateCustomer: builder.mutation({
       query: (payload) => ({
         url: `/customers/check-duplicate`,
         method: "POST",
-        body: {
-          type: payload.type, // 'phone' or 'company'
+        data: {
+          type: payload.type,
           value: payload.value,
         },
       }),
+    }),
+    // Group counts endpoint (moved from useFilterGroupCounts hook)
+    getCustomerGroupCounts: builder.query({
+      query: (payload) => {
+        const params = {
+          user: payload?.user_id,
+          counts_only: true,
+        };
+
+        if (payload?.filters) {
+          if (payload.filters.dateRange?.startDate) {
+            params.start_date = payload.filters.dateRange.startDate;
+          }
+          if (payload.filters.dateRange?.endDate) {
+            params.end_date = payload.filters.dateRange.endDate;
+          }
+          if (Array.isArray(payload.filters.salesName) && payload.filters.salesName.length > 0) {
+            params.sales_names = payload.filters.salesName.join(",");
+          }
+          if (Array.isArray(payload.filters.channel) && payload.filters.channel.length > 0) {
+            params.channels = payload.filters.channel.join(",");
+          }
+        }
+
+        return {
+          url: "/customerGroupCounts",
+          method: "GET",
+          params,
+        };
+      },
+      providesTags: ["CustomerCounts"],
     }),
   }),
 });
@@ -181,4 +213,5 @@ export const {
   useGetTelesalesStatsQuery,
   useLazyGetTelesalesStatsQuery,
   useCheckDuplicateCustomerMutation,
+  useGetCustomerGroupCountsQuery,
 } = customerApi;

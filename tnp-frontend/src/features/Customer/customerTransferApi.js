@@ -1,6 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 
-import { apiConfig } from "../../api/apiConfig";
+import axiosBaseQuery from "./axiosBaseQuery";
 
 /**
  * Customer Transfer API
@@ -10,7 +10,7 @@ import { apiConfig } from "../../api/apiConfig";
  */
 export const customerTransferApi = createApi({
   reducerPath: "customerTransferApi",
-  baseQuery: fetchBaseQuery(apiConfig),
+  baseQuery: axiosBaseQuery(),
   tagTypes: ["TransferHistory", "Customer"],
   endpoints: (builder) => ({
     /**
@@ -26,7 +26,7 @@ export const customerTransferApi = createApi({
       query: ({ customerId, newManageBy, remark }) => ({
         url: `/customers/${customerId}/transfer-to-sales`,
         method: "POST",
-        body: {
+        data: {
           new_manage_by: newManageBy,
           remark: remark,
         },
@@ -47,7 +47,7 @@ export const customerTransferApi = createApi({
       query: ({ customerId, newManageBy, remark }) => ({
         url: `/customers/${customerId}/transfer-to-online`,
         method: "POST",
-        body: {
+        data: {
           new_manage_by: newManageBy,
           remark: remark,
         },

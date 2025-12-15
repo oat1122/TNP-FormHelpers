@@ -14,9 +14,13 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+    // Try both token keys for backward compatibility (matching apiConfig.js)
+    const authToken = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token");
+    const finalToken = authToken || token;
+
+    if (finalToken) {
+      config.headers["Authorization"] = `Bearer ${finalToken}`;
     }
     return config;
   },

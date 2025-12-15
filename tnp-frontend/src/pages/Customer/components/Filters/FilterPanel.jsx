@@ -29,7 +29,12 @@ import {
   SecondaryActionButton,
 } from "../../styles/FilterStyledComponents";
 
-function FilterPanel() {
+/**
+ * FilterPanel - Advanced filter panel component
+ *
+ * @param {Function} refetchCustomers - Callback to trigger data refetch (from RTK Query)
+ */
+function FilterPanel({ refetchCustomers }) {
   const [expanded, setExpanded] = useState(false);
 
   // 1. Initializer Hook - syncs sales list from API to Redux
@@ -47,9 +52,9 @@ function FilterPanel() {
     resetDraftFilters,
   } = useFilterState();
 
-  // 3. Filter Actions Hook
+  // 3. Filter Actions Hook - pass refetchCustomers for UX-optimized refetching
   const { isFiltering, errorMessage, handleApplyFilters, handleResetFilters, clearErrorMessage } =
-    useFilterActions();
+    useFilterActions(refetchCustomers);
 
   // 4. Helper Hooks
   const dateHelpers = useDateRangeHelpers(setDraftFilters);

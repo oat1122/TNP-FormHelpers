@@ -5,7 +5,6 @@ import {
   setFilters,
   setPaginationModel,
   resetFilters,
-  fetchFilteredCustomers,
 } from "../../../../features/Customer/customerSlice";
 import { filterPanelConfig } from "../../constants/filterConstants";
 import ScrollContext from "../../components/DataDisplay/ScrollContext";
@@ -13,8 +12,15 @@ import ScrollContext from "../../components/DataDisplay/ScrollContext";
 /**
  * Custom hook for managing filter actions
  * Handles apply, reset filter operations
+ *
+ * UX-Optimized: Uses refetch callback pattern instead of cache invalidation
+ * - Data stays visible while new data is loading
+ * - No flash of empty state
+ * - Subtle loading indicator via isFetching
+ *
+ * @param {Function} refetchCustomers - Callback to trigger refetch (from RTK Query)
  */
-export const useFilterActions = () => {
+export const useFilterActions = (refetchCustomers) => {
   const dispatch = useDispatch();
   const groupSelected = useSelector((state) => state.customer.groupSelected);
   const { scrollToTop } = useContext(ScrollContext);
@@ -32,41 +38,30 @@ export const useFilterActions = () => {
         // Start loading state
         setIsFiltering(true);
 
-        // Apply filters synchronously to ensure they're set before API call
+        // Apply filters synchronously to ensure they're set before refetch
         dispatch(setFilters(filtersToApply));
 
         // Reset to first page when applying filters
         dispatch(setPaginationModel({ page: 0, pageSize: filterPanelConfig.defaultPageSize }));
 
-        // Dispatch API action to fetch filtered customers
-        dispatch(fetchFilteredCustomers(filtersToApply))
-          .unwrap()
-          .then((data) => {
-            // Success handling
-            setIsFiltering(false);
+        // Trigger refetch through callback (passed from CustomerList)
+        // This keeps existing data visible while loading new data (better UX)
+        if (refetchCustomers) {
+          refetchCustomers();
+        }
 
-            // Scroll to top when filters have been applied
-            scrollToTop();
+        // End loading state and scroll to top
+        setIsFiltering(false);
+        scrollToTop();
 
-            // นับจำนวนข้อมูลที่ได้จากการกรอง
-            console.log(`กรองข้อมูลสำเร็จ: พบ ${data?.data?.length || 0} รายการ`);
-
-            return data;
-          })
-          .catch((error) => {
-            console.error("Error applying filters:", error);
-            setErrorMessage(
-              `เกิดข้อผิดพลาดในการกรองข้อมูล: ${error.message || "โปรดลองใหม่อีกครั้ง"}`
-            );
-            setIsFiltering(false);
-          });
+        console.log("กรองข้อมูลสำเร็จ");
       } catch (error) {
         console.error("Error applying filters:", error);
         setErrorMessage("เกิดข้อผิดพลาดในการใช้งานตัวกรอง");
         setIsFiltering(false);
       }
     },
-    [dispatch, scrollToTop, groupSelected]
+    [dispatch, scrollToTop, groupSelected, refetchCustomers]
   );
 
   // Reset filters handler
@@ -75,8 +70,13 @@ export const useFilterActions = () => {
       resetDraftFilters();
       dispatch(resetFilters());
       dispatch(setPaginationModel({ page: 0, pageSize: filterPanelConfig.defaultPageSize }));
+
+      // Trigger refetch after resetting filters
+      if (refetchCustomers) {
+        refetchCustomers();
+      }
     },
-    [dispatch]
+    [dispatch, refetchCustomers]
   );
 
   // Clear error message

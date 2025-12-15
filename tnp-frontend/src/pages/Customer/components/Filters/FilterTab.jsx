@@ -12,17 +12,17 @@ import { FilterGroupMobile, FilterGroupDesktop } from "./parts";
 import { useFilterGroupCounts, useFilterState } from "../../hooks";
 
 // Redux
-import {
-  setGroupSelected,
-  setPaginationModel,
-  fetchFilteredCustomers,
-} from "../../../../features/Customer/customerSlice";
+import { setGroupSelected, setPaginationModel } from "../../../../features/Customer/customerSlice";
 
 /**
  * FilterTab - Component หลักสำหรับเลือกกลุ่มลูกค้า
  * แยก UI ออกเป็น Mobile และ Desktop parts
+ *
+ * UX-Optimized: Uses refetch callback pattern for smooth data transitions
+ *
+ * @param {Function} refetchCustomers - Callback to trigger data refetch (from RTK Query)
  */
-function FilterTab() {
+function FilterTab({ refetchCustomers }) {
   const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -55,13 +55,12 @@ function FilterTab() {
 
       dispatch(setGroupSelected(value));
       dispatch(setPaginationModel({ page: 0, pageSize: 30 }));
-      dispatch(
-        fetchFilteredCustomers({
-          dateRange: filters.dateRange,
-          salesName: filters.salesName,
-          channel: filters.channel,
-        })
-      );
+
+      // Use refetch callback for smooth UX (keeps existing data while loading)
+      if (refetchCustomers) {
+        refetchCustomers();
+      }
+
       scrollToTop();
     }
   };

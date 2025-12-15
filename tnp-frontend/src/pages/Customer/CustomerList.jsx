@@ -202,12 +202,12 @@ function CustomerList() {
               </Button>
             )}
             <Box sx={{ flexGrow: 1 }}>
-              <FilterTab />
+              <FilterTab refetchCustomers={refetch} />
             </Box>
           </Box>
 
           {/* Filter Controls */}
-          <FilterPanel />
+          <FilterPanel refetchCustomers={refetch} />
           <FilterTags />
 
           {/* Data Display - Responsive */}

@@ -1,5 +1,5 @@
 import { Box, Button, useTheme, useMediaQuery, Pagination } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { RiAddLargeFill } from "react-icons/ri";
 import { useDispatch } from "react-redux";
 
@@ -16,6 +16,8 @@ import {
   ScrollContext,
   DataGridWithRowIdFix,
   getRowClassName,
+  CustomerTableSkeleton,
+  CustomerCardListSkeleton,
 } from "./components/DataDisplay";
 // Filter components
 import { FilterPanel, FilterTab, FilterTags } from "./components/Filters";
@@ -37,6 +39,7 @@ function CustomerList() {
   const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 
   // User data
   const user = JSON.parse(localStorage.getItem("userData"));
@@ -44,6 +47,11 @@ function CustomerList() {
   // Local state for dialogs
   const [openDialog, setOpenDialog] = useState(false);
   const [quickFormOpen, setQuickFormOpen] = useState(false);
+
+  // Skeleton loading state - แสดง skeleton เมื่อมีการเปลี่ยน context สำคัญ
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const previousGroupRef = useRef(null);
+  const previousFiltersRef = useRef(null);
 
   // 1. Hook: Scroll management
   const { tableContainerRef, scrollToTop } = useScrollToTop();
@@ -146,6 +154,40 @@ function CustomerList() {
     setOpenDialog(false);
   }, [groupSelected, filters.dateRange, filters.salesName, filters.channel]);
 
+  // Track context changes to show skeleton - เมื่อเปลี่ยน tab หรือ filter
+  useEffect(() => {
+    const hasGroupChanged =
+      previousGroupRef.current !== null && previousGroupRef.current !== groupSelected;
+
+    const currentFiltersKey = JSON.stringify({
+      dateRange: filters.dateRange,
+      salesName: filters.salesName,
+      channel: filters.channel,
+    });
+    const hasFiltersChanged =
+      previousFiltersRef.current !== null && previousFiltersRef.current !== currentFiltersKey;
+
+    // Show skeleton when context changes significantly
+    if (hasGroupChanged || hasFiltersChanged) {
+      setShowSkeleton(true);
+    }
+
+    // Update refs
+    previousGroupRef.current = groupSelected;
+    previousFiltersRef.current = currentFiltersKey;
+  }, [groupSelected, filters.dateRange, filters.salesName, filters.channel]);
+
+  // Hide skeleton when data is loaded
+  useEffect(() => {
+    if (!isFetching && validRows.length >= 0) {
+      // Small delay for smooth animation transition
+      const timer = setTimeout(() => {
+        setShowSkeleton(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetching, validRows.length]);
+
   return (
     <ScrollContext.Provider value={{ scrollToTop }}>
       <div className="customer-list">
@@ -211,18 +253,23 @@ function CustomerList() {
           <FilterTags />
 
           {/* Data Display - Responsive */}
-          {isMobile ? (
-            // Mobile Card View
+          {isMobile || isTablet ? (
+            // Mobile/Tablet Card View
             <>
-              <CustomerCardList
-                customers={validRows}
-                onView={handleOpenViewDialog}
-                onEdit={(id) => handleOpenDialogWithState("edit", id)}
-                handleRecall={handleRecall}
-                loading={isFetching || isLoading}
-                totalCount={totalItems}
-                paginationModel={paginationModel}
-              />
+              {/* Show skeleton during loading */}
+              {showSkeleton && isFetching ? (
+                <CustomerCardListSkeleton count={6} isTablet={isTablet} />
+              ) : (
+                <CustomerCardList
+                  customers={validRows}
+                  onView={handleOpenViewDialog}
+                  onEdit={(id) => handleOpenDialogWithState("edit", id)}
+                  handleRecall={handleRecall}
+                  loading={false} // ไม่ใช้ internal loading เพราะใช้ skeleton
+                  totalCount={totalItems}
+                  paginationModel={paginationModel}
+                />
+              )}
               {/* Mobile Pagination */}
               {totalItems > 0 && (
                 <Box sx={{ display: "flex", justifyContent: "center", mt: 2, px: 2 }}>
@@ -272,45 +319,50 @@ function CustomerList() {
                 },
               }}
             >
-              <DataGridWithRowIdFix
-                autoHeight // ให้ตารางขยายตามจำนวนข้อมูล แล้ว Page เป็นตัว scroll
-                disableRowSelectionOnClick
-                paginationMode="server"
-                sortingMode="server"
-                hideFooter={totalItems < 30} // ซ่อน footer เมื่อข้อมูลน้อยกว่า 30 แถว
-                rows={validRows}
-                columns={columns}
-                columnVisibilityModel={columnVisibilityModel}
-                columnOrderModel={columnOrderModel}
-                componentsProps={{
-                  row: {
-                    style: { cursor: "pointer" },
-                  },
-                }}
-                initialState={{
-                  pagination: { paginationModel },
-                  sorting: { sortModel: serverSortModel },
-                }}
-                onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
-                onSortModelChange={handleSortModelChange}
-                onColumnVisibilityModelChange={handleColumnVisibilityChange}
-                onColumnOrderChange={handleColumnOrderChange}
-                rowCount={totalItems}
-                loading={isFetching || isLoading}
-                slots={{
-                  noRowsOverlay: NoDataComponent,
-                  pagination: PaginationComponent,
-                  toolbar: ToolbarComponent,
-                }}
-                sx={{ border: 0 }}
-                rowHeight={60}
-                columnHeaderHeight={50}
-                getRowClassName={getRowClassName}
-                onRowClick={(params) => {
-                  if (isMobile) return;
-                  handleOpenViewDialog(params.row.cus_id);
-                }}
-              />
+              {/* Show skeleton during context changes or initial load */}
+              {showSkeleton && isFetching ? (
+                <CustomerTableSkeleton rows={paginationModel.pageSize} />
+              ) : (
+                <DataGridWithRowIdFix
+                  autoHeight // ให้ตารางขยายตามจำนวนข้อมูล แล้ว Page เป็นตัว scroll
+                  disableRowSelectionOnClick
+                  paginationMode="server"
+                  sortingMode="server"
+                  hideFooter={totalItems < 30} // ซ่อน footer เมื่อข้อมูลน้อยกว่า 30 แถว
+                  rows={validRows}
+                  columns={columns}
+                  columnVisibilityModel={columnVisibilityModel}
+                  columnOrderModel={columnOrderModel}
+                  componentsProps={{
+                    row: {
+                      style: { cursor: "pointer" },
+                    },
+                  }}
+                  initialState={{
+                    pagination: { paginationModel },
+                    sorting: { sortModel: serverSortModel },
+                  }}
+                  onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
+                  onSortModelChange={handleSortModelChange}
+                  onColumnVisibilityModelChange={handleColumnVisibilityChange}
+                  onColumnOrderChange={handleColumnOrderChange}
+                  rowCount={totalItems}
+                  loading={isFetching || isLoading}
+                  slots={{
+                    noRowsOverlay: NoDataComponent,
+                    pagination: PaginationComponent,
+                    toolbar: ToolbarComponent,
+                  }}
+                  sx={{ border: 0 }}
+                  rowHeight={60}
+                  columnHeaderHeight={50}
+                  getRowClassName={getRowClassName}
+                  onRowClick={(params) => {
+                    if (isMobile) return;
+                    handleOpenViewDialog(params.row.cus_id);
+                  }}
+                />
+              )}
             </Box>
           )}
         </Box>

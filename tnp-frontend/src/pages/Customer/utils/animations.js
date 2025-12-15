@@ -130,6 +130,44 @@ export const animations = {
     },
     animation: "checkMark 0.4s ease-out",
   },
+
+  // Shimmer animation for skeleton loading
+  shimmer: {
+    "@keyframes shimmer": {
+      "0%": { backgroundPosition: "-200% 0" },
+      "100%": { backgroundPosition: "200% 0" },
+    },
+    animation: "shimmer 1.5s infinite linear",
+    background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
+    backgroundSize: "200% 100%",
+  },
+
+  // Fade out animation for skeleton disappearing
+  fadeOut: {
+    "@keyframes fadeOut": {
+      "0%": { opacity: 1, transform: "translateY(0)" },
+      "100%": { opacity: 0, transform: "translateY(-5px)" },
+    },
+    animation: "fadeOut 0.3s ease-out forwards",
+  },
+
+  // Content reveal animation for smooth appearance
+  contentReveal: {
+    "@keyframes contentReveal": {
+      "0%": { opacity: 0, transform: "translateY(10px)" },
+      "100%": { opacity: 1, transform: "translateY(0)" },
+    },
+    animation: "contentReveal 0.4s ease-out forwards",
+  },
+
+  // Stagger fade in for multiple elements
+  staggerFadeIn: {
+    "@keyframes staggerFadeIn": {
+      "0%": { opacity: 0, transform: "translateY(8px)" },
+      "100%": { opacity: 1, transform: "translateY(0)" },
+    },
+    animation: "staggerFadeIn 0.3s ease-out forwards",
+  },
 };
 
 // Transition presets for common UI patterns

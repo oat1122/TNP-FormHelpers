@@ -25,6 +25,7 @@ const CustomerList = lazy(() => import("./pages/Customer/CustomerList"));
 const Testing = lazy(() => import("./components/Testing"));
 const TestToast = lazy(() => import("./pages/TestToast"));
 const UserList = lazy(() => import("./pages/UserManagement/UserList"));
+const SubRoleList = lazy(() => import("./pages/SubRoleManagement/SubRoleList"));
 const PricingList = lazy(() => import("./pages/Pricing/PricingList"));
 const PricingForm = lazy(() => import("./pages/Pricing/PricingForm"));
 
@@ -72,6 +73,7 @@ function App() {
 
               <Route path="/shirt-price" element={<FabricMain />} />
               <Route path="/user-management" element={<UserList />} />
+              <Route path="/sub-role-management" element={<SubRoleList />} />
               <Route path="/customer" element={<CustomerList />} />
               <Route path="/allocation-hub" element={<AllocationHub />} />
               <Route path="/telesales-dashboard" element={<TelesalesDashboard />} />

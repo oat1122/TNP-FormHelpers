@@ -57,6 +57,11 @@ class UserController extends Controller
             $user->user_updated_by = $data_input['user_updated_by'] ?? null;
             $user->save();
 
+            // Sync Sub Roles if provided
+            if (isset($data_input['sub_role_ids']) && is_array($data_input['sub_role_ids'])) {
+                $user->syncSubRoles($data_input['sub_role_ids'], $user->user_id);
+            }
+
             DB::commit();
 
             return response()->json([
@@ -152,7 +157,7 @@ class UserController extends Controller
         }
 
         $perPage = $request->input('per_page', 10);
-        $query = $prepared_statement->select([ // Use array syntax for select
+        $query = $prepared_statement->with('subRoles:msr_id,msr_code,msr_name')->select([ // Use array syntax for select
             'user_id',
             'user_uuid',
             'username',
@@ -209,6 +214,11 @@ class UserController extends Controller
             $query->user_is_enable = filter_var($data_input['user_is_enable'], FILTER_VALIDATE_BOOLEAN);
             $query->user_updated_date = now();
             $query->save();
+
+            // Sync Sub Roles if provided
+            if (isset($data_input['sub_role_ids']) && is_array($data_input['sub_role_ids'])) {
+                $query->syncSubRoles($data_input['sub_role_ids'], $query->user_id);
+            }
 
             DB::commit();
 

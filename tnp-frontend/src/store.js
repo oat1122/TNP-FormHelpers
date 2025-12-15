@@ -16,6 +16,7 @@ import { pricingApi } from "./features/Pricing/pricingApi";
 import pricingReducers from "./features/Pricing/pricingSlice";
 import { userManagementApi } from "./features/UserManagement/userManagementApi";
 import userManagementReducers from "./features/UserManagement/userManagementSlice";
+import subRoleManagementReducers from "./features/SubRoleManagement/subRoleManagementSlice";
 import { worksheetApi } from "./features/Worksheet/worksheetApi";
 import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
 import { tnpApi } from "./services/tnpApi";
@@ -29,6 +30,7 @@ const store = configureStore({
     worksheet: worksheetSliceReducer,
     customer: customerSliceReducer,
     userManagement: userManagementReducers,
+    subRoleManagement: subRoleManagementReducers,
     pricing: pricingReducers,
     accounting: accountingReducer,
 

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -140,6 +141,15 @@ Route::prefix('v1')->group(function() {
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
         Route::delete("/user/{id}", "destroy");
+    });
+
+    //---------- Sub Role Management ----------
+    Route::controller(SubRoleController::class)->group(function () {
+        Route::get('/sub-roles', 'index');
+        Route::post('/sub-roles', 'store');
+        Route::get('/sub-roles/{id}', 'show');
+        Route::put('/sub-roles/{id}', 'update');
+        Route::delete('/sub-roles/{id}', 'destroy');
     });
 
     //---------- Companies ----------

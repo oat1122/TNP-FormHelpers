@@ -20,6 +20,8 @@ import {
   InputAdornment,
   Divider,
   FormHelperText,
+  Autocomplete,
+  Chip,
 } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 import { Controller } from "react-hook-form";
@@ -30,6 +32,7 @@ import { resetInputList } from "../../features/Customer/customerSlice";
 import {
   useAddUserMutation,
   useUpdateUserMutation,
+  useGetAllSubRolesQuery,
 } from "../../features/UserManagement/userManagementApi";
 import {
   open_dialog_ok_timer,
@@ -69,6 +72,11 @@ function DialogForm(props) {
   const [saveLoading, setSaveLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+  // Fetch Sub Roles for dropdown
+  const { data: subRolesData } = useGetAllSubRolesQuery({ all: "true", active_only: "true" });
+  const subRolesList = subRolesData?.data || [];
+
   const titleMap = {
     create: "เพิ่ม",
     edit: "แก้ไข",
@@ -381,6 +389,46 @@ function DialogForm(props) {
                         </Select>
                         <FormHelperText>{props.errors.role?.message}</FormHelperText>
                       </FormControl>
+                    </>
+                  )}
+                />
+              </Grid>
+
+              {/* Sub Roles Multi-Select */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Controller
+                  name="sub_role_ids"
+                  control={props.control}
+                  defaultValue={[]}
+                  render={({ field }) => (
+                    <>
+                      <StyledLabel>Sub Roles</StyledLabel>
+                      <Autocomplete
+                        multiple
+                        size="small"
+                        disabled={mode === "view"}
+                        options={subRolesList}
+                        getOptionLabel={(option) => option.msr_name || ""}
+                        value={subRolesList.filter((sr) => (field.value || []).includes(sr.msr_id))}
+                        onChange={(event, newValue) => {
+                          field.onChange(newValue.map((v) => v.msr_id));
+                        }}
+                        isOptionEqualToValue={(option, value) => option.msr_id === value.msr_id}
+                        renderTags={(value, getTagProps) =>
+                          value.map((option, index) => {
+                            const { key, ...tagProps } = getTagProps({ index });
+                            return (
+                              <Chip key={key} label={option.msr_name} size="small" {...tagProps} />
+                            );
+                          })
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder={field.value?.length ? "" : "เลือก Sub Roles"}
+                          />
+                        )}
+                      />
                     </>
                   )}
                 />

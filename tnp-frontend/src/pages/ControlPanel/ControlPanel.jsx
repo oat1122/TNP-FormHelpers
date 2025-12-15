@@ -249,6 +249,25 @@ function ControlPanel() {
                 User Management
               </label>
             </a>
+            <div className="vr vr-home"></div>
+            <a
+              className="btn btn-outline-danger pt-3"
+              href="/sub-role-management"
+              style={{ width: "min-content" }}
+            >
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaUsers />
+              </IconContext.Provider>
+              <label
+                style={{
+                  textTransform: "uppercase",
+                  paddingTop: "0.5rem",
+                  lineHeight: "0.7rem",
+                }}
+              >
+                Sub Role
+              </label>
+            </a>
           </div>
         )}
       </div>

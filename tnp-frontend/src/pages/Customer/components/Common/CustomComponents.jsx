@@ -6,6 +6,8 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
+  Pagination,
+  styled,
 } from "@mui/material";
 import {
   useGridApiContext,
@@ -20,7 +22,47 @@ import { useDispatch } from "react-redux";
 
 import { PageSizeSelector, SortInfoDisplay } from "./UtilityComponents";
 import { setPaginationModel } from "../../../../features/Customer/customerSlice";
-import { StyledPagination } from "../../styles/StyledComponents";
+
+// Styled Pagination component
+const StyledPagination = styled(Pagination)(({ theme }) => ({
+  "& .MuiPaginationItem-root": {
+    fontFamily: "Kanit",
+  },
+  "& .MuiPaginationItem-previousNext": {
+    backgroundColor: theme.vars?.palette?.error?.dark || theme.palette.error.dark,
+    color: "#fff",
+    height: 30,
+    width: 38,
+    "&:hover": {
+      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+    },
+  },
+  "& .MuiPaginationItem-page": {
+    backgroundColor: theme.vars?.palette?.grey?.outlinedInput || "#f5f5f5",
+    height: 30,
+    width: 38,
+    "&:hover": {
+      backgroundColor: theme.vars?.palette?.grey?.light || "#e0e0e0",
+    },
+  },
+  "& .MuiPaginationItem-ellipsis": {
+    backgroundColor: theme.vars?.palette?.grey?.outlinedInput || "#f5f5f5",
+    borderRadius: theme.shape.borderRadius,
+    height: 30,
+    width: 38,
+    alignContent: "center",
+  },
+  "& .MuiPaginationItem-page.Mui-selected": {
+    backgroundColor: theme.vars?.palette?.error?.light || theme.palette.error.light,
+    color: "#fff",
+    fontWeight: "bold",
+    transform: "scale(1.05)",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+    "&:hover": {
+      backgroundColor: theme.vars?.palette?.error?.main || theme.palette.error.main,
+    },
+  },
+}));
 
 // Component Pagination ที่กำหนดเอง
 export const CustomPagination = ({ paginationModel, totalItems, scrollToTop }) => {

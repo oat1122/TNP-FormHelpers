@@ -48,14 +48,19 @@ class StoreCustomerRequest extends FormRequest
             // Optional fields
             'cus_tel_2' => ['nullable', 'string', 'max:20'],
             'cus_email' => ['nullable', 'email', 'max:100'],
-            'cus_tax_id' => ['nullable', 'string', 'size:13'],
+            'cus_tax_id' => ['nullable', 'string', 'max:13'],
             'cus_depart' => ['nullable', 'string', 'max:255'],
             'cus_address' => ['nullable', 'string'],
-            'cus_zip_code' => ['nullable', 'string', 'size:5'],
-            'cus_pro_id' => ['nullable', 'string', 'size:36'],
-            'cus_dis_id' => ['nullable', 'string', 'size:36'],
-            'cus_sub_id' => ['nullable', 'string', 'size:36'],
-            'cus_bt_id' => ['nullable', 'string', 'size:36'], // Business Type ID
+            'cus_address_detail' => ['nullable', 'string', 'max:500'], // Street/Soi details
+            'cus_zip_code' => ['nullable', 'string', 'max:10'],
+            'cus_pro_id' => ['nullable'],
+            'cus_dis_id' => ['nullable'],
+            'cus_sub_id' => ['nullable'],
+            'cus_bt_id' => ['nullable', 'string', 'max:36'], // Business Type ID
+            
+            // Customer Detail fields (notes/remarks)
+            'cd_note' => ['nullable', 'string', 'max:2000'],
+            'cd_remark' => ['nullable', 'string', 'max:1000'],
             
             // New telesales fields
             'cus_source' => ['nullable', Rule::in(['sales', 'telesales', 'online', 'office'])],

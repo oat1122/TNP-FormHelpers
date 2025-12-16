@@ -62,9 +62,9 @@ export const useColumnDefinitions = ({
     {
       field: "cus_no",
       headerName: "ID",
-      flex: 0.4,
-      minWidth: 60,
-      maxWidth: 80,
+      flex: 0.3,
+      minWidth: 50,
+      maxWidth: 70,
       sortable: true,
       renderCell: (params) => (
         <span style={{ fontSize: CELL_STYLES.fontSize.primary }}>{params.value}</span>
@@ -73,9 +73,9 @@ export const useColumnDefinitions = ({
     {
       field: "cus_channel",
       headerName: "CHANNEL",
-      flex: 0.5,
-      minWidth: 80,
-      maxWidth: 120,
+      flex: 0.4,
+      minWidth: 75,
+      maxWidth: 100,
       sortable: true,
       cellClassName: "uppercase-cell",
       renderCell: (params) => (
@@ -111,9 +111,9 @@ export const useColumnDefinitions = ({
       field: "cus_manage_by",
       headerName: "SALES NAME",
       sortable: true,
-      flex: 0.7,
-      minWidth: 100,
-      maxWidth: 160,
+      flex: 0.6,
+      minWidth: 90,
+      maxWidth: 140,
       cellClassName: "uppercase-cell",
       hideable: false,
       renderCell: (params) => {
@@ -136,9 +136,9 @@ export const useColumnDefinitions = ({
     {
       field: "cus_name",
       headerName: "CUSTOMER",
-      flex: 1.0,
-      minWidth: 140,
-      maxWidth: 220,
+      flex: 0.9,
+      minWidth: 130,
+      maxWidth: 200,
       sortable: true,
       renderCell: (params) => {
         const fullName = params.value;
@@ -190,9 +190,9 @@ export const useColumnDefinitions = ({
     {
       field: "cus_tel_1",
       headerName: "TEL",
-      flex: 0.7,
-      minWidth: 100,
-      maxWidth: 150,
+      flex: 0.6,
+      minWidth: 95,
+      maxWidth: 130,
       sortable: true,
       renderCell: (params) => {
         const tel1 = params.value;
@@ -248,9 +248,9 @@ export const useColumnDefinitions = ({
     {
       field: "cd_note",
       headerName: "NOTE",
-      flex: 1.2,
-      minWidth: 150,
-      maxWidth: 280,
+      flex: 1.0,
+      minWidth: 130,
+      maxWidth: 250,
       sortable: true,
       renderCell: (params) => {
         const hasNote = params.value && params.value.trim().length > 0;
@@ -313,9 +313,9 @@ export const useColumnDefinitions = ({
     {
       field: "business_type",
       headerName: "BUSINESS TYPE",
-      flex: 0.8,
-      minWidth: 120,
-      maxWidth: 180,
+      flex: 0.7,
+      minWidth: 110,
+      maxWidth: 160,
       sortable: true,
       sortComparator: (v1, v2, param1, param2) => {
         const cellParams = {
@@ -344,9 +344,9 @@ export const useColumnDefinitions = ({
     {
       field: "cd_last_datetime",
       headerName: "RECALL",
-      flex: 0.7,
-      minWidth: 100,
-      maxWidth: 160,
+      flex: 0.6,
+      minWidth: 90,
+      maxWidth: 140,
       sortable: true,
       renderCell: (params) => {
         return (
@@ -448,9 +448,9 @@ export const useColumnDefinitions = ({
     {
       field: "tools",
       headerName: "TOOLS",
-      flex: 1.2,
-      minWidth: 260,
-      maxWidth: 320,
+      flex: 1.0,
+      minWidth: 200,
+      maxWidth: 240,
       sortable: false,
       type: "actions",
       getActions: (params) => [

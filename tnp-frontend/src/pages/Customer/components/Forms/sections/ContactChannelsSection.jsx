@@ -7,6 +7,7 @@
  *
  * Features:
  * - Phone duplicate check with inline warning
+ * - Email format validation on blur
  * - Collapsible secondary phone field
  * - Email and channel fields (optional)
  *
@@ -30,6 +31,9 @@ import { MdAdd, MdRemove, MdEmail, MdPhone } from "react-icons/md";
 import { StyledTextField, FORM_THEME } from "../ui/FormFields";
 import { SectionHeader } from "../ui/SectionHeader";
 
+// Validation
+import { isValidEmail, FIELD_ERROR_MESSAGES } from "../../../constants/validationConstants";
+
 const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
 
 /**
@@ -38,6 +42,7 @@ const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
  * @param {object} inputList - Form data object
  * @param {object} errors - Validation errors
  * @param {function} handleInputChange - Input change handler
+ * @param {function} setErrors - Set validation errors (for real-time validation)
  * @param {string} mode - "create" | "edit" | "view"
  * @param {function} onPhoneBlur - Phone blur handler for duplicate check
  * @param {function} onPhoneChange - Phone change handler to clear duplicate state
@@ -53,6 +58,7 @@ export const ContactChannelsSection = ({
   inputList = {},
   errors = {},
   handleInputChange,
+  setErrors,
   mode = "create",
   onPhoneBlur,
   onPhoneChange,
@@ -67,6 +73,7 @@ export const ContactChannelsSection = ({
   const [showSecondPhone, setShowSecondPhone] = useState(
     showSecondPhoneInitially || !!inputList.cus_tel_2
   );
+  const [emailError, setEmailError] = useState("");
 
   // Determine if phone has error (support both patterns)
   const hasPhoneError = !!errors.cus_tel_1 || !!duplicatePhoneData || isPhoneBlocked;
@@ -99,6 +106,36 @@ export const ContactChannelsSection = ({
     }
     handleInputChange(e);
   };
+
+  // Handle email blur - validate format
+  const handleEmailBlur = (e) => {
+    const email = e.target.value;
+    if (email && email.trim() !== "" && !isValidEmail(email)) {
+      setEmailError(FIELD_ERROR_MESSAGES.cus_email);
+      // Also update parent errors if setErrors is provided
+      if (setErrors) {
+        setErrors((prev) => ({ ...prev, cus_email: FIELD_ERROR_MESSAGES.cus_email }));
+      }
+    }
+  };
+
+  // Handle email change - clear error when user starts typing
+  const handleEmailChange = (e) => {
+    if (emailError) {
+      setEmailError("");
+      // Also clear parent error if setErrors is provided
+      if (setErrors) {
+        setErrors((prev) => {
+          const { cus_email, ...rest } = prev;
+          return rest;
+        });
+      }
+    }
+    handleInputChange(e);
+  };
+
+  // Get email error (local state or from parent errors)
+  const getEmailError = () => emailError || errors.cus_email || "";
 
   return (
     <Box>
@@ -153,14 +190,21 @@ export const ContactChannelsSection = ({
               label="อีเมล"
               type="email"
               value={inputList.cus_email || ""}
-              onChange={handleInputChange}
-              error={!!errors.cus_email}
-              helperText={errors.cus_email}
+              onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
+              error={!!getEmailError()}
+              helperText={getEmailError() || "ตัวอย่าง: example@email.com"}
               placeholder="example@email.com"
               InputProps={{
                 style: { fontFamily: "Kanit", fontSize: 14 },
                 startAdornment: (
-                  <Box sx={{ mr: 1, display: "flex", color: "text.secondary" }}>
+                  <Box
+                    sx={{
+                      mr: 1,
+                      display: "flex",
+                      color: getEmailError() ? "error.main" : "text.secondary",
+                    }}
+                  >
                     <MdEmail size={18} />
                   </Box>
                 ),

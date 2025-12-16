@@ -21,7 +21,7 @@ const DEFAULT_VISIBILITY = {
   cus_allocation_status: true,
   cus_manage_by: true,
   cus_name: true,
-  cus_company: false,
+
   cus_tel_1: true,
   cd_note: true,
   business_type: true,
@@ -46,7 +46,7 @@ const DEFAULT_ORDER = [
   "cus_created_date",
   "tools",
   "cus_no",
-  "cus_company",
+
   "cus_email",
   "cus_address",
 ];
@@ -67,9 +67,12 @@ export const useCustomerTableConfig = (user, scrollToTop) => {
   const [columnVisibilityModel, setColumnVisibilityModel] = useState(DEFAULT_VISIBILITY);
   const [columnOrderModel, setColumnOrderModel] = useState(DEFAULT_ORDER);
 
-  // Media queries for responsive
+  // Media queries for responsive - PC, Notebook, Small screens
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const isExtraSmall = useMediaQuery(theme.breakpoints.down("sm"));
+  // New breakpoints for Notebook screens
+  const isNotebook = useMediaQuery("(min-width: 1200px) and (max-width: 1440px)");
+  const isSmallNotebook = useMediaQuery("(min-width: 1024px) and (max-width: 1200px)");
 
   // Load column preferences from localStorage on mount with v2 migration
   useEffect(() => {
@@ -120,31 +123,47 @@ export const useCustomerTableConfig = (user, scrollToTop) => {
     }
   }, []); // Empty dependency array - run once on mount
 
-  // Responsive column visibility
+  // Responsive column visibility - ซ่อน column ตามขนาดหน้าจอ
   useEffect(() => {
-    const hasSavedPreferences = localStorage.getItem("customerTableColumnVisibility");
+    const hasSavedPreferences = localStorage.getItem("customerTableColumnVisibility_v2");
 
-    if (!hasSavedPreferences) {
-      const responsiveVisibility = {
-        cus_email: false,
-        cus_address: false,
-      };
-
-      if (isSmall) {
-        responsiveVisibility.cus_company = false;
-        responsiveVisibility.cd_note = false;
-      }
-
-      if (isExtraSmall) {
-        responsiveVisibility.cus_channel = false;
-      }
-
-      setColumnVisibilityModel((prev) => ({
-        ...prev,
-        ...responsiveVisibility,
-      }));
+    // ถ้าผู้ใช้บันทึก preferences ไว้แล้วให้ใช้ของผู้ใช้
+    if (hasSavedPreferences) {
+      return;
     }
-  }, [isSmall, isExtraSmall]);
+
+    // ใช้ default visibility ตาม breakpoint
+    const responsiveVisibility = {
+      cus_email: false,
+      cus_address: false,
+    };
+
+    // Small Notebook (1024-1200px) - ซ่อน NOTE, BUSINESS TYPE, CREATED AT
+    if (isSmallNotebook) {
+      responsiveVisibility.cd_note = false;
+      responsiveVisibility.business_type = false;
+      responsiveVisibility.cus_created_date = false;
+    }
+    // Notebook (1200-1440px) - ซ่อน BUSINESS TYPE, CREATED AT
+    else if (isNotebook) {
+      responsiveVisibility.business_type = false;
+      responsiveVisibility.cus_created_date = false;
+    }
+
+    // Mobile/Tablet screens
+    if (isSmall) {
+      responsiveVisibility.cd_note = false;
+    }
+
+    if (isExtraSmall) {
+      responsiveVisibility.cus_channel = false;
+    }
+
+    setColumnVisibilityModel((prev) => ({
+      ...prev,
+      ...responsiveVisibility,
+    }));
+  }, [isSmall, isExtraSmall, isNotebook, isSmallNotebook]);
 
   // Handle sort model change
   const handleSortModelChange = useCallback(

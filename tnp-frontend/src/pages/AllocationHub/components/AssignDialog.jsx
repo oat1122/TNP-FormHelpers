@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from "prop-types";
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +16,7 @@ import {
   ListItem,
   ListItemText,
   Box,
+  Alert,
 } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
 import axios from "axios";
@@ -23,8 +25,13 @@ import { useAssignCustomersMutation } from "../../../features/Customer/customerA
 
 /**
  * AssignDialog - Dialog for assigning customers to sales users with conflict handling
+ *
+ * Filters users by subordinate sub_role based on current user's sub_role:
+ * - HEAD_ONLINE → shows only SALES_ONLINE
+ * - HEAD_OFFLINE → shows only SALES_OFFLINE
+ * - Admin → shows all
  */
-const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
+const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError, userSubRole }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [salesUsers, setSalesUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -34,19 +41,34 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
 
   const [assignCustomers] = useAssignCustomersMutation();
 
-  // Fetch sales users
+  // Determine sub_role_codes to fetch based on current user's sub_role
+  const subRoleCodes = useMemo(() => {
+    if (userSubRole === "HEAD_ONLINE") return "SALES_ONLINE";
+    if (userSubRole === "HEAD_OFFLINE") return "SALES_OFFLINE";
+    // Admin or manager sees all
+    return "SALES_ONLINE,SALES_OFFLINE";
+  }, [userSubRole]);
+
+  // Get label for who can be assigned
+  const getAssignLabel = () => {
+    if (userSubRole === "HEAD_ONLINE") return "เลือกเซลล์ทีม Online";
+    if (userSubRole === "HEAD_OFFLINE") return "เลือกเซลล์ทีม Offline";
+    return "เลือกเซลล์ผู้รับผิดชอบ";
+  };
+
+  // Fetch sales users filtered by sub_role
   useEffect(() => {
     if (open) {
       fetchSalesUsers();
     }
-  }, [open]);
+  }, [open, subRoleCodes]);
 
   const fetchSalesUsers = async () => {
     setLoadingUsers(true);
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/v1/get-users-by-role?role=sale,admin,manager`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/users/by-sub-role?sub_role_codes=${subRoleCodes}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -55,7 +77,7 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
       );
       setSalesUsers(response.data.data || []);
     } catch (error) {
-      console.error("Failed to fetch sales users", error);
+      console.error("Failed to fetch sales users by sub_role", error);
       onError("ไม่สามารถโหลดรายชื่อเซลล์ได้");
     } finally {
       setLoadingUsers(false);
@@ -67,9 +89,9 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
 
     setAssignLoading(true);
     try {
-      const result = await assignCustomers({
+      await assignCustomers({
         customer_ids: selectedIds,
-        sales_user_id: selectedUser.user_uuid,
+        sales_user_id: selectedUser.user_id,
         force: false,
       }).unwrap();
 
@@ -95,7 +117,7 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
     try {
       await assignCustomers({
         customer_ids: selectedIds,
-        sales_user_id: selectedUser.user_uuid,
+        sales_user_id: selectedUser.user_id,
         force: true,
       }).unwrap();
 
@@ -123,6 +145,20 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
     setAssignLoading(false);
   };
 
+  // Format user display name
+  const formatUserName = (user) => {
+    if (!user) return "";
+    const firstName = user.user_firstname || "";
+    const lastName = user.user_lastname || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+    const nickname = user.user_nickname || user.username || "";
+
+    if (fullName && nickname) {
+      return `${fullName} (${nickname})`;
+    }
+    return fullName || nickname || user.username;
+  };
+
   return (
     <>
       {/* Loading Backdrop */}
@@ -143,18 +179,38 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
         aria-labelledby="assign-dialog-title"
       >
         <DialogTitle id="assign-dialog-title">
-          เลือกเซลล์ผู้รับผิดชอบ{" "}
+          {getAssignLabel()}{" "}
           <Chip label={`${selectedIds.length} รายการ`} size="small" color="info" />
         </DialogTitle>
         <DialogContent>
+          {/* Info about filtering */}
+          {userSubRole && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {userSubRole === "HEAD_ONLINE" && "แสดงเฉพาะเซลล์ในทีม Online"}
+              {userSubRole === "HEAD_OFFLINE" && "แสดงเฉพาะเซลล์ในทีม Offline"}
+            </Alert>
+          )}
+
           <Box mt={2}>
             <Autocomplete
               options={salesUsers}
-              getOptionLabel={(opt) => opt.nickname || opt.username}
+              getOptionLabel={formatUserName}
+              renderOption={(props, option) => (
+                <li {...props} key={option.user_id}>
+                  <Box>
+                    <Typography variant="body2">{formatUserName(option)}</Typography>
+                    {option.sub_roles?.length > 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.sub_roles.map((sr) => sr.msr_name).join(", ")}
+                      </Typography>
+                    )}
+                  </Box>
+                </li>
+              )}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="เลือกเซลล์"
+                  label={getAssignLabel()}
                   required
                   inputProps={{
                     ...params.inputProps,
@@ -164,9 +220,10 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
               )}
               value={selectedUser}
               onChange={(e, val) => setSelectedUser(val)}
-              isOptionEqualToValue={(option, value) => option.user_uuid === value.user_uuid}
+              isOptionEqualToValue={(option, value) => option.user_id === value?.user_id}
               loading={loadingUsers}
               disabled={assignLoading}
+              noOptionsText="ไม่พบเซลล์"
             />
           </Box>
         </DialogContent>
@@ -233,6 +290,15 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError }) => {
       </Dialog>
     </>
   );
+};
+
+AssignDialog.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  selectedIds: PropTypes.array.isRequired,
+  onSuccess: PropTypes.func.isRequired,
+  onError: PropTypes.func.isRequired,
+  userSubRole: PropTypes.string,
 };
 
 export default AssignDialog;

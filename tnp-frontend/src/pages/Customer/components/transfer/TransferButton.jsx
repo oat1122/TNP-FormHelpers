@@ -7,17 +7,18 @@ import {
   TRANSFER_ROLES,
   canUserTransfer,
   getTransferButtonConfig,
-  TRANSFER_DIRECTIONS,
 } from "../../constants/customerChannel";
 
 /**
  * TransferButton
  *
  * Smart button component ที่แสดงตาม Role ของ user
- * - Admin: ปุ่มสีม่วง "โอนลูกค้า"
- * - Head Online: ปุ่มสีส้ม "โอนไป Sales"
- * - Head Offline: ปุ่มสีฟ้า "โอนไป Online"
+ * - Admin: ปุ่มสีม่วง "โอนลูกค้า" + ปุ่มประวัติ
+ * - Head Online: ปุ่มสีส้ม "โอนไป Sales" (ไม่มีปุ่มประวัติ)
+ * - Head Offline: ปุ่มสีฟ้า "โอนไป Online" (ไม่มีปุ่มประวัติ)
  * - Other roles: ไม่แสดง
+ *
+ * History button is ADMIN ONLY
  */
 const TransferButton = ({
   userRole,
@@ -25,7 +26,6 @@ const TransferButton = ({
   onTransferClick,
   onHistoryClick,
   disabled = false,
-  showHistory = true,
   size = "small",
   variant = "contained",
 }) => {
@@ -37,6 +37,9 @@ const TransferButton = ({
     () => canUserTransfer(userRole, customerChannel),
     [userRole, customerChannel]
   );
+
+  // History button is ADMIN ONLY
+  const showHistory = userRole === TRANSFER_ROLES.ADMIN;
 
   // Don't render if role can't transfer
   if (!buttonConfig.show) {
@@ -82,8 +85,8 @@ const TransferButton = ({
         </span>
       </Tooltip>
 
-      {/* History Button */}
-      {showHistory && (
+      {/* History Button - ADMIN ONLY */}
+      {showHistory && onHistoryClick && (
         <Tooltip title="ดูประวัติการโอน" arrow>
           <Button
             variant="outlined"
@@ -106,7 +109,6 @@ TransferButton.propTypes = {
   onTransferClick: PropTypes.func.isRequired,
   onHistoryClick: PropTypes.func,
   disabled: PropTypes.bool,
-  showHistory: PropTypes.bool,
   size: PropTypes.oneOf(["small", "medium", "large"]),
   variant: PropTypes.oneOf(["text", "outlined", "contained"]),
 };

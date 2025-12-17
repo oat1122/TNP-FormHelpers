@@ -65,6 +65,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     //---------- Telesales & Allocation (Protected Routes) ----------
     Route::controller(CustomerController::class)->group(function () {
         Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
+        Route::get('/customers/pool/telesales', 'getPoolTelesalesCustomers'); // Pool customers from Telesales
+        Route::get('/customers/pool/transferred', 'getPoolTransferredCustomers'); // Pool customers from transfers
         Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
         
         // Customer Transfer Routes
@@ -132,6 +134,7 @@ Route::prefix('v1')->group(function() {
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
         Route::get("/get-users-by-role", "get_users_by_role");
+        Route::get("/users/by-sub-role", "get_users_by_sub_role");
 
         Route::post("/signup", "signup");
         // Route::post("/login", "login");

@@ -54,6 +54,11 @@ export const customerApi = createApi({
           }
         }
 
+        // Add subordinate_user_ids for HEAD visibility
+        if (payload?.subordinate_user_ids && payload.subordinate_user_ids.length > 0) {
+          params.subordinate_user_ids = payload.subordinate_user_ids.join(",");
+        }
+
         return {
           url: "/customers",
           method: "GET",
@@ -154,6 +159,44 @@ export const customerApi = createApi({
         },
       }),
     }),
+    // Pool Telesales - customers from telesales source
+    getPoolTelesalesCustomers: builder.query({
+      query: (payload) => ({
+        url: "/customers/pool/telesales",
+        method: "GET",
+        params: {
+          page: payload?.page + 1,
+          per_page: payload?.per_page || 30,
+          search: payload?.search,
+        },
+      }),
+      transformResponse: (response) => {
+        if (response.data) {
+          return { ...response, data: ensureRowIds(response.data) };
+        }
+        return response;
+      },
+      providesTags: ["Customer"],
+    }),
+    // Pool Transferred - customers transferred from other teams
+    getPoolTransferredCustomers: builder.query({
+      query: (payload) => ({
+        url: "/customers/pool/transferred",
+        method: "GET",
+        params: {
+          page: payload?.page + 1,
+          per_page: payload?.per_page || 30,
+          channel: payload?.channel, // 1=SALES, 2=ONLINE
+        },
+      }),
+      transformResponse: (response) => {
+        if (response.data) {
+          return { ...response, data: ensureRowIds(response.data) };
+        }
+        return response;
+      },
+      providesTags: ["Customer"],
+    }),
     checkDuplicateCustomer: builder.mutation({
       query: (payload) => ({
         url: `/customers/check-duplicate`,
@@ -209,6 +252,8 @@ export const {
   useChangeGradeMutation,
   useGetPoolCustomersQuery,
   useLazyGetPoolCustomersQuery,
+  useGetPoolTelesalesCustomersQuery,
+  useGetPoolTransferredCustomersQuery,
   useAssignCustomersMutation,
   useGetTelesalesStatsQuery,
   useLazyGetTelesalesStatsQuery,

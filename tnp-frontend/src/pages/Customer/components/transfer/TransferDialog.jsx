@@ -7,17 +7,13 @@ import {
   DialogActions,
   Button,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Typography,
   Box,
   Alert,
   CircularProgress,
   Chip,
 } from "@mui/material";
-import { MdSwapHoriz, MdPerson, MdComment } from "react-icons/md";
+import { MdSwapHoriz, MdComment, MdInfo } from "react-icons/md";
 
 import {
   CUSTOMER_CHANNEL,
@@ -26,16 +22,15 @@ import {
 } from "../../constants/customerChannel";
 
 /**
- * TransferDialog - Generic dialog for customer transfers
+ * TransferDialog - Dialog for customer transfers (always to pool)
  *
- * Consolidates TransferToSalesDialog and TransferToOnlineDialog
- * into a single reusable component with configurable target channel.
+ * Cross-team transfers always go to the target team's pool.
+ * No user selection - the target team's HEAD will assign later.
  *
  * @param {Object} props
  * @param {boolean} props.open - Dialog open state
  * @param {function} props.onClose - Close handler
  * @param {Object} props.customer - Customer data
- * @param {Array} props.usersList - List of users to select as new manager
  * @param {function} props.onSuccess - Success callback
  * @param {number} props.targetChannel - CUSTOMER_CHANNEL.SALES or CUSTOMER_CHANNEL.ONLINE
  * @param {function} props.transferMutation - RTK Query mutation hook result [mutate, { isLoading, error }]
@@ -44,13 +39,11 @@ const TransferDialog = ({
   open,
   onClose,
   customer,
-  usersList = [],
   onSuccess,
   targetChannel,
   transferMutation,
 }) => {
-  // Form state
-  const [selectedUserId, setSelectedUserId] = useState("");
+  // Form state - only remark now (no user selection)
   const [remark, setRemark] = useState("");
 
   // Destructure mutation
@@ -60,28 +53,24 @@ const TransferDialog = ({
   const isToSales = targetChannel === CUSTOMER_CHANNEL.SALES;
   const themeColor = isToSales ? "warning" : "info";
   const titleText = isToSales ? "โอนลูกค้าไปทีม Sales" : "โอนลูกค้าไปทีม Online";
-  const userSelectLabel = isToSales
-    ? "เลือก Sales ที่จะดูแล (ไม่บังคับ)"
-    : "เลือกผู้ดูแลทีม Online (ไม่บังคับ)";
   const placeholderText = isToSales
     ? "เช่น ลูกค้าต้องการพบหน้าร้าน..."
     : "เช่น ลูกค้าต้องการติดต่อผ่าน LINE...";
 
   // Reset form when dialog closes
   const handleClose = useCallback(() => {
-    setSelectedUserId("");
     setRemark("");
     onClose();
   }, [onClose]);
 
-  // Handle transfer
+  // Handle transfer - always to pool (no user selection)
   const handleTransfer = async () => {
     if (!customer?.cus_id) return;
 
     try {
       const result = await transfer({
         customerId: customer.cus_id,
-        newManageBy: selectedUserId || undefined,
+        // No newManageBy - always goes to pool
         remark: remark || undefined,
       }).unwrap();
 
@@ -154,30 +143,16 @@ const TransferDialog = ({
           </Box>
         </Box>
 
-        {/* User Selection */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel id="user-select-label">
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <MdPerson />
-              {userSelectLabel}
-            </Box>
-          </InputLabel>
-          <Select
-            labelId="user-select-label"
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            label={userSelectLabel}
-          >
-            <MenuItem value="">
-              <em>ไม่ระบุ (เข้า Pool)</em>
-            </MenuItem>
-            {usersList.map((user) => (
-              <MenuItem key={user.user_id} value={user.user_id}>
-                {user.user_firstname} {user.user_lastname} ({user.username})
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Pool Info Alert - Replaces user selector */}
+        <Alert severity="info" icon={<MdInfo size={20} />} sx={{ mb: 3, alignItems: "center" }}>
+          <Typography variant="body2">
+            ลูกค้าจะถูกส่งเข้า <strong>Pool ของทีม {getChannelLabelTh(targetChannel)}</strong>
+            <br />
+            <Typography variant="caption" color="text.secondary">
+              หัวหน้าทีมปลายทางจะเป็นผู้มอบหมายผู้ดูแลต่อไป
+            </Typography>
+          </Typography>
+        </Alert>
 
         {/* Remark */}
         <TextField
@@ -225,14 +200,6 @@ TransferDialog.propTypes = {
     cus_company: PropTypes.string,
     cus_channel: PropTypes.number,
   }),
-  usersList: PropTypes.arrayOf(
-    PropTypes.shape({
-      user_id: PropTypes.number,
-      username: PropTypes.string,
-      user_firstname: PropTypes.string,
-      user_lastname: PropTypes.string,
-    })
-  ),
   onSuccess: PropTypes.func,
   targetChannel: PropTypes.number.isRequired,
   transferMutation: PropTypes.array.isRequired,

@@ -8,11 +8,9 @@ import TransferDialog from "./TransferDialog";
 /**
  * TransferToSalesDialog - Wrapper for transferring customers to Sales team
  *
- * This is a thin wrapper around TransferDialog that:
- * - Sets targetChannel to CUSTOMER_CHANNEL.SALES
- * - Uses useTransferToSalesMutation hook
+ * Transfers always go to pool - no user selection needed.
  */
-const TransferToSalesDialog = ({ open, onClose, customer, salesUsers = [], onSuccess }) => {
+const TransferToSalesDialog = ({ open, onClose, customer, onSuccess }) => {
   const transferMutation = useTransferToSalesMutation();
 
   return (
@@ -20,7 +18,6 @@ const TransferToSalesDialog = ({ open, onClose, customer, salesUsers = [], onSuc
       open={open}
       onClose={onClose}
       customer={customer}
-      usersList={salesUsers}
       onSuccess={onSuccess}
       targetChannel={CUSTOMER_CHANNEL.SALES}
       transferMutation={transferMutation}
@@ -37,14 +34,6 @@ TransferToSalesDialog.propTypes = {
     cus_company: PropTypes.string,
     cus_channel: PropTypes.number,
   }),
-  salesUsers: PropTypes.arrayOf(
-    PropTypes.shape({
-      user_id: PropTypes.number,
-      username: PropTypes.string,
-      user_firstname: PropTypes.string,
-      user_lastname: PropTypes.string,
-    })
-  ),
   onSuccess: PropTypes.func,
 };
 

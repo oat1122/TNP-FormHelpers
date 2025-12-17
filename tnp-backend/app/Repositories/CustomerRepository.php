@@ -103,8 +103,37 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->withCount(['customerGroup' => function ($query) use ($user, $filters) {
                 $query->where('cus_is_use', true);
 
+                // Get user's sub_role
+                $user->loadMissing('subRoles');
+                $subRoleCode = $user->subRoles->first()?->msr_code;
+                $isHead = in_array($subRoleCode, ['HEAD_ONLINE', 'HEAD_OFFLINE']);
+                $hasSubordinateFilter = !empty($filters['subordinate_user_ids']);
+
                 // Apply role filter
-                if ($user->role !== 'admin') {
+                if ($user->role === 'admin') {
+                    // Admin sees all
+                } elseif ($isHead && $hasSubordinateFilter) {
+                    // HEAD with subordinate filter - see ALL channels
+                    $userIds = is_array($filters['subordinate_user_ids'])
+                        ? $filters['subordinate_user_ids']
+                        : array_map('trim', explode(',', $filters['subordinate_user_ids']));
+                    $userIds = array_filter(array_map('intval', $userIds));
+                    if (!empty($userIds)) {
+                        $query->whereIn('cus_manage_by', $userIds);
+                    }
+                    // No channel filter - HEAD sees all channels of their subordinates
+                } elseif ($isHead) {
+                    // HEAD without subordinate filter - show only HEAD's OWN assigned customers
+                    $query->where('cus_manage_by', $user->user_id);
+                    
+                    // Also filter by channel
+                    if ($subRoleCode === 'HEAD_ONLINE') {
+                        $query->where('cus_channel', CustomerChannel::ONLINE);
+                    } elseif ($subRoleCode === 'HEAD_OFFLINE') {
+                        $query->where('cus_channel', CustomerChannel::SALES);
+                    }
+                } else {
+                    // Regular users see only their assigned customers
                     $query->where('cus_manage_by', $user->user_id);
                 }
 
@@ -263,6 +292,21 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     }
 
     // ========================================================================
+    // Public Query Builder Methods
+    // ========================================================================
+
+    /**
+     * Get base query builder for custom queries in controller
+     * 
+     * @return Builder
+     */
+    public function getBaseQuery(): Builder
+    {
+        return $this->model->active()
+            ->with(['customerDetail', 'customerProvice', 'customerDistrict', 'customerSubdistrict']);
+    }
+
+    // ========================================================================
     // Protected Helper Methods
     // ========================================================================
 
@@ -299,7 +343,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         }
 
         // Role-based visibility
-        $this->applyRoleFilter($query, $user);
+        $this->applyRoleFilter($query, $user, $filters);
 
         // Search filter
         if (!empty($filters['search'])) {
@@ -338,24 +382,71 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             );
         }
 
+        // Subordinate user IDs filter (for HEAD to see only their subordinates' customers)
+        if (!empty($filters['subordinate_user_ids'])) {
+            $userIds = is_array($filters['subordinate_user_ids'])
+                ? $filters['subordinate_user_ids']
+                : array_map('trim', explode(',', $filters['subordinate_user_ids']));
+            
+            // Convert to integers and filter out empty values
+            $userIds = array_filter(array_map('intval', $userIds));
+            
+            if (!empty($userIds)) {
+                $query->whereIn('cus_manage_by', $userIds);
+            }
+        }
+
         return $query;
     }
 
     /**
      * Apply role-based filtering
+     * 
+     * If subordinate_user_ids are provided in filters, skip individual user filter
+     * as HEADs should see their subordinates' customers instead.
      */
-    protected function applyRoleFilter(Builder $query, User $user): void
+    protected function applyRoleFilter(Builder $query, User $user, array $filters = []): void
     {
-        $visibleChannels = CustomerChannel::getVisibleChannels($user->role);
-
-        if (!empty($visibleChannels)) {
-            // Role has specific channel visibility (head_online, head_offline)
-            $query->whereIn('cus_channel', $visibleChannels);
-        } elseif ($user->role !== 'admin') {
-            // Regular users see only their assigned customers
-            $query->where('cus_manage_by', $user->user_id);
+        // If subordinate_user_ids filter is provided, the HEAD is viewing subordinates' customers
+        // Skip the individual user filter in this case
+        $hasSubordinateFilter = !empty($filters['subordinate_user_ids']);
+        
+        // Get user's sub_role code
+        $user->load('subRoles');
+        $subRoleCode = $user->subRoles->first()?->msr_code;
+        
+        // Check if user is HEAD based on sub_role
+        $isHeadOnline = $subRoleCode === 'HEAD_ONLINE';
+        $isHeadOffline = $subRoleCode === 'HEAD_OFFLINE';
+        $isHead = $isHeadOnline || $isHeadOffline;
+        
+        // Admin sees everything
+        if ($user->role === 'admin') {
+            return;
         }
-        // Admin sees everything - no filter needed
+        
+        // HEAD with subordinate filter - see ALL subordinates' customers (all channels)
+        if ($isHead && $hasSubordinateFilter) {
+            // No channel filter - HEAD sees all channels of their subordinates
+            return;
+        }
+        
+        // HEAD without subordinate filter - show only HEAD's OWN assigned customers
+        if ($isHead) {
+            // Filter by HEAD's own user_id
+            $query->where('cus_manage_by', $user->user_id);
+            
+            // Also filter by channel for HEAD_ONLINE/HEAD_OFFLINE
+            if ($isHeadOnline) {
+                $query->where('cus_channel', CustomerChannel::ONLINE);
+            } elseif ($isHeadOffline) {
+                $query->where('cus_channel', CustomerChannel::SALES);
+            }
+            return;
+        }
+        
+        // Regular users see only their assigned customers
+        $query->where('cus_manage_by', $user->user_id);
     }
 
     /**

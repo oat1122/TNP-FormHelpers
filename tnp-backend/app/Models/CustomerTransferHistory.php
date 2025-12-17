@@ -56,7 +56,7 @@ class CustomerTransferHistory extends Model
         'created_at' => 'datetime'
     ];
 
-    protected $appends = ['previous_channel_label', 'new_channel_label'];
+    protected $appends = ['previous_channel_label', 'new_channel_label', 'previous_manager_name', 'new_manager_name'];
 
     // ─────────────────────────────────────────────────────────────
     // Accessors (Computed Properties)
@@ -76,6 +76,32 @@ class CustomerTransferHistory extends Model
     public function getNewChannelLabelAttribute(): string
     {
         return CustomerChannel::getLabel($this->new_channel);
+    }
+
+    /**
+     * Get previous manager full name
+     */
+    public function getPreviousManagerNameAttribute(): ?string
+    {
+        if (!$this->previousManager) {
+            return null;
+        }
+        $firstName = $this->previousManager->user_firstname ?? '';
+        $lastName = $this->previousManager->user_lastname ?? '';
+        return trim("{$firstName} {$lastName}") ?: $this->previousManager->username;
+    }
+
+    /**
+     * Get new manager full name
+     */
+    public function getNewManagerNameAttribute(): ?string
+    {
+        if (!$this->newManager) {
+            return null;
+        }
+        $firstName = $this->newManager->user_firstname ?? '';
+        $lastName = $this->newManager->user_lastname ?? '';
+        return trim("{$firstName} {$lastName}") ?: $this->newManager->username;
     }
 
     // ─────────────────────────────────────────────────────────────

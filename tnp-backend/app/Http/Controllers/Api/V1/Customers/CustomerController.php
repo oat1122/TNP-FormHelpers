@@ -57,7 +57,8 @@ class CustomerController extends Controller
             $filters = $request->only([
                 'group', 'search', 'start_date', 'end_date',
                 'sales_names', 'channels', 'min_recall_days',
-                'max_recall_days', 'per_page', 'sort_field', 'sort_direction'
+                'max_recall_days', 'per_page', 'sort_field', 'sort_direction',
+                'subordinate_user_ids' // For HEAD to filter by their subordinates
             ]);
 
             $customers = $this->customerRepository->getFiltered($filters, $user);
@@ -296,6 +297,137 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error fetching pool customers: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get pool customers from Telesales source.
+     * GET /api/v1/customers/pool/telesales
+     */
+    public function getPoolTelesalesCustomers(Request $request): JsonResponse
+    {
+        if (!AccountingHelper::canAllocateCustomers()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        try {
+            $perPage = $request->input('per_page', 30);
+            $search = $request->input('search');
+
+            $query = $this->customerRepository->getBaseQuery()
+                ->where('cus_allocation_status', 'pool')
+                ->where('cus_source', 'telesales')
+                ->whereNull('cus_manage_by');
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('cus_name', 'like', "%{$search}%")
+                      ->orWhere('cus_company', 'like', "%{$search}%")
+                      ->orWhere('cus_tel_1', 'like', "%{$search}%")
+                      ->orWhere('cus_no', 'like', "%{$search}%");
+                });
+            }
+
+            $customers = $query->orderByDesc('cus_created_date')->paginate($perPage);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => CustomerResource::collection($customers),
+                'pagination' => [
+                    'current_page' => $customers->currentPage(),
+                    'per_page' => $customers->perPage(),
+                    'total_pages' => $customers->lastPage(),
+                    'total' => $customers->total()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get telesales pool error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get pool customers that were transferred.
+     * GET /api/v1/customers/pool/transferred
+     * 
+     * @param int|null channel Filter by new_channel (1=SALES, 2=ONLINE)
+     */
+    public function getPoolTransferredCustomers(Request $request): JsonResponse
+    {
+        if (!AccountingHelper::canAllocateCustomers()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        try {
+            $perPage = $request->input('per_page', 30);
+            $channel = $request->input('channel'); // 1=SALES, 2=ONLINE
+
+            // Get customer IDs that have transfer history
+            $transferredCustomerIds = \App\Models\CustomerTransferHistory::query()
+                ->when($channel, function ($q) use ($channel) {
+                    $q->where('new_channel', $channel);
+                })
+                ->distinct()
+                ->pluck('customer_id');
+
+            $query = $this->customerRepository->getBaseQuery()
+                ->where('cus_allocation_status', 'pool')
+                ->whereNull('cus_manage_by')
+                ->whereIn('cus_id', $transferredCustomerIds);
+
+            // Add transfer info to each customer
+            $customers = $query->orderByDesc('cus_created_date')->paginate($perPage);
+
+            // Attach latest transfer info
+            $customersWithTransfer = $customers->getCollection()->map(function ($customer) {
+                $latestTransfer = \App\Models\CustomerTransferHistory::forCustomer($customer->cus_id)
+                    ->with(['previousManager', 'newManager', 'actionBy'])
+                    ->latestFirst()
+                    ->first();
+
+                $customer->latest_transfer = $latestTransfer ? [
+                    'previous_channel' => $latestTransfer->previous_channel,
+                    'previous_channel_label' => $latestTransfer->previous_channel_label,
+                    'previous_manager_name' => $latestTransfer->previous_manager_name,
+                    'new_channel' => $latestTransfer->new_channel,
+                    'new_channel_label' => $latestTransfer->new_channel_label,
+                    'transferred_at' => $latestTransfer->created_at,
+                    'action_by' => $latestTransfer->actionBy ? [
+                        'user_id' => $latestTransfer->actionBy->user_id,
+                        'username' => $latestTransfer->actionBy->username,
+                    ] : null,
+                ] : null;
+
+                return $customer;
+            });
+
+            $customers->setCollection($customersWithTransfer);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => CustomerResource::collection($customers),
+                'pagination' => [
+                    'current_page' => $customers->currentPage(),
+                    'per_page' => $customers->perPage(),
+                    'total_pages' => $customers->lastPage(),
+                    'total' => $customers->total()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get transferred pool error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }

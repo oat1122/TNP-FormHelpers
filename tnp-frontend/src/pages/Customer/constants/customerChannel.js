@@ -47,11 +47,36 @@ export const TRANSFER_DIRECTIONS = {
   TO_ONLINE: "to_online",
 };
 
-// Roles that can transfer
+// Roles that can transfer (matches sub_role.msr_code from database)
 export const TRANSFER_ROLES = {
-  ADMIN: "admin",
-  HEAD_ONLINE: "head_online",
-  HEAD_OFFLINE: "head_offline",
+  ADMIN: "admin", // user.role === 'admin'
+  HEAD_ONLINE: "HEAD_ONLINE", // sub_roles[].msr_code === 'HEAD_ONLINE'
+  HEAD_OFFLINE: "HEAD_OFFLINE", // sub_roles[].msr_code === 'HEAD_OFFLINE'
+};
+
+/**
+ * Get effective role for transfer permissions
+ * Checks sub_roles first (HEAD_ONLINE, HEAD_OFFLINE), then falls back to user.role
+ *
+ * @param {Object} userData - User data from localStorage
+ * @returns {string} Effective role for transfer logic
+ */
+export const getEffectiveRole = (userData) => {
+  if (!userData) return null;
+
+  // Priority 1: Check if user is admin
+  if (userData.role === "admin") return TRANSFER_ROLES.ADMIN;
+
+  // Priority 2: Check sub_roles for HEAD status
+  const subRoles = userData.sub_roles || [];
+  for (const sr of subRoles) {
+    const code = sr.msr_code?.toUpperCase();
+    if (code === "HEAD_ONLINE") return TRANSFER_ROLES.HEAD_ONLINE;
+    if (code === "HEAD_OFFLINE") return TRANSFER_ROLES.HEAD_OFFLINE;
+  }
+
+  // Fallback to regular role
+  return userData.role;
 };
 
 // Helper Functions

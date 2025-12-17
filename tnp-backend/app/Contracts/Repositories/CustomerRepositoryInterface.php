@@ -88,4 +88,11 @@ interface CustomerRepositoryInterface extends BaseRepositoryInterface
      * @return Collection
      */
     public function checkDuplicate(string $type, string $value): Collection;
+
+    /**
+     * Get base query builder for custom queries
+     * 
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getBaseQuery(): \Illuminate\Database\Eloquent\Builder;
 }

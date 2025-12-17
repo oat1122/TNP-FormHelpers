@@ -21,7 +21,7 @@ import {
   TimelineDot,
   TimelineOppositeContent,
 } from "@mui/lab";
-import { MdClose, MdHistory, MdSwapHoriz } from "react-icons/md";
+import { MdClose, MdHistory, MdSwapHoriz, MdPerson, MdPersonOutline } from "react-icons/md";
 import moment from "moment";
 import "moment/locale/th";
 
@@ -35,7 +35,10 @@ moment.locale("th");
  * TransferHistoryDialog
  *
  * Dialog แสดงประวัติการโอนย้ายลูกค้า
- * แสดงเป็น Timeline พร้อมรายละเอียด
+ * แสดงเป็น Timeline พร้อมรายละเอียด:
+ * - ใครดูแล (previous_manager_name → new_manager_name)
+ * - เมื่อไหร่
+ * - Channel ไหน
  */
 const TransferHistoryDialog = ({ open, onClose, customerId, customerName }) => {
   // Fetch transfer history
@@ -106,7 +109,7 @@ const TransferHistoryDialog = ({ open, onClose, customerId, customerName }) => {
             {historyData.map((item, index) => (
               <TimelineItem key={item.id}>
                 <TimelineOppositeContent sx={{ flex: 0.3, py: 1.5 }} color="text.secondary">
-                  <Typography variant="caption" display="block">
+                  <Typography variant="caption" display="block" fontWeight="bold">
                     {moment(item.created_at).format("D MMM YY")}
                   </Typography>
                   <Typography variant="caption" display="block">
@@ -142,6 +145,33 @@ const TransferHistoryDialog = ({ open, onClose, customerId, customerName }) => {
                     />
                   </Box>
 
+                  {/* Manager Change */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1,
+                      p: 1,
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <MdPersonOutline size={14} />
+                      <Typography variant="caption" color="text.secondary">
+                        {item.previous_manager_name || "Pool"}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption">→</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <MdPerson size={14} />
+                      <Typography variant="caption" fontWeight="bold">
+                        {item.new_manager_name || "Pool"}
+                      </Typography>
+                    </Box>
+                  </Box>
+
                   {/* Action By */}
                   <Typography variant="caption" color="text.secondary" display="block">
                     โดย:{" "}
@@ -157,13 +187,13 @@ const TransferHistoryDialog = ({ open, onClose, customerId, customerName }) => {
                       sx={{
                         mt: 1,
                         p: 1,
-                        bgcolor: "grey.50",
+                        bgcolor: "info.50",
                         borderRadius: 1,
                         borderLeft: "3px solid",
-                        borderColor: "grey.300",
+                        borderColor: "info.main",
                       }}
                     >
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" fontStyle="italic">
                         "{item.remark}"
                       </Typography>
                     </Box>

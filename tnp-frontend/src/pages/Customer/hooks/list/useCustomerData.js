@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import axiosInstance from "../../../../api/axios";
 
 import { useGetAllCustomerQuery } from "../../../../features/Customer/customerApi";
 import {
@@ -10,14 +11,44 @@ import {
 import { open_dialog_error } from "../../../../utils/import_lib";
 
 /**
+ * Get subordinate sub_role code based on HEAD user's sub_role
+ */
+const getSubordinateSubRoleCode = (userSubRole) => {
+  if (userSubRole === "HEAD_ONLINE") return "SALES_ONLINE";
+  if (userSubRole === "HEAD_OFFLINE") return "SALES_OFFLINE";
+  return null;
+};
+
+/**
+ * Check if user is a HEAD
+ */
+const isHeadUser = (subRoleCode) => {
+  return subRoleCode === "HEAD_ONLINE" || subRoleCode === "HEAD_OFFLINE";
+};
+
+/**
  * Hook สำหรับจัดการ Data Fetching และ Redux Sync
+ *
+ * For HEAD users:
+ * - viewMode = "my" → see only their own assigned customers
+ * - viewMode = "team" → see their subordinates' customers
+ *
  * @param {Array} serverSortModel - Sort model จาก useCustomerTableConfig
  * @param {Function} scrollToTop - Function สำหรับ scroll ไปด้านบน
+ * @param {string} viewMode - "my" | "team" (for HEAD users)
  * @returns {Object} Data states และ methods
  */
-export const useCustomerData = (serverSortModel, scrollToTop) => {
+export const useCustomerData = (serverSortModel, scrollToTop, viewMode = "my") => {
   const dispatch = useDispatch();
   const user = JSON.parse(localStorage.getItem("userData"));
+
+  // Extract user's sub_role
+  const userSubRole = useMemo(() => {
+    return user?.sub_roles?.[0]?.msr_code || null;
+  }, [user]);
+
+  // Check if user is HEAD
+  const isHead = useMemo(() => isHeadUser(userSubRole), [userSubRole]);
 
   // Selectors from Redux
   const itemList = useSelector((state) => state.customer.itemList);
@@ -29,6 +60,42 @@ export const useCustomerData = (serverSortModel, scrollToTop) => {
 
   // Local state
   const [totalItems, setTotalItems] = useState(0);
+  const [subordinateUserIds, setSubordinateUserIds] = useState([]);
+  const [subordinatesLoaded, setSubordinatesLoaded] = useState(false);
+
+  // Fetch subordinate user IDs for HEAD users
+  useEffect(() => {
+    const fetchSubordinates = async () => {
+      const subordinateSubRole = getSubordinateSubRoleCode(userSubRole);
+
+      // Only HEAD users need to fetch subordinates
+      if (!subordinateSubRole) {
+        setSubordinatesLoaded(true);
+        return;
+      }
+
+      try {
+        const response = await axiosInstance.get(
+          `/users/by-sub-role?sub_role_codes=${subordinateSubRole}`
+        );
+
+        const ids = response.data?.data?.map((u) => u.user_id) || [];
+        setSubordinateUserIds(ids);
+      } catch (error) {
+        console.error("Failed to fetch subordinate users:", error);
+        setSubordinateUserIds([]);
+      } finally {
+        setSubordinatesLoaded(true);
+      }
+    };
+
+    // Only fetch if user is a HEAD
+    if (isHead) {
+      fetchSubordinates();
+    } else {
+      setSubordinatesLoaded(true);
+    }
+  }, [userSubRole, isHead]);
 
   // API Query with role-based filtering
   const queryPayload = useMemo(() => {
@@ -42,15 +109,45 @@ export const useCustomerData = (serverSortModel, scrollToTop) => {
       sortModel: serverSortModel,
     };
 
-    // Sales users only see their assigned customers
-    if (user.role === "sale") {
+    // Sales users (non-HEAD) only see their assigned customers
+    if (user.role === "sale" && !isHead) {
       basePayload.user_id = user.user_id;
     }
 
-    return basePayload;
-  }, [groupSelected, paginationModel, user, keyword, filters, serverSortModel]);
+    // HEAD users - check view mode
+    if (isHead && subordinateUserIds.length > 0) {
+      if (viewMode === "team") {
+        // Team mode: see subordinates' customers
+        basePayload.subordinate_user_ids = subordinateUserIds;
+      }
+      // "my" mode: no subordinate_user_ids, will filter by user_id in backend
+    }
 
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery(queryPayload);
+    return basePayload;
+  }, [
+    groupSelected,
+    paginationModel,
+    user,
+    keyword,
+    filters,
+    serverSortModel,
+    userSubRole,
+    subordinateUserIds,
+    viewMode,
+    isHead,
+  ]);
+
+  // Skip query until subordinates are loaded for HEAD users in team mode
+  const shouldSkipQuery = useMemo(() => {
+    if (isHead && viewMode === "team") {
+      return !subordinatesLoaded;
+    }
+    return false;
+  }, [isHead, subordinatesLoaded, viewMode]);
+
+  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery(queryPayload, {
+    skip: shouldSkipQuery,
+  });
 
   // Handle API response
   useEffect(() => {
@@ -104,11 +201,14 @@ export const useCustomerData = (serverSortModel, scrollToTop) => {
   return {
     validRows,
     totalItems,
-    isFetching,
-    isLoading,
+    isFetching: isFetching || (!subordinatesLoaded && isHead && viewMode === "team"),
+    isLoading: isLoading || (!subordinatesLoaded && isHead && viewMode === "team"),
     refetch,
     paginationModel,
     filters,
     groupSelected,
+    userSubRole,
+    isHead,
+    subordinateUserIds,
   };
 };

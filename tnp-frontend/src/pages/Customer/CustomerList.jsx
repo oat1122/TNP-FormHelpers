@@ -1,6 +1,7 @@
-import { Box, Button, useTheme, useMediaQuery, Pagination } from "@mui/material";
-import React, { useState, useEffect, useRef } from "react";
+import { Box, Button, useTheme, useMediaQuery, Pagination, Tabs, Tab } from "@mui/material";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { RiAddLargeFill } from "react-icons/ri";
+import { MdPerson, MdGroup } from "react-icons/md";
 import { useDispatch } from "react-redux";
 
 // Common components
@@ -44,6 +45,15 @@ function CustomerList() {
   // User data
   const user = JSON.parse(localStorage.getItem("userData"));
 
+  // Check if user is HEAD
+  const userSubRole = useMemo(() => {
+    return user?.sub_roles?.[0]?.msr_code || null;
+  }, [user]);
+  const isHead = userSubRole === "HEAD_ONLINE" || userSubRole === "HEAD_OFFLINE";
+
+  // View mode for HEAD users: "my" = own customers, "team" = team's customers
+  const [viewMode, setViewMode] = useState("my");
+
   // Local state for dialogs
   const [openDialog, setOpenDialog] = useState(false);
   const [quickFormOpen, setQuickFormOpen] = useState(false);
@@ -52,6 +62,7 @@ function CustomerList() {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const previousGroupRef = useRef(null);
   const previousFiltersRef = useRef(null);
+  const previousViewModeRef = useRef(viewMode);
 
   // 1. Hook: Scroll management
   const { tableContainerRef, scrollToTop } = useScrollToTop();
@@ -66,7 +77,7 @@ function CustomerList() {
     handleColumnOrderChange,
   } = useCustomerTableConfig(user, scrollToTop);
 
-  // 3. Hook: Data Fetching (API, Redux Sync, Rows)
+  // 3. Hook: Data Fetching (API, Redux Sync, Rows) - pass viewMode for HEAD
   const {
     validRows,
     totalItems,
@@ -76,7 +87,8 @@ function CustomerList() {
     paginationModel,
     filters,
     groupSelected,
-  } = useCustomerData(serverSortModel, scrollToTop);
+    isHead: isHeadFromHook,
+  } = useCustomerData(serverSortModel, scrollToTop, viewMode);
 
   // 4. Hook: Actions (Delete, Dialogs, etc.)
   const {
@@ -214,6 +226,39 @@ function CustomerList() {
             paddingBlock: 3,
           }}
         >
+          {/* HEAD User View Mode Tabs */}
+          {isHead && (
+            <Box sx={{ mb: 2 }}>
+              <Tabs
+                value={viewMode}
+                onChange={(e, newValue) => {
+                  setViewMode(newValue);
+                  setShowSkeleton(true);
+                }}
+                sx={{
+                  "& .MuiTabs-indicator": {
+                    height: 3,
+                  },
+                }}
+              >
+                <Tab
+                  value="my"
+                  icon={<MdPerson size={18} />}
+                  iconPosition="start"
+                  label="ลูกค้าตัวเอง"
+                  sx={{ minHeight: 48 }}
+                />
+                <Tab
+                  value="team"
+                  icon={<MdGroup size={18} />}
+                  iconPosition="start"
+                  label="ลูกค้าในทีม"
+                  sx={{ minHeight: 48 }}
+                />
+              </Tabs>
+            </Box>
+          )}
+
           {/* Top Controls */}
           <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2, gap: 1 }}>
             {(user.role === "sale" || user.role === "admin") && (

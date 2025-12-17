@@ -8,11 +8,9 @@ import TransferDialog from "./TransferDialog";
 /**
  * TransferToOnlineDialog - Wrapper for transferring customers to Online team
  *
- * This is a thin wrapper around TransferDialog that:
- * - Sets targetChannel to CUSTOMER_CHANNEL.ONLINE
- * - Uses useTransferToOnlineMutation hook
+ * Transfers always go to pool - no user selection needed.
  */
-const TransferToOnlineDialog = ({ open, onClose, customer, onlineUsers = [], onSuccess }) => {
+const TransferToOnlineDialog = ({ open, onClose, customer, onSuccess }) => {
   const transferMutation = useTransferToOnlineMutation();
 
   return (
@@ -20,7 +18,6 @@ const TransferToOnlineDialog = ({ open, onClose, customer, onlineUsers = [], onS
       open={open}
       onClose={onClose}
       customer={customer}
-      usersList={onlineUsers}
       onSuccess={onSuccess}
       targetChannel={CUSTOMER_CHANNEL.ONLINE}
       transferMutation={transferMutation}
@@ -37,14 +34,6 @@ TransferToOnlineDialog.propTypes = {
     cus_company: PropTypes.string,
     cus_channel: PropTypes.number,
   }),
-  onlineUsers: PropTypes.arrayOf(
-    PropTypes.shape({
-      user_id: PropTypes.number,
-      username: PropTypes.string,
-      user_firstname: PropTypes.string,
-      user_lastname: PropTypes.string,
-    })
-  ),
   onSuccess: PropTypes.func,
 };
 

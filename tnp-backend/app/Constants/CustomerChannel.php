@@ -35,6 +35,36 @@ class CustomerChannel
         'head_offline' => ['from' => self::SALES, 'to' => self::ONLINE],
     ];
 
+    // Sub Role Code → Channel Mapping
+    public const SUB_ROLE_CHANNEL = [
+        'HEAD_ONLINE' => self::ONLINE,
+        'HEAD_OFFLINE' => self::SALES,
+        'SALES_ONLINE' => self::ONLINE,
+        'SALES_OFFLINE' => self::SALES,
+    ];
+
+    // Sub Role Code → Subordinate Sub Role Mapping
+    public const HEAD_SUBORDINATES = [
+        'HEAD_ONLINE' => 'SALES_ONLINE',
+        'HEAD_OFFLINE' => 'SALES_OFFLINE',
+    ];
+
+    /**
+     * Get channel by sub_role code
+     */
+    public static function getChannelBySubRole(string $subRoleCode): ?int
+    {
+        return self::SUB_ROLE_CHANNEL[strtoupper($subRoleCode)] ?? null;
+    }
+
+    /**
+     * Get subordinate sub_role code for a HEAD sub_role
+     */
+    public static function getSubordinateSubRole(string $headSubRole): ?string
+    {
+        return self::HEAD_SUBORDINATES[strtoupper($headSubRole)] ?? null;
+    }
+
     /**
      * Get label for channel
      */

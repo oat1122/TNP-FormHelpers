@@ -19,9 +19,11 @@ import {
   Alert,
 } from "@mui/material";
 import { Warning as WarningIcon } from "@mui/icons-material";
-import axios from "axios";
 
-import { useAssignCustomersMutation } from "../../../features/Customer/customerApi";
+import {
+  useAssignCustomersMutation,
+  useGetSalesBySubRoleQuery,
+} from "../../../features/Customer/customerApi";
 
 /**
  * AssignDialog - Dialog for assigning customers to sales users with conflict handling
@@ -33,8 +35,6 @@ import { useAssignCustomersMutation } from "../../../features/Customer/customerA
  */
 const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError, userSubRole }) => {
   const [selectedUser, setSelectedUser] = useState(null);
-  const [salesUsers, setSalesUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [conflictData, setConflictData] = useState(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
@@ -49,39 +49,28 @@ const AssignDialog = ({ open, onClose, selectedIds, onSuccess, onError, userSubR
     return "SALES_ONLINE,SALES_OFFLINE";
   }, [userSubRole]);
 
+  // Fetch sales users using RTK Query - skip when dialog is closed
+  const {
+    data: salesData,
+    isLoading: loadingUsers,
+    error: salesError,
+  } = useGetSalesBySubRoleQuery(subRoleCodes, { skip: !open });
+
+  const salesUsers = salesData?.data || [];
+
+  // Handle sales fetch error
+  useEffect(() => {
+    if (salesError) {
+      console.error("Failed to fetch sales users by sub_role", salesError);
+      onError("ไม่สามารถโหลดรายชื่อเซลล์ได้");
+    }
+  }, [salesError, onError]);
+
   // Get label for who can be assigned
   const getAssignLabel = () => {
     if (userSubRole === "HEAD_ONLINE") return "เลือกเซลล์ทีม Online";
     if (userSubRole === "HEAD_OFFLINE") return "เลือกเซลล์ทีม Offline";
     return "เลือกเซลล์ผู้รับผิดชอบ";
-  };
-
-  // Fetch sales users filtered by sub_role
-  useEffect(() => {
-    if (open) {
-      fetchSalesUsers();
-    }
-  }, [open, subRoleCodes]);
-
-  const fetchSalesUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/v1/users/by-sub-role?sub_role_codes=${subRoleCodes}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setSalesUsers(response.data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch sales users by sub_role", error);
-      onError("ไม่สามารถโหลดรายชื่อเซลล์ได้");
-    } finally {
-      setLoadingUsers(false);
-    }
   };
 
   const handleConfirmAssign = async () => {

@@ -65,6 +65,8 @@ class CustomerResource extends JsonResource
             'sales_name' => $this->cus_manage_by ? $this->cusManageBy?->username : '',
             'province_sort_id' => $this->customerDistrict?->dis_pro_sort_id ?? '',
             'district_sort_id' => $this->customerSubdistrict?->sub_dis_sort_id ?? '',
+            // Transfer info (dynamically attached by CustomerTransferService)
+            'latest_transfer' => $this->latest_transfer ?? null,
         ];
     }
 

@@ -207,6 +207,16 @@ export const customerApi = createApi({
         },
       }),
     }),
+    // Sales users by sub_role - for AssignDialog
+    getSalesBySubRole: builder.query({
+      query: (subRoleCodes) => ({
+        url: "/users/by-sub-role",
+        method: "GET",
+        params: {
+          sub_role_codes: subRoleCodes,
+        },
+      }),
+    }),
     // Group counts endpoint (moved from useFilterGroupCounts hook)
     getCustomerGroupCounts: builder.query({
       query: (payload) => {
@@ -259,4 +269,5 @@ export const {
   useLazyGetTelesalesStatsQuery,
   useCheckDuplicateCustomerMutation,
   useGetCustomerGroupCountsQuery,
+  useGetSalesBySubRoleQuery,
 } = customerApi;

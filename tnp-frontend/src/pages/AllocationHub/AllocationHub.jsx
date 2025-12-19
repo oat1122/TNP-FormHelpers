@@ -18,7 +18,6 @@ import {
 } from "@mui/icons-material";
 
 import PoolCustomersTable from "./components/PoolCustomersTable";
-import PoolFilters from "./components/PoolFilters";
 import AssignDialog from "./components/AssignDialog";
 import {
   useGetPoolTelesalesCustomersQuery,
@@ -210,13 +209,6 @@ const AllocationHub = () => {
           />
         </Tabs>
       </Paper>
-
-      {/* Filters - only show for Telesales tab */}
-      {activeTab === 0 && (
-        <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-          <PoolFilters filters={filters} onFiltersChange={setFilters} />
-        </Paper>
-      )}
 
       {/* Pool Customers Table */}
       <Paper elevation={2} sx={{ p: 2 }}>

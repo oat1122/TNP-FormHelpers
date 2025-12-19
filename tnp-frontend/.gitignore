@@ -133,3 +133,7 @@ dist
 
 
 .eslintcache
+
+# Vite temporary config files
+
+.timestamp-.mjs

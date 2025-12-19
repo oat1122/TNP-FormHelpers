@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { Box, Chip, Typography, Fab, Badge, useTheme, useMediaQuery } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 import { PersonAdd as PersonAddIcon } from "@mui/icons-material";
 import dayjs from "dayjs";
 
 import PoolEmptyState from "./PoolEmptyState";
+import { DataGridWithRowIdFix } from "../../Customer/components/DataDisplay";
 import { getSourceDisplayName, getSourceColor } from "../../../features/Customer/customerUtils";
 import { getChannelLabelTh, getChannelColor } from "../../Customer/constants/customerChannel";
 
@@ -40,19 +40,34 @@ const PoolCustomersTable = ({
       {
         field: "cus_name",
         headerName: "ชื่อ",
-        width: 180,
+        flex: 0.8,
+        minWidth: 160,
         sortable: false,
         renderCell: (params) => {
           const fullName = params.value;
           const company = params.row.cus_company || "";
 
           return (
-            <Box>
-              <Typography variant="body2" fontWeight="bold">
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                height: "100%",
+                overflow: "hidden",
+              }}
+            >
+              <Typography variant="body2" fontWeight="bold" noWrap title={fullName}>
                 {fullName}
               </Typography>
               {company && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                  title={company}
+                  sx={{ lineHeight: 1.2 }}
+                >
                   {company}
                 </Typography>
               )}
@@ -103,7 +118,8 @@ const PoolCustomersTable = ({
         {
           field: "previous_manager",
           headerName: "เจ้าของเดิม",
-          width: 150,
+          flex: 1,
+          minWidth: 150,
           sortable: false,
           renderCell: (params) => {
             const transfer = params.row.latest_transfer;
@@ -199,7 +215,7 @@ const PoolCustomersTable = ({
 
   return (
     <Box position="relative">
-      <DataGrid
+      <DataGridWithRowIdFix
         rows={rows}
         columns={columns}
         loading={isLoading}
@@ -212,15 +228,6 @@ const PoolCustomersTable = ({
         pageSizeOptions={[30, 50, 100]}
         rowSelectionModel={selectedIds}
         onRowSelectionModelChange={onSelectedIdsChange}
-        sx={{
-          minHeight: 400,
-          "& .MuiDataGrid-cell:focus": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-row:hover": {
-            backgroundColor: theme.palette.action.hover,
-          },
-        }}
         aria-label={isTransferredMode ? "ตารางลูกค้าที่ถูกโยน" : "ตารางลูกค้าจาก Telesales"}
         localeText={{
           noRowsLabel: "ไม่มีข้อมูล",
@@ -245,11 +252,7 @@ const PoolCustomersTable = ({
         onClick={onAssignClick}
         aria-label={`จัดสรรลูกค้า ${selectedIds.length} รายการ`}
       >
-        <Badge
-          badgeContent={selectedIds.length}
-          color="secondary"
-          sx={{ position: "absolute", top: -8, right: -8 }}
-        >
+        <Badge badgeContent={selectedIds.length} color="secondary">
           <PersonAddIcon />
         </Badge>
       </Fab>

@@ -76,8 +76,11 @@ class CustomerService
             // Set manager based on allocation status
             if ($customer->cus_allocation_status === 'pool') {
                 $customer->cus_manage_by = null;
+                // For telesales, track who added the customer to pool
+                $customer->cus_allocated_by = $data['cus_allocated_by'] ?? Auth::id();
             } else {
                 $customer->cus_manage_by = $this->extractManagerId($data['cus_manage_by'] ?? null);
+                $customer->cus_allocated_by = Auth::id();
             }
             
             $customer->cus_created_date = now();

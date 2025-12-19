@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import { useAddCustomerMutation } from "../../../../features/Customer/customerApi";
 import { useGetAllBusinessTypesQuery } from "../../../../features/globalApi";
 
@@ -289,6 +290,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         is_possible_duplicate: hasDuplicateWarning,
       }).unwrap();
 
+      toast.success("สร้างลูกค้าสำเร็จ");
       onClose();
       resetForm();
     } catch (error) {
@@ -316,6 +318,8 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         cus_allocated_by: user.user_id,
         is_possible_duplicate: hasDuplicateWarning,
       }).unwrap();
+
+      toast.success("สร้างลูกค้าสำเร็จ");
 
       // Optimistic reset
       setTimeout(() => {

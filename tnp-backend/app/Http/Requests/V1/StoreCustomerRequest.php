@@ -66,6 +66,7 @@ class StoreCustomerRequest extends FormRequest
             'cus_source' => ['nullable', Rule::in(['sales', 'telesales', 'online', 'office'])],
             'cus_allocation_status' => ['nullable', Rule::in(['pool', 'allocated'])],
             'cus_manage_by' => ['nullable'], // Can be object or integer
+            'cus_allocated_by' => ['nullable', 'integer'], // User ID who allocated (for telesales)
         ];
     }
 

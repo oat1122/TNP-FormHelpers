@@ -135,5 +135,6 @@ dist
 .eslintcache
 
 # Vite temporary config files
-
-.timestamp-.mjs
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+*.timestamp-*.mjs

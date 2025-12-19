@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogActions,
   TextField,
   Grid,
   Alert,
@@ -26,7 +27,7 @@ import { SectionHeader } from "./ui/SectionHeader";
 import { StyledTextField, FORM_THEME } from "./ui/FormFields";
 
 // Layout Components
-import { DialogHeader, DialogActionsBar } from "./layout";
+import { DialogHeader } from "./layout";
 
 // Section Components
 import { ContactPersonSection, ContactChannelsSection, AddressSection } from "./sections";
@@ -211,18 +212,6 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
             />
           </Grid>
 
-          {/* Channel - kept inline due to unique channelMap usage */}
-          <Grid item xs={12} sm={6}>
-            <StyledTextField
-              mode="create"
-              name="cus_channel"
-              label="ช่องทาง"
-              value="1"
-              disabled
-              helperText="Telesales (Auto)"
-            />
-          </Grid>
-
           {/* Company */}
           <Grid item xs={12}>
             <StyledTextField
@@ -362,15 +351,44 @@ const TelesalesQuickCreateForm = ({ open, onClose }) => {
         </Grid>
       </DialogContent>
 
-      {/* Action Buttons */}
-      <DialogActionsBar
-        mode="create"
-        onClose={handleClose}
-        onSave={handleSaveAndNew}
-        saveLoading={isLoading}
-        saveDisabled={isPhoneBlocked}
-        showSaveAndNew={true}
-      />
+      {/* Action Buttons - Custom 3 buttons for Telesales */}
+      <DialogActions
+        sx={{
+          borderTop: "1px solid #e0e0e0",
+          backgroundColor: "#fff",
+          p: { xs: 1.5, sm: 2 },
+          justifyContent: "space-between",
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          gap: { xs: 1, sm: 1 },
+        }}
+      >
+        {/* Cancel Button */}
+        <Button
+          variant="outlined"
+          color="error"
+          disabled={isLoading}
+          onClick={handleClose}
+          sx={{ minWidth: { xs: "100%", sm: "120px" }, fontFamily: "Kanit" }}
+        >
+          ยกเลิก
+        </Button>
+
+        {/* Save Button */}
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={isLoading || isPhoneBlocked}
+          sx={{
+            backgroundColor: isPhoneBlocked ? "#888" : FORM_THEME.PRIMARY_RED,
+            "&:hover": { backgroundColor: isPhoneBlocked ? "#888" : FORM_THEME.SECONDARY_RED },
+            minWidth: { xs: "100%", sm: "140px" },
+            fontFamily: "Kanit",
+            fontWeight: 600,
+          }}
+        >
+          {isLoading ? "กำลังบันทึก..." : isPhoneBlocked ? "เบอร์ซ้ำ" : "บันทึก"}
+        </Button>
+      </DialogActions>
 
       {/* Duplicate Phone Dialog */}
       <MuiDialog open={duplicateDialogOpen} maxWidth="sm" fullWidth disableEscapeKeyDown>

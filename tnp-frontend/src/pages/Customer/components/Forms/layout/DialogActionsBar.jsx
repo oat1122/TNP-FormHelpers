@@ -87,7 +87,8 @@ export const DialogActionsBar = ({
       {/* Transfer Buttons - View mode only */}
       {isViewMode && transferConfig?.show && (
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {transferConfig.onHistory && (
+          {/* History button - Admin only */}
+          {transferConfig.isAdmin && transferConfig.onHistory && (
             <Tooltip title="ดูประวัติการโอน">
               <Button
                 variant="outlined"

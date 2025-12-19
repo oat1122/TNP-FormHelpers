@@ -64,9 +64,13 @@ class CustomerTransferHistory extends Model
 
     /**
      * Get previous channel label
+     * Returns "สร้างใหม่" if previous_channel is null (creation event)
      */
     public function getPreviousChannelLabelAttribute(): string
     {
+        if ($this->previous_channel === null) {
+            return 'สร้างใหม่';
+        }
         return CustomerChannel::getLabel($this->previous_channel);
     }
 
@@ -86,9 +90,7 @@ class CustomerTransferHistory extends Model
         if (!$this->previousManager) {
             return null;
         }
-        $firstName = $this->previousManager->user_firstname ?? '';
-        $lastName = $this->previousManager->user_lastname ?? '';
-        return trim("{$firstName} {$lastName}") ?: $this->previousManager->username;
+        return $this->formatManagerName($this->previousManager);
     }
 
     /**
@@ -99,9 +101,29 @@ class CustomerTransferHistory extends Model
         if (!$this->newManager) {
             return null;
         }
-        $firstName = $this->newManager->user_firstname ?? '';
-        $lastName = $this->newManager->user_lastname ?? '';
-        return trim("{$firstName} {$lastName}") ?: $this->newManager->username;
+        return $this->formatManagerName($this->newManager);
+    }
+
+    /**
+     * Format manager name: firstname lastname(nickname)
+     */
+    private function formatManagerName($user): string
+    {
+        $firstName = $user->user_firstname ?? '';
+        $lastName = $user->user_lastname ?? '';
+        $nickname = $user->user_nickname ?? '';
+        
+        $fullName = trim("{$firstName} {$lastName}");
+        
+        if (empty($fullName)) {
+            return $user->username;
+        }
+        
+        if (!empty($nickname)) {
+            return "{$fullName}({$nickname})";
+        }
+        
+        return $fullName;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -122,7 +144,7 @@ class CustomerTransferHistory extends Model
     public function actionBy()
     {
         return $this->belongsTo(User::class, 'action_by_user_id', 'user_id')
-            ->select(['user_id', 'username', 'user_firstname', 'user_lastname']);
+            ->select(['user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname']);
     }
 
     /**
@@ -131,7 +153,7 @@ class CustomerTransferHistory extends Model
     public function previousManager()
     {
         return $this->belongsTo(User::class, 'previous_manage_by', 'user_id')
-            ->select(['user_id', 'username', 'user_firstname', 'user_lastname']);
+            ->select(['user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname']);
     }
 
     /**
@@ -140,7 +162,7 @@ class CustomerTransferHistory extends Model
     public function newManager()
     {
         return $this->belongsTo(User::class, 'new_manage_by', 'user_id')
-            ->select(['user_id', 'username', 'user_firstname', 'user_lastname']);
+            ->select(['user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname']);
     }
 
     // ─────────────────────────────────────────────────────────────

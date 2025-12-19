@@ -372,7 +372,7 @@ function DialogForm(props) {
           <TransferToSalesDialog
             open={transferToSalesOpen}
             onClose={() => setTransferToSalesOpen(false)}
-            customerData={inputList}
+            customer={inputList}
             onSuccess={(result) => {
               setTransferToSalesOpen(false);
               handleCloseDialog();
@@ -384,7 +384,7 @@ function DialogForm(props) {
           <TransferToOnlineDialog
             open={transferToOnlineOpen}
             onClose={() => setTransferToOnlineOpen(false)}
-            customerData={inputList}
+            customer={inputList}
             onSuccess={(result) => {
               setTransferToOnlineOpen(false);
               handleCloseDialog();

@@ -129,11 +129,17 @@ const TransferHistoryDialog = ({ open, onClose, customerId, customerName }) => {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
                     <Chip
                       label={
-                        item.previous_channel_label || getChannelLabelTh(item.previous_channel)
+                        item.previous_channel === null
+                          ? "สร้างใหม่"
+                          : item.previous_channel_label || getChannelLabelTh(item.previous_channel)
                       }
                       size="small"
-                      color={getChannelColor(item.previous_channel)}
-                      variant="outlined"
+                      color={
+                        item.previous_channel === null
+                          ? "success"
+                          : getChannelColor(item.previous_channel)
+                      }
+                      variant={item.previous_channel === null ? "filled" : "outlined"}
                     />
                     <Typography variant="body2" sx={{ mx: 0.5 }}>
                       →

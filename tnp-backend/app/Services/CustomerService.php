@@ -8,6 +8,7 @@ use App\Models\CustomerDetail;
 use App\Models\RelationCustomerUser as CustomerUser;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Helpers\AccountingHelper;
+use App\Models\CustomerTransferHistory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -97,6 +98,9 @@ class CustomerService
                 $this->createCustomerRelation($customer);
             }
             
+            // Create initial history record (for tracking from creation)
+            $this->createInitialHistory($customer);
+            
             return $customer;
         });
     }
@@ -115,8 +119,14 @@ class CustomerService
             $data = $this->cleanNumericFields($data);
             
             $customer = $this->customerRepository->findOrFail($id);
+            
+            // Capture old state for history tracking
+            $oldManageBy = $customer->cus_manage_by;
+            $currentChannel = $customer->cus_channel;
+            
             $customer->fill($data);
-            $customer->cus_manage_by = $this->extractManagerId($data['cus_manage_by'] ?? null);
+            $newManageBy = $this->extractManagerId($data['cus_manage_by'] ?? null);
+            $customer->cus_manage_by = $newManageBy;
             $customer->cus_updated_date = now();
             $customer->cus_updated_by = Auth::id();
 
@@ -124,6 +134,17 @@ class CustomerService
             $this->handleAddressUpdate($customer, $data);
 
             $customer->save();
+            
+            // Record history if manager changed
+            if ($oldManageBy !== $newManageBy) {
+                $this->recordManagerChangeHistory(
+                    $customer->cus_id,
+                    $currentChannel,
+                    $oldManageBy,
+                    $newManageBy,
+                    'เปลี่ยนผู้ดูแลจากการแก้ไขข้อมูล'
+                );
+            }
             
             // Update customer detail
             $this->updateCustomerDetail($id, $data);
@@ -279,6 +300,10 @@ class CustomerService
             
             foreach ($customers as $customer) {
                 try {
+                    // Capture previous manager before update
+                    $previousManageBy = $customer->cus_manage_by;
+                    $currentChannel = $customer->cus_channel;
+                    
                     $customer->update([
                         'cus_allocation_status' => 'allocated',
                         'cus_manage_by' => $salesUserId,
@@ -293,6 +318,19 @@ class CustomerService
                     $rel->rcs_cus_id = $customer->cus_id;
                     $rel->rcs_user_id = $salesUserId;
                     $rel->save();
+                    
+                    // Record assignment history
+                    CustomerTransferHistory::create([
+                        'id' => Str::uuid()->toString(),
+                        'customer_id' => $customer->cus_id,
+                        'previous_channel' => $currentChannel,
+                        'new_channel' => $currentChannel, // Same channel, just manager change
+                        'previous_manage_by' => $previousManageBy, // null if from pool
+                        'new_manage_by' => $salesUserId,
+                        'action_by_user_id' => $allocatorId,
+                        'remark' => $previousManageBy ? 'เปลี่ยนผู้ดูแล' : 'จัดสรรจาก Pool',
+                        'created_at' => now(),
+                    ]);
                     
                     $successCount++;
                 } catch (\Exception $e) {
@@ -586,6 +624,73 @@ class CustomerService
             if (isset($data['cus_address'])) {
                 $customer->cus_address = $data['cus_address'];
             }
+        }
+    }
+
+    /**
+     * Create initial history record for new customer
+     * Uses previous_channel = NULL to indicate creation event
+     * 
+     * @param Customer $customer
+     * @return void
+     */
+    protected function createInitialHistory(Customer $customer): void
+    {
+        try {
+            CustomerTransferHistory::create([
+                'id' => Str::uuid()->toString(),
+                'customer_id' => $customer->cus_id,
+                'previous_channel' => null, // NULL = creation event
+                'new_channel' => $customer->cus_channel,
+                'previous_manage_by' => null,
+                'new_manage_by' => $customer->cus_manage_by,
+                'action_by_user_id' => Auth::id(),
+                'remark' => 'สร้างลูกค้าใหม่',
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // Log but don't fail customer creation
+            Log::warning('Failed to create initial history: ' . $e->getMessage(), [
+                'customer_id' => $customer->cus_id
+            ]);
+        }
+    }
+
+    /**
+     * Record manager change history
+     * 
+     * @param string $customerId Customer UUID
+     * @param int $channel Current channel
+     * @param int|null $oldManageBy Previous manager user ID (null if from pool)
+     * @param int|null $newManageBy New manager user ID (null if returning to pool)
+     * @param string $remark Reason for change
+     * @return void
+     */
+    protected function recordManagerChangeHistory(
+        string $customerId,
+        int $channel,
+        ?int $oldManageBy,
+        ?int $newManageBy,
+        string $remark = 'เปลี่ยนผู้ดูแล'
+    ): void {
+        try {
+            CustomerTransferHistory::create([
+                'id' => Str::uuid()->toString(),
+                'customer_id' => $customerId,
+                'previous_channel' => $channel,
+                'new_channel' => $channel, // Same channel, just manager change
+                'previous_manage_by' => $oldManageBy,
+                'new_manage_by' => $newManageBy,
+                'action_by_user_id' => Auth::id(),
+                'remark' => $remark,
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Failed to record manager change history: ' . $e->getMessage(), [
+                'customer_id' => $customerId,
+                'old_manage_by' => $oldManageBy,
+                'new_manage_by' => $newManageBy
+            ]);
         }
     }
 }

@@ -101,16 +101,44 @@ export const DialogActionsBar = ({
               </Button>
             </Tooltip>
           )}
-          {transferConfig.onTransfer && (
-            <Button
-              variant="contained"
-              color={transferConfig.direction === "to_sales" ? "warning" : "info"}
-              startIcon={<MdSwapHoriz />}
-              onClick={transferConfig.onTransfer}
-              sx={{ fontFamily: "Kanit" }}
-            >
-              {transferConfig.direction === "to_sales" ? "โอนไป Sales" : "โอนไป Online"}
-            </Button>
+
+          {/* Admin: Show BOTH transfer buttons */}
+          {transferConfig.isAdmin &&
+          transferConfig.onTransferToSales &&
+          transferConfig.onTransferToOnline ? (
+            <>
+              <Button
+                variant="contained"
+                color="warning"
+                startIcon={<MdSwapHoriz />}
+                onClick={transferConfig.onTransferToSales}
+                sx={{ fontFamily: "Kanit" }}
+              >
+                โอนไป Sales
+              </Button>
+              <Button
+                variant="contained"
+                color="info"
+                startIcon={<MdSwapHoriz />}
+                onClick={transferConfig.onTransferToOnline}
+                sx={{ fontFamily: "Kanit" }}
+              >
+                โอนไป Online
+              </Button>
+            </>
+          ) : (
+            /* Non-Admin: Show single transfer button based on direction */
+            transferConfig.onTransfer && (
+              <Button
+                variant="contained"
+                color={transferConfig.direction === "to_sales" ? "warning" : "info"}
+                startIcon={<MdSwapHoriz />}
+                onClick={transferConfig.onTransfer}
+                sx={{ fontFamily: "Kanit" }}
+              >
+                {transferConfig.direction === "to_sales" ? "โอนไป Sales" : "โอนไป Online"}
+              </Button>
+            )
           )}
         </Box>
       )}

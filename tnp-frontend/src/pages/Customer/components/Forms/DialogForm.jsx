@@ -21,7 +21,11 @@ import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } 
 import { DialogHeader, DialogActionsBar } from "./layout";
 
 // Constants (relative path from Forms/)
-import { canUserTransfer, TRANSFER_DIRECTIONS } from "../../constants/customerChannel";
+import {
+  canUserTransfer,
+  TRANSFER_DIRECTIONS,
+  getEffectiveRole,
+} from "../../constants/customerChannel";
 
 // Hooks (relative path from Forms/)
 import {
@@ -324,14 +328,18 @@ function DialogForm(props) {
             transferConfig={
               mode === "view"
                 ? {
-                    show: canUserTransfer(user.role, inputList?.cus_channel).canTransfer,
+                    show: canUserTransfer(getEffectiveRole(user), inputList?.cus_channel)
+                      .canTransfer,
                     direction:
-                      canUserTransfer(user.role, inputList?.cus_channel).direction ===
+                      canUserTransfer(getEffectiveRole(user), inputList?.cus_channel).direction ===
                       TRANSFER_DIRECTIONS.TO_SALES
                         ? "to_sales"
                         : "to_online",
                     onTransfer: () => {
-                      const transferInfo = canUserTransfer(user.role, inputList?.cus_channel);
+                      const transferInfo = canUserTransfer(
+                        getEffectiveRole(user),
+                        inputList?.cus_channel
+                      );
                       if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_SALES) {
                         setTransferToSalesOpen(true);
                       } else if (transferInfo.direction === TRANSFER_DIRECTIONS.TO_ONLINE) {
@@ -339,6 +347,11 @@ function DialogForm(props) {
                       }
                     },
                     onHistory: () => setTransferHistoryOpen(true),
+                    // For Admin: pass both transfer options
+                    isAdmin: user.role === "admin",
+                    onTransferToSales: () => setTransferToSalesOpen(true),
+                    onTransferToOnline: () => setTransferToOnlineOpen(true),
+                    customerChannel: inputList?.cus_channel,
                   }
                 : undefined
             }

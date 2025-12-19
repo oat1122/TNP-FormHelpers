@@ -588,29 +588,4 @@ class CustomerService
             }
         }
     }
-
-    // =========================================================================
-    // Legacy Methods (for backward compatibility)
-    // =========================================================================
-
-    /**
-     * @deprecated Use CustomerRepository methods instead
-     */
-    public function groupByCustomer()
-    {
-        return Customer::query()
-            ->select([
-                'customer_name',
-                'company_name',
-                'customer_tel',
-                'customer_email',
-            ])
-            ->groupBy(
-                'customer_name',
-                'company_name',
-                'customer_tel',
-                'customer_email',
-            )
-            ->get();
-    }
 }

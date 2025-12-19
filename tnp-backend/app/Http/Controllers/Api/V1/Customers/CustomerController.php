@@ -315,24 +315,8 @@ class CustomerController extends Controller
         }
 
         try {
-            $perPage = $request->input('per_page', 30);
-            $search = $request->input('search');
-
-            $query = $this->customerRepository->getBaseQuery()
-                ->where('cus_allocation_status', 'pool')
-                ->where('cus_source', 'telesales')
-                ->whereNull('cus_manage_by');
-
-            if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('cus_name', 'like', "%{$search}%")
-                      ->orWhere('cus_company', 'like', "%{$search}%")
-                      ->orWhere('cus_tel_1', 'like', "%{$search}%")
-                      ->orWhere('cus_no', 'like', "%{$search}%");
-                });
-            }
-
-            $customers = $query->orderByDesc('cus_created_date')->paginate($perPage);
+            $filters = $request->only(['search', 'per_page']);
+            $customers = $this->customerRepository->getPoolTelesalesCustomers($filters);
 
             return response()->json([
                 'status' => 'success',
@@ -369,49 +353,11 @@ class CustomerController extends Controller
         }
 
         try {
-            $perPage = $request->input('per_page', 30);
-            $channel = $request->input('channel'); // 1=SALES, 2=ONLINE
-
-            // Get customer IDs that have transfer history
-            $transferredCustomerIds = \App\Models\CustomerTransferHistory::query()
-                ->when($channel, function ($q) use ($channel) {
-                    $q->where('new_channel', $channel);
-                })
-                ->distinct()
-                ->pluck('customer_id');
-
-            $query = $this->customerRepository->getBaseQuery()
-                ->where('cus_allocation_status', 'pool')
-                ->whereNull('cus_manage_by')
-                ->whereIn('cus_id', $transferredCustomerIds);
-
-            // Add transfer info to each customer
-            $customers = $query->orderByDesc('cus_created_date')->paginate($perPage);
-
-            // Attach latest transfer info
-            $customersWithTransfer = $customers->getCollection()->map(function ($customer) {
-                $latestTransfer = \App\Models\CustomerTransferHistory::forCustomer($customer->cus_id)
-                    ->with(['previousManager', 'newManager', 'actionBy'])
-                    ->latestFirst()
-                    ->first();
-
-                $customer->latest_transfer = $latestTransfer ? [
-                    'previous_channel' => $latestTransfer->previous_channel,
-                    'previous_channel_label' => $latestTransfer->previous_channel_label,
-                    'previous_manager_name' => $latestTransfer->previous_manager_name,
-                    'new_channel' => $latestTransfer->new_channel,
-                    'new_channel_label' => $latestTransfer->new_channel_label,
-                    'transferred_at' => $latestTransfer->created_at,
-                    'action_by' => $latestTransfer->actionBy ? [
-                        'user_id' => $latestTransfer->actionBy->user_id,
-                        'username' => $latestTransfer->actionBy->username,
-                    ] : null,
-                ] : null;
-
-                return $customer;
-            });
-
-            $customers->setCollection($customersWithTransfer);
+            $filters = $request->only(['channel', 'per_page']);
+            $customers = $this->customerRepository->getPoolTransferredCustomers($filters);
+            
+            // Attach latest transfer info via TransferService
+            $customers = $this->transferService->attachTransferInfo($customers);
 
             return response()->json([
                 'status' => 'success',

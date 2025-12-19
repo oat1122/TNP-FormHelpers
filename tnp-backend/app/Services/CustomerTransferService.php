@@ -121,6 +121,41 @@ class CustomerTransferService
         ];
     }
 
+    /**
+     * Attach latest transfer info to paginated customers
+     * 
+     * @param \Illuminate\Pagination\LengthAwarePaginator $customers
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function attachTransferInfo(\Illuminate\Pagination\LengthAwarePaginator $customers): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $customersWithTransfer = $customers->getCollection()->map(function ($customer) {
+            $latestTransfer = CustomerTransferHistory::forCustomer($customer->cus_id)
+                ->with(['previousManager', 'newManager', 'actionBy'])
+                ->latestFirst()
+                ->first();
+
+            $customer->latest_transfer = $latestTransfer ? [
+                'previous_channel' => $latestTransfer->previous_channel,
+                'previous_channel_label' => $latestTransfer->previous_channel_label,
+                'previous_manager_name' => $latestTransfer->previous_manager_name,
+                'new_channel' => $latestTransfer->new_channel,
+                'new_channel_label' => $latestTransfer->new_channel_label,
+                'transferred_at' => $latestTransfer->created_at,
+                'action_by' => $latestTransfer->actionBy ? [
+                    'user_id' => $latestTransfer->actionBy->user_id,
+                    'username' => $latestTransfer->actionBy->username,
+                ] : null,
+            ] : null;
+
+            return $customer;
+        });
+
+        $customers->setCollection($customersWithTransfer);
+
+        return $customers;
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Private Methods (Internal Logic)
     // ─────────────────────────────────────────────────────────────

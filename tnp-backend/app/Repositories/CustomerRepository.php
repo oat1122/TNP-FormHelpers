@@ -123,15 +123,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                     }
                     // No channel filter - HEAD sees all channels of their subordinates
                 } elseif ($isHead) {
-                    // HEAD without subordinate filter - show only HEAD's OWN assigned customers
+                    // HEAD without subordinate filter - show only HEAD's OWN assigned customers (ALL channels)
                     $query->where('cus_manage_by', $user->user_id);
-                    
-                    // Also filter by channel
-                    if ($subRoleCode === 'HEAD_ONLINE') {
-                        $query->where('cus_channel', CustomerChannel::ONLINE);
-                    } elseif ($subRoleCode === 'HEAD_OFFLINE') {
-                        $query->where('cus_channel', CustomerChannel::SALES);
-                    }
+                    // No channel filter - show all channels
                 } else {
                     // Regular users see only their assigned customers
                     $query->where('cus_manage_by', $user->user_id);
@@ -306,6 +300,56 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->with(['customerDetail', 'customerProvice', 'customerDistrict', 'customerSubdistrict']);
     }
 
+    /**
+     * Get pool customers from Telesales source
+     * 
+     * @param array $filters Filter parameters (search, per_page)
+     * @return LengthAwarePaginator
+     */
+    public function getPoolTelesalesCustomers(array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->active()
+            ->where('cus_allocation_status', 'pool')
+            ->where('cus_source', 'telesales')
+            ->whereNull('cus_manage_by');
+
+        if (!empty($filters['search'])) {
+            $this->applySearchFilterToQuery($query, $filters['search']);
+        }
+
+        $perPage = $filters['per_page'] ?? 30;
+
+        return $query->orderByDesc('cus_created_date')->paginate($perPage);
+    }
+
+    /**
+     * Get pool customers that have transfer history
+     * 
+     * @param array $filters Filter parameters (channel, per_page)
+     * @return LengthAwarePaginator
+     */
+    public function getPoolTransferredCustomers(array $filters): LengthAwarePaginator
+    {
+        $channel = $filters['channel'] ?? null;
+
+        // Get customer IDs that have transfer history
+        $transferredCustomerIds = \App\Models\CustomerTransferHistory::query()
+            ->when($channel, function ($q) use ($channel) {
+                $q->where('new_channel', $channel);
+            })
+            ->distinct()
+            ->pluck('customer_id');
+
+        $query = $this->model->active()
+            ->where('cus_allocation_status', 'pool')
+            ->whereNull('cus_manage_by')
+            ->whereIn('cus_id', $transferredCustomerIds);
+
+        $perPage = $filters['per_page'] ?? 30;
+
+        return $query->orderByDesc('cus_created_date')->paginate($perPage);
+    }
+
     // ========================================================================
     // Protected Helper Methods
     // ========================================================================
@@ -431,17 +475,10 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             return;
         }
         
-        // HEAD without subordinate filter - show only HEAD's OWN assigned customers
+        // HEAD without subordinate filter - show only HEAD's OWN assigned customers (ALL channels)
         if ($isHead) {
-            // Filter by HEAD's own user_id
+            // Filter by HEAD's own user_id - no channel filter, show all channels
             $query->where('cus_manage_by', $user->user_id);
-            
-            // Also filter by channel for HEAD_ONLINE/HEAD_OFFLINE
-            if ($isHeadOnline) {
-                $query->where('cus_channel', CustomerChannel::ONLINE);
-            } elseif ($isHeadOffline) {
-                $query->where('cus_channel', CustomerChannel::SALES);
-            }
             return;
         }
         

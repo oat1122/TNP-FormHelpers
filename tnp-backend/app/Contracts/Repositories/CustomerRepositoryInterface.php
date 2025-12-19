@@ -95,4 +95,20 @@ interface CustomerRepositoryInterface extends BaseRepositoryInterface
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function getBaseQuery(): \Illuminate\Database\Eloquent\Builder;
+
+    /**
+     * Get pool customers from Telesales source
+     * 
+     * @param array $filters Filter parameters (search, per_page)
+     * @return LengthAwarePaginator
+     */
+    public function getPoolTelesalesCustomers(array $filters): LengthAwarePaginator;
+
+    /**
+     * Get pool customers that have transfer history
+     * 
+     * @param array $filters Filter parameters (channel, per_page)
+     * @return LengthAwarePaginator
+     */
+    public function getPoolTransferredCustomers(array $filters): LengthAwarePaginator;
 }

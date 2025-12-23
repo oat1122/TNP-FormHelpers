@@ -230,7 +230,7 @@ class MasterCustomer extends Model
 	public function allocatedBy()
     {
         return $this->belongsTo(User::class, 'cus_allocated_by', 'user_id')
-			->select('user_id', 'username', 'user_firstname', 'user_lastname');
+			->select('user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname');
     }
 
 	public function customerDistrict()

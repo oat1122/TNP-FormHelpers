@@ -415,36 +415,7 @@ export const useColumnDefinitions = ({
         </Typography>
       ),
     },
-    {
-      field: "cus_address",
-      headerName: "ADDRESS",
-      flex: 0.9,
-      minWidth: 140,
-      maxWidth: 200,
-      sortable: true,
-      renderCell: (params) => {
-        const address = params.value;
-        const province = params.row.province_name;
-        const district = params.row.district_name;
 
-        const fullAddress = [address, district, province].filter(Boolean).join(", ");
-
-        return (
-          <Typography
-            sx={{
-              fontSize: CELL_STYLES.fontSize.primary,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: 180,
-              textAlign: "left",
-            }}
-          >
-            {fullAddress || "—"}
-          </Typography>
-        );
-      },
-    },
     {
       field: "tools",
       headerName: "TOOLS",

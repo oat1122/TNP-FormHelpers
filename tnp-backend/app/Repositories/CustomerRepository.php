@@ -309,6 +309,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     public function getPoolTelesalesCustomers(array $filters): LengthAwarePaginator
     {
         $query = $this->model->active()
+            ->with(['allocatedBy', 'customerDetail'])
             ->where('cus_allocation_status', 'pool')
             ->where('cus_source', 'telesales')
             ->whereNull('cus_manage_by');

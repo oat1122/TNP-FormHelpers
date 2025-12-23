@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 
 import PoolEmptyState from "./PoolEmptyState";
 import { DataGridWithRowIdFix } from "../../Customer/components/DataDisplay";
-import { getSourceDisplayName, getSourceColor } from "../../../features/Customer/customerUtils";
 import { getChannelLabelTh, getChannelColor } from "../../Customer/constants/customerChannel";
 
 /**
@@ -83,33 +82,59 @@ const PoolCustomersTable = ({
       },
     ];
 
-    // Source column for Telesales mode
+    // Source column for Telesales mode - show allocated by user
     if (!isTransferredMode) {
-      baseColumns.push({
-        field: "cus_source",
-        headerName: "ที่มา",
-        width: 120,
-        sortable: false,
-        renderCell: (params) => {
-          if (!params.value) {
+      baseColumns.push(
+        {
+          field: "allocated_by",
+          headerName: "ที่มา",
+          flex: 1,
+          minWidth: 160,
+          sortable: false,
+          renderCell: (params) => {
+            if (!params.value) {
+              return (
+                <Typography variant="caption" color="text.disabled">
+                  -
+                </Typography>
+              );
+            }
+
             return (
-              <Typography variant="caption" color="text.disabled">
-                -
+              <Typography variant="body2" noWrap title={params.value}>
+                {params.value}
               </Typography>
             );
-          }
-
-          return (
-            <Chip
-              label={getSourceDisplayName(params.value)}
-              color={getSourceColor(params.value)}
-              size="small"
-              sx={{ fontWeight: "bold" }}
-              aria-label={`ที่มา: ${getSourceDisplayName(params.value)}`}
-            />
-          );
+          },
         },
-      });
+        {
+          field: "cd_note",
+          headerName: "Note",
+          flex: 1.2,
+          minWidth: 180,
+          sortable: false,
+          renderCell: (params) => {
+            if (!params.value) {
+              return (
+                <Typography variant="caption" color="text.disabled">
+                  -
+                </Typography>
+              );
+            }
+
+            return (
+              <Typography
+                variant="body2"
+                noWrap
+                title={params.value}
+                sx={{ color: "text.secondary" }}
+              >
+                {params.value}
+              </Typography>
+            );
+          },
+        }
+      );
     }
 
     // Transfer-specific columns

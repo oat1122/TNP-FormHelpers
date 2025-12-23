@@ -65,6 +65,8 @@ class CustomerResource extends JsonResource
             'sales_name' => $this->cus_manage_by ? $this->cusManageBy?->username : '',
             'province_sort_id' => $this->customerDistrict?->dis_pro_sort_id ?? '',
             'district_sort_id' => $this->customerSubdistrict?->sub_dis_sort_id ?? '',
+            // Allocator info (user who created/allocated this customer)
+            'allocated_by' => $this->formatAllocatedByData(),
             // Transfer info (dynamically attached by CustomerTransferService)
             'latest_transfer' => $this->latest_transfer ?? null,
         ];
@@ -96,5 +98,31 @@ class CustomerResource extends JsonResource
             'user_id' => (string) $this->cus_manage_by,
             'username' => 'ไม่สามารถโหลดข้อมูลได้'
         ];
+    }
+
+    /**
+     * Format allocated by data (user who created/allocated this customer)
+     * @return string|null
+     */
+    private function formatAllocatedByData(): ?string
+    {
+        $allocator = $this->allocatedBy;
+        
+        if (!$allocator) {
+            return null;
+        }
+
+        $fullName = trim(($allocator->user_firstname ?? '') . ' ' . ($allocator->user_lastname ?? ''));
+        $nickname = $allocator->user_nickname ?? '';
+        
+        if ($fullName && $nickname) {
+            return "{$fullName} ({$nickname})";
+        } elseif ($fullName) {
+            return $fullName;
+        } elseif ($nickname) {
+            return $nickname;
+        }
+        
+        return $allocator->username ?? null;
     }
 }

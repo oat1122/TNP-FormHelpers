@@ -210,13 +210,24 @@ class AccountingHelper
 
     /**
      * Check if current user can allocate customers from pool
-     * Allowed roles: admin, manager
+     * Allowed roles: admin, manager, or users with HEAD sub_roles
      * 
      * @return bool True if user can allocate customers
      */
     public static function canAllocateCustomers(): bool
     {
-        return self::hasRole([UserRole::ADMIN, UserRole::MANAGER]);
+        // Admin and Manager can always allocate
+        if (self::hasRole([UserRole::ADMIN, UserRole::MANAGER])) {
+            return true;
+        }
+        
+        // HEAD users (by sub_role) can also allocate
+        $user = auth()->user();
+        if ($user && method_exists($user, 'hasSubRole')) {
+            return $user->hasSubRole('HEAD_ONLINE') || $user->hasSubRole('HEAD_OFFLINE');
+        }
+        
+        return false;
     }
 
     /**

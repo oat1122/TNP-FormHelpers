@@ -1,13 +1,34 @@
 // filepath: src/pages/Customer/components/Filters/FilterPanel.jsx
-import { Box, Grid2 as Grid, Typography, Stack, Alert, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Stack,
+  Alert,
+  Button,
+  Chip,
+  IconButton,
+  Collapse,
+  Divider,
+} from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import React, { useState } from "react";
-import { MdExpandMore, MdFilterList } from "react-icons/md";
-import { RiRefreshLine } from "react-icons/ri";
+import {
+  MdFilterList,
+  MdCheck,
+  MdRefresh,
+  MdExpandMore,
+  MdDateRange,
+  MdPerson,
+  MdCellTower,
+} from "react-icons/md";
+import "dayjs/locale/th";
 
-// Filter section components (relative to this file in Filters/)
-import { DateFilterSection, SalesFilterSection, ChannelFilterSection } from "./sections";
+// Filter section components
+import { SalesFilterSection, ChannelFilterSection } from "./sections";
 
-// Hooks (relative path from Filters/)
+// Hooks
 import {
   useDateRangeHelpers,
   useFilterActions,
@@ -16,33 +37,19 @@ import {
   useFilterInitializer,
 } from "../../hooks";
 
-// Styled components (relative path from Filters/)
-import {
-  StyledAccordion,
-  StyledAccordionSummary,
-  StyledAccordionDetails,
-  ExpandIconBox,
-  StatusChip,
-  FilterIconBox,
-  FilterTitle,
-  PrimaryActionButton,
-  SecondaryActionButton,
-} from "../../styles/FilterStyledComponents";
+// Constants
+import { dateRangeOptions, filterColors, filterValidation } from "../../constants/filterConstants";
 
 /**
- * FilterPanel - Advanced filter panel component
- *
- * @param {Function} refetchCustomers - Callback to trigger data refetch (from RTK Query)
+ * FilterPanel - Modern Minimalist Filter Panel
+ * Compact design with inline layout for efficient space usage
  */
-function FilterPanel({ refetchCustomers }) {
+function FilterPanel({ refetchCustomers, viewMode = "my", isHead = false }) {
   const [expanded, setExpanded] = useState(false);
 
-  // 1. Initializer Hook - syncs sales list from API to Redux
+  // Hooks
   useFilterInitializer();
-
-  // 2. Filter State Hook
   const {
-    filters,
     draftFilters,
     setDraftFilters,
     salesList,
@@ -52,288 +59,259 @@ function FilterPanel({ refetchCustomers }) {
     resetDraftFilters,
   } = useFilterState();
 
-  // 3. Filter Actions Hook - pass refetchCustomers for UX-optimized refetching
   const { isFiltering, errorMessage, handleApplyFilters, handleResetFilters, clearErrorMessage } =
     useFilterActions(refetchCustomers);
 
-  // 4. Helper Hooks
   const dateHelpers = useDateRangeHelpers(setDraftFilters);
   const selectionHelpers = useSelectionHelpers(setDraftFilters, salesList);
 
-  // Data transformation ย้ายมาที่ parent (จุดที่ 2)
-  const salesOptions = (salesList || []).map((name) => ({
-    value: name,
-    label: name,
-  }));
+  const salesOptions = (salesList || []).map((name) => ({ value: name, label: name }));
 
-  // Handle accordion expand/collapse
-  const handleAccordionChange = (_, isExpanded) => {
-    setExpanded(isExpanded);
-  };
-
-  // Apply filters with collapse
-  const handleApplyFiltersWithCollapse = () => {
+  // Apply and close
+  const handleApply = () => {
     handleApplyFilters(draftFilters, prepareFiltersForAPI);
-    setExpanded(false); // Collapse filter panel after applying
+    setExpanded(false);
   };
 
-  // Reset filters with collapse
-  const handleResetFiltersWithCollapse = () => {
+  // Reset
+  const handleReset = () => {
     handleResetFilters(resetDraftFilters);
-    setExpanded(false); // Collapse filter panel after reset
+  };
+
+  // Format date with Buddhist year
+  const formatDate = (date) => {
+    if (!date) return "";
+    const buddhistYear = date.year() + filterValidation.buddhistYearOffset;
+    return `${date.format("DD/MM/")}${buddhistYear}`;
   };
 
   return (
-    <Box sx={{ mb: 3 }}>
-      {/* Advanced filters with enhanced design */}
-      <StyledAccordion expanded={expanded} onChange={handleAccordionChange}>
-        <StyledAccordionSummary
-          expanded={expanded}
-          expandIcon={
-            <ExpandIconBox expanded={expanded}>
-              <MdExpandMore style={{ fontSize: 24 }} />
-            </ExpandIconBox>
-          }
-        >
-          <Box
+    <Box sx={{ mb: 2 }}>
+      {/* Compact Header Bar */}
+      <Box
+        onClick={() => setExpanded(!expanded)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          p: 1.5,
+          bgcolor: expanded ? filterColors.primaryLight : "grey.50",
+          borderRadius: expanded ? "12px 12px 0 0" : 2,
+          border: `1px solid ${expanded ? filterColors.primary : "transparent"}`,
+          borderBottom: expanded ? "none" : undefined,
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            bgcolor: filterColors.primaryLight,
+          },
+        }}
+      >
+        <MdFilterList size={20} color={filterColors.primary} />
+        <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+          ตัวกรอง
+        </Typography>
+
+        {/* Active filter badge */}
+        {activeFilterCount > 0 && (
+          <Chip
+            label={activeFilterCount}
+            size="small"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%",
-              pr: { xs: 1, sm: 2 },
-              gap: { xs: 1, sm: 2 },
+              height: 20,
+              minWidth: 20,
+              bgcolor: filterColors.primary,
+              color: "white",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              "& .MuiChip-label": { px: 0.75 },
             }}
-          >
-            {/* Left side - Filter icon and title */}
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                flex: 1,
-                minWidth: 0, // Allow text truncation if needed
-              }}
-            >
-              <FilterIconBox>
-                <MdFilterList
-                  style={{
-                    fontSize: 24,
-                    color: "#ffffff",
-                  }}
-                />
-              </FilterIconBox>
-              <Box sx={{ ml: { xs: 1.5, sm: 2 }, flex: 1, minWidth: 0 }}>
-                <FilterTitle
-                  variant="subtitle1"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    mb: 0.5,
-                  }}
-                >
-                  ตัวกรองขั้นสูง
-                  {/* Active filter count badge */}
-                  {activeFilterCount > 0 && (
-                    <StatusChip
-                      label={`${activeFilterCount} กรอง`}
-                      size="small"
-                      variant="active"
-                      sx={{
-                        fontSize: "0.75rem",
-                        height: "20px",
-                        display: { xs: "none", sm: "inline-flex" },
-                      }}
-                    />
-                  )}
-                </FilterTitle>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: { xs: "none", md: "block" },
-                    color: "text.secondary",
-                    fontSize: "0.875rem",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  ค้นหาลูกค้าด้วยเงื่อนไขที่หลากหลาย
-                </Typography>
-                {/* Mobile: Show active filters count */}
-                {activeFilterCount > 0 && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: { xs: "block", sm: "none" },
-                      color: "primary.main",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    มี {activeFilterCount} ตัวกรองที่เปิดใช้งาน
-                  </Typography>
-                )}
-              </Box>
-            </Box>
+          />
+        )}
 
-            {/* Right side - Results and status */}
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: { xs: 0.5, sm: 1 },
-                flexShrink: 0,
-              }}
-            >
-              {/* Loading indicator */}
-              {isFiltering && (
-                <CircularProgress
-                  size={20}
-                  sx={{
-                    color: "primary.main",
-                    mr: 1,
-                  }}
-                />
-              )}
+        <Box sx={{ flex: 1 }} />
 
-              {/* Results chip */}
-              <StatusChip
-                label={
-                  isFiltering
-                    ? "กำลังค้นหา..."
-                    : filteredCount > 0
-                      ? `${filteredCount.toLocaleString("th-TH")} รายการ`
-                      : "ไม่พบข้อมูล"
-                }
-                size="small"
-                variant={isFiltering ? "info" : filteredCount > 0 ? "success" : "default"}
-                sx={{
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  height: { xs: "24px", sm: "28px" },
-                  "& .MuiChip-label": {
-                    px: { xs: 1, sm: 1.5 },
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-        </StyledAccordionSummary>
+        {/* Results count */}
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {filteredCount.toLocaleString("th-TH")} รายการ
+        </Typography>
 
-        <StyledAccordionDetails>
-          {/* Error message with enhanced styling */}
+        <MdExpandMore
+          size={20}
+          style={{
+            color: filterColors.primary,
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+          }}
+        />
+      </Box>
+
+      {/* Collapsible Filter Content */}
+      <Collapse in={expanded}>
+        <Box
+          sx={{
+            p: 2,
+            bgcolor: "white",
+            border: `1px solid ${filterColors.primary}`,
+            borderTop: "none",
+            borderRadius: "0 0 12px 12px",
+          }}
+        >
+          {/* Error Alert */}
           {errorMessage && (
-            <Alert
-              severity="error"
-              onClose={clearErrorMessage}
-              sx={{
-                mb: 3,
-                borderRadius: 2,
-                "& .MuiAlert-icon": {
-                  fontSize: "1.25rem",
-                },
-                "& .MuiAlert-action": {
-                  pt: 0,
-                },
-              }}
-            >
+            <Alert severity="error" onClose={clearErrorMessage} sx={{ mb: 2, py: 0.5 }}>
               {errorMessage}
             </Alert>
           )}
 
-          {/* Filter sections with improved spacing */}
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            <DateFilterSection draftFilters={draftFilters} dateHelpers={dateHelpers} />
-
-            <SalesFilterSection
-              draftFilters={draftFilters}
-              salesList={salesList}
-              salesOptions={salesOptions}
-              selectionHelpers={selectionHelpers}
-            />
-
-            <ChannelFilterSection draftFilters={draftFilters} selectionHelpers={selectionHelpers} />
-
-            {/* Control buttons with responsive layout */}
-            <Grid xs={12}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={2}
-                justifyContent="flex-end"
+          {/* All Filters in Compact Row Layout */}
+          <Stack spacing={2}>
+            {/* Row 1: Date Range */}
+            <Box>
+              <Typography
+                variant="caption"
                 sx={{
-                  mt: { xs: 2, sm: 3 },
-                  pt: 3,
-                  borderTop: "1px solid",
-                  borderColor: "divider",
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  mb: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
                 }}
               >
-                <SecondaryActionButton
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<RiRefreshLine style={{ fontSize: "1.3rem" }} />}
-                  onClick={handleResetFiltersWithCollapse}
-                  sx={{
-                    order: { xs: 2, sm: 1 },
-                    width: { xs: "100%", sm: "auto" },
-                  }}
-                >
-                  รีเซ็ตตัวกรอง
-                </SecondaryActionButton>
+                <MdDateRange size={14} /> ช่วงวันที่
+              </Typography>
 
-                <PrimaryActionButton
-                  variant="contained"
-                  startIcon={
-                    isFiltering ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      <MdFilterList style={{ fontSize: "1.3rem" }} />
-                    )
-                  }
-                  onClick={handleApplyFiltersWithCollapse}
-                  disabled={isFiltering}
-                  sx={{
-                    order: { xs: 1, sm: 2 },
-                    width: { xs: "100%", sm: "auto" },
-                  }}
-                >
-                  {isFiltering ? "กำลังกรอง..." : "ใช้งานตัวกรอง"}
-                </PrimaryActionButton>
+              {/* Quick Date Buttons */}
+              <Stack direction="row" spacing={0.5} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.5 }}>
+                {dateRangeOptions.map((opt) => (
+                  <Chip
+                    key={opt.key}
+                    label={opt.label}
+                    size="small"
+                    onClick={() => dateHelpers.handleQuickDateRange(opt.key)}
+                    sx={{
+                      fontSize: "0.7rem",
+                      height: 24,
+                      cursor: "pointer",
+                      bgcolor: "grey.100",
+                      "&:hover": { bgcolor: filterColors.primaryLight },
+                    }}
+                  />
+                ))}
               </Stack>
-            </Grid>
-          </Grid>
-        </StyledAccordionDetails>
-      </StyledAccordion>
 
-      {/* Quick status summary - Mobile friendly */}
-      {expanded && (activeFilterCount > 0 || filteredCount > 0) && (
-        <Box
-          sx={{
-            mt: 2,
-            p: 2,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            display: { xs: "block", md: "none" },
-          }}
-        >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            สรุปผลการกรอง:
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {activeFilterCount > 0 && (
-              <StatusChip
-                label={`${activeFilterCount} ตัวกรองที่ใช้`}
-                size="small"
-                variant="active"
-              />
+              {/* Date Pickers */}
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <DatePicker
+                    label="เริ่มต้น"
+                    value={draftFilters.dateRange.startDate}
+                    onChange={dateHelpers.setStartDate}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        sx: { "& .MuiInputBase-root": { height: 36 } },
+                      },
+                    }}
+                  />
+                  <DatePicker
+                    label="สิ้นสุด"
+                    value={draftFilters.dateRange.endDate}
+                    onChange={dateHelpers.setEndDate}
+                    format="DD/MM/YYYY"
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        sx: { "& .MuiInputBase-root": { height: 36 } },
+                      },
+                    }}
+                  />
+                </Stack>
+              </LocalizationProvider>
+            </Box>
+
+            {/* Row 2: Sales Filter (conditional) */}
+            {!(isHead && viewMode === "my") && salesList?.length > 0 && (
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 600,
+                    mb: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                  }}
+                >
+                  <MdPerson size={14} /> พนักงานขาย
+                </Typography>
+                <SalesFilterSection
+                  draftFilters={draftFilters}
+                  salesList={salesList}
+                  salesOptions={salesOptions}
+                  selectionHelpers={selectionHelpers}
+                  compact
+                />
+              </Box>
             )}
-            <StatusChip
-              label={`${filteredCount.toLocaleString("th-TH")} รายการ`}
-              size="small"
-              variant="success"
-            />
+
+            {/* Row 3: Channel Filter */}
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  mb: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}
+              >
+                <MdCellTower size={14} /> ช่องทาง
+              </Typography>
+              <ChannelFilterSection
+                draftFilters={draftFilters}
+                selectionHelpers={selectionHelpers}
+                compact
+              />
+            </Box>
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Action Buttons */}
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<MdRefresh size={16} />}
+                onClick={handleReset}
+                sx={{ color: "text.secondary", textTransform: "none" }}
+              >
+                รีเซ็ต
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<MdCheck size={16} />}
+                onClick={handleApply}
+                disabled={isFiltering}
+                sx={{
+                  bgcolor: filterColors.primary,
+                  textTransform: "none",
+                  "&:hover": { bgcolor: filterColors.primaryHover },
+                }}
+              >
+                {isFiltering ? "กำลังกรอง..." : "ใช้งาน"}
+              </Button>
+            </Stack>
           </Stack>
         </Box>
-      )}
+      </Collapse>
     </Box>
   );
 }

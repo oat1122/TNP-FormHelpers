@@ -498,7 +498,7 @@ class CustomerController extends Controller
      */
     public function transferToSales(Request $request, string $id): JsonResponse
     {
-        return $this->handleTransfer($request, $id, 'transferToSales', ['admin', 'head_online']);
+        return $this->handleTransfer($request, $id, 'transferToSales', ['admin', 'head_online', 'head_offline']);
     }
 
     /**
@@ -507,7 +507,7 @@ class CustomerController extends Controller
      */
     public function transferToOnline(Request $request, string $id): JsonResponse
     {
-        return $this->handleTransfer($request, $id, 'transferToOnline', ['admin', 'head_offline']);
+        return $this->handleTransfer($request, $id, 'transferToOnline', ['admin', 'head_online', 'head_offline']);
     }
 
     /**
@@ -661,6 +661,8 @@ class CustomerController extends Controller
 
     /**
      * Generic transfer handler (DRY pattern)
+     * 
+     * @param array $allowedRoles Can contain: 'admin', 'HEAD_ONLINE', 'HEAD_OFFLINE' (sub_role codes)
      */
     protected function handleTransfer(Request $request, string $id, string $method, array $allowedRoles): JsonResponse
     {
@@ -671,7 +673,27 @@ class CustomerController extends Controller
 
         $user = Auth::user();
 
-        if (!in_array($user->role, $allowedRoles)) {
+        // Check if user has permission (by role or sub_role)
+        $hasPermission = false;
+        
+        // Check direct role
+        if (in_array($user->role, $allowedRoles)) {
+            $hasPermission = true;
+        }
+        
+        // Check sub_roles for HEAD users
+        if (!$hasPermission && method_exists($user, 'hasSubRole')) {
+            foreach ($allowedRoles as $role) {
+                // Convert 'head_online' to 'HEAD_ONLINE' for sub_role check
+                $subRoleCode = strtoupper($role);
+                if ($user->hasSubRole($subRoleCode)) {
+                    $hasPermission = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$hasPermission) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'ไม่มีสิทธิ์ในการโอนลูกค้า'

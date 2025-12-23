@@ -1,207 +1,77 @@
-import { Typography, Box, InputAdornment, IconButton } from "@mui/material";
+import { Chip, Stack } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import React, { useMemo } from "react";
-import { MdDateRange, MdClear } from "react-icons/md";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import React from "react";
+import "dayjs/locale/th";
 
-// Constants (relative path from sections/)
-import { dateRangeOptions, filterColors } from "../../../constants/filterConstants";
-// Styled components (relative path from sections/)
-import { QuickButton } from "../../../styles/FilterStyledComponents";
-// Utils (relative path from sections/)
-import { AdapterBuddhistDayjs } from "../../../utils/dateAdapters";
+// Constants
 import {
-  createDatePickerProps,
-  datePickerClearButtonSx,
-  dateRangeIndicatorSx,
-  datePickerIconStyle,
-} from "../../../utils/datePickerConfig";
-// UI Frame
-import { FilterSectionFrame } from "../ui";
+  dateRangeOptions,
+  filterColors,
+  filterValidation,
+} from "../../../constants/filterConstants";
 
 /**
  * Date Filter Section Component
- * Handles date range selection with Buddhist calendar support
+ * Compact version with quick buttons and date pickers
  */
-const DateFilterSection = ({ draftFilters, dateHelpers }) => {
-  const { handleQuickDateRange, clearStartDate, clearEndDate, setStartDate, setEndDate } =
-    dateHelpers;
-
-  // Get DatePicker props from config - memoized for performance
-  const datePickerCommonProps = useMemo(() => createDatePickerProps(), []);
+const DateFilterSection = ({ draftFilters, dateHelpers, compact = false }) => {
+  const { handleQuickDateRange, setStartDate, setEndDate } = dateHelpers;
 
   return (
-    <FilterSectionFrame
-      icon={<MdDateRange style={{ fontSize: 20, color: "white" }} />}
-      title="วันที่สร้างลูกค้า"
-      description="เลือกช่วงวันที่สร้างลูกค้าที่ต้องการ"
-    >
-      {/* Date Picker Fields with responsive layout */}
-      <LocalizationProvider dateAdapter={AdapterBuddhistDayjs}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: { xs: 2, md: 2 },
-          }}
-        >
+    <Stack spacing={1.5}>
+      {/* Quick Date Buttons */}
+      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+        {dateRangeOptions.map((opt) => (
+          <Chip
+            key={opt.key}
+            label={opt.label}
+            size="small"
+            onClick={() => handleQuickDateRange(opt.key)}
+            sx={{
+              fontSize: "0.7rem",
+              height: 24,
+              cursor: "pointer",
+              bgcolor: "grey.100",
+              "&:hover": { bgcolor: filterColors.primaryLight },
+            }}
+          />
+        ))}
+      </Stack>
+
+      {/* Date Pickers */}
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
           <DatePicker
-            label="วันที่เริ่มต้น"
+            label="เริ่มต้น"
             value={draftFilters.dateRange.startDate}
             onChange={setStartDate}
-            {...datePickerCommonProps}
+            format="DD/MM/YYYY"
             slotProps={{
-              ...datePickerCommonProps.slotProps,
               textField: {
-                ...datePickerCommonProps.slotProps.textField,
+                size: "small",
                 fullWidth: true,
-                size: "medium",
-                InputProps: {
-                  ...datePickerCommonProps.slotProps.textField.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MdDateRange style={datePickerIconStyle} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {draftFilters.dateRange.startDate && (
-                        <IconButton
-                          size="small"
-                          aria-label="clear start date"
-                          onClick={clearStartDate}
-                          edge="end"
-                          sx={datePickerClearButtonSx}
-                        >
-                          <MdClear />
-                        </IconButton>
-                      )}
-                    </InputAdornment>
-                  ),
-                },
+                sx: { "& .MuiInputBase-root": { height: 36, fontSize: "0.85rem" } },
               },
             }}
           />
           <DatePicker
-            label="วันที่สิ้นสุด"
+            label="สิ้นสุด"
             value={draftFilters.dateRange.endDate}
             onChange={setEndDate}
-            {...datePickerCommonProps}
+            format="DD/MM/YYYY"
             slotProps={{
-              ...datePickerCommonProps.slotProps,
               textField: {
-                ...datePickerCommonProps.slotProps.textField,
+                size: "small",
                 fullWidth: true,
-                size: "medium",
-                InputProps: {
-                  ...datePickerCommonProps.slotProps.textField.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MdDateRange style={datePickerIconStyle} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {draftFilters.dateRange.endDate && (
-                        <IconButton
-                          size="small"
-                          aria-label="clear end date"
-                          onClick={clearEndDate}
-                          edge="end"
-                          sx={datePickerClearButtonSx}
-                        >
-                          <MdClear />
-                        </IconButton>
-                      )}
-                    </InputAdornment>
-                  ),
-                },
+                sx: { "& .MuiInputBase-root": { height: 36, fontSize: "0.85rem" } },
               },
             }}
           />
-        </Box>
+        </Stack>
       </LocalizationProvider>
-
-      {/* Quick Date Range Buttons with responsive grid */}
-      <Typography
-        variant="subtitle2"
-        sx={{
-          mt: { xs: 0.5, sm: 1 },
-          mb: { xs: 1, sm: 0.5 },
-          fontWeight: 600,
-          color: "text.primary",
-          fontSize: { xs: "0.875rem", sm: "0.9375rem" },
-        }}
-      >
-        ช่วงเวลาที่ใช้บ่อย:
-      </Typography>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "repeat(2, 1fr)",
-            sm: "repeat(3, 1fr)",
-          },
-          gap: { xs: 1, sm: 1.5 },
-          "& button": {
-            flexGrow: 1,
-            whiteSpace: "nowrap",
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-            minHeight: { xs: "32px", sm: "36px" },
-            padding: { xs: "6px 8px", sm: "8px 16px" },
-          },
-        }}
-      >
-        {dateRangeOptions.map((option) => (
-          <QuickButton
-            key={option.key}
-            size="small"
-            variant="outlined"
-            onClick={() => handleQuickDateRange(option.key)}
-            sx={{
-              "&:hover": {
-                transform: "translateY(-1px)",
-                boxShadow: `0 4px 8px ${filterColors.primaryBorder}`,
-              },
-            }}
-          >
-            {option.label}
-          </QuickButton>
-        ))}
-      </Box>
-
-      {/* Status indicator for selected range */}
-      {(draftFilters.dateRange.startDate || draftFilters.dateRange.endDate) && (
-        <Box
-          sx={{
-            mt: 1,
-            p: 1.5,
-            borderRadius: 1.5,
-            backgroundColor: filterColors.primaryLight,
-            border: `1px solid ${filterColors.primaryBorder}`,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              color: "primary.main",
-              fontWeight: 600,
-              fontSize: "0.8rem",
-            }}
-          >
-            🗓️ ช่วงที่เลือก:{" "}
-            {draftFilters.dateRange.startDate
-              ? draftFilters.dateRange.startDate.format("DD/MM/YYYY")
-              : "ไม่ระบุ"}{" "}
-            -{" "}
-            {draftFilters.dateRange.endDate
-              ? draftFilters.dateRange.endDate.format("DD/MM/YYYY")
-              : "ไม่ระบุ"}
-          </Typography>
-        </Box>
-      )}
-    </FilterSectionFrame>
+    </Stack>
   );
 };
 

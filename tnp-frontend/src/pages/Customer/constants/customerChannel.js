@@ -106,8 +106,8 @@ export const canUserTransfer = (role, customerChannel) => {
     };
   }
 
-  // Head Online can transfer Online (2) to Sales (1)
-  if (role === TRANSFER_ROLES.HEAD_ONLINE && customerChannel === CUSTOMER_CHANNEL.ONLINE) {
+  // Head Online can transfer ANY channel to Sales (1)
+  if (role === TRANSFER_ROLES.HEAD_ONLINE) {
     return {
       canTransfer: true,
       targetChannel: CUSTOMER_CHANNEL.SALES,
@@ -115,8 +115,8 @@ export const canUserTransfer = (role, customerChannel) => {
     };
   }
 
-  // Head Offline can transfer Sales (1) to Online (2)
-  if (role === TRANSFER_ROLES.HEAD_OFFLINE && customerChannel === CUSTOMER_CHANNEL.SALES) {
+  // Head Offline can transfer ANY channel to Online (2)
+  if (role === TRANSFER_ROLES.HEAD_OFFLINE) {
     return {
       canTransfer: true,
       targetChannel: CUSTOMER_CHANNEL.ONLINE,

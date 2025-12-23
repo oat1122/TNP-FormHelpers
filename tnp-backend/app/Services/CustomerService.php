@@ -80,7 +80,8 @@ class CustomerService
                 $customer->cus_allocated_by = $data['cus_allocated_by'] ?? Auth::id();
             } else {
                 $customer->cus_manage_by = $this->extractManagerId($data['cus_manage_by'] ?? null);
-                $customer->cus_allocated_by = Auth::id();
+                // Track who created/allocated this customer (use request value or fallback to Auth::id)
+                $customer->cus_allocated_by = $data['cus_allocated_by'] ?? Auth::id();
             }
             
             $customer->cus_created_date = now();

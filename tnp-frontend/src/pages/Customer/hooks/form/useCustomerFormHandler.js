@@ -52,6 +52,18 @@ export const useCustomerFormHandler = ({ inputList, salesList, clearFieldError }
       [name]: value,
     };
 
+    // Sync cus_channel when cus_source changes
+    // source mapping: sales/telesales → 1(Sales), online → 2(Online), office → 3(Office)
+    if (name === "cus_source") {
+      const sourceToChannelMap = {
+        sales: 1,
+        telesales: 1,
+        online: 2,
+        office: 3,
+      };
+      newInputList.cus_channel = sourceToChannelMap[value] || 1;
+    }
+
     // อัพเดท cus_address เมื่อมีการเปลี่ยนแปลงในฟิลด์ที่อยู่
     // ใช้ utility function จาก addressUtils เพื่อ consistency
     if (["cus_address_detail", "cus_zip_code"].includes(name)) {

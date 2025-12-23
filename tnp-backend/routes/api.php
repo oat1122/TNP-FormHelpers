@@ -85,9 +85,15 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Stats & KPI (Protected Routes) ----------
-    Route::controller(StatsController::class)->group(function () {
-        Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
-        Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
+    // Route::controller(StatsController::class)->group(function () {
+    //     Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
+    //     Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
+    // });
+
+    //---------- KPI Dashboard (Protected Routes) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
+        Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
+        Route::get('/customers/kpi/export', 'export'); // CSV export
     });
 });
 

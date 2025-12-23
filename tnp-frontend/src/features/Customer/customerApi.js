@@ -248,6 +248,20 @@ export const customerApi = createApi({
       },
       providesTags: ["CustomerCounts"],
     }),
+    // KPI Dashboard endpoint
+    getKpiDashboard: builder.query({
+      query: (payload) => ({
+        url: "/customers/kpi",
+        method: "GET",
+        params: {
+          period: payload?.period || "month",
+          start_date: payload?.start_date,
+          end_date: payload?.end_date,
+          source_filter: payload?.source_filter || "all",
+          user_id: payload?.user_id,
+        },
+      }),
+    }),
   }),
 });
 
@@ -270,4 +284,6 @@ export const {
   useCheckDuplicateCustomerMutation,
   useGetCustomerGroupCountsQuery,
   useGetSalesBySubRoleQuery,
+  useGetKpiDashboardQuery,
+  useLazyGetKpiDashboardQuery,
 } = customerApi;

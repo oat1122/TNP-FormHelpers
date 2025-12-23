@@ -90,6 +90,23 @@ export const useCustomerSubmit = ({
       // Sanitize ข้อมูลก่อนบันทึก - ตัดตัวอักษรพิเศษป้องกัน SQL Injection และ XSS
       const sanitizedData = sanitizeFormData(inputList);
 
+      // Add cus_allocated_by for tracking who created/allocated this customer
+      const user = JSON.parse(localStorage.getItem("userData") || "{}");
+      if (mode === "create" && user.user_id) {
+        sanitizedData.cus_allocated_by = user.user_id;
+
+        // Derive cus_source from cus_channel if not already set
+        // (TelesalesQuickCreateForm sets cus_source explicitly, DialogForm uses cus_channel)
+        if (!sanitizedData.cus_source && sanitizedData.cus_channel) {
+          const channelToSourceMap = {
+            1: "sales", // Sales channel → sales source
+            2: "online", // Online channel → online source
+            3: "office", // Office channel → office source
+          };
+          sanitizedData.cus_source = channelToSourceMap[sanitizedData.cus_channel] || "sales";
+        }
+      }
+
       const res =
         mode === "create" ? await addCustomer(sanitizedData) : await updateCustomer(sanitizedData);
 

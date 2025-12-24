@@ -250,6 +250,8 @@ class CustomerTransferService
         if ($newManageBy) {
             $customer->cus_manage_by = $newManageBy;
             $customer->cus_allocation_status = 'allocated';
+            // Set allocation timestamp for notification system
+            $customer->cus_allocated_at = now();
         } else {
             // ถ้าไม่ระบุผู้ดูแลใหม่ ให้เข้า pool
             $customer->cus_manage_by = null;

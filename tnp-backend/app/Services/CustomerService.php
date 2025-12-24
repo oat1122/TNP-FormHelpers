@@ -82,6 +82,8 @@ class CustomerService
                 $customer->cus_manage_by = $this->extractManagerId($data['cus_manage_by'] ?? null);
                 // Track who created/allocated this customer (use request value or fallback to Auth::id)
                 $customer->cus_allocated_by = $data['cus_allocated_by'] ?? Auth::id();
+                // Set allocation timestamp for notification system
+                $customer->cus_allocated_at = now();
             }
             
             $customer->cus_created_date = now();

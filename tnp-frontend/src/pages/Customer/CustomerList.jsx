@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { RiAddLargeFill } from "react-icons/ri";
 import { MdPerson, MdGroup, MdSettings } from "react-icons/md";
 import { useDispatch } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // Common components
 import {
@@ -34,7 +35,8 @@ import {
   useCustomerData,
 } from "./hooks";
 import TitleBar from "../../components/TitleBar";
-import { setPaginationModel } from "../../features/Customer/customerSlice";
+import { setPaginationModel, setInputList, setMode } from "../../features/Customer/customerSlice";
+import { useLazyGetCustomerQuery } from "../../features/Customer/customerApi";
 
 // AllocationHub components for "จัดการลูกค้า" tab
 import { useAllocationHub, useSnackbar } from "../AllocationHub/hooks";
@@ -43,6 +45,8 @@ import { AllocationTabs } from "../AllocationHub/sections";
 
 function CustomerList() {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigateUrl = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
@@ -209,6 +213,38 @@ function CustomerList() {
       return () => clearTimeout(timer);
     }
   }, [isFetching, validRows.length]);
+
+  // Auto-open view dialog from notification click (viewCustomerId query param)
+  // Use lazy query hook outside of useEffect
+  const [fetchCustomerById] = useLazyGetCustomerQuery();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewCustomerId = params.get("viewCustomerId");
+
+    if (viewCustomerId) {
+      // Fetch customer data directly from API (not from itemList)
+      fetchCustomerById(viewCustomerId)
+        .unwrap()
+        .then((result) => {
+          if (result?.data) {
+            // Set customer data to Redux store
+            dispatch(setInputList(result.data));
+            // Open view dialog
+            dispatch(setMode("view"));
+            setOpenDialog(true);
+          } else {
+            console.warn("Customer not found:", viewCustomerId);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch customer:", error);
+        });
+
+      // Remove query param from URL to prevent re-open on refresh
+      navigateUrl("/customer", { replace: true });
+    }
+  }, [location.search, fetchCustomerById, dispatch, navigateUrl]);
 
   return (
     <ScrollContext.Provider value={{ scrollToTop }}>

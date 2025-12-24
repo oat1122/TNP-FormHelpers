@@ -93,6 +93,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/notifications/unread', 'getUnreadNotifications');
         Route::post('/notifications/mark-as-read', 'markAsRead');
         Route::post('/notifications/mark-all-as-read', 'markAllAsRead');
+        Route::post('/notifications/dismiss', 'dismiss'); // Permanently hide notifications
     });
 });
 

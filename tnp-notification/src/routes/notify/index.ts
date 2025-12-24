@@ -27,15 +27,20 @@ const notifyRoute: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    // Debug: Check how many sockets are in this room
+    const roomName = `user_${user_id}`;
+    const socketsInRoom = await fastify.io.in(roomName).fetchSockets();
+    console.log(`🔍 Room ${roomName} has ${socketsInRoom.length} socket(s)`);
+
     // ส่ง notification ไปยัง user room
-    fastify.io.to(`user_${user_id}`).emit("notification", {
+    fastify.io.to(roomName).emit("notification", {
       title,
       message,
       type: type || "info",
       timestamp: new Date().toISOString(),
     });
 
-    console.log(`📬 Notification sent to user_${user_id}: ${title}`);
+    console.log(`📬 Notification sent to ${roomName}: ${title}`);
 
     return { success: true, message: "Notification sent" };
   });

@@ -99,9 +99,10 @@ function AppHeader() {
 
   // Notification for admin, manager, and sales roles
   // Uses WebSocket-triggered refetch instead of polling
-  const { unreadCount, notifications, markAsRead, markAllAsRead } = useSocketNotification({
-    enableNotifications: true,
-  });
+  const { unreadCount, notifications, markAsRead, markAllAsRead, dismissNotification } =
+    useSocketNotification({
+      enableNotifications: true,
+    });
   const pathList = [
     "/monitor",
     "/worksheet",
@@ -297,9 +298,15 @@ function AppHeader() {
           unreadCount={unreadCount}
           onMarkAsRead={markAsRead}
           onMarkAllAsRead={markAllAsRead}
+          onDismiss={dismissNotification}
           onNotificationClick={(notification) => {
-            // Navigate to customer page when notification is clicked
-            navigate("/customer");
+            // Navigate to customer page with customer ID to auto-open view dialog
+            const customerId = notification.data?.customer_id;
+            if (customerId) {
+              navigate(`/customer?viewCustomerId=${customerId}`);
+            } else {
+              navigate("/customer");
+            }
           }}
         />
       )}

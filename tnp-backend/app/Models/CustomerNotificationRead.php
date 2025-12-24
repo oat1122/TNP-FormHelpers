@@ -31,12 +31,14 @@ class CustomerNotificationRead extends Model
         'cus_id',
         'user_id',
         'read_at',
+        'is_dismissed',
     ];
 
     protected $casts = [
         'cus_id' => 'string',
         'user_id' => 'int',
         'read_at' => 'datetime',
+        'is_dismissed' => 'boolean',
     ];
 
     /**

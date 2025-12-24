@@ -5,6 +5,7 @@ import {
   useGetUnreadNotificationsQuery,
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
+  useDismissNotificationMutation,
 } from "../features/Notification";
 
 // URL ของ Notification Server - ใช้ค่าจาก .env
@@ -54,6 +55,7 @@ export const useSocketNotification = (options = {}) => {
   // RTK Mutations
   const [markAsReadMutation] = useMarkAsReadMutation();
   const [markAllAsReadMutation] = useMarkAllAsReadMutation();
+  const [dismissNotificationMutation] = useDismissNotificationMutation();
 
   // Show toast notification
   const showToast = useCallback((notificationData) => {
@@ -144,6 +146,24 @@ export const useSocketNotification = (options = {}) => {
     }
   }, [markAllAsReadMutation]);
 
+  /**
+   * Dismiss notifications (hide permanently) - for X button
+   * @param {string[]} customerIds - Array of customer IDs to dismiss
+   */
+  const dismissNotification = useCallback(
+    async (customerIds) => {
+      if (!customerIds || customerIds.length === 0) return false;
+      try {
+        await dismissNotificationMutation(customerIds).unwrap();
+        return true;
+      } catch (err) {
+        console.error("Error dismissing notifications:", err);
+        return false;
+      }
+    },
+    [dismissNotificationMutation]
+  );
+
   return {
     unreadCount: data?.data?.unread_count || 0,
     notifications: data?.data?.notifications || [],
@@ -152,6 +172,7 @@ export const useSocketNotification = (options = {}) => {
     refresh: refetch,
     markAsRead,
     markAllAsRead,
+    dismissNotification,
   };
 };
 

@@ -39,8 +39,24 @@ export const notificationRtkApi = createApi({
       }),
       invalidatesTags: ["Notification"],
     }),
+
+    /**
+     * Dismiss notifications (hide permanently)
+     */
+    dismissNotification: builder.mutation({
+      query: (customerIds) => ({
+        url: "/notifications/dismiss",
+        method: "POST",
+        body: { customer_ids: customerIds },
+      }),
+      invalidatesTags: ["Notification"],
+    }),
   }),
 });
 
-export const { useGetUnreadNotificationsQuery, useMarkAsReadMutation, useMarkAllAsReadMutation } =
-  notificationRtkApi;
+export const {
+  useGetUnreadNotificationsQuery,
+  useMarkAsReadMutation,
+  useMarkAllAsReadMutation,
+  useDismissNotificationMutation,
+} = notificationRtkApi;

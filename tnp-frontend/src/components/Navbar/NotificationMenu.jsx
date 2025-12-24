@@ -1,5 +1,6 @@
 import React from "react";
-import { Menu, MenuItem, Typography, Divider, Box, Button, Chip } from "@mui/material";
+import { Menu, MenuItem, Typography, Divider, Box, Button, Chip, IconButton } from "@mui/material";
+import { MdClose } from "react-icons/md";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/th";
@@ -20,6 +21,7 @@ dayjs.locale("th");
  * @param {Function} props.onMarkAsRead - Handler for marking notifications as read
  * @param {Function} props.onMarkAllAsRead - Handler for marking all as read
  * @param {Function} props.onNotificationClick - Handler for clicking a notification
+ * @param {Function} props.onDismiss - Handler for dismissing a notification (X button)
  */
 const NotificationMenu = ({
   anchorEl,
@@ -30,6 +32,7 @@ const NotificationMenu = ({
   onMarkAsRead,
   onMarkAllAsRead,
   onNotificationClick,
+  onDismiss,
 }) => {
   const handleNotificationClick = (notification) => {
     // Mark this notification as read
@@ -49,6 +52,14 @@ const NotificationMenu = ({
   const handleMarkAllAsRead = () => {
     if (onMarkAllAsRead) {
       onMarkAllAsRead();
+    }
+  };
+
+  // Dismiss handler - removes notification from list
+  const handleDismiss = (e, notification) => {
+    e.stopPropagation(); // Don't trigger click on MenuItem
+    if (onDismiss && notification.data?.customer_id) {
+      onDismiss([notification.data.customer_id]);
     }
   };
 
@@ -109,52 +120,62 @@ const NotificationMenu = ({
                 py: 1.5,
                 px: 2,
                 whiteSpace: "normal",
-                // Visual indicator for read/unread status
+                // Enhanced read vs unread styling
                 bgcolor: notif.is_read ? "transparent" : "action.hover",
+                opacity: notif.is_read ? 0.6 : 1, // Faded for read notifications
                 borderLeft: notif.is_read ? "3px solid transparent" : "3px solid",
                 borderLeftColor: notif.is_read ? "transparent" : "primary.main",
                 "&:hover": {
                   bgcolor: notif.is_read ? "action.hover" : "action.selected",
+                  opacity: 1, // Full opacity on hover
                 },
                 transition: "all 0.2s ease-in-out",
               }}
             >
-              <Box sx={{ width: "100%" }}>
-                {/* Title */}
-                <Typography variant="body2" fontWeight={notif.is_read ? 400 : 600} sx={{ mb: 0.5 }}>
-                  {notif.title || "มีลูกค้าใหม่ที่ได้รับมอบหมาย"}
-                </Typography>
+              <Box sx={{ width: "100%", display: "flex", alignItems: "flex-start" }}>
+                {/* Notification Content */}
+                <Box sx={{ flex: 1 }}>
+                  {/* Title */}
+                  <Typography
+                    variant="body2"
+                    fontWeight={notif.is_read ? 400 : 600}
+                    sx={{ mb: 0.5 }}
+                  >
+                    {notif.title || "มีลูกค้าใหม่ที่ได้รับมอบหมาย"}
+                  </Typography>
 
-                {/* Message */}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                  sx={{ mb: 0.5 }}
+                  {/* Message */}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mb: 0.5 }}
+                  >
+                    {notif.message}
+                  </Typography>
+
+                  {/* Timestamp */}
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>
+                    {notif.timestamp ? dayjs(notif.timestamp).fromNow() : "เมื่อสักครู่"}
+                  </Typography>
+                </Box>
+
+                {/* Dismiss Button (X) */}
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleDismiss(e, notif)}
+                  sx={{
+                    ml: 1,
+                    opacity: 0.5,
+                    "&:hover": { opacity: 1, color: "error.main" },
+                  }}
                 >
-                  {notif.message}
-                </Typography>
-
-                {/* Timestamp */}
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>
-                  {notif.timestamp ? dayjs(notif.timestamp).fromNow() : "เมื่อสักครู่"}
-                </Typography>
+                  <MdClose size={16} />
+                </IconButton>
               </Box>
             </MenuItem>
           ))}
         </Box>
-      )}
-
-      {/* Footer */}
-      {notifications.length > 0 && (
-        <>
-          <Divider />
-          <Box sx={{ p: 1.5, textAlign: "center" }}>
-            <Button size="small" fullWidth onClick={onClose} sx={{ fontSize: "0.75rem" }}>
-              ดูทั้งหมด
-            </Button>
-          </Box>
-        </>
       )}
     </Menu>
   );

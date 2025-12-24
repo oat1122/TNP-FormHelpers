@@ -1,6 +1,6 @@
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo, useCallback, useState } from "react";
 import { io } from "socket.io-client";
-import toast from "react-hot-toast";
+import { showNotificationToast } from "../utils/toast";
 import {
   useGetUnreadNotificationsQuery,
   useMarkAsReadMutation,
@@ -10,6 +10,10 @@ import {
 
 // URL ของ Notification Server - ใช้ค่าจาก .env
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+
+// Constants for pending notifications
+const MAX_PENDING_NOTIFICATIONS = 30;
+const TOAST_DELAY_MS = 800; // Delay between each toast to prevent overlap
 
 /**
  * Safely parse user data from localStorage
@@ -40,6 +44,8 @@ const getUserData = () => {
 export const useSocketNotification = (options = {}) => {
   const { enableNotifications = true } = options;
   const socketRef = useRef(null);
+  const pendingNotificationsRef = useRef([]); // Queue for notifications when tab is hidden
+  const isProcessingQueueRef = useRef(false); // Flag to prevent multiple queue processing
   const user = useMemo(() => getUserData(), []);
 
   // Check if user should receive notifications
@@ -57,24 +63,65 @@ export const useSocketNotification = (options = {}) => {
   const [markAllAsReadMutation] = useMarkAllAsReadMutation();
   const [dismissNotificationMutation] = useDismissNotificationMutation();
 
-  // Show toast notification
+  // Show toast notification with custom NotificationToast
   const showToast = useCallback((notificationData) => {
-    toast(notificationData.message, {
-      icon:
-        notificationData.type === "success"
-          ? "✅"
-          : notificationData.type === "error"
-            ? "❌"
-            : "🔔",
+    // Map notification type to icon
+    const iconMap = {
+      success: "info",
+      error: "alert",
+      customer: "user-plus",
+      default: "default",
+    };
+    const icon = iconMap[notificationData.type] || iconMap.default;
+
+    showNotificationToast({
+      title: notificationData.title || "การแจ้งเตือน",
+      message: notificationData.message,
+      icon,
       duration: 5000,
-      position: "top-right",
-      style: {
-        border: "1px solid #713200",
-        padding: "16px",
-        color: "#713200",
-      },
     });
   }, []);
+
+  /**
+   * Process pending notifications queue sequentially with delay
+   * Shows one toast at a time with TOAST_DELAY_MS between each
+   */
+  const processPendingQueue = useCallback(() => {
+    if (isProcessingQueueRef.current || pendingNotificationsRef.current.length === 0) {
+      return;
+    }
+
+    isProcessingQueueRef.current = true;
+    const queue = [...pendingNotificationsRef.current];
+    pendingNotificationsRef.current = []; // Clear queue
+
+    // Show toasts one by one with delay
+    queue.forEach((notification, index) => {
+      setTimeout(() => {
+        showToast(notification);
+        // Reset processing flag after last toast
+        if (index === queue.length - 1) {
+          isProcessingQueueRef.current = false;
+        }
+      }, index * TOAST_DELAY_MS);
+    });
+  }, [showToast]);
+
+  // Listen for page visibility changes to show pending notifications when user returns
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // User returned to this tab - process pending notifications
+        console.log("👀 Page visible - processing pending notifications");
+        processPendingQueue();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [processPendingQueue]);
 
   // Socket.io connection - triggers refetch on notification events
   useEffect(() => {
@@ -98,7 +145,22 @@ export const useSocketNotification = (options = {}) => {
     // Listen for notification events - trigger refetch when received
     socketRef.current.on("notification", (notificationData) => {
       console.log("📩 Received Notification:", notificationData);
-      showToast(notificationData);
+
+      // Check if page is visible
+      if (document.hidden) {
+        // Page is hidden - queue notification for later (max 30)
+        if (pendingNotificationsRef.current.length < MAX_PENDING_NOTIFICATIONS) {
+          pendingNotificationsRef.current.push(notificationData);
+          console.log(
+            `📥 Notification queued (${pendingNotificationsRef.current.length}/${MAX_PENDING_NOTIFICATIONS})`
+          );
+        } else {
+          console.warn("⚠️ Pending notifications queue is full, dropping notification");
+        }
+      } else {
+        // Page is visible - show toast immediately
+        showToast(notificationData);
+      }
 
       // Refetch notifications when new event arrives (WebSocket-triggered)
       if (shouldFetch) {

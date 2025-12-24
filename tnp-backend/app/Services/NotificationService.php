@@ -80,7 +80,7 @@ class NotificationService
 
         return $this->notify(
             $salesUserId,
-            '🎉 ลูกค้าใหม่!',
+            'ลูกค้าใหม่!',
             $message,
             'success'
         );

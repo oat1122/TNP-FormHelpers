@@ -57,20 +57,28 @@ export const useAllocationHub = () => {
   });
 
   // Count queries - load immediately for both tabs (per_page: 1 for minimal data)
+  // Skip if user doesn't have allocation permission to avoid 403 errors
   const { data: telesalesCountData, refetch: refetchTelesalesCount } =
-    useGetPoolTelesalesCustomersQuery({
-      page: 0,
-      per_page: 1,
-    });
+    useGetPoolTelesalesCustomersQuery(
+      {
+        page: 0,
+        per_page: 1,
+      },
+      { skip: !canAllocate }
+    );
 
   const { data: transferredCountData, refetch: refetchTransferredCount } =
-    useGetPoolTransferredCustomersQuery({
-      page: 0,
-      per_page: 1,
-      channel: transferredChannel,
-    });
+    useGetPoolTransferredCustomersQuery(
+      {
+        page: 0,
+        per_page: 1,
+        channel: transferredChannel,
+      },
+      { skip: !canAllocate }
+    );
 
   // API queries based on active tab - full data loaded only when tab is active
+  // Also skip if user doesn't have allocation permission
   const {
     data: telesalesData,
     isLoading: isTelesalesLoading,
@@ -82,7 +90,7 @@ export const useAllocationHub = () => {
       per_page: paginationModel.pageSize,
       search: filters.search || undefined,
     },
-    { skip: activeTab !== 0 }
+    { skip: !canAllocate || activeTab !== 0 }
   );
 
   const {
@@ -96,7 +104,7 @@ export const useAllocationHub = () => {
       per_page: paginationModel.pageSize,
       channel: transferredChannel,
     },
-    { skip: activeTab !== 1 }
+    { skip: !canAllocate || activeTab !== 1 }
   );
 
   // Get counts from count queries (loaded immediately) or fallback to data queries

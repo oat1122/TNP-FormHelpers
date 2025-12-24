@@ -303,16 +303,26 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     /**
      * Get pool customers from Telesales source
      * 
+     * Only shows telesales customers that have NOT been transferred yet.
+     * Once a telesales customer is transferred, they should appear in the transferred tab instead.
+     * 
      * @param array $filters Filter parameters (search, per_page)
      * @return LengthAwarePaginator
      */
     public function getPoolTelesalesCustomers(array $filters): LengthAwarePaginator
     {
+        // Get customer IDs that have been transferred (actual transfer, not initial creation)
+        $transferredCustomerIds = \App\Models\CustomerTransferHistory::query()
+            ->whereNotNull('previous_channel') // Only actual transfers, not creation events
+            ->distinct()
+            ->pluck('customer_id');
+
         $query = $this->model->active()
             ->with(['allocatedBy', 'customerDetail'])
             ->where('cus_allocation_status', 'pool')
             ->where('cus_source', 'telesales')
-            ->whereNull('cus_manage_by');
+            ->whereNull('cus_manage_by')
+            ->whereNotIn('cus_id', $transferredCustomerIds); // Exclude transferred customers
 
         if (!empty($filters['search'])) {
             $this->applySearchFilterToQuery($query, $filters['search']);
@@ -324,7 +334,10 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     }
 
     /**
-     * Get pool customers that have transfer history
+     * Get pool customers that have actual transfer history
+     * 
+     * Shows ALL customers that have been transferred (where previous_channel is NOT NULL),
+     * including telesales customers that were transferred.
      * 
      * @param array $filters Filter parameters (channel, per_page)
      * @return LengthAwarePaginator
@@ -333,8 +346,10 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     {
         $channel = $filters['channel'] ?? null;
 
-        // Get customer IDs that have transfer history
+        // Get customer IDs that have ACTUAL transfer history (not initial creation)
+        // Exclude records where previous_channel is NULL (those are just creation events)
         $transferredCustomerIds = \App\Models\CustomerTransferHistory::query()
+            ->whereNotNull('previous_channel') // Exclude initial creation history
             ->when($channel, function ($q) use ($channel) {
                 $q->where('new_channel', $channel);
             })

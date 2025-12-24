@@ -19,6 +19,7 @@ import userManagementReducers from "./features/UserManagement/userManagementSlic
 import subRoleManagementReducers from "./features/SubRoleManagement/subRoleManagementSlice";
 import { worksheetApi } from "./features/Worksheet/worksheetApi";
 import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
+import { notificationRtkApi } from "./features/Notification";
 import { tnpApi } from "./services/tnpApi";
 
 const store = configureStore({
@@ -44,6 +45,7 @@ const store = configureStore({
     [userManagementApi.reducerPath]: userManagementApi.reducer,
     [pricingApi.reducerPath]: pricingApi.reducer,
     [accountingApi.reducerPath]: accountingApi.reducer,
+    [notificationRtkApi.reducerPath]: notificationRtkApi.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -57,7 +59,8 @@ const store = configureStore({
       customerTransferApi.middleware,
       userManagementApi.middleware,
       pricingApi.middleware,
-      accountingApi.middleware
+      accountingApi.middleware,
+      notificationRtkApi.middleware
     ),
 });
 

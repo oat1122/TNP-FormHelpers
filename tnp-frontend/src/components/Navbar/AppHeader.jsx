@@ -35,7 +35,7 @@ import { FiLogOut } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
 import { RxHome } from "react-icons/rx";
 import { MdNotifications } from "react-icons/md";
-import { useNotificationPolling } from "../../hooks/useNotificationPolling";
+import { useSocketNotification } from "../../hooks/useSocketNotification";
 import NotificationMenu from "./NotificationMenu";
 
 import DialogChangePass from "./DialogChangePass";
@@ -97,8 +97,11 @@ function AppHeader() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
 
-  // Notification polling for admin, manager, and sales roles
-  const { unreadCount, notifications, markAsRead, markAllAsRead } = useNotificationPolling(30000);
+  // Notification for admin, manager, and sales roles
+  // Uses WebSocket-triggered refetch instead of polling
+  const { unreadCount, notifications, markAsRead, markAllAsRead } = useSocketNotification({
+    enableNotifications: true,
+  });
   const pathList = [
     "/monitor",
     "/worksheet",

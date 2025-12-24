@@ -1,10 +1,12 @@
 import { MdPerson, MdLanguage, MdBusiness } from "react-icons/md";
+import { CUSTOMER_CHANNEL } from "./customerChannel";
 
 // Channel options for customer communication channels
+// Uses Number values from CUSTOMER_CHANNEL for type consistency
 export const channelOptions = [
-  { value: "1", label: "Sales", icon: MdPerson, color: "#1976d2" },
-  { value: "2", label: "Online", icon: MdLanguage, color: "#388e3c" },
-  { value: "3", label: "Office", icon: MdBusiness, color: "#f57c00" },
+  { value: CUSTOMER_CHANNEL.SALES, label: "Sales", icon: MdPerson, color: "#1976d2" },
+  { value: CUSTOMER_CHANNEL.ONLINE, label: "Online", icon: MdLanguage, color: "#388e3c" },
+  { value: CUSTOMER_CHANNEL.OFFICE, label: "Office", icon: MdBusiness, color: "#f57c00" },
 ];
 
 // Date range quick selection options

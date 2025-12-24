@@ -1,52 +1,48 @@
-import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useState, useEffect, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import Swal from "sweetalert2";
 
-import {
-  useGetAllLocationQuery,
-  useGetUserByRoleQuery,
-  useGetAllBusinessTypesQuery,
-} from "../../../features/globalApi";
+import { useGetUserByRoleQuery, useGetAllBusinessTypesQuery } from "../../../features/globalApi";
+import { setInputList } from "../../../features/Customer/customerSlice";
 import { open_dialog_loading } from "../../../utils/import_lib";
 
-export const useDialogApiData = (openDialog) => {
-  const locationSearch = useSelector((state) => state.global.locationSearch);
+// Use centralized address manager hook
+import { useAddressManager } from "./form/useAddressManager";
 
-  // Debug logging สำหรับ locationSearch changes
-  useEffect(() => {
-    if (window.debugLocation) {
-      console.log("🌐 LocationSearch state changed:", locationSearch);
-    }
-  }, [locationSearch]);
+/**
+ * useDialogApiData - Manages API data for Customer DialogForm
+ *
+ * Refactored to use useAddressManager for location logic.
+ * Now focuses on:
+ * - Business types
+ * - Sales list
+ * - Coordinating location changes with Redux
+ */
+export const useDialogApiData = (openDialog) => {
+  const dispatch = useDispatch();
+  const inputList = useSelector((state) => state.customer.inputList);
 
   // Local state for processed data
-  const [provincesList, setProvincesList] = useState([]);
-  const [districtList, setDistrictList] = useState([]);
-  const [subDistrictList, setSubDistrictList] = useState([]);
   const [salesList, setSalesList] = useState([]);
   const [businessTypesList, setBusinessTypesList] = useState([]);
 
-  // API hooks - only execute when dialog is open
+  // === Use Address Manager for Location Logic ===
   const {
-    data: locations,
-    error: locationError,
-    isFetching: locationIsFetching,
-    refetch: refetchLocations,
-  } = useGetAllLocationQuery(locationSearch, { skip: !openDialog });
+    provinces: provincesList,
+    districts: districtList,
+    subdistricts: subDistrictList,
+    isLoadingProvinces: locationIsFetching,
+    isLoadingDistricts,
+    isLoadingSubdistricts,
+    handleProvinceChange: addressProvinceChange,
+    handleDistrictChange: addressDistrictChange,
+    handleSubdistrictChange: addressSubdistrictChange,
+    buildFullAddress,
+    loadDistrictsForProvince,
+    loadSubdistrictsForDistrict,
+  } = useAddressManager({ skip: !openDialog });
 
-  // Debug logging สำหรับ API calls
-  useEffect(() => {
-    if (window.debugLocation) {
-      console.log("📡 API Call State:", {
-        openDialog,
-        locationSearch,
-        locationIsFetching,
-        hasLocationData: !!locations,
-        locationError: !!locationError,
-      });
-    }
-  }, [openDialog, locationSearch, locationIsFetching, locations, locationError]);
-
+  // === Other API Hooks ===
   const {
     data: userRoleData,
     error: roleError,
@@ -59,22 +55,63 @@ export const useDialogApiData = (openDialog) => {
     isFetching: businessTypesIsFetching,
   } = useGetAllBusinessTypesQuery(undefined, { skip: !openDialog });
 
-  // Process locations data
-  useEffect(() => {
-    if (locations) {
-      if (window.debugLocation) {
-        console.log("📍 Processing location data:", {
-          provinces: locations.master_provinces?.length || 0,
-          districts: locations.master_district?.length || 0,
-          subdistricts: locations.master_subdistrict?.length || 0,
-          rawData: locations,
-        });
-      }
-      setProvincesList(locations.master_provinces || []);
-      setDistrictList(locations.master_district || []);
-      setSubDistrictList(locations.master_subdistrict || []);
-    }
-  }, [locations]);
+  // === Location Handlers (Wrapped to dispatch to Redux) ===
+
+  /**
+   * Province change handler - wraps useAddressManager and dispatches to Redux
+   */
+  const handleProvinceChange = useCallback(
+    (event, newValue) => {
+      const updatedFields = addressProvinceChange(event, newValue);
+
+      const updatedData = {
+        ...inputList,
+        ...updatedFields,
+      };
+      updatedData.cus_address = buildFullAddress(updatedData);
+
+      dispatch(setInputList(updatedData));
+    },
+    [inputList, dispatch, addressProvinceChange, buildFullAddress]
+  );
+
+  /**
+   * District change handler - wraps useAddressManager and dispatches to Redux
+   */
+  const handleDistrictChange = useCallback(
+    (event, newValue) => {
+      const updatedFields = addressDistrictChange(event, newValue);
+
+      const updatedData = {
+        ...inputList,
+        ...updatedFields,
+      };
+      updatedData.cus_address = buildFullAddress(updatedData);
+
+      dispatch(setInputList(updatedData));
+    },
+    [inputList, dispatch, addressDistrictChange, buildFullAddress]
+  );
+
+  /**
+   * Subdistrict change handler - wraps useAddressManager and dispatches to Redux
+   */
+  const handleSubdistrictChange = useCallback(
+    (event, newValue) => {
+      const updatedFields = addressSubdistrictChange(event, newValue, inputList.cus_zip_code);
+
+      const updatedData = {
+        ...inputList,
+        ...updatedFields,
+      };
+      updatedData.cus_address = buildFullAddress(updatedData);
+
+      dispatch(setInputList(updatedData));
+    },
+    [inputList, dispatch, addressSubdistrictChange, buildFullAddress]
+  );
+
+  // === Process API Data ===
 
   // Process user role data
   useEffect(() => {
@@ -95,12 +132,46 @@ export const useDialogApiData = (openDialog) => {
     if (locationIsFetching || roleIsFetching || businessTypesIsFetching) {
       open_dialog_loading();
     } else {
-      Swal.close(); // Close loading when fetching stops
+      Swal.close();
     }
   }, [locationIsFetching, roleIsFetching, businessTypesIsFetching]);
 
+  // === Pre-load location data for View/Edit mode ===
+
+  // Pre-load districts when viewing/editing a customer with province
+  useEffect(() => {
+    if (openDialog && inputList?.cus_pro_id && provincesList.length > 0) {
+      const province = provincesList.find((p) => p.pro_id === inputList.cus_pro_id);
+      if (province?.pro_sort_id && districtList.length === 0) {
+        loadDistrictsForProvince(province.pro_sort_id);
+      }
+    }
+  }, [
+    openDialog,
+    inputList?.cus_pro_id,
+    provincesList,
+    districtList.length,
+    loadDistrictsForProvince,
+  ]);
+
+  // Pre-load subdistricts when viewing/editing a customer with district
+  useEffect(() => {
+    if (openDialog && inputList?.cus_dis_id && districtList.length > 0) {
+      const district = districtList.find((d) => d.dis_id === inputList.cus_dis_id);
+      if (district?.dis_sort_id && subDistrictList.length === 0) {
+        loadSubdistrictsForDistrict(district.dis_sort_id);
+      }
+    }
+  }, [
+    openDialog,
+    inputList?.cus_dis_id,
+    districtList,
+    subDistrictList.length,
+    loadSubdistrictsForDistrict,
+  ]);
+
   // Check if any API call has errors
-  const hasErrors = locationError || roleError || businessTypesError;
+  const hasErrors = roleError || businessTypesError;
   const isLoading = locationIsFetching || roleIsFetching || businessTypesIsFetching;
 
   return {
@@ -116,11 +187,18 @@ export const useDialogApiData = (openDialog) => {
     isLoading,
     hasErrors,
 
-    // API functions
-    refetchLocations,
+    // Location handlers (for Autocomplete)
+    handleProvinceChange,
+    handleDistrictChange,
+    handleSubdistrictChange,
+    isLoadingDistricts,
+    isLoadingSubdistricts,
+
+    // Utility functions (for edit mode pre-loading)
+    loadDistrictsForProvince,
+    loadSubdistrictsForDistrict,
 
     // Raw data (if needed)
-    locations,
     userRoleData,
     businessTypesData,
 

@@ -1,102 +1,16 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import qs from "qs";
+import { createSlice } from "@reduxjs/toolkit";
 
 import initialState from "./customerInitialState";
 import reducers from "./customerReducers";
-import { apiConfig } from "../../api/apiConfig";
+import { customerApi } from "./customerApi";
 
-// Define the async thunk for fetching filtered customers
-export const fetchFilteredCustomers = createAsyncThunk(
-  "customer/fetchFiltered",
-  async (filters, { dispatch, getState, rejectWithValue }) => {
-    try {
-      dispatch(setIsLoading(true));
-
-      const state = getState();
-      const groupSelected = state.customer.groupSelected;
-      const userData = JSON.parse(localStorage.getItem("userData")); // Prepare query parameters
-      const queryParams = {
-        group: groupSelected !== "all" ? groupSelected : undefined,
-        user: userData?.user_id,
-      };
-
-      console.log(`Fetching customers for group: ${groupSelected}, with filters:`, filters);
-
-      // Date Range
-      if (filters.dateRange.startDate) {
-        queryParams.start_date = filters.dateRange.startDate;
-      }
-      if (filters.dateRange.endDate) {
-        queryParams.end_date = filters.dateRange.endDate;
-      }
-
-      // Sales Name filter
-      if (Array.isArray(filters.salesName) && filters.salesName.length > 0) {
-        queryParams.sales_names = filters.salesName.join(",");
-      }
-      // Channel filter
-      if (Array.isArray(filters.channel) && filters.channel.length > 0) {
-        queryParams.channels = filters.channel.join(",");
-      }
-
-      // Get pagination settings from current state
-      const paginationModel = state.customer.paginationModel;
-      queryParams.page = paginationModel.page + 1; // Convert 0-indexed to 1-indexed for API
-      queryParams.per_page = paginationModel.pageSize;
-
-      const queryString = qs.stringify(queryParams, { skipNulls: true });
-      const url = `${apiConfig.baseUrl}/customers?${queryString}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch filtered customers");
-      }
-
-      const data = await response.json();
-
-      // Ensure each row has a unique ID to prevent MissingRowIdError
-      const processedData = Array.isArray(data.data)
-        ? data.data.map((row) => {
-            // If the row doesn't have a cus_id, generate one
-            if (!row.cus_id) {
-              return { ...row, cus_id: `row-${Math.random().toString(36).substring(2, 15)}` };
-            }
-            return row;
-          })
-        : []; // Update the item list with the filtered results
-      dispatch(setItemList(processedData));
-
-      // Check if we have total_count in the response or use pagination total
-      if (data.total_count) {
-        dispatch(setTotalCount(data.total_count));
-      } else if (data.pagination?.total_items) {
-        dispatch(setTotalCount(data.pagination.total_items));
-      }
-
-      // ถ้ามี groups ในการตอบกลับ ให้อัพเดทค่ากลุ่มลูกค้าด้วย
-      // แต่ถ้าเป็นการกรองแบบที่ไม่ได้ส่ง group ใหม่มาด้วย
-      // ให้คงค่ากลุ่มเดิมไว้ เพื่อให้ FilterTab คำนวณจำนวนใหม่จาก itemList
-      if (data.groups && Array.isArray(data.groups)) {
-        dispatch(setGroupList(data.groups));
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Error fetching filtered customers:", error);
-      return rejectWithValue(error.message);
-    } finally {
-      dispatch(setIsLoading(false));
-    }
-  }
-);
-
+/**
+ * Customer Slice
+ *
+ * Manages client-side state for Customer feature.
+ * API data fetching is handled by RTK Query (customerApi).
+ * This slice syncs RTK Query results to Redux state via extraReducers matchers.
+ */
 export const customerSlice = createSlice({
   name: "customer",
   initialState: {
@@ -114,19 +28,29 @@ export const customerSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchFilteredCustomers.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchFilteredCustomers.fulfilled, (state, action) => {
+    // Auto-sync RTK Query results to Redux state
+    // This allows components that rely on Redux state to work seamlessly
+    builder.addMatcher(customerApi.endpoints.getAllCustomer.matchPending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+    builder.addMatcher(
+      customerApi.endpoints.getAllCustomer.matchFulfilled,
+      (state, { payload }) => {
+        // Data is already processed by transformResponse in customerApi.js
+        // No need to map data here - just receive the already-processed payload
+        state.itemList = payload.data || [];
+        state.totalCount = payload.total_count || payload.pagination?.total_items || 0;
+        if (payload.groups && Array.isArray(payload.groups)) {
+          state.groupList = payload.groups;
+        }
         state.isLoading = false;
-        // The actual data handling is done in the thunk itself
-      })
-      .addCase(fetchFilteredCustomers.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || "Failed to fetch filtered customers";
-      });
+      }
+    );
+    builder.addMatcher(customerApi.endpoints.getAllCustomer.matchRejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.error?.message || "Failed to fetch customers";
+    });
   },
 });
 

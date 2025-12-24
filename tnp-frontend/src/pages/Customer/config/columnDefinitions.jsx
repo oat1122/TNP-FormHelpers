@@ -8,8 +8,37 @@ import { MdOutlineManageSearch } from "react-icons/md";
 import { PiClockClockwise, PiArrowFatLinesUpFill, PiArrowFatLinesDownFill } from "react-icons/pi";
 
 import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
-import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
-import { channelMap } from "../components/UtilityComponents";
+import {
+  formatCustomRelativeTime,
+  getSourceDisplayName,
+  getSourceColor,
+  getAllocationStatusDisplayName,
+  getAllocationStatusColor,
+} from "../../../features/Customer/customerUtils";
+import { channelMap } from "../components/Common";
+
+// ============================================
+// Standardized Style Constants - สำหรับ scale ที่สม่ำเสมอทั้ง row
+// ============================================
+const CELL_STYLES = {
+  // Font sizes - ใช้ขนาดเดียวกันทั้ง row
+  fontSize: {
+    primary: "0.8rem", // ข้อความหลัก
+    secondary: "0.7rem", // ข้อความรอง (caption)
+    chip: "0.7rem", // ข้อความใน Chip
+  },
+  // Icon sizes - ใช้ขนาดเดียวกันทั้งหมด
+  iconSize: {
+    action: 16, // Action buttons (recall, grade, view, edit, delete)
+    indicator: 14, // Small indicator icons
+  },
+  // Button styling
+  actionButton: {
+    padding: "3px",
+    minWidth: 26,
+    borderRadius: "50%",
+  },
+};
 
 // Helper function to check if recall date is expired
 const isRecallExpired = (dateString) => {
@@ -33,14 +62,20 @@ export const useColumnDefinitions = ({
     {
       field: "cus_no",
       headerName: "ID",
-      width: 120,
+      flex: 0.3,
+      minWidth: 50,
+      maxWidth: 70,
       sortable: true,
-      renderCell: (params) => <span>{params.value}</span>,
+      renderCell: (params) => (
+        <span style={{ fontSize: CELL_STYLES.fontSize.primary }}>{params.value}</span>
+      ),
     },
     {
       field: "cus_channel",
       headerName: "CHANNEL",
-      width: 120,
+      flex: 0.4,
+      minWidth: 75,
+      maxWidth: 100,
       sortable: true,
       cellClassName: "uppercase-cell",
       renderCell: (params) => (
@@ -57,6 +92,8 @@ export const useColumnDefinitions = ({
             size="small"
             sx={{
               textTransform: "uppercase",
+              fontSize: CELL_STYLES.fontSize.chip,
+              height: 22,
               backgroundColor: (theme) =>
                 params.value === 1
                   ? theme.palette.info.light
@@ -74,7 +111,9 @@ export const useColumnDefinitions = ({
       field: "cus_manage_by",
       headerName: "SALES NAME",
       sortable: true,
-      width: 160,
+      flex: 0.6,
+      minWidth: 90,
+      maxWidth: 140,
       cellClassName: "uppercase-cell",
       hideable: false,
       renderCell: (params) => {
@@ -87,7 +126,7 @@ export const useColumnDefinitions = ({
               width: "100%",
             }}
           >
-            <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: CELL_STYLES.fontSize.primary, textTransform: "uppercase" }}>
               {params.value.username}
             </Typography>
           </Box>
@@ -97,12 +136,16 @@ export const useColumnDefinitions = ({
     {
       field: "cus_name",
       headerName: "CUSTOMER",
-      width: 200,
+      flex: 0.9,
+      minWidth: 130,
+      maxWidth: 200,
       sortable: true,
       renderCell: (params) => {
         const fullName = params.value;
         const company = params.row.cus_company || "";
-        const tooltipText = company ? `${fullName}\n${company}` : fullName;
+        const tooltipText = company
+          ? `ชื่อเล่น : ${fullName}\nชื่อบริษัท : ${company}`
+          : `ชื่อเล่น : ${fullName}`;
 
         return (
           <Tooltip
@@ -129,11 +172,13 @@ export const useColumnDefinitions = ({
                 alignItems: "flex-start",
               }}
             >
-              <Typography variant="body2" fontWeight="bold">
+              <Typography sx={{ fontSize: CELL_STYLES.fontSize.primary, fontWeight: "bold" }}>
                 {fullName}
               </Typography>
               {params.row.cus_company && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                  sx={{ fontSize: CELL_STYLES.fontSize.secondary, color: "text.secondary" }}
+                >
                   {params.row.cus_company}
                 </Typography>
               )}
@@ -143,18 +188,11 @@ export const useColumnDefinitions = ({
       },
     },
     {
-      field: "cus_company",
-      headerName: "COMPANY NAME",
-      width: 280,
-      sortable: true,
-      renderCell: (params) => {
-        return <span>{params.value || "—"}</span>;
-      },
-    },
-    {
       field: "cus_tel_1",
       headerName: "TEL",
-      width: 140,
+      flex: 0.6,
+      minWidth: 95,
+      maxWidth: 130,
       sortable: true,
       renderCell: (params) => {
         const tel1 = params.value;
@@ -186,16 +224,20 @@ export const useColumnDefinitions = ({
                     },
                   }}
                 >
-                  <Typography variant="body2">{tel1 || "—"}</Typography>
+                  <Typography sx={{ fontSize: CELL_STYLES.fontSize.primary }}>
+                    {tel1 || "—"}
+                  </Typography>
                 </Box>
                 {tel2 && (
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    sx={{ fontSize: CELL_STYLES.fontSize.secondary, color: "text.secondary" }}
+                  >
                     {tel2}
                   </Typography>
                 )}
               </>
             ) : (
-              <Typography variant="body2" sx={{ color: "text.disabled" }}>
+              <Typography sx={{ fontSize: CELL_STYLES.fontSize.primary, color: "text.disabled" }}>
                 — ไม่มีเบอร์โทร —
               </Typography>
             )}
@@ -206,7 +248,9 @@ export const useColumnDefinitions = ({
     {
       field: "cd_note",
       headerName: "NOTE",
-      width: 280,
+      flex: 1.0,
+      minWidth: 130,
+      maxWidth: 250,
       sortable: true,
       renderCell: (params) => {
         const hasNote = params.value && params.value.trim().length > 0;
@@ -250,8 +294,8 @@ export const useColumnDefinitions = ({
                 />
               )}
               <Typography
-                variant="body2"
                 sx={{
+                  fontSize: CELL_STYLES.fontSize.primary,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -269,7 +313,9 @@ export const useColumnDefinitions = ({
     {
       field: "business_type",
       headerName: "BUSINESS TYPE",
-      width: 180,
+      flex: 0.7,
+      minWidth: 110,
+      maxWidth: 160,
       sortable: true,
       sortComparator: (v1, v2, param1, param2) => {
         const cellParams = {
@@ -282,8 +328,8 @@ export const useColumnDefinitions = ({
       },
       renderCell: (params) => (
         <Typography
-          variant="body2"
           sx={{
+            fontSize: CELL_STYLES.fontSize.primary,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -298,7 +344,9 @@ export const useColumnDefinitions = ({
     {
       field: "cd_last_datetime",
       headerName: "RECALL",
-      width: 160,
+      flex: 0.6,
+      minWidth: 90,
+      maxWidth: 140,
       sortable: true,
       renderCell: (params) => {
         return (
@@ -326,28 +374,37 @@ export const useColumnDefinitions = ({
     {
       field: "cus_created_date",
       headerName: "CUSTOMER CREATE AT",
-      width: 180,
+      flex: 0.8,
+      minWidth: 120,
+      maxWidth: 180,
       sortable: true,
       renderCell: (params) => {
         try {
-          if (!params.value) return "—";
+          if (!params.value)
+            return <span style={{ fontSize: CELL_STYLES.fontSize.primary }}>—</span>;
 
-          return moment(params.value).isValid() ? moment(params.value).format("D MMMM YYYY") : "—";
+          return (
+            <span style={{ fontSize: CELL_STYLES.fontSize.primary }}>
+              {moment(params.value).isValid() ? moment(params.value).format("D MMMM YYYY") : "—"}
+            </span>
+          );
         } catch (error) {
           console.error("Error formatting date:", error);
-          return "—";
+          return <span style={{ fontSize: CELL_STYLES.fontSize.primary }}>—</span>;
         }
       },
     },
     {
       field: "cus_email",
       headerName: "EMAIL",
-      width: 200,
+      flex: 0.9,
+      minWidth: 140,
+      maxWidth: 200,
       sortable: true,
       renderCell: (params) => (
         <Typography
-          variant="body2"
           sx={{
+            fontSize: CELL_STYLES.fontSize.primary,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -358,73 +415,55 @@ export const useColumnDefinitions = ({
         </Typography>
       ),
     },
-    {
-      field: "cus_address",
-      headerName: "ADDRESS",
-      width: 200,
-      sortable: true,
-      renderCell: (params) => {
-        const address = params.value;
-        const province = params.row.province_name;
-        const district = params.row.district_name;
 
-        const fullAddress = [address, district, province].filter(Boolean).join(", ");
-
-        return (
-          <Typography
-            variant="body2"
-            sx={{
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: 180,
-              textAlign: "left",
-            }}
-          >
-            {fullAddress || "—"}
-          </Typography>
-        );
-      },
-    },
     {
       field: "tools",
       headerName: "TOOLS",
-      flex: 1,
-      minWidth: 280,
+      flex: 1.0,
+      minWidth: 200,
+      maxWidth: 240,
       sortable: false,
       type: "actions",
       getActions: (params) => [
         <GridActionsCellItem
           key="recall"
-          icon={<PiClockClockwise style={{ fontSize: 22, color: theme.palette.info.main }} />}
+          icon={
+            <PiClockClockwise
+              style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.info.main }}
+            />
+          }
           label="Recall"
           onClick={() => handleRecall(params.row)}
           showInMenu={false}
           title="Reset recall timer"
           sx={{
             border: `1px solid ${theme.palette.info.main}22`,
-            borderRadius: "50%",
-            padding: "4px",
+            borderRadius: CELL_STYLES.actionButton.borderRadius,
+            padding: CELL_STYLES.actionButton.padding,
+            minWidth: CELL_STYLES.actionButton.minWidth,
             transition: "all 0.2s ease",
             "&:hover": {
               backgroundColor: `${theme.palette.info.main}22`,
-              transform: "scale(1.1)",
+              transform: "scale(1.05)",
             },
           }}
         />,
         handleDisableChangeGroupBtn(true, params.row) ? (
           <GridActionsCellItem
             key="grade-up-disabled"
-            icon={<PiArrowFatLinesUpFill style={{ fontSize: 22 }} />}
+            icon={<PiArrowFatLinesUpFill style={{ fontSize: CELL_STYLES.iconSize.action }} />}
             label="Change Grade Up"
             onClick={() => {}}
             disabled={true}
+            sx={{ minWidth: CELL_STYLES.actionButton.minWidth }}
           />
         ) : (
           <GridActionsCellItem
             key="grade-up"
             icon={
-              <PiArrowFatLinesUpFill style={{ fontSize: 22, color: theme.palette.success.main }} />
+              <PiArrowFatLinesUpFill
+                style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.success.main }}
+              />
             }
             label="Change Grade Up"
             onClick={() => handleChangeGroup(true, params.row)}
@@ -433,12 +472,13 @@ export const useColumnDefinitions = ({
             title="Change grade up"
             sx={{
               border: `1px solid ${theme.palette.success.main}22`,
-              borderRadius: "50%",
-              padding: "4px",
+              borderRadius: CELL_STYLES.actionButton.borderRadius,
+              padding: CELL_STYLES.actionButton.padding,
+              minWidth: CELL_STYLES.actionButton.minWidth,
               transition: "all 0.2s ease",
               "&:hover": {
                 backgroundColor: `${theme.palette.success.main}22`,
-                transform: "scale(1.1)",
+                transform: "scale(1.05)",
               },
             }}
           />
@@ -446,18 +486,21 @@ export const useColumnDefinitions = ({
         handleDisableChangeGroupBtn(false, params.row) || userRole !== "admin" ? (
           <GridActionsCellItem
             key="grade-down-disabled"
-            icon={<PiArrowFatLinesDownFill style={{ fontSize: 22 }} />}
+            icon={<PiArrowFatLinesDownFill style={{ fontSize: CELL_STYLES.iconSize.action }} />}
             label="Change Grade Down"
             onClick={() => {}}
             disabled={true}
-            sx={{ visibility: userRole !== "admin" ? "hidden" : "visible" }}
+            sx={{
+              visibility: userRole !== "admin" ? "hidden" : "visible",
+              minWidth: CELL_STYLES.actionButton.minWidth,
+            }}
           />
         ) : (
           <GridActionsCellItem
             key="grade-down"
             icon={
               <PiArrowFatLinesDownFill
-                style={{ fontSize: 22, color: theme.palette.warning.main }}
+                style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.warning.main }}
               />
             }
             label="Change Grade Down"
@@ -467,12 +510,13 @@ export const useColumnDefinitions = ({
             title="Change grade down"
             sx={{
               border: `1px solid ${theme.palette.warning.main}22`,
-              borderRadius: "50%",
-              padding: "4px",
+              borderRadius: CELL_STYLES.actionButton.borderRadius,
+              padding: CELL_STYLES.actionButton.padding,
+              minWidth: CELL_STYLES.actionButton.minWidth,
               transition: "all 0.2s ease",
               "&:hover": {
                 backgroundColor: `${theme.palette.warning.main}22`,
-                transform: "scale(1.1)",
+                transform: "scale(1.05)",
               },
             }}
           />
@@ -480,7 +524,9 @@ export const useColumnDefinitions = ({
         <GridActionsCellItem
           key="view"
           icon={
-            <MdOutlineManageSearch style={{ fontSize: 26, color: theme.palette.primary.main }} />
+            <MdOutlineManageSearch
+              style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.primary.main }}
+            />
           }
           label="View"
           onClick={() => handleOpenDialog("view", params.id)}
@@ -488,48 +534,59 @@ export const useColumnDefinitions = ({
           title="View details"
           sx={{
             border: `1px solid ${theme.palette.primary.main}22`,
-            borderRadius: "50%",
-            padding: "4px",
+            borderRadius: CELL_STYLES.actionButton.borderRadius,
+            padding: CELL_STYLES.actionButton.padding,
+            minWidth: CELL_STYLES.actionButton.minWidth,
             transition: "all 0.2s ease",
             "&:hover": {
               backgroundColor: `${theme.palette.primary.main}22`,
-              transform: "scale(1.1)",
+              transform: "scale(1.05)",
             },
           }}
         />,
         <GridActionsCellItem
           key="edit"
-          icon={<CiEdit style={{ fontSize: 26, color: theme.palette.secondary.main }} />}
+          icon={
+            <CiEdit
+              style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.secondary.main }}
+            />
+          }
           label="Edit"
           onClick={() => handleOpenDialog("edit", params.id)}
           showInMenu={false}
           title="Edit customer"
           sx={{
             border: `1px solid ${theme.palette.secondary.main}22`,
-            borderRadius: "50%",
-            padding: "4px",
+            borderRadius: CELL_STYLES.actionButton.borderRadius,
+            padding: CELL_STYLES.actionButton.padding,
+            minWidth: CELL_STYLES.actionButton.minWidth,
             transition: "all 0.2s ease",
             "&:hover": {
               backgroundColor: `${theme.palette.secondary.main}22`,
-              transform: "scale(1.1)",
+              transform: "scale(1.05)",
             },
           }}
         />,
         <GridActionsCellItem
           key="delete"
-          icon={<BsTrash3 style={{ fontSize: 22, color: theme.palette.error.main }} />}
+          icon={
+            <BsTrash3
+              style={{ fontSize: CELL_STYLES.iconSize.action, color: theme.palette.error.main }}
+            />
+          }
           label="Delete"
           onClick={() => handleDelete(params.row)}
           showInMenu={false}
           title="Delete customer"
           sx={{
             border: `1px solid ${theme.palette.error.main}22`,
-            borderRadius: "50%",
-            padding: "4px",
+            borderRadius: CELL_STYLES.actionButton.borderRadius,
+            padding: CELL_STYLES.actionButton.padding,
+            minWidth: CELL_STYLES.actionButton.minWidth,
             transition: "all 0.2s ease",
             "&:hover": {
               backgroundColor: `${theme.palette.error.main}22`,
-              transform: "scale(1.1)",
+              transform: "scale(1.05)",
             },
           }}
         />,

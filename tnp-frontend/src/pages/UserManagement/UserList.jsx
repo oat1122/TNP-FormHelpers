@@ -174,18 +174,40 @@ function UserList() {
       {
         field: "role",
         headerName: "role",
-        width: 220,
+        width: 120,
         cellClassName: "capitalize-cell",
+      },
+      {
+        field: "sub_roles",
+        headerName: "Sub Roles",
+        width: 200,
+        renderCell: (params) => {
+          const subRoles = params.row.sub_roles || [];
+          if (subRoles.length === 0) return "-";
+          return (
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+              {subRoles.map((sr, index) => (
+                <Chip
+                  key={sr.msr_id || index}
+                  label={sr.msr_name}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: "0.75rem" }}
+                />
+              ))}
+            </div>
+          );
+        },
       },
       {
         field: "username",
         headerName: "username",
-        width: 260,
+        width: 180,
       },
       {
         field: "status",
         headerName: "status",
-        width: 240,
+        width: 120,
         renderCell: (params) => {
           if (params.row.user_is_enable) {
             return <Chip label="Active" size="small" color="success"></Chip>;

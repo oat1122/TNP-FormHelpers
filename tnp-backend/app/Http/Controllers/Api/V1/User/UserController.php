@@ -57,6 +57,11 @@ class UserController extends Controller
             $user->user_updated_by = $data_input['user_updated_by'] ?? null;
             $user->save();
 
+            // Sync Sub Roles if provided
+            if (isset($data_input['sub_role_ids']) && is_array($data_input['sub_role_ids'])) {
+                $user->syncSubRoles($data_input['sub_role_ids'], $user->user_id);
+            }
+
             DB::commit();
 
             return response()->json([
@@ -152,7 +157,7 @@ class UserController extends Controller
         }
 
         $perPage = $request->input('per_page', 10);
-        $query = $prepared_statement->select([ // Use array syntax for select
+        $query = $prepared_statement->with('subRoles:msr_id,msr_code,msr_name')->select([ // Use array syntax for select
             'user_id',
             'user_uuid',
             'username',
@@ -209,6 +214,11 @@ class UserController extends Controller
             $query->user_is_enable = filter_var($data_input['user_is_enable'], FILTER_VALIDATE_BOOLEAN);
             $query->user_updated_date = now();
             $query->save();
+
+            // Sync Sub Roles if provided
+            if (isset($data_input['sub_role_ids']) && is_array($data_input['sub_role_ids'])) {
+                $query->syncSubRoles($data_input['sub_role_ids'], $query->user_id);
+            }
 
             DB::commit();
 
@@ -299,6 +309,61 @@ class UserController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Get users filtered by sub_role codes
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * 
+     * Usage: GET /api/v1/users/by-sub-role?sub_role_codes=SALES_ONLINE,SALES_OFFLINE
+     */
+    public function get_users_by_sub_role(Request $request)
+    {
+        $query = MasterUser::where('user_is_enable', true)
+            ->where('user_is_deleted', false)
+            ->with('subRoles:msr_id,msr_code,msr_name');
+
+        // Filter by sub_role_codes if provided
+        if ($request->has('sub_role_codes')) {
+            $codes = array_map('trim', explode(',', $request->sub_role_codes));
+            $codes = array_map('strtoupper', $codes);
+            
+            $query->whereHas('subRoles', function ($q) use ($codes) {
+                $q->whereIn('msr_code', $codes);
+            });
+        }
+
+        $users = $query->select([
+            'user_id',
+            'user_uuid',
+            'username',
+            'user_firstname',
+            'user_lastname',
+            'user_nickname',
+            'role',
+        ])->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $users->map(function ($user) {
+                return [
+                    'user_id' => $user->user_id,
+                    'user_uuid' => $user->user_uuid,
+                    'username' => $user->username,
+                    'user_firstname' => $user->user_firstname,
+                    'user_lastname' => $user->user_lastname,
+                    'user_nickname' => $user->user_nickname,
+                    'role' => $user->role,
+                    'sub_roles' => $user->subRoles->map(fn($sr) => [
+                        'msr_id' => $sr->msr_id,
+                        'msr_code' => $sr->msr_code,
+                        'msr_name' => $sr->msr_name,
+                    ]),
+                ];
+            }),
+        ]);
     }
 
     public function resetPassword(Request $request, string $id)

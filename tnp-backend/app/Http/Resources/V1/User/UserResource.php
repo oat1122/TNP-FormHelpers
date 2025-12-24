@@ -32,6 +32,19 @@ class UserResource extends JsonResource
             'user_created_by' => $this->user_created_by ?? '',
             'user_updated_date' => $this->user_updated_date ?? null,
             'user_updated_by' => $this->user_updated_by ?? '',
+            // Sub Roles
+            'sub_roles' => $this->whenLoaded('subRoles', function () {
+                return $this->subRoles->map(function ($subRole) {
+                    return [
+                        'msr_id' => $subRole->msr_id,
+                        'msr_code' => $subRole->msr_code,
+                        'msr_name' => $subRole->msr_name,
+                    ];
+                });
+            }),
+            'sub_role_ids' => $this->whenLoaded('subRoles', function () {
+                return $this->subRoles->pluck('msr_id')->toArray();
+            }),
         ];
     }
 }

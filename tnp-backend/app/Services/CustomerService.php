@@ -336,6 +336,12 @@ class CustomerService
                         'created_at' => now(),
                     ]);
                     
+                    // Send real-time notification to sales user
+                    app(NotificationService::class)->notifyCustomerAllocated(
+                        $salesUserId,
+                        $customer->cus_name ?? $customer->cus_company ?? 'ลูกค้าใหม่'
+                    );
+                    
                     $successCount++;
                 } catch (\Exception $e) {
                     Log::warning("Failed to assign customer {$customer->cus_id}: " . $e->getMessage());

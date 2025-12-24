@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\V1\Customers\CustomerController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
-use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
@@ -76,13 +75,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
     });
 
-    //---------- Notifications (Protected Routes) ----------
-    Route::controller(NotificationController::class)->group(function () {
-        Route::get('/notifications/unread', 'checkUnread'); // Check unread notifications count
-        Route::get('/notifications', 'index'); // Get all notifications
-        Route::post('/notifications/mark-as-read', 'markAsRead'); // Mark specific notifications as read
-        Route::post('/notifications/mark-all-as-read', 'markAllAsRead'); // Mark all notifications as read
-    });
 
     //---------- Stats & KPI (Protected Routes) ----------
     // Route::controller(StatsController::class)->group(function () {

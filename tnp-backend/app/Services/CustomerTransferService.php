@@ -183,6 +183,16 @@ class CustomerTransferService
         
         $historyId = $this->createHistory($customerId, $oldData, $newChannel, $newManageBy, $remark);
 
+        // Send real-time notification to new manager
+        if ($newManageBy) {
+            app(NotificationService::class)->notifyCustomerTransferred(
+                $newManageBy,
+                $customer->cus_name ?? $customer->cus_company ?? 'ลูกค้า',
+                CustomerChannel::getLabel($oldData['channel']),
+                CustomerChannel::getLabel($newChannel)
+            );
+        }
+
         return [
             'customer_id' => $customerId,
             'customer_name' => $customer->cus_name ?? $customer->cus_company,

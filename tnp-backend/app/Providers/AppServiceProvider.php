@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\NotificationRepositoryInterface;
+use App\Repositories\NotificationRepository;
 use App\Services\PdfImageOptimizer;
 use Illuminate\Support\ServiceProvider;
 use Intervention\Image\ImageManager;
@@ -19,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
             $imageManager = new ImageManager(new GdDriver());
             return new PdfImageOptimizer($imageManager);
         });
+
+        // Register NotificationRepository
+        $this->app->bind(
+            NotificationRepositoryInterface::class,
+            NotificationRepository::class
+        );
     }
 
     /**

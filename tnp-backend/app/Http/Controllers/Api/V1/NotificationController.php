@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Repositories\NotificationRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\CustomerNotificationRead;
-use App\Models\MasterCustomer;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +14,21 @@ use Illuminate\Support\Facades\Log;
  * NotificationController
  * 
  * จัดการการแจ้งเตือนลูกค้าที่ถูกจัดสรรให้ Sales
+ * Database operations ถูกย้ายไปที่ NotificationRepository
  */
 class NotificationController extends Controller
 {
+    protected NotificationRepositoryInterface $notificationRepository;
+    protected NotificationService $notificationService;
+
+    public function __construct(
+        NotificationRepositoryInterface $notificationRepository,
+        NotificationService $notificationService
+    ) {
+        $this->notificationRepository = $notificationRepository;
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Get notifications for the authenticated user
      * Returns both read and unread notifications (excludes dismissed)
@@ -36,35 +48,10 @@ class NotificationController extends Controller
                 'checking_30_days_from' => now()->subDays(30)->toDateTimeString()
             ]);
             
-            // Get read customer IDs for this user (excluding dismissed)
-            $readRecords = CustomerNotificationRead::where('user_id', $userId)
-                ->get()
-                ->keyBy('cus_id');
-            
-            // Get dismissed customer IDs
-            $dismissedIds = CustomerNotificationRead::where('user_id', $userId)
-                ->where('is_dismissed', true)
-                ->pluck('cus_id')
-                ->toArray();
-            
-            // Get all customers allocated to this user (within last 30 days, excluding dismissed)
-            $customers = MasterCustomer::where('cus_manage_by', $userId)
-                ->where('cus_is_use', 1)
-                ->whereNotIn('cus_id', $dismissedIds) // Exclude dismissed notifications
-                ->where('cus_allocated_at', '>=', now()->subDays(30))
-                ->orderBy('cus_allocated_at', 'desc')
-                ->limit(50)
-                ->get([
-                    'cus_id',
-                    'cus_firstname',
-                    'cus_lastname',
-                    'cus_name',
-                    'cus_company',
-                    'cus_tel_1',
-                    'cus_source',
-                    'cus_allocated_at',
-                    'cus_created_date'
-                ]);
+            // Get notifications from repository
+            $result = $this->notificationRepository->getNotificationsForUser($userId);
+            $customers = $result['notifications'];
+            $readRecords = $result['read_records'];
             
             // Debug: Log the results
             Log::info('NotificationController::getUnreadNotifications - Results', [
@@ -149,21 +136,12 @@ class NotificationController extends Controller
             $userId = $user->user_id;
             $customerIds = $request->input('customer_ids');
             
-            $markedCount = 0;
+            // Use repository to mark as read
+            $markedCount = $this->notificationRepository->markAsRead($userId, $customerIds);
             
-            foreach ($customerIds as $customerId) {
-                // Use updateOrCreate to handle unique constraint
-                CustomerNotificationRead::updateOrCreate(
-                    [
-                        'cus_id' => $customerId,
-                        'user_id' => $userId,
-                    ],
-                    [
-                        'read_at' => now(),
-                    ]
-                );
-                $markedCount++;
-            }
+            // Sync unread count to frontend via Fastify
+            $unreadCount = $this->notificationRepository->getUnreadCount($userId);
+            $this->notificationService->syncNotificationCount($userId, $unreadCount);
             
             return response()->json([
                 'success' => true,
@@ -205,33 +183,11 @@ class NotificationController extends Controller
             $user = Auth::user();
             $userId = $user->user_id;
             
-            // Get all unread customer IDs for this user
-            $unreadCustomerIds = MasterCustomer::where('cus_manage_by', $userId)
-                ->where('cus_is_use', 1)
-                ->whereNotExists(function ($query) use ($userId) {
-                    $query->select('id')
-                        ->from('customer_notification_reads')
-                        ->whereColumn('customer_notification_reads.cus_id', 'master_customers.cus_id')
-                        ->where('customer_notification_reads.user_id', $userId);
-                })
-                ->where('cus_allocated_at', '>=', now()->subDays(30))
-                ->pluck('cus_id');
+            // Use repository to mark all as read
+            $markedCount = $this->notificationRepository->markAllAsRead($userId);
             
-            $markedCount = 0;
-            $now = now();
-            
-            foreach ($unreadCustomerIds as $customerId) {
-                CustomerNotificationRead::updateOrCreate(
-                    [
-                        'cus_id' => $customerId,
-                        'user_id' => $userId,
-                    ],
-                    [
-                        'read_at' => $now,
-                    ]
-                );
-                $markedCount++;
-            }
+            // Sync unread count to frontend via Fastify (should be 0 after mark all)
+            $this->notificationService->syncNotificationCount($userId, 0);
             
             return response()->json([
                 'success' => true,
@@ -273,23 +229,12 @@ class NotificationController extends Controller
             $userId = $user->user_id;
             $customerIds = $request->input('customer_ids');
             
-            $dismissedCount = 0;
+            // Use repository to dismiss
+            $dismissedCount = $this->notificationRepository->dismiss($userId, $customerIds);
             
-            foreach ($customerIds as $customerId) {
-                // Use updateOrCreate to handle unique constraint
-                // Set both read_at and is_dismissed
-                CustomerNotificationRead::updateOrCreate(
-                    [
-                        'cus_id' => $customerId,
-                        'user_id' => $userId,
-                    ],
-                    [
-                        'read_at' => now(),
-                        'is_dismissed' => true,
-                    ]
-                );
-                $dismissedCount++;
-            }
+            // Sync unread count to frontend via Fastify
+            $unreadCount = $this->notificationRepository->getUnreadCount($userId);
+            $this->notificationService->syncNotificationCount($userId, $unreadCount);
             
             return response()->json([
                 'success' => true,

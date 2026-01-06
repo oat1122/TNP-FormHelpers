@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Contracts\Repositories\CustomerRepositoryInterface;
+use App\Repositories\CustomerRepositoryInterface;
 use App\Models\MasterCustomer as Customer;
 use App\Models\CustomerDetail;
 use App\Models\RelationCustomerUser as CustomerUser;

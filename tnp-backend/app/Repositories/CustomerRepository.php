@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Contracts\Repositories\CustomerRepositoryInterface;
+use App\Repositories\CustomerRepositoryInterface;
 use App\Constants\CustomerChannel;
 use App\Models\MasterCustomer as Customer;
 use App\Models\MasterCustomerGroup as CustomerGroup;

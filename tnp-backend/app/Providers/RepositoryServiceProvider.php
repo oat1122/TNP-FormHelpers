@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Contracts\Repositories\CustomerRepositoryInterface;
+use App\Repositories\CustomerRepositoryInterface;
 use App\Repositories\CustomerRepository;
 
 /**

@@ -126,4 +126,43 @@ class NotificationService
         
         return $successCount;
     }
+
+    /**
+     * Sync notification count to frontend via Fastify
+     * 
+     * ใช้เมื่อ user อ่าน/dismiss notification เพื่อ update unread count แบบ realtime
+     *
+     * @param int $userId User ID to sync
+     * @param int $unreadCount Current unread notification count
+     * @return bool
+     */
+    public function syncNotificationCount(int $userId, int $unreadCount): bool
+    {
+        try {
+            $headers = ['Content-Type' => 'application/json'];
+            
+            if ($this->apiKey) {
+                $headers['X-API-Key'] = $this->apiKey;
+            }
+
+            $response = Http::withHeaders($headers)
+                ->timeout(5)
+                ->post("{$this->baseUrl}/notify/sync", [
+                    'user_id' => (string) $userId,
+                    'unread_count' => $unreadCount,
+                ]);
+
+            if ($response->successful()) {
+                Log::info("Notification count synced for user {$userId}: {$unreadCount} unread");
+                return true;
+            }
+
+            Log::warning("Notification sync failed for user {$userId}: " . $response->body());
+            return false;
+
+        } catch (\Exception $e) {
+            Log::warning("Notification sync error: " . $e->getMessage());
+            return false;
+        }
+    }
 }

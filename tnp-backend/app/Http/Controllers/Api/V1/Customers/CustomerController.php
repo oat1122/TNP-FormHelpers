@@ -12,7 +12,7 @@ use App\Http\Requests\V1\RecallCustomerRequest;
 use App\Http\Requests\V1\ChangeGradeRequest;
 use App\Services\CustomerService;
 use App\Services\CustomerTransferService;
-use App\Contracts\Repositories\CustomerRepositoryInterface;
+use App\Repositories\CustomerRepositoryInterface;
 use App\Helpers\AccountingHelper;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;

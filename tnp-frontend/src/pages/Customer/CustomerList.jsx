@@ -1,215 +1,110 @@
-import { Box, Button, useTheme, useMediaQuery, Pagination } from "@mui/material";
-import moment from "moment";
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Box, Button, useTheme, useMediaQuery, Pagination, Tabs, Tab } from "@mui/material";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { RiAddLargeFill } from "react-icons/ri";
-import { useDispatch, useSelector } from "react-redux";
+import { MdPerson, MdGroup, MdSettings } from "react-icons/md";
+import { useDispatch } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import { CustomPagination, CustomToolbar } from "./components/CustomComponents";
-import CustomerCardList from "./components/CustomerCardList";
-import CustomerViewDialog from "./components/CustomerViewDialog";
-import { NoDataComponent } from "./components/UtilityComponents";
-import { useColumnDefinitions } from "./config/columnDefinitions";
-import DialogForm from "./DialogForm";
-import FilterPanel from "./FilterPanel";
-import FilterTab from "./FilterTab";
-import FilterTags from "./FilterTags";
-import { useCustomerActions } from "./hooks/useCustomerActions";
-import ScrollContext from "./ScrollContext";
-import ScrollTopButton from "./ScrollTopButton";
-import { StyledDataGrid } from "./styles/StyledComponents";
-import TitleBar from "../../components/TitleBar";
-import { useGetAllCustomerQuery } from "../../features/Customer/customerApi";
+// Common components
 import {
-  setItemList,
-  setGroupList,
-  setTotalCount,
-  setPaginationModel,
-} from "../../features/Customer/customerSlice";
-import { formatCustomRelativeTime } from "../../features/Customer/customerUtils";
-import { open_dialog_error } from "../../utils/import_lib";
+  CustomPagination,
+  CustomToolbar,
+  NoDataComponent,
+  ScrollTopButton,
+} from "./components/Common";
+// Data display components
+import {
+  CustomerCardList,
+  ScrollContext,
+  DataGridWithRowIdFix,
+  getRowClassName,
+  CustomerTableSkeleton,
+  CustomerCardListSkeleton,
+} from "./components/DataDisplay";
+// Filter components
+import { FilterPanel, FilterTab, FilterTags } from "./components/Filters";
+// Form components
+import { DialogForm, TelesalesQuickCreateForm } from "./components/Forms";
+// Config
+import { useColumnDefinitions } from "./config/columnDefinitions";
+// Hooks
+import {
+  useCustomerActions,
+  useScrollToTop,
+  useCustomerTableConfig,
+  useCustomerData,
+} from "./hooks";
+import TitleBar from "../../components/TitleBar";
+import { setPaginationModel, setInputList, setMode } from "../../features/Customer/customerSlice";
+import { useLazyGetCustomerQuery } from "../../features/Customer/customerApi";
 
-// Import separated components
-
-// Helper function to check if recall date is expired
-const isRecallExpired = (dateString) => {
-  if (!dateString) return false;
-  const recallDate = moment(dateString).startOf("day");
-  const today = moment().startOf("day");
-  return recallDate.diff(today, "days") <= 0;
-};
-
-// DataGrid wrapper สำหรับจัดการ row ID
-const DataGridWithRowIdFix = (props) => {
-  const getRowId = (row) => {
-    if (!row) return `row-${Math.random().toString(36).substring(2, 15)}`;
-    return row.cus_id || row.id || `row-${Math.random().toString(36).substring(2, 15)}`;
-  };
-
-  // สร้าง key ที่เปลี่ยนไปตาม rows เพื่อ force re-render DataGrid
-  const dataGridKey = React.useMemo(() => {
-    if (!props.rows || !Array.isArray(props.rows)) return "datagrid-empty";
-    const rowIds = props.rows.map((row) => row?.cus_id || row?.id || "no-id").join(",");
-    return `datagrid-${rowIds.substring(0, 50)}-${props.rows.length}`;
-  }, [props.rows]);
-
-  return <StyledDataGrid key={dataGridKey} {...props} getRowId={getRowId} />;
-};
+// AllocationHub components for "จัดการลูกค้า" tab
+import { useAllocationHub, useSnackbar } from "../AllocationHub/hooks";
+import { AssignDialog, PoolCustomersTable } from "../AllocationHub/components";
+import { AllocationTabs } from "../AllocationHub/sections";
 
 function CustomerList() {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigateUrl = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 
-  // Selectors
+  // User data
   const user = JSON.parse(localStorage.getItem("userData"));
-  const itemList = useSelector((state) => state.customer.itemList);
-  const groupSelected = useSelector((state) => state.customer.groupSelected);
-  const keyword = useSelector((state) => state.global.keyword);
-  const paginationModel = useSelector((state) => state.customer.paginationModel);
-  const filters = useSelector((state) => state.customer.filters);
-  const isLoading = useSelector((state) => state.customer.isLoading);
 
-  // Local state
-  const [totalItems, setTotalItems] = useState(0);
+  // Check if user is HEAD
+  const userSubRole = useMemo(() => {
+    return user?.sub_roles?.[0]?.msr_code || null;
+  }, [user]);
+  const isHead = userSubRole === "HEAD_ONLINE" || userSubRole === "HEAD_OFFLINE";
+
+  // View mode for HEAD users: "my" = own customers, "team" = team's customers, "manage" = allocation hub
+  const [viewMode, setViewMode] = useState("my");
+
+  // Local state for dialogs
   const [openDialog, setOpenDialog] = useState(false);
-  const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [serverSortModel, setServerSortModel] = useState([]);
-  const [columnVisibilityModel, setColumnVisibilityModel] = useState({
-    cus_no: false,
-    cus_channel: true,
-    cus_manage_by: true,
-    cus_name: true,
-    cus_company: false,
-    cus_tel_1: true,
-    cd_note: true,
-    business_type: true, // เพิ่ม business_type
-    cd_last_datetime: true,
-    cus_created_date: true,
-    cus_email: false,
-    cus_address: false,
-    tools: true,
-  });
-  const [columnOrderModel, setColumnOrderModel] = useState([
-    "cus_channel",
-    "cus_manage_by",
-    "cus_name",
-    "cus_tel_1",
-    "cd_note",
-    "business_type",
-    "cd_last_datetime",
-    "cus_created_date",
-    "tools",
-    "cus_no",
-    "cus_company",
-    "cus_email",
-    "cus_address",
-  ]);
+  const [quickFormOpen, setQuickFormOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
-  // Refs
-  const tableContainerRef = useRef(null);
+  // AllocationHub hooks (for "จัดการลูกค้า" tab)
+  const allocationHub = useAllocationHub();
+  const { snackbar, showSuccess, showError, closeSnackbar } = useSnackbar();
 
-  // Load column preferences from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedVisibility = localStorage.getItem("customerTableColumnVisibility");
-      const savedOrder = localStorage.getItem("customerTableColumnOrder");
+  // Skeleton loading state - แสดง skeleton เมื่อมีการเปลี่ยน context สำคัญ
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const previousGroupRef = useRef(null);
+  const previousFiltersRef = useRef(null);
+  const previousViewModeRef = useRef(viewMode);
 
-      if (savedVisibility) {
-        const parsed = JSON.parse(savedVisibility);
-        // ตรวจสอบว่า column ใหม่ที่จำเป็นมีอยู่หรือไม่
-        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
-        const hasAllRequired = requiredColumns.every((col) => col in parsed.model);
+  // 1. Hook: Scroll management
+  const { tableContainerRef, scrollToTop } = useScrollToTop();
 
-        if (hasAllRequired) {
-          setColumnVisibilityModel(parsed.model);
-        } else {
-          // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
-          console.log("Column preferences outdated, using defaults");
-          localStorage.removeItem("customerTableColumnVisibility");
-        }
-      }
+  // 2. Hook: Table Config (Sort, Visibility, Order, localStorage)
+  const {
+    serverSortModel,
+    handleSortModelChange,
+    columnVisibilityModel,
+    handleColumnVisibilityChange,
+    columnOrderModel,
+    handleColumnOrderChange,
+  } = useCustomerTableConfig(user, scrollToTop);
 
-      if (savedOrder) {
-        const parsed = JSON.parse(savedOrder);
-        const requiredColumns = ["cus_channel", "cd_note", "business_type"];
-        const hasAllRequired = requiredColumns.every((col) => parsed.order.includes(col));
+  // 3. Hook: Data Fetching (API, Redux Sync, Rows) - pass viewMode for HEAD
+  const {
+    validRows,
+    totalItems,
+    isFetching,
+    isLoading,
+    refetch,
+    paginationModel,
+    filters,
+    groupSelected,
+    isHead: isHeadFromHook,
+  } = useCustomerData(serverSortModel, scrollToTop, viewMode);
 
-        if (hasAllRequired) {
-          setColumnOrderModel(parsed.order);
-        } else {
-          // ถ้าไม่ครบ ให้ใช้ default และลบ localStorage เก่า
-          console.log("Column order outdated, using defaults");
-          localStorage.removeItem("customerTableColumnOrder");
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to load column preferences from localStorage", error);
-      // ลบ localStorage ที่เสียหาย
-      localStorage.removeItem("customerTableColumnVisibility");
-      localStorage.removeItem("customerTableColumnOrder");
-    }
-  }, []); // Empty dependency array - run once on mount
-
-  // API Query
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery({
-    group: groupSelected,
-    page: paginationModel.page,
-    per_page: paginationModel.pageSize,
-    user_id: user.user_id,
-    search: keyword,
-    filters: filters,
-    sortModel: serverSortModel,
-  });
-
-  // Scroll to top function
-  const scrollToTop = useCallback(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      if (tableContainerRef && tableContainerRef.current) {
-        setTimeout(() => {
-          try {
-            tableContainerRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-              inline: "nearest",
-            });
-
-            const containerRect = tableContainerRef.current.getBoundingClientRect();
-            if (containerRect.top < 0) {
-              window.scrollBy({
-                top: containerRect.top - 20,
-                behavior: "smooth",
-              });
-            }
-          } catch (innerError) {
-            console.warn("Smooth scrolling not supported in timeout, using fallback", innerError);
-            if (tableContainerRef.current) {
-              tableContainerRef.current.scrollIntoView(true);
-            } else {
-              window.scrollTo(0, 0);
-            }
-          }
-        }, 50);
-      } else {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-    } catch (error) {
-      console.warn("Error in scrollToTop, using basic fallback", error);
-      try {
-        window.scrollTo(0, 0);
-      } catch (finalError) {
-        console.error("Failed to scroll to top", finalError);
-      }
-    }
-  }, []);
-
-  // Custom hooks for actions
+  // 4. Hook: Actions (Delete, Dialogs, etc.)
   const {
     handleOpenDialog,
     handleCloseDialog,
@@ -230,28 +125,9 @@ function CustomerList() {
     handleCloseDialog();
   };
 
-  // Handle view dialog actions
+  // Handle view dialog actions - เปิด DialogForm ใน view mode
   const handleOpenViewDialog = (customerId) => {
-    // ใช้ validRows แทน itemList เพื่อความปลอดภัย
-    const customer = validRows.find((item) => item.cus_id === customerId);
-    if (customer) {
-      setSelectedCustomer(customer);
-      setOpenViewDialog(true);
-    } else {
-      console.warn("Customer not found:", customerId);
-    }
-  };
-
-  const handleCloseViewDialog = () => {
-    setOpenViewDialog(false);
-    setSelectedCustomer(null);
-  };
-
-  // Handle edit from view action
-  const handleEditFromView = (customerId) => {
-    setOpenViewDialog(false);
-    setSelectedCustomer(null);
-    handleOpenDialogWithState("edit", customerId);
+    handleOpenDialogWithState("view", customerId);
   };
 
   // Handle after save action - เปิด view dialog หลังจากบันทึกเสร็จ
@@ -267,7 +143,7 @@ function CustomerList() {
     handleChangeGroup(is_up, params, refetch);
   };
 
-  // Column definitions
+  // 5. Column definitions (must be after handler definitions)
   const columns = useColumnDefinitions({
     handleOpenDialog: handleOpenDialogWithState,
     handleDelete,
@@ -276,57 +152,6 @@ function CustomerList() {
     handleDisableChangeGroupBtn,
     userRole: user.role,
   });
-
-  // Handle sort model change
-  const handleSortModelChange = (newModel) => {
-    if (JSON.stringify(newModel) !== JSON.stringify(serverSortModel)) {
-      const processedModel = newModel.map((item) => {
-        if (item.field === "business_type") {
-          return { ...item, field: "cus_bt_id" };
-        }
-        return item;
-      });
-
-      setServerSortModel(processedModel);
-      const newPaginationModel = { ...paginationModel, page: 0 };
-      dispatch(setPaginationModel(newPaginationModel));
-      scrollToTop();
-    }
-  };
-
-  // Handle column visibility change
-  const handleColumnVisibilityChange = (newModel) => {
-    setColumnVisibilityModel(newModel);
-
-    try {
-      const columnPreferences = {
-        model: newModel,
-        timestamp: new Date().toISOString(),
-        username: user?.username || "unknown",
-      };
-
-      localStorage.setItem("customerTableColumnVisibility", JSON.stringify(columnPreferences));
-    } catch (error) {
-      console.warn("Failed to save column visibility to localStorage", error);
-    }
-  };
-
-  // Handle column order change
-  const handleColumnOrderChange = (newOrder) => {
-    setColumnOrderModel(newOrder);
-
-    try {
-      const columnOrderPreferences = {
-        order: newOrder,
-        timestamp: new Date().toISOString(),
-        username: user?.username || "unknown",
-      };
-
-      localStorage.setItem("customerTableColumnOrder", JSON.stringify(columnOrderPreferences));
-    } catch (error) {
-      console.warn("Failed to save column order to localStorage", error);
-    }
-  };
 
   // Custom pagination component wrapper
   const PaginationComponent = () => {
@@ -349,111 +174,77 @@ function CustomerList() {
     <CustomToolbar serverSortModel={serverSortModel} isFetching={isFetching} />
   );
 
-  // Load saved column settings
-  useEffect(() => {
-    try {
-      const savedVisibilityPrefs = localStorage.getItem("customerTableColumnVisibility");
-      if (savedVisibilityPrefs) {
-        const savedPrefs = JSON.parse(savedVisibilityPrefs);
-        const savedModel = savedPrefs.model || savedPrefs;
-        setColumnVisibilityModel(savedModel);
-      }
-
-      const savedOrderPrefs = localStorage.getItem("customerTableColumnOrder");
-      if (savedOrderPrefs) {
-        const savedOrderData = JSON.parse(savedOrderPrefs);
-        const savedOrder = savedOrderData.order || savedOrderData;
-        setColumnOrderModel(savedOrder);
-      }
-    } catch (error) {
-      console.warn("Failed to load saved column settings", error);
-    }
-  }, []);
-
-  // Responsive column visibility
-  const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const isExtraSmall = useMediaQuery(theme.breakpoints.down("sm"));
-
-  useEffect(() => {
-    const hasSavedPreferences = localStorage.getItem("customerTableColumnVisibility");
-
-    if (!hasSavedPreferences) {
-      const responsiveVisibility = {
-        cus_email: false,
-        cus_address: false,
-      };
-
-      if (isSmall) {
-        responsiveVisibility.cus_company = false;
-        responsiveVisibility.cd_note = false;
-      }
-
-      if (isExtraSmall) {
-        responsiveVisibility.cus_channel = false;
-      }
-
-      setColumnVisibilityModel((prev) => ({
-        ...prev,
-        ...responsiveVisibility,
-      }));
-    }
-  }, [isSmall, isExtraSmall]);
-
-  // Handle API response
-  useEffect(() => {
-    if (isSuccess) {
-      if (data.status === "error") {
-        open_dialog_error("Fetch customer error", data.message);
-      } else if (data.data) {
-        dispatch(setItemList(data.data));
-
-        const hasActiveFilters =
-          filters.dateRange.startDate ||
-          filters.dateRange.endDate ||
-          (filters.salesName && filters.salesName.length > 0) ||
-          (filters.channel && filters.channel.length > 0);
-
-        if (!hasActiveFilters || data.groups) {
-          dispatch(setGroupList(data.groups));
-        }
-
-        dispatch(setTotalCount(data.total_count));
-        setTotalItems(data.pagination.total_items);
-
-        if (
-          paginationModel.page === 0 &&
-          data.data?.length > 0 &&
-          itemList?.length > 0 &&
-          data.data[0]?.cus_id !== itemList[0]?.cus_id
-        ) {
-          scrollToTop();
-        }
-      }
-    }
-  }, [data, dispatch, filters, itemList, paginationModel.page, scrollToTop, isSuccess]);
-
   // Reset เมื่อเปลี่ยนกลุ่มหรือกรองข้อมูล เพื่อป้องกัน DataGrid error
   useEffect(() => {
-    // Reset selected customer เมื่อข้อมูลเปลี่ยน
-    setSelectedCustomer(null);
-    setOpenViewDialog(false);
+    // Reset เมื่อข้อมูลเปลี่ยน - ปิด dialog ถ้าเปิดอยู่
+    setOpenDialog(false);
   }, [groupSelected, filters.dateRange, filters.salesName, filters.channel]);
 
-  // Filter rows ที่มี ID ที่ถูกต้องและข้อมูลครบ
-  const validRows = useMemo(() => {
-    if (!itemList || !Array.isArray(itemList)) {
-      return [];
+  // Track context changes to show skeleton - เมื่อเปลี่ยน tab หรือ filter
+  useEffect(() => {
+    const hasGroupChanged =
+      previousGroupRef.current !== null && previousGroupRef.current !== groupSelected;
+
+    const currentFiltersKey = JSON.stringify({
+      dateRange: filters.dateRange,
+      salesName: filters.salesName,
+      channel: filters.channel,
+    });
+    const hasFiltersChanged =
+      previousFiltersRef.current !== null && previousFiltersRef.current !== currentFiltersKey;
+
+    // Show skeleton when context changes significantly
+    if (hasGroupChanged || hasFiltersChanged) {
+      setShowSkeleton(true);
     }
 
-    return itemList.filter((row) => {
-      // ต้องมี ID ที่ใช้งานได้
-      const hasValidId = row.cus_id || row.id;
-      // ต้องเป็น object ที่มีข้อมูล
-      const hasValidData = row && typeof row === "object";
+    // Update refs
+    previousGroupRef.current = groupSelected;
+    previousFiltersRef.current = currentFiltersKey;
+  }, [groupSelected, filters.dateRange, filters.salesName, filters.channel]);
 
-      return hasValidId && hasValidData;
-    });
-  }, [itemList]);
+  // Hide skeleton when data is loaded
+  useEffect(() => {
+    if (!isFetching && validRows.length >= 0) {
+      // Small delay for smooth animation transition
+      const timer = setTimeout(() => {
+        setShowSkeleton(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetching, validRows.length]);
+
+  // Auto-open view dialog from notification click (viewCustomerId query param)
+  // Use lazy query hook outside of useEffect
+  const [fetchCustomerById] = useLazyGetCustomerQuery();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewCustomerId = params.get("viewCustomerId");
+
+    if (viewCustomerId) {
+      // Fetch customer data directly from API (not from itemList)
+      fetchCustomerById(viewCustomerId)
+        .unwrap()
+        .then((result) => {
+          if (result?.data) {
+            // Set customer data to Redux store
+            dispatch(setInputList(result.data));
+            // Open view dialog
+            dispatch(setMode("view"));
+            setOpenDialog(true);
+          } else {
+            console.warn("Customer not found:", viewCustomerId);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch customer:", error);
+        });
+
+      // Remove query param from URL to prevent re-open on refresh
+      navigateUrl("/customer", { replace: true });
+    }
+  }, [location.search, fetchCustomerById, dispatch, navigateUrl]);
 
   return (
     <ScrollContext.Provider value={{ scrollToTop }}>
@@ -463,13 +254,10 @@ function CustomerList() {
           handleCloseDialog={handleCloseDialogWithState}
           handleRecall={handleRecall}
           onAfterSave={handleAfterSave}
-        />
-
-        <CustomerViewDialog
-          open={openViewDialog}
-          onClose={handleCloseViewDialog}
-          customerData={selectedCustomer}
-          onEdit={handleEditFromView}
+          onTransferSuccess={() => {
+            // Refetch customer list after transfer
+            refetch();
+          }}
         />
 
         <TitleBar title="customer" />
@@ -484,154 +272,255 @@ function CustomerList() {
             paddingBlock: 3,
           }}
         >
-          {/* Top Controls */}
-          <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
-            {(user.role === "sale" || user.role === "admin") && (
-              <Button
-                variant="icon-contained"
-                color="grey"
-                onClick={() => handleOpenDialogWithState("create")}
+          {/* HEAD User View Mode Tabs */}
+          {isHead && (
+            <Box sx={{ mb: 2 }}>
+              <Tabs
+                value={viewMode}
+                onChange={(e, newValue) => {
+                  setViewMode(newValue);
+                  setShowSkeleton(true);
+                }}
                 sx={{
-                  marginRight: 3,
-                  height: 40,
-                  padding: 0,
+                  "& .MuiTabs-indicator": {
+                    height: 3,
+                  },
                 }}
               >
-                <RiAddLargeFill style={{ width: 24, height: 24 }} />
-              </Button>
-            )}
-            <Box sx={{ flexGrow: 1 }}>
-              <FilterTab />
+                <Tab
+                  value="my"
+                  icon={<MdPerson size={18} />}
+                  iconPosition="start"
+                  label="ลูกค้าตัวเอง"
+                  sx={{ minHeight: 48 }}
+                />
+                <Tab
+                  value="team"
+                  icon={<MdGroup size={18} />}
+                  iconPosition="start"
+                  label="ลูกค้าในทีม"
+                  sx={{ minHeight: 48 }}
+                />
+                <Tab
+                  value="manage"
+                  icon={<MdSettings size={18} />}
+                  iconPosition="start"
+                  label="จัดการลูกค้า"
+                  sx={{ minHeight: 48 }}
+                />
+              </Tabs>
             </Box>
-          </Box>
+          )}
 
-          {/* Filter Controls */}
-          <FilterPanel />
-          <FilterTags />
-
-          {/* Data Display - Responsive */}
-          {isMobile ? (
-            // Mobile Card View
+          {/* Conditional Rendering based on viewMode */}
+          {viewMode === "manage" ? (
+            /* AllocationHub-like content for "จัดการลูกค้า" tab */
             <>
-              <CustomerCardList
-                customers={validRows}
-                onView={handleOpenViewDialog}
-                onEdit={(id) => handleOpenDialogWithState("edit", id)}
-                handleRecall={handleRecall}
-                loading={isFetching || isLoading}
-                totalCount={totalItems}
-                paginationModel={paginationModel}
+              {/* Allocation Sub-Tabs */}
+              <AllocationTabs
+                activeTab={allocationHub.activeTab}
+                onTabChange={allocationHub.handleTabChange}
+                telesalesCount={allocationHub.telesalesCount}
+                transferredCount={allocationHub.transferredCount}
               />
-              {/* Mobile Pagination */}
-              {totalItems > 0 && (
-                <Box sx={{ display: "flex", justifyContent: "center", mt: 2, px: 2 }}>
-                  <Pagination
-                    count={Math.ceil(totalItems / paginationModel.pageSize)}
-                    page={paginationModel.page + 1}
-                    onChange={(event, page) => {
-                      dispatch(
-                        setPaginationModel({
-                          ...paginationModel,
-                          page: page - 1,
-                        })
-                      );
-                      // Scroll to top on page change
-                      scrollToTop();
-                    }}
-                    color="primary"
-                    size="medium"
-                    showFirstButton
-                    showLastButton
+
+              {/* Pool Customers Table */}
+              <PoolCustomersTable
+                data={allocationHub.currentData}
+                isLoading={allocationHub.isLoading}
+                paginationModel={allocationHub.paginationModel}
+                onPaginationModelChange={allocationHub.setPaginationModel}
+                selectedIds={allocationHub.selectedIds}
+                onSelectedIdsChange={allocationHub.setSelectedIds}
+                onAssignClick={() => {
+                  if (allocationHub.selectedIds.length > 0) {
+                    setAssignDialogOpen(true);
+                  }
+                }}
+                mode={allocationHub.activeTab === 0 ? "telesales" : "transferred"}
+              />
+
+              {/* Assign Dialog */}
+              <AssignDialog
+                open={assignDialogOpen}
+                onClose={() => setAssignDialogOpen(false)}
+                selectedIds={allocationHub.selectedIds}
+                onSuccess={(count) => {
+                  showSuccess(`จัดสรรสำเร็จ ${count} รายการ`);
+                  allocationHub.setSelectedIds([]);
+                  setAssignDialogOpen(false);
+                  allocationHub.refetch();
+                  allocationHub.refetchCounts();
+                }}
+                onError={(message) => {
+                  showError(message || "เกิดข้อผิดพลาดในการจัดสรร");
+                }}
+                userSubRole={userSubRole}
+              />
+            </>
+          ) : (
+            /* Original Customer List Content */
+            <>
+              {/* Top Controls */}
+              <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2, gap: 1 }}>
+                {(user.role === "sale" || user.role === "admin") && (
+                  <Button
+                    variant="icon-contained"
+                    color="grey"
+                    onClick={() => handleOpenDialogWithState("create")}
                     sx={{
-                      "& .MuiPaginationItem-root": {
-                        fontSize: "0.9rem",
-                        margin: "0 2px",
-                      },
+                      height: 40,
+                      padding: 0,
                     }}
-                  />
+                  >
+                    <RiAddLargeFill style={{ width: 24, height: 24 }} />
+                  </Button>
+                )}
+                {(user.role === "telesale" || user.role === "admin") && (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<RiAddLargeFill />}
+                    onClick={() => setQuickFormOpen(true)}
+                    sx={{
+                      height: 40,
+                    }}
+                    aria-label="เปิดฟอร์มเพิ่มลูกค้าด่วน"
+                  >
+                    เพิ่มลูกค้าด่วน
+                  </Button>
+                )}
+                <Box sx={{ flexGrow: 1 }}>
+                  <FilterTab refetchCustomers={refetch} />
+                </Box>
+              </Box>
+
+              {/* Filter Controls */}
+              <FilterPanel refetchCustomers={refetch} viewMode={viewMode} isHead={isHead} />
+              <FilterTags />
+
+              {/* Data Display - Responsive */}
+              {isMobile || isTablet ? (
+                // Mobile/Tablet Card View
+                <>
+                  {/* Show skeleton during loading */}
+                  {showSkeleton && isFetching ? (
+                    <CustomerCardListSkeleton count={6} isTablet={isTablet} />
+                  ) : (
+                    <CustomerCardList
+                      customers={validRows}
+                      onView={handleOpenViewDialog}
+                      onEdit={(id) => handleOpenDialogWithState("edit", id)}
+                      handleRecall={handleRecall}
+                      loading={false} // ไม่ใช้ internal loading เพราะใช้ skeleton
+                      totalCount={totalItems}
+                      paginationModel={paginationModel}
+                    />
+                  )}
+                  {/* Mobile Pagination */}
+                  {totalItems > 0 && (
+                    <Box sx={{ display: "flex", justifyContent: "center", mt: 2, px: 2 }}>
+                      <Pagination
+                        count={Math.ceil(totalItems / paginationModel.pageSize)}
+                        page={paginationModel.page + 1}
+                        onChange={(event, page) => {
+                          dispatch(
+                            setPaginationModel({
+                              ...paginationModel,
+                              page: page - 1,
+                            })
+                          );
+                          // Scroll to top on page change
+                          scrollToTop();
+                        }}
+                        color="primary"
+                        size="medium"
+                        showFirstButton
+                        showLastButton
+                        sx={{
+                          "& .MuiPaginationItem-root": {
+                            fontSize: "0.9rem",
+                            margin: "0 2px",
+                          },
+                        }}
+                      />
+                    </Box>
+                  )}
+                </>
+              ) : (
+                // Desktop Table View - ใช้ autoHeight เพื่อให้ Page เป็นตัว scroll หลัก
+                <Box
+                  sx={{
+                    width: "100%",
+                    "& .MuiDataGrid-root": {
+                      border: "none",
+                    },
+                    // ป้องกัน row สุดท้ายถูก footer ทับ
+                    "& .MuiDataGrid-main": {
+                      paddingBottom: "8px",
+                    },
+                    // ให้ footer มี spacing ที่เหมาะสม
+                    "& .MuiDataGrid-footerContainer": {
+                      marginTop: "8px",
+                      borderTop: "1px solid #e0e0e0",
+                    },
+                  }}
+                >
+                  {/* Show skeleton during context changes or initial load */}
+                  {showSkeleton && isFetching ? (
+                    <CustomerTableSkeleton rows={paginationModel.pageSize} />
+                  ) : (
+                    <DataGridWithRowIdFix
+                      autoHeight // ให้ตารางขยายตามจำนวนข้อมูล แล้ว Page เป็นตัว scroll
+                      disableRowSelectionOnClick
+                      paginationMode="server"
+                      sortingMode="server"
+                      hideFooter={totalItems < 30} // ซ่อน footer เมื่อข้อมูลน้อยกว่า 30 แถว
+                      rows={validRows}
+                      columns={columns}
+                      columnVisibilityModel={columnVisibilityModel}
+                      columnOrderModel={columnOrderModel}
+                      componentsProps={{
+                        row: {
+                          style: { cursor: "pointer" },
+                        },
+                      }}
+                      initialState={{
+                        pagination: { paginationModel },
+                        sorting: { sortModel: serverSortModel },
+                      }}
+                      onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
+                      onSortModelChange={handleSortModelChange}
+                      onColumnVisibilityModelChange={handleColumnVisibilityChange}
+                      onColumnOrderChange={handleColumnOrderChange}
+                      rowCount={totalItems}
+                      loading={isFetching || isLoading}
+                      slots={{
+                        noRowsOverlay: NoDataComponent,
+                        pagination: PaginationComponent,
+                        toolbar: ToolbarComponent,
+                      }}
+                      sx={{ border: 0 }}
+                      rowHeight={60}
+                      columnHeaderHeight={50}
+                      getRowClassName={getRowClassName}
+                      onRowClick={(params) => {
+                        if (isMobile) return;
+                        handleOpenViewDialog(params.row.cus_id);
+                      }}
+                    />
+                  )}
                 </Box>
               )}
             </>
-          ) : (
-            // Desktop Table View
-            <Box
-              sx={{
-                height: "auto",
-                minHeight: Math.min(500, totalItems * 60 + 120),
-                maxHeight: 800,
-                width: "100%",
-                "& .MuiDataGrid-main": {
-                  overflow: "hidden",
-                },
-                "& .MuiDataGrid-root": {
-                  transition: "height 0.3s ease",
-                },
-              }}
-            >
-              <DataGridWithRowIdFix
-                disableRowSelectionOnClick
-                paginationMode="server"
-                sortingMode="server"
-                hideFooter={totalItems < 30} // ซ่อน footer เมื่อข้อมูลน้อยกว่า 30 แถว
-                rows={validRows}
-                columns={columns}
-                columnVisibilityModel={columnVisibilityModel}
-                columnOrderModel={columnOrderModel}
-                componentsProps={{
-                  row: {
-                    style: { cursor: "pointer" },
-                  },
-                }}
-                initialState={{
-                  pagination: { paginationModel },
-                  sorting: { sortModel: serverSortModel },
-                }}
-                onPaginationModelChange={(model) => dispatch(setPaginationModel(model))}
-                onSortModelChange={handleSortModelChange}
-                onColumnVisibilityModelChange={handleColumnVisibilityChange}
-                onColumnOrderChange={handleColumnOrderChange}
-                rowCount={totalItems}
-                loading={isFetching || isLoading}
-                slots={{
-                  noRowsOverlay: NoDataComponent,
-                  pagination: PaginationComponent,
-                  toolbar: ToolbarComponent,
-                }}
-                sx={{ border: 0 }}
-                rowHeight={60}
-                columnHeaderHeight={50}
-                getRowClassName={(params) => {
-                  const classes = [];
-                  if (params.indexRelativeToCurrentPage % 2 === 0) {
-                    classes.push("even-row");
-                  } else {
-                    classes.push("odd-row");
-                  }
-
-                  const expired = isRecallExpired(params.row.cd_last_datetime);
-                  const daysLeft = formatCustomRelativeTime(params.row.cd_last_datetime);
-
-                  if (expired) {
-                    classes.push("expired-row");
-                  } else if (daysLeft <= 7) {
-                    classes.push("high-priority-row");
-                  } else if (daysLeft <= 15) {
-                    classes.push("medium-priority-row");
-                  }
-
-                  return classes.join(" ");
-                }}
-                onRowClick={(params) => {
-                  if (isMobile) return;
-                  handleOpenViewDialog(params.row.cus_id);
-                }}
-              />
-            </Box>
           )}
         </Box>
 
         {/* Floating scroll to top button */}
         <ScrollTopButton />
+
+        {/* Telesales Quick Create Form */}
+        <TelesalesQuickCreateForm open={quickFormOpen} onClose={() => setQuickFormOpen(false)} />
       </div>
     </ScrollContext.Provider>
   );

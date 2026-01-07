@@ -104,6 +104,7 @@ class AuthController extends Controller
         try {
             $user = User::where('username', $credentials['username'])
                 ->where('user_is_enable', true)
+                ->with('subRoles:msr_id,msr_code,msr_name') // Load sub_roles
                 ->select(
                     'user_id',
                     'user_uuid',
@@ -132,9 +133,19 @@ class AuthController extends Controller
             // ลบข้อมูล sensitive ก่อนส่งกลับ
             unset($user->password, $user->new_pass);
 
+            // Format sub_roles for response
+            $userData = $user->toArray();
+            $userData['sub_roles'] = $user->subRoles->map(function($sr) {
+                return [
+                    'msr_id' => $sr->msr_id,
+                    'msr_code' => $sr->msr_code,
+                    'msr_name' => $sr->msr_name,
+                ];
+            })->toArray();
+
             return response()->json([
                 'status' => 'success',
-                'data' => $user,
+                'data' => $userData,
                 'token' => $token, // คืนค่า API Token
             ]);
 

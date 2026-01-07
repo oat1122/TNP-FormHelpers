@@ -115,6 +115,14 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        'slow_queries' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/slow-queries.log'),
+            'level' => 'warning',
+            'days' => 14,
+            'permission' => 0664,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

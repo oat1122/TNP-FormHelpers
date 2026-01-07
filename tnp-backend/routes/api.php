@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Customers\CustomerController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GlobalController;
+use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\Pricing\PricingController;
 use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -58,6 +60,41 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [MaxSupplyController::class, 'destroy']);
         Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
     });
+
+    //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::controller(CustomerController::class)->group(function () {
+        Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
+        Route::get('/customers/pool/telesales', 'getPoolTelesalesCustomers'); // Pool customers from Telesales
+        Route::get('/customers/pool/transferred', 'getPoolTransferredCustomers'); // Pool customers from transfers
+        Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
+        
+        // Customer Transfer Routes
+        Route::post('/customers/{id}/transfer-to-sales', 'transferToSales'); // Transfer to Sales channel
+        Route::post('/customers/{id}/transfer-to-online', 'transferToOnline'); // Transfer to Online channel
+        Route::get('/customers/{id}/transfer-history', 'getTransferHistory'); // Get transfer history
+        Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
+    });
+
+
+    //---------- Stats & KPI (Protected Routes) ----------
+    // Route::controller(StatsController::class)->group(function () {
+    //     Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
+    //     Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
+    // });
+
+    //---------- KPI Dashboard (Protected Routes) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
+        Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
+        Route::get('/customers/kpi/export', 'export'); // CSV export
+    });
+
+    //---------- Notifications (Protected Routes) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\NotificationController::class)->group(function () {
+        Route::get('/notifications/unread', 'getUnreadNotifications');
+        Route::post('/notifications/mark-as-read', 'markAsRead');
+        Route::post('/notifications/mark-all-as-read', 'markAllAsRead');
+        Route::post('/notifications/dismiss', 'dismiss'); // Permanently hide notifications
+    });
 });
 
 Route::prefix('v1')->group(function() {
@@ -88,6 +125,7 @@ Route::prefix('v1')->group(function() {
     Route::controller(CustomerController::class)->group(function () {
         Route::post('/customers/parse-address', 'parseAddress');
         Route::post('/customers/build-address', 'buildAddress');
+        Route::post('/customers/check-duplicate', 'checkDuplicate');
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
         Route::post('/customers/{id}/recall', 'recall');
         Route::patch('/customers/{id}/change-grade', 'changeGrade');
@@ -102,6 +140,7 @@ Route::prefix('v1')->group(function() {
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
         Route::get("/get-users-by-role", "get_users_by_role");
+        Route::get("/users/by-sub-role", "get_users_by_sub_role");
 
         Route::post("/signup", "signup");
         // Route::post("/login", "login");
@@ -111,6 +150,15 @@ Route::prefix('v1')->group(function() {
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
         Route::delete("/user/{id}", "destroy");
+    });
+
+    //---------- Sub Role Management ----------
+    Route::controller(SubRoleController::class)->group(function () {
+        Route::get('/sub-roles', 'index');
+        Route::post('/sub-roles', 'store');
+        Route::get('/sub-roles/{id}', 'show');
+        Route::put('/sub-roles/{id}', 'update');
+        Route::delete('/sub-roles/{id}', 'destroy');
     });
 
     //---------- Companies ----------
@@ -207,7 +255,7 @@ Route::prefix('v1')->group(function() {
     
     Route::get('/pricing-requests/{id}/autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestAutofill']);
     
-    // 🔄 NEW: Bulk autofill for multiple pricing requests (Cache Optimization)
+    // NEW: Bulk autofill for multiple pricing requests (Cache Optimization)
     Route::post('/pricing-requests/bulk-autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getBulkPricingRequestAutofill']);
     
     // NEW: Pricing Request Notes API

@@ -22,6 +22,8 @@ import {
   FaCalendarAlt,
   FaPlus,
   FaList,
+  FaUserFriends,
+  FaHeadset,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -214,14 +216,6 @@ function ControlPanel() {
           </a>
         </div>
         <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
-          <a className="btn btn-outline-danger pt-3" href="/customer">
-            <IconContext.Provider value={{ className: "icon-control-panel" }}>
-              <FaAddressBook />
-            </IconContext.Provider>
-            <label>CUSTOMER</label>
-          </a>
-        </div>
-        <div className="col-12 col-md-2 col-xl-2 ms-1 ms-md-3 ms-lg-3 mt-3 mt-md-0 px-1 col-basic">
           <a
             className="btn btn-outline-danger pt-3"
             href="https://new-report.izasskobibe.com/"
@@ -255,9 +249,69 @@ function ControlPanel() {
                 User Management
               </label>
             </a>
+            <div className="vr vr-home"></div>
+            <a
+              className="btn btn-outline-danger pt-3"
+              href="/sub-role-management"
+              style={{ width: "min-content" }}
+            >
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaUsers />
+              </IconContext.Provider>
+              <label
+                style={{
+                  textTransform: "uppercase",
+                  paddingTop: "0.5rem",
+                  lineHeight: "0.7rem",
+                }}
+              >
+                Sub Role
+              </label>
+            </a>
           </div>
         )}
       </div>
+
+      {/* CRM TOOLS Section */}
+      <div className="row col-12 col-md-11 col-lg-8 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
+        <h3>CRM TOOLS</h3>
+        <hr />
+        <div className="col-3 col-md-2 col-lg-3 ms-md-1 ms-xl-2 me-1 me-md-0 mb-0 mb-md-0 mb-lg-0 col-basic">
+          <a className="btn btn-outline-danger pt-3" href="/customer">
+            <IconContext.Provider value={{ className: "icon-control-panel" }}>
+              <FaAddressBook />
+            </IconContext.Provider>
+            <label>CUSTOMER</label>
+          </a>
+          <div className="vr vr-home"></div>
+
+          {(user.role === "admin" || user.role === "manager") && (
+            <>
+              <a
+                className="btn btn-outline-danger pt-3"
+                href="/allocation-hub"
+                style={{ width: "5.8rem" }}
+              >
+                <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                  <FaUserFriends />
+                </IconContext.Provider>
+                <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>ALLOCATION HUB</label>
+              </a>
+              <div className="vr vr-home"></div>
+            </>
+          )}
+
+          {(user.role === "admin" || user.role === "manager" || user.role === "telesale") && (
+            <a className="btn btn-outline-danger pt-3" href="/telesales-dashboard">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaHeadset />
+              </IconContext.Provider>
+              <label>TELESALES</label>
+            </a>
+          )}
+        </div>
+      </div>
+
       <div className="row col-12 col-md-11 col-lg-8 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
         <h3>SPECIFIC SALE TOOLS</h3>
         <hr />

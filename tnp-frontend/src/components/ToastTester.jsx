@@ -1,61 +1,105 @@
-import { Button, Box, Typography, Stack } from "@mui/material";
+import { Button, Box, Typography, Stack, Divider } from "@mui/material";
 import React from "react";
 
 import {
-  open_dialog_error,
-  open_dialog_ok_timer,
-  open_dialog_warning,
-  open_dialog_loading,
-  dismiss_loading_toast,
-} from "../utils/dialog_swal2/alart_one_line";
+  showSuccess,
+  showError,
+  showLoading,
+  showNotificationToast,
+  dismissToast,
+} from "../utils/toast";
 
 /**
- * A component for testing the new React Hot Toast notifications
+ * A component for testing the Custom Toast Notification System
+ * - NotificationToast: Real-time notifications with icons
+ * - StatusToast: Success, Error, Loading variants
  */
 function ToastTester() {
+  // ===== Status Toasts =====
   const handleTestSuccess = () => {
-    open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ");
+    showSuccess("บันทึกข้อมูลสำเร็จ");
   };
 
   const handleTestError = () => {
-    open_dialog_error("เกิดข้อผิดพลาด", "ไม่สามารถติดต่อกับเซิร์ฟเวอร์ได้");
-  };
-
-  const handleTestWarning = () => {
-    open_dialog_warning("คำเตือน", "คุณกำลังจะลบข้อมูลสำคัญ");
+    showError("เกิดข้อผิดพลาด: ไม่สามารถติดต่อกับเซิร์ฟเวอร์ได้");
   };
 
   const handleTestLoading = () => {
-    open_dialog_loading();
+    const loadingId = showLoading("กำลังดำเนินการ...");
 
-    // Dismiss loading toast after 3 seconds
+    // Dismiss loading toast after 3 seconds and show success
     setTimeout(() => {
-      dismiss_loading_toast();
-      open_dialog_ok_timer("การประมวลผลเสร็จสิ้น");
+      dismissToast(loadingId);
+      showSuccess("การประมวลผลเสร็จสิ้น");
     }, 3000);
+  };
+
+  // ===== Notification Toasts =====
+  const handleTestNotification = () => {
+    showNotificationToast({
+      title: "ลูกค้าใหม่",
+      message: "คุณได้รับมอบหมายลูกค้าใหม่: สมชาย ใจดี",
+      icon: "user-plus",
+    });
+  };
+
+  const handleTestNotificationAlert = () => {
+    showNotificationToast({
+      title: "แจ้งเตือนระบบ",
+      message: "มีการอัปเดตข้อมูลลูกค้าในระบบ กรุณาตรวจสอบ",
+      icon: "alert",
+    });
+  };
+
+  const handleTestNotificationMessage = () => {
+    showNotificationToast({
+      title: "ข้อความใหม่",
+      message: "คุณได้รับข้อความจากทีมงาน: ประชุมเวลา 14:00 น.",
+      icon: "message",
+    });
   };
 
   return (
     <Box sx={{ p: 4, maxWidth: 600, mx: "auto" }}>
       <Typography variant="h5" sx={{ mb: 3 }}>
-        ทดสอบระบบแจ้งเตือน React Hot Toast
+        ทดสอบระบบ Custom Toast Notification
       </Typography>
 
-      <Stack spacing={2} direction="column">
+      {/* Status Toasts Section */}
+      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, color: "primary.main" }}>
+        Status Toast (สถานะทั่วไป)
+      </Typography>
+      <Stack spacing={2} direction="column" sx={{ mb: 3 }}>
         <Button variant="contained" color="success" onClick={handleTestSuccess}>
-          ทดสอบแจ้งเตือนสำเร็จ
+          ✓ ทดสอบ Success Toast
         </Button>
 
         <Button variant="contained" color="error" onClick={handleTestError}>
-          ทดสอบแจ้งเตือนข้อผิดพลาด
-        </Button>
-
-        <Button variant="contained" color="warning" onClick={handleTestWarning}>
-          ทดสอบแจ้งเตือนคำเตือน
+          ✕ ทดสอบ Error Toast
         </Button>
 
         <Button variant="contained" color="info" onClick={handleTestLoading}>
-          ทดสอบแจ้งเตือนกำลังโหลด
+          ⟳ ทดสอบ Loading Toast (3 วินาที)
+        </Button>
+      </Stack>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Notification Toasts Section */}
+      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, color: "secondary.main" }}>
+        Notification Toast (Real-time)
+      </Typography>
+      <Stack spacing={2} direction="column">
+        <Button variant="outlined" color="secondary" onClick={handleTestNotification}>
+          👤 ทดสอบ Notification - ลูกค้าใหม่
+        </Button>
+
+        <Button variant="outlined" color="warning" onClick={handleTestNotificationAlert}>
+          ⚠ ทดสอบ Notification - แจ้งเตือน
+        </Button>
+
+        <Button variant="outlined" color="primary" onClick={handleTestNotificationMessage}>
+          💬 ทดสอบ Notification - ข้อความ
         </Button>
       </Stack>
     </Box>

@@ -31,4 +31,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Service (Fastify + Socket.io)
+    |--------------------------------------------------------------------------
+    */
+    'notification' => [
+        'url' => env('NOTIFICATION_SERVICE_URL', 'http://localhost:3000'),
+        'api_key' => env('NOTIFICATION_API_KEY'),
+    ],
+
 ];

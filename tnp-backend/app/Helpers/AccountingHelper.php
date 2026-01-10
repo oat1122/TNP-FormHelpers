@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Constants\UserRole;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -183,5 +184,82 @@ class AccountingHelper
         }
         
         return in_array($user->role, $roles, true);
+    }
+
+    /**
+     * Check if current user can manage leads
+     * Allowed roles: admin, manager, sale
+     * 
+     * @return bool True if user can manage leads
+     */
+    public static function canManageLeads(): bool
+    {
+        return self::hasRole([UserRole::ADMIN, UserRole::MANAGER, UserRole::SALE]);
+    }
+
+    /**
+     * Check if current user can create customers
+     * Allowed roles: admin, manager, sale, telesale
+     * 
+     * @return bool True if user can create customers
+     */
+    public static function canCreateCustomer(): bool
+    {
+        return self::hasRole([UserRole::ADMIN, UserRole::MANAGER, UserRole::SALE, UserRole::TELESALE]);
+    }
+
+    /**
+     * Check if current user can allocate customers from pool
+     * Allowed roles: admin, manager, or users with HEAD sub_roles
+     * 
+     * @return bool True if user can allocate customers
+     */
+    public static function canAllocateCustomers(): bool
+    {
+        // Admin and Manager can always allocate
+        if (self::hasRole([UserRole::ADMIN, UserRole::MANAGER])) {
+            return true;
+        }
+        
+        // HEAD users (by sub_role) can also allocate
+        $user = auth()->user();
+        if ($user && method_exists($user, 'hasSubRole')) {
+            return $user->hasSubRole('HEAD_ONLINE') || $user->hasSubRole('HEAD_OFFLINE');
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if current user can view reports
+     * Allowed roles: admin, manager
+     * 
+     * @return bool True if user can view reports
+     */
+    public static function canViewReports(): bool
+    {
+        return self::hasRole([UserRole::ADMIN, UserRole::MANAGER]);
+    }
+
+    /**
+     * Check if current user can view all customers
+     * Allowed roles: admin, manager
+     * Regular sales and telesales can only see their assigned customers
+     * 
+     * @return bool True if user can view all customers
+     */
+    public static function canViewAllCustomers(): bool
+    {
+        return self::hasRole([UserRole::ADMIN, UserRole::MANAGER]);
+    }
+
+    /**
+     * Check if current user is telesales
+     * 
+     * @return bool True if user is telesales
+     */
+    public static function isTelesales(): bool
+    {
+        return self::hasRole([UserRole::TELESALE]);
     }
 }

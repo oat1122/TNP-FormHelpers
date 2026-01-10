@@ -14,7 +14,17 @@ import {
   BsInputGroup,
 } from "../../utils/import_lib";
 
-import { Button, styled, Autocomplete, TextField, Paper } from "@mui/material";
+import {
+  Button,
+  styled,
+  Autocomplete,
+  TextField,
+  Paper,
+  Badge,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 
 import "./AppHeader.css";
 import NavDropdown from "react-bootstrap/NavDropdown";
@@ -24,6 +34,9 @@ import { FiSearch } from "react-icons/fi";
 import { FiLogOut } from "react-icons/fi";
 import { IoSearch } from "react-icons/io5";
 import { RxHome } from "react-icons/rx";
+import { MdNotifications } from "react-icons/md";
+import { useSocketNotification } from "../../hooks/useSocketNotification";
+import NotificationMenu from "./NotificationMenu";
 
 import DialogChangePass from "./DialogChangePass";
 import { searchKeyword } from "../../features/globalSlice";
@@ -83,6 +96,13 @@ function AppHeader() {
 
   const user = JSON.parse(localStorage.getItem("userData"));
   const globalKeyword = useSelector((state) => state.global.keyword);
+
+  // Notification for admin, manager, and sales roles
+  // Uses WebSocket-triggered refetch instead of polling
+  const { unreadCount, notifications, markAsRead, markAllAsRead, dismissNotification } =
+    useSocketNotification({
+      enableNotifications: true,
+    });
   const pathList = [
     "/monitor",
     "/worksheet",
@@ -93,6 +113,7 @@ function AppHeader() {
   ];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
   let content;
 
   const handlelogout = async () => {
@@ -206,6 +227,21 @@ function AppHeader() {
 
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
+            {/* Notification Badge (for admin, manager, and sales roles) */}
+            {["admin", "manager", "sale"].includes(user.role) && (
+              <BsNav.Item className="me-3 d-flex align-items-center">
+                <IconButton
+                  onClick={(e) => setNotificationAnchor(e.currentTarget)}
+                  size="small"
+                  sx={{ color: "#c55050" }}
+                >
+                  <Badge badgeContent={unreadCount} color="error">
+                    <MdNotifications size={24} />
+                  </Badge>
+                </IconButton>
+              </BsNav.Item>
+            )}
+
             {/* Display username and change password */}
             <NavDropdown
               title={
@@ -251,6 +287,29 @@ function AppHeader() {
           </BsNavbar.Collapse>
         </BsContainer>
       </BsNavbar>
+
+      {/* Notification Dropdown Menu */}
+      {["admin", "manager", "sale"].includes(user.role) && (
+        <NotificationMenu
+          anchorEl={notificationAnchor}
+          open={Boolean(notificationAnchor)}
+          onClose={() => setNotificationAnchor(null)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAsRead={markAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          onDismiss={dismissNotification}
+          onNotificationClick={(notification) => {
+            // Navigate to customer page with customer ID to auto-open view dialog
+            const customerId = notification.data?.customer_id;
+            if (customerId) {
+              navigate(`/customer?viewCustomerId=${customerId}`);
+            } else {
+              navigate("/customer");
+            }
+          }}
+        />
+      )}
     </>
   );
 }

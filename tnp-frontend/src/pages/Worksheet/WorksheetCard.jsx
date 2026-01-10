@@ -42,6 +42,10 @@ function WorksheetCard({ data, index, isSuccess }) {
       user_role: user.role,
     };
 
+    // เปิด blank window ทันที เพื่อให้ผ่าน Safari's transient activation check
+    // iOS Safari บล็อก window.open() ที่เรียกหลัง async callback
+    const pdfWindow = window.open("", "_blank");
+
     open_dialog_loading();
 
     try {
@@ -52,13 +56,28 @@ function WorksheetCard({ data, index, isSuccess }) {
       // Create a blob from the response data
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const blobUrl = URL.createObjectURL(pdfBlob);
-      window.open(blobUrl);
+
+      if (pdfWindow) {
+        // Redirect ไปที่ blob URL
+        pdfWindow.location.href = blobUrl;
+      } else {
+        // Fallback: ถ้า pop-up ถูก block ให้ใช้ download แทน
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = `${sheet_type}_${data.work_id || "document"}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
 
       Swal.close();
     } catch (err) {
+      // ปิด blank window ถ้าเกิด error
+      if (pdfWindow) {
+        pdfWindow.close();
+      }
       console.error("Error downloading the PDF:", err);
       open_dialog_error(err);
-      // Swal.close();
     }
   };
 

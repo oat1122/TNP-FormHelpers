@@ -269,6 +269,29 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         // For admin users, use existing assignment or default
         initManageObj = normalizeManagerData(rawManage, fallbackUsername);
       }
+
+      // Parse cus_address_detail จาก cus_address ตาม pattern ของ Customer module
+      // (เฉพาะส่วนก่อน แขวง/ตำบล/ต. เท่านั้น ไม่รวม location components)
+      let addressDetail = customer.cus_address_detail || "";
+      if (!addressDetail && customer.cus_address) {
+        const patterns = [
+          /^(.+?)(?:\s+แขวง)/, // ก่อน "แขวง"
+          /^(.+?)(?:\s+ตำบล)/, // ก่อน "ตำบล"
+          /^(.+?)(?:\s+ต\.)/, // ก่อน "ต."
+        ];
+        for (const pattern of patterns) {
+          const match = customer.cus_address.match(pattern);
+          if (match && match[1]) {
+            addressDetail = match[1].trim();
+            break;
+          }
+        }
+        // ถ้าไม่ match pattern ใดเลย ให้ใช้ค่าเดิม (อาจเป็นที่อยู่ที่ไม่มี location)
+        if (!addressDetail) {
+          addressDetail = customer.cus_address;
+        }
+      }
+
       setEditData({
         cus_company: customer.cus_company || "",
         cus_firstname: customer.cus_firstname || "",
@@ -279,7 +302,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         cus_tel_2: customer.cus_tel_2 || "",
         cus_email: customer.cus_email || "",
         cus_tax_id: customer.cus_tax_id || "",
-        cus_address: customer.cus_address || "",
+        cus_address: addressDetail, // ใช้ addressDetail ที่ parse แล้ว แทน customer.cus_address
         cus_zip_code: customer.cus_zip_code || "",
         // Keep as string for RadioGroup; normalize from number or text
         cus_channel: normalizeChannelValue(initChannelRaw) || "1",
@@ -341,12 +364,34 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
             }
           }
 
+          // ✅ FIX: Parse full address to extract only address detail (without location components)
+          // Location components (แขวง/เขต/จังหวัด/รหัสไปรษณีย์) are shown in dropdowns
+          let parsedAddressDetail = prev.cus_address;
+          if (merged.cus_address) {
+            const parsed = AddressService.parseFullAddress(merged.cus_address);
+            parsedAddressDetail = parsed.addressDetail || merged.cus_address;
+          }
+
           return {
             ...prev,
             cus_channel: effectiveCh,
             cus_bt_id: mergedBt ? String(mergedBt) : prev.cus_bt_id,
             cus_tax_id: merged.cus_tax_id || prev.cus_tax_id,
             cus_manage_by: mergedManage,
+            // ✅ FIX: Include all customer fields from API response for complete data display
+            cus_company: merged.cus_company || prev.cus_company,
+            cus_firstname: merged.cus_firstname || prev.cus_firstname,
+            cus_lastname: merged.cus_lastname || prev.cus_lastname,
+            cus_name: merged.cus_name || prev.cus_name,
+            cus_depart: merged.cus_depart || prev.cus_depart,
+            cus_tel_1: merged.cus_tel_1 || prev.cus_tel_1,
+            cus_tel_2: merged.cus_tel_2 || prev.cus_tel_2,
+            cus_email: merged.cus_email || prev.cus_email,
+            cus_address: parsedAddressDetail, // ✅ Use parsed addressDetail only
+            cus_pro_id: merged.cus_pro_id || prev.cus_pro_id,
+            cus_dis_id: merged.cus_dis_id || prev.cus_dis_id,
+            cus_sub_id: merged.cus_sub_id || prev.cus_sub_id,
+            cus_zip_code: merged.cus_zip_code || prev.cus_zip_code,
           };
         });
       } catch (err) {
@@ -489,6 +534,43 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     [fetchSubdistricts]
   );
 
+  // 🔧 Auto-load districts เมื่อ editData มี cus_pro_id (hydrated จาก API)
+  useEffect(() => {
+    // ต้องรอให้ provinces โหลดเสร็จก่อน และมี cus_pro_id จาก hydration
+    if (!provinces.length || !editData?.cus_pro_id) return;
+    // ถ้า districts โหลดแล้วไม่ต้องโหลดอีก
+    if (districts.length > 0 || isLoadingDistricts) return;
+
+    const province = provinces.find((p) => p.pro_id === editData.cus_pro_id);
+    if (province?.pro_sort_id) {
+      console.log("🔄 Auto-loading districts for hydrated province:", province.pro_name_th);
+      loadDistricts(province.pro_sort_id);
+    }
+  }, [provinces, editData?.cus_pro_id, districts.length, isLoadingDistricts, loadDistricts]);
+
+  // 🔧 Auto-load subdistricts เมื่อ editData มี cus_dis_id (hydrated จาก API)
+  useEffect(() => {
+    // ต้องรอให้ districts โหลดเสร็จก่อน และมี cus_dis_id จาก hydration
+    if (!districts.length || !editData?.cus_dis_id) return;
+    // ถ้า subdistricts โหลดแล้วไม่ต้องโหลดอีก
+    if (subdistricts.length > 0 || isLoadingSubdistricts) return;
+
+    const district = districts.find((d) => d.dis_id === editData.cus_dis_id);
+    if (district?.dis_sort_id) {
+      console.log(
+        "🔄 Auto-loading subdistricts for hydrated district:",
+        district.dis_name_th || district.dis_name
+      );
+      loadSubdistricts(district.dis_sort_id);
+    }
+  }, [
+    districts,
+    editData?.cus_dis_id,
+    subdistricts.length,
+    isLoadingSubdistricts,
+    loadSubdistricts,
+  ]);
+
   // Get business types array for Autocomplete
   const businessTypes = React.useMemo(() => {
     if (!businessTypesData) return [];
@@ -612,6 +694,23 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         // For admin, normalize existing data
         resetManage = normalizeManagerData(rawManage, fallbackUsername);
       }
+
+      // Parse cus_address_detail จาก cus_address ตาม pattern ของ Customer module
+      let addressDetail = base.cus_address_detail || "";
+      if (!addressDetail && base.cus_address) {
+        const patterns = [/^(.+?)(?:\s+แขวง)/, /^(.+?)(?:\s+ตำบล)/, /^(.+?)(?:\s+ต\.)/];
+        for (const pattern of patterns) {
+          const match = base.cus_address.match(pattern);
+          if (match && match[1]) {
+            addressDetail = match[1].trim();
+            break;
+          }
+        }
+        if (!addressDetail) {
+          addressDetail = base.cus_address;
+        }
+      }
+
       setEditData({
         cus_company: base.cus_company || "",
         cus_firstname: base.cus_firstname || "",
@@ -622,7 +721,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
         cus_tel_2: base.cus_tel_2 || "",
         cus_email: base.cus_email || "",
         cus_tax_id: base.cus_tax_id || "",
-        cus_address: base.cus_address || "",
+        cus_address: addressDetail, // ใช้ addressDetail ที่ parse แล้ว
         cus_zip_code: base.cus_zip_code || "",
         cus_channel: normalizeChannelValue(resetChannel),
         cus_bt_id: resetBt == null ? "" : String(resetBt),
@@ -739,9 +838,12 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       const hasComponents = updateData.cus_pro_id || updateData.cus_dis_id || updateData.cus_sub_id;
 
       // ถ้ามี components และมี cus_address (จาก text field)
-      // ให้ map ไปที่ cus_address_detail เพื่อให้ Backend (CustomerController) ทำงานถูกต้อง
+      // ให้แยกเฉพาะส่วน addressDetail (เลขที่, ถนน, ซอย) ออกมา
+      // เพื่อป้องกันการซ้ำซ้อนเมื่อ Backend สร้างที่อยู่เต็มจาก components
       if (hasComponents && updateData.cus_address !== undefined) {
-        updateData.cus_address_detail = updateData.cus_address;
+        // Parse full address to extract only address detail portion
+        const parsed = AddressService.parseFullAddress(updateData.cus_address);
+        updateData.cus_address_detail = parsed.addressDetail || "";
       }
       // -------------------- END: FIX --------------------
 
@@ -1329,9 +1431,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
                   <Typography variant="caption" color="text.secondary">
                     ที่อยู่
                   </Typography>
-                  <Typography variant="body2">
-                    {AddressService.formatDisplayAddress(viewCustomer) || "-"}
-                  </Typography>
+                  <Typography variant="body2">{viewCustomer.cus_address || "-"}</Typography>
                 </Box>
               )}
             </Grid>

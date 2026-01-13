@@ -348,6 +348,7 @@ class CreationService
             
             // Financials
             $quotation->subtotal = $subtotal;
+            $quotation->tax_amount = $vatAmount; // ✅ FIX: Save VAT amount to database for PDF display
             $quotation->special_discount_percentage = $specialDiscountPercentage;
             $quotation->special_discount_amount = $specialDiscountAmount;
             $quotation->has_vat = $hasVat;

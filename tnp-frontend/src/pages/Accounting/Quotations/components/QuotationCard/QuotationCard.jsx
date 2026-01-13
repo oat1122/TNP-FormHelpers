@@ -91,6 +91,17 @@ export default function QuotationCard({
     <>
       <TNPCard>
         <TNPCardContent>
+          {/* Quotation Number - แสดงบนสุดเพื่อความง่ายในการมองเห็น */}
+          {data?.number && !String(data.number).startsWith("DRAFT-") && (
+            <Box sx={{ mb: 2 }}>
+              <TNPCountChip
+                icon={<DescriptionIcon sx={{ fontSize: "1rem" }} />}
+                label={data.number}
+                size="small"
+              />
+            </Box>
+          )}
+
           <Box display="flex" alignItems="center" mb={2.5}>
             <Avatar
               sx={{
@@ -164,13 +175,6 @@ export default function QuotationCard({
               statuscolor={statusColor[data?.status] || "default"}
             />
             <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
-            {data?.number && !String(data.number).startsWith("DRAFT-") && (
-              <TNPCountChip
-                icon={<DescriptionIcon sx={{ fontSize: "1rem" }} />}
-                label={data.number}
-                size="small"
-              />
-            )}
           </Stack>
 
           <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>

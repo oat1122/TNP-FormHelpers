@@ -485,6 +485,11 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             return;
         }
         
+        // Accounting sees all customers (for quotation creation)
+        if ($user->role === 'account') {
+            return;
+        }
+        
         // HEAD with subordinate filter - see ALL subordinates' customers (all channels)
         if ($isHead && $hasSubordinateFilter) {
             // No channel filter - HEAD sees all channels of their subordinates

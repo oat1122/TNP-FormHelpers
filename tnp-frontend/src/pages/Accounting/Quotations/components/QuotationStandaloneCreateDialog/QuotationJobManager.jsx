@@ -11,6 +11,7 @@ import {
   Chip,
   MenuItem,
   Tooltip,
+  Autocomplete,
 } from "@mui/material";
 import { Add as AddIcon, DeleteOutline as DeleteIcon } from "@mui/icons-material";
 import { formatTHB, sanitizeDecimal, sanitizeInt } from "./utils/formatting";
@@ -120,21 +121,22 @@ const JobCard = ({ job, index, onChangeJob, onDeleteJob, errors }) => {
           />
         </Grid>
         <Grid item xs={12} md={3}>
-          <TextField
-            label="หน่วย"
-            size="small"
-            fullWidth
-            select
-            value={job.unit}
-            onChange={(e) => handleJobFieldChange("unit", e.target.value)}
-          >
-            <MenuItem value="ชิ้น">ชิ้น</MenuItem>
-            <MenuItem value="ตัว">ตัว</MenuItem>
-            <MenuItem value="ชุด">ชุด</MenuItem>
-            <MenuItem value="แผ่น">แผ่น</MenuItem>
-            <MenuItem value="เมตร">เมตร</MenuItem>
-            <MenuItem value="กิโลกรัม">กิโลกรัม</MenuItem>
-          </TextField>
+          <Autocomplete
+            freeSolo
+            options={["ชิ้น", "ตัว", "ชุด", "แผ่น", "เมตร", "กิโลกรัม"]}
+            value={job.unit || ""}
+            onChange={(e, newValue) => handleJobFieldChange("unit", newValue || "")}
+            onInputChange={(e, newInputValue) => handleJobFieldChange("unit", newInputValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="หน่วย"
+                size="small"
+                fullWidth
+                placeholder="เลือกหรือพิมพ์หน่วย"
+              />
+            )}
+          />
         </Grid>
       </Grid>
 

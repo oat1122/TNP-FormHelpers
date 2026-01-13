@@ -275,9 +275,15 @@ class PdfCacheService
      */
     public function calculateCacheVersion($document): string
     {
+        // Load customer relation if needed to check for customer data updates
+        if (!$document->relationLoaded('customer') && method_exists($document, 'customer')) {
+            $document->load('customer');
+        }
+
         $data = [
             'updated_at' => $document->updated_at ? $document->updated_at->timestamp : time(),
             'customer_id' => $document->customer_id ?? null,
+            'customer_updated_at' => $document->customer?->cus_updated_date?->timestamp ?? null,
             'status' => $document->status ?? null,
             'total_amount' => $document->total_amount ?? null,
         ];

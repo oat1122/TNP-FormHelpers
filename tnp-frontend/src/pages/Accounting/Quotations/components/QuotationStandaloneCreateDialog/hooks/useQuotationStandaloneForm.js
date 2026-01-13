@@ -6,13 +6,17 @@ import {
 } from "../../../../../../features/Accounting/accountingApi";
 import { addNotification } from "../../../../../../features/Accounting/accountingSlice";
 
+// Default notes เหมือนกับ CreateQuotationForm
+const DEFAULT_NOTES = `**ไม่สามารถหักภาษี ณ ที่จ่ายได้ เนื่องจากเป็นการซื้อมาขายไป**
+มัดจำ50%ก่อนเริ่มงาน ชำระ50%ส่วนหลังก่อนส่งสินค้า`;
+
 const emptyFormData = {
   company_id: "",
   customer_id: "",
   payment_terms: "credit_30",
   payment_terms_custom: "",
   due_date: "",
-  notes: "",
+  notes: DEFAULT_NOTES,
   document_header_type: "ต้นฉบับ",
   jobs: [],
   customer_company: "",
@@ -44,7 +48,7 @@ const emptyFinancials = {
   has_withholding_tax: false,
   withholding_tax_percentage: 0,
   deposit_mode: "percentage",
-  deposit_percentage: 0,
+  deposit_percentage: 50,
   deposit_amount: 0,
 };
 

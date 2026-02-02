@@ -5,6 +5,7 @@ import {
   Event as MonthIcon,
   EventNote as QuarterIcon,
   CalendarToday as YearIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
 /**
@@ -16,6 +17,9 @@ export const PERIOD_TABS = [
   { value: "month", label: "เดือนนี้", icon: <MonthIcon fontSize="small" /> },
   { value: "quarter", label: "ไตรมาสนี้", icon: <QuarterIcon fontSize="small" /> },
   { value: "year", label: "ปีนี้", icon: <YearIcon fontSize="small" /> },
+  { value: "prev_week", label: "สัปดาห์ที่แล้ว", icon: <HistoryIcon fontSize="small" /> },
+  { value: "prev_month", label: "เดือนที่แล้ว", icon: <HistoryIcon fontSize="small" /> },
+  { value: "prev_quarter", label: "ไตรมาสที่แล้ว", icon: <HistoryIcon fontSize="small" /> },
 ];
 
 /**

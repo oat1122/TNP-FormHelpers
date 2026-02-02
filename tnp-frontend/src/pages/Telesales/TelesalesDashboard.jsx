@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Grid, Typography, Button, Alert } from "@mui/material";
 import { ErrorOutline } from "@mui/icons-material";
@@ -13,6 +13,8 @@ import {
   SummaryStatsGrid,
   TopUsersCard,
   PersonalStatsCard,
+  RecallStatsCard,
+  RecallBySalesTable,
 } from "./sections";
 
 // Hooks
@@ -66,6 +68,8 @@ const TelesalesDashboard = () => {
   const summary = stats?.summary || {};
   const bySource = stats?.by_source || [];
   const byUser = stats?.by_user || [];
+  const recallStats = stats?.recall_stats || {};
+  const recallByUser = stats?.recall_by_user || [];
   const comparison = stats?.comparison || {};
 
   // Check authorization
@@ -132,6 +136,14 @@ const TelesalesDashboard = () => {
           <>
             {/* Summary Stats Cards */}
             <SummaryStatsGrid summary={summary} isLoading={isLoading || isFetching} />
+
+            {/* Recall Stats Card */}
+            <RecallStatsCard stats={recallStats} isLoading={isLoading || isFetching} />
+
+            {/* Recall By Sales Table (Team View) */}
+            {isTeamView && (
+              <RecallBySalesTable data={recallByUser} isLoading={isLoading || isFetching} />
+            )}
 
             {/* Charts and Details */}
             <Grid container spacing={3}>

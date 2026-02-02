@@ -50,7 +50,7 @@ class KpiController extends Controller
         try {
             // Validate inputs
             $request->validate([
-                'period' => 'nullable|in:today,week,month,quarter,year,custom',
+                'period' => 'nullable|in:today,week,month,quarter,year,custom,prev_month,prev_week,prev_quarter',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date',
                 'source_filter' => 'nullable|in:telesales,sales,online,office,all',
@@ -98,6 +98,12 @@ class KpiController extends Controller
             // Get time series data (daily breakdown)
             $timeSeries = $this->getTimeSeriesStats(clone $baseQuery, $dateRange);
 
+            // Get recall stats
+            $recallStats = $this->getRecallStats($sourceFilter, $targetUserId, $dateRange);
+            
+            // Get recall stats by user (team view only)
+            $recallByUser = ($isAdmin && !$targetUserId) ? $this->getRecallStatsByUser($sourceFilter, $dateRange) : [];
+
             // Get current period comparison (vs previous period)
             $comparison = $this->getPeriodComparison($period, $sourceFilter, $targetUserId);
 
@@ -113,7 +119,10 @@ class KpiController extends Controller
                     'summary' => $summary,
                     'by_source' => $bySource,
                     'by_user' => $byUser,
+                    'by_user' => $byUser,
                     'time_series' => $timeSeries,
+                    'recall_stats' => $recallStats,
+                    'recall_by_user' => $recallByUser,
                     'comparison' => $comparison,
                 ],
                 'meta' => [
@@ -271,6 +280,32 @@ class KpiController extends Controller
                     'end' => $end,
                     'label' => $start->format('d/m/Y') . ' - ' . $end->format('d/m/Y'),
                 ];
+                return [
+                    'start' => $now->copy()->startOfMonth(),
+                    'end' => $now->copy()->endOfMonth(),
+                    'label' => 'เดือนนี้',
+                ];
+
+            // Previous periods
+            case 'prev_month':
+                return [
+                    'start' => $now->copy()->subMonth()->startOfMonth(),
+                    'end' => $now->copy()->subMonth()->endOfMonth(),
+                    'label' => 'เดือนที่แล้ว',
+                ];
+            case 'prev_week':
+                return [
+                    'start' => $now->copy()->subWeek()->startOfWeek(),
+                    'end' => $now->copy()->subWeek()->endOfWeek(),
+                    'label' => 'สัปดาห์ที่แล้ว',
+                ];
+            case 'prev_quarter':
+                return [
+                    'start' => $now->copy()->subQuarter()->startOfQuarter(),
+                    'end' => $now->copy()->subQuarter()->endOfQuarter(),
+                    'label' => 'ไตรมาสที่แล้ว (Q' . $now->copy()->subQuarter()->quarter . ')',
+                ];
+                
             default:
                 return [
                     'start' => $now->copy()->startOfMonth(),
@@ -365,6 +400,132 @@ class KpiController extends Controller
                 'count' => $item->count,
             ])
             ->toArray();
+    }
+
+    /**
+     * Get Recall Statistics
+     * 
+     * @param string $sourceFilter
+     * @param int|null $targetUserId
+     * @return array
+     */
+    /**
+     * Get Recall Statistics
+     * 
+     * @param string $sourceFilter
+     * @param int|null $targetUserId
+     * @param array $dateRange
+     * @return array
+     */
+    private function getRecallStats(string $sourceFilter, ?int $targetUserId, array $dateRange): array
+    {
+        // Base query for recall stats - join with details and groups
+        $query = MasterCustomer::query()
+            ->join('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id')
+            ->join('master_customer_groups', 'master_customers.cus_mcg_id', '=', 'master_customer_groups.mcg_id')
+            ->where('master_customers.cus_is_use', true)
+            ->where('customer_details.cd_is_use', true);
+
+        // Apply filters
+        if ($sourceFilter !== 'all') {
+            $query->where('master_customers.cus_source', $sourceFilter);
+        }
+
+        if ($targetUserId) {
+            $query->where('master_customers.cus_allocated_by', $targetUserId);
+        }
+
+        // Clone query for efficiency
+        $q1 = clone $query;
+        $q2 = clone $query;
+        $q3 = clone $query;
+
+        // 1. Waiting for recall (Overdue)
+        // cd_last_datetime (Next Due Date) < NOW()
+        $waitingCount = $q1->where('customer_details.cd_last_datetime', '<', Carbon::now())
+            ->count();
+
+        // 2. In criteria
+        // cd_last_datetime (Next Due Date) >= NOW()
+        $inCriteriaCount = $q2->where('customer_details.cd_last_datetime', '>=', Carbon::now())
+            ->count();
+
+        // 3. Recalls made in period
+        // Use cd_updated_date as proxy for action time
+        $recallsMadeCount = $q3->whereBetween('customer_details.cd_updated_date', [
+                $dateRange['start'], 
+                $dateRange['end']
+            ])
+            ->count();
+
+        return [
+            'total_waiting' => $waitingCount,
+            'total_in_criteria' => $inCriteriaCount,
+            'recalls_made_count' => $recallsMadeCount,
+        ];
+    }
+
+    /**
+     * Get Recall Statistics By User (Sales)
+     * 
+     * @param string $sourceFilter
+     * @param array $dateRange
+     * @return array
+     */
+    private function getRecallStatsByUser(string $sourceFilter, array $dateRange): array
+    {
+        $startDate = $dateRange['start']->format('Y-m-d H:i:s');
+        $endDate = $dateRange['end']->format('Y-m-d H:i:s');
+
+        // Base query - join MasterCustomer with details and groups
+        $query = MasterCustomer::query()
+            ->join('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id')
+            ->join('master_customer_groups', 'master_customers.cus_mcg_id', '=', 'master_customer_groups.mcg_id')
+            ->join('users', 'master_customers.cus_manage_by', '=', 'users.user_id')
+            ->where('master_customers.cus_is_use', true)
+            ->where('customer_details.cd_is_use', true)
+            ->select(
+                'users.user_id',
+                'users.username',
+                'users.user_firstname',
+                'users.user_lastname',
+                'users.user_nickname',
+                DB::raw('COUNT(*) as total_customers'),
+                // Waiting for recall (Overdue): cd_last_datetime < NOW
+                DB::raw('SUM(CASE WHEN customer_details.cd_last_datetime < NOW() THEN 1 ELSE 0 END) as waiting_count'),
+                // In Criteria: cd_last_datetime >= NOW
+                DB::raw('SUM(CASE WHEN customer_details.cd_last_datetime >= NOW() THEN 1 ELSE 0 END) as in_criteria_count'),
+                // Recalls Made In Period: cd_updated_date in range
+                DB::raw("SUM(CASE WHEN customer_details.cd_updated_date BETWEEN '$startDate' AND '$endDate' THEN 1 ELSE 0 END) as recalls_made_count")
+            )
+            ->whereNotNull('master_customers.cus_manage_by')
+            ->groupBy(
+                'users.user_id',
+                'users.username',
+                'users.user_firstname',
+                'users.user_lastname',
+                'users.user_nickname'
+            )
+            ->orderByDesc('waiting_count');
+
+        if ($sourceFilter !== 'all') {
+            $query->where('master_customers.cus_source', $sourceFilter);
+        }
+
+        return $query->get()->map(function ($item) {
+            $fullName = trim($item->user_firstname . ' ' . $item->user_lastname . 
+                ($item->user_nickname ? " ({$item->user_nickname})" : ''));
+                
+            return [
+                'user_id' => $item->user_id,
+                'username' => $item->username,
+                'full_name' => $fullName,
+                'total_customers' => (int)$item->total_customers,
+                'waiting_count' => (int)$item->waiting_count,
+                'in_criteria_count' => (int)$item->in_criteria_count,
+                'recalls_made_count' => (int)$item->recalls_made_count,
+            ];
+        })->toArray();
     }
 
     /**

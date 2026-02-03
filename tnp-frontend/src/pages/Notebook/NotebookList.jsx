@@ -1,10 +1,12 @@
 import { Box, Button, Typography } from "@mui/material";
 import { useState } from "react";
+import { MdPictureAsPdf } from "react-icons/md";
 import { RiAddLine } from "react-icons/ri";
 import { useDispatch } from "react-redux";
 
 import NotebookDialog from "./components/NotebookDialog";
 import NotebookTable from "./components/NotebookTable";
+import PrintPDFDialog from "./components/PrintPDFDialog";
 import TitleBar from "../../components/TitleBar";
 import { setInputList, setMode } from "../../features/Customer/customerSlice";
 import {
@@ -29,6 +31,9 @@ const NotebookList = () => {
 
   // Customer Dialog State (reusing Component)
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+
+  // PDF Dialog State
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
   // Fetch Data
   const { data, isLoading, refetch } = useGetNotebooksQuery({
@@ -101,14 +106,25 @@ const NotebookList = () => {
           <Typography variant="h5" component="h1" fontWeight="bold" color="text.secondary">
             รายการที่จดบันทึก
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<RiAddLine />}
-            onClick={handleAdd}
-            sx={{ bgcolor: "#d32f2f", "&:hover": { bgcolor: "#b71c1c" } }}
-          >
-            จดบันทึก
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<MdPictureAsPdf />}
+              onClick={() => setPdfDialogOpen(true)}
+              disabled={isLoading}
+              sx={{ borderColor: "#1976d2", color: "#1976d2" }}
+            >
+              Print PDF
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<RiAddLine />}
+              onClick={handleAdd}
+              sx={{ bgcolor: "#d32f2f", "&:hover": { bgcolor: "#b71c1c" } }}
+            >
+              จดบันทึก
+            </Button>
+          </Box>
         </Box>
 
         <NotebookTable
@@ -125,6 +141,12 @@ const NotebookList = () => {
 
       {/* Dialogs */}
       <NotebookDialog />
+
+      <PrintPDFDialog
+        open={pdfDialogOpen}
+        onClose={() => setPdfDialogOpen(false)}
+        data={data?.data || []}
+      />
 
       <DialogForm
         openDialog={customerDialogOpen}

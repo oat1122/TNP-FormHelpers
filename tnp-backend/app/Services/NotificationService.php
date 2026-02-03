@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Log;
  * ส่ง real-time notifications ไปยัง Fastify Notification Server
  * เพื่อแจ้งเตือน users ผ่าน Socket.io
  */
+use Illuminate\Support\Facades\Auth;
+
+/**
+ * Notification Service
+ * 
+ * ส่ง real-time notifications ไปยัง Fastify Notification Server
+ * เพื่อแจ้งเตือน users ผ่าน Socket.io
+ */
 class NotificationService
 {
     protected string $baseUrl;
@@ -33,6 +41,7 @@ class NotificationService
      */
     public function notify(int $userId, string $title, string $message, string $type = 'info'): bool
     {
+        // ... implementation
         try {
             $headers = ['Content-Type' => 'application/json'];
             
@@ -74,6 +83,11 @@ class NotificationService
      */
     public function notifyCustomerAllocated(int $salesUserId, string $customerName, ?string $allocatorName = null): bool
     {
+        // Skip self-notification
+        if ($salesUserId === Auth::id()) {
+            return true;
+        }
+
         $message = $allocatorName 
             ? "คุณได้รับลูกค้า: {$customerName} จาก {$allocatorName}"
             : "คุณได้รับลูกค้า: {$customerName}";
@@ -97,6 +111,11 @@ class NotificationService
      */
     public function notifyCustomerTransferred(int $userId, string $customerName, string $fromChannel, string $toChannel): bool
     {
+        // Skip self-notification
+        if ($userId === Auth::id()) {
+            return true;
+        }
+
         return $this->notify(
             $userId,
             '🔄 ลูกค้าถูกโอน',

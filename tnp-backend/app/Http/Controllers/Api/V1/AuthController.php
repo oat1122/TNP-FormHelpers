@@ -113,6 +113,8 @@ class AuthController extends Controller
                     'new_pass',
                     'role',
                     'enable',
+                    'user_firstname',
+                    'user_lastname',
                     'user_nickname',
                     'user_emp_no',
                     'user_is_enable',

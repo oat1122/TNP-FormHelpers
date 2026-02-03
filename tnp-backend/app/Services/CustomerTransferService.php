@@ -184,7 +184,8 @@ class CustomerTransferService
         $historyId = $this->createHistory($customerId, $oldData, $newChannel, $newManageBy, $remark);
 
         // Send real-time notification to new manager
-        if ($newManageBy) {
+        // Skip if transferring to self
+        if ($newManageBy && $newManageBy !== Auth::id()) {
             app(NotificationService::class)->notifyCustomerTransferred(
                 $newManageBy,
                 $customer->cus_name ?? $customer->cus_company ?? 'ลูกค้า',

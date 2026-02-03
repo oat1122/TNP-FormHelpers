@@ -18,21 +18,19 @@ const NotebookTable = ({
     {
       field: "nb_date",
       headerName: "วันที่",
-      width: 120,
+      flex: 1,
+      minWidth: 100,
       valueFormatter: (params) => {
         if (!params.value) return "";
         return format(new Date(params.value), "dd/MM/yyyy", { locale: th });
       },
     },
-    {
-      field: "nb_time",
-      headerName: "เวลา",
-      width: 80,
-    },
+
     {
       field: "nb_customer_name",
       headerName: "ชื่อลูกค้า / บริษัท",
-      width: 200,
+      flex: 1.5,
+      minWidth: 150,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {params.value}
@@ -51,27 +49,32 @@ const NotebookTable = ({
     {
       field: "nb_additional_info",
       headerName: "เพิ่มเติม",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
     },
     {
       field: "nb_contact_number",
       headerName: "เบอร์ติดต่อ",
-      width: 120,
+      flex: 1,
+      minWidth: 100,
     },
     {
       field: "nb_email",
       headerName: "Email",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
     },
     {
       field: "nb_contact_person",
       headerName: "ชื่อผู้ติดต่อ",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
     },
     {
       field: "nb_action",
       headerName: "การกระทำ",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       renderCell: (params) =>
         params.value ? (
           <Chip label={params.value} size="small" color="primary" variant="outlined" />
@@ -82,7 +85,8 @@ const NotebookTable = ({
     {
       field: "nb_status",
       headerName: "สถานะ",
-      width: 120,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         let color = "default";
         if (params.value === "ได้งาน") color = "success";
@@ -96,12 +100,14 @@ const NotebookTable = ({
     {
       field: "nb_remarks",
       headerName: "หมายเหตุ",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
     },
     {
       field: "actions",
       headerName: "จัดการ",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       sortable: false,
       renderCell: (params) => (
         <Box>

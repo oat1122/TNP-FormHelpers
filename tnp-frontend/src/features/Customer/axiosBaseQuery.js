@@ -3,7 +3,7 @@
  *
  * Uses the existing Axios instance from src/api/axios.js
  * to avoid duplicate configuration and ensure consistency
- */
+ **/
 import axiosInstance from "../../api/axios";
 
 /**

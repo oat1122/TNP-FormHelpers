@@ -59,10 +59,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access - disabled to prevent infinite refresh loops
-      console.warn("Received 401 Unauthorized, but auto-redirect disabled");
-      // localStorage.removeItem('token');
-      // window.location.href = '/login';
+      // Handle unauthorized access
+      console.warn("Received 401 Unauthorized, redirecting to login...");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }

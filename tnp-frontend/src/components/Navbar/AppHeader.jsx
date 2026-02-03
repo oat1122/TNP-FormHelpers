@@ -193,7 +193,9 @@ function AppHeader() {
 
   useEffect(() => {
     setTimeout(() => {
-      handleCheckUpdate(user);
+      if (user) {
+        handleCheckUpdate(user);
+      }
     }, 2000);
   }, [navigate]);
 
@@ -229,7 +231,7 @@ function AppHeader() {
           <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
           <BsNavbar.Collapse id="basic-navbar-nav" className="justify-content-end">
             {/* Notification Badge (for admin, manager, and sales roles) */}
-            {["admin", "manager", "sale"].includes(user.role) && (
+            {["admin", "manager", "sale"].includes(user?.role) && (
               <BsNav.Item className="me-3 d-flex align-items-center">
                 <IconButton
                   onClick={(e) => setNotificationAnchor(e.currentTarget)}
@@ -252,7 +254,7 @@ function AppHeader() {
                       className="d-none d-lg-inline nav-text username me-2"
                       data-testid="username-navbar-text"
                     >
-                      {user.username}
+                      {user?.username}
                     </BsNavbar.Text>
                     <IconContext.Provider value={{ color: "#c55050", size: "1.7rem" }}>
                       <BsPersonSquare />
@@ -261,7 +263,7 @@ function AppHeader() {
                       className="d-lg-none ms-3 nav-text username"
                       data-testid="username-navbar-text"
                     >
-                      {user.username}
+                      {user?.username}
                     </BsNavbar.Text>
                   </BsNav.Item>
                 </>
@@ -290,7 +292,7 @@ function AppHeader() {
       </BsNavbar>
 
       {/* Notification Dropdown Menu */}
-      {["admin", "manager", "sale"].includes(user.role) && (
+      {["admin", "manager", "sale"].includes(user?.role) && (
         <NotificationMenu
           anchorEl={notificationAnchor}
           open={Boolean(notificationAnchor)}

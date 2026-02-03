@@ -12,12 +12,37 @@ const instance = axios.create({
   withXSRFToken: true,
 });
 
+// Helper to parse JWT (since we might not have jwt-decode)
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch (e) {
+    return null;
+  }
+};
+
 instance.interceptors.request.use(
   (config) => {
-    // Try both token keys for backward compatibility (matching apiConfig.js)
+    // Try both token keys for backward compatibility
     const authToken = localStorage.getItem("authToken");
     const token = localStorage.getItem("token");
-    const finalToken = authToken || token;
+    let finalToken = authToken || token;
+
+    if (finalToken) {
+      // Check if token is expired
+      const decoded = parseJwt(finalToken);
+      if (decoded && decoded.exp) {
+        const currentTime = Date.now() / 1000;
+        if (decoded.exp < currentTime) {
+          console.warn("Token expired, removing from storage");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("token");
+          finalToken = null;
+          // Optionally redirect to login or let the 401 logic handle the rest,
+          // but clearing it prevents sending an invalid header.
+        }
+      }
+    }
 
     if (finalToken) {
       config.headers["Authorization"] = `Bearer ${finalToken}`;
@@ -25,6 +50,14 @@ instance.interceptors.request.use(
     return config;
   },
   (error) => {
+    if (error.response?.status === 401) {
+      console.warn("Global Axios: Received 401 Unauthorized, redirecting...");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "/login";
+    }
     return Promise.reject(error);
   }
 );

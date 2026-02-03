@@ -230,7 +230,7 @@ function ControlPanel() {
           </a>
         </div>
 
-        {user.role === "admin" && (
+        {user?.role === "admin" && (
           <div className="col-12 ms-1 ms-md-1 ms-lg-2 ms-xl-3 mt-3 mt-md-3 mt-xl-0 px-1 col-basic">
             <a
               className="btn btn-outline-danger pt-3"
@@ -286,7 +286,7 @@ function ControlPanel() {
           </a>
           <div className="vr vr-home"></div>
 
-          {(user.role === "admin" || user.role === "manager") && (
+          {(user?.role === "admin" || user?.role === "manager") && (
             <>
               <a
                 className="btn btn-outline-danger pt-3"
@@ -302,7 +302,7 @@ function ControlPanel() {
             </>
           )}
 
-          {(user.role === "admin" || user.role === "manager" || user.role === "telesale") && (
+          {(user?.role === "admin" || user?.role === "manager" || user?.role === "telesale") && (
             <a className="btn btn-outline-danger pt-3" href="/telesales-dashboard">
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
                 <FaHeadset />

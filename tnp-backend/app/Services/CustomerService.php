@@ -339,10 +339,13 @@ class CustomerService
                     ]);
                     
                     // Send real-time notification to sales user
-                    app(NotificationService::class)->notifyCustomerAllocated(
-                        $salesUserId,
-                        $customer->cus_name ?? $customer->cus_company ?? 'ลูกค้าใหม่'
-                    );
+                    // Skip if assigning to self
+                    if ($salesUserId !== $allocatorId) {
+                        app(NotificationService::class)->notifyCustomerAllocated(
+                            $salesUserId,
+                            $customer->cus_name ?? $customer->cus_company ?? 'ลูกค้าใหม่'
+                        );
+                    }
                     
                     $successCount++;
                 } catch (\Exception $e) {

@@ -336,7 +336,7 @@ const NotebookDialog = () => {
                         display: "flex",
                         bgcolor: "grey.200",
                         borderRadius: 10,
-                        p: 0.5,
+                        p: 0.25,
                       }}
                     >
                       <Button
@@ -345,7 +345,11 @@ const NotebookDialog = () => {
                         color="success"
                         sx={{
                           borderRadius: 10,
-                          px: 2,
+                          px: 1,
+                          py: 0.25,
+                          minWidth: 0,
+                          fontSize: "0.7rem",
+                          whiteSpace: "nowrap",
                           boxShadow: inputData.nb_is_online ? 2 : 0,
                           backgroundColor: inputData.nb_is_online ? "success.main" : "transparent",
                           color: inputData.nb_is_online ? "white" : "text.secondary",
@@ -363,7 +367,11 @@ const NotebookDialog = () => {
                         color="warning"
                         sx={{
                           borderRadius: 10,
-                          px: 2,
+                          px: 1,
+                          py: 0.25,
+                          minWidth: 0,
+                          fontSize: "0.7rem",
+                          whiteSpace: "nowrap",
                           boxShadow: !inputData.nb_is_online ? 2 : 0,
                           backgroundColor: !inputData.nb_is_online ? "warning.main" : "transparent",
                           color: !inputData.nb_is_online ? "white" : "text.secondary",

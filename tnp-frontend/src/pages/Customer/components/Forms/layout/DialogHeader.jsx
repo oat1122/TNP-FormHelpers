@@ -12,9 +12,9 @@
  *
  * @module Forms/layout/DialogHeader
  */
-import React from "react";
 import { DialogTitle, IconButton } from "@mui/material";
 import { MdClose } from "react-icons/md";
+
 import { FORM_THEME } from "../ui/FormFields";
 
 /**

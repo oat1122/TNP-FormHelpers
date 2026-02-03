@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
+
 import { useCheckDuplicateCustomerMutation } from "../../../features/Customer/customerApi";
 
 export const useDuplicateCheck = ({ mode = "create", currentCustomerId = null }) => {

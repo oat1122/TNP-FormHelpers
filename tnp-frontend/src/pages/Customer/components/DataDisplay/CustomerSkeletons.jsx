@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Card,
@@ -34,7 +33,7 @@ const fadeInUp = keyframes`
 `;
 
 // Enhanced Skeleton with shimmer
-const ShimmerSkeleton = styled(Skeleton)(({ theme }) => ({
+const ShimmerSkeleton = styled(Skeleton)(() => ({
   "&::after": {
     background: `linear-gradient(
       90deg,

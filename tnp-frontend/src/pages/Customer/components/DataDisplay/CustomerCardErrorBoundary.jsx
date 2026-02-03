@@ -1,5 +1,5 @@
-import React from "react";
 import { Card, Typography } from "@mui/material";
+import React from "react";
 
 /**
  * CustomerCardErrorBoundary - Error Boundary สำหรับ Customer Card

@@ -1,5 +1,4 @@
-import { Chip, Stack, Autocomplete, TextField } from "@mui/material";
-import React from "react";
+import { Chip, Autocomplete, TextField } from "@mui/material";
 
 // Constants
 import { filterColors } from "../../../constants/filterConstants";
@@ -8,14 +7,8 @@ import { filterColors } from "../../../constants/filterConstants";
  * Sales Filter Section Component
  * Compact autocomplete for sales selection
  */
-const SalesFilterSection = ({
-  draftFilters,
-  salesList,
-  salesOptions,
-  selectionHelpers,
-  compact = false,
-}) => {
-  const { handleSalesChange, clearSalesSelection } = selectionHelpers;
+const SalesFilterSection = ({ draftFilters, salesOptions, selectionHelpers }) => {
+  const { handleSalesChange } = selectionHelpers;
 
   return (
     <Autocomplete

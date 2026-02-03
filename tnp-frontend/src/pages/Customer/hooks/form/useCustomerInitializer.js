@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
+
 import { setInputList } from "../../../../features/Customer/customerSlice";
 import { genCustomerNo } from "../../../../features/Customer/customerUtils";
 

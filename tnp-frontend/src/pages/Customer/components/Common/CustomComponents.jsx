@@ -16,7 +16,7 @@ import {
   gridPageSelector,
   GridToolbarContainer,
 } from "@mui/x-data-grid";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 

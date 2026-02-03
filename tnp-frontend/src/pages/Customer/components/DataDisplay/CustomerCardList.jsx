@@ -1,6 +1,5 @@
-import React from "react";
-import { Box, Typography, Grid, useTheme, useMediaQuery, Fade } from "@mui/material";
 import { Person as PersonIcon } from "@mui/icons-material";
+import { Box, Typography, Grid, useTheme, useMediaQuery } from "@mui/material";
 
 // Components
 import CustomerCard from "./CustomerCard";
@@ -26,7 +25,6 @@ const CustomerCardList = ({
   loading = false,
   totalCount = 0,
   paginationModel = { page: 0, pageSize: 30 },
-  onPaginationChange,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));

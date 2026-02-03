@@ -1,4 +1,5 @@
 import { MdPerson, MdLanguage, MdBusiness } from "react-icons/md";
+
 import { CUSTOMER_CHANNEL } from "./customerChannel";
 
 // Channel options for customer communication channels

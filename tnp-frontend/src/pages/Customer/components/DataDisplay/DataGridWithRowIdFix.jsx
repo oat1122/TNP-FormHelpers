@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
-import moment from "moment";
 import { styled } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import moment from "moment";
+import { useMemo } from "react";
 
 import { formatCustomRelativeTime } from "../../../../features/Customer/customerUtils";
 

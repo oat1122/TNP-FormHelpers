@@ -1,4 +1,5 @@
 import { useDispatch } from "react-redux";
+
 import { setInputList } from "../../../../features/Customer/customerSlice";
 import { buildFullAddress } from "../../utils/addressUtils";
 
@@ -31,7 +32,7 @@ export const useCustomerFormHandler = ({ inputList, salesList, clearFieldError }
     else if (name === "cus_manage_by") {
       if (typeof value === "object" && value !== null) {
         // ถ้าเป็น object แล้วไม่ต้องแปลง
-        value = value;
+        // value = value; (Removed redundant assignment)
       } else if (typeof value === "string") {
         // แปลง string (user_id) เป็น object
         const selectedUser = salesList.find((user) => String(user.user_id) === String(value));

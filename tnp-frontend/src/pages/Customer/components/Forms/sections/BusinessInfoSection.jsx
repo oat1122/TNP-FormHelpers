@@ -7,7 +7,6 @@
  *
  * @module Forms/sections/BusinessInfoSection
  */
-import React from "react";
 import {
   Box,
   Typography,

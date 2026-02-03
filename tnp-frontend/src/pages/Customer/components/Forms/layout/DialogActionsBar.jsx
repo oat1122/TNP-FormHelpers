@@ -13,9 +13,9 @@
  *
  * @module Forms/layout/DialogActionsBar
  */
-import React from "react";
 import { DialogActions, Button, Box, Tooltip } from "@mui/material";
 import { MdSave, MdCancel, MdAdd, MdSwapHoriz, MdHistory } from "react-icons/md";
+
 import { FORM_THEME } from "../ui/FormFields";
 
 /**
@@ -43,7 +43,7 @@ export const DialogActionsBar = ({
   saveDisabled = false,
   saveLabel,
   showSaveAndNew = false,
-  onSaveAndNew,
+
   transferConfig,
 }) => {
   const isViewMode = mode === "view";

@@ -1,5 +1,4 @@
 import { Chip, Stack } from "@mui/material";
-import React from "react";
 
 // Constants
 import { channelOptions, filterColors } from "../../../constants/filterConstants";
@@ -8,7 +7,7 @@ import { channelOptions, filterColors } from "../../../constants/filterConstants
  * Channel Filter Section Component
  * Compact chip-based channel selection
  */
-const ChannelFilterSection = ({ draftFilters, selectionHelpers, compact = false }) => {
+const ChannelFilterSection = ({ draftFilters, selectionHelpers }) => {
   const { handleChannelChange } = selectionHelpers;
 
   // Toggle channel selection

@@ -1,6 +1,5 @@
-import React from "react";
-import { Box, Typography } from "@mui/material";
 import { CalendarToday as CalendarTodayIcon } from "@mui/icons-material";
+import { Box, Typography } from "@mui/material";
 
 // Utils
 import { datadisplayColors } from "../../../utils/customerCardUtils";

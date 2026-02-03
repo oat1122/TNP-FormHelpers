@@ -1,5 +1,4 @@
 import { Box } from "@mui/material";
-import React from "react";
 
 // Section Components
 import { AddressSection, TaxInfoSection, ManagerSection, NotesSection } from "../sections";

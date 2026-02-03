@@ -1,5 +1,5 @@
-import React from "react";
 import { Grid2 as Grid, Box, Stack } from "@mui/material";
+
 import {
   FilterSectionPaper,
   FilterHeaderBox,

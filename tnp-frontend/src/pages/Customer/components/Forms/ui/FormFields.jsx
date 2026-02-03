@@ -7,7 +7,6 @@
  *
  * @module Forms/ui/FormFields
  */
-import React from "react";
 import {
   TextField,
   FormControl,
@@ -176,7 +175,7 @@ export const StyledAutocomplete = ({
         },
       },
     }}
-    renderOption={(optionProps, option, state) => {
+    renderOption={(optionProps, option) => {
       // Use getOptionLabel if available, otherwise use option directly
       const label = props.getOptionLabel ? props.getOptionLabel(option) : option;
       return (

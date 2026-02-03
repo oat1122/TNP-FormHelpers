@@ -1,5 +1,4 @@
 import { Box, Tabs, Tab, Chip, useTheme, useMediaQuery, Badge } from "@mui/material";
-import React from "react";
 import { MdAssignment, MdLocationOn, MdCheck, MdWarning } from "react-icons/md";
 
 // Theme constants
@@ -18,7 +17,6 @@ const CustomerFormTabs = ({
   essentialHasError = false,
   additionalComplete = false,
   additionalHasError = false,
-  mode = "create",
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));

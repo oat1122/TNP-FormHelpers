@@ -1,12 +1,11 @@
-import React from "react";
-import { Box, Typography, Stack, useTheme } from "@mui/material";
 import { Visibility as VisibilityIcon, Edit as EditIcon } from "@mui/icons-material";
+import { Box, Typography, Stack, useTheme } from "@mui/material";
 
 // UI Atoms
+import { datadisplayColors, safeExtractValue } from "../../../utils/customerCardUtils";
 import { CustomerAvatar, ActionIconButton } from "../ui";
 
 // Utils
-import { datadisplayColors, safeExtractValue } from "../../../utils/customerCardUtils";
 
 /**
  * CustomerCardHeader - ส่วนหัวของ Customer Card

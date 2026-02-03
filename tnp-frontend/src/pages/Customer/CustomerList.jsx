@@ -1,7 +1,7 @@
 import { Box, Button, useTheme, useMediaQuery, Pagination, Tabs, Tab } from "@mui/material";
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { RiAddLargeFill } from "react-icons/ri";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { MdPerson, MdGroup, MdSettings } from "react-icons/md";
+import { RiAddLargeFill } from "react-icons/ri";
 import { useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -35,12 +35,11 @@ import {
   useCustomerData,
 } from "./hooks";
 import TitleBar from "../../components/TitleBar";
-import { setPaginationModel, setInputList, setMode } from "../../features/Customer/customerSlice";
 import { useLazyGetCustomerQuery } from "../../features/Customer/customerApi";
-
+import { setPaginationModel, setInputList, setMode } from "../../features/Customer/customerSlice";
 // AllocationHub components for "จัดการลูกค้า" tab
-import { useAllocationHub, useSnackbar } from "../AllocationHub/hooks";
 import { AssignDialog, PoolCustomersTable } from "../AllocationHub/components";
+import { useAllocationHub, useSnackbar } from "../AllocationHub/hooks";
 import { AllocationTabs } from "../AllocationHub/sections";
 
 function CustomerList() {
@@ -70,13 +69,12 @@ function CustomerList() {
 
   // AllocationHub hooks (for "จัดการลูกค้า" tab)
   const allocationHub = useAllocationHub();
-  const { snackbar, showSuccess, showError, closeSnackbar } = useSnackbar();
+  const { showSuccess, showError } = useSnackbar();
 
   // Skeleton loading state - แสดง skeleton เมื่อมีการเปลี่ยน context สำคัญ
   const [showSkeleton, setShowSkeleton] = useState(true);
   const previousGroupRef = useRef(null);
   const previousFiltersRef = useRef(null);
-  const previousViewModeRef = useRef(viewMode);
 
   // 1. Hook: Scroll management
   const { tableContainerRef, scrollToTop } = useScrollToTop();
@@ -101,7 +99,6 @@ function CustomerList() {
     paginationModel,
     filters,
     groupSelected,
-    isHead: isHeadFromHook,
   } = useCustomerData(serverSortModel, scrollToTop, viewMode);
 
   // 4. Hook: Actions (Delete, Dialogs, etc.)

@@ -1,32 +1,23 @@
 import { Box, Dialog, DialogContent } from "@mui/material";
 import { useState, useEffect, useRef, useContext } from "react";
-import { MdSwapHoriz, MdHistory } from "react-icons/md";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 
 // Form Tab and Part components (relative to this file in Forms/)
+import DuplicatePhoneDialog from "./DuplicatePhoneDialog";
 import { CustomerFormTabs, FormSummaryPreview } from "./parts";
 import { EssentialInfoTab, AdditionalInfoTab } from "./tabs";
-import DuplicatePhoneDialog from "./DuplicatePhoneDialog";
-
 // Common components
-import { QuickActionsBar } from "../Common";
-
-// Data display components
-import { ScrollContext } from "../DataDisplay";
-
-// Transfer components
-import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } from "../transfer";
-
-// Layout Components
-import { DialogHeader, DialogActionsBar } from "./layout";
-
-// Constants (relative path from Forms/)
+import BusinessTypeManager from "../../../../components/BusinessTypeManager";
 import {
   canUserTransfer,
   TRANSFER_DIRECTIONS,
   getEffectiveRole,
 } from "../../constants/customerChannel";
+import { ScrollContext } from "../DataDisplay";
+import { TransferToSalesDialog, TransferToOnlineDialog, TransferHistoryDialog } from "../transfer";
+import { DialogHeader, DialogActionsBar } from "./layout";
 
+// Constants (relative path from Forms/)
 // Hooks (relative path from Forms/)
 import {
   useDialogApiData,
@@ -38,10 +29,8 @@ import {
 } from "../../hooks";
 
 // Shared components
-import BusinessTypeManager from "../../../../components/BusinessTypeManager";
 
 // Redux
-import { resetInputList } from "../../../../features/Customer/customerSlice";
 
 /**
  * DialogForm - Customer form dialog with 2-tab layout
@@ -49,7 +38,7 @@ import { resetInputList } from "../../../../features/Customer/customerSlice";
  * Tab 2: Additional Info (optional fields like address, notes)
  */
 function DialogForm(props) {
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const user = JSON.parse(localStorage.getItem("userData"));
   const inputList = useSelector((state) => state.customer.inputList);
   const itemList = useSelector((state) => state.customer.itemList);
@@ -121,12 +110,11 @@ function DialogForm(props) {
   });
 
   // 2. Customer Form Handler - จัดการ Input Change
-  const { handleInputChange, handleCopyLastCustomer, handleBusinessTypeSelected } =
-    useCustomerFormHandler({
-      inputList,
-      salesList,
-      clearFieldError,
-    });
+  const { handleInputChange, handleBusinessTypeSelected } = useCustomerFormHandler({
+    inputList,
+    salesList,
+    clearFieldError,
+  });
 
   // 3. Customer Submit - Validation และ Submit
   const { handleSubmit, saveLoading } = useCustomerSubmit({

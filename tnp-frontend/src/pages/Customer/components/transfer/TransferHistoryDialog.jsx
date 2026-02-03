@@ -1,5 +1,12 @@
-import React from "react";
-import PropTypes from "prop-types";
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineOppositeContent,
+} from "@mui/lab";
 import {
   Dialog,
   DialogTitle,
@@ -12,17 +19,9 @@ import {
   IconButton,
   Divider,
 } from "@mui/material";
-import {
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent,
-} from "@mui/lab";
-import { MdClose, MdHistory, MdSwapHoriz, MdPerson, MdPersonOutline } from "react-icons/md";
 import moment from "moment";
+import PropTypes from "prop-types";
+import { MdClose, MdHistory, MdSwapHoriz, MdPerson, MdPersonOutline } from "react-icons/md";
 import "moment/locale/th";
 
 import { useGetTransferHistoryQuery } from "../../../../features/Customer/customerTransferApi";

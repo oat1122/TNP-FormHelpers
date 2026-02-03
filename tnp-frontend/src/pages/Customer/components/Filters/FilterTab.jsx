@@ -1,18 +1,16 @@
 import { useTheme, useMediaQuery } from "@mui/material";
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 // Data display components
 import { ScrollContext } from "../DataDisplay";
-
 // Parts
 import { FilterGroupMobile, FilterGroupDesktop } from "./parts";
-
 // Hooks
+import { setGroupSelected, setPaginationModel } from "../../../../features/Customer/customerSlice";
 import { useFilterGroupCounts, useFilterState } from "../../hooks";
 
 // Redux
-import { setGroupSelected, setPaginationModel } from "../../../../features/Customer/customerSlice";
 
 /**
  * FilterTab - Component หลักสำหรับเลือกกลุ่มลูกค้า

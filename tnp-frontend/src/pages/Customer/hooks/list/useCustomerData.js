@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import axiosInstance from "../../../../api/axios";
 
+import axiosInstance from "../../../../api/axios";
 import { useGetAllCustomerQuery } from "../../../../features/Customer/customerApi";
 import {
   setItemList,
@@ -131,7 +131,6 @@ export const useCustomerData = (serverSortModel, scrollToTop, viewMode = "my") =
     keyword,
     filters,
     serverSortModel,
-    userSubRole,
     subordinateUserIds,
     viewMode,
     isHead,
@@ -145,7 +144,7 @@ export const useCustomerData = (serverSortModel, scrollToTop, viewMode = "my") =
     return false;
   }, [isHead, subordinatesLoaded, viewMode]);
 
-  const { data, error, isFetching, isSuccess, refetch } = useGetAllCustomerQuery(queryPayload, {
+  const { data, isFetching, isSuccess, refetch } = useGetAllCustomerQuery(queryPayload, {
     skip: shouldSkipQuery,
   });
 

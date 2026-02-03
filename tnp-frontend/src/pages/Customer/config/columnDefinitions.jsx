@@ -1,20 +1,13 @@
 import { Box, Typography, Tooltip, Chip, useTheme } from "@mui/material";
 import { GridActionsCellItem } from "@mui/x-data-grid";
 import moment from "moment";
-import React from "react";
 import { BsTrash3 } from "react-icons/bs";
 import { CiEdit } from "react-icons/ci";
 import { MdOutlineManageSearch } from "react-icons/md";
 import { PiClockClockwise, PiArrowFatLinesUpFill, PiArrowFatLinesDownFill } from "react-icons/pi";
 
 import CustomerRecallTimer from "../../../components/CustomerRecallTimer";
-import {
-  formatCustomRelativeTime,
-  getSourceDisplayName,
-  getSourceColor,
-  getAllocationStatusDisplayName,
-  getAllocationStatusColor,
-} from "../../../features/Customer/customerUtils";
+import { formatCustomRelativeTime } from "../../../features/Customer/customerUtils";
 import { channelMap } from "../components/Common";
 
 // ============================================

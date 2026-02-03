@@ -11,7 +11,6 @@
  *
  * @module Forms/sections/ManagerSection
  */
-import React, { useEffect } from "react";
 import {
   Box,
   Typography,
@@ -22,6 +21,7 @@ import {
   Stack,
   Alert,
 } from "@mui/material";
+import { useEffect } from "react";
 import { MdSupervisorAccount } from "react-icons/md";
 
 // Shared UI Primitives
@@ -70,7 +70,15 @@ export const ManagerSection = ({
         }, 100);
       }
     }
-  }, [isAdmin, currentUser.user_id, mode]);
+  }, [
+    isAdmin,
+    currentUser.user_id,
+    mode,
+    currentUser.username,
+    currentUser.user_nickname,
+    handleInputChange,
+    inputList.cus_manage_by?.user_id,
+  ]);
 
   // Handle manager dropdown change
   const handleManagerChange = (event) => {

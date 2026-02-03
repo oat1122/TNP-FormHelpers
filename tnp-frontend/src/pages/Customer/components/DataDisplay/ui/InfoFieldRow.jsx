@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Typography, useTheme } from "@mui/material";
+import React from "react";
 
 // Utils
 import { datadisplayColors } from "../../../utils/customerCardUtils";

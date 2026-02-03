@@ -1,4 +1,3 @@
-import React from "react";
 import { ToggleButton, CircularProgress, Box } from "@mui/material";
 
 /**

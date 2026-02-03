@@ -1,5 +1,5 @@
 import { Fab, Zoom, useTheme } from "@mui/material";
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 
 // Data display components

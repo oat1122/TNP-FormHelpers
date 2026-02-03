@@ -1,15 +1,11 @@
-import React from "react";
 import { Card, CardContent, Divider } from "@mui/material";
 
 // Parts (Molecules)
-import { CustomerCardHeader, CustomerCardInfo, CustomerCardFooter } from "./parts";
-
-// Error Boundary
 import CustomerCardErrorBoundary from "./CustomerCardErrorBoundary";
-
+import { CustomerCardHeader, CustomerCardInfo, CustomerCardFooter } from "./parts";
+// Error Boundary
 // Services
 import { AddressService } from "../../../../services/AddressService";
-
 // Utils
 import { datadisplayColors } from "../../utils/customerCardUtils";
 

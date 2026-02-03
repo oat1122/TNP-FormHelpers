@@ -7,7 +7,6 @@
  *
  * @module Forms/sections/TaxInfoSection
  */
-import React from "react";
 import { Box } from "@mui/material";
 import { HiIdentification } from "react-icons/hi";
 

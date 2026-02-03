@@ -14,7 +14,6 @@
  *
  * @module Forms/sections/AddressSection
  */
-import React, { useState } from "react";
 import {
   Box,
   TextField,
@@ -24,9 +23,9 @@ import {
   Paper,
   Collapse,
   Button,
-  Typography,
   Chip,
 } from "@mui/material";
+import { useState } from "react";
 import { MdLocationOn, MdExpandMore, MdExpandLess, MdCheckCircle } from "react-icons/md";
 
 // Shared UI Primitives

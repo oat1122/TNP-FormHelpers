@@ -1,21 +1,20 @@
 import { Box, Chip, Typography } from "@mui/material";
 import dayjs from "dayjs";
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { MdDateRange, MdPerson, MdSignalCellularAlt } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 
 // Data display components
-import { ScrollContext } from "../DataDisplay";
 
 // Hooks
-import { useFilterState } from "../../hooks";
 
 // Redux
 import { resetFilters } from "../../../../features/Customer/customerSlice";
 import { getChannelDisplayName } from "../../../../features/Customer/customerUtils";
-
 // Constants - ใช้ filterColors จาก central config
 import { filterColors } from "../../constants/filterConstants";
+import { useFilterState } from "../../hooks";
+import { ScrollContext } from "../DataDisplay";
 
 /**
  * Component to display active filters as tags

@@ -13,7 +13,6 @@
  *
  * @module Forms/sections/ContactChannelsSection
  */
-import React, { useState } from "react";
 import {
   Box,
   Stack,
@@ -24,15 +23,16 @@ import {
   Button,
   Collapse,
 } from "@mui/material";
+import { useState } from "react";
 import { HiPhone } from "react-icons/hi";
 import { MdAdd, MdRemove, MdEmail, MdPhone } from "react-icons/md";
 
 // Shared UI Primitives
+import { isValidEmail, FIELD_ERROR_MESSAGES } from "../../../constants/validationConstants";
 import { StyledTextField, FORM_THEME } from "../ui/FormFields";
 import { SectionHeader } from "../ui/SectionHeader";
 
 // Validation
-import { isValidEmail, FIELD_ERROR_MESSAGES } from "../../../constants/validationConstants";
 
 const PRIMARY_RED = FORM_THEME.PRIMARY_RED;
 
@@ -126,8 +126,9 @@ export const ContactChannelsSection = ({
       // Also clear parent error if setErrors is provided
       if (setErrors) {
         setErrors((prev) => {
-          const { cus_email, ...rest } = prev;
-          return rest;
+          const newErrors = { ...prev };
+          delete newErrors.cus_email;
+          return newErrors;
         });
       }
     }

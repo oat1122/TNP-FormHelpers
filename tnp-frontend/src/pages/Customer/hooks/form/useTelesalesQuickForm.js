@@ -11,13 +11,13 @@
  * - รองรับการทำงานแบบ standalone
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
+
+import { useAddressManager } from "./useAddressManager";
 import { useAddCustomerMutation } from "../../../../features/Customer/customerApi";
 import { useGetAllBusinessTypesQuery } from "../../../../features/globalApi";
-
 // Use shared hooks instead of re-implementing
-import { useAddressManager } from "./useAddressManager";
 import { useDuplicateCheck } from "../useDuplicateCheck";
 import { useSanitizeInput } from "./useSanitizeInput";
 
@@ -25,30 +25,34 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
   const user = JSON.parse(localStorage.getItem("userData"));
 
   // ==================== Initial State ====================
-  const initialFormData = {
-    // ข้อมูลพื้นฐาน (Required)
-    cus_name: "",
-    cus_firstname: "",
-    cus_lastname: "",
-    cus_tel_1: "",
+  // ==================== Initial State ====================
+  const initialFormData = useMemo(
+    () => ({
+      // ข้อมูลพื้นฐาน (Required)
+      cus_name: "",
+      cus_firstname: "",
+      cus_lastname: "",
+      cus_tel_1: "",
 
-    // ข้อมูลธุรกิจ (Optional)
-    cus_company: "",
-    cus_bt_id: "",
-    cus_channel: 1,
+      // ข้อมูลธุรกิจ (Optional)
+      cus_company: "",
+      cus_bt_id: "",
+      cus_channel: 1,
 
-    // ที่อยู่ (Optional but recommended)
-    cus_pro_id: "",
-    cus_dis_id: "",
-    cus_sub_id: "",
-    cus_zip_code: "",
-    cus_address: "",
+      // ที่อยู่ (Optional but recommended)
+      cus_pro_id: "",
+      cus_dis_id: "",
+      cus_sub_id: "",
+      cus_zip_code: "",
+      cus_address: "",
 
-    // ข้อมูลเพิ่มเติม (Optional)
-    cd_note: "",
-    cus_email: "",
-    cus_tax_id: "",
-  };
+      // ข้อมูลเพิ่มเติม (Optional)
+      cd_note: "",
+      cus_email: "",
+      cus_tax_id: "",
+    }),
+    []
+  );
 
   // ==================== Local State (ไม่ใช้ Redux) ====================
   const [formData, setFormData] = useState(initialFormData);
@@ -67,7 +71,6 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     handleProvinceChange: addressProvinceChange,
     handleDistrictChange: addressDistrictChange,
     handleSubdistrictChange: addressSubdistrictChange,
-    buildFullAddress,
     resetLocationData,
   } = useAddressManager({ skip: !open });
 
@@ -299,7 +302,16 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
         submit: error.data?.message || "เกิดข้อผิดพลาดในการบันทึก",
       });
     }
-  }, [validateForm, addCustomer, formData, user.user_id, hasDuplicateWarning, onClose, resetForm]);
+  }, [
+    validateForm,
+    addCustomer,
+    formData,
+    user.user_id,
+    hasDuplicateWarning,
+    onClose,
+    resetForm,
+    sanitizeFormData,
+  ]);
 
   // Save and create another handler
   const handleSaveAndNew = useCallback(async () => {
@@ -340,6 +352,7 @@ export const useTelesalesQuickForm = ({ open, onClose, nameFieldRef }) => {
     hasDuplicateWarning,
     resetForm,
     nameFieldRef,
+    sanitizeFormData,
   ]);
 
   // Close handler

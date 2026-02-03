@@ -1,5 +1,4 @@
 import { Box, Button, Chip, Stack, Tooltip, useTheme, useMediaQuery } from "@mui/material";
-import React from "react";
 import { MdContentCopy, MdAutoAwesome } from "react-icons/md";
 import { useSelector } from "react-redux";
 

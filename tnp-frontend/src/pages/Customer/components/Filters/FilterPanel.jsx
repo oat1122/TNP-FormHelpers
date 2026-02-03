@@ -1,19 +1,9 @@
 // filepath: src/pages/Customer/components/Filters/FilterPanel.jsx
-import {
-  Box,
-  Typography,
-  Stack,
-  Alert,
-  Button,
-  Chip,
-  IconButton,
-  Collapse,
-  Divider,
-} from "@mui/material";
+import { Box, Typography, Stack, Alert, Button, Chip, Collapse, Divider } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   MdFilterList,
   MdCheck,
@@ -27,7 +17,6 @@ import "dayjs/locale/th";
 
 // Filter section components
 import { SalesFilterSection, ChannelFilterSection } from "./sections";
-
 // Hooks
 import {
   useDateRangeHelpers,
@@ -36,9 +25,9 @@ import {
   useSelectionHelpers,
   useFilterInitializer,
 } from "../../hooks";
+import { dateRangeOptions, filterColors } from "../../constants/filterConstants";
 
 // Constants
-import { dateRangeOptions, filterColors, filterValidation } from "../../constants/filterConstants";
 
 /**
  * FilterPanel - Modern Minimalist Filter Panel
@@ -76,13 +65,6 @@ function FilterPanel({ refetchCustomers, viewMode = "my", isHead = false }) {
   // Reset
   const handleReset = () => {
     handleResetFilters(resetDraftFilters);
-  };
-
-  // Format date with Buddhist year
-  const formatDate = (date) => {
-    if (!date) return "";
-    const buddhistYear = date.year() + filterValidation.buddhistYearOffset;
-    return `${date.format("DD/MM/")}${buddhistYear}`;
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import { Warning as WarningIcon, Info as InfoIcon } from "@mui/icons-material";
 import {
   Dialog,
   DialogContent,
@@ -16,22 +16,18 @@ import {
   DialogActions as MuiDialogActions,
   Button,
 } from "@mui/material";
+import { useRef, useEffect } from "react";
 import { MdPerson, MdBusiness, MdNote } from "react-icons/md";
-import { Warning as WarningIcon, Info as InfoIcon } from "@mui/icons-material";
 
 // Constants
-import { QUICK_NOTE_TEMPLATES } from "../../constants/quickNoteTemplates";
-
-// Shared UI Primitives
-import { SectionHeader } from "./ui/SectionHeader";
-import { StyledTextField, FORM_THEME } from "./ui/FormFields";
-
-// Layout Components
 import { DialogHeader } from "./layout";
-
-// Section Components
 import { ContactPersonSection, ContactChannelsSection, AddressSection } from "./sections";
-
+import { StyledTextField, FORM_THEME } from "./ui/FormFields";
+import { SectionHeader } from "./ui/SectionHeader";
+import { QUICK_NOTE_TEMPLATES } from "../../constants/quickNoteTemplates";
+// Shared UI Primitives
+// Layout Components
+// Section Components
 // Hooks
 import { useTelesalesQuickForm } from "../../hooks";
 

@@ -27,7 +27,6 @@ import { buildFullAddress as buildAddressFromUtils } from "../../utils/addressUt
  */
 export const useAddressManager = ({
   skip = false,
-  mode = "local",
   initialProvinceId = null,
   initialDistrictId = null,
 } = {}) => {

@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Swal from "sweetalert2";
 
-import { useGetUserByRoleQuery, useGetAllBusinessTypesQuery } from "../../../features/globalApi";
+import { useAddressManager } from "./form/useAddressManager";
 import { setInputList } from "../../../features/Customer/customerSlice";
+import { useGetUserByRoleQuery, useGetAllBusinessTypesQuery } from "../../../features/globalApi";
 import { open_dialog_loading } from "../../../utils/import_lib";
 
 // Use centralized address manager hook
-import { useAddressManager } from "./form/useAddressManager";
 
 /**
  * useDialogApiData - Manages API data for Customer DialogForm

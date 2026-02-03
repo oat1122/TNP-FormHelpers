@@ -7,7 +7,7 @@
  * ตัวอักษรพิเศษที่ต้องการลบออก
  * รวมถึง: angle brackets, quotes, semicolon, dashes, slashes, braces, pipes, caret, tilde, brackets
  */
-const SPECIAL_CHARS_REGEX = /[<>"'`;\\{}|^~\[\]]/g;
+const SPECIAL_CHARS_REGEX = /[<>"'`;\\{}|^~[\]]/g;
 
 /**
  * Pattern สำหรับ SQL Injection
@@ -131,7 +131,7 @@ export const useSanitizeInput = () => {
   const sanitizeName = (value) => {
     if (typeof value !== "string") return value;
     // อนุญาต: ก-๙ (Thai), a-zA-Z (English), space, . -
-    return value.replace(/[^\u0E00-\u0E7Fa-zA-Z\s.\-]/g, "").trim();
+    return value.replace(/[^\u0E00-\u0E7Fa-zA-Z\s.-]/g, "").trim();
   };
 
   /**
@@ -143,7 +143,7 @@ export const useSanitizeInput = () => {
   const sanitizeAddress = (value) => {
     if (typeof value !== "string") return value;
     // อนุญาต: ก-๙ (Thai), a-zA-Z (English), numbers, space, / . - , ()
-    return value.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s\/.\-,()]/g, "").trim();
+    return value.replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s/.,()-]/g, "").trim();
   };
 
   /**

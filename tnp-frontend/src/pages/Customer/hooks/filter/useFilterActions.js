@@ -6,8 +6,8 @@ import {
   setPaginationModel,
   resetFilters,
 } from "../../../../features/Customer/customerSlice";
-import { filterPanelConfig } from "../../constants/filterConstants";
 import ScrollContext from "../../components/DataDisplay/ScrollContext";
+import { filterPanelConfig } from "../../constants/filterConstants";
 
 /**
  * Custom hook for managing filter actions

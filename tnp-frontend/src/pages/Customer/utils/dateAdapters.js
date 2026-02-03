@@ -67,7 +67,7 @@ export class AdapterBuddhistDayjs extends AdapterDayjs {
     const match = value.match(datePattern);
 
     if (match) {
-      const [_, day, month, year] = match;
+      const [, day, month, year] = match;
       const buddhistYear = parseInt(year, 10);
       const gregorianYear = buddhistYear - filterValidation.buddhistYearOffset;
 

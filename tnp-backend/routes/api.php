@@ -62,17 +62,35 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::apiResource('customers', CustomerController::class);
+
     Route::controller(CustomerController::class)->group(function () {
+        // Pool & Allocation
         Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
         Route::get('/customers/pool/telesales', 'getPoolTelesalesCustomers'); // Pool customers from Telesales
         Route::get('/customers/pool/transferred', 'getPoolTransferredCustomers'); // Pool customers from transfers
         Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
         
-        // Customer Transfer Routes
+        // Transfer Routes
         Route::post('/customers/{id}/transfer-to-sales', 'transferToSales'); // Transfer to Sales channel
         Route::post('/customers/{id}/transfer-to-online', 'transferToOnline'); // Transfer to Online channel
         Route::get('/customers/{id}/transfer-history', 'getTransferHistory'); // Get transfer history
         Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
+
+        // Address Management
+        Route::post('/customers/parse-address', 'parseAddress');
+        Route::post('/customers/build-address', 'buildAddress');
+        Route::post('/customers/check-duplicate', 'checkDuplicate');
+
+        // Operations
+        Route::get('/customers/{id}/group-counts', 'getGroupCounts');
+        Route::get('/customerGroupCounts', 'getGroupCounts');
+        
+        Route::post('/customers/{id}/recall', 'recall');
+        Route::put('/customerRecall/{id}', 'recall');
+        
+        Route::patch('/customers/{id}/change-grade', 'changeGrade');
+        Route::put('/customerChangeGrade/{id}', 'changeGrade');
     });
 
 
@@ -117,22 +135,13 @@ Route::prefix('v1')->group(function() {
         //---------- Location ----------
         'locations' => LocationController::class,
 
-        //---------- Customers ----------
-        'customers' => CustomerController::class,
+
 
         //---------- Notebook ----------
         'notebooks' => \App\Http\Controllers\Api\V1\NotebookController::class,
     ]);
 
-    // Additional customer routes for address management
-    Route::controller(CustomerController::class)->group(function () {
-        Route::post('/customers/parse-address', 'parseAddress');
-        Route::post('/customers/build-address', 'buildAddress');
-        Route::post('/customers/check-duplicate', 'checkDuplicate');
-        Route::get('/customers/{id}/group-counts', 'getGroupCounts');
-        Route::post('/customers/{id}/recall', 'recall');
-        Route::patch('/customers/{id}/change-grade', 'changeGrade');
-    });
+
 
     Route::apiResources([
         'pricing' => PricingController::class,
@@ -223,10 +232,7 @@ Route::prefix('v1')->group(function() {
         // Route::get('/test-worksheet-gen-pdf/{id}/{sheet}/{role}', 'generatePdfGet');
     });
 
-    //---------- Customer ----------
-    Route::put('/customerRecall/{id}', [CustomerController::class, 'recall']);
-    Route::put('/customerChangeGrade/{id}', [CustomerController::class, 'changeGrade']);
-    Route::get('/customerGroupCounts', [CustomerController::class, 'getGroupCounts']);
+
 
     //---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {

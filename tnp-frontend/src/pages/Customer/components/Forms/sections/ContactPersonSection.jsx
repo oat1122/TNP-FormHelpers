@@ -7,7 +7,6 @@
  *
  * @module Forms/sections/ContactPersonSection
  */
-import React from "react";
 import { Box, Stack } from "@mui/material";
 import { HiUser } from "react-icons/hi";
 

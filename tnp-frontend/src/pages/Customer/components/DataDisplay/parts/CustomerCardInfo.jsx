@@ -1,26 +1,25 @@
-import React from "react";
-import { Box, Typography, IconButton, Stack, useTheme } from "@mui/material";
 import {
   Business as BusinessIcon,
   Phone as PhoneIcon,
   LocationOn as LocationOnIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
+import { Box, Typography, IconButton, Stack, useTheme } from "@mui/material";
 
 // UI Atoms
-import { InfoFieldRow, RecallStatusChip } from "../ui";
-
-// Utils
+import { open_dialog_error } from "../../../../../utils/dialog_swal2/alart_one_line";
+import { dialog_delete_by_id as swal_delete_by_id } from "../../../../../utils/dialog_swal2/dialog_delete_by_id";
 import {
   datadisplayColors,
   safeExtractValue,
   safeFormatCustomRelativeTime,
   getRecallStatus,
 } from "../../../utils/customerCardUtils";
+import { InfoFieldRow, RecallStatusChip } from "../ui";
+
+// Utils
 
 // Dialog utils
-import { dialog_delete_by_id as swal_delete_by_id } from "../../../../../utils/dialog_swal2/dialog_delete_by_id";
-import { open_dialog_error } from "../../../../../utils/dialog_swal2/alart_one_line";
 
 /**
  * CustomerCardInfo - ส่วนข้อมูลของ Customer Card

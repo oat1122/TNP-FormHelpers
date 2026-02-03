@@ -1,6 +1,6 @@
+import { useMediaQuery, useTheme } from "@mui/material";
 import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useMediaQuery, useTheme } from "@mui/material";
 
 import { setPaginationModel } from "../../../../features/Customer/customerSlice";
 

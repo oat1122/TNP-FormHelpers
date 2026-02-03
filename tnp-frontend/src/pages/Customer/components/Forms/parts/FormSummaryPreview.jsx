@@ -10,7 +10,6 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import React from "react";
 import {
   MdExpandMore,
   MdPreview,

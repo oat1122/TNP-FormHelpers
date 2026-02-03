@@ -4,19 +4,15 @@ import {
   Typography,
   Button,
   FormControl,
-  InputLabel,
-  Select,
-  OutlinedInput,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   Chip,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import React from "react";
 
 import { filterColors, filterPanelConfig } from "../constants/filterConstants";
-import { animations, transitions, interactiveStates } from "../utils/animations";
+import { animations, transitions } from "../utils/animations";
 
 // Filter Section Paper Container - Enhanced with modern design and animations
 export const FilterSectionPaper = styled(Paper)(({ theme }) => ({
@@ -138,7 +134,7 @@ export const FilterIconBox = styled(Box)(({ theme }) => ({
 }));
 
 // Filter Title Typography - Enhanced typography
-export const FilterTitle = styled(Typography)(({ theme }) => ({
+export const FilterTitle = styled(Typography)(() => ({
   fontWeight: 700,
   color: filterColors.text.primary,
   fontFamily: "'Kanit', sans-serif",
@@ -358,7 +354,7 @@ export const SecondaryActionButton = styled(Button)(({ theme }) => ({
 }));
 
 // Styled Form Control - Enhanced input styling
-export const StyledFormControl = styled(FormControl)(({ theme }) => ({
+export const StyledFormControl = styled(FormControl)(() => ({
   "& .MuiInputLabel-root": {
     color: filterColors.text.secondary,
     fontSize: "0.95rem",
@@ -485,7 +481,7 @@ export const StatusChip = styled(Chip)(({ theme, variant = "default" }) => {
 // Custom Accordion - Modern card design
 export const StyledAccordion = styled(Accordion, {
   shouldForwardProp: (prop) => prop !== "expanded",
-})(({ theme, expanded }) => ({
+})(({ expanded }) => ({
   backgroundColor: filterColors.background.paper,
   boxShadow: expanded ? filterPanelConfig.shadows.heavy : filterPanelConfig.shadows.medium,
   borderRadius: `${filterPanelConfig.borderRadius.xlarge}px !important`,
@@ -567,7 +563,7 @@ export const StyledAccordionDetails = styled(AccordionDetails)(({ theme }) => ({
 // Expand Icon Box - Improved interactive design
 export const ExpandIconBox = styled(Box, {
   shouldForwardProp: (prop) => prop !== "expanded",
-})(({ theme, expanded }) => ({
+})(({ expanded }) => ({
   backgroundColor: expanded ? filterColors.primary : filterColors.background.elevated,
   borderRadius: "50%",
   width: 40,

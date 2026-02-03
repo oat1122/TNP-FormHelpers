@@ -1,9 +1,8 @@
-import React from "react";
 import PropTypes from "prop-types";
 
+import TransferDialog from "./TransferDialog";
 import { useTransferToOnlineMutation } from "../../../../features/Customer/customerTransferApi";
 import { CUSTOMER_CHANNEL } from "../../constants/customerChannel";
-import TransferDialog from "./TransferDialog";
 
 /**
  * TransferToOnlineDialog - Wrapper for transferring customers to Online team

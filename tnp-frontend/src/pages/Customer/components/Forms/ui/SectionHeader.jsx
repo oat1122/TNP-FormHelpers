@@ -8,8 +8,8 @@
  *
  * @module Forms/ui/SectionHeader
  */
-import React from "react";
 import { Box, Typography } from "@mui/material";
+
 import { FORM_THEME } from "./FormFields";
 
 /**

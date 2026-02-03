@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
+
+import { useGetSalesBySubRoleQuery } from "../../../../features/Customer/customerApi";
 import { setSalesList } from "../../../../features/Customer/customerSlice";
 import { useGetUserByRoleQuery } from "../../../../features/globalApi";
-import { useGetSalesBySubRoleQuery } from "../../../../features/Customer/customerApi";
 
 /**
  * Map HEAD sub_role to subordinate sub_role code

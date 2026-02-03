@@ -1,5 +1,3 @@
-import React, { useState, useCallback } from "react";
-import PropTypes from "prop-types";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +11,8 @@ import {
   CircularProgress,
   Chip,
 } from "@mui/material";
+import PropTypes from "prop-types";
+import { useState, useCallback } from "react";
 import { MdSwapHoriz, MdComment, MdInfo } from "react-icons/md";
 
 import {

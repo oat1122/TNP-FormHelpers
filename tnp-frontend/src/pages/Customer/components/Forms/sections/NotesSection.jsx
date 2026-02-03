@@ -11,8 +11,8 @@
  *
  * @module Forms/sections/NotesSection
  */
-import React, { useState } from "react";
 import { Box, Stack, Paper, Collapse, Button, Chip } from "@mui/material";
+import { useState } from "react";
 import { MdNote, MdExpandMore, MdExpandLess, MdCheckCircle } from "react-icons/md";
 
 // Shared UI Primitives

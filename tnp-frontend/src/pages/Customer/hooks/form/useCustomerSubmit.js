@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { resetInputList } from "../../../../features/Customer/customerSlice";
+
+import { useSanitizeInput } from "./useSanitizeInput";
 import {
   useAddCustomerMutation,
   useUpdateCustomerMutation,
 } from "../../../../features/Customer/customerApi";
-import { useSanitizeInput } from "./useSanitizeInput";
+import { resetInputList } from "../../../../features/Customer/customerSlice";
+import { dialog_confirm_yes_no } from "../../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import {
   open_dialog_ok_timer,
   open_dialog_error,
   open_dialog_loading,
 } from "../../../../utils/import_lib";
-import { dialog_confirm_yes_no } from "../../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { validateEssentialFields as validateFields } from "../../constants/validationConstants";
 
 /**
@@ -33,7 +34,6 @@ export const useCustomerSubmit = ({
   setErrors,
   setActiveTab,
   onSuccess,
-  onAfterSave,
   scrollToTop,
 }) => {
   const dispatch = useDispatch();
@@ -115,9 +115,6 @@ export const useCustomerSubmit = ({
         if (onSuccess) {
           onSuccess();
         }
-
-        const savedCustomerId =
-          mode === "create" ? res?.data?.customer_id || res?.data?.data?.cus_id : inputList.cus_id;
 
         open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then(() => {
           setSaveLoading(false);

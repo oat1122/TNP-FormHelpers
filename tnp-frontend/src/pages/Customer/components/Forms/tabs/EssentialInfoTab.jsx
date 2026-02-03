@@ -1,5 +1,4 @@
 import { Box } from "@mui/material";
-import React from "react";
 
 // Section Components
 import { BusinessInfoSection, ContactPersonSection, ContactChannelsSection } from "../sections";

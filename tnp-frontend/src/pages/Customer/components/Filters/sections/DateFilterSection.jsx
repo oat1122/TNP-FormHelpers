@@ -1,22 +1,17 @@
 import { Chip, Stack } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import React from "react";
 import "dayjs/locale/th";
 
 // Constants
-import {
-  dateRangeOptions,
-  filterColors,
-  filterValidation,
-} from "../../../constants/filterConstants";
+import { dateRangeOptions, filterColors } from "../../../constants/filterConstants";
 
 /**
  * Date Filter Section Component
  * Compact version with quick buttons and date pickers
  */
-const DateFilterSection = ({ draftFilters, dateHelpers, compact = false }) => {
+const DateFilterSection = ({ draftFilters, dateHelpers }) => {
   const { handleQuickDateRange, setStartDate, setEndDate } = dateHelpers;
 
   return (

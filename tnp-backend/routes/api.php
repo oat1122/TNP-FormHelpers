@@ -119,6 +119,9 @@ Route::prefix('v1')->group(function() {
 
         //---------- Customers ----------
         'customers' => CustomerController::class,
+
+        //---------- Notebook ----------
+        'notebooks' => \App\Http\Controllers\Api\V1\NotebookController::class,
     ]);
 
     // Additional customer routes for address management

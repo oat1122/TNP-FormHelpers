@@ -110,6 +110,7 @@ function AppHeader() {
     "/pricing",
     "/user-management",
     "/max-supply",
+    "/notebook",
   ];
   const [keyword, setKeyword] = useState("");
   const [openDialog, setOpenDialog] = useState(false);

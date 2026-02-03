@@ -21,6 +21,8 @@ import { worksheetApi } from "./features/Worksheet/worksheetApi";
 import worksheetSliceReducer from "./features/Worksheet/worksheetSlice";
 import { notificationRtkApi } from "./features/Notification";
 import { tnpApi } from "./services/tnpApi";
+import { notebookApi } from "./features/Notebook/notebookApi";
+import notebookReducer from "./features/Notebook/notebookSlice";
 
 const store = configureStore({
   reducer: {
@@ -46,6 +48,8 @@ const store = configureStore({
     [pricingApi.reducerPath]: pricingApi.reducer,
     [accountingApi.reducerPath]: accountingApi.reducer,
     [notificationRtkApi.reducerPath]: notificationRtkApi.reducer,
+    [notebookApi.reducerPath]: notebookApi.reducer,
+    notebook: notebookReducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -60,7 +64,8 @@ const store = configureStore({
       userManagementApi.middleware,
       pricingApi.middleware,
       accountingApi.middleware,
-      notificationRtkApi.middleware
+      notificationRtkApi.middleware,
+      notebookApi.middleware
     ),
 });
 

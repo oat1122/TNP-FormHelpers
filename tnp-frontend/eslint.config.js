@@ -63,6 +63,7 @@ export default [
     rules: {
       // React
       "react/react-in-jsx-scope": "off",
+      "react/jsx-uses-vars": "error",
       "react/prop-types": "off",
 
       // Hooks

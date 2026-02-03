@@ -48,6 +48,8 @@ const WorksheetListForMaxSupply = lazy(() => import("./pages/MaxSupply/Worksheet
 // Telesales components
 const TelesalesDashboard = lazy(() => import("./pages/Telesales/TelesalesDashboard"));
 
+const NotebookList = lazy(() => import("./pages/Notebook/NotebookList"));
+
 // Allocation Hub components
 const AllocationHub = lazy(() => import("./pages/AllocationHub/AllocationHub"));
 
@@ -76,7 +78,9 @@ function App() {
               <Route path="/sub-role-management" element={<SubRoleList />} />
               <Route path="/customer" element={<CustomerList />} />
               <Route path="/allocation-hub" element={<AllocationHub />} />
+              <Route path="/allocation-hub" element={<AllocationHub />} />
               <Route path="/telesales-dashboard" element={<TelesalesDashboard />} />
+              <Route path="/notebook" element={<NotebookList />} />
 
               <Route path="/worksheet" element={<WorksheetList />} />
               <Route path="/worksheet-create/:typeShirt" element={<WorksheetCreate />} />

@@ -24,6 +24,7 @@ import {
   FaList,
   FaUserFriends,
   FaHeadset,
+  FaBook,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -309,6 +310,14 @@ function ControlPanel() {
               <label>TELESALES</label>
             </a>
           )}
+          <div className="vr vr-home"></div>
+
+          <a className="btn btn-outline-danger pt-3" href="/notebook">
+            <IconContext.Provider value={{ className: "icon-control-panel" }}>
+              <FaBook />
+            </IconContext.Provider>
+            <label>NOTEBOOK</label>
+          </a>
         </div>
       </div>
 

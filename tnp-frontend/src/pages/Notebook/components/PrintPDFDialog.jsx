@@ -1,7 +1,3 @@
-/**
- * ExportDialog Component
- * Dialog for selecting customers and date range before exporting PDF/CSV
- */
 import {
   Box,
   Button,
@@ -11,7 +7,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   List,
   ListItem,
   ListItemButton,
@@ -23,34 +18,13 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
+import { endOfMonth, format, startOfMonth } from "date-fns";
 import { th } from "date-fns/locale";
 import { useEffect, useMemo, useState } from "react";
 import { MdFileDownload, MdPictureAsPdf, MdSelectAll } from "react-icons/md";
 
 import NotebookPDF from "./NotebookPDF";
-
-// Quick date filter options
-const DATE_PRESETS = [
-  {
-    label: "เดือนนี้",
-    getValue: () => ({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }),
-  },
-  {
-    label: "เดือนที่แล้ว",
-    getValue: () => ({
-      start: startOfMonth(subMonths(new Date(), 1)),
-      end: endOfMonth(subMonths(new Date(), 1)),
-    }),
-  },
-  {
-    label: "3 เดือนล่าสุด",
-    getValue: () => ({
-      start: startOfMonth(subMonths(new Date(), 2)),
-      end: endOfMonth(new Date()),
-    }),
-  },
-];
+import { DATE_PRESETS } from "../utils/datePresets";
 
 const PrintPDFDialog = ({ open, onClose, data = [] }) => {
   // Get current user from localStorage (as used throughout the app)

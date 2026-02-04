@@ -1,8 +1,8 @@
 import { Box, Chip, IconButton, Tooltip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { MdDelete, MdEdit, MdPersonAdd } from "react-icons/md";
+
+import { formatDate, getStatusColor } from "../utils/notebookCommon";
 
 const NotebookTable = ({
   data,
@@ -22,15 +22,6 @@ const NotebookTable = ({
       flex: 1,
       minWidth: 100,
       renderCell: (params) => {
-        const formatDate = (date) => {
-          if (!date) return "";
-          try {
-            return format(new Date(date), "dd/MM/yyyy", { locale: th });
-          } catch {
-            return "";
-          }
-        };
-
         return (
           <Box
             sx={{
@@ -116,12 +107,7 @@ const NotebookTable = ({
       flex: 1,
       minWidth: 100,
       renderCell: (params) => {
-        let color = "default";
-        if (params.value === "ได้งาน") color = "success";
-        if (params.value === "พิจารณา") color = "info";
-        if (params.value === "ยังไม่แผนทำ") color = "warning";
-        if (params.value === "หลุด" || params.value === "ไม่ได้งาน") color = "error";
-
+        const color = getStatusColor(params.value);
         return params.value ? <Chip label={params.value} color={color} size="small" /> : "";
       },
     },

@@ -15,8 +15,6 @@ import {
   Typography,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
 import {
   MdAssignment,
   MdBusiness,
@@ -31,42 +29,10 @@ import {
   MdSave,
   MdSupervisorAccount,
 } from "react-icons/md";
-import { useDispatch, useSelector } from "react-redux";
-import * as yup from "yup";
 
-import {
-  useAddNotebookMutation,
-  useUpdateNotebookMutation,
-} from "../../../features/Notebook/notebookApi";
-import {
-  resetForm,
-  setDialogOpen,
-  setInputData,
-  updateInputData,
-} from "../../../features/Notebook/notebookSlice";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
-import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
-import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/toast";
 import DuplicatePhoneDialog from "../../Customer/components/Forms/DuplicatePhoneDialog";
-import { useDuplicateCheck } from "../../Customer/hooks/useDuplicateCheck";
-
-// Validation Schema
-const validationSchema = yup.object().shape({
-  nb_customer_name: yup.string().required("กรุณาระบุชื่อลูกค้า"),
-  nb_email: yup
-    .string()
-    .nullable()
-    .transform((v) => (v === "" ? null : v))
-    .email("รูปแบบอีเมลไม่ถูกต้อง"),
-  nb_contact_number: yup
-    .string()
-    .nullable()
-    .transform((v) => (v === "" ? null : v)),
-  nb_manage_by: yup
-    .mixed()
-    .nullable()
-    .transform((v) => (v === "" ? null : v)),
-});
+import { useNotebookForm } from "../hooks/useNotebookForm";
 
 const StyledDialogTitle = styled("div")(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
@@ -105,31 +71,27 @@ const StyledPaper = styled(Box)(({ theme }) => ({
 }));
 
 const NotebookDialog = () => {
-  const dispatch = useDispatch();
-  // const { showSuccess, showError } = useSnackbar();
-  const currentUser = JSON.parse(localStorage.getItem("userData") || "{}");
-  const isAdmin = currentUser.role === "admin";
   const theme = useTheme();
 
-  const { dialogOpen, inputData, selectedNotebook, dialogMode } = useSelector(
-    (state) => state.notebook
-  );
-  const [errors, setErrors] = useState({});
-
-  const [addNotebook, { isLoading: isAdding }] = useAddNotebookMutation();
-  const [updateNotebook, { isLoading: isUpdating }] = useUpdateNotebookMutation();
-
-  // Duplicate Check Hook
   const {
+    // State
+    dialogOpen,
+    dialogMode,
+    inputData,
+    errors,
     duplicatePhoneDialogOpen,
     duplicatePhoneData,
-    checkPhoneDuplicate,
+    isSubmitting,
+    currentUser,
+    isAdmin,
+    // Handlers
+    handleClose,
+    handleChange,
+    handleOnlineToggle,
+    handleSubmit,
     closeDuplicatePhoneDialog,
-    resetDuplicateChecks,
-  } = useDuplicateCheck({
-    mode: dialogMode,
-    currentCustomerId: null, // Notebook doesn't directly map to customer ID during check, but that's fine for simple duplication warning
-  });
+    checkPhoneDuplicate,
+  } = useNotebookForm();
 
   // Fetch sales list for admin
   const { data: userData } = useGetAllUserQuery(
@@ -139,111 +101,6 @@ const NotebookDialog = () => {
     }
   );
   const salesList = userData?.data || [];
-
-  const handleClose = () => {
-    dispatch(setDialogOpen(false));
-    setErrors({});
-    // dispatch(resetForm());
-    setTimeout(() => dispatch(resetForm()), 150);
-    resetDuplicateChecks();
-  };
-
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
-    dispatch(updateInputData({ [name]: type === "checkbox" ? checked : value }));
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const handleOnlineToggle = (val) => {
-    dispatch(updateInputData({ nb_is_online: val }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setErrors({});
-      // Validate Data
-      const validatedData = validationSchema.validateSync(inputData, {
-        abortEarly: false,
-      });
-
-      // Prepare submit data
-      let submitData = { ...validatedData };
-
-      // Auto-inject current Date and Time
-      const now = new Date();
-      submitData.nb_date = format(now, "yyyy-MM-dd");
-      submitData.nb_time = format(now, "HH:mm");
-
-      if (!isAdmin && dialogMode === "create") {
-        submitData.nb_manage_by = currentUser.user_id;
-      }
-
-      const isConfirmed = await dialog_confirm_yes_no(
-        dialogMode === "create" ? "ยืนยันการบันทึกข้อมูล?" : "ยืนยันการแก้ไขข้อมูล?"
-      );
-
-      if (isConfirmed) {
-        const loadingId = showLoading("กำลังบันทึกข้อมูล...");
-        try {
-          if (dialogMode === "create") {
-            await addNotebook(submitData).unwrap();
-            showSuccess("บันทึกข้อมูลสำเร็จ");
-          } else {
-            await updateNotebook({
-              id: selectedNotebook.id,
-              ...submitData,
-            }).unwrap();
-            showSuccess("อัปเดตข้อมูลสำเร็จ");
-          }
-          dismissToast(loadingId);
-          handleClose();
-        } catch (error) {
-          dismissToast(loadingId);
-          if (error?.status === 403) {
-            showError("คุณไม่มีสิทธิ์แก้ไขรายการนี้ (เฉพาะ Admin หรือเจ้าของรายการ)");
-          } else {
-            showError("เกิดข้อผิดพลาด: " + (error?.data?.message || "ไม่สามารถบันทึกได้"));
-          }
-        }
-      }
-    } catch (error) {
-      if (error.name === "ValidationError") {
-        const newErrors = {};
-        error.inner.forEach((err) => {
-          newErrors[err.path] = err.message;
-        });
-        setErrors(newErrors);
-        showError("กรุณากรอกข้อมูลให้ครบถ้วน");
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (selectedNotebook && dialogMode === "edit") {
-      dispatch(
-        setInputData({
-          nb_date: selectedNotebook.nb_date,
-          nb_time: selectedNotebook.nb_time,
-          nb_customer_name: selectedNotebook.nb_customer_name,
-          nb_is_online: selectedNotebook.nb_is_online,
-          nb_additional_info: selectedNotebook.nb_additional_info,
-          nb_contact_number: selectedNotebook.nb_contact_number,
-          nb_email: selectedNotebook.nb_email,
-          nb_contact_person: selectedNotebook.nb_contact_person,
-          nb_action: selectedNotebook.nb_action,
-          nb_status: selectedNotebook.nb_status,
-          nb_remarks: selectedNotebook.nb_remarks,
-          nb_manage_by: selectedNotebook.nb_manage_by,
-        })
-      );
-    } else if (dialogMode === "create" && !isAdmin) {
-      // Set default manage_by for non-admin
-      dispatch(updateInputData({ nb_manage_by: currentUser.user_id }));
-    }
-  }, [selectedNotebook, dialogMode, dispatch, isAdmin, currentUser.user_id]);
 
   return (
     <Dialog
@@ -590,7 +447,7 @@ const NotebookDialog = () => {
           variant="contained"
           onClick={handleSubmit}
           startIcon={<MdSave />}
-          disabled={isAdding || isUpdating}
+          disabled={isSubmitting}
           size="large"
           sx={{
             px: 4,
@@ -599,7 +456,7 @@ const NotebookDialog = () => {
             fontSize: "1rem",
           }}
         >
-          {isAdding || isUpdating ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+          {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
         </Button>
       </DialogActions>
 

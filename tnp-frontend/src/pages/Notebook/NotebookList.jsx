@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MdFileDownload } from "react-icons/md";
 import { RiAddLine } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,10 +21,12 @@ import {
 } from "../../features/Notebook/notebookSlice";
 import { useSnackbar } from "../AllocationHub/hooks";
 import { DialogForm } from "../Customer/components/Forms";
+import { dialog_confirm_yes_no } from "../../utils/dialog_swal2/dialog_confirm_yes_no";
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast";
 
 const NotebookList = () => {
   const dispatch = useDispatch();
-  const { showSuccess, showError } = useSnackbar();
+  // const { showSuccess, showError } = useSnackbar();
 
   // Get global search keyword from header
   const globalKeyword = useSelector((state) => state.global.keyword);
@@ -42,11 +44,24 @@ const NotebookList = () => {
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
 
   // Fetch Data
-  const { data, isLoading, refetch } = useGetNotebooksQuery({
+  const {
+    data,
+    isLoading,
+    refetch,
+    error: fetchError,
+  } = useGetNotebooksQuery({
     page: paginationModel.page,
     per_page: paginationModel.pageSize,
     search: globalKeyword,
+    include: "histories",
   });
+
+  // Handle Fetch Error
+  useEffect(() => {
+    if (fetchError) {
+      showError("ไม่สามารถดึงข้อมูลได้: " + (fetchError?.data?.message || "Internal Server Error"));
+    }
+  }, [fetchError]);
 
   const [deleteNotebook] = useDeleteNotebookMutation();
   const [updateNotebook] = useUpdateNotebookMutation();
@@ -64,12 +79,21 @@ const NotebookList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("ยืนยันการลบรายการนี้?")) {
+    const isConfirmed = await dialog_confirm_yes_no("ยืนยันการลบรายการนี้?");
+    if (isConfirmed) {
+      const loadingId = showLoading("กำลังลบรายการ...");
       try {
         await deleteNotebook(id).unwrap();
         showSuccess("ลบรายการสำเร็จ");
-      } catch {
-        showError("ลบรายการไม่สำเร็จ");
+      } catch (error) {
+        // Check for 403 Forbidden specifically to show a clearer message
+        if (error?.status === 403) {
+          showError("คุณไม่มีสิทธิ์ลบรายการนี้ (เฉพาะ Admin)");
+        } else {
+          showError("ลบรายการไม่สำเร็จ");
+        }
+      } finally {
+        dismissToast(loadingId);
       }
     }
   };
@@ -97,6 +121,7 @@ const NotebookList = () => {
       cus_lastname: lastName,
       cd_note: `${notebook.nb_remarks || ""} \n[ข้อมูลเพิ่มเติมจาก Notebook]: ${notebook.nb_additional_info || ""}`,
       cus_channel: notebook.nb_is_online ? 2 : 1, // 2 = Online, 1 = Sales (Default)
+      cus_manage_by: notebook.nb_manage_by, // Map Manager from Notebook to Customer
     };
 
     dispatch(setInputList(mappingData));
@@ -144,6 +169,7 @@ const NotebookList = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onConvert={handleConvert}
+          userRole={JSON.parse(localStorage.getItem("userData") || "{}")?.role}
         />
       </Box>
 
@@ -163,15 +189,20 @@ const NotebookList = () => {
         onAfterSave={async () => {
           // If we were converting a notebook, mark it as converted
           if (convertingNotebookId) {
+            const loadingId = showLoading("กำลังอัปเดตสถานะ Notebook...");
             try {
               await updateNotebook({
                 id: convertingNotebookId,
                 nb_converted_at: new Date().toISOString(),
                 nb_status: "ได้งาน", // Update status to reflect success
               }).unwrap();
-              setConvertingNotebookId(null);
+              showSuccess("สร้างลูกค้าและอัปเดต Notebook เรียบร้อย");
             } catch (error) {
               console.error("Failed to update notebook conversion status:", error);
+              showError("สร้างลูกค้าสำเร็จ แต่ไม่สามารถอัปเดต Notebook ได้");
+            } finally {
+              setConvertingNotebookId(null);
+              dismissToast(loadingId);
             }
           }
           refetch();

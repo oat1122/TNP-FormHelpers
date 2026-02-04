@@ -17,6 +17,7 @@ export const notebookApi = createApi({
           start_date: params?.start_date,
           end_date: params?.end_date,
           status: params?.status,
+          include: params?.include,
         },
       }),
       providesTags: ["Notebook"],

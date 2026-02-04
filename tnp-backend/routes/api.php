@@ -63,6 +63,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     //---------- Telesales & Allocation (Protected Routes) ----------
     Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('notebooks', \App\Http\Controllers\Api\V1\NotebookController::class);
 
     Route::controller(CustomerController::class)->group(function () {
         // Pool & Allocation
@@ -134,11 +135,6 @@ Route::prefix('v1')->group(function() {
 
         //---------- Location ----------
         'locations' => LocationController::class,
-
-
-
-        //---------- Notebook ----------
-        'notebooks' => \App\Http\Controllers\Api\V1\NotebookController::class,
     ]);
 
 

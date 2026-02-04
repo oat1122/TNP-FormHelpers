@@ -13,6 +13,7 @@ const NotebookTable = ({
   onEdit,
   onDelete,
   onConvert,
+  userRole,
 }) => {
   const columns = [
     {
@@ -55,7 +56,7 @@ const NotebookTable = ({
 
     {
       field: "nb_customer_name",
-      headerName: "ชื่อลูกค้า",
+      headerName: "ชื่อลูกค้า/ชื่อย่อ",
       flex: 1.5,
       minWidth: 150,
       renderCell: (params) => (
@@ -93,7 +94,7 @@ const NotebookTable = ({
     },
     {
       field: "nb_contact_person",
-      headerName: "ชื่อผู้ติดต่อ",
+      headerName: "ชื่อลูกค้า",
       flex: 1,
       minWidth: 120,
     },
@@ -160,12 +161,12 @@ const NotebookTable = ({
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="ลบ">
+          <Tooltip title={userRole === "admin" ? "ลบ" : "เฉพาะ Admin"}>
             <span>
               <IconButton
                 color="error"
                 onClick={() => onDelete(params.row.id)}
-                disabled={!!params.row.nb_converted_at}
+                disabled={!!params.row.nb_converted_at || userRole !== "admin"}
               >
                 <MdDelete />
               </IconButton>

@@ -45,7 +45,10 @@ import {
   updateInputData,
 } from "../../../features/Notebook/notebookSlice";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
-import { useSnackbar } from "../../AllocationHub/hooks";
+import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
+import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/toast";
+import DuplicatePhoneDialog from "../../Customer/components/Forms/DuplicatePhoneDialog";
+import { useDuplicateCheck } from "../../Customer/hooks/useDuplicateCheck";
 
 // Validation Schema
 const validationSchema = yup.object().shape({
@@ -103,7 +106,7 @@ const StyledPaper = styled(Box)(({ theme }) => ({
 
 const NotebookDialog = () => {
   const dispatch = useDispatch();
-  const { showSuccess, showError } = useSnackbar();
+  // const { showSuccess, showError } = useSnackbar();
   const currentUser = JSON.parse(localStorage.getItem("userData") || "{}");
   const isAdmin = currentUser.role === "admin";
   const theme = useTheme();
@@ -115,6 +118,18 @@ const NotebookDialog = () => {
 
   const [addNotebook, { isLoading: isAdding }] = useAddNotebookMutation();
   const [updateNotebook, { isLoading: isUpdating }] = useUpdateNotebookMutation();
+
+  // Duplicate Check Hook
+  const {
+    duplicatePhoneDialogOpen,
+    duplicatePhoneData,
+    checkPhoneDuplicate,
+    closeDuplicatePhoneDialog,
+    resetDuplicateChecks,
+  } = useDuplicateCheck({
+    mode: dialogMode,
+    currentCustomerId: null, // Notebook doesn't directly map to customer ID during check, but that's fine for simple duplication warning
+  });
 
   // Fetch sales list for admin
   const { data: userData } = useGetAllUserQuery(
@@ -130,6 +145,7 @@ const NotebookDialog = () => {
     setErrors({});
     // dispatch(resetForm());
     setTimeout(() => dispatch(resetForm()), 150);
+    resetDuplicateChecks();
   };
 
   const handleChange = (e) => {
@@ -165,17 +181,34 @@ const NotebookDialog = () => {
         submitData.nb_manage_by = currentUser.user_id;
       }
 
-      if (dialogMode === "create") {
-        await addNotebook(submitData).unwrap();
-        showSuccess("บันทึกข้อมูลสำเร็จ");
-      } else {
-        await updateNotebook({
-          id: selectedNotebook.id,
-          ...submitData,
-        }).unwrap();
-        showSuccess("อัปเดตข้อมูลสำเร็จ");
+      const isConfirmed = await dialog_confirm_yes_no(
+        dialogMode === "create" ? "ยืนยันการบันทึกข้อมูล?" : "ยืนยันการแก้ไขข้อมูล?"
+      );
+
+      if (isConfirmed) {
+        const loadingId = showLoading("กำลังบันทึกข้อมูล...");
+        try {
+          if (dialogMode === "create") {
+            await addNotebook(submitData).unwrap();
+            showSuccess("บันทึกข้อมูลสำเร็จ");
+          } else {
+            await updateNotebook({
+              id: selectedNotebook.id,
+              ...submitData,
+            }).unwrap();
+            showSuccess("อัปเดตข้อมูลสำเร็จ");
+          }
+          dismissToast(loadingId);
+          handleClose();
+        } catch (error) {
+          dismissToast(loadingId);
+          if (error?.status === 403) {
+            showError("คุณไม่มีสิทธิ์แก้ไขรายการนี้ (เฉพาะ Admin หรือเจ้าของรายการ)");
+          } else {
+            showError("เกิดข้อผิดพลาด: " + (error?.data?.message || "ไม่สามารถบันทึกได้"));
+          }
+        }
       }
-      handleClose();
     } catch (error) {
       if (error.name === "ValidationError") {
         const newErrors = {};
@@ -183,8 +216,7 @@ const NotebookDialog = () => {
           newErrors[err.path] = err.message;
         });
         setErrors(newErrors);
-      } else {
-        showError("เกิดข้อผิดพลาด: " + (error?.data?.message || "ไม่สามารถบันทึกได้"));
+        showError("กรุณากรอกข้อมูลให้ครบถ้วน");
       }
     }
   };
@@ -376,11 +408,10 @@ const NotebookDialog = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="ชื่อลูกค้า "
+                    label="ชื่อลูกค้า/ชื่อย่อ(เพื่อค้นหา) "
                     name="nb_customer_name"
                     value={inputData.nb_customer_name || ""}
                     onChange={handleChange}
-                    placeholder="ระบุชื่อลูกค้า หรือบริษัท"
                     error={!!errors.nb_customer_name}
                     helperText={errors.nb_customer_name}
                     InputProps={{
@@ -395,10 +426,11 @@ const NotebookDialog = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="ชื่อผู้ติดต่อ (Contact Person)"
+                    label="ชื่อลูกค้า"
                     name="nb_contact_person"
                     value={inputData.nb_contact_person || ""}
                     onChange={handleChange}
+                    placeholder="ระบุชื่อลูกค้า หรือบริษัท"
                     error={!!errors.nb_contact_person}
                     helperText={errors.nb_contact_person}
                     InputProps={{
@@ -426,6 +458,7 @@ const NotebookDialog = () => {
                         </InputAdornment>
                       ),
                     }}
+                    onBlur={(e) => checkPhoneDuplicate(e.target.value)}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -569,6 +602,12 @@ const NotebookDialog = () => {
           {isAdding || isUpdating ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
         </Button>
       </DialogActions>
+
+      <DuplicatePhoneDialog
+        open={duplicatePhoneDialogOpen}
+        onClose={closeDuplicatePhoneDialog}
+        duplicateData={duplicatePhoneData}
+      />
     </Dialog>
   );
 };

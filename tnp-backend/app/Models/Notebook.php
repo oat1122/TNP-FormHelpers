@@ -46,4 +46,9 @@ class Notebook extends Model
     {
         return $this->belongsTo(User::class, 'updated_by', 'user_id');
     }
+
+    public function histories()
+    {
+        return $this->hasMany(NotebookHistory::class)->orderBy('created_at', 'desc');
+    }
 }

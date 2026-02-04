@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
+import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import {
   MdAssignment,
@@ -55,14 +56,6 @@ const validationSchema = yup.object().shape({
     .transform((v) => (v === "" ? null : v))
     .email("รูปแบบอีเมลไม่ถูกต้อง"),
   nb_contact_number: yup
-    .string()
-    .nullable()
-    .transform((v) => (v === "" ? null : v)),
-  nb_date: yup
-    .string()
-    .nullable()
-    .transform((v) => (v === "" ? null : v)),
-  nb_time: yup
     .string()
     .nullable()
     .transform((v) => (v === "" ? null : v)),
@@ -162,6 +155,11 @@ const NotebookDialog = () => {
 
       // Prepare submit data
       let submitData = { ...validatedData };
+
+      // Auto-inject current Date and Time
+      const now = new Date();
+      submitData.nb_date = format(now, "yyyy-MM-dd");
+      submitData.nb_time = format(now, "HH:mm");
 
       if (!isAdmin && dialogMode === "create") {
         submitData.nb_manage_by = currentUser.user_id;
@@ -307,30 +305,7 @@ const NotebookDialog = () => {
                     justifyContent="flex-end"
                     alignItems="center"
                   >
-                    <TextField
-                      type="date"
-                      label="วันที่"
-                      name="nb_date"
-                      value={inputData.nb_date || ""}
-                      onChange={handleChange}
-                      InputLabelProps={{ shrink: true }}
-                      size="small"
-                      sx={{ minWidth: 150 }}
-                      error={!!errors.nb_date}
-                      helperText={errors.nb_date}
-                    />
-                    <TextField
-                      type="time"
-                      label="เวลา"
-                      name="nb_time"
-                      value={inputData.nb_time || ""}
-                      onChange={handleChange}
-                      InputLabelProps={{ shrink: true }}
-                      size="small"
-                      sx={{ minWidth: 120 }}
-                      error={!!errors.nb_time}
-                      helperText={errors.nb_time}
-                    />
+                    {/* Date/Time removed - Auto injected */}
                     <Box
                       sx={{
                         display: "flex",
@@ -401,7 +376,7 @@ const NotebookDialog = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="ชื่อลูกค้า / บริษัท"
+                    label="ชื่อลูกค้า "
                     name="nb_customer_name"
                     value={inputData.nb_customer_name || ""}
                     onChange={handleChange}

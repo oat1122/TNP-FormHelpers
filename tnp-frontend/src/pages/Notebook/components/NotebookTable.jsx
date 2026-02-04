@@ -1,5 +1,5 @@
 import { Box, Chip, IconButton, Tooltip } from "@mui/material";
-import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { MdDelete, MdEdit, MdPersonAdd } from "react-icons/md";
@@ -20,15 +20,42 @@ const NotebookTable = ({
       headerName: "วันที่",
       flex: 1,
       minWidth: 100,
-      valueFormatter: (params) => {
-        if (!params.value) return "";
-        return format(new Date(params.value), "dd/MM/yyyy", { locale: th });
+      renderCell: (params) => {
+        const formatDate = (date) => {
+          if (!date) return "";
+          try {
+            return format(new Date(date), "dd/MM/yyyy", { locale: th });
+          } catch {
+            return "";
+          }
+        };
+
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
+            <Box component="span" sx={{ lineHeight: 1.2 }}>
+              {formatDate(params.row.created_at)}
+            </Box>
+            <Box
+              component="span"
+              sx={{ lineHeight: 1.2, fontSize: "0.55rem", color: "text.secondary" }}
+            >
+              อัพเดทล่าสุด {formatDate(params.row.updated_at)}
+            </Box>
+          </Box>
+        );
       },
     },
 
     {
       field: "nb_customer_name",
-      headerName: "ชื่อลูกค้า / บริษัท",
+      headerName: "ชื่อลูกค้า",
       flex: 1.5,
       minWidth: 150,
       renderCell: (params) => (
@@ -123,14 +150,26 @@ const NotebookTable = ({
             </span>
           </Tooltip>
           <Tooltip title="แก้ไข">
-            <IconButton color="primary" onClick={() => onEdit(params.row)}>
-              <MdEdit />
-            </IconButton>
+            <span>
+              <IconButton
+                color="primary"
+                onClick={() => onEdit(params.row)}
+                disabled={!!params.row.nb_converted_at}
+              >
+                <MdEdit />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="ลบ">
-            <IconButton color="error" onClick={() => onDelete(params.row.id)}>
-              <MdDelete />
-            </IconButton>
+            <span>
+              <IconButton
+                color="error"
+                onClick={() => onDelete(params.row.id)}
+                disabled={!!params.row.nb_converted_at}
+              >
+                <MdDelete />
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       ),
@@ -149,13 +188,6 @@ const NotebookTable = ({
         onPaginationModelChange={onPaginationModelChange}
         pageSizeOptions={[15, 30, 50]}
         disableRowSelectionOnClick
-        slots={{ toolbar: GridToolbar }}
-        slotProps={{
-          toolbar: {
-            showQuickFilter: true,
-            quickFilterProps: { debounceMs: 500 },
-          },
-        }}
         sx={{
           border: "none",
           "& .MuiDataGrid-cell": {

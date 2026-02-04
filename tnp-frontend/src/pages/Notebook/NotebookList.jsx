@@ -1,8 +1,8 @@
 import { Box, Button, Typography } from "@mui/material";
 import { useState } from "react";
-import { MdPictureAsPdf } from "react-icons/md";
+import { MdFileDownload } from "react-icons/md";
 import { RiAddLine } from "react-icons/ri";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import NotebookDialog from "./components/NotebookDialog";
 import NotebookTable from "./components/NotebookTable";
@@ -12,6 +12,7 @@ import { setInputList, setMode } from "../../features/Customer/customerSlice";
 import {
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
+  useUpdateNotebookMutation,
 } from "../../features/Notebook/notebookApi";
 import {
   setDialogMode,
@@ -25,9 +26,11 @@ const NotebookList = () => {
   const dispatch = useDispatch();
   const { showSuccess, showError } = useSnackbar();
 
+  // Get global search keyword from header
+  const globalKeyword = useSelector((state) => state.global.keyword);
+
   // Notebook State
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
-  const [search] = useState("");
 
   // Customer Dialog State (reusing Component)
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
@@ -35,14 +38,18 @@ const NotebookList = () => {
   // PDF Dialog State
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
+  // Track which notebook is being converted
+  const [convertingNotebookId, setConvertingNotebookId] = useState(null);
+
   // Fetch Data
   const { data, isLoading, refetch } = useGetNotebooksQuery({
     page: paginationModel.page,
     per_page: paginationModel.pageSize,
-    search,
+    search: globalKeyword,
   });
 
   const [deleteNotebook] = useDeleteNotebookMutation();
+  const [updateNotebook] = useUpdateNotebookMutation();
 
   const handleAdd = () => {
     dispatch(setDialogMode("create"));
@@ -94,6 +101,7 @@ const NotebookList = () => {
 
     dispatch(setInputList(mappingData));
     dispatch(setMode("create"));
+    setConvertingNotebookId(notebook.id);
     setCustomerDialogOpen(true);
   };
 
@@ -109,12 +117,12 @@ const NotebookList = () => {
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
               variant="outlined"
-              startIcon={<MdPictureAsPdf />}
+              startIcon={<MdFileDownload />}
               onClick={() => setPdfDialogOpen(true)}
               disabled={isLoading}
               sx={{ borderColor: "#1976d2", color: "#1976d2" }}
             >
-              Print PDF
+              Export ข้อมูล
             </Button>
             <Button
               variant="contained"
@@ -152,9 +160,20 @@ const NotebookList = () => {
         openDialog={customerDialogOpen}
         handleCloseDialog={() => setCustomerDialogOpen(false)}
         handleRecall={() => {}} // Dummy prop
-        onAfterSave={() => {
-          // Refresh notebook list after conversion if needed
-          // Optional: Mark notebook as converted
+        onAfterSave={async () => {
+          // If we were converting a notebook, mark it as converted
+          if (convertingNotebookId) {
+            try {
+              await updateNotebook({
+                id: convertingNotebookId,
+                nb_converted_at: new Date().toISOString(),
+                nb_status: "ได้งาน", // Update status to reflect success
+              }).unwrap();
+              setConvertingNotebookId(null);
+            } catch (error) {
+              console.error("Failed to update notebook conversion status:", error);
+            }
+          }
           refetch();
         }}
       />

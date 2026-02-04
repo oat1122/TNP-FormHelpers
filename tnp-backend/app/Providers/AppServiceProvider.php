@@ -45,5 +45,8 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         });
+
+        // Register Observers
+        \App\Models\Notebook::observe(\App\Observers\NotebookObserver::class);
     }
 }

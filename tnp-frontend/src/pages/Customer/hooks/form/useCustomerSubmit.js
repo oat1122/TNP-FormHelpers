@@ -34,6 +34,7 @@ export const useCustomerSubmit = ({
   setErrors,
   setActiveTab,
   onSuccess,
+  onAfterSave,
   scrollToTop,
 }) => {
   const dispatch = useDispatch();
@@ -114,6 +115,11 @@ export const useCustomerSubmit = ({
         // ปิด Dialog
         if (onSuccess) {
           onSuccess();
+        }
+
+        // Call optional onAfterSave callback
+        if (onAfterSave) {
+          onAfterSave(res.data);
         }
 
         open_dialog_ok_timer("บันทึกข้อมูลสำเร็จ").then(() => {

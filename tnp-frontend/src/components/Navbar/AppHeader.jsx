@@ -105,7 +105,6 @@ function AppHeader() {
     });
   const pathList = [
     "/monitor",
-    "/worksheet",
     "/customer",
     "/pricing",
     "/user-management",

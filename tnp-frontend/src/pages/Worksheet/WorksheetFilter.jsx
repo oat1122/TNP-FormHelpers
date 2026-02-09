@@ -20,23 +20,23 @@ function WorksheetFilter({ data, onFilterChange, initialFilters = { salesName: "
   const [filters, setFilters] = useState(initialFilters);
 
   // Get user data to check role permissions
-  const user = JSON.parse(localStorage.getItem("userData"));
-  const canUseFilter = user && (user.role === "manager" || user.role === "admin");
+  // const user = JSON.parse(localStorage.getItem("userData"));
+  // const canUseFilter = user && (user.role === "manager" || user.role === "admin");
 
   // If user doesn't have permission, don't render the filter
-  if (!canUseFilter) {
-    // Could optionally show a message for unauthorized users
-    // return (
-    //   <Card sx={{ mb: 3, boxShadow: 1 }} className="worksheet-filter">
-    //     <CardContent>
-    //       <Typography variant="body2" color="text.secondary" textAlign="center">
-    //         Advanced filters are available for Manager and Admin roles only.
-    //       </Typography>
-    //     </CardContent>
-    //   </Card>
-    // );
-    return null;
-  }
+  // if (!canUseFilter) {
+  // Could optionally show a message for unauthorized users
+  // return (
+  //   <Card sx={{ mb: 3, boxShadow: 1 }} className="worksheet-filter">
+  //     <CardContent>
+  //       <Typography variant="body2" color="text.secondary" textAlign="center">
+  //         Advanced filters are available for Manager and Admin roles only.
+  //       </Typography>
+  //     </CardContent>
+  //   </Card>
+  // );
+  // return null;
+  // }
 
   // Memoized extraction of unique sales names from data
   const uniqueSalesNames = useMemo(() => {

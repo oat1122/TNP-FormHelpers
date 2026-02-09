@@ -8,9 +8,50 @@ export const worksheetApi = createApi({
   tagTypes: ["Worksheet", "Customer"],
   endpoints: (builder) => ({
     getAllWorksheet: builder.query({
-      query: () => `worksheets`,
+      query: (params = {}) => {
+        const {
+          page = 1,
+          per_page = 15,
+          search = "",
+          status = "",
+          sales_name = "",
+          user_role = "",
+        } = params;
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          per_page: per_page.toString(),
+          search,
+          status,
+          sales_name,
+          user_role,
+        }).toString();
+        return `worksheets?${queryParams}`;
+      },
       providesTags: ["Worksheet"],
+      // Serialize query args based on filters (not page) for cache merging
+      serializeQueryArgs: ({ queryArgs }) => {
+        const {
+          search = "",
+          status = "",
+          sales_name = "",
+          user_role = "",
+          per_page = 15,
+        } = queryArgs || {};
+        return { search, status, sales_name, user_role, per_page };
+      },
+      // Merge pages for infinite scroll
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg || arg.page === 1) {
+          return newItems;
+        }
+        return {
+          ...newItems,
+          data: [...(currentCache?.data || []), ...(newItems?.data || [])],
+        };
+      },
+      forceRefetch: ({ currentArg, previousArg }) => currentArg !== previousArg,
     }),
+    // Deprecated: use getAllWorksheet with page param instead
     getMoreWorksheet: builder.query({
       query: (page) => `worksheets?page=${page}`,
       providesTags: ["Worksheet"],

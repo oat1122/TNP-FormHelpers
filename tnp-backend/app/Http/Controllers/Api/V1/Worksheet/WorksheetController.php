@@ -40,13 +40,65 @@ class WorksheetController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource with server-side pagination.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $worksheets = Worksheet::where('deleted', '!=', 1)
-            ->orderByRaw("SUBSTRING(work_id, 3, 2) DESC, SUBSTRING(work_id, 1, 2) DESC, SUBSTRING(work_id, 6, 3) DESC")    
-            ->get();
+        $perPage = $request->input('per_page', 15);
+        $search = $request->input('search', '');
+        $status = $request->input('status', '');
+        $salesName = $request->input('sales_name', '');
+        $userRole = $request->input('user_role', '');
+
+        $query = Worksheet::where('deleted', '!=', 1)
+            ->with(['worksheetStatus', 'customer']);
+
+        // Search filter - search across work_id, work_name, sales_name, customer name
+        if (!empty($search)) {
+            // Fetch related IDs separately to avoid collation mismatch errors in JOINs
+            $userIds = User::where('username', 'LIKE', "%{$search}%")->pluck('user_id')->toArray();
+            $customerIds = MasterCustomer::where('cus_name', 'LIKE', "%{$search}%")->pluck('cus_id')->toArray();
+
+            $query->where(function ($q) use ($search, $userIds, $customerIds) {
+                $q->where('work_id', 'LIKE', "%{$search}%")
+                  ->orWhere('work_name', 'LIKE', "%{$search}%");
+
+                if (!empty($userIds)) {
+                    $q->orWhereIn('user_id', $userIds);
+                }
+
+                if (!empty($customerIds)) {
+                    $q->orWhereIn('customer_id', $customerIds);
+                }
+            });
+        }
+
+        // Role-based status filtering for manager
+        if ($userRole === 'manager') {
+            $query->whereHas('worksheetStatus', function ($q) {
+                $q->whereIn('sales', [1, 2, 3]); // status codes 2,3,4,5,6 based on frontend logic
+            });
+        }
+
+        // Status filter by title
+        if (!empty($status)) {
+            $query->whereHas('worksheetStatus', function ($q) use ($status) {
+                // Map status code to filter
+                $q->where('sales', $status);
+            });
+        }
+
+        // Sales name filter
+        if (!empty($salesName)) {
+            $salesUserIds = User::where('username', $salesName)->pluck('user_id')->toArray();
+            $query->whereIn('user_id', $salesUserIds);
+        }
+
+        // Order by work_id (custom ordering) and paginate
+        $worksheets = $query->orderByRaw(
+            "SUBSTRING(work_id, 3, 2) DESC, SUBSTRING(work_id, 1, 2) DESC, SUBSTRING(work_id, 6, 3) DESC"
+        )->paginate($perPage);
+
         return new WorksheetCollection($worksheets);
     }
 

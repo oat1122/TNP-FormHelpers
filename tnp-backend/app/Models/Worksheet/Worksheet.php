@@ -112,6 +112,11 @@ class Worksheet extends Model
         return $this->hasMany(WorksheetExampleQty::class, 'worksheet_id', 'worksheet_id');
     }
 
+    public function worksheetStatus(): HasOne
+    {
+        return $this->hasOne(WorksheetStatus::class, 'worksheet_id', 'worksheet_id');
+    }
+
     public function poloDetail(): BelongsTo
     {
         return $this->belongsTo(WorksheetPoloDetail::class, 'worksheet_id', 'worksheet_id');

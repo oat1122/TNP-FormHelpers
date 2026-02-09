@@ -97,6 +97,11 @@ function WorksheetCard({ data, index, isSuccess }) {
         <label className="px-2">|</label>
         <label data-testid="sales_name-card-header">{data.sales_name}</label>
       </Typography>
+      {data.creator_detail && data.creator_detail.user_id !== data.user_id && (
+        <Typography variant="caption" display="block" textAlign="center" color="text.secondary">
+          (สร้างโดย SupportSales: {data.creator_detail.nickname || data.creator_detail.username})
+        </Typography>
+      )}
       <Typography variant="body1" textAlign="center" letterSpacing={1} lineHeight={1}>
         {data.cus_name}
       </Typography>

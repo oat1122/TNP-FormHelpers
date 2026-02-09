@@ -127,7 +127,7 @@ class UserController extends Controller
     {
         $user = [];
         if ($username != "") {
-            $user = User::where("username", $username)->firstOrFail();
+            $user = User::with('subRoles')->where("username", $username)->firstOrFail();
             $user = collect($user)->except('created_at', 'updated_at');
 
             return $user;

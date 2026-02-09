@@ -148,6 +148,7 @@ Route::prefix('v1')->group(function() {
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
         Route::get("/get-users-by-role", "get_users_by_role");
+        Route::get("/users/by-role", "get_users_by_role");
         Route::get("/users/by-sub-role", "get_users_by_sub_role");
 
         Route::post("/signup", "signup");

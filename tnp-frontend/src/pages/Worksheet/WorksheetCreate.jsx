@@ -16,6 +16,7 @@ import {
   useGetAllWorksheetQuery,
   useGetWorksheetQuery,
 } from "../../features/Worksheet/worksheetApi";
+import { useGetUsersByRoleQuery } from "../../features/UserManagement/userManagementApi";
 import {
   setInputList,
   setDateInput,
@@ -47,6 +48,7 @@ import {
   open_dialog_error,
   open_dialog_ok_timer,
   open_dialog_loading,
+  Autocomplete,
 } from "../../utils/import_lib";
 
 const VerticalDivider = styled(Divider)(({ theme }) => ({
@@ -65,6 +67,10 @@ function WorksheetCreate() {
   const [orderLoading, setOrderLoading] = useState(true);
   const [titleTypeShirt, setTitleTypeShirt] = useState(typeShirt);
   const user = JSON.parse(localStorage.getItem("userData"));
+  const isSupportSales = user?.sub_roles?.some((role) => role.msr_code === "SUPPORT_SALES");
+
+  const { data: usersByRole } = useGetUsersByRoleQuery("sale", { skip: !isSupportSales });
+  const salesUsers = usersByRole?.sale_role || [];
 
   const [saveLoading, setSaveLoading] = useState(false);
   const {
@@ -148,8 +154,11 @@ function WorksheetCreate() {
     if (!id) {
       dispatch(setInputList({ name: "type_shirt", value: typeShirt, index: null }));
 
+      if (!isSupportSales) {
+        dispatch(setInputList({ name: "user_id", value: user.user_id, index: null }));
+      }
+
       [
-        { name: "user_id", value: user.user_id },
         { name: "nws_created_by", value: user.user_uuid },
         { name: "nws_updated_by", value: user.user_uuid },
       ].forEach(({ name, value }) => {
@@ -199,6 +208,27 @@ function WorksheetCreate() {
                   รายละเอียดงาน
                 </Typography>
                 <Grid container spacing={1}>
+                  {isSupportSales && (
+                    <Grid size={{ xs: 12, lg: 6 }} p={1}>
+                      <Autocomplete
+                        options={salesUsers}
+                        getOptionLabel={(option) => `${option.user_nickname} (${option.username})`}
+                        value={salesUsers.find((u) => u.user_id === inputList.user_id) || null}
+                        onChange={(event, newValue) => {
+                          dispatch(
+                            setInputList({
+                              name: "user_id",
+                              value: newValue ? newValue.user_id : null,
+                              index: null,
+                            })
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Sales Person" required />
+                        )}
+                      />
+                    </Grid>
+                  )}
                   <Grid size={{ xs: 12, lg: 6 }} p={1}>
                     <TextField
                       required

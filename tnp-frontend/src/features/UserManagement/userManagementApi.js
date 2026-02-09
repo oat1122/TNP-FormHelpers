@@ -57,6 +57,12 @@ export const userManagementApi = createApi({
         body: payload,
       }),
     }),
+    getUsersByRole: builder.query({
+      query: (role) => ({
+        url: `/users/by-role?role=${role}`,
+        method: "GET",
+      }),
+    }),
 
     // ============ Sub Role Management ============
     getAllSubRoles: builder.query({
@@ -111,6 +117,7 @@ export const {
   useUpdateUserMutation,
   useDelUserMutation,
   useResetPasswordMutation,
+  useGetUsersByRoleQuery,
   // Sub Role hooks
   useGetAllSubRolesQuery,
   useAddSubRoleMutation,

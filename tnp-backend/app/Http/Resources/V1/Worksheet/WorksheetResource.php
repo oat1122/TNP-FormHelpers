@@ -57,7 +57,12 @@ class WorksheetResource extends JsonResource
             'images' => $images_r,
             // Sales data
             'user_id' => optional($this->user)->user_id,
-            'sales_name' => ucfirst($this->nwsCreatedBy?->username),
+            'sales_name' => ucfirst(optional($this->user)->username ?? ''),
+            'creator_detail' => $this->nwsCreatedBy ? [
+                'user_id' => $this->nwsCreatedBy->user_id,
+                'username' => ucfirst($this->nwsCreatedBy->username),
+                'nickname' => $this->nwsCreatedBy->user_nickname
+            ] : null,
             // Customer data
             'cus_id' => optional($this->customer)->cus_id,
             'cus_name' => optional($this->customer)->cus_name ?? '',

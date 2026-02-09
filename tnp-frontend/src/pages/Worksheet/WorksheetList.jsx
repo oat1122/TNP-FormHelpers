@@ -11,11 +11,16 @@ import {
   Slide,
   Toolbar,
   Typography,
-  Pagination,
-  Skeleton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import { Search } from "@mui/icons-material";
 import { useState, forwardRef, useEffect, useRef, useCallback, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
 import WorksheetCard from "./WorksheetCard";
@@ -23,40 +28,52 @@ import WorksheetFilter from "./WorksheetFilter";
 import WorksheetListSkeleton from "./WorksheetListSkeleton";
 import "./Worksheet.css";
 import TitleBar from "../../components/TitleBar";
-import {
-  useGetAllWorksheetQuery,
-  // useGetMoreWorksheetQuery,
-} from "../../features/Worksheet/worksheetApi";
+import { useGetAllWorksheetQuery } from "../../features/Worksheet/worksheetApi";
 import { setItemList } from "../../features/Worksheet/worksheetSlice";
 
 const Transition = forwardRef(function Transition(props, ref) {
   return <Slide direction="right" ref={ref} {...props} timeout={{ enter: 400, exit: 400 }} />;
 });
 
+// Per-page options for user selection
+const PER_PAGE_OPTIONS = [15, 30, 50];
+
 function WorksheetList() {
   const user = JSON.parse(localStorage.getItem("userData"));
   const [open, setOpen] = useState(false);
-  const [cardLimit, setCardLimit] = useState(10);
+
+  // Server-side pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
+  const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filteredDataCache, setFilteredDataCache] = useState([]);
+
+  // Filter states
   const [worksheetFilters, setWorksheetFilters] = useState({
     salesName: "",
     status: "",
   });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const keyword = useSelector((state) => state.global.keyword);
 
-  // Optimized API query with better caching strategy
+  // Debounced search keyword
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const searchTimeoutRef = useRef();
+
+  // Server-side pagination API call
   const { data, error, isFetching, isSuccess, refetch, isLoading } = useGetAllWorksheetQuery(
-    undefined,
     {
-      // Enable caching for 5 minutes to reduce API calls
-      pollingInterval: 0,
-      refetchOnMountOrArgChange: 300000, // 5 minutes
+      page: currentPage,
+      per_page: perPage,
+      search: debouncedKeyword,
+      status: worksheetFilters.status,
+      sales_name: worksheetFilters.salesName,
+      user_role: user?.role || "",
+    },
+    {
+      refetchOnMountOrArgChange: true,
       refetchOnFocus: false,
       refetchOnReconnect: true,
-      // Keep previous data while fetching new data
-      keepPreviousData: true,
     }
   );
 
@@ -66,28 +83,62 @@ function WorksheetList() {
 
   const observer = useRef();
   const lastCardRef = useRef();
-  const searchTimeoutRef = useRef();
 
-  // Optimized debounced search function with longer delay to reduce API calls
-  const debouncedRefetch = useCallback(
-    (searchTerm) => {
+  // Get worksheet data from API response
+  const worksheetData = useMemo(() => {
+    return data?.data || [];
+  }, [data]);
+
+  // Update hasMore based on API pagination metadata
+  useEffect(() => {
+    if (data?.meta) {
+      setHasMore(data.meta.current_page < data.meta.last_page);
+    }
+  }, [data]);
+
+  // Debounce search keyword - wait 500ms after user stops typing
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedKeyword(searchQuery);
+      setCurrentPage(1); // Reset to first page on new search
+    }, 500);
+
+    return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+    };
+  }, [searchQuery]);
 
-      searchTimeoutRef.current = setTimeout(() => {
-        // Only refetch if search term is significantly different or empty
-        if (searchTerm.length === 0 || searchTerm.length >= 2) {
-          refetch();
-        }
-      }, 500); // Increased to 500ms for better performance
-    },
-    [refetch]
-  );
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setLoadingMore(false);
+    setIsInitialLoad(true);
+  }, [debouncedKeyword, worksheetFilters, perPage]);
+
+  // Update initial load state
+  useEffect(() => {
+    if (isSuccess && worksheetData.length > 0) {
+      setIsInitialLoad(false);
+      setLoadingMore(false);
+    }
+  }, [isSuccess, worksheetData.length]);
+
+  // Update redux store when data changes
+  useEffect(() => {
+    if (isSuccess && data) {
+      dispatch(setItemList(data));
+    }
+  }, [data, isSuccess, dispatch]);
 
   // Memoized render function for worksheet cards
   const renderWorksheetCards = useCallback(
-    (data, isSuccess) => {
+    (worksheets) => {
       return (
         <Grid
           container
@@ -96,7 +147,7 @@ function WorksheetList() {
           marginBottom={4}
           columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5 }}
         >
-          {data.slice(0, cardLimit).map((item, index) => (
+          {worksheets.map((item, index) => (
             <Grid
               key={`${item.worksheet_id || item.work_id || index}`}
               size={1}
@@ -108,14 +159,14 @@ function WorksheetList() {
         </Grid>
       );
     },
-    [cardLimit]
+    [isSuccess]
   );
 
   // Optimized content rendering with skeleton loading
   const content = useMemo(() => {
-    // Show skeleton on initial load or when switching between major filter changes
+    // Show skeleton on initial load
     if ((isLoading || isFetching) && isInitialLoad) {
-      return <WorksheetListSkeleton count={cardLimit} />;
+      return <WorksheetListSkeleton count={perPage} />;
     }
 
     if (error) {
@@ -131,7 +182,7 @@ function WorksheetList() {
       );
     }
 
-    if (!filteredDataCache.length) {
+    if (!worksheetData.length) {
       return (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <Typography variant="h6" color="text.secondary">
@@ -143,31 +194,23 @@ function WorksheetList() {
       );
     }
 
-    return renderWorksheetCards(filteredDataCache, isSuccess);
+    return renderWorksheetCards(worksheetData);
   }, [
     isLoading,
     isFetching,
     isInitialLoad,
     error,
-    filteredDataCache,
-    keyword,
+    worksheetData,
+    debouncedKeyword,
     worksheetFilters,
-    cardLimit,
+    perPage,
     renderWorksheetCards,
-    isSuccess,
     refetch,
   ]);
 
-  // Optimized loading more indicator
+  // Loading more indicator for infinite scroll
   const loadingMoreContent = useMemo(() => {
-    // Only show loading more if:
-    // 1. There are more items in filteredDataCache than currently displayed (cardLimit)
-    // 2. Not in initial load state
-    // 3. Currently loading more data
-    const hasMoreData = filteredDataCache.length > cardLimit;
-    const isShowingPartialData = cardLimit < filteredDataCache.length;
-
-    if (hasMoreData && isShowingPartialData && !isInitialLoad && loadingMore) {
+    if (loadingMore || (isFetching && !isInitialLoad)) {
       return (
         <Box sx={{ textAlign: "center", py: 2 }} ref={lastCardRef}>
           <CircularProgress color="error" size={40} />
@@ -178,108 +221,29 @@ function WorksheetList() {
       );
     }
 
-    // Show the intersection observer target even when not loading (for triggering next load)
-    if (hasMoreData && isShowingPartialData && !isInitialLoad && !loadingMore) {
+    // Show the intersection observer target for triggering next load
+    if (hasMore && !isInitialLoad) {
       return <Box ref={lastCardRef} sx={{ height: "20px", visibility: "hidden" }} />;
     }
 
     return null;
-  }, [filteredDataCache.length, cardLimit, isInitialLoad, loadingMore]);
+  }, [loadingMore, isFetching, isInitialLoad, hasMore]);
 
   const handleCreate = useCallback(() => {
     setOpen((prev) => !prev);
   }, []);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+  // Handle filter changes - Only for authorized roles
+  const handleFilterChange = useCallback((newFilters) => {
+    setWorksheetFilters(newFilters);
   }, []);
 
-  // Update redux store when data changes
-  useEffect(() => {
-    if (isSuccess) {
-      dispatch(setItemList(data));
-    }
-  }, [data, isSuccess, dispatch]);
+  // Handle per-page change
+  const handlePerPageChange = useCallback((event) => {
+    setPerPage(event.target.value);
+  }, []);
 
-  // Handle filter changes - Only for authorized roles
-  const handleFilterChange = useCallback(
-    (newFilters) => {
-      // Check if user has permission to use filters
-      if (user.role === "manager" || user.role === "admin") {
-        setWorksheetFilters(newFilters);
-        setCardLimit(10); // Reset card limit when filters change
-        setLoadingMore(false); // Reset loading more state
-      }
-    },
-    [user.role]
-  );
-
-  // Handle keyword changes
-  useEffect(() => {
-    // Trigger refetch when keyword changes
-    debouncedRefetch(keyword);
-
-    // Reset card limit and loading state when search changes to show fresh results
-    setCardLimit(10);
-    setLoadingMore(false);
-  }, [keyword, debouncedRefetch]);
-
-  // Memoized filtered data for better performance
-  const filteredData = useMemo(() => {
-    if (!isSuccess || !data?.data) return [];
-
-    const isManager = user.role === "manager";
-
-    return data.data.filter((item) => {
-      // Role-based filtering
-      const isRelevantStatus = [2, 3, 4, 5, 6].includes(item.status.code);
-      const passesRoleFilter = (isManager && isRelevantStatus) || !isManager;
-
-      if (!passesRoleFilter) return false;
-
-      // Keyword search filtering
-      if (keyword !== "") {
-        const searchKeyword = keyword.toLowerCase();
-        const searchWorkID = (item.work_id || "").toLowerCase().includes(searchKeyword);
-        const searchWorkName = (item.work_name || "").toLowerCase().includes(searchKeyword);
-        const searchUserName = (item.sales_name || "").toLowerCase().includes(searchKeyword);
-        const searchCusName = (item.cus_name || "").toLowerCase().includes(searchKeyword);
-
-        const passesKeywordFilter =
-          searchWorkID || searchWorkName || searchUserName || searchCusName;
-        if (!passesKeywordFilter) return false;
-      }
-
-      // Additional filters - Only apply if user has permission
-      if (user.role === "manager" || user.role === "admin") {
-        if (worksheetFilters.salesName !== "" && item.sales_name !== worksheetFilters.salesName) {
-          return false;
-        }
-
-        if (worksheetFilters.status !== "" && item.status.title !== worksheetFilters.status) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [data, keyword, worksheetFilters, user.role, isSuccess]);
-
-  // Update cached data when filtered data changes
-  useEffect(() => {
-    setFilteredDataCache(filteredData);
-    setLoadingMore(false); // Reset loading state when data changes
-    if (isInitialLoad && filteredData.length > 0) {
-      setIsInitialLoad(false);
-    }
-  }, [filteredData, isInitialLoad]);
-
-  // Optimized infinite scrolling setup
+  // Infinite scrolling - load next page from server
   useEffect(() => {
     const currentObserver = observer.current;
     if (observer.current) observer.current.disconnect();
@@ -287,25 +251,14 @@ function WorksheetList() {
     observer.current = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry.isIntersecting && !loadingMore && !isInitialLoad) {
-          // Check if there's actually more data to load
-          const hasMoreData = filteredDataCache.length > cardLimit;
-
-          if (hasMoreData) {
-            setLoadingMore(true);
-            // Use requestAnimationFrame for better performance
-            requestAnimationFrame(() => {
-              setTimeout(() => {
-                setCardLimit((prev) => Math.min(prev + 10, filteredDataCache.length));
-                setLoadingMore(false);
-              }, 100); // Reduced delay for faster loading
-            });
-          }
+        if (entry.isIntersecting && !isFetching && !loadingMore && hasMore && !isInitialLoad) {
+          setLoadingMore(true);
+          setCurrentPage((prev) => prev + 1);
         }
       },
       {
         threshold: 0.1,
-        rootMargin: "50px", // Start loading before element is fully visible
+        rootMargin: "100px",
       }
     );
 
@@ -316,7 +269,7 @@ function WorksheetList() {
     return () => {
       if (currentObserver) currentObserver.disconnect();
     };
-  }, [loadingMore, isInitialLoad, filteredDataCache.length, cardLimit]);
+  }, [isFetching, loadingMore, hasMore, isInitialLoad]);
 
   return (
     <div className="worksheet-list">
@@ -336,16 +289,14 @@ function WorksheetList() {
         ) : null}
       </div>
 
-      {/* Worksheet Filter Component - Only for Manager and Admin */}
-      {(user.role === "manager" || user.role === "admin") && (
-        <Box paddingX={3} marginTop={3}>
-          <WorksheetFilter
-            data={data}
-            onFilterChange={handleFilterChange}
-            initialFilters={worksheetFilters}
-          />
-        </Box>
-      )}
+      {/* Worksheet Filter Component - For ALL roles */}
+      <Box paddingX={3} marginTop={3}>
+        <WorksheetFilter
+          data={data}
+          onFilterChange={handleFilterChange}
+          initialFilters={worksheetFilters}
+        />
+      </Box>
 
       <Dialog
         open={open}
@@ -374,6 +325,50 @@ function WorksheetList() {
       </Dialog>
 
       <Box paddingX={3} marginTop={1} maxWidth="xxl">
+        {/* Per-page selector - positioned above cards, right-aligned */}
+        <Box
+          sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2, mb: 2 }}
+        >
+          {/* Show total count if available */}
+          {data?.meta?.total && (
+            <Typography variant="body2" color="text.secondary">
+              ทั้งหมด {data.meta.total} รายการ
+            </Typography>
+          )}
+
+          <FormControl size="small" variant="outlined">
+            {/* <InputLabel htmlFor="search-worksheet">Search</InputLabel> */}
+            <TextField
+              id="search-worksheet"
+              label="ค้นหา"
+              variant="outlined"
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ minWidth: 200, backgroundColor: "white" }}
+            />
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>แสดง</InputLabel>
+            <Select value={perPage} label="แสดง" onChange={handlePerPageChange}>
+              {PER_PAGE_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option} รายการ
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
         {content}
         {loadingMoreContent}
       </Box>

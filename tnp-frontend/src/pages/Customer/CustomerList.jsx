@@ -24,7 +24,7 @@ import {
 // Filter components
 import { FilterPanel, FilterTab, FilterTags } from "./components/Filters";
 // Form components
-import { DialogForm, TelesalesQuickCreateForm } from "./components/Forms";
+import { DialogForm, TelesalesQuickCreateForm, DuplicateCheckForm } from "./components/Forms";
 // Config
 import { useColumnDefinitions } from "./config/columnDefinitions";
 // Hooks
@@ -65,6 +65,7 @@ function CustomerList() {
   // Local state for dialogs
   const [openDialog, setOpenDialog] = useState(false);
   const [quickFormOpen, setQuickFormOpen] = useState(false);
+  const [duplicateCheckOpen, setDuplicateCheckOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   // AllocationHub hooks (for "จัดการลูกค้า" tab)
@@ -387,6 +388,19 @@ function CustomerList() {
                     เพิ่มลูกค้าด่วน
                   </Button>
                 )}
+                <Button
+                  variant="outlined"
+                  onClick={() => setDuplicateCheckOpen(true)}
+                  sx={{
+                    height: 40,
+                    borderColor: "#9e0000",
+                    color: "#9e0000",
+                    "&:hover": { borderColor: "#d32f2f", bgcolor: "#fff5f5" },
+                  }}
+                  aria-label="ตรวจสอบข้อมูลซ้ำ"
+                >
+                  ตรวจสอบซ้ำ
+                </Button>
                 <Box sx={{ flexGrow: 1 }}>
                   <FilterTab refetchCustomers={refetch} />
                 </Box>
@@ -518,6 +532,9 @@ function CustomerList() {
 
         {/* Telesales Quick Create Form */}
         <TelesalesQuickCreateForm open={quickFormOpen} onClose={() => setQuickFormOpen(false)} />
+
+        {/* Duplicate Check Form */}
+        <DuplicateCheckForm open={duplicateCheckOpen} onClose={() => setDuplicateCheckOpen(false)} />
       </div>
     </ScrollContext.Provider>
   );

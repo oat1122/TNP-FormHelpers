@@ -8,3 +8,4 @@ export { useSanitizeInput } from "./useSanitizeInput";
 export { useCustomerFormHandler } from "./useCustomerFormHandler";
 export { useCustomerInitializer } from "./useCustomerInitializer";
 export { useCustomerSubmit } from "./useCustomerSubmit";
+export { useDuplicateCheckForm } from "./useDuplicateCheckForm";

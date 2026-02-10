@@ -772,7 +772,8 @@ class WorksheetController extends Controller
             'cus_company',
             'cus_address',
             'cus_tel_1',
-            'cus_email'
+            'cus_email',
+            'cus_manage_by'
         )->orderBy('cus_id', 'desc')->get();
         return WsCustomerResource::collection($query);
     }

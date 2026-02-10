@@ -155,6 +155,8 @@ EnhancedTableHead.propTypes = {
 
 function CustomerSectDialog({ open, close }) {
   const dispatch = useDispatch();
+  const user = JSON.parse(localStorage.getItem("userData"));
+  const isAdmin = user?.role === "admin";
   const customerList = useSelector((state) => state.worksheet.customerList);
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("calories");
@@ -190,22 +192,24 @@ function CustomerSectDialog({ open, close }) {
     setPage(0);
   };
 
-  const visibleRows = useMemo(
-    () => {
-      const filteredList = customerList.filter((customer) => {
-        return Object.values(customer).some((value) =>
-          String(value).toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      });
+  const visibleRows = useMemo(() => {
+    // กรองตาม cus_manage_by สำหรับ non-admin
+    const baseList = isAdmin
+      ? customerList
+      : customerList.filter((customer) => String(customer.cus_manage_by) === String(user?.user_id));
 
-      setCountData(filteredList.length);
+    const filteredList = baseList.filter((customer) => {
+      return Object.values(customer).some((value) =>
+        String(value).toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
 
-      return filteredList
-        .sort(getComparator(order, orderBy))
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-    },
-    [customerList, order, orderBy, page, rowsPerPage, searchQuery] // Add searchQuery to dependencies
-  );
+    setCountData(filteredList.length);
+
+    return filteredList
+      .sort(getComparator(order, orderBy))
+      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [customerList, order, orderBy, page, rowsPerPage, searchQuery, isAdmin, user?.user_id]);
 
   useEffect(() => {
     if (data) {

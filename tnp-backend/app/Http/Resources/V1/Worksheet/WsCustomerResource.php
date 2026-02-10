@@ -24,6 +24,7 @@ class WsCustomerResource extends JsonResource
             'cus_address' => $this->cus_address ?? '',
             'cus_tel_1' => $this->cus_tel_1 ?? '',
             'cus_email' => $this->cus_email ?? '',
+            'cus_manage_by' => $this->cus_manage_by,
         ];
     }
 }

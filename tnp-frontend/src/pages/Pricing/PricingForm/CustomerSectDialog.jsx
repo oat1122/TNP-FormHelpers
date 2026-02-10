@@ -161,6 +161,8 @@ EnhancedTableHead.propTypes = {
 
 function CustomerSectDialog({ open, close, setValue }) {
   const dispatch = useDispatch();
+  const user = JSON.parse(localStorage.getItem("userData"));
+  const isAdmin = user?.role === "admin";
   const customerList = useSelector((state) => state.global.customerList);
   const inputList = useSelector((state) => state.pricing.inputList);
   const [order, setOrder] = useState("asc");
@@ -215,21 +217,23 @@ function CustomerSectDialog({ open, close, setValue }) {
     setPage(0);
   };
 
-  const visibleRows = useMemo(
-    () => {
-      const filteredList = customerList.filter((customer) => {
-        return Object.values(customer).some((value) =>
-          String(value).toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      });
-      setCountData(filteredList.length);
+  const visibleRows = useMemo(() => {
+    // กรองตาม cus_manage_by สำหรับ non-admin
+    const baseList = isAdmin
+      ? customerList
+      : customerList.filter((customer) => String(customer.cus_manage_by) === String(user?.user_id));
 
-      return filteredList
-        .sort(getComparator(order, orderBy))
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-    },
-    [customerList, order, orderBy, page, rowsPerPage, searchQuery] // Add searchQuery to dependencies
-  );
+    const filteredList = baseList.filter((customer) => {
+      return Object.values(customer).some((value) =>
+        String(value).toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+    setCountData(filteredList.length);
+
+    return filteredList
+      .sort(getComparator(order, orderBy))
+      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [customerList, order, orderBy, page, rowsPerPage, searchQuery, isAdmin, user?.user_id]);
 
   useEffect(() => {
     if (data) {

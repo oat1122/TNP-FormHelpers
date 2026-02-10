@@ -289,6 +289,7 @@ class WorksheetController extends Controller
                 'packaging',
                 'shirt_detail',
                 'total_quantity',
+                'user_id',
             ]));
             $worksheet->nws_updated_date = now();
             

@@ -62,26 +62,31 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Telesales & Allocation (Protected Routes) ----------
-    Route::apiResource('customers', CustomerController::class);
     Route::apiResource('notebooks', \App\Http\Controllers\Api\V1\NotebookController::class);
 
+    //---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------
+    Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
+        Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
+        Route::get('/customers/kpi/export', 'export'); // CSV export
+    });
+
     Route::controller(CustomerController::class)->group(function () {
-        // Pool & Allocation
+        // Pool & Allocation (must be BEFORE apiResource to avoid route conflict)
         Route::get('/customers/pool', 'getPoolCustomers'); // Get customers in pool (Manager/Admin only)
         Route::get('/customers/pool/telesales', 'getPoolTelesalesCustomers'); // Pool customers from Telesales
         Route::get('/customers/pool/transferred', 'getPoolTransferredCustomers'); // Pool customers from transfers
         Route::patch('/customers/assign', 'assignCustomers'); // Assign customers from pool to sales (Manager/Admin only)
-        
-        // Transfer Routes
-        Route::post('/customers/{id}/transfer-to-sales', 'transferToSales'); // Transfer to Sales channel
-        Route::post('/customers/{id}/transfer-to-online', 'transferToOnline'); // Transfer to Online channel
-        Route::get('/customers/{id}/transfer-history', 'getTransferHistory'); // Get transfer history
-        Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
 
         // Address Management
         Route::post('/customers/parse-address', 'parseAddress');
         Route::post('/customers/build-address', 'buildAddress');
         Route::post('/customers/check-duplicate', 'checkDuplicate');
+
+        // Transfer Routes
+        Route::post('/customers/{id}/transfer-to-sales', 'transferToSales'); // Transfer to Sales channel
+        Route::post('/customers/{id}/transfer-to-online', 'transferToOnline'); // Transfer to Online channel
+        Route::get('/customers/{id}/transfer-history', 'getTransferHistory'); // Get transfer history
+        Route::get('/customers/{id}/transfer-info', 'getTransferInfo'); // Get transfer info (can user transfer?)
 
         // Operations
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
@@ -94,18 +99,14 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::put('/customerChangeGrade/{id}', 'changeGrade');
     });
 
+    // apiResource LAST - so {customer} wildcard doesn't catch specific routes above
+    Route::apiResource('customers', CustomerController::class);
 
     //---------- Stats & KPI (Protected Routes) ----------
     // Route::controller(StatsController::class)->group(function () {
     //     Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
     //     Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
     // });
-
-    //---------- KPI Dashboard (Protected Routes) ----------
-    Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
-        Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
-        Route::get('/customers/kpi/export', 'export'); // CSV export
-    });
 
     //---------- Notifications (Protected Routes) ----------
     Route::controller(\App\Http\Controllers\Api\V1\NotificationController::class)->group(function () {

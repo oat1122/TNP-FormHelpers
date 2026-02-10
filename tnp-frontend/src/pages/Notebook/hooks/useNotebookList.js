@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { setInputList, setMode } from "../../features/Customer/customerSlice";
+import { setInputList, setMode } from "../../../features/Customer/customerSlice";
 import {
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
   useUpdateNotebookMutation,
-} from "../../features/Notebook/notebookApi";
+} from "../../../features/Notebook/notebookApi";
 import {
   setDialogMode,
   setDialogOpen,
   setSelectedNotebook,
-} from "../../features/Notebook/notebookSlice";
-import { dialog_confirm_yes_no } from "../../utils/dialog_swal2/dialog_confirm_yes_no";
-import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast";
+} from "../../../features/Notebook/notebookSlice";
+import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
+import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/toast";
 import { mapNotebookToCustomer } from "../utils/notebookMapping";
 
 export const useNotebookList = () => {

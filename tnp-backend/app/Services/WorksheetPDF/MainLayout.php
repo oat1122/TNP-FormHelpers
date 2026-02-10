@@ -74,8 +74,15 @@ class MainLayout
         $axis_x = [1 => 3, 2 => 35];
         $axis_y = [1 => 12, 2 => 25];
 
-        $image_path = $this->data->images
-        ? 'storage/images/worksheet/' . $this->data->images
+        $images = $this->data->images;
+
+        // ถ้า images เป็น URL เต็ม ให้ดึงเฉพาะชื่อไฟล์
+        if ($images && (str_starts_with($images, 'http://') || str_starts_with($images, 'https://'))) {
+            $images = basename(parse_url($images, PHP_URL_PATH));
+        }
+
+        $image_path = $images
+        ? 'storage/images/worksheet/' . $images
         : $this->path . '/images/t-shirt_mockup-v2.jpg';
 
         $this->pdf->Image($image_path, $axis_x[$page], $axis_y[$page], $width[$page], 0);

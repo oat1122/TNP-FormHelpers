@@ -41,7 +41,8 @@ function ActionButton({ data, isSuccess, handleGenPdf }) {
   const [updateWorksheetStatus] = useUpdateWorksheetStatusMutation();
   const [openDialogAssign, setOpenDialogAssign] = useState(false);
   const [saveLoadingAssign, setSaveLoadingAssign] = useState(false);
-  const isOwner = data.nws_created_by === user.user_uuid; // verify the worksheet owner
+  const isOwner =
+    data.nws_created_by === user.user_uuid || String(data.user_id) === String(user.user_id); // verify the worksheet owner or assigned sales
   let contentConfirmBtn;
   let contentActionBtn;
 
@@ -57,7 +58,10 @@ function ActionButton({ data, isSuccess, handleGenPdf }) {
   };
 
   const handleDisableConfirmBtn = () => {
-    if (user.role === "sale" && user.user_uuid === data.nws_created_by) {
+    if (
+      user.role === "sale" &&
+      (user.user_uuid === data.nws_created_by || String(user.user_id) === String(data.user_id))
+    ) {
       return false;
     } else if (user.role === "manager") {
       return false;

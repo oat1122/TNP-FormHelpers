@@ -52,6 +52,10 @@ const NotebookList = lazy(() => import("./pages/Notebook/NotebookList"));
 // Allocation Hub components
 const AllocationHub = lazy(() => import("./pages/AllocationHub/AllocationHub"));
 
+// Supplier components
+const SupplierList = lazy(() => import("./pages/Superlist/SupplierList"));
+const SupplierForm = lazy(() => import("./pages/Superlist/SupplierForm"));
+
 function App() {
   return (
     <AppTheme>
@@ -110,6 +114,12 @@ function App() {
               <Route path="/worksheets-for-maxsupply" element={<WorksheetListForMaxSupply />} />
               <Route path="/worksheets" element={<WorksheetListForMaxSupply />} />
             </Route>
+
+            {/* Supplier Routes */}
+            <Route path="/supplier" element={<SupplierList />} />
+            <Route path="/supplier/create" element={<SupplierForm mode="create" />} />
+            <Route path="/supplier/edit/:id" element={<SupplierForm mode="edit" />} />
+            <Route path="/supplier/view/:id" element={<SupplierForm mode="view" />} />
 
             <Route path="/test" element={<Testing />} />
           </Route>

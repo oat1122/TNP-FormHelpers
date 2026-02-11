@@ -33,6 +33,7 @@ class MasterProductCategory extends Model
 
 	protected $fillable = [
 		'mpc_name',
+		'mpc_sku_prefix',
 		'mpc_remark',
 		'mpc_is_deleted'
 	];

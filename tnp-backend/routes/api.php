@@ -26,6 +26,9 @@ use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
+use App\Http\Controllers\Api\V1\Supy\SupplierProductController;
+use App\Http\Controllers\Api\V1\Supy\SupplierTagController;
+use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -414,6 +417,35 @@ Route::prefix('v1')->group(function() {
         Route::get('/receipts/calculate-vat', 'calculateVat');
         // Route::get('/receipts/types', 'getReceiptTypes'); // UNUSED
         // Route::get('/receipts/payment-methods', 'getPaymentMethods'); // UNUSED
+    });
+
+    //---------- Supplier System ----------
+    Route::prefix('supplier')->group(function () {
+        Route::get('/products', [SupplierProductController::class, 'index']);
+        Route::post('/products', [SupplierProductController::class, 'store']);
+        Route::get('/products/{id}', [SupplierProductController::class, 'show']);
+        Route::put('/products/{id}', [SupplierProductController::class, 'update']);
+        Route::delete('/products/{id}', [SupplierProductController::class, 'destroy']);
+
+        // Images
+        Route::post('/products/{id}/images', [SupplierProductController::class, 'uploadImages']);
+        Route::patch('/products/{id}/images/{imageId}/cover', [SupplierProductController::class, 'setCoverImage']);
+        Route::delete('/products/{id}/images/{imageId}', [SupplierProductController::class, 'deleteImage']);
+
+        // Currency
+        Route::get('/currency/convert', [SupplierProductController::class, 'convertCurrency']);
+
+        // Tags
+        Route::get('/tags', [SupplierTagController::class, 'index']);
+        Route::post('/tags', [SupplierTagController::class, 'store']);
+        Route::delete('/tags/{id}', [SupplierTagController::class, 'destroy']);
+
+        // Categories
+        Route::get('/categories', [SupplierCategoryController::class, 'index']);
+        Route::post('/categories', [SupplierCategoryController::class, 'store']);
+        Route::put('/categories/{id}', [SupplierCategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [SupplierCategoryController::class, 'destroy']);
+        Route::get('/categories/{id}/next-sku', [SupplierCategoryController::class, 'nextSku']);
     });
 
     //---------- DeliveryNote Controller (Step 4) ----------

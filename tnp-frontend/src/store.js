@@ -23,6 +23,8 @@ import { notificationRtkApi } from "./features/Notification";
 import { tnpApi } from "./services/tnpApi";
 import { notebookApi } from "./features/Notebook/notebookApi";
 import notebookReducer from "./features/Notebook/notebookSlice";
+import { supplierApi } from "./features/Superlist/supplierApi";
+import supplierReducer from "./features/Superlist/supplierSlice";
 
 const store = configureStore({
   reducer: {
@@ -50,6 +52,8 @@ const store = configureStore({
     [notificationRtkApi.reducerPath]: notificationRtkApi.reducer,
     [notebookApi.reducerPath]: notebookApi.reducer,
     notebook: notebookReducer,
+    supplier: supplierReducer,
+    [supplierApi.reducerPath]: supplierApi.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -65,7 +69,8 @@ const store = configureStore({
       pricingApi.middleware,
       accountingApi.middleware,
       notificationRtkApi.middleware,
-      notebookApi.middleware
+      notebookApi.middleware,
+      supplierApi.middleware
     ),
 });
 

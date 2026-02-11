@@ -25,6 +25,7 @@ import {
   FaUserFriends,
   FaHeadset,
   FaBook,
+  FaBoxes,
 } from "react-icons/fa";
 import { FaShirt } from "react-icons/fa6";
 import { GiPriceTag } from "react-icons/gi";
@@ -404,6 +405,29 @@ function ControlPanel() {
           </a>
         </div>
       </div>
+      {/* SUPPLIER TOOLS Section */}
+      {(user?.role === "admin" || user?.role === "production") && (
+        <div className="row col-12 col-md-11 col-lg-8 mt-4 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
+          <h3>SUPPLIER TOOLS</h3>
+          <hr />
+          <div className="col-3 col-md-2 col-lg-3 ms-md-1 ms-xl-2 me-1 me-md-0 mb-0 mb-md-0 mb-lg-0 col-basic">
+            <a className="btn btn-outline-danger pt-3" href="/supplier" style={{ width: "5.8rem" }}>
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaBoxes />
+              </IconContext.Provider>
+              <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>SUPPLIER LIST</label>
+            </a>
+            <div className="vr vr-home"></div>
+            <a className="btn btn-outline-danger pt-3" href="/supplier/create">
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaPlus />
+              </IconContext.Provider>
+              <label>ADD PRODUCT</label>
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="row col-12 col-md-11 col-lg-8 mt-4 mb-5 ms-1 ms-md-5 ms-lg-4 ms-xl-5">
         <h3>SPECIFIC ACCOUNT TOOLS</h3>
         <hr />

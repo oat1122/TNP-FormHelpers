@@ -6,7 +6,7 @@ import { apiConfig } from "../../api/apiConfig";
 export const supplierApi = createApi({
   reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery(apiConfig),
-  tagTypes: ["SupplierProducts", "SupplierTags", "SupplierCategories"],
+  tagTypes: ["SupplierProducts", "SupplierTags", "SupplierCategories", "SupplierSellers"],
   endpoints: (builder) => ({
     // ==================== Products ====================
     getProducts: builder.query({
@@ -163,6 +163,50 @@ export const supplierApi = createApi({
     getNextSku: builder.query({
       query: (categoryId) => `/supplier/categories/${categoryId}/next-sku`,
     }),
+
+    // ==================== Sellers ====================
+    getSellers: builder.query({
+      query: (params) => {
+        const queryString = params?.search
+          ? qs.stringify({ search: params.search })
+          : "";
+        return {
+          url: queryString ? `/supplier/sellers?${queryString}` : `/supplier/sellers`,
+          method: "GET",
+        };
+      },
+      providesTags: ["SupplierSellers"],
+    }),
+
+    addSeller: builder.mutation({
+      invalidatesTags: ["SupplierSellers"],
+      query: (payload) => ({
+        url: `/supplier/sellers`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    updateSeller: builder.mutation({
+      invalidatesTags: ["SupplierSellers"],
+      query: ({ id, ...payload }) => ({
+        url: `/supplier/sellers/${id}`,
+        method: "PUT",
+        body: payload,
+      }),
+    }),
+
+    deleteSeller: builder.mutation({
+      invalidatesTags: ["SupplierSellers"],
+      query: (id) => ({
+        url: `/supplier/sellers/${id}`,
+        method: "DELETE",
+      }),
+    }),
+
+    getSellerPhoneLogs: builder.query({
+      query: (sellerId) => `/supplier/sellers/${sellerId}/phone-logs`,
+    }),
   }),
 });
 
@@ -184,4 +228,9 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useLazyGetNextSkuQuery,
+  useGetSellersQuery,
+  useAddSellerMutation,
+  useUpdateSellerMutation,
+  useDeleteSellerMutation,
+  useLazyGetSellerPhoneLogsQuery,
 } = supplierApi;

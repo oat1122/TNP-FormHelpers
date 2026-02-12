@@ -55,6 +55,7 @@ const AllocationHub = lazy(() => import("./pages/AllocationHub/AllocationHub"));
 // Supplier components
 const SupplierList = lazy(() => import("./pages/Superlist/SupplierList"));
 const SupplierForm = lazy(() => import("./pages/Superlist/SupplierForm"));
+const SellerList = lazy(() => import("./pages/Superlist/SellerList"));
 
 function App() {
   return (
@@ -116,6 +117,7 @@ function App() {
             </Route>
 
             {/* Supplier Routes */}
+            <Route path="/seller" element={<SellerList />} />
             <Route path="/supplier" element={<SupplierList />} />
             <Route path="/supplier/create" element={<SupplierForm mode="create" />} />
             <Route path="/supplier/edit/:id" element={<SupplierForm mode="edit" />} />

@@ -1,14 +1,3 @@
-import React, { useState, useMemo, useCallback } from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-  StyleSheet,
-  Font,
-  PDFDownloadLink,
-} from "@react-pdf/renderer";
 import {
   Dialog,
   DialogTitle,
@@ -41,8 +30,17 @@ import {
   Alert,
 } from "@mui/material";
 import {
+  Document,
+  Page,
+  Text,
+  View,
+  Image,
+  StyleSheet,
+  PDFDownloadLink,
+} from "@react-pdf/renderer";
+import { useState, useMemo, useCallback } from "react";
+import {
   MdDownload,
-  MdClose,
   MdSearch,
   MdSelectAll,
   MdDeselect,
@@ -211,8 +209,7 @@ const SupplierPdfDocument = ({ products }) => (
     <Page size="A4" style={styles.page}>
       <Text style={styles.header}>Supplier Product List</Text>
       <Text style={styles.subHeader}>
-        Generated: {new Date().toLocaleDateString("th-TH")} | Total:{" "}
-        {products.length} items
+        Generated: {new Date().toLocaleDateString("th-TH")} | Total: {products.length} items
       </Text>
 
       <View style={styles.table}>
@@ -261,18 +258,14 @@ const SupplierPdfDocument = ({ products }) => (
               <View style={styles.tableColName}>
                 <Text style={styles.cellText}>{product.sp_name}</Text>
                 {product.price_tiers?.length > 0 && (
-                  <Text style={styles.tierText}>
-                    {product.price_tiers.length} price tier(s)
-                  </Text>
+                  <Text style={styles.tierText}>{product.price_tiers.length} price tier(s)</Text>
                 )}
               </View>
               <View style={styles.tableColSku}>
                 <Text style={styles.cellText}>{product.sp_sku || "-"}</Text>
               </View>
               <View style={styles.tableColCategory}>
-                <Text style={styles.cellText}>
-                  {product.category?.mpc_name || "-"}
-                </Text>
+                <Text style={styles.cellText}>{product.category?.mpc_name || "-"}</Text>
               </View>
               <View style={styles.tableColPrice}>
                 <Text style={styles.priceText}>
@@ -285,9 +278,7 @@ const SupplierPdfDocument = ({ products }) => (
                 )}
               </View>
               <View style={styles.tableColSupplier}>
-                <Text style={styles.cellText}>
-                  {product.sp_supplier_name || "-"}
-                </Text>
+                <Text style={styles.cellText}>{product.sp_supplier_name || "-"}</Text>
               </View>
             </View>
           );
@@ -297,11 +288,7 @@ const SupplierPdfDocument = ({ products }) => (
       {/* Footer */}
       <View style={styles.footer} fixed>
         <Text>TNP Supplier System</Text>
-        <Text
-          render={({ pageNumber, totalPages }) =>
-            `Page ${pageNumber} / ${totalPages}`
-          }
-        />
+        <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
       </View>
     </Page>
   </Document>
@@ -349,9 +336,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
     }
 
     if (filterTags.length > 0) {
-      result = result.filter((p) =>
-        p.tags?.some((t) => filterTags.includes(t.spt_id))
-      );
+      result = result.filter((p) => p.tags?.some((t) => filterTags.includes(t.spt_id)));
     }
 
     if (filterCountry) {
@@ -360,9 +345,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
 
     if (filterSupplier) {
       const s = filterSupplier.toLowerCase();
-      result = result.filter((p) =>
-        p.sp_supplier_name?.toLowerCase().includes(s)
-      );
+      result = result.filter((p) => p.sp_supplier_name?.toLowerCase().includes(s));
     }
 
     return result;
@@ -370,9 +353,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
 
   // Selection helpers
   const handleToggle = useCallback((id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
+    setSelected((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   }, []);
 
   const handleSelectAll = () => {
@@ -405,9 +386,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600, pb: 1 }}>
-        Export PDF
-      </DialogTitle>
+      <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600, pb: 1 }}>Export PDF</DialogTitle>
 
       <Box sx={{ px: 3, pb: 1 }}>
         <Stepper activeStep={activeStep} alternativeLabel>
@@ -450,9 +429,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>
-                    หมวดหมู่
-                  </InputLabel>
+                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>หมวดหมู่</InputLabel>
                   <Select
                     value={filterCategory}
                     label="หมวดหมู่"
@@ -463,11 +440,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                       ทั้งหมด
                     </MenuItem>
                     {categories.map((cat) => (
-                      <MenuItem
-                        key={cat.mpc_id}
-                        value={cat.mpc_id}
-                        sx={{ fontFamily: "Kanit" }}
-                      >
+                      <MenuItem key={cat.mpc_id} value={cat.mpc_id} sx={{ fontFamily: "Kanit" }}>
                         {cat.mpc_name}
                       </MenuItem>
                     ))}
@@ -476,9 +449,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>
-                    ประเทศ
-                  </InputLabel>
+                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>ประเทศ</InputLabel>
                   <Select
                     value={filterCountry}
                     label="ประเทศ"
@@ -499,9 +470,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
               </Grid>
               <Grid item xs={12} sm={2}>
                 <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>
-                    Supplier
-                  </InputLabel>
+                  <InputLabel sx={{ fontFamily: "Kanit", fontSize: 13 }}>Supplier</InputLabel>
                   <Select
                     value={filterSupplier}
                     label="Supplier"
@@ -512,11 +481,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                       ทั้งหมด
                     </MenuItem>
                     {supplierNames.map((name) => (
-                      <MenuItem
-                        key={name}
-                        value={name}
-                        sx={{ fontFamily: "Kanit" }}
-                      >
+                      <MenuItem key={name} value={name} sx={{ fontFamily: "Kanit" }}>
                         {name}
                       </MenuItem>
                     ))}
@@ -553,13 +518,9 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                 mb: 1,
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{ fontFamily: "Kanit", color: "text.secondary" }}
-              >
+              <Typography variant="body2" sx={{ fontFamily: "Kanit", color: "text.secondary" }}>
                 พบ {filteredProducts.length} รายการ — เลือกแล้ว{" "}
-                <strong style={{ color: PRIMARY_RED }}>{selected.length}</strong>{" "}
-                รายการ
+                <strong style={{ color: PRIMARY_RED }}>{selected.length}</strong> รายการ
               </Typography>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Button
@@ -595,7 +556,11 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                 <ListItem>
                   <ListItemText
                     primary="ไม่พบสินค้า"
-                    primaryTypographyProps={{ fontFamily: "Kanit", color: "text.secondary", textAlign: "center" }}
+                    primaryTypographyProps={{
+                      fontFamily: "Kanit",
+                      color: "text.secondary",
+                      textAlign: "center",
+                    }}
                   />
                 </ListItem>
               )}
@@ -623,15 +588,17 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                     </ListItemIcon>
                     <ListItemAvatar sx={{ minWidth: 48 }}>
                       {coverUrl ? (
-                        <Avatar
-                          variant="rounded"
-                          src={coverUrl}
-                          sx={{ width: 40, height: 40 }}
-                        />
+                        <Avatar variant="rounded" src={coverUrl} sx={{ width: 40, height: 40 }} />
                       ) : (
                         <Avatar
                           variant="rounded"
-                          sx={{ width: 40, height: 40, bgcolor: "#f0f0f0", fontSize: 10, color: "#999" }}
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: "#f0f0f0",
+                            fontSize: 10,
+                            color: "#999",
+                          }}
                         >
                           N/A
                         </Avatar>
@@ -678,10 +645,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
         {/* ==================== Step 2: Download ==================== */}
         {activeStep === 1 && (
           <Box sx={{ textAlign: "center", py: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{ fontFamily: "Kanit", mb: 1 }}
-            >
+            <Typography variant="h6" sx={{ fontFamily: "Kanit", mb: 1 }}>
               พร้อมสร้าง PDF
             </Typography>
             <Typography
@@ -690,10 +654,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
             >
               จำนวน {selectedProducts.length} สินค้าที่เลือก
             </Typography>
-            <Alert
-              severity="info"
-              sx={{ fontFamily: "Kanit", mb: 2, mx: "auto", maxWidth: 400 }}
-            >
+            <Alert severity="info" sx={{ fontFamily: "Kanit", mb: 2, mx: "auto", maxWidth: 400 }}>
               PDF จะแสดงเฉพาะรูปปกของสินค้าเท่านั้น
             </Alert>
 
@@ -706,9 +667,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                 <Button
                   variant="contained"
                   size="large"
-                  startIcon={
-                    loading ? <CircularProgress size={20} /> : <MdDownload />
-                  }
+                  startIcon={loading ? <CircularProgress size={20} /> : <MdDownload />}
                   disabled={loading}
                   sx={{ fontFamily: "Kanit", bgcolor: PRIMARY_RED, px: 4 }}
                 >

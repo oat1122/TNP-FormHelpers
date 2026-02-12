@@ -122,6 +122,7 @@ class SupplierProductController extends Controller
             $product = SupplierProduct::create([
                 'sp_id' => $productId,
                 'sp_mpc_id' => $request->sp_mpc_id,
+                'sp_ss_id' => $request->sp_ss_id,
                 'sp_name' => $request->sp_name,
                 'sp_description' => $request->sp_description,
                 'sp_sku' => $request->sp_sku,
@@ -213,6 +214,7 @@ class SupplierProductController extends Controller
 
             $product->update([
                 'sp_mpc_id' => $request->sp_mpc_id ?? $product->sp_mpc_id,
+                'sp_ss_id' => $request->has('sp_ss_id') ? $request->sp_ss_id : $product->sp_ss_id,
                 'sp_name' => $request->sp_name ?? $product->sp_name,
                 'sp_description' => $request->sp_description ?? $product->sp_description,
                 'sp_sku' => $request->sp_sku ?? $product->sp_sku,

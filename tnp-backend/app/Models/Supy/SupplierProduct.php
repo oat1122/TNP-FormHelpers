@@ -29,6 +29,7 @@ class SupplierProduct extends Model
     protected $fillable = [
         'sp_id',
         'sp_mpc_id',
+        'sp_ss_id',
         'sp_name',
         'sp_description',
         'sp_sku',
@@ -51,6 +52,11 @@ class SupplierProduct extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(MasterProductCategory::class, 'sp_mpc_id', 'mpc_id');
+    }
+
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(SupplierSeller::class, 'sp_ss_id', 'ss_id');
     }
 
     public function images(): HasMany

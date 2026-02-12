@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
 use App\Http\Controllers\Api\V1\Supy\SupplierProductController;
 use App\Http\Controllers\Api\V1\Supy\SupplierTagController;
 use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
+use App\Http\Controllers\Api\V1\Supy\SupplierSellerController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -446,6 +447,13 @@ Route::prefix('v1')->group(function() {
         Route::put('/categories/{id}', [SupplierCategoryController::class, 'update']);
         Route::delete('/categories/{id}', [SupplierCategoryController::class, 'destroy']);
         Route::get('/categories/{id}/next-sku', [SupplierCategoryController::class, 'nextSku']);
+
+        // Sellers
+        Route::get('/sellers', [SupplierSellerController::class, 'index']);
+        Route::post('/sellers', [SupplierSellerController::class, 'store']);
+        Route::put('/sellers/{id}', [SupplierSellerController::class, 'update']);
+        Route::delete('/sellers/{id}', [SupplierSellerController::class, 'destroy']);
+        Route::get('/sellers/{id}/phone-logs', [SupplierSellerController::class, 'phoneLogs']);
     });
 
     //---------- DeliveryNote Controller (Step 4) ----------

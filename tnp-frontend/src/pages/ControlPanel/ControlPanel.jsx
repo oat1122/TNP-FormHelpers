@@ -418,6 +418,13 @@ function ControlPanel() {
               <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>SUPPLIER LIST</label>
             </a>
             <div className="vr vr-home"></div>
+            <a className="btn btn-outline-danger pt-3" href="/seller" style={{ width: "5.8rem" }}>
+              <IconContext.Provider value={{ className: "icon-control-panel" }}>
+                <FaTruck />
+              </IconContext.Provider>
+              <label style={{ lineHeight: "0.75rem", paddingTop: 8 }}>SELLER LIST</label>
+            </a>
+            <div className="vr vr-home"></div>
             <a className="btn btn-outline-danger pt-3" href="/supplier/create">
               <IconContext.Provider value={{ className: "icon-control-panel" }}>
                 <FaPlus />

@@ -289,14 +289,16 @@ function WorksheetList() {
         ) : null}
       </div>
 
-      {/* Worksheet Filter Component - For ALL roles */}
-      <Box paddingX={3} marginTop={3}>
-        <WorksheetFilter
-          data={data}
-          onFilterChange={handleFilterChange}
-          initialFilters={worksheetFilters}
-        />
-      </Box>
+      {/* Worksheet Filter Component - For admin and manager only */}
+      {(user?.role === "admin" || user?.role === "manager") && (
+        <Box paddingX={3} marginTop={3}>
+          <WorksheetFilter
+            data={data}
+            onFilterChange={handleFilterChange}
+            initialFilters={worksheetFilters}
+          />
+        </Box>
+      )}
 
       <Dialog
         open={open}

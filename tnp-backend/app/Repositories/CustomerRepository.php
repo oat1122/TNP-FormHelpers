@@ -107,11 +107,14 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                 $user->loadMissing('subRoles');
                 $subRoleCode = $user->subRoles->first()?->msr_code;
                 $isHead = in_array($subRoleCode, ['HEAD_ONLINE', 'HEAD_OFFLINE']);
+                $isSupportSales = $subRoleCode === 'SUPPORT_SALES';
                 $hasSubordinateFilter = !empty($filters['subordinate_user_ids']);
 
                 // Apply role filter
                 if ($user->role === 'admin') {
                     // Admin sees all
+                } elseif ($isSupportSales) {
+                    // SUPPORT_SALES sees all customers (ซับพอตเซล)
                 } elseif ($isHead && $hasSubordinateFilter) {
                     // HEAD with subordinate filter - see ALL channels
                     $userIds = is_array($filters['subordinate_user_ids'])
@@ -479,6 +482,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         $isHeadOnline = $subRoleCode === 'HEAD_ONLINE';
         $isHeadOffline = $subRoleCode === 'HEAD_OFFLINE';
         $isHead = $isHeadOnline || $isHeadOffline;
+        $isSupportSales = $subRoleCode === 'SUPPORT_SALES';
         
         // Admin sees everything
         if ($user->role === 'admin') {
@@ -487,6 +491,11 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         
         // Accounting sees all customers (for quotation creation)
         if ($user->role === 'account') {
+            return;
+        }
+        
+        // SUPPORT_SALES sees all customers (ซับพอตเซล - ทำทุกอย่างให้เซล)
+        if ($isSupportSales) {
             return;
         }
         

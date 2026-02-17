@@ -157,6 +157,7 @@ function CustomerSectDialog({ open, close }) {
   const dispatch = useDispatch();
   const user = JSON.parse(localStorage.getItem("userData"));
   const isAdmin = user?.role === "admin";
+  const isSupportSales = user?.sub_roles?.some((sr) => sr.msr_code === "SUPPORT_SALES");
   const customerList = useSelector((state) => state.worksheet.customerList);
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("calories");
@@ -193,8 +194,8 @@ function CustomerSectDialog({ open, close }) {
   };
 
   const visibleRows = useMemo(() => {
-    // กรองตาม cus_manage_by สำหรับ non-admin
-    const baseList = isAdmin
+    // กรองตาม cus_manage_by สำหรับ non-admin (SUPPORT_SALES เห็นลูกค้าทั้งหมด)
+    const baseList = isAdmin || isSupportSales
       ? customerList
       : customerList.filter((customer) => String(customer.cus_manage_by) === String(user?.user_id));
 
@@ -209,7 +210,7 @@ function CustomerSectDialog({ open, close }) {
     return filteredList
       .sort(getComparator(order, orderBy))
       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [customerList, order, orderBy, page, rowsPerPage, searchQuery, isAdmin, user?.user_id]);
+  }, [customerList, order, orderBy, page, rowsPerPage, searchQuery, isAdmin, isSupportSales, user?.user_id]);
 
   useEffect(() => {
     if (data) {

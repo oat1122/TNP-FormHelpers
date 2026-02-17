@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { Search } from "@mui/icons-material";
 import { useState, forwardRef, useEffect, useRef, useCallback, useMemo } from "react";
+import moment from "moment";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
@@ -51,7 +52,12 @@ function WorksheetList() {
   // Filter states
   const [worksheetFilters, setWorksheetFilters] = useState({
     salesName: "",
-    status: "",
+    dueDateFrom: null,
+    dueDateTo: null,
+    examDateFrom: null,
+    examDateTo: null,
+    createdDateFrom: null,
+    createdDateTo: null,
   });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -61,13 +67,21 @@ function WorksheetList() {
   const searchTimeoutRef = useRef();
 
   // Server-side pagination API call
+  // Format moment date to YYYY-MM-DD string for API
+  const fmtDate = (val) => (val ? moment(val).format("YYYY-MM-DD") : "");
+
   const { data, error, isFetching, isSuccess, refetch, isLoading } = useGetAllWorksheetQuery(
     {
       page: currentPage,
       per_page: perPage,
       search: debouncedKeyword,
-      status: worksheetFilters.status,
       sales_name: worksheetFilters.salesName,
+      due_date_from: fmtDate(worksheetFilters.dueDateFrom),
+      due_date_to: fmtDate(worksheetFilters.dueDateTo),
+      exam_date_from: fmtDate(worksheetFilters.examDateFrom),
+      exam_date_to: fmtDate(worksheetFilters.examDateTo),
+      created_date_from: fmtDate(worksheetFilters.createdDateFrom),
+      created_date_to: fmtDate(worksheetFilters.createdDateTo),
       user_role: user?.role || "",
     },
     {
@@ -186,8 +200,12 @@ function WorksheetList() {
       return (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <Typography variant="h6" color="text.secondary">
-            {keyword || worksheetFilters.salesName || worksheetFilters.status
-              ? "No matching worksheets found."
+            {debouncedKeyword ||
+            worksheetFilters.salesName ||
+            worksheetFilters.dueDateFrom ||
+            worksheetFilters.examDateFrom ||
+            worksheetFilters.createdDateFrom
+              ? "ค้นหาไม่เจอ"
               : "There is no worksheet data available."}
           </Typography>
         </Box>
@@ -289,14 +307,12 @@ function WorksheetList() {
         ) : null}
       </div>
 
-      {/* Worksheet Filter Component - For admin and manager only */}
-      {(user?.role === "admin" || user?.role === "manager") && (
+      {/* Worksheet Filter Component - For admin, manager, and SUPPORT_SALES */}
+      {(user?.role === "admin" ||
+        user?.role === "manager" ||
+        user?.sub_roles?.some((sr) => sr.msr_code === "SUPPORT_SALES")) && (
         <Box paddingX={3} marginTop={3}>
-          <WorksheetFilter
-            data={data}
-            onFilterChange={handleFilterChange}
-            initialFilters={worksheetFilters}
-          />
+          <WorksheetFilter onFilterChange={handleFilterChange} initialFilters={worksheetFilters} />
         </Box>
       )}
 

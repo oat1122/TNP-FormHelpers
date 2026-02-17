@@ -45,10 +45,18 @@ class WorksheetController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 15);
-        $search = $request->input('search', '');
+        $search = trim($request->input('search', ''));
         $status = $request->input('status', '');
-        $salesName = $request->input('sales_name', '');
+        $salesName = trim($request->input('sales_name', ''));
         $userRole = $request->input('user_role', '');
+
+        // Date filter inputs
+        $dueDateFrom = $request->input('due_date_from', '');
+        $dueDateTo = $request->input('due_date_to', '');
+        $examDateFrom = $request->input('exam_date_from', '');
+        $examDateTo = $request->input('exam_date_to', '');
+        $createdDateFrom = $request->input('created_date_from', '');
+        $createdDateTo = $request->input('created_date_to', '');
 
         $query = Worksheet::where('deleted', '!=', 1)
             ->with(['worksheetStatus', 'customer']);
@@ -60,15 +68,15 @@ class WorksheetController extends Controller
             $customerIds = MasterCustomer::where('cus_name', 'LIKE', "%{$search}%")->pluck('cus_id')->toArray();
 
             $query->where(function ($q) use ($search, $userIds, $customerIds) {
-                $q->where('work_id', 'LIKE', "%{$search}%")
-                  ->orWhere('work_name', 'LIKE', "%{$search}%");
+                $q->where('new_worksheets.work_id', 'LIKE', "%{$search}%")
+                  ->orWhere('new_worksheets.work_name', 'LIKE', "%{$search}%");
 
                 if (!empty($userIds)) {
-                    $q->orWhereIn('user_id', $userIds);
+                    $q->orWhereIn('new_worksheets.user_id', $userIds);
                 }
 
                 if (!empty($customerIds)) {
-                    $q->orWhereIn('customer_id', $customerIds);
+                    $q->orWhereIn('new_worksheets.customer_id', $customerIds);
                 }
             });
         }
@@ -91,7 +99,27 @@ class WorksheetController extends Controller
         // Sales name filter
         if (!empty($salesName)) {
             $salesUserIds = User::where('username', $salesName)->pluck('user_id')->toArray();
-            $query->whereIn('user_id', $salesUserIds);
+            $query->whereIn('new_worksheets.user_id', $salesUserIds);
+        }
+
+        // Date range filters
+        if (!empty($dueDateFrom)) {
+            $query->whereDate('new_worksheets.due_date', '>=', $dueDateFrom);
+        }
+        if (!empty($dueDateTo)) {
+            $query->whereDate('new_worksheets.due_date', '<=', $dueDateTo);
+        }
+        if (!empty($examDateFrom)) {
+            $query->whereDate('new_worksheets.exam_date', '>=', $examDateFrom);
+        }
+        if (!empty($examDateTo)) {
+            $query->whereDate('new_worksheets.exam_date', '<=', $examDateTo);
+        }
+        if (!empty($createdDateFrom)) {
+            $query->whereDate('new_worksheets.date_created', '>=', $createdDateFrom);
+        }
+        if (!empty($createdDateTo)) {
+            $query->whereDate('new_worksheets.date_created', '<=', $createdDateTo);
         }
 
         // Order by work_id (custom ordering) and paginate

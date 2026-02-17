@@ -13,18 +13,30 @@ export const worksheetApi = createApi({
           page = 1,
           per_page = 15,
           search = "",
-          status = "",
           sales_name = "",
           user_role = "",
+          due_date_from = "",
+          due_date_to = "",
+          exam_date_from = "",
+          exam_date_to = "",
+          created_date_from = "",
+          created_date_to = "",
         } = params;
-        const queryParams = new URLSearchParams({
+        const qp = {
           page: page.toString(),
           per_page: per_page.toString(),
           search,
-          status,
           sales_name,
           user_role,
-        }).toString();
+        };
+        // Only include non-empty date params
+        if (due_date_from) qp.due_date_from = due_date_from;
+        if (due_date_to) qp.due_date_to = due_date_to;
+        if (exam_date_from) qp.exam_date_from = exam_date_from;
+        if (exam_date_to) qp.exam_date_to = exam_date_to;
+        if (created_date_from) qp.created_date_from = created_date_from;
+        if (created_date_to) qp.created_date_to = created_date_to;
+        const queryParams = new URLSearchParams(qp).toString();
         return `worksheets?${queryParams}`;
       },
       providesTags: ["Worksheet"],
@@ -32,12 +44,28 @@ export const worksheetApi = createApi({
       serializeQueryArgs: ({ queryArgs }) => {
         const {
           search = "",
-          status = "",
           sales_name = "",
           user_role = "",
           per_page = 15,
+          due_date_from = "",
+          due_date_to = "",
+          exam_date_from = "",
+          exam_date_to = "",
+          created_date_from = "",
+          created_date_to = "",
         } = queryArgs || {};
-        return { search, status, sales_name, user_role, per_page };
+        return {
+          search,
+          sales_name,
+          user_role,
+          per_page,
+          due_date_from,
+          due_date_to,
+          exam_date_from,
+          exam_date_to,
+          created_date_from,
+          created_date_to,
+        };
       },
       // Merge pages for infinite scroll
       merge: (currentCache, newItems, { arg }) => {

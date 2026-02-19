@@ -127,6 +127,20 @@ const BasicInfoCard = ({
               )}
             </Box>
           </Grid>
+          {/* Production Time */}
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              size="small"
+              label="ระยะเวลาการผลิต (Production Time)"
+              value={form.sp_production_time || ""}
+              onChange={handleChange("sp_production_time")}
+              disabled={isView}
+              placeholder="e.g. 7-14 วัน"
+              InputProps={{ style: { fontFamily: "Kanit" } }}
+              InputLabelProps={{ style: { fontFamily: "Kanit" } }}
+            />
+          </Grid>
         </Grid>
       </CardContent>
     </Card>

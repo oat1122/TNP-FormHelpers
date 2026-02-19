@@ -44,6 +44,7 @@ class SupplierProduct extends Model
         'sp_exchange_date',
         'sp_unit',
         'sp_cover_image',
+        'sp_production_time',
         'sp_is_active',
         'sp_is_deleted',
         'sp_created_by',
@@ -88,6 +89,11 @@ class SupplierProduct extends Model
     {
         return $this->hasMany(SupplierPriceTier::class, 'sptier_sp_id', 'sp_id')
             ->orderBy('sptier_sort_order');
+    }
+
+    public function options(): HasMany
+    {
+        return $this->hasMany(SupplierProductOption::class, 'spo_sp_id', 'sp_id');
     }
 
     public function createdByUser(): BelongsTo

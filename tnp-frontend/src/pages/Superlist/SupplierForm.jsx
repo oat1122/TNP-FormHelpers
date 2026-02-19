@@ -55,6 +55,7 @@ import {
   TagsCard,
   PricingCard,
   PriceTiersCard,
+  CustomizationCard,
 } from "./components";
 import {
   useSupplierForm,
@@ -75,6 +76,8 @@ const SupplierForm = ({ mode: propMode }) => {
     setForm,
     selectedTags,
     setSelectedTags,
+    options,
+    setOptions,
     saving,
     setSaving,
     loadingProduct,
@@ -144,6 +147,13 @@ const SupplierForm = ({ mode: propMode }) => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedOptionIds, setSelectedOptionIds] = useState([]);
+
+  const handleOptionToggle = (optionId) => {
+    setSelectedOptionIds((prev) =>
+      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId]
+    );
+  };
 
   // Find selected seller object for Autocomplete
   const selectedSeller = sellers.find((s) => s.ss_id === form.sp_ss_id) || null;
@@ -176,6 +186,7 @@ const SupplierForm = ({ mode: propMode }) => {
         sp_exchange_rate: form.sp_exchange_rate ? parseFloat(form.sp_exchange_rate) : null,
         tag_ids: selectedTags.map((t) => t.spt_id),
         price_tiers: priceTiers,
+        options: options,
       };
 
       let productId = id;
@@ -259,6 +270,15 @@ const SupplierForm = ({ mode: propMode }) => {
         convertingCurrency={convertingCurrency}
       />
 
+      {/* Customizations */}
+      <CustomizationCard
+        options={options}
+        setOptions={setOptions}
+        isView={isView}
+        selectedOptionIds={selectedOptionIds}
+        handleOptionToggle={handleOptionToggle}
+      />
+
       {/* Price Scaling */}
       <PriceTiersCard
         priceTiers={priceTiers}
@@ -269,6 +289,8 @@ const SupplierForm = ({ mode: propMode }) => {
         handleTierQtyChange={handleTierQtyChange}
         handleTierPriceChange={handleTierPriceChange}
         handleRemoveTier={handleRemoveTier}
+        selectedOptionIds={selectedOptionIds}
+        allOptions={options}
       />
 
       {/* Images */}

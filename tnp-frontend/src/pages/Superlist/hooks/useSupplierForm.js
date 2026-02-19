@@ -45,6 +45,7 @@ export const useSupplierForm = (mode) => {
   });
 
   const [selectedTags, setSelectedTags] = useState([]);
+  const [options, setOptions] = useState([]);
   const [saving, setSaving] = useState(false);
 
   // API
@@ -80,8 +81,28 @@ export const useSupplierForm = (mode) => {
         sp_exchange_rate: p.sp_exchange_rate || "",
         sp_exchange_date: p.sp_exchange_date || "",
         sp_unit: p.sp_unit || "ชิ้น",
+        sp_production_time: p.sp_production_time || "",
       });
       setSelectedTags(p.tags || []);
+
+      // Populate options
+      // Backend returns options with tiers. We map them to our internal structure if needed.
+      // Assuming backend returns: options: [{ spo_name, tiers: [...] }, ...]
+      if (p.options) {
+        setOptions(
+          p.options.map((opt) => ({
+            spo_name: opt.spo_name,
+            spo_id: opt.spo_id,
+            tiers: opt.tiers
+              ? opt.tiers.map((t) => ({
+                  min_qty: t.spot_min_qty,
+                  max_qty: t.spot_max_qty,
+                  price: t.spot_price,
+                }))
+              : [],
+          }))
+        );
+      }
     }
   }, [productData, isEdit, isView]);
 
@@ -160,6 +181,8 @@ export const useSupplierForm = (mode) => {
     setForm,
     selectedTags,
     setSelectedTags,
+    options,
+    setOptions,
     saving,
     setSaving,
     loadingProduct,

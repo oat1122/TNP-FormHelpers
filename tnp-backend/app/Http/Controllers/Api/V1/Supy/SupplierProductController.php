@@ -24,7 +24,7 @@ class SupplierProductController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = SupplierProduct::with(['category', 'images', 'tags', 'priceTiers', 'createdByUser'])
+            $query = SupplierProduct::with(['category', 'images', 'tags', 'priceTiers', 'options.tiers', 'createdByUser'])
                 ->where('sp_is_deleted', false);
 
             // Search by name or SKU
@@ -161,6 +161,7 @@ class SupplierProductController extends Controller
                 'sp_exchange_rate' => $request->sp_exchange_rate,
                 'sp_exchange_date' => $request->sp_exchange_date,
                 'sp_unit' => $request->sp_unit ?? 'ชิ้น',
+                'sp_production_time' => $request->sp_production_time,
                 'sp_created_by' => $user?->user_uuid,
                 'sp_updated_by' => $user?->user_uuid,
             ]);
@@ -192,6 +193,31 @@ class SupplierProductController extends Controller
                 }
             }
 
+            // Create options and option tiers
+            if ($request->filled('options')) {
+                foreach ($request->options as $opt) {
+                    $optionId = Str::uuid()->toString();
+                    $option = \App\Models\Supy\SupplierProductOption::create([
+                        'spo_id' => $optionId,
+                        'spo_sp_id' => $productId,
+                        'spo_name' => $opt['spo_name'],
+                        'spo_is_active' => $opt['spo_is_active'] ?? true,
+                    ]);
+
+                    if (!empty($opt['tiers']) && is_array($opt['tiers'])) {
+                        foreach ($opt['tiers'] as $tier) {
+                            \App\Models\Supy\SupplierProductOptionTier::create([
+                                'spot_id' => Str::uuid()->toString(),
+                                'spot_spo_id' => $optionId,
+                                'spot_min_qty' => $tier['min_qty'],
+                                'spot_max_qty' => $tier['max_qty'] ?? null,
+                                'spot_price' => $tier['price'],
+                            ]);
+                        }
+                    }
+                }
+            }
+
             DB::commit();
 
             $product->load(['category', 'images', 'tags', 'priceTiers', 'createdByUser']);
@@ -213,7 +239,7 @@ class SupplierProductController extends Controller
     public function show($id)
     {
         try {
-            $product = SupplierProduct::with(['category', 'images', 'tags', 'priceTiers', 'createdByUser', 'updatedByUser'])
+            $product = SupplierProduct::with(['category', 'images', 'tags', 'priceTiers', 'options.tiers', 'createdByUser', 'updatedByUser'])
                 ->where('sp_is_deleted', false)
                 ->findOrFail($id);
 
@@ -253,6 +279,7 @@ class SupplierProductController extends Controller
                 'sp_exchange_rate' => $request->sp_exchange_rate ?? $product->sp_exchange_rate,
                 'sp_exchange_date' => $request->sp_exchange_date ?? $product->sp_exchange_date,
                 'sp_unit' => $request->sp_unit ?? $product->sp_unit,
+                'sp_production_time' => $request->sp_production_time ?? $product->sp_production_time,
                 'sp_updated_by' => $user?->user_uuid,
             ]);
 
@@ -290,6 +317,38 @@ class SupplierProductController extends Controller
                         'sptier_is_auto' => $tier['is_auto'] ?? true,
                         'sptier_sort_order' => $index,
                     ]);
+                }
+            }
+
+            // Update options if provided
+            if ($request->has('options')) {
+                // Strategy: Delete all existing options and re-create (simplest for nested structures)
+                // Alternatively, could try to sync, but full replacement is safer for complex nested data
+                
+                // First, find existing options to delete their tiers (cascade should handle it, but explicit is clear)
+                // Actually database cascade on delete handles tiers.
+                \App\Models\Supy\SupplierProductOption::where('spo_sp_id', $id)->delete();
+
+                foreach ($request->options as $opt) {
+                    $optionId = Str::uuid()->toString();
+                    $option = \App\Models\Supy\SupplierProductOption::create([
+                        'spo_id' => $optionId,
+                        'spo_sp_id' => $id,
+                        'spo_name' => $opt['spo_name'],
+                        'spo_is_active' => $opt['spo_is_active'] ?? true,
+                    ]);
+
+                    if (!empty($opt['tiers']) && is_array($opt['tiers'])) {
+                        foreach ($opt['tiers'] as $tier) {
+                            \App\Models\Supy\SupplierProductOptionTier::create([
+                                'spot_id' => Str::uuid()->toString(),
+                                'spot_spo_id' => $optionId,
+                                'spot_min_qty' => $tier['min_qty'],
+                                'spot_max_qty' => $tier['max_qty'] ?? null,
+                                'spot_price' => $tier['price'],
+                            ]);
+                        }
+                    }
                 }
             }
 

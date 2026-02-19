@@ -31,7 +31,43 @@ const PriceTiersCard = ({
   handleTierQtyChange,
   handleTierPriceChange,
   handleRemoveTier,
+  selectedOptionIds = [],
+  allOptions = [],
 }) => {
+  // Helper to calculate total price for a specific tier qty
+  const calculateTotalPrice = (tierQty, tierPrice) => {
+    let totalOptionCost = 0;
+
+    // For each selected option, find the matching tier price
+    selectedOptionIds.forEach((optId) => {
+      const option = allOptions.find((o) => o.spo_id === optId);
+      if (option && option.tiers) {
+        // Find tier that matches current qty
+        // Tiers typically defined by min_qty. We use the highest min_qty <= tierQty
+        // Actually, supplier typically sets option price tiers.
+        // If option has tiers: 1-100: 10, 101+: 8
+        // If product tier min_qty is 50, option price is 10.
+        // If product tier min_qty is 200, option price is 8.
+
+        const sortedTiers = [...option.tiers].sort((a, b) => a.min_qty - b.min_qty);
+        let applicableTier = sortedTiers[0];
+
+        // Find the specific tier for this quantity
+        for (const t of sortedTiers) {
+          if (tierQty >= t.min_qty) {
+            applicableTier = t;
+          }
+        }
+
+        if (applicableTier) {
+          totalOptionCost += parseFloat(applicableTier.price || 0);
+        }
+      }
+    });
+
+    return (parseFloat(tierPrice || 0) + totalOptionCost).toFixed(2);
+  };
+
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
@@ -91,6 +127,11 @@ const PriceTiersCard = ({
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>จำนวนขั้นต่ำ</TableCell>
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>จำนวนสูงสุด</TableCell>
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>ราคาต่อหน่วย</TableCell>
+                  {isView && selectedOptionIds.length > 0 && (
+                    <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600, color: PRIMARY_RED }}>
+                      ราคารวม (หน่วย+options)
+                    </TableCell>
+                  )}
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>ประเภท</TableCell>
                   {!isView && (
                     <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }} align="center">
@@ -136,6 +177,15 @@ const PriceTiersCard = ({
                         InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                       />
                     </TableCell>
+                    {isView && selectedOptionIds.length > 0 && (
+                      <TableCell>
+                        <Typography
+                          sx={{ fontFamily: "Kanit", fontWeight: 600, color: PRIMARY_RED }}
+                        >
+                          {calculateTotalPrice(tier.min_qty, tier.price)}
+                        </Typography>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Chip
                         label={tier.is_auto ? "Auto" : "Manual"}

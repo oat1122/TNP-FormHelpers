@@ -31,7 +31,7 @@ export const useSupplierForm = (mode) => {
     sp_name: "",
     sp_description: "",
     sp_sku: "",
-    sp_mpc_id: "",
+    sp_spc_id: "",
     sp_ss_id: "",
     sp_origin_country: "",
     sp_supplier_name: "",
@@ -69,7 +69,7 @@ export const useSupplierForm = (mode) => {
         sp_name: p.sp_name || "",
         sp_description: p.sp_description || "",
         sp_sku: p.sp_sku || "",
-        sp_mpc_id: p.sp_mpc_id || "",
+        sp_spc_id: p.sp_spc_id || "",
         sp_ss_id: p.sp_ss_id || "",
         sp_origin_country: p.sp_origin_country || "",
         sp_supplier_name: p.sp_supplier_name || "",
@@ -114,7 +114,7 @@ export const useSupplierForm = (mode) => {
   // Category change → auto generate SKU (create mode only)
   const handleCategoryChange = async (e) => {
     const categoryId = e.target.value;
-    setForm((prev) => ({ ...prev, sp_mpc_id: categoryId }));
+    setForm((prev) => ({ ...prev, sp_spc_id: categoryId }));
 
     if (isCreate && categoryId) {
       try {

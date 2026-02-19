@@ -265,7 +265,7 @@ const SupplierPdfDocument = ({ products }) => (
                 <Text style={styles.cellText}>{product.sp_sku || "-"}</Text>
               </View>
               <View style={styles.tableColCategory}>
-                <Text style={styles.cellText}>{product.category?.mpc_name || "-"}</Text>
+                <Text style={styles.cellText}>{product.category?.spc_name || "-"}</Text>
               </View>
               <View style={styles.tableColPrice}>
                 <Text style={styles.priceText}>
@@ -332,7 +332,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
     }
 
     if (filterCategory) {
-      result = result.filter((p) => p.sp_mpc_id === filterCategory);
+      result = result.filter((p) => p.sp_spc_id === filterCategory);
     }
 
     if (filterTags.length > 0) {
@@ -440,8 +440,8 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                       ทั้งหมด
                     </MenuItem>
                     {categories.map((cat) => (
-                      <MenuItem key={cat.mpc_id} value={cat.mpc_id} sx={{ fontFamily: "Kanit" }}>
-                        {cat.mpc_name}
+                      <MenuItem key={cat.spc_id} value={cat.spc_id} sx={{ fontFamily: "Kanit" }}>
+                        {cat.spc_name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -608,7 +608,7 @@ const SupplierPdf = ({ open, onClose, products, tags = [], categories = [] }) =>
                       primary={product.sp_name}
                       secondary={[
                         product.sp_sku && `SKU: ${product.sp_sku}`,
-                        product.category?.mpc_name,
+                        product.category?.spc_name,
                         product.sp_supplier_name,
                       ]
                         .filter(Boolean)

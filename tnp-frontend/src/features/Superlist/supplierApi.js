@@ -100,9 +100,7 @@ export const supplierApi = createApi({
     // ==================== Tags ====================
     getTags: builder.query({
       query: (params) => {
-        const queryString = params?.search
-          ? qs.stringify({ search: params.search })
-          : "";
+        const queryString = params?.search ? qs.stringify({ search: params.search }) : "";
         return {
           url: queryString ? `/supplier/tags?${queryString}` : `/supplier/tags`,
           method: "GET",
@@ -160,6 +158,11 @@ export const supplierApi = createApi({
       }),
     }),
 
+    getSupplierCountries: builder.query({
+      query: () => "/supplier/sellers/countries",
+      providesTags: ["Supplier"],
+    }),
+
     getNextSku: builder.query({
       query: (categoryId) => `/supplier/categories/${categoryId}/next-sku`,
     }),
@@ -167,9 +170,7 @@ export const supplierApi = createApi({
     // ==================== Sellers ====================
     getSellers: builder.query({
       query: (params) => {
-        const queryString = params?.search
-          ? qs.stringify({ search: params.search })
-          : "";
+        const queryString = params?.search ? qs.stringify({ search: params.search }) : "";
         return {
           url: queryString ? `/supplier/sellers?${queryString}` : `/supplier/sellers`,
           method: "GET",
@@ -228,6 +229,7 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useLazyGetNextSkuQuery,
+  useGetSupplierCountriesQuery,
   useGetSellersQuery,
   useAddSellerMutation,
   useUpdateSellerMutation,

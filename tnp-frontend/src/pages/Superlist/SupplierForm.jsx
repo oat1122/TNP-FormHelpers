@@ -143,6 +143,7 @@ const SupplierForm = ({ mode: propMode }) => {
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [sellerDialogOpen, setSellerDialogOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
   // Find selected seller object for Autocomplete
   const selectedSeller = sellers.find((s) => s.ss_id === form.sp_ss_id) || null;
@@ -226,6 +227,7 @@ const SupplierForm = ({ mode: propMode }) => {
         handleCategoryChange={handleCategoryChange}
         categories={categories}
         isView={isView}
+        isCreate={isCreate}
         onOpenCategory={() => setCategoryDialogOpen(true)}
       />
 
@@ -315,12 +317,15 @@ const SupplierForm = ({ mode: propMode }) => {
                       src={`${getBackendOrigin()}/storage/${img.spi_file_path}`}
                       alt={img.spi_original_name}
                       loading="lazy"
-                      style={{ height: 120, objectFit: "cover" }}
+                      style={{ height: 120, objectFit: "cover", cursor: "pointer" }}
+                      onClick={() =>
+                        setPreviewImage(`${getBackendOrigin()}/storage/${img.spi_file_path}`)
+                      }
                     />
                     <ImageListItemBar
-                      sx={{ background: "rgba(0,0,0,0.5)" }}
+                      sx={{ background: "rgba(0,0,0,0.5)", pointerEvents: "none" }}
                       actionIcon={
-                        <Box sx={{ display: "flex" }}>
+                        <Box sx={{ display: "flex", pointerEvents: "auto" }}>
                           {!isView && (
                             <>
                               <Tooltip title={img.spi_is_cover ? "รูปปกปัจจุบัน" : "ตั้งเป็นรูปปก"}>
@@ -386,15 +391,16 @@ const SupplierForm = ({ mode: propMode }) => {
                     <img
                       src={preview.url}
                       alt={preview.name}
-                      style={{ height: 120, objectFit: "cover" }}
+                      style={{ height: 120, objectFit: "cover", cursor: "pointer" }}
+                      onClick={() => setPreviewImage(preview.url)}
                     />
                     <ImageListItemBar
-                      sx={{ background: "rgba(0,0,0,0.5)" }}
+                      sx={{ background: "rgba(0,0,0,0.5)", pointerEvents: "none" }}
                       actionIcon={
                         <IconButton
                           size="small"
                           onClick={() => handleRemoveNewImage(idx)}
-                          sx={{ color: "white" }}
+                          sx={{ color: "white", pointerEvents: "auto" }}
                         >
                           <MdClose size={16} />
                         </IconButton>
@@ -629,6 +635,48 @@ const SupplierForm = ({ mode: propMode }) => {
             ยืนยัน — สร้าง {formulaTiers.length} ขั้นราคา
           </Button>
         </DialogActions>
+      </Dialog>
+      {/* ==================== Image Preview Dialog ==================== */}
+      <Dialog
+        open={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        maxWidth="lg"
+        onClick={() => setPreviewImage(null)}
+        sx={{ "& .MuiDialog-paper": { bgcolor: "transparent", boxShadow: "none" } }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            outline: "none",
+          }}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: 4,
+            }}
+          />
+          <IconButton
+            onClick={() => setPreviewImage(null)}
+            sx={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              color: "white",
+              bgcolor: "rgba(0,0,0,0.5)",
+              "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+            }}
+          >
+            <MdClose />
+          </IconButton>
+        </Box>
       </Dialog>
     </Box>
   );

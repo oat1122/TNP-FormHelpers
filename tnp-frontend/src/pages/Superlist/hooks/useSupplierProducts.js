@@ -2,11 +2,12 @@ import { useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
 
-import { useGetAllProductCateQuery } from "../../../features/globalApi";
 import {
   useGetProductsQuery,
   useDeleteProductMutation,
   useGetTagsQuery,
+  useGetCategoriesQuery,
+  useGetSupplierCountriesQuery,
 } from "../../../features/Superlist/supplierApi";
 import {
   setFilters,
@@ -58,13 +59,15 @@ export const useSupplierProducts = () => {
   });
 
   const { data: tagsData } = useGetTagsQuery();
-  const { data: categoriesData } = useGetAllProductCateQuery();
+  const { data: categoriesData } = useGetCategoriesQuery();
+  const { data: countriesData } = useGetSupplierCountriesQuery();
   const [deleteProduct] = useDeleteProductMutation();
 
   const products = productsData?.data || [];
   const meta = productsData?.meta || {};
   const tags = tagsData?.data || [];
-  const categories = categoriesData?.data || [];
+  const categories = categoriesData?.data?.data || categoriesData?.data || [];
+  const countries = countriesData?.data || [];
 
   const handleDelete = async (product) => {
     const result = await Swal.fire({
@@ -109,8 +112,23 @@ export const useSupplierProducts = () => {
     dispatch(setPaginationModel({ ...paginationModel, page: 0 }));
   };
 
-  const handleSortChange = (field) => {
-    const newDir = filters.sort_by === field && filters.sort_dir === "asc" ? "desc" : "asc";
+  // For Autocomplete (array of IDs)
+  const handleTagsChange = (newTags) => {
+    dispatch(setFilters({ tags: newTags }));
+    dispatch(setPaginationModel({ ...paginationModel, page: 0 }));
+  };
+
+  const handleCountryChange = (country) => {
+    dispatch(setFilters({ country }));
+    dispatch(setPaginationModel({ ...paginationModel, page: 0 }));
+  };
+
+  const handleSortChange = (field, dir) => {
+    // If direction is provided, use it. Otherwise toggle if same field, or default to asc.
+    let newDir = dir;
+    if (!newDir) {
+      newDir = filters.sort_by === field && filters.sort_dir === "asc" ? "desc" : "asc";
+    }
     dispatch(setFilters({ sort_by: field, sort_dir: newDir }));
   };
 
@@ -133,6 +151,7 @@ export const useSupplierProducts = () => {
     meta,
     tags,
     categories,
+    countries,
     filters,
     paginationModel,
 
@@ -156,6 +175,8 @@ export const useSupplierProducts = () => {
     handlePageChange,
     handleCategoryFilter,
     handleTagFilter,
+    handleTagsChange,
+    handleCountryChange,
     handleSortChange,
     handleResetFilters,
   };

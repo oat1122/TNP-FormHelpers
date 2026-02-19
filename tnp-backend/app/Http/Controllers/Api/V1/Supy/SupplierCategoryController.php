@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Supy;
 
 use App\Http\Controllers\Controller;
-use App\Models\MasterProductCategory;
+use App\Models\Supy\SupplierProductCategory;
 use App\Models\Supy\SupplierProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,9 +17,9 @@ class SupplierCategoryController extends Controller
     public function index()
     {
         try {
-            $categories = MasterProductCategory::where('mpc_is_deleted', false)
-                ->select('mpc_id', 'mpc_name', 'mpc_sku_prefix', 'mpc_remark')
-                ->orderBy('mpc_name')
+            $categories = SupplierProductCategory::where('spc_is_deleted', false)
+                ->select('spc_id', 'spc_name', 'spc_sku_prefix', 'spc_remark')
+                ->orderBy('spc_name')
                 ->get();
 
             return response()->json(['data' => $categories]);
@@ -35,15 +35,15 @@ class SupplierCategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'mpc_name' => 'required|string|max:100',
-            'mpc_sku_prefix' => 'nullable|string|max:10',
-            'mpc_remark' => 'nullable|string',
+            'spc_name' => 'required|string|max:100',
+            'spc_sku_prefix' => 'nullable|string|max:10',
+            'spc_remark' => 'nullable|string',
         ]);
 
         try {
             // Check duplicate name
-            $exists = MasterProductCategory::where('mpc_name', $request->mpc_name)
-                ->where('mpc_is_deleted', false)
+            $exists = SupplierProductCategory::where('spc_name', $request->spc_name)
+                ->where('spc_is_deleted', false)
                 ->exists();
 
             if ($exists) {
@@ -51,16 +51,17 @@ class SupplierCategoryController extends Controller
             }
 
             // Auto-generate prefix if not provided
-            $prefix = $request->mpc_sku_prefix;
+            $prefix = $request->spc_sku_prefix;
             if (!$prefix) {
-                $prefix = strtoupper(Str::substr(preg_replace('/[^A-Za-z]/', '', $request->mpc_name), 0, 3));
+                $prefix = strtoupper(Str::substr(preg_replace('/[^A-Za-z]/', '', $request->spc_name), 0, 3));
             }
 
-            $category = MasterProductCategory::create([
-                'mpc_id' => Str::uuid()->toString(),
-                'mpc_name' => $request->mpc_name,
-                'mpc_sku_prefix' => strtoupper($prefix),
-                'mpc_remark' => $request->mpc_remark,
+            $category = SupplierProductCategory::create([
+                'spc_id' => Str::uuid()->toString(),
+                'spc_name' => $request->spc_name,
+                'spc_sku_prefix' => strtoupper($prefix),
+                'spc_remark' => $request->spc_remark,
+                'spc_is_deleted' => false,
             ]);
 
             return response()->json(['data' => $category, 'message' => 'สร้างหมวดหมู่สำเร็จ'], 201);
@@ -76,18 +77,18 @@ class SupplierCategoryController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'mpc_name' => 'required|string|max:100',
-            'mpc_sku_prefix' => 'nullable|string|max:10',
-            'mpc_remark' => 'nullable|string',
+            'spc_name' => 'required|string|max:100',
+            'spc_sku_prefix' => 'nullable|string|max:10',
+            'spc_remark' => 'nullable|string',
         ]);
 
         try {
-            $category = MasterProductCategory::findOrFail($id);
+            $category = SupplierProductCategory::findOrFail($id);
 
             // Check duplicate name (exclude self)
-            $exists = MasterProductCategory::where('mpc_name', $request->mpc_name)
-                ->where('mpc_is_deleted', false)
-                ->where('mpc_id', '!=', $id)
+            $exists = SupplierProductCategory::where('spc_name', $request->spc_name)
+                ->where('spc_is_deleted', false)
+                ->where('spc_id', '!=', $id)
                 ->exists();
 
             if ($exists) {
@@ -95,9 +96,9 @@ class SupplierCategoryController extends Controller
             }
 
             $category->update([
-                'mpc_name' => $request->mpc_name,
-                'mpc_sku_prefix' => $request->mpc_sku_prefix ? strtoupper($request->mpc_sku_prefix) : $category->mpc_sku_prefix,
-                'mpc_remark' => $request->mpc_remark,
+                'spc_name' => $request->spc_name,
+                'spc_sku_prefix' => $request->spc_sku_prefix ? strtoupper($request->spc_sku_prefix) : $category->spc_sku_prefix,
+                'spc_remark' => $request->spc_remark,
             ]);
 
             return response()->json(['data' => $category, 'message' => 'แก้ไขหมวดหมู่สำเร็จ']);
@@ -113,10 +114,10 @@ class SupplierCategoryController extends Controller
     public function destroy($id)
     {
         try {
-            $category = MasterProductCategory::findOrFail($id);
+            $category = SupplierProductCategory::findOrFail($id);
 
             // Check if category is in use
-            $inUse = SupplierProduct::where('sp_mpc_id', $id)
+            $inUse = SupplierProduct::where('sp_spc_id', $id)
                 ->where('sp_is_deleted', false)
                 ->exists();
 
@@ -126,7 +127,7 @@ class SupplierCategoryController extends Controller
                 ], 422);
             }
 
-            $category->update(['mpc_is_deleted' => true]);
+            $category->update(['spc_is_deleted' => true]);
 
             return response()->json(['message' => 'ลบหมวดหมู่สำเร็จ']);
         } catch (\Exception $e) {
@@ -137,33 +138,33 @@ class SupplierCategoryController extends Controller
 
     /**
      * Generate next SKU for a category
-     * Format: PREFIX-0001, PREFIX-0002, ...
+     * Format: PREFIX-YYYYMM-NN
      */
     public function nextSku($id)
     {
         try {
-            $category = MasterProductCategory::findOrFail($id);
-            $prefix = $category->mpc_sku_prefix;
+            $category = SupplierProductCategory::findOrFail($id);
+            $prefix = $category->spc_sku_prefix;
 
             if (!$prefix) {
-                $prefix = strtoupper(Str::substr(preg_replace('/[^A-Za-z]/', '', $category->mpc_name), 0, 3));
+                $prefix = strtoupper(Str::substr(preg_replace('/[^A-Za-z]/', '', $category->spc_name), 0, 3));
             }
 
+            $ym = now()->format('Ym');
+            $skuPrefix = "{$prefix}-{$ym}-";
+
             // Count existing products in this category to determine next number
-            $lastProduct = SupplierProduct::where('sp_mpc_id', $id)
-                ->where('sp_sku', 'like', $prefix . '-%')
-                ->orderByRaw("CAST(SUBSTRING(sp_sku, ?) AS UNSIGNED) DESC", [strlen($prefix) + 2])
+            $lastProduct = SupplierProduct::where('sp_sku', 'like', $skuPrefix . '%')
+                ->orderByRaw('LENGTH(sp_sku) DESC')
+                ->orderBy('sp_sku', 'desc')
                 ->first();
 
             $nextNumber = 1;
-            if ($lastProduct && $lastProduct->sp_sku) {
-                $parts = explode('-', $lastProduct->sp_sku);
-                if (count($parts) >= 2) {
-                    $nextNumber = intval(end($parts)) + 1;
-                }
+            if ($lastProduct && preg_match('/-(\d+)$/', $lastProduct->sp_sku, $matches)) {
+                $nextNumber = intval($matches[1]) + 1;
             }
 
-            $sku = $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $sku = $skuPrefix . str_pad($nextNumber, 2, '0', STR_PAD_LEFT);
 
             return response()->json([
                 'data' => [

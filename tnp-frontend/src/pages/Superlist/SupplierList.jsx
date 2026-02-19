@@ -35,6 +35,7 @@ const SupplierList = () => {
     meta,
     tags,
     categories,
+    countries,
     filters,
     paginationModel,
 
@@ -57,6 +58,8 @@ const SupplierList = () => {
     handlePageChange,
     handleCategoryFilter,
     handleTagFilter,
+    handleTagsChange,
+    handleCountryChange,
     handleSortChange,
     handleResetFilters,
   } = useSupplierProducts();
@@ -134,12 +137,13 @@ const SupplierList = () => {
         <FilterPanel
           filters={filters}
           categories={categories}
+          countries={countries}
           tags={tags}
           hasActiveFilters={hasActiveFilters}
           onCategoryChange={handleCategoryFilter}
-          onCountryChange={(country) => handleSortChange("country", country)}
+          onCountryChange={handleCountryChange}
           onSortChange={(field, dir) => handleSortChange(field, dir)}
-          onTagClick={handleTagFilter}
+          onTagClick={handleTagsChange}
           onResetFilters={handleResetFilters}
         />
       )}

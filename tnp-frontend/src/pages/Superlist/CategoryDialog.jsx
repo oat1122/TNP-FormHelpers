@@ -123,9 +123,9 @@ const CategoryDialog = ({ open, onClose }) => {
             </TableHead>
             <TableBody>
               {categories.map((cat) => (
-                <TableRow key={cat.mpc_id}>
+                <TableRow key={cat.spc_id}>
                   <TableCell sx={{ fontFamily: "Kanit" }}>
-                    {editingCategory === cat.mpc_id ? (
+                    {editingCategory === cat.spc_id ? (
                       <TextField
                         size="small"
                         value={editForm.name}
@@ -134,11 +134,11 @@ const CategoryDialog = ({ open, onClose }) => {
                         InputProps={{ style: { fontFamily: "Kanit" } }}
                       />
                     ) : (
-                      cat.mpc_name
+                      cat.spc_name
                     )}
                   </TableCell>
                   <TableCell sx={{ fontFamily: "Kanit" }}>
-                    {editingCategory === cat.mpc_id ? (
+                    {editingCategory === cat.spc_id ? (
                       <TextField
                         size="small"
                         value={editForm.prefix}
@@ -147,11 +147,11 @@ const CategoryDialog = ({ open, onClose }) => {
                         InputProps={{ style: { fontFamily: "Kanit" } }}
                       />
                     ) : (
-                      cat.mpc_sku_prefix || "-"
+                      cat.spc_sku_prefix || "-"
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    {editingCategory === cat.mpc_id ? (
+                    {editingCategory === cat.spc_id ? (
                       <>
                         <IconButton
                           size="small"

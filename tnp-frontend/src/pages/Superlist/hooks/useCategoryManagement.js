@@ -33,8 +33,8 @@ export const useCategoryManagement = () => {
     }
     try {
       await addCategory({
-        mpc_name: newCategory.name,
-        mpc_sku_prefix: newCategory.prefix,
+        spc_name: newCategory.name,
+        spc_sku_prefix: newCategory.prefix,
       }).unwrap();
       setNewCategory({ name: "", prefix: "" });
       refetch();
@@ -44,10 +44,10 @@ export const useCategoryManagement = () => {
   };
 
   const handleStartEdit = (cat) => {
-    setEditingCategory(cat.mpc_id);
+    setEditingCategory(cat.spc_id);
     setEditForm({
-      name: cat.mpc_name,
-      prefix: cat.mpc_sku_prefix || "",
+      name: cat.spc_name,
+      prefix: cat.spc_sku_prefix || "",
     });
   };
 
@@ -63,8 +63,8 @@ export const useCategoryManagement = () => {
     try {
       await updateCategory({
         id: editingCategory,
-        mpc_name: editForm.name,
-        mpc_sku_prefix: editForm.prefix,
+        spc_name: editForm.name,
+        spc_sku_prefix: editForm.prefix,
       }).unwrap();
       setEditingCategory(null);
       refetch();
@@ -76,7 +76,7 @@ export const useCategoryManagement = () => {
   const handleDelete = async (cat) => {
     const result = await Swal.fire({
       title: "ยืนยันการลบ",
-      text: `ต้องการลบหมวดหมู่ "${cat.mpc_name}" หรือไม่?`,
+      text: `ต้องการลบหมวดหมู่ "${cat.spc_name}" หรือไม่?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: PRIMARY_RED,
@@ -85,7 +85,7 @@ export const useCategoryManagement = () => {
     });
     if (result.isConfirmed) {
       try {
-        await deleteCategory(cat.mpc_id).unwrap();
+        await deleteCategory(cat.spc_id).unwrap();
         refetch();
       } catch (err) {
         Swal.fire("ผิดพลาด", err?.data?.message || "ลบไม่สำเร็จ", "error");

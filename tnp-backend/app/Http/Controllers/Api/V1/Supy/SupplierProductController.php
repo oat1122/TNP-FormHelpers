@@ -8,6 +8,7 @@ use App\Models\Supy\SupplierProductImage;
 use App\Models\Supy\SupplierProductTag;
 use App\Models\Supy\SupplierProductTagRelation;
 use App\Models\Supy\SupplierPriceTier;
+use App\Models\Supy\SupplierProductCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -38,7 +39,7 @@ class SupplierProductController extends Controller
 
             // Filter by category
             if ($request->filled('category')) {
-                $query->where('sp_mpc_id', $request->category);
+                $query->where('sp_spc_id', $request->category);
             }
 
             // Filter by tags
@@ -57,9 +58,11 @@ class SupplierProductController extends Controller
                 $query->where('sp_price_thb', '<=', $request->max_price);
             }
 
-            // Filter by origin country
+            // Filter by origin country (from Seller)
             if ($request->filled('country')) {
-                $query->where('sp_origin_country', $request->country);
+                $query->whereHas('seller', function ($q) use ($request) {
+                    $q->where('ss_country', $request->country);
+                });
             }
 
             // Filter by currency
@@ -102,6 +105,8 @@ class SupplierProductController extends Controller
         }
     }
 
+
+
     /**
      * Store a new product
      */
@@ -110,6 +115,7 @@ class SupplierProductController extends Controller
         $request->validate([
             'sp_name' => 'required|string|max:255',
             'sp_base_price' => 'required|numeric|min:0',
+            'sp_spc_id' => 'required|exists:supplier_product_categories,spc_id',
         ]);
 
         try {
@@ -118,14 +124,34 @@ class SupplierProductController extends Controller
             $user = $request->user();
             $productId = Str::uuid()->toString();
 
+            // Generate SKU
+            $category = SupplierProductCategory::findOrFail($request->sp_spc_id);
+            $prefix = $category->spc_sku_prefix; // e.g. "TNP"
+            $ym = now()->format('Ym'); // e.g. "202402"
+            $skuPrefix = "{$prefix}-{$ym}-"; // "TNP-202402-"
+
+            // Find last running number for this prefix + month
+            $lastProduct = SupplierProduct::where('sp_sku', 'like', "{$skuPrefix}%")
+                ->orderByRaw('LENGTH(sp_sku) DESC') // Make sure to get longest string if length varies
+                ->orderBy('sp_sku', 'desc')
+                ->first();
+
+            $nextNum = 1;
+            if ($lastProduct && preg_match('/-(\d+)$/', $lastProduct->sp_sku, $matches)) {
+                $nextNum = intval($matches[1]) + 1;
+            }
+
+            $sp_sku = $skuPrefix . str_pad($nextNum, 2, '0', STR_PAD_LEFT);
+
             // Create product
             $product = SupplierProduct::create([
                 'sp_id' => $productId,
-                'sp_mpc_id' => $request->sp_mpc_id,
+                'sp_mpc_id' => null, // Deprecated
+                'sp_spc_id' => $request->sp_spc_id,
                 'sp_ss_id' => $request->sp_ss_id,
                 'sp_name' => $request->sp_name,
                 'sp_description' => $request->sp_description,
-                'sp_sku' => $request->sp_sku,
+                'sp_sku' => $sp_sku,
                 'sp_origin_country' => $request->sp_origin_country,
                 'sp_supplier_name' => $request->sp_supplier_name,
                 'sp_supplier_contact' => $request->sp_supplier_contact,
@@ -213,7 +239,7 @@ class SupplierProductController extends Controller
             $user = $request->user();
 
             $product->update([
-                'sp_mpc_id' => $request->sp_mpc_id ?? $product->sp_mpc_id,
+                'sp_spc_id' => $request->sp_spc_id ?? $product->sp_spc_id,
                 'sp_ss_id' => $request->has('sp_ss_id') ? $request->sp_ss_id : $product->sp_ss_id,
                 'sp_name' => $request->sp_name ?? $product->sp_name,
                 'sp_description' => $request->sp_description ?? $product->sp_description,

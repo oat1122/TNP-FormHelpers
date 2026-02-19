@@ -43,6 +43,30 @@ class SupplierSellerController extends Controller
     }
 
     /**
+     * Get unique countries from active sellers
+     */
+    public function getCountries()
+    {
+        try {
+            $countries = SupplierSeller::where('ss_is_deleted', false)
+                ->whereNotNull('ss_country')
+                ->where('ss_country', '!=', '')
+                ->distinct()
+                ->pluck('ss_country')
+                ->sort()
+                ->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $countries,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('SupplierSeller getCountries error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Create a new seller
      */
     public function store(Request $request)

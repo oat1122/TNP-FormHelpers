@@ -28,7 +28,8 @@ class SupplierProduct extends Model
 
     protected $fillable = [
         'sp_id',
-        'sp_mpc_id',
+        'sp_mpc_id', // Deprecated
+        'sp_spc_id', // New category FK
         'sp_ss_id',
         'sp_name',
         'sp_description',
@@ -51,7 +52,7 @@ class SupplierProduct extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(MasterProductCategory::class, 'sp_mpc_id', 'mpc_id');
+        return $this->belongsTo(SupplierProductCategory::class, 'sp_spc_id', 'spc_id');
     }
 
     public function seller(): BelongsTo

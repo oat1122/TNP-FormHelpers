@@ -25,6 +25,7 @@ const BasicInfoCard = ({
   handleCategoryChange,
   categories,
   isView,
+  isCreate,
   onOpenCategory,
 }) => {
   return (
@@ -55,9 +56,11 @@ const BasicInfoCard = ({
               label="SKU"
               value={form.sp_sku}
               onChange={handleChange("sp_sku")}
-              disabled={isView}
-              InputProps={{ style: { fontFamily: "Kanit" } }}
+              disabled={true}
+              helperText={isCreate ? "Auto-generated" : ""}
+              InputProps={{ style: { fontFamily: "Kanit", backgroundColor: "#f5f5f5" } }}
               InputLabelProps={{ style: { fontFamily: "Kanit" } }}
+              FormHelperTextProps={{ style: { fontFamily: "Kanit" } }}
             />
           </Grid>
           {/* Unit */}
@@ -94,7 +97,7 @@ const BasicInfoCard = ({
               <FormControl fullWidth size="small">
                 <InputLabel sx={{ fontFamily: "Kanit" }}>หมวดหมู่</InputLabel>
                 <Select
-                  value={form.sp_mpc_id}
+                  value={form.sp_spc_id}
                   label="หมวดหมู่"
                   onChange={handleCategoryChange}
                   disabled={isView}
@@ -104,9 +107,9 @@ const BasicInfoCard = ({
                     -- ไม่ระบุ --
                   </MenuItem>
                   {categories.map((cat) => (
-                    <MenuItem key={cat.mpc_id} value={cat.mpc_id} sx={{ fontFamily: "Kanit" }}>
-                      {cat.mpc_name}
-                      {cat.mpc_sku_prefix && ` [${cat.mpc_sku_prefix}]`}
+                    <MenuItem key={cat.spc_id} value={cat.spc_id} sx={{ fontFamily: "Kanit" }}>
+                      {cat.spc_name}
+                      {cat.spc_sku_prefix && ` [${cat.spc_sku_prefix}]`}
                     </MenuItem>
                   ))}
                 </Select>

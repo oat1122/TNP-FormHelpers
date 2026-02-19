@@ -148,6 +148,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/categories/{id}/next-sku', [SupplierCategoryController::class, 'nextSku']);
 
         // Sellers
+        Route::get('/sellers/countries', [SupplierSellerController::class, 'getCountries']);
         Route::get('/sellers', [SupplierSellerController::class, 'index']);
         Route::post('/sellers', [SupplierSellerController::class, 'store']);
         Route::put('/sellers/{id}', [SupplierSellerController::class, 'update']);

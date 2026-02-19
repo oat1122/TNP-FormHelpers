@@ -94,7 +94,7 @@ const ProductCard = ({ product, onDelete, isAdmin }) => {
 
         {product.category && (
           <Chip
-            label={product.category.mpc_name}
+            label={product.category.spc_name}
             size="small"
             sx={{
               mt: 0.5,

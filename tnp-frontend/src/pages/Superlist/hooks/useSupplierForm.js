@@ -96,7 +96,9 @@ export const useSupplierForm = (mode) => {
         ...prev,
         sp_ss_id: seller.ss_id,
         sp_supplier_name: seller.ss_company_name || "",
-        sp_supplier_contact: [seller.ss_phone, seller.ss_contact_person].filter(Boolean).join(" / "),
+        sp_supplier_contact: [seller.ss_phone, seller.ss_contact_person]
+          .filter(Boolean)
+          .join(" / "),
         sp_origin_country: seller.ss_country || prev.sp_origin_country,
       }));
     } else {
@@ -161,6 +163,9 @@ export const useSupplierForm = (mode) => {
     saving,
     setSaving,
     loadingProduct,
+
+    // Raw product data (for populating images / price tiers in parent)
+    productData,
 
     // Data
     tags,

@@ -7,8 +7,8 @@ import {
   useUpdateSellerMutation,
   useDeleteSellerMutation,
   useLazyGetSellerPhoneLogsQuery,
-} from "../../../features/Superlist/supplierApi";
-import { PRIMARY_RED } from "../utils";
+} from "../../../../../features/Superlist/supplierApi";
+import { PRIMARY_RED } from "../../../utils";
 
 /**
  * Custom hook for managing sellers (CRUD + phone logs)

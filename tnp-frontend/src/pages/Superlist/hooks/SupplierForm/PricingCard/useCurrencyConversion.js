@@ -1,6 +1,6 @@
 import Swal from "sweetalert2";
 
-import { useLazyConvertCurrencyQuery } from "../../../features/Superlist/supplierApi";
+import { useLazyConvertCurrencyQuery } from "../../../../../features/Superlist/supplierApi";
 
 /**
  * Custom hook for currency conversion

@@ -20,12 +20,14 @@ class SupplierProductOptionTier extends Model
         'spot_min_qty',
         'spot_max_qty',
         'spot_price',
+        'spot_discount',
     ];
 
     protected $casts = [
         'spot_min_qty' => 'integer',
         'spot_max_qty' => 'integer',
         'spot_price' => 'decimal:2',
+        'spot_discount' => 'decimal:2',
     ];
 
     public function option()

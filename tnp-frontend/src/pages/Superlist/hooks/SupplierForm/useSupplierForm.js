@@ -11,7 +11,7 @@ import {
   useGetCategoriesQuery,
   useAddTagMutation,
   useGetSellersQuery,
-} from "../../../features/Superlist/supplierApi";
+} from "../../../../features/Superlist/supplierApi";
 
 /**
  * Custom hook for managing supplier form state and operations
@@ -91,13 +91,14 @@ export const useSupplierForm = (mode) => {
       if (p.options) {
         setOptions(
           p.options.map((opt) => ({
-            spo_name: opt.spo_name,
-            spo_id: opt.spo_id,
+            ...opt,
             tiers: opt.tiers
               ? opt.tiers.map((t) => ({
+                  ...t,
                   min_qty: t.spot_min_qty,
                   max_qty: t.spot_max_qty,
                   price: t.spot_price,
+                  discount: t.spot_discount,
                 }))
               : [],
           }))

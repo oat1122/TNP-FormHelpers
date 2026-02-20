@@ -8,14 +8,13 @@ import {
   useGetTagsQuery,
   useGetCategoriesQuery,
   useGetSupplierCountriesQuery,
-} from "../../../features/Superlist/supplierApi";
+} from "../../../../../features/Superlist/supplierApi";
 import {
   setFilters,
   resetFilters,
   setPaginationModel,
-} from "../../../features/Superlist/supplierSlice";
-
-const PRIMARY_RED = "#C1272D";
+} from "../../../../../features/Superlist/supplierSlice";
+import { PRIMARY_RED } from "../../../utils";
 
 /**
  * Custom hook for managing supplier products list

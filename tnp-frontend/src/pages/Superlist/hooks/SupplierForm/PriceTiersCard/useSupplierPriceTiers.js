@@ -1,13 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-
-const DEFAULT_TIERS = [
-  { min_qty: 1, max_qty: 99, discount: 0 },
-  { min_qty: 100, max_qty: 499, discount: 5 },
-  { min_qty: 500, max_qty: 999, discount: 10 },
-  { min_qty: 1000, max_qty: 4999, discount: 15 },
-  { min_qty: 5000, max_qty: null, discount: 20 },
-];
+import { DEFAULT_TIERS } from "../../../utils";
 
 /**
  * Custom hook for managing price tiers and pricing formulas

@@ -19,10 +19,13 @@ class SupplierProductOption extends Model
         'spo_sp_id',
         'spo_name',
         'spo_is_active',
+        'spo_base_price',
+        'spo_scale_mode'
     ];
 
     protected $casts = [
         'spo_is_active' => 'boolean',
+        'spo_base_price' => 'decimal:2',
     ];
 
     public function product()

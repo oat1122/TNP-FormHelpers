@@ -24,92 +24,59 @@ import {
   Alert,
   Switch,
   FormControlLabel,
+  Radio,
 } from "@mui/material";
 import { useState } from "react";
-import { MdAdd, MdDelete, MdEdit, MdAutoFixHigh, MdClose } from "react-icons/md";
+import { MdAdd, MdDelete, MdEdit, MdAutoFixHigh, MdClose, MdVisibility } from "react-icons/md";
 import NumericTextField from "../NumericTextField";
 import { PRIMARY_RED } from "../../utils";
+import Swal from "sweetalert2";
+import { useCustomizationCard } from "../../hooks";
 
 const CustomizationCard = ({
   options,
   setOptions,
   isView,
   selectedOptionIds = [],
+  priceTiers = [],
+  currency = "THB",
+  exchangeRate = 1,
+  basePrice = 0,
   handleOptionToggle,
-  // Helper to open formula for a specific option
-  handleOpenOptionFormula,
 }) => {
-  const [editingOptionIndex, setEditingOptionIndex] = useState(null);
-  const [optionDialogOpen, setOptionDialogOpen] = useState(false);
-  const [currentOption, setCurrentOption] = useState({
-    spo_name: "",
-    tiers: [],
+  const {
+    editingOptionIndex,
+    optionDialogOpen,
+    setOptionDialogOpen,
+    isViewingOption,
+    currentOption,
+    setCurrentOption,
+    optBasePrice,
+    setOptBasePrice,
+    optScaleMode,
+    optCurrency,
+    optPriceTHB,
+    setOptPriceTHB,
+    handleAddOption,
+    handleEditOption,
+    handleViewOption,
+    handleRemoveOption,
+    handleSaveOption,
+    handleConvert,
+    handleAutoFormula,
+    handleScaleModeChange,
+    handleTierDiscountChange,
+    handleTierPriceChange,
+  } = useCustomizationCard({
+    options,
+    setOptions,
+    priceTiers,
+    currency,
+    exchangeRate,
   });
 
-  // Open dialog to add new option
-  const handleAddOption = () => {
-    setCurrentOption({
-      spo_name: "",
-      tiers: [], // Start with empty tiers or default one?
-    });
-    setEditingOptionIndex(null);
-    setOptionDialogOpen(true);
-  };
-
-  // Open dialog to edit existing option
-  const handleEditOption = (index) => {
-    setCurrentOption({ ...options[index] });
-    setEditingOptionIndex(index);
-    setOptionDialogOpen(true);
-  };
-
-  // Remove an option
-  const handleRemoveOption = (index) => {
-    const newOptions = [...options];
-    newOptions.splice(index, 1);
-    setOptions(newOptions);
-  };
-
-  // Save option from dialog
-  const handleSaveOption = () => {
-    if (!currentOption.spo_name.trim()) return;
-
-    const newOptions = [...options];
-    if (editingOptionIndex !== null) {
-      newOptions[editingOptionIndex] = currentOption;
-    } else {
-      newOptions.push({ ...currentOption, spo_is_active: true });
-    }
-    setOptions(newOptions);
-    setOptionDialogOpen(false);
-  };
-
-  // --- Tier Management inside Dialog ---
-
-  const handleAddTier = () => {
-    const newTiers = [...(currentOption.tiers || [])];
-    const lastMax = newTiers.length > 0 ? newTiers[newTiers.length - 1].max_qty : 0;
-    const nextMin = lastMax ? parseInt(lastMax) + 1 : 1;
-
-    newTiers.push({
-      min_qty: nextMin,
-      max_qty: null,
-      price: 0,
-    });
-    setCurrentOption({ ...currentOption, tiers: newTiers });
-  };
-
-  const handleRemoveTier = (tierIdx) => {
-    const newTiers = [...currentOption.tiers];
-    newTiers.splice(tierIdx, 1);
-    setCurrentOption({ ...currentOption, tiers: newTiers });
-  };
-
-  const handleTierChange = (tierIdx, field, value) => {
-    const newTiers = [...currentOption.tiers];
-    newTiers[tierIdx] = { ...newTiers[tierIdx], [field]: value };
-    setCurrentOption({ ...currentOption, tiers: newTiers });
-  };
+  // Re-sync if currency/exchange rate changes?
+  // Probably not needed dynamically unless modal is open.
 
   return (
     <Card sx={{ mb: 3 }}>
@@ -143,7 +110,11 @@ const CustomizationCard = ({
                   {isView && <TableCell sx={{ width: 50 }} />}
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>ชื่อตัวเลือก</TableCell>
                   <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }}>ราคา (บาท)</TableCell>
-                  {!isView && (
+                  {isView ? (
+                    <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }} align="right">
+                      ดูราคา
+                    </TableCell>
+                  ) : (
                     <TableCell sx={{ fontFamily: "Kanit", fontWeight: 600 }} align="right">
                       จัดการ
                     </TableCell>
@@ -168,12 +139,22 @@ const CustomizationCard = ({
                     <TableCell sx={{ fontFamily: "Kanit" }}>{opt.spo_name}</TableCell>
                     <TableCell sx={{ fontFamily: "Kanit" }}>
                       {opt.tiers?.length > 0
-                        ? `${Math.min(...opt.tiers.map((t) => t.price))} - ${Math.max(
-                            ...opt.tiers.map((t) => t.price)
+                        ? `${Math.min(...opt.tiers.map((t) => t.price || 0))} - ${Math.max(
+                            ...opt.tiers.map((t) => t.price || 0)
                           )}`
                         : "0"}
                     </TableCell>
-                    {!isView && (
+                    {isView ? (
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleViewOption(idx)}
+                        >
+                          <MdVisibility />
+                        </IconButton>
+                      </TableCell>
+                    ) : (
                       <TableCell align="right">
                         <IconButton size="small" onClick={() => handleEditOption(idx)}>
                           <MdEdit />
@@ -202,7 +183,11 @@ const CustomizationCard = ({
           fullWidth
         >
           <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
-            {editingOptionIndex !== null ? "แก้ไขตัวเลือก" : "เพิ่มตัวเลือกใหม่"}
+            {isViewingOption
+              ? "รายละเอียดราคาตัวเลือก"
+              : editingOptionIndex !== null
+                ? "แก้ไขตัวเลือก"
+                : "เพิ่มตัวเลือกใหม่"}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ mt: 1 }}>
@@ -212,42 +197,144 @@ const CustomizationCard = ({
                 label="ชื่อตัวเลือก (เช่น สกรีน, ปัก)"
                 value={currentOption.spo_name}
                 onChange={(e) => setCurrentOption({ ...currentOption, spo_name: e.target.value })}
+                disabled={isViewingOption}
                 sx={{ mb: 3 }}
                 InputProps={{ style: { fontFamily: "Kanit" } }}
                 InputLabelProps={{ style: { fontFamily: "Kanit" } }}
               />
 
+              {/* Pricing Helper Section */}
+              <Typography variant="subtitle2" sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 1 }}>
+                ราคาและสกุลเงิน
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap", alignItems: "center" }}>
+                <TextField
+                  size="small"
+                  label="สกุลเงิน"
+                  value={optCurrency}
+                  disabled
+                  sx={{ width: 100 }}
+                  InputProps={{ style: { fontFamily: "Kanit", backgroundColor: "#f5f5f5" } }}
+                />
+                <NumericTextField
+                  size="small"
+                  label="ราคาพื้นฐาน"
+                  value={optBasePrice}
+                  onChange={(val) => {
+                    setOptBasePrice(val);
+                  }}
+                  disabled={isViewingOption}
+                  sx={{ width: 140 }}
+                />
+                {!isViewingOption && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleConvert}
+                    disabled={!optBasePrice}
+                    sx={{ fontFamily: "Kanit" }}
+                  >
+                    แปลงเป็นบาท
+                  </Button>
+                )}
+
+                <NumericTextField
+                  size="small"
+                  label="ราคา (บาท)"
+                  value={optPriceTHB}
+                  onChange={setOptPriceTHB}
+                  disabled={isViewingOption}
+                  sx={{ width: 140 }}
+                />
+
+                <TextField
+                  size="small"
+                  label="อัตราแลกเปลี่ยน"
+                  value={exchangeRate || 1}
+                  disabled
+                  sx={{ width: 120 }}
+                  InputProps={{ style: { fontFamily: "Kanit", backgroundColor: "#f5f5f5" } }}
+                />
+              </Box>
+
+              {/* Radio Group โหมดสเกลราคา */}
               <Box
                 sx={{
+                  mb: 2,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  mb: 1,
                 }}
               >
-                <Typography variant="subtitle2" sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
-                  ราคาของตัวเลือก (ตามจำนวนสั่งซื้อ)
-                </Typography>
-                {/* Future: Auto Formula for Option Tiers */}
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<MdAdd />}
-                  onClick={handleAddTier}
-                  sx={{ fontFamily: "Kanit", fontSize: 12 }}
-                >
-                  เพิ่ม Tier ราคา
-                </Button>
+                <Box sx={{ display: "flex", gap: 3 }}>
+                  <FormControlLabel
+                    control={
+                      <Radio
+                        checked={optScaleMode === "percent"}
+                        onChange={() => handleScaleModeChange("percent")}
+                        disabled={isViewingOption}
+                        size="small"
+                        sx={{
+                          color: PRIMARY_RED,
+                          "&.Mui-checked": {
+                            color: PRIMARY_RED,
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontFamily: "Kanit", fontSize: 14 }}>
+                        ลดเป็นเปอร์เซ็นต์ (%)
+                      </Typography>
+                    }
+                  />
+                  <FormControlLabel
+                    control={
+                      <Radio
+                        checked={optScaleMode === "fixed"}
+                        onChange={() => handleScaleModeChange("fixed")}
+                        disabled={isViewingOption}
+                        size="small"
+                        sx={{
+                          color: PRIMARY_RED,
+                          "&.Mui-checked": {
+                            color: PRIMARY_RED,
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontFamily: "Kanit", fontSize: 14 }}>
+                        ลดเป็นจำนวนเงินตายตัว (บาท)
+                      </Typography>
+                    }
+                  />
+                </Box>
+
+                {/* ปุ่ม Auto Formula (ซ่อนในโหมด View) */}
+                {!isViewingOption && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<MdAutoFixHigh />}
+                    onClick={() => handleAutoFormula(basePrice)}
+                    disabled={!optPriceTHB || !basePrice || priceTiers.length === 0}
+                    sx={{ fontFamily: "Kanit", color: PRIMARY_RED, borderColor: PRIMARY_RED }}
+                  >
+                    Auto Formula
+                  </Button>
+                )}
               </Box>
 
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                      <TableCell sx={{ fontFamily: "Kanit" }}>Min</TableCell>
-                      <TableCell sx={{ fontFamily: "Kanit" }}>Max</TableCell>
+                      <TableCell sx={{ fontFamily: "Kanit" }}>จำนวนขั้นต่ำ</TableCell>
+                      <TableCell sx={{ fontFamily: "Kanit" }}>จำนวนสูงสุด</TableCell>
+                      <TableCell sx={{ fontFamily: "Kanit", color: PRIMARY_RED }}>
+                        {optScaleMode === "percent" ? "ส่วนลด (%)" : "ส่วนลด (บาท)"}
+                      </TableCell>
                       <TableCell sx={{ fontFamily: "Kanit" }}>ราคาบวกเพิ่ม (+บาท)</TableCell>
-                      <TableCell />
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -258,8 +345,8 @@ const CustomizationCard = ({
                             size="small"
                             decimal={false}
                             value={tier.min_qty}
-                            onChange={(val) => handleTierChange(tIdx, "min_qty", val)}
-                            sx={{ width: 80 }}
+                            disabled={true}
+                            sx={{ width: 80, bgcolor: "#f5f5f5" }}
                           />
                         </TableCell>
                         <TableCell>
@@ -268,26 +355,27 @@ const CustomizationCard = ({
                             decimal={false}
                             value={tier.max_qty ?? ""}
                             placeholder="ไม่จำกัด"
-                            onChange={(val) => handleTierChange(tIdx, "max_qty", val)}
-                            sx={{ width: 80 }}
+                            disabled={true}
+                            sx={{ width: 80, bgcolor: "#f5f5f5" }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <NumericTextField
+                            size="small"
+                            value={tier.discount}
+                            onChange={(val) => handleTierDiscountChange(tIdx, val)}
+                            disabled={!optPriceTHB || isViewingOption}
+                            sx={{ width: 100 }}
                           />
                         </TableCell>
                         <TableCell>
                           <NumericTextField
                             size="small"
                             value={tier.price}
-                            onChange={(val) => handleTierChange(tIdx, "price", val)}
+                            onChange={(val) => handleTierPriceChange(tIdx, val)}
+                            disabled={isViewingOption}
                             sx={{ width: 100 }}
                           />
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveTier(tIdx)}
-                          >
-                            <MdDelete />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -298,15 +386,17 @@ const CustomizationCard = ({
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOptionDialogOpen(false)} sx={{ fontFamily: "Kanit" }}>
-              ยกเลิก
+              {isViewingOption ? "ปิด" : "ยกเลิก"}
             </Button>
-            <Button
-              variant="contained"
-              onClick={handleSaveOption}
-              sx={{ fontFamily: "Kanit", bgcolor: PRIMARY_RED }}
-            >
-              บันทึก
-            </Button>
+            {!isViewingOption && (
+              <Button
+                variant="contained"
+                onClick={handleSaveOption}
+                sx={{ fontFamily: "Kanit", bgcolor: PRIMARY_RED }}
+              >
+                บันทึก
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
       </CardContent>

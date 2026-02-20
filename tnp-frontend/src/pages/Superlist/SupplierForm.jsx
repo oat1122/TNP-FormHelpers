@@ -270,15 +270,6 @@ const SupplierForm = ({ mode: propMode }) => {
         convertingCurrency={convertingCurrency}
       />
 
-      {/* Customizations */}
-      <CustomizationCard
-        options={options}
-        setOptions={setOptions}
-        isView={isView}
-        selectedOptionIds={selectedOptionIds}
-        handleOptionToggle={handleOptionToggle}
-      />
-
       {/* Price Scaling */}
       <PriceTiersCard
         priceTiers={priceTiers}
@@ -291,6 +282,19 @@ const SupplierForm = ({ mode: propMode }) => {
         handleRemoveTier={handleRemoveTier}
         selectedOptionIds={selectedOptionIds}
         allOptions={options}
+      />
+
+      {/* Customizations */}
+      <CustomizationCard
+        options={options}
+        setOptions={setOptions}
+        isView={isView}
+        selectedOptionIds={selectedOptionIds}
+        handleOptionToggle={handleOptionToggle}
+        priceTiers={priceTiers}
+        currency={form.sp_currency}
+        exchangeRate={form.sp_exchange_rate}
+        basePrice={parseFloat(form.sp_price_thb) || parseFloat(form.sp_base_price) || 0}
       />
 
       {/* Images */}

@@ -202,6 +202,8 @@ class SupplierProductController extends Controller
                         'spo_sp_id' => $productId,
                         'spo_name' => $opt['spo_name'],
                         'spo_is_active' => $opt['spo_is_active'] ?? true,
+                        'spo_base_price' => $opt['spo_base_price'] ?? null,
+                        'spo_scale_mode' => $opt['spo_scale_mode'] ?? null,
                     ]);
 
                     if (!empty($opt['tiers']) && is_array($opt['tiers'])) {
@@ -212,6 +214,7 @@ class SupplierProductController extends Controller
                                 'spot_min_qty' => $tier['min_qty'],
                                 'spot_max_qty' => $tier['max_qty'] ?? null,
                                 'spot_price' => $tier['price'],
+                                'spot_discount' => $tier['discount'] ?? null,
                             ]);
                         }
                     }
@@ -336,6 +339,8 @@ class SupplierProductController extends Controller
                         'spo_sp_id' => $id,
                         'spo_name' => $opt['spo_name'],
                         'spo_is_active' => $opt['spo_is_active'] ?? true,
+                        'spo_base_price' => $opt['spo_base_price'] ?? null,
+                        'spo_scale_mode' => $opt['spo_scale_mode'] ?? null,
                     ]);
 
                     if (!empty($opt['tiers']) && is_array($opt['tiers'])) {
@@ -346,6 +351,7 @@ class SupplierProductController extends Controller
                                 'spot_min_qty' => $tier['min_qty'],
                                 'spot_max_qty' => $tier['max_qty'] ?? null,
                                 'spot_price' => $tier['price'],
+                                'spot_discount' => $tier['discount'] ?? null,
                             ]);
                         }
                     }

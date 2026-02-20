@@ -6,9 +6,8 @@ import {
   useAddCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
-} from "../../../features/Superlist/supplierApi";
-
-const PRIMARY_RED = "#C1272D";
+} from "../../../../../features/Superlist/supplierApi";
+import { PRIMARY_RED } from "../../../utils";
 
 /**
  * Custom hook for category management

@@ -1,56 +1,40 @@
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Refresh as RefreshIcon,
-} from "@mui/icons-material";
-import { Grid, TextField, InputAdornment, IconButton, Stack, Tooltip, Paper } from "@mui/material";
+import { Search as SearchIcon } from "@mui/icons-material";
+import { Box, TextField, InputAdornment, Stack } from "@mui/material";
 import React from "react";
 
-const FilterSection = ({ searchQuery, onSearchChange, onRefresh, onResetFilters }) => {
+const FilterSection = ({ searchQuery, onSearchChange }) => {
   return (
-    <Paper sx={{ p: 3, mb: 4 }}>
-      <Grid container spacing={3} alignItems="center">
-        <Grid item xs={12} md={8}>
-          <TextField
-            fullWidth
-            placeholder="ค้นหาด้วยชื่อบริษัท, หมายเลข PR, หรือชื่องาน"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Stack direction="row" spacing={1}>
-            <Tooltip title="รีเฟรชข้อมูล">
-              <IconButton
-                onClick={onRefresh}
-                color="primary"
-                sx={{
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "&:hover": { bgcolor: "primary.dark" },
-                }}
-              >
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="ล้างตัวกรอง">
-              <IconButton onClick={onResetFilters} color="secondary">
-                <FilterIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </Grid>
-      </Grid>
-    </Paper>
+    <Box
+      sx={{
+        mb: 2,
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        overflow: "hidden",
+      }}
+    >
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1.5, py: 1 }}>
+        <TextField
+          size="small"
+          variant="outlined"
+          placeholder="ค้นหาด้วยชื่อบริษัท, หมายเลข PR, หรือชื่องาน"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          sx={{
+            flex: 1,
+            "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.85rem" },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ fontSize: 18, color: "action.active" }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Stack>
+    </Box>
   );
 };
 

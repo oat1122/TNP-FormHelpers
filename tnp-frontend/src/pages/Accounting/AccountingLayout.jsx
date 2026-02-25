@@ -3,33 +3,21 @@ import {
   Assignment as AssignmentIcon,
   LocalShipping as DeliveryIcon,
   AccountBalance as InvoiceIcon,
-  Notifications as NotificationsIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   Home as HomeIcon,
-  ChevronRight as ChevronRightIcon,
   GetApp as ImportIcon,
 } from "@mui/icons-material";
 import {
   Box,
-  AppBar,
-  Toolbar,
-  Typography,
   Drawer,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Typography,
   CssBaseline,
-  IconButton,
-  Badge,
-  Avatar,
-  Menu,
-  MenuItem,
-  Divider,
-  Breadcrumbs,
-  Link,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import React, { useState } from "react";
@@ -72,26 +60,6 @@ const navigationItems = [
     path: "/accounting/delivery-notes",
   },
 ];
-
-// Get breadcrumb items based on current path
-const getBreadcrumbs = (pathname) => {
-  const paths = pathname.split("/").filter(Boolean);
-  const breadcrumbs = [{ title: "หน้าหลัก", path: "/" }];
-
-  if (paths.includes("accounting")) {
-    breadcrumbs.push({ title: "ระบบบัญชี", path: "/accounting" });
-
-    const currentItem = navigationItems.find(
-      (item) => item.path === pathname || pathname.includes(item.id)
-    );
-
-    if (currentItem) {
-      breadcrumbs.push({ title: currentItem.title, path: currentItem.path });
-    }
-  }
-
-  return breadcrumbs;
-};
 
 // Sidebar Component
 const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
@@ -169,159 +137,11 @@ const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
   );
 };
 
-// Header Component
-const Header = ({ onMenuClick, unreadCount }) => {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [notificationAnchor, setNotificationAnchor] = useState(null);
-
-  const handleProfileMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleNotificationClick = (event) => {
-    setNotificationAnchor(event.currentTarget);
-  };
-
-  const handleNotificationClose = () => {
-    setNotificationAnchor(null);
-  };
-
-  return (
-    <AppBar position="sticky" elevation={1}>
-      <Toolbar sx={{ px: { xs: 2, sm: 3 } }}>
-        <IconButton
-          edge="start"
-          color="inherit"
-          aria-label="menu"
-          onClick={onMenuClick}
-          sx={{ mr: 2 }}
-        >
-          <MenuIcon />
-        </IconButton>
-
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: "white" }}>
-          ระบบบัญชี TNP
-        </Typography>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <IconButton color="inherit" onClick={handleNotificationClick}>
-            <Badge badgeContent={unreadCount} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-
-          <IconButton color="inherit" onClick={handleProfileMenuOpen}>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                bgcolor: "secondary.main",
-                fontSize: "0.875rem",
-              }}
-            >
-              T
-            </Avatar>
-          </IconButton>
-        </Box>
-
-        {/* Profile Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: { minWidth: 200 },
-          }}
-        >
-          <MenuItem onClick={handleMenuClose}>
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            ตั้งค่า
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleMenuClose}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" />
-            </ListItemIcon>
-            ออกจากระบบ
-          </MenuItem>
-        </Menu>
-
-        {/* Notification Menu */}
-        <Menu
-          anchorEl={notificationAnchor}
-          open={Boolean(notificationAnchor)}
-          onClose={handleNotificationClose}
-          PaperProps={{
-            sx: { width: 320, maxHeight: 400 },
-          }}
-        >
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              การแจ้งเตือน
-            </Typography>
-            {unreadCount === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                ไม่มีการแจ้งเตือนใหม่
-              </Typography>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                มีการแจ้งเตือน {unreadCount} รายการ
-              </Typography>
-            )}
-          </Box>
-        </Menu>
-      </Toolbar>
-    </AppBar>
-  );
-};
-
-// Breadcrumb Component
-const BreadcrumbNavigation = ({ breadcrumbs }) => {
-  const navigate = useNavigate();
-
-  return (
-    <Box
-      sx={{ py: 2, px: 3, bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
-    >
-      <Breadcrumbs separator={<ChevronRightIcon fontSize="small" />} aria-label="breadcrumb">
-        {breadcrumbs.map((item, index) =>
-          index === breadcrumbs.length - 1 ? (
-            <Typography key={item.path} color="primary" fontWeight={500}>
-              {item.title}
-            </Typography>
-          ) : (
-            <Link
-              key={item.path}
-              underline="hover"
-              color="inherit"
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(item.path);
-              }}
-              sx={{ cursor: "pointer" }}
-            >
-              {item.title}
-            </Link>
-          )
-        )}
-      </Breadcrumbs>
-    </Box>
-  );
-};
-
 // Main Layout Component
 const AccountingLayout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const activeStep = useSelector(selectActiveStep);
-  const unreadNotifications = useSelector(selectUnreadNotifications);
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -341,15 +161,10 @@ const AccountingLayout = () => {
     navigationItems.find((item) => item.id === "pricing") ||
     navigationItems[0];
 
-  const breadcrumbs = getBreadcrumbs(location.pathname);
-
   return (
     <ThemeProvider theme={accountingTheme}>
       <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <CssBaseline />
-
-        {/* Header */}
-        <Header onMenuClick={handleDrawerToggle} unreadCount={unreadNotifications.length} />
 
         {/* Sidebar */}
         <Sidebar
@@ -358,9 +173,6 @@ const AccountingLayout = () => {
           selectedItem={currentItem.id}
           onItemSelect={handleItemSelect}
         />
-
-        {/* Breadcrumb */}
-        <BreadcrumbNavigation breadcrumbs={breadcrumbs} />
 
         {/* Main Content */}
         <Box
@@ -371,7 +183,7 @@ const AccountingLayout = () => {
             minHeight: "calc(100vh - 120px)",
           }}
         >
-          <Outlet />
+          <Outlet context={{ onMenuClick: handleDrawerToggle }} />
         </Box>
       </Box>
     </ThemeProvider>

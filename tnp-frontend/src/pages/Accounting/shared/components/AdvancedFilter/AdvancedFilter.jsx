@@ -1,18 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  Paper,
-  Grid,
+  Box,
   TextField,
   MenuItem,
-  Button,
-  Stack,
+  IconButton,
   InputAdornment,
-  Box,
+  Collapse,
+  Chip,
+  Tooltip,
+  Stack,
 } from "@mui/material";
 import {
   Search as SearchIcon,
-  Refresh as RefreshIcon,
   Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  CalendarMonth as CalendarIcon,
 } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -20,165 +22,301 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { th } from "date-fns/locale";
 
 /**
- * A reusable advanced filter component for searching, filtering by status, and date range.
- * @param {Object} props
- * @param {Object} props.filters - The current filter state from the useAdvancedFilter hook.
- * @param {Object} props.handlers - The handler functions from the useAdvancedFilter hook.
- * @param {Function} props.onRefresh - Function to trigger a data refresh.
- * @param {Array} [props.statusOptions=[]] - An array of { value, label } for the status dropdown.
- * @param {Array} [props.statusBeforeOptions=[]] - Options for the 'Status Before' dropdown.
- * @param {Array} [props.statusAfterOptions=[]] - Options for the 'Status After' dropdown.
- * @param {boolean} [props.showAllStatusOption=true] - Whether to show "ทุกสถานะ" option in main status dropdown.
+ * Compact, single-strip advanced filter bar.
+ *
+ * The search box and action buttons are always visible in a slim toolbar.
+ * Status selects and date pickers are revealed in a collapsible "extra" row
+ * that the user toggles via a filter icon.  Active filters show as count badge.
  */
-const AdvancedFilter = ({ 
-  filters, 
-  handlers, 
-  onRefresh, 
-  statusOptions = [], 
-  // 🔽 ADDED: New props for before/after options
-  statusBeforeOptions = [], 
+const AdvancedFilter = ({
+  filters,
+  handlers,
+  onRefresh,
+  statusOptions = [],
+  statusBeforeOptions = [],
   statusAfterOptions = [],
-  showAllStatusOption = true
+  showAllStatusOption = true,
 }) => {
   const showStatusBefore = statusBeforeOptions.length > 0;
   const showStatusAfter = statusAfterOptions.length > 0;
+  const hasStatusDropdowns = statusOptions.length > 0 || showStatusBefore || showStatusAfter;
+
+  const [open, setOpen] = useState(false);
+
+  // Count how many filters are actively set (for badge)
+  const activeCount = [
+    filters.status !== "all" && statusOptions.length > 0,
+    filters.statusBefore !== "all" && showStatusBefore,
+    filters.statusAfter !== "all" && showStatusAfter,
+    filters.dateRange[0] != null,
+    filters.dateRange[1] != null,
+  ].filter(Boolean).length;
+
+  const handleClear = () => {
+    handlers.resetFilters();
+    setOpen(false);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, boxShadow: 1 }}>
-        <Grid container spacing={2} alignItems="center">
-          {/* Text Search */}
-          <Grid item xs={12} md={showStatusBefore || showStatusAfter ? 6 : 4} lg={4}>
-            <TextField
-              fullWidth
+      <Box
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          overflow: "hidden",
+        }}
+      >
+        {/* ─── Main bar ─── */}
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1.5, py: 1 }}>
+          {/* Search */}
+          <TextField
+            size="small"
+            variant="outlined"
+            placeholder="ค้นหา..."
+            value={filters.searchQuery}
+            onChange={handlers.handleSearchChange}
+            sx={{
+              flex: 1,
+              maxWidth: 360,
+              "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.85rem" },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18, color: "action.active" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          {/* Active filter chips (quick glance when collapsed) */}
+          {!open && activeCount > 0 && (
+            <Stack direction="row" spacing={0.5} sx={{ overflow: "hidden", flexShrink: 1 }}>
+              {filters.status !== "all" && statusOptions.length > 0 && (
+                <Chip
+                  size="small"
+                  label={
+                    statusOptions.find((o) => o.value === filters.status)?.label || filters.status
+                  }
+                  onDelete={() => handlers.handleStatusChange({ target: { value: "all" } })}
+                  sx={{ height: 24, fontSize: "0.72rem" }}
+                />
+              )}
+              {filters.statusBefore !== "all" && showStatusBefore && (
+                <Chip
+                  size="small"
+                  label={`ก่อน: ${statusBeforeOptions.find((o) => o.value === filters.statusBefore)?.label || filters.statusBefore}`}
+                  onDelete={() => handlers.handleStatusBeforeChange({ target: { value: "all" } })}
+                  sx={{ height: 24, fontSize: "0.72rem" }}
+                />
+              )}
+              {filters.statusAfter !== "all" && showStatusAfter && (
+                <Chip
+                  size="small"
+                  label={`หลัง: ${statusAfterOptions.find((o) => o.value === filters.statusAfter)?.label || filters.statusAfter}`}
+                  onDelete={() => handlers.handleStatusAfterChange({ target: { value: "all" } })}
+                  sx={{ height: 24, fontSize: "0.72rem" }}
+                />
+              )}
+              {(filters.dateRange[0] || filters.dateRange[1]) && (
+                <Chip
+                  size="small"
+                  icon={<CalendarIcon sx={{ fontSize: 14 }} />}
+                  label="วันที่"
+                  onDelete={() => handlers.handleDateRangeChange([null, null])}
+                  sx={{ height: 24, fontSize: "0.72rem" }}
+                />
+              )}
+            </Stack>
+          )}
+
+          <Box sx={{ flex: 1 }} />
+
+          {/* Action buttons */}
+          {activeCount > 0 && (
+            <Tooltip title="ล้างตัวกรอง">
+              <IconButton
+                size="small"
+                onClick={handleClear}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 1.5,
+                  bgcolor: "action.hover",
+                  "&:hover": { bgcolor: "error.light", color: "#fff" },
+                }}
+              >
+                <ClearIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          <Tooltip title={open ? "ซ่อนตัวกรอง" : "แสดงตัวกรอง"}>
+            <IconButton
               size="small"
-              variant="outlined"
-              placeholder="ค้นหา..."
-              value={filters.searchQuery}
-              onChange={handlers.handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
+              onClick={() => setOpen((v) => !v)}
+              sx={{
+                bgcolor: open ? "primary.main" : "action.hover",
+                color: open ? "#fff" : "text.secondary",
+                borderRadius: 1.5,
+                width: 36,
+                height: 36,
+                "&:hover": { bgcolor: open ? "primary.dark" : "action.selected" },
+                position: "relative",
               }}
-            />
-          </Grid>
-          
-          {/* Status Before Filter */}
-          {showStatusBefore && (
-            <Grid item xs={12} sm={4} md={3} lg={2}>
+            >
+              <FilterListIcon sx={{ fontSize: 18 }} />
+              {activeCount > 0 && !open && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    bgcolor: "error.main",
+                    color: "#fff",
+                    borderRadius: "50%",
+                    width: 16,
+                    height: 16,
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {activeCount}
+                </Box>
+              )}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+
+        {/* ─── Collapsible extra filters ─── */}
+        <Collapse in={open}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{
+              px: 1.5,
+              pb: 1.5,
+              pt: 0.5,
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            {/* Status Before */}
+            {showStatusBefore && (
               <TextField
-                fullWidth
                 select
                 size="small"
                 label="สถานะ (ก่อนมัดจำ)"
                 value={filters.statusBefore}
                 onChange={handlers.handleStatusBeforeChange}
+                sx={{
+                  minWidth: 160,
+                  "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.83rem" },
+                }}
               >
-                <MenuItem value="all"><em>ทั้งหมด</em></MenuItem>
-                {statusBeforeOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                <MenuItem value="all">
+                  <em>ทั้งหมด</em>
+                </MenuItem>
+                {statusBeforeOptions.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-          )}
+            )}
 
-          {/* Status After Filter */}
-          {showStatusAfter && (
-            <Grid item xs={12} sm={4} md={3} lg={2}>
+            {/* Status After */}
+            {showStatusAfter && (
               <TextField
-                fullWidth
                 select
                 size="small"
                 label="สถานะ (หลังมัดจำ)"
                 value={filters.statusAfter}
                 onChange={handlers.handleStatusAfterChange}
+                sx={{
+                  minWidth: 160,
+                  "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.83rem" },
+                }}
               >
-                <MenuItem value="all"><em>ทั้งหมด</em></MenuItem>
-                {statusAfterOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                <MenuItem value="all">
+                  <em>ทั้งหมด</em>
+                </MenuItem>
+                {statusAfterOptions.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-          )}
-          
-          {/* Main Status Filter (optional) */}
-          {statusOptions.length > 0 && (
-            <Grid item xs={12} sm={4} md={3} lg={2}>
+            )}
+
+            {/* Main Status */}
+            {statusOptions.length > 0 && (
               <TextField
-                fullWidth
                 select
                 size="small"
-                label="สถานะหลัก"
+                label="สถานะ"
                 value={filters.status}
                 onChange={handlers.handleStatusChange}
+                sx={{
+                  minWidth: 140,
+                  "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.83rem" },
+                }}
               >
                 {showAllStatusOption && (
-                  <MenuItem value="all"><em>ทุกสถานะ</em></MenuItem>
+                  <MenuItem value="all">
+                    <em>ทุกสถานะ</em>
+                  </MenuItem>
                 )}
-                {statusOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                {statusOptions.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>
+                    {o.label}
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-          )}
+            )}
 
-          {/* Date Range Filter */}
-          <Grid item xs={12} sm={6} md={4} lg={3}>
-            <Grid container spacing={1}>
-              <Grid item xs={6}>
-                <DatePicker
-                  label="วันที่เริ่มต้น"
-                  value={filters.dateRange[0]}
-                  onChange={(newValue) => {
-                    handlers.handleDateRangeChange([newValue, filters.dateRange[1]]);
-                  }}
-                  slotProps={{
-                    textField: {
-                      size: "small",
-                      fullWidth: true,
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <DatePicker
-                  label="วันที่สิ้นสุด"
-                  value={filters.dateRange[1]}
-                  onChange={(newValue) => {
-                    handlers.handleDateRangeChange([filters.dateRange[0], newValue]);
-                  }}
-                  slotProps={{
-                    textField: {
-                      size: "small",
-                      fullWidth: true,
-                    },
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* Action Buttons */}
-          <Grid item xs={12} sm={6} md={2} lg={3} container justifyContent="flex-end">
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={handlers.resetFilters} startIcon={<ClearIcon />}>
-                ล้าง
-              </Button>
-              <Button variant="contained" onClick={onRefresh} startIcon={<RefreshIcon />}>
-                รีเฟรช
-              </Button>
-            </Stack>
-          </Grid>
-        </Grid>
-      </Paper>
+            {/* Date range */}
+            <DatePicker
+              label="ตั้งแต่"
+              value={filters.dateRange[0]}
+              onChange={(v) => handlers.handleDateRangeChange([v, filters.dateRange[1]])}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: {
+                    width: 150,
+                    "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.83rem" },
+                  },
+                },
+              }}
+            />
+            <Box sx={{ color: "text.disabled", fontSize: "0.8rem", userSelect: "none" }}>—</Box>
+            <DatePicker
+              label="ถึง"
+              value={filters.dateRange[1]}
+              onChange={(v) => handlers.handleDateRangeChange([filters.dateRange[0], v])}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: {
+                    width: 150,
+                    "& .MuiOutlinedInput-root": { height: 36, fontSize: "0.83rem" },
+                  },
+                },
+              }}
+            />
+          </Stack>
+        </Collapse>
+      </Box>
     </LocalizationProvider>
   );
 };

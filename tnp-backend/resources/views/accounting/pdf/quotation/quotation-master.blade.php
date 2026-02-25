@@ -96,7 +96,7 @@
             {{-- ลำดับของ <th> ถูกต้องอยู่แล้ว --}}
             <th class="desc-head text-center">รายละเอียด</th>
             <th class="text-right">จำนวน</th>
-            <th class="text-right">ราคาต่อหน่วย</th>
+            <th class="text-center">ราคาต่อหน่วย</th>
             <th class="text-right">ยอดรวม</th>
           </tr>
         </thead>
@@ -124,7 +124,7 @@
                      นี่เป็นวิธีที่แน่นอนที่สุดสำหรับ mPDF
                 --}}
                 <td class="num" style="text-align: right;">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
-                <td class="num" style="text-align: right;">{{ number_format($it['price'], 2) }}</td>
+                <td class="num" style="text-align: center;">{{ number_format($it['price'], 2) }}</td>
                 <td class="num" style="text-align: right;">{{ number_format($it['amount'], 2) }}</td>
               </tr>
             @endforeach

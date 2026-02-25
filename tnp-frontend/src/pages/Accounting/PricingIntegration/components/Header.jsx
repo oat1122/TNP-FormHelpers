@@ -1,10 +1,13 @@
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Typography, IconButton, Stack } from "@mui/material";
+import { Menu as MenuIcon } from "@mui/icons-material";
 import React from "react";
+import { useOutletContext } from "react-router-dom";
 
 const Header = ({
   title = "งานใหม่จากระบบ Pricing",
   subtitle = "เลือกงานที่เสร็จสมบูรณ์แล้วเพื่อสร้างใบเสนอราคา",
 }) => {
+  const context = useOutletContext();
   return (
     <Box
       sx={{
@@ -15,10 +18,21 @@ const Header = ({
       }}
     >
       <Container maxWidth="xl">
-        <Typography variant="h4" component="h1" gutterBottom sx={{ color: "white" }}>
-          {title}
-        </Typography>
-        <Typography variant="subtitle1" sx={{ color: "white" }}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={context?.onMenuClick}
+            sx={{ color: "white" }}
+          >
+            <MenuIcon fontSize="large" />
+          </IconButton>
+          <Typography variant="h4" component="h1" sx={{ color: "white", m: 0 }}>
+            {title}
+          </Typography>
+        </Stack>
+        <Typography variant="subtitle1" sx={{ color: "white", ml: 7 }}>
           {subtitle}
         </Typography>
       </Container>

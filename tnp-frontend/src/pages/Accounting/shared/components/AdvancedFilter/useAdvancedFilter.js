@@ -8,7 +8,7 @@ import { useState, useCallback } from "react";
 export const useAdvancedFilter = (initialFilters = {}) => {
   const [searchQuery, setSearchQuery] = useState(initialFilters.searchQuery || "");
   const [status, setStatus] = useState(initialFilters.status || "all");
-  
+
   const [statusBefore, setStatusBefore] = useState(initialFilters.statusBefore || "all");
   const [statusAfter, setStatusAfter] = useState(initialFilters.statusAfter || "all");
   const [dateRange, setDateRange] = useState(initialFilters.dateRange || [null, null]);
@@ -21,11 +21,10 @@ export const useAdvancedFilter = (initialFilters = {}) => {
     setStatus(e.target.value);
   }, []);
 
-  
   const handleStatusBeforeChange = useCallback((e) => {
     const newValue = e.target.value;
     setStatusBefore(newValue);
-    
+
     // เมื่อเลือกสถานะ "ก่อนมัดจำ" ให้รีเซ็ต "หลังมัดจำ" เป็น "all"
     if (newValue !== "all") {
       setStatusAfter("all");
@@ -35,7 +34,7 @@ export const useAdvancedFilter = (initialFilters = {}) => {
   const handleStatusAfterChange = useCallback((e) => {
     const newValue = e.target.value;
     setStatusAfter(newValue);
-    
+
     // เมื่อเลือกสถานะ "หลังมัดจำ" ให้รีเซ็ต "ก่อนมัดจำ" เป็น "all"
     if (newValue !== "all") {
       setStatusBefore("all");
@@ -56,21 +55,24 @@ export const useAdvancedFilter = (initialFilters = {}) => {
   }, []);
 
   // Returns a memoized object suitable for passing to RTK Query
-  const getQueryArgs = useCallback(() => ({
-    search: searchQuery || undefined,
-    status: status !== "all" ? status : undefined,
-  
-    status_before: statusBefore !== "all" ? statusBefore : undefined,
-    status_after: statusAfter !== "all" ? statusAfter : undefined,
-    start_date: dateRange[0] ? dateRange[0].toISOString().split('T')[0] : undefined,
-    end_date: dateRange[1] ? dateRange[1].toISOString().split('T')[0] : undefined,
-  }), [searchQuery, status, statusBefore, statusAfter, dateRange]);
+  const getQueryArgs = useCallback(
+    () => ({
+      search: searchQuery || undefined,
+      status: status !== "all" ? status : undefined,
+
+      status_before: statusBefore !== "all" ? statusBefore : undefined,
+      status_after: statusAfter !== "all" ? statusAfter : undefined,
+      date_from: dateRange[0] ? dateRange[0].toISOString().split("T")[0] : undefined,
+      date_to: dateRange[1] ? dateRange[1].toISOString().split("T")[0] : undefined,
+    }),
+    [searchQuery, status, statusBefore, statusAfter, dateRange]
+  );
 
   return {
     filters: {
       searchQuery,
       status,
-      
+
       statusBefore,
       statusAfter,
       dateRange,
@@ -78,7 +80,7 @@ export const useAdvancedFilter = (initialFilters = {}) => {
     handlers: {
       handleSearchChange,
       handleStatusChange,
-      
+
       handleStatusBeforeChange,
       handleStatusAfterChange,
       handleDateRangeChange,

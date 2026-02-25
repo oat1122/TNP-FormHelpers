@@ -1,4 +1,14 @@
-import { Box, Container, Grid, Alert } from "@mui/material";
+import {
+  Box,
+  Container,
+  Grid,
+  Alert,
+  ToggleButtonGroup,
+  ToggleButton,
+  Tooltip,
+} from "@mui/material";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { ThemeProvider } from "@mui/material/styles";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -19,6 +29,7 @@ import {
   FloatingActionButton,
 } from "./components";
 import CustomerEditDialog from "./components/CustomerEditDialog";
+import PricingTableView from "./components/PricingTableView";
 import {
   useGetCompletedPricingRequestsQuery,
   useCreateQuotationFromMultiplePricingMutation,
@@ -49,6 +60,7 @@ const PricingIntegration = () => {
 
   // Simple search without debouncing for now
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("table");
 
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -603,16 +615,12 @@ const PricingIntegration = () => {
             {/* Header */}
             <Header />
 
-            <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Container
+              maxWidth={viewMode === "table" ? false : "xl"}
+              sx={{ py: 4, px: viewMode === "table" ? { xs: 2, md: 3, lg: 4 } : undefined }}
+            >
               {/* Filters Section */}
-              <FilterSection
-                searchQuery={searchTerm}
-                onSearchChange={handleSearch}
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                onRefresh={handleRefresh}
-                onResetFilters={handleResetFilters}
-              />
+              <FilterSection searchQuery={searchTerm} onSearchChange={handleSearch} />
 
               {/* Content */}
               {error && (
@@ -631,6 +639,39 @@ const PricingIntegration = () => {
                 onItemsPerPageChange={handleItemsPerPageChange}
               />
 
+              {/* Controls Bar: View Mode */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  mb: 2,
+                  p: 1.5,
+                  bgcolor: "background.paper",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={(e, v) => v && setViewMode(v)}
+                  size="small"
+                  sx={{ height: 32 }}
+                >
+                  <ToggleButton value="table" sx={{ px: 1.5 }}>
+                    <Tooltip title="มุมมองตาราง">
+                      <ViewListIcon fontSize="small" />
+                    </Tooltip>
+                  </ToggleButton>
+                  <ToggleButton value="card" sx={{ px: 1.5 }}>
+                    <Tooltip title="มุมมองการ์ด">
+                      <ViewModuleIcon fontSize="small" />
+                    </Tooltip>
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
               {/* Main Content */}
               {isLoading ? (
                 <LoadingState itemCount={6} />
@@ -638,29 +679,39 @@ const PricingIntegration = () => {
                 <ErrorState error={error} onRetry={handleRefresh} />
               ) : groupedPricingRequests.length > 0 ? (
                 <>
-                  <Grid container spacing={3}>
-                    {paginatedRequests.map((group) => (
-                      <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
-                        <PricingRequestCard
-                          group={group}
-                          onCreateQuotation={handleCreateQuotation}
-                          onEditCustomer={handleEditCustomer}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
+                  {viewMode === "table" ? (
+                    <PricingTableView
+                      data={paginatedRequests}
+                      onCreateQuotation={handleCreateQuotation}
+                      onEditCustomer={handleEditCustomer}
+                    />
+                  ) : (
+                    <Grid container spacing={3}>
+                      {paginatedRequests.map((group) => (
+                        <Grid item xs={12} sm={6} lg={4} key={group._customerId}>
+                          <PricingRequestCard
+                            group={group}
+                            onCreateQuotation={handleCreateQuotation}
+                            onEditCustomer={handleEditCustomer}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
 
                   {/* Bottom Pagination */}
                   {paginationInfo.last_page > 1 && (
-                    <PaginationSection
-                      pagination={paginationInfo}
-                      currentPage={currentPage}
-                      itemsPerPage={itemsPerPage}
-                      isFetching={isFetching}
-                      onPageChange={handlePageChange}
-                      onItemsPerPageChange={handleItemsPerPageChange}
-                      showHeader={false}
-                    />
+                    <Box sx={{ mt: 2 }}>
+                      <PaginationSection
+                        pagination={paginationInfo}
+                        currentPage={currentPage}
+                        itemsPerPage={itemsPerPage}
+                        isFetching={isFetching}
+                        onPageChange={handlePageChange}
+                        onItemsPerPageChange={handleItemsPerPageChange}
+                        showHeader={false}
+                      />
+                    </Box>
                   )}
                 </>
               ) : (

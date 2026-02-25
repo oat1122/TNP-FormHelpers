@@ -10,6 +10,7 @@ import {
   FormControlLabel,
   Checkbox,
   Paper,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
@@ -43,9 +44,12 @@ import {
 } from "../PricingIntegration/components";
 import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import CompanyManagerDialog from "./components/CompanyManagerDialog";
 import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationCard from "./components/QuotationCard";
+import QuotationTableView from "./components/QuotationTableView";
 // ApprovalPanel removed along with Drawer UI
 import QuotationDetailDialog from "./components/QuotationDetailDialog";
 import QuotationDuplicateDialog from "./components/QuotationDuplicateDialog";
@@ -67,6 +71,7 @@ const Quotations = () => {
   // Use the new filter hook
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
 
+  const [viewMode, setViewMode] = useState("table");
   const [signatureOnly, setSignatureOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -263,7 +268,10 @@ const Quotations = () => {
         <Box sx={{ bgcolor: "background.default", minHeight: "100vh" }}>
           <Header title="ใบเสนอราคา" subtitle="ตรวจสอบ อนุมัติ และจัดการเอกสาร" />
 
-          <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Container
+            maxWidth={viewMode === "table" ? false : "xl"}
+            sx={{ py: 4, px: viewMode === "table" ? { xs: 2, md: 3, lg: 4 } : undefined }}
+          >
             {/* Render the AdvancedFilter component */}
             <AdvancedFilter
               filters={filters}
@@ -272,53 +280,90 @@ const Quotations = () => {
               statusOptions={quotationStatusOptions}
             />
 
-            {/* Extra filter: signature evidence */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={signatureOnly}
-                        onChange={(e) => setSignatureOnly(e.target.checked)}
-                        color="primary"
-                      />
-                    }
-                    label="แสดงเฉพาะใบที่มีหลักฐานการเซ็นแล้ว"
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
+            {/* Controls Bar: Actions + View Mode + Extra Filters */}
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 2,
+                mb: 2,
+                p: 1.5,
+                bgcolor: "background.paper",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              {/* Left side: Extra filter & View Toggle */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={signatureOnly}
+                      onChange={(e) => setSignatureOnly(e.target.checked)}
+                      color="primary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      แสดงเฉพาะใบที่มีหลักฐานการเซ็น
+                    </Typography>
+                  }
+                  sx={{ m: 0 }}
+                />
 
-            {/* Access Control Information */}
-            {(() => {
-              const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-              const isAdmin = userData.user_id === 1;
-              const canManageCompanies = userData.role === "admin" || userData.role === "account";
-              return (
-                <>
-                  {canManageCompanies && (
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mb: 2 }}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        onClick={() => setStandaloneCreateOpen(true)}
-                      >
-                        + สร้างใบเสนอราคาใหม่
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setCompanyDialogOpen(true)}
-                      >
-                        จัดการบริษัท
-                      </Button>
-                    </Box>
-                  )}
-                </>
-              );
-            })()}
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={(e, v) => v && setViewMode(v)}
+                  size="small"
+                  sx={{ height: 32 }}
+                >
+                  <ToggleButton value="table" sx={{ px: 1.5 }}>
+                    <Tooltip title="มุมมองตาราง">
+                      <ViewListIcon fontSize="small" />
+                    </Tooltip>
+                  </ToggleButton>
+                  <ToggleButton value="card" sx={{ px: 1.5 }}>
+                    <Tooltip title="มุมมองการ์ด">
+                      <ViewModuleIcon fontSize="small" />
+                    </Tooltip>
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* Right side: Action Buttons */}
+              {(() => {
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const canManageCompanies = userData.role === "admin" || userData.role === "account";
+                if (!canManageCompanies) return null;
+
+                return (
+                  <Box sx={{ display: "flex", gap: 1.5 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setCompanyDialogOpen(true)}
+                      sx={{ height: 32 }}
+                    >
+                      จัดการบริษัท
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => setStandaloneCreateOpen(true)}
+                      sx={{ height: 32 }}
+                    >
+                      + สร้างใบเสนอราคา
+                    </Button>
+                  </Box>
+                );
+              })()}
+            </Box>
 
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
@@ -337,60 +382,72 @@ const Quotations = () => {
               onItemsPerPageChange={handleItemsPerPageChange}
             />
 
-            <Grid container spacing={3}>
-              {isLoading ? (
-                <Grid item xs={12}>
-                  <LoadingState itemCount={6} />
-                </Grid>
-              ) : error ? (
-                <Grid item xs={12}>
-                  <ErrorState error={error} onRetry={handleRefresh} />
-                </Grid>
-              ) : validQuotations.length > 0 ? (
-                <>
-                  {(paginated || []).map((q) => (
-                    <Grid item xs={12} sm={6} lg={4} key={q.id}>
-                      <QuotationCard
-                        data={q}
-                        onDownloadPDF={() => handleDownloadPDF(q.id)}
-                        onViewLinked={() => {
-                          setSelectedQuotation(q);
-                          setLinkedOpen(true);
-                        }}
-                        onViewDetail={() => {
-                          setSelectedQuotation(q);
-                          setDetailOpen(true);
-                        }}
-                        onCreateInvoice={() => {
-                          setSelectedQuotation(q);
-                          setCreateInvoiceOpen(true);
-                        }}
-                        onDuplicate={() => handleDuplicate(q.id)}
-                        onActionSuccess={handleCardActionSuccess} // ✅ ส่ง prop นี้เข้าไป
-                      />
-                    </Grid>
-                  ))}
-                  {paginationInfo.last_page > 1 && (
-                    <Grid item xs={12}>
-                      <PaginationSection
-                        title="ใบเสนอราคาทั้งหมด"
-                        pagination={paginationInfo}
-                        currentPage={currentPage}
-                        itemsPerPage={itemsPerPage}
-                        isFetching={isFetching}
-                        onPageChange={handlePageChange}
-                        onItemsPerPageChange={handleItemsPerPageChange}
-                        showHeader={false}
-                      />
-                    </Grid>
-                  )}
-                </>
-              ) : (
-                <Grid item xs={12}>
-                  <EmptyState onRefresh={handleRefresh} />
-                </Grid>
-              )}
-            </Grid>
+            {isLoading ? (
+              <LoadingState itemCount={6} />
+            ) : error ? (
+              <ErrorState error={error} onRetry={handleRefresh} />
+            ) : validQuotations.length > 0 ? (
+              <>
+                {viewMode === "table" ? (
+                  <QuotationTableView
+                    data={paginated || []}
+                    onViewDetail={(q) => {
+                      setSelectedQuotation(q);
+                      setDetailOpen(true);
+                    }}
+                    onDownloadPDF={(id) => handleDownloadPDF(id)}
+                    onDuplicate={(id) => handleDuplicate(id)}
+                    onCreateInvoice={(q) => {
+                      setSelectedQuotation(q);
+                      setCreateInvoiceOpen(true);
+                    }}
+                    onActionSuccess={handleCardActionSuccess}
+                  />
+                ) : (
+                  <Grid container spacing={3}>
+                    {(paginated || []).map((q) => (
+                      <Grid item xs={12} sm={6} lg={4} key={q.id}>
+                        <QuotationCard
+                          data={q}
+                          onDownloadPDF={() => handleDownloadPDF(q.id)}
+                          onViewLinked={() => {
+                            setSelectedQuotation(q);
+                            setLinkedOpen(true);
+                          }}
+                          onViewDetail={() => {
+                            setSelectedQuotation(q);
+                            setDetailOpen(true);
+                          }}
+                          onCreateInvoice={() => {
+                            setSelectedQuotation(q);
+                            setCreateInvoiceOpen(true);
+                          }}
+                          onDuplicate={() => handleDuplicate(q.id)}
+                          onActionSuccess={handleCardActionSuccess}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+
+                {paginationInfo.last_page > 1 && (
+                  <Box sx={{ mt: 2 }}>
+                    <PaginationSection
+                      title="ใบเสนอราคาทั้งหมด"
+                      pagination={paginationInfo}
+                      currentPage={currentPage}
+                      itemsPerPage={itemsPerPage}
+                      isFetching={isFetching}
+                      onPageChange={handlePageChange}
+                      onItemsPerPageChange={handleItemsPerPageChange}
+                      showHeader={false}
+                    />
+                  </Box>
+                )}
+              </>
+            ) : (
+              <EmptyState onRefresh={handleRefresh} />
+            )}
           </Container>
           <LinkedPricingDialog
             open={linkedOpen}

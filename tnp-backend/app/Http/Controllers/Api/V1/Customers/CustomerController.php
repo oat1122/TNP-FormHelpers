@@ -2,26 +2,26 @@
 
 namespace App\Http\Controllers\Api\V1\Customers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Helpers\AccountingHelper;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\V1\CustomerResource;
+use App\Http\Requests\V1\ChangeGradeRequest;
+use App\Http\Requests\V1\RecallCustomerRequest;
 use App\Http\Requests\V1\StoreCustomerRequest;
 use App\Http\Requests\V1\UpdateCustomerRequest;
-use App\Http\Requests\V1\RecallCustomerRequest;
-use App\Http\Requests\V1\ChangeGradeRequest;
+use App\Http\Resources\V1\CustomerResource;
+use App\Models\User;
+use App\Repositories\CustomerRepositoryInterface;
 use App\Services\CustomerService;
 use App\Services\CustomerTransferService;
-use App\Repositories\CustomerRepositoryInterface;
-use App\Helpers\AccountingHelper;
-use App\Models\User;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Customer Controller
- * 
+ *
  * Handles HTTP requests for Customer resource.
  * Business logic is delegated to CustomerService.
  * Database queries are delegated to CustomerRepository.
@@ -45,12 +45,14 @@ class CustomerController extends Controller
     /**
      * Display a listing of customers.
      * GET /api/v1/customers
+     *
+     * @return JsonResponse|array<string, mixed>
      */
     public function index(Request $request): JsonResponse|array
     {
         try {
             $user = $this->getAuthenticatedUser($request);
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['message' => 'User is null']);
             }
 
@@ -58,7 +60,7 @@ class CustomerController extends Controller
                 'group', 'search', 'start_date', 'end_date',
                 'sales_names', 'channels', 'min_recall_days',
                 'max_recall_days', 'per_page', 'sort_field', 'sort_direction',
-                'subordinate_user_ids' // For HEAD to filter by their subordinates
+                'subordinate_user_ids', // For HEAD to filter by their subordinates
             ]);
 
             $customers = $this->customerRepository->getFiltered($filters, $user);
@@ -73,14 +75,15 @@ class CustomerController extends Controller
                     'current_page' => $customers->currentPage(),
                     'per_page' => $customers->perPage(),
                     'total_pages' => $customers->lastPage(),
-                    'total_items' => $customers->total()
-                ]
+                    'total_items' => $customers->total(),
+                ],
             ];
         } catch (\Exception $e) {
-            Log::error('Fetch customer error: ' . $e);
+            Log::error('Fetch customer error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Fetch customer error: ' . $e->getMessage()
+                'message' => 'Fetch customer error: '.$e->getMessage(),
             ]);
         }
     }
@@ -101,14 +104,15 @@ class CustomerController extends Controller
                     : 'สร้างลูกค้าสำเร็จ',
                 'data' => [
                     'customer_id' => $customer->cus_id,
-                    'allocation_status' => $customer->cus_allocation_status
-                ]
+                    'allocation_status' => $customer->cus_allocation_status,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Create customer error: ' . $e);
+            Log::error('Create customer error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Create customer error: ' . $e->getMessage()
+                'message' => 'Create customer error: '.$e->getMessage(),
             ]);
         }
     }
@@ -124,17 +128,18 @@ class CustomerController extends Controller
             if ($customers->isEmpty()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Customer not found'
+                    'message' => 'Customer not found',
                 ]);
             }
+
             return CustomerResource::collection($customers);
         }
 
         $customer = $this->customerRepository->findActiveWithRelations($id);
-        if (!$customer) {
+        if (! $customer) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found'
+                'message' => 'Customer not found',
             ]);
         }
 
@@ -149,12 +154,14 @@ class CustomerController extends Controller
     {
         try {
             $this->customerService->updateCustomer($id, $request->validated());
+
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {
-            Log::error('Update customer error: ' . $e);
+            Log::error('Update customer error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Update customer error: ' . $e->getMessage()
+                'message' => 'Update customer error: '.$e->getMessage(),
             ]);
         }
     }
@@ -167,12 +174,14 @@ class CustomerController extends Controller
     {
         try {
             $this->customerService->deleteCustomer($id);
+
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {
-            Log::error('Delete customer error: ' . $e);
+            Log::error('Delete customer error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Delete customer error: ' . $e->getMessage()
+                'message' => 'Delete customer error: '.$e->getMessage(),
             ]);
         }
     }
@@ -193,12 +202,14 @@ class CustomerController extends Controller
                 $request->validated(),
                 $request->cus_mcg_id
             );
+
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {
-            Log::error('Recall customer error: ' . $e);
+            Log::error('Recall customer error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Recall customer error: ' . $e->getMessage()
+                'message' => 'Recall customer error: '.$e->getMessage(),
             ]);
         }
     }
@@ -211,20 +222,22 @@ class CustomerController extends Controller
     {
         try {
             $result = $this->customerService->changeGrade($id, $request->direction);
+
             return response()->json([
                 'status' => 'success',
-                'data' => $result
+                'data' => $result,
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         } catch (\Exception $e) {
-            Log::error('Change grade error: ' . $e);
+            Log::error('Change grade error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Change grade error: ' . $e->getMessage()
+                'message' => 'Change grade error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -237,26 +250,27 @@ class CustomerController extends Controller
     {
         try {
             $user = $this->getAuthenticatedUser($request);
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['message' => 'User is required'], 400);
             }
 
             $filters = $request->only([
                 'search', 'start_date', 'end_date', 'sales_names',
-                'channels', 'min_recall_days', 'max_recall_days'
+                'channels', 'min_recall_days', 'max_recall_days',
             ]);
 
             $counts = $this->customerRepository->getGroupCounts($filters, $user);
 
             return response()->json([
                 'group_counts' => $counts,
-                'timestamp' => now()->timestamp
+                'timestamp' => now()->timestamp,
             ]);
         } catch (\Exception $e) {
-            Log::error('Fetch group counts error: ' . $e);
+            Log::error('Fetch group counts error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error fetching group counts: ' . $e->getMessage()
+                'message' => 'Error fetching group counts: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -271,10 +285,10 @@ class CustomerController extends Controller
      */
     public function getPoolCustomers(Request $request): JsonResponse
     {
-        if (!AccountingHelper::canAllocateCustomers()) {
+        if (! AccountingHelper::canAllocateCustomers()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized: Only admin and manager can access pool customers'
+                'message' => 'Unauthorized: Only admin and manager can access pool customers',
             ], 403);
         }
 
@@ -289,14 +303,15 @@ class CustomerController extends Controller
                     'current_page' => $customers->currentPage(),
                     'per_page' => $customers->perPage(),
                     'total_pages' => $customers->lastPage(),
-                    'total_items' => $customers->total()
-                ]
+                    'total_items' => $customers->total(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Get pool customers error: ' . $e);
+            Log::error('Get pool customers error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error fetching pool customers: ' . $e->getMessage()
+                'message' => 'Error fetching pool customers: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -307,10 +322,10 @@ class CustomerController extends Controller
      */
     public function getPoolTelesalesCustomers(Request $request): JsonResponse
     {
-        if (!AccountingHelper::canAllocateCustomers()) {
+        if (! AccountingHelper::canAllocateCustomers()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
@@ -325,37 +340,36 @@ class CustomerController extends Controller
                     'current_page' => $customers->currentPage(),
                     'per_page' => $customers->perPage(),
                     'total_pages' => $customers->lastPage(),
-                    'total' => $customers->total()
-                ]
+                    'total' => $customers->total(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Get telesales pool error: ' . $e->getMessage());
+            Log::error('Get telesales pool error: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Get pool customers that were transferred.
-     * GET /api/v1/customers/pool/transferred
-     * 
-     * @param int|null channel Filter by new_channel (1=SALES, 2=ONLINE)
+     * Filter by new_channel via $request->channel (1=SALES, 2=ONLINE)
      */
     public function getPoolTransferredCustomers(Request $request): JsonResponse
     {
-        if (!AccountingHelper::canAllocateCustomers()) {
+        if (! AccountingHelper::canAllocateCustomers()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
         try {
             $filters = $request->only(['channel', 'per_page']);
             $customers = $this->customerRepository->getPoolTransferredCustomers($filters);
-            
+
             // Attach latest transfer info via TransferService
             $customers = $this->transferService->attachTransferInfo($customers);
 
@@ -366,14 +380,15 @@ class CustomerController extends Controller
                     'current_page' => $customers->currentPage(),
                     'per_page' => $customers->perPage(),
                     'total_pages' => $customers->lastPage(),
-                    'total' => $customers->total()
-                ]
+                    'total' => $customers->total(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Get transferred pool error: ' . $e->getMessage());
+            Log::error('Get transferred pool error: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -384,17 +399,17 @@ class CustomerController extends Controller
      */
     public function assignCustomers(Request $request): JsonResponse
     {
-        if (!AccountingHelper::canAllocateCustomers()) {
+        if (! AccountingHelper::canAllocateCustomers()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized: Only admin and manager can allocate customers'
+                'message' => 'Unauthorized: Only admin and manager can allocate customers',
             ], 403);
         }
 
         $request->validate([
             'customer_ids' => 'required|array',
             'customer_ids.*' => 'required|string|size:36',
-            'sales_user_id' => 'required|integer|exists:users,user_id'
+            'sales_user_id' => 'required|integer|exists:users,user_id',
         ]);
 
         try {
@@ -403,10 +418,10 @@ class CustomerController extends Controller
                 ->whereIn('role', ['sale', 'admin', 'manager'])
                 ->first();
 
-            if (!$salesUser) {
+            if (! $salesUser) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid sales user or user is not active'
+                    'message' => 'Invalid sales user or user is not active',
                 ], 400);
             }
 
@@ -419,7 +434,7 @@ class CustomerController extends Controller
             $status = empty($result['failed']) ? 'success' : ($result['success_count'] > 0 ? 'partial_success' : 'error');
             $message = empty($result['failed'])
                 ? "จัดสรรลูกค้าสำเร็จ {$result['success_count']} รายให้กับ {$salesUser->username}"
-                : "จัดสรรลูกค้าสำเร็จ {$result['success_count']} ราย, ล้มเหลว " . count($result['failed']) . " ราย";
+                : "จัดสรรลูกค้าสำเร็จ {$result['success_count']} ราย, ล้มเหลว ".count($result['failed']).' ราย';
 
             return response()->json([
                 'status' => $status,
@@ -431,15 +446,16 @@ class CustomerController extends Controller
                     'sales_user' => [
                         'user_id' => $salesUser->user_id,
                         'username' => $salesUser->username,
-                        'name' => $salesUser->user_firstname . ' ' . $salesUser->user_lastname
-                    ]
-                ]
+                        'name' => $salesUser->user_firstname.' '.$salesUser->user_lastname,
+                    ],
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Assign customers error: ' . $e);
+            Log::error('Assign customers error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error assigning customers: ' . $e->getMessage()
+                'message' => 'Error assigning customers: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -458,17 +474,17 @@ class CustomerController extends Controller
             $type = $request->input('type');
             $value = $request->input('value');
 
-            if (!$type || !$value) {
+            if (! $type || ! $value) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Type and value are required'
+                    'message' => 'Type and value are required',
                 ], 400);
             }
 
-            if (!in_array($type, ['phone', 'company'])) {
+            if (! in_array($type, ['phone', 'company'])) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid type. Use "phone" or "company"'
+                    'message' => 'Invalid type. Use "phone" or "company"',
                 ], 400);
             }
 
@@ -477,13 +493,14 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'success',
                 'found' => $result['found'],
-                'data' => $result['data']
+                'data' => $result['data'],
             ]);
         } catch (\Exception $e) {
-            Log::error('Check duplicate error: ' . $e->getMessage());
+            Log::error('Check duplicate error: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to check duplicate: ' . $e->getMessage()
+                'message' => 'Failed to check duplicate: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -518,15 +535,17 @@ class CustomerController extends Controller
     {
         try {
             $history = $this->transferService->getHistory($id);
+
             return response()->json([
                 'status' => 'success',
-                'data' => $history
+                'data' => $history,
             ]);
         } catch (\Exception $e) {
-            Log::error('Get transfer history error: ' . $e->getMessage());
+            Log::error('Get transfer history error: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'ไม่สามารถดึงประวัติการโอนได้: ' . $e->getMessage()
+                'message' => 'ไม่สามารถดึงประวัติการโอนได้: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -547,13 +566,14 @@ class CustomerController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $info
+                'data' => $info,
             ]);
         } catch (\Exception $e) {
-            Log::error('Get transfer info error: ' . $e->getMessage());
+            Log::error('Get transfer info error: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -571,10 +591,10 @@ class CustomerController extends Controller
         try {
             $fullAddress = $request->input('address');
 
-            if (!$fullAddress) {
+            if (! $fullAddress) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'กรุณาระบุที่อยู่ที่ต้องการแปลง'
+                    'message' => 'กรุณาระบุที่อยู่ที่ต้องการแปลง',
                 ], 400);
             }
 
@@ -590,14 +610,15 @@ class CustomerController extends Controller
                 'status' => 'success',
                 'data' => [
                     'components' => $components,
-                    'location_ids' => $locationIds
-                ]
+                    'location_ids' => $locationIds,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Parse address error: ' . $e);
+            Log::error('Parse address error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'เกิดข้อผิดพลาดในการแปลงที่อยู่: ' . $e->getMessage()
+                'message' => 'เกิดข้อผิดพลาดในการแปลงที่อยู่: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -621,14 +642,15 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => [
-                    'full_address' => $fullAddress
-                ]
+                    'full_address' => $fullAddress,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Build address error: ' . $e);
+            Log::error('Build address error: '.$e);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'เกิดข้อผิดพลาดในการสร้างที่อยู่: ' . $e->getMessage()
+                'message' => 'เกิดข้อผิดพลาดในการสร้างที่อยู่: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -637,8 +659,9 @@ class CustomerController extends Controller
     // Unused Methods (kept for Laravel resource controller compatibility)
     // =========================================================================
 
-    public function create() {}
-    public function edit(string $id) {}
+    public function create(): void {}
+
+    public function edit(string $id): void {}
 
     // =========================================================================
     // Protected Helper Methods
@@ -649,7 +672,7 @@ class CustomerController extends Controller
      */
     protected function getAuthenticatedUser(Request $request): ?User
     {
-        if (!$request->user) {
+        if (! $request->user) {
             return null;
         }
 
@@ -661,28 +684,28 @@ class CustomerController extends Controller
 
     /**
      * Generic transfer handler (DRY pattern)
-     * 
-     * @param array $allowedRoles Can contain: 'admin', 'HEAD_ONLINE', 'HEAD_OFFLINE' (sub_role codes)
+     *
+     * @param  array<string>  $allowedRoles  Can contain: 'admin', 'HEAD_ONLINE', 'HEAD_OFFLINE' (sub_role codes)
      */
     protected function handleTransfer(Request $request, string $id, string $method, array $allowedRoles): JsonResponse
     {
         $request->validate([
             'new_manage_by' => 'nullable|integer|exists:users,user_id',
-            'remark' => 'nullable|string|max:500'
+            'remark' => 'nullable|string|max:500',
         ]);
 
         $user = Auth::user();
 
         // Check if user has permission (by role or sub_role)
         $hasPermission = false;
-        
+
         // Check direct role
         if (in_array($user->role, $allowedRoles)) {
             $hasPermission = true;
         }
-        
+
         // Check sub_roles for HEAD users
-        if (!$hasPermission && method_exists($user, 'hasSubRole')) {
+        if (! $hasPermission && method_exists($user, 'hasSubRole')) {
             foreach ($allowedRoles as $role) {
                 // Convert 'head_online' to 'HEAD_ONLINE' for sub_role check
                 $subRoleCode = strtoupper($role);
@@ -693,10 +716,10 @@ class CustomerController extends Controller
             }
         }
 
-        if (!$hasPermission) {
+        if (! $hasPermission) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'ไม่มีสิทธิ์ในการโอนลูกค้า'
+                'message' => 'ไม่มีสิทธิ์ในการโอนลูกค้า',
             ], 403);
         }
 
@@ -714,20 +737,22 @@ class CustomerController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => "โอนไป {$result['new_channel_label']} สำเร็จ",
-                'data' => $result
+                'data' => $result,
             ]);
         } catch (\InvalidArgumentException $e) {
             DB::rollBack();
+
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 400);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Transfer error ({$method}): " . $e->getMessage());
+            Log::error("Transfer error ({$method}): ".$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'โอนลูกค้าไม่สำเร็จ: ' . $e->getMessage()
+                'message' => 'โอนลูกค้าไม่สำเร็จ: '.$e->getMessage(),
             ], 500);
         }
     }

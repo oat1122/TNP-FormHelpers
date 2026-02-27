@@ -2,25 +2,26 @@
 
 namespace App\Repositories;
 
-use App\Repositories\CustomerRepositoryInterface;
-use App\Constants\CustomerChannel;
 use App\Models\MasterCustomer as Customer;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Models\User;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Customer Repository Implementation
- * 
+ *
  * จัดการ database queries ทั้งหมดสำหรับ Customer
  * Controller ไม่ควรมี query logic โดยตรง ให้เรียกผ่าน Repository นี้
+ *
+ * @property \App\Models\MasterCustomer $model
  */
 class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface
 {
     /**
      * Columns to select for customer list
+     * @var array<int, string>
      */
     protected array $listColumns = [
         'cus_id',
@@ -46,7 +47,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         'cus_created_date',
         'cus_updated_by',
         'cus_updated_date',
-        'cus_is_use'
+        'cus_is_use',
     ];
 
     /**
@@ -59,16 +60,19 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<string, mixed> $filters
+     * @return LengthAwarePaginator<\App\Models\MasterCustomer>
      */
     public function getFiltered(array $filters, User $user): LengthAwarePaginator
     {
         $query = $this->buildFilteredQuery($filters, $user);
-        
+
         $this->applySelect($query);
         $this->applySorting($query, $filters);
-        
+
         $perPage = $filters['per_page'] ?? 10;
-        
+
         return $query->paginate($perPage);
     }
 
@@ -80,7 +84,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         $groups = CustomerGroup::active()
             ->pluck('mcg_id')
             ->toArray();
-        
+
         $counts = [];
 
         foreach ($groups as $groupId) {
@@ -94,6 +98,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<string, mixed> $filters
+     * @return Collection<int, \App\Models\MasterCustomerGroup>
      */
     public function getCustomerGroups(array $filters, User $user): Collection
     {
@@ -105,10 +112,12 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
                 // Get user's sub_role
                 $user->loadMissing('subRoles');
-                $subRoleCode = $user->subRoles->first()?->msr_code;
+                /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\MasterSubRole> $subRoles */
+                $subRoles = $user->subRoles;
+                $subRoleCode = $subRoles->first()?->msr_code;
                 $isHead = in_array($subRoleCode, ['HEAD_ONLINE', 'HEAD_OFFLINE']);
                 $isSupportSales = $subRoleCode === 'SUPPORT_SALES';
-                $hasSubordinateFilter = !empty($filters['subordinate_user_ids']);
+                $hasSubordinateFilter = ! empty($filters['subordinate_user_ids']);
 
                 // Apply role filter
                 if ($user->role === 'admin') {
@@ -121,7 +130,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                         ? $filters['subordinate_user_ids']
                         : array_map('trim', explode(',', $filters['subordinate_user_ids']));
                     $userIds = array_filter(array_map('intval', $userIds));
-                    if (!empty($userIds)) {
+                    if (! empty($userIds)) {
                         $query->whereIn('cus_manage_by', $userIds);
                     }
                     // No channel filter - HEAD sees all channels of their subordinates
@@ -135,7 +144,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                 }
 
                 // Apply search filter
-                if (!empty($filters['search'])) {
+                if (! empty($filters['search'])) {
                     $this->applySearchFilterToQuery($query, $filters['search']);
                 }
             }])
@@ -144,6 +153,8 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<string, mixed> $filters
      */
     public function getTotalCount(array $filters, User $user): int
     {
@@ -162,13 +173,15 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                 'customerProvice',
                 'customerDistrict',
                 'customerSubdistrict',
-                'cusManageBy'
+                'cusManageBy',
             ])
             ->find($id);
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @return Collection<int, \App\Models\MasterCustomer>
      */
     public function getAllBasic(): Collection
     {
@@ -201,6 +214,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * {@inheritDoc}
+     *
+     * @param array<string, mixed> $filters
+     * @return LengthAwarePaginator<\App\Models\MasterCustomer>
      */
     public function getPoolCustomers(array $filters): LengthAwarePaginator
     {
@@ -233,12 +249,12 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->orderBy('cus_created_date', 'desc');
 
         // Filter by source
-        if (!empty($filters['source'])) {
+        if (! empty($filters['source'])) {
             $query->where('cus_source', $filters['source']);
         }
 
         // Apply search
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $this->applySearchFilterToQuery($query, $filters['search']);
         }
 
@@ -272,7 +288,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             $cleanPhone = preg_replace('/[^0-9]/', '', $value);
             $query->where('cus_tel_1', $cleanPhone);
         } elseif ($type === 'company') {
-            $query->where('cus_company', 'like', '%' . $value . '%');
+            $query->where('cus_company', 'like', '%'.$value.'%');
         }
 
         return $query
@@ -282,7 +298,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                 'cus_company',
                 'cus_tel_1',
                 'cus_manage_by',
-                'cus_created_date'
+                'cus_created_date',
             ])
             ->limit(5)
             ->get();
@@ -294,8 +310,8 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Get base query builder for custom queries in controller
-     * 
-     * @return Builder
+     *
+     * @return Builder<\App\Models\MasterCustomer>
      */
     public function getBaseQuery(): Builder
     {
@@ -305,12 +321,12 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Get pool customers from Telesales source
-     * 
+     *
      * Only shows telesales customers that have NOT been transferred yet.
      * Once a telesales customer is transferred, they should appear in the transferred tab instead.
-     * 
-     * @param array $filters Filter parameters (search, per_page)
-     * @return LengthAwarePaginator
+     *
+     * @param  array<string, mixed>  $filters  Filter parameters (search, per_page)
+     * @return LengthAwarePaginator<\App\Models\MasterCustomer>
      */
     public function getPoolTelesalesCustomers(array $filters): LengthAwarePaginator
     {
@@ -327,7 +343,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->whereNull('cus_manage_by')
             ->whereNotIn('cus_id', $transferredCustomerIds); // Exclude transferred customers
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $this->applySearchFilterToQuery($query, $filters['search']);
         }
 
@@ -338,12 +354,12 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Get pool customers that have actual transfer history
-     * 
+     *
      * Shows ALL customers that have been transferred (where previous_channel is NOT NULL),
      * including telesales customers that were transferred.
-     * 
-     * @param array $filters Filter parameters (channel, per_page)
-     * @return LengthAwarePaginator
+     *
+     * @param  array<string, mixed>  $filters  Filter parameters (channel, per_page)
+     * @return LengthAwarePaginator<\App\Models\MasterCustomer>
      */
     public function getPoolTransferredCustomers(array $filters): LengthAwarePaginator
     {
@@ -375,6 +391,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Build query with common filters applied (includes relations)
+     *
+     * @param array<string, mixed> $filters
+     * @return Builder<\App\Models\MasterCustomer>
      */
     protected function buildFilteredQuery(array $filters, User $user): Builder
     {
@@ -387,21 +406,28 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Build base filtered query (without relations, for counting)
+     *
+     * @param array<string, mixed> $filters
+     * @return Builder<\App\Models\MasterCustomer>
      */
     protected function buildBaseFilteredQuery(array $filters, User $user): Builder
     {
         $query = $this->model->active();
-        
+
         return $this->applyAllFilters($query, $filters, $user);
     }
 
     /**
      * Apply all filters to query
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @param array<string, mixed> $filters
+     * @return Builder<\App\Models\MasterCustomer>
      */
     protected function applyAllFilters(Builder $query, array $filters, User $user): Builder
     {
         // Group filter
-        if (!empty($filters['group']) && $filters['group'] !== 'all') {
+        if (! empty($filters['group']) && $filters['group'] !== 'all') {
             $query->where('cus_mcg_id', $filters['group']);
         }
 
@@ -409,12 +435,12 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         $this->applyRoleFilter($query, $user, $filters);
 
         // Search filter
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $this->applySearchFilterToQuery($query, $filters['search']);
         }
 
         // Date range filter
-        if (!empty($filters['start_date']) || !empty($filters['end_date'])) {
+        if (! empty($filters['start_date']) || ! empty($filters['end_date'])) {
             $query->filterByDateRange(
                 $filters['start_date'] ?? null,
                 $filters['end_date'] ?? null
@@ -422,7 +448,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         }
 
         // Sales names filter
-        if (!empty($filters['sales_names'])) {
+        if (! empty($filters['sales_names'])) {
             $salesNames = is_array($filters['sales_names'])
                 ? $filters['sales_names']
                 : explode(',', $filters['sales_names']);
@@ -430,7 +456,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         }
 
         // Channel filter
-        if (!empty($filters['channels'])) {
+        if (! empty($filters['channels'])) {
             $channels = is_array($filters['channels'])
                 ? $filters['channels']
                 : explode(',', $filters['channels']);
@@ -446,15 +472,15 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         }
 
         // Subordinate user IDs filter (for HEAD to see only their subordinates' customers)
-        if (!empty($filters['subordinate_user_ids'])) {
+        if (! empty($filters['subordinate_user_ids'])) {
             $userIds = is_array($filters['subordinate_user_ids'])
                 ? $filters['subordinate_user_ids']
                 : array_map('trim', explode(',', $filters['subordinate_user_ids']));
-            
+
             // Convert to integers and filter out empty values
             $userIds = array_filter(array_map('intval', $userIds));
-            
-            if (!empty($userIds)) {
+
+            if (! empty($userIds)) {
                 $query->whereIn('cus_manage_by', $userIds);
             }
         }
@@ -464,78 +490,88 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Apply role-based filtering
-     * 
+     *
      * If subordinate_user_ids are provided in filters, skip individual user filter
      * as HEADs should see their subordinates' customers instead.
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @param array<string, mixed> $filters
      */
     protected function applyRoleFilter(Builder $query, User $user, array $filters = []): void
     {
         // If subordinate_user_ids filter is provided, the HEAD is viewing subordinates' customers
         // Skip the individual user filter in this case
-        $hasSubordinateFilter = !empty($filters['subordinate_user_ids']);
-        
+        $hasSubordinateFilter = ! empty($filters['subordinate_user_ids']);
+
         // Get user's sub_role code
         $user->load('subRoles');
-        $subRoleCode = $user->subRoles->first()?->msr_code;
-        
+        /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\MasterSubRole> $subRoles */
+        $subRoles = $user->subRoles;
+        $subRoleCode = $subRoles->first()?->msr_code;
+
         // Check if user is HEAD based on sub_role
         $isHeadOnline = $subRoleCode === 'HEAD_ONLINE';
         $isHeadOffline = $subRoleCode === 'HEAD_OFFLINE';
         $isHead = $isHeadOnline || $isHeadOffline;
         $isSupportSales = $subRoleCode === 'SUPPORT_SALES';
-        
+
         // Admin sees everything
         if ($user->role === 'admin') {
             return;
         }
-        
+
         // Accounting sees all customers (for quotation creation)
         if ($user->role === 'account') {
             return;
         }
-        
+
         // SUPPORT_SALES sees all customers (ซับพอตเซล - ทำทุกอย่างให้เซล)
         if ($isSupportSales) {
             return;
         }
-        
+
         // HEAD with subordinate filter - see ALL subordinates' customers (all channels)
         if ($isHead && $hasSubordinateFilter) {
             // No channel filter - HEAD sees all channels of their subordinates
             return;
         }
-        
+
         // HEAD without subordinate filter - show only HEAD's OWN assigned customers (ALL channels)
         if ($isHead) {
             // Filter by HEAD's own user_id - no channel filter, show all channels
             $query->where('cus_manage_by', $user->user_id);
+
             return;
         }
-        
+
         // Regular users see only their assigned customers
         $query->where('cus_manage_by', $user->user_id);
     }
 
     /**
      * Apply search filter to query
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
      */
     protected function applySearchFilterToQuery(Builder $query, string $search): void
     {
-        $searchTerm = '%' . trim($search) . '%';
-        
+        $searchTerm = '%'.trim($search).'%';
+
         $query->where(function ($q) use ($searchTerm) {
             $q->where('cus_name', 'like', $searchTerm)
-              ->orWhere('cus_company', 'like', $searchTerm)
-              ->orWhere('cus_no', 'like', $searchTerm)
-              ->orWhere('cus_tel_1', 'like', $searchTerm)
-              ->orWhereHas('cusManageBy', function ($userQuery) use ($searchTerm) {
-                  $userQuery->where('username', 'like', $searchTerm);
-              });
+                ->orWhere('cus_company', 'like', $searchTerm)
+                ->orWhere('cus_no', 'like', $searchTerm)
+                ->orWhere('cus_tel_1', 'like', $searchTerm)
+                ->orWhereHas('cusManageBy', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('username', 'like', $searchTerm);
+                });
         });
     }
 
     /**
      * Apply select columns to query
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
      */
     protected function applySelect(Builder $query): void
     {
@@ -544,12 +580,16 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     /**
      * Apply sorting to query
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @param array<string, mixed> $filters
      */
     protected function applySorting(Builder $query, array $filters): void
     {
         if (empty($filters['sort_field']) || empty($filters['sort_direction'])) {
             // Default ordering
             $query->orderBy('master_customers.cus_no', 'desc');
+
             return;
         }
 
@@ -562,7 +602,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         switch ($sortField) {
             case 'cus_manage_by':
                 // Sales name sorting - join with users table
-                if (!in_array('users', $joins)) {
+                if (! in_array('users', $joins)) {
                     $query->leftJoin('users', 'master_customers.cus_manage_by', '=', 'users.user_id');
                 }
                 $query->orderBy('users.username', $sortDirection);
@@ -570,7 +610,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
             case 'cd_last_datetime':
                 // Recall date sorting - join with customer_details
-                if (!in_array('customer_details', $joins)) {
+                if (! in_array('customer_details', $joins)) {
                     $query->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
                 }
                 $query->orderBy('customer_details.cd_last_datetime', $sortDirection);
@@ -578,7 +618,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
             case 'cd_note':
                 // Note field sorting
-                if (!in_array('customer_details', $joins)) {
+                if (! in_array('customer_details', $joins)) {
                     $query->leftJoin('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id');
                 }
                 $query->orderBy('customer_details.cd_note', $sortDirection);

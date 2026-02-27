@@ -45,13 +45,36 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int|null $cus_updated_by
  *
  * @property-read CustomerDetail|null $customerDetail
- * @property-read User|null $cusManageBy Sales manager who manages this customer
- * @property-read User|null $allocatedBy Manager who allocated this customer from pool
+ * @property-read User|null $cusManageBy
+ * @property-read User|null $allocatedBy
  * @property-read MasterDistrict|null $customerDistrict
  * @property-read MasterProvice|null $customerProvice
  * @property-read MasterSubdistrict|null $customerSubdistrict
  * @property-read MasterBusinessType|null $businessType
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\PricingRequest[] $pricingRequests
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PricingRequest> $pricingRequests
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> active()
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> inPool()
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> fromTelesales()
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> filterByDateRange(?string $startDate, ?string $endDate)
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> filterBySalesNames(array $salesNames)
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> filterByChannels(array $channels)
+ * @method static \Illuminate\Database\Eloquent\Builder<\App\Models\MasterCustomer> filterByRecallRange(?int $minDays, ?int $maxDays)
+ *
+ * @property string $target_user_name
+ * @property int $total_customers
+ * @property int $waiting_count
+ * @property int $in_criteria_count
+ * @property int $recalls_made_count
+ * @property int $count
+ * @property string $date
+ * @property int $user_id
+ * @property string $username
+ * @property string $user_firstname
+ * @property string $user_lastname
+ * @property string $user_nickname
+ * @property string $full_name
+ * @property string $source
  *
  * @package App\Models
  */
@@ -215,49 +238,73 @@ class MasterCustomer extends Model
 		return $query;
 	}
 
-	public function customerDetail()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\HasOne<\App\Models\CustomerDetail, $this>
+	 */
+	public function customerDetail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(CustomerDetail::class, 'cd_cus_id', 'cus_id')
 			->where('cd_is_use', true);
     }
 
-	public function cusManageBy()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\User, $this>
+	 */
+	public function cusManageBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'cus_manage_by', 'user_id')
 			->select('user_id', 'username');
     }
 
-	public function allocatedBy()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\User, $this>
+	 */
+	public function allocatedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'cus_allocated_by', 'user_id')
 			->select('user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname');
     }
 
-	public function customerDistrict()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\MasterDistrict, $this>
+	 */
+	public function customerDistrict(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(MasterDistrict::class, 'cus_dis_id', 'dis_id')
 			->select('dis_id', 'dis_pro_sort_id', 'dis_sort_id', 'dis_name_th');
 	}
 
-	public function customerProvice()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\MasterProvice, $this>
+	 */
+	public function customerProvice(): \Illuminate\Database\Eloquent\Relations\BelongsTo
 	{
 		return $this->belongsTo(\App\Models\MasterProvice::class, 'cus_pro_id', 'pro_id')
 			->select('pro_id', 'pro_name_th', 'pro_sort_id');
 	}
 
-	public function customerSubdistrict()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\MasterSubdistrict, $this>
+	 */
+	public function customerSubdistrict(): \Illuminate\Database\Eloquent\Relations\BelongsTo
 	{
 		return $this->belongsTo(MasterSubdistrict::class, 'cus_sub_id', 'sub_id')
 			->select('sub_id', 'sub_dis_sort_id', 'sub_sort_id', 'sub_name_th', 'sub_zip_code');
     }
 
-	public function businessType()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\MasterBusinessType, $this>
+	 */
+	public function businessType(): \Illuminate\Database\Eloquent\Relations\BelongsTo
 	{
 		return $this->belongsTo(MasterBusinessType::class, 'cus_bt_id', 'bt_id')
 			->select('bt_id', 'bt_name');
 	}
 
-	public function pricingRequests()
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\HasMany<\App\Models\PricingRequest, $this>
+	 */
+	public function pricingRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
 	{
 		return $this->hasMany(\App\Models\PricingRequest::class, 'pr_cus_id', 'cus_id')
 			->where('pr_is_deleted', 0)

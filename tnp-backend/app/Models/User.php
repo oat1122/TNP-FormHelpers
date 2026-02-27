@@ -40,6 +40,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $user_updated_date
  * @property string|null $user_updated_by
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\MasterSubRole> $subRoles
+ *
  * @package App\Models
  */
 class User extends Model implements Authenticatable

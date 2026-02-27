@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\CustomerRepositoryInterface;
 use App\Repositories\CustomerRepository;
+use App\Repositories\KpiRepositoryInterface;
+use App\Repositories\KpiRepository;
 
 /**
  * Repository Service Provider
@@ -21,6 +23,7 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         CustomerRepositoryInterface::class => CustomerRepository::class,
+        KpiRepositoryInterface::class => KpiRepository::class,
     ];
 
     /**

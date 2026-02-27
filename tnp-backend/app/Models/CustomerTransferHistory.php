@@ -141,6 +141,11 @@ class CustomerTransferHistory extends Model
     /**
      * Get the user who performed the transfer
      */
+    /**
+     * Get the user who performed the transfer
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function actionBy()
     {
         return $this->belongsTo(User::class, 'action_by_user_id', 'user_id')
@@ -150,6 +155,11 @@ class CustomerTransferHistory extends Model
     /**
      * Get the previous manager
      */
+    /**
+     * Get the previous manager
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function previousManager()
     {
         return $this->belongsTo(User::class, 'previous_manage_by', 'user_id')
@@ -158,6 +168,11 @@ class CustomerTransferHistory extends Model
 
     /**
      * Get the new manager
+     */
+    /**
+     * Get the new manager
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
      */
     public function newManager()
     {

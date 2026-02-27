@@ -3,14 +3,14 @@
 namespace App\Services;
 
 use App\Constants\CustomerChannel;
-use App\Models\MasterCustomer;
 use App\Models\CustomerTransferHistory;
+use App\Models\MasterCustomer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
  * Service สำหรับจัดการการโอนย้ายลูกค้า
- * 
+ *
  * Responsibility: Transfer logic only (Single Responsibility Principle)
  */
 class CustomerTransferService
@@ -21,11 +21,11 @@ class CustomerTransferService
 
     /**
      * โอนลูกค้าจาก Online ไปยัง Sales
-     * 
-     * @param string $customerId Customer UUID
-     * @param int|null $newManageBy User ID ที่จะดูแลลูกค้าใหม่
-     * @param string|null $remark หมายเหตุ
-     * @return array Transfer result
+     *
+     * @param  string  $customerId  Customer UUID
+     * @param  int|null  $newManageBy  User ID ที่จะดูแลลูกค้าใหม่
+     * @param  string|null  $remark  หมายเหตุ
+     * @return array<string, mixed> Transfer result
      */
     public function transferToSales(string $customerId, ?int $newManageBy = null, ?string $remark = null): array
     {
@@ -34,11 +34,11 @@ class CustomerTransferService
 
     /**
      * โอนลูกค้าจาก Sales ไปยัง Online
-     * 
-     * @param string $customerId Customer UUID
-     * @param int|null $newManageBy User ID ที่จะดูแลลูกค้าใหม่
-     * @param string|null $remark หมายเหตุ
-     * @return array Transfer result
+     *
+     * @param  string  $customerId  Customer UUID
+     * @param  int|null  $newManageBy  User ID ที่จะดูแลลูกค้าใหม่
+     * @param  string|null  $remark  หมายเหตุ
+     * @return array<string, mixed> Transfer result
      */
     public function transferToOnline(string $customerId, ?int $newManageBy = null, ?string $remark = null): array
     {
@@ -47,9 +47,9 @@ class CustomerTransferService
 
     /**
      * ดึงประวัติการโอนย้ายของลูกค้า
-     * 
-     * @param string $customerId Customer UUID
-     * @return \Illuminate\Database\Eloquent\Collection
+     *
+     * @param  string  $customerId  Customer UUID
+     * @return \Illuminate\Database\Eloquent\Collection<int, CustomerTransferHistory>
      */
     public function getHistory(string $customerId)
     {
@@ -61,10 +61,9 @@ class CustomerTransferService
 
     /**
      * ตรวจสอบว่า user มีสิทธิ์โอนลูกค้าหรือไม่
-     * 
-     * @param string $role User's role
-     * @param int $currentChannel Customer's current channel
-     * @return bool
+     *
+     * @param  string  $role  User's role
+     * @param  int  $currentChannel  Customer's current channel
      */
     public function canTransfer(string $role, int $currentChannel): bool
     {
@@ -75,37 +74,37 @@ class CustomerTransferService
 
         // ตรวจสอบตาม Transfer Rules
         $rule = CustomerChannel::TRANSFER_RULES[$role] ?? null;
-        
+
         return $rule && $rule['from'] === $currentChannel;
     }
 
     /**
      * หา target channel สำหรับ role
-     * 
-     * @param string $role User's role
-     * @param int $currentChannel Customer's current channel
+     *
+     * @param  string  $role  User's role
+     * @param  int  $currentChannel  Customer's current channel
      * @return int|null Target channel or null if cannot transfer
      */
     public function getTargetChannel(string $role, int $currentChannel): ?int
     {
         if ($role === 'admin') {
             // Admin: toggle ระหว่าง Sales และ Online
-            return $currentChannel === CustomerChannel::SALES 
-                ? CustomerChannel::ONLINE 
+            return $currentChannel === CustomerChannel::SALES
+                ? CustomerChannel::ONLINE
                 : CustomerChannel::SALES;
         }
 
         $rule = CustomerChannel::TRANSFER_RULES[$role] ?? null;
-        
+
         return $rule['to'] ?? null;
     }
 
     /**
      * Get transfer info for a customer (for frontend display)
-     * 
-     * @param string $role User's role
-     * @param int $currentChannel Customer's current channel
-     * @return array
+     *
+     * @param  string  $role  User's role
+     * @param  int  $currentChannel  Customer's current channel
+     * @return array{can_transfer: bool, current_channel: int, current_channel_label: string, target_channel: int|null, target_channel_label: string|null}
      */
     public function getTransferInfo(string $role, int $currentChannel): array
     {
@@ -123,9 +122,9 @@ class CustomerTransferService
 
     /**
      * Attach latest transfer info to paginated customers
-     * 
-     * @param \Illuminate\Pagination\LengthAwarePaginator $customers
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     *
+     * @param  \Illuminate\Pagination\LengthAwarePaginator<MasterCustomer>  $customers
+     * @return \Illuminate\Pagination\LengthAwarePaginator<MasterCustomer>
      */
     public function attachTransferInfo(\Illuminate\Pagination\LengthAwarePaginator $customers): \Illuminate\Pagination\LengthAwarePaginator
     {
@@ -135,18 +134,20 @@ class CustomerTransferService
                 ->latestFirst()
                 ->first();
 
-            $customer->latest_transfer = $latestTransfer ? [
+            $transferData = $latestTransfer ? [
                 'previous_channel' => $latestTransfer->previous_channel,
                 'previous_channel_label' => $latestTransfer->previous_channel_label,
                 'previous_manager_name' => $latestTransfer->previous_manager_name,
                 'new_channel' => $latestTransfer->new_channel,
                 'new_channel_label' => $latestTransfer->new_channel_label,
                 'transferred_at' => $latestTransfer->created_at,
-                'action_by' => $latestTransfer->actionBy ? [
+                'action_by' => $latestTransfer->actionBy !== null ? [
                     'user_id' => $latestTransfer->actionBy->user_id,
                     'username' => $latestTransfer->actionBy->username,
                 ] : null,
             ] : null;
+
+            $customer->setAttribute('latest_transfer', $transferData);
 
             return $customer;
         });
@@ -162,25 +163,26 @@ class CustomerTransferService
 
     /**
      * Core transfer logic
-     * 
-     * @param string $customerId Customer UUID
-     * @param int $newChannel Target channel
-     * @param int|null $newManageBy New manager user ID
-     * @param string|null $remark Transfer remark
-     * @return array Transfer result
+     *
+     * @param  string  $customerId  Customer UUID
+     * @param  int  $newChannel  Target channel
+     * @param  int|null  $newManageBy  New manager user ID
+     * @param  string|null  $remark  Transfer remark
+     * @return array<string, mixed> Transfer result
+     *
      * @throws \InvalidArgumentException
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     private function transfer(string $customerId, int $newChannel, ?int $newManageBy, ?string $remark): array
     {
         $customer = MasterCustomer::findOrFail($customerId);
-        
+
         $this->validateTransfer($customer, $newChannel);
-        
+
         $oldData = $this->captureOldData($customer);
-        
+
         $this->updateCustomer($customer, $newChannel, $newManageBy);
-        
+
         $historyId = $this->createHistory($customerId, $oldData, $newChannel, $newManageBy, $remark);
 
         // Send real-time notification to new manager
@@ -207,9 +209,7 @@ class CustomerTransferService
 
     /**
      * Validate transfer request
-     * 
-     * @param MasterCustomer $customer
-     * @param int $newChannel
+     *
      * @throws \InvalidArgumentException
      */
     private function validateTransfer(MasterCustomer $customer, int $newChannel): void
@@ -218,7 +218,7 @@ class CustomerTransferService
             throw new \InvalidArgumentException('ลูกค้าอยู่ใน channel นี้แล้ว');
         }
 
-        if (!CustomerChannel::isValid($newChannel)) {
+        if (! CustomerChannel::isValid($newChannel)) {
             throw new \InvalidArgumentException('Channel ไม่ถูกต้อง');
         }
     }
@@ -226,8 +226,7 @@ class CustomerTransferService
     /**
      * Capture current state before transfer
      * 
-     * @param MasterCustomer $customer
-     * @return array
+     * @return array{channel: int|null, manage_by: int|null}
      */
     private function captureOldData(MasterCustomer $customer): array
     {
@@ -239,15 +238,11 @@ class CustomerTransferService
 
     /**
      * Update customer record with new channel and manager
-     * 
-     * @param MasterCustomer $customer
-     * @param int $newChannel
-     * @param int|null $newManageBy
      */
     private function updateCustomer(MasterCustomer $customer, int $newChannel, ?int $newManageBy): void
     {
         $customer->cus_channel = $newChannel;
-        
+
         if ($newManageBy) {
             $customer->cus_manage_by = $newManageBy;
             $customer->cus_allocation_status = 'allocated';
@@ -258,7 +253,7 @@ class CustomerTransferService
             $customer->cus_manage_by = null;
             $customer->cus_allocation_status = 'pool';
         }
-        
+
         $customer->cus_updated_date = now();
         $customer->cus_updated_by = Auth::id();
         $customer->save();
@@ -266,9 +261,9 @@ class CustomerTransferService
 
     /**
      * Create transfer history record
-     * 
+     *
      * @param string $customerId
-     * @param array $oldData
+     * @param array{channel: int|null, manage_by: int|null} $oldData
      * @param int $newChannel
      * @param int|null $newManageBy
      * @param string|null $remark
@@ -292,9 +287,9 @@ class CustomerTransferService
             'remark' => $remark,
             'created_at' => now(),
         ]);
-        
+
         $history->save();
-        
+
         return $history->id;
     }
 }

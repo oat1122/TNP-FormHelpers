@@ -20,6 +20,8 @@ class ReceiptController extends Controller
     public function __construct(ReceiptService $receiptService)
     {
         $this->receiptService = $receiptService;
+        // SEC-01: Require authentication for all receipt endpoints
+        $this->middleware('auth:sanctum');
     }
 
     /**

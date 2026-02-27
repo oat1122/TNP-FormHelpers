@@ -20,6 +20,8 @@ class DeliveryNoteController extends Controller
     public function __construct(DeliveryNoteService $deliveryNoteService)
     {
         $this->deliveryNoteService = $deliveryNoteService;
+        // SEC-01: Require authentication for all delivery note endpoints
+        $this->middleware('auth:sanctum');
     }
 
     /**

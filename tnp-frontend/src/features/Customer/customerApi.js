@@ -262,6 +262,56 @@ export const customerApi = createApi({
         },
       }),
     }),
+    // KPI Dashboard Details endpoint
+    getKpiDashboardDetails: builder.query({
+      query: (payload) => ({
+        url: "/customers/kpi/details",
+        method: "GET",
+        params: {
+          period: payload?.period || "month",
+          start_date: payload?.start_date,
+          end_date: payload?.end_date,
+          source_filter: payload?.source_filter || "all",
+          kpi_type: payload?.kpi_type,
+          user_id: payload?.user_id,
+          page: payload?.page ? payload.page + 1 : 1,
+          per_page: payload?.per_page || 10,
+        },
+      }),
+      transformResponse: (response) => {
+        if (response.data) {
+          return { ...response, data: ensureRowIds(response.data) };
+        }
+        return response;
+      },
+    }),
+    // KPI Recall Details - get customer list for overdue, in criteria, or made recalls
+    getKpiRecallDetails: builder.query({
+      query: (params) => {
+        const queryParams = {
+          recall_type: params.recall_type,
+          period: params.period,
+          source_filter: params.source_filter,
+          page: params.page,
+          per_page: params.per_page,
+        };
+
+        if (params.user_id) {
+          queryParams.user_id = params.user_id;
+        }
+
+        // Pass dates for custom period or date logic
+        if (params.period === "custom" && params.start_date && params.end_date) {
+          queryParams.start_date = params.start_date;
+          queryParams.end_date = params.end_date;
+        }
+
+        return {
+          url: "/customers/kpi/recall-details",
+          params: queryParams,
+        };
+      },
+    }),
   }),
 });
 
@@ -286,4 +336,7 @@ export const {
   useGetSalesBySubRoleQuery,
   useGetKpiDashboardQuery,
   useLazyGetKpiDashboardQuery,
+  useGetKpiDashboardDetailsQuery,
+  useLazyGetKpiDashboardDetailsQuery,
+  useGetKpiRecallDetailsQuery,
 } = customerApi;

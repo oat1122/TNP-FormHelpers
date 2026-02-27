@@ -66,20 +66,15 @@ class User extends Model implements Authenticatable
 	protected $fillable = [
 		'user_uuid',
 		'username',
-		'password',
-		'role',		// ['admin','manager','production','graphic','sale','technician','telesale']
+		// SEC-08: password, new_pass, role, enable, deleted, user_is_deleted
+		// REMOVED from fillable — must be set explicitly to prevent privilege escalation
 		'user_emp_no',
 		'user_firstname',
 		'user_lastname',
 		'user_phone',
 		'user_nickname',
 		'user_position',
-		'enable',
 		'user_is_enable',
-		'deleted',
-		'user_is_deleted',
-		'new_pass',
-		'pass_is_updated',
 		'user_created_date',
 		'user_created_by',
 		'user_updated_date',

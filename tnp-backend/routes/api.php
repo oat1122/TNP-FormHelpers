@@ -71,6 +71,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     //---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
         Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
+        Route::get('/customers/kpi/details', 'details'); // KPI details list
         Route::get('/customers/kpi/export', 'export'); // CSV export
     });
 
@@ -119,7 +120,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/notifications/mark-all-as-read', 'markAllAsRead');
         Route::post('/notifications/dismiss', 'dismiss'); // Permanently hide notifications
     });
-    //---------- Supplier System ----------
+    Route::prefix('customers/kpi')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'dashboard']);
+        Route::get('/details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'details']);
+        Route::get('/recall-details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallDetails']);
+    });    //---------- Supplier System ----------
     Route::prefix('supplier')->group(function () {
         Route::get('/products', [SupplierProductController::class, 'index']);
         Route::post('/products', [SupplierProductController::class, 'store']);
@@ -157,9 +162,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 });
 
+// ========== PUBLIC ROUTES (ไม่ต้อง login) ==========
 Route::prefix('v1')->group(function() {
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+});
 
-    Route::post('/login', [AuthController::class, 'login']);
+// ========== PROTECTED ROUTES (ต้อง login — SEC-01 Fix) ==========
+Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
 
     Route::apiResources([
         //---------- Monitor Production ----------

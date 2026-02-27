@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box, Chip, Skeleton } from "@mui/material";
+import { Grid, Paper, Typography, Box, Skeleton, CardActionArea } from "@mui/material";
 import {
   NotificationsActive as WaitingIcon,
   CheckCircle as InCriteriaIcon,
@@ -12,12 +12,14 @@ import {
  * @param {Object} props
  * @param {Object} props.stats - Stats object { total_waiting, total_in_criteria, recalls_made_count }
  * @param {boolean} props.isLoading - Loading state
+ * @param {Function} props.onCardClick - Click handler passing the recall type ('waiting', 'in_criteria', 'made')
  */
-const RecallStatsCard = ({ stats = {}, isLoading = false }) => {
+const RecallStatsCard = ({ stats = {}, isLoading = false, onCardClick }) => {
   const { total_waiting = 0, total_in_criteria = 0, recalls_made_count = 0 } = stats || {};
 
   const items = [
     {
+      type: "waiting",
       label: "รอกด Recall (ตกเกณฑ์)",
       value: total_waiting,
       color: "error",
@@ -25,6 +27,7 @@ const RecallStatsCard = ({ stats = {}, isLoading = false }) => {
       bgColor: "#ffebee",
     },
     {
+      type: "in_criteria",
       label: "อยู่ในเกณฑ์",
       value: total_in_criteria,
       color: "success",
@@ -32,6 +35,7 @@ const RecallStatsCard = ({ stats = {}, isLoading = false }) => {
       bgColor: "#e8f5e9",
     },
     {
+      type: "made",
       label: "กด Recall (ในรอบนี้)",
       value: recalls_made_count,
       color: "info",
@@ -49,31 +53,36 @@ const RecallStatsCard = ({ stats = {}, isLoading = false }) => {
       <Grid container spacing={2}>
         {items.map((item, index) => (
           <Grid item xs={12} md={4} key={index}>
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                bgcolor: item.bgColor,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                height: 100, // Fixed height for consistency
-              }}
+            <CardActionArea
+              onClick={() => onCardClick && onCardClick(item.type)}
+              sx={{ borderRadius: 2 }}
             >
-              <Box sx={{ width: "100%" }}>
-                <Typography variant="body2" color="text.secondary" fontFamily="Kanit">
-                  {item.label}
-                </Typography>
-                {isLoading ? (
-                  <Skeleton variant="text" width="60%" height={60} />
-                ) : (
-                  <Typography variant="h4" fontWeight={700} color={item.color + ".main"}>
-                    {item.value.toLocaleString()}
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: item.bgColor,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  height: 100, // Fixed height for consistency
+                }}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <Typography variant="body2" color="text.secondary" fontFamily="Kanit">
+                    {item.label}
                   </Typography>
-                )}
+                  {isLoading ? (
+                    <Skeleton variant="text" width="60%" height={60} />
+                  ) : (
+                    <Typography variant="h4" fontWeight={700} color={item.color + ".main"}>
+                      {item.value.toLocaleString()}
+                    </Typography>
+                  )}
+                </Box>
+                {item.icon}
               </Box>
-              {item.icon}
-            </Box>
+            </CardActionArea>
           </Grid>
         ))}
       </Grid>

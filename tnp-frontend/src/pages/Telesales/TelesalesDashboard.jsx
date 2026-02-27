@@ -2,9 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Grid, Typography, Button, Alert } from "@mui/material";
 import { ErrorOutline } from "@mui/icons-material";
+import dayjs from "dayjs";
 
 // Components
-import { DashboardErrorBoundary, SourceDistributionChart, EmptyState } from "./components";
+import {
+  DashboardErrorBoundary,
+  SourceDistributionChart,
+  EmptyState,
+  KpiDetailsDialog,
+  RecallDetailsDialog,
+} from "./components";
 
 // Sections
 import {
@@ -32,35 +39,75 @@ const TelesalesDashboard = () => {
   const navigate = useNavigate();
 
   // State
-  const [period, setPeriod] = useState("month");
+  // We now use an object to support custom date ranges and shifting
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    const today = dayjs();
+    return {
+      mode: "month",
+      startDate: today.startOf("month").format("YYYY-MM-DD"),
+      endDate: today.endOf("month").format("YYYY-MM-DD"),
+    };
+  });
+
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [isKpiDialogOpen, setIsKpiDialogOpen] = useState(false);
+  const [selectedKpiType, setSelectedKpiType] = useState(null);
+
+  // Recall State
+  const [isRecallDialogOpen, setIsRecallDialogOpen] = useState(false);
+  const [selectedRecallType, setSelectedRecallType] = useState(null);
 
   // Role-based access control
   const { hasAccess, userName, isTeamView } = useUserAccess();
 
   // CSV export
-  const { handleExportCsv, isExporting } = useCsvExport(period, sourceFilter);
+  const { handleExportCsv, isExporting } = useCsvExport(
+    periodFilter.mode === "custom" ? "custom" : periodFilter.mode,
+    sourceFilter
+  );
 
   // API query
+  // For standard API structure, we pass period as string if not custom,
+  // or pass 'custom' and dates if it is custom or shifted period.
+  const apiParams = {
+    period: periodFilter.mode,
+    source_filter: sourceFilter,
+    start_date: periodFilter.startDate,
+    end_date: periodFilter.endDate,
+  };
+
   const {
     data: kpiData,
     isLoading,
     isFetching,
     isError,
     refetch,
-  } = useGetKpiDashboardQuery(
-    {
-      period,
-      source_filter: sourceFilter,
-    },
-    {
-      skip: !hasAccess,
-      refetchOnMountOrArgChange: true,
-    }
-  );
+  } = useGetKpiDashboardQuery(apiParams, {
+    skip: !hasAccess,
+    refetchOnMountOrArgChange: true,
+  });
 
   // Role label for display
   const roleLabel = isTeamView ? "ภาพรวมทีม" : "ข้อมูลส่วนตัว";
+
+  // Handlers
+  const handleKpiCardClick = (kpiType) => {
+    setSelectedKpiType(kpiType);
+    setIsKpiDialogOpen(true);
+  };
+
+  const handleKpiDialogClose = () => {
+    setIsKpiDialogOpen(false);
+  };
+
+  const handleRecallCardClick = (recallType) => {
+    setSelectedRecallType(recallType);
+    setIsRecallDialogOpen(true);
+  };
+
+  const handleRecallDialogClose = () => {
+    setIsRecallDialogOpen(false);
+  };
 
   // Extracted data
   const stats = kpiData?.data;
@@ -111,8 +158,8 @@ const TelesalesDashboard = () => {
 
         {/* Period Tabs */}
         <PeriodTabs
-          period={period}
-          onPeriodChange={setPeriod}
+          periodFilter={periodFilter}
+          onPeriodChange={setPeriodFilter}
           sourceFilter={sourceFilter}
           onSourceFilterChange={setSourceFilter}
           periodLabel={periodLabel}
@@ -135,10 +182,18 @@ const TelesalesDashboard = () => {
         {!isError && (
           <>
             {/* Summary Stats Cards */}
-            <SummaryStatsGrid summary={summary} isLoading={isLoading || isFetching} />
+            <SummaryStatsGrid
+              summary={summary}
+              isLoading={isLoading || isFetching}
+              onCardClick={handleKpiCardClick}
+            />
 
             {/* Recall Stats Card */}
-            <RecallStatsCard stats={recallStats} isLoading={isLoading || isFetching} />
+            <RecallStatsCard
+              stats={recallStats}
+              isLoading={isLoading || isFetching}
+              onCardClick={handleRecallCardClick}
+            />
 
             {/* Recall By Sales Table (Team View) */}
             {isTeamView && (
@@ -170,6 +225,34 @@ const TelesalesDashboard = () => {
                 </Grid>
               )}
             </Grid>
+
+            {/* KPI Details Dialog */}
+            <KpiDetailsDialog
+              open={isKpiDialogOpen}
+              onClose={handleKpiDialogClose}
+              kpiType={selectedKpiType}
+              period={periodFilter.mode}
+              startDate={periodFilter.startDate}
+              endDate={periodFilter.endDate}
+              sourceFilter={sourceFilter}
+              userId={
+                isTeamView && sourceFilter !== "all" ? undefined : isTeamView ? "all" : undefined
+              }
+            />
+
+            {/* Recall Details Dialog */}
+            <RecallDetailsDialog
+              open={isRecallDialogOpen}
+              onClose={handleRecallDialogClose}
+              recallType={selectedRecallType}
+              period={periodFilter.mode}
+              startDate={periodFilter.startDate}
+              endDate={periodFilter.endDate}
+              sourceFilter={sourceFilter}
+              userId={
+                isTeamView && sourceFilter !== "all" ? undefined : isTeamView ? "all" : undefined
+              }
+            />
           </>
         )}
       </Container>

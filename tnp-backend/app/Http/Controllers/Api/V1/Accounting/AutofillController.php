@@ -20,6 +20,8 @@ class AutofillController extends Controller
     public function __construct(AutofillService $autofillService)
     {
         $this->autofillService = $autofillService;
+        // SEC-01: Require authentication for all autofill endpoints
+        $this->middleware('auth:sanctum');
     }
 
     /**

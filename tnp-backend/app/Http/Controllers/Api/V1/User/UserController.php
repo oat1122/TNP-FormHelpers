@@ -27,12 +27,18 @@ class UserController extends Controller
                 'min:8',
                 'regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[#?!@$%^&*-]).{8,}$/'
             ],
-            'role' => 'required',
+            'role' => 'required|in:admin,manager,production,graphic,sale,technician,telesale,account',
             'user_nickname' => 'required',
             'user_is_enable' => 'required',
         ]);
 
-        $data_input = $request->all();
+        // SEC-08: Use only() to whitelist allowed fields instead of all()
+        $data_input = $request->only([
+            'username', 'password', 'role', 'user_nickname',
+            'user_firstname', 'user_lastname', 'user_phone',
+            'user_position', 'user_emp_no', 'user_is_enable',
+            'user_created_by', 'user_updated_by', 'sub_role_ids'
+        ]);
 
         // เช็คชื่อผู้ใช้งานว่าซ้ำหรือไม่
         $username_exist = $this->check_username_existing($data_input);
@@ -46,8 +52,10 @@ class UserController extends Controller
             $user = new User();
             $user->fill($data_input);
             $user->user_uuid = Str::uuid();
-            $user->password = md5($data_input['password']);
+            // SEC-03: Removed MD5 — use only bcrypt via Hash::make()
             $user->new_pass = Hash::make($data_input['password']);
+            // SEC-08: Set sensitive fields explicitly (not via fill)
+            $user->role = $data_input['role'];
             $user->pass_is_updated = true;
             $user->user_is_enable = filter_var($data_input['user_is_enable'], FILTER_VALIDATE_BOOLEAN);
             $user->user_is_deleted = false;
@@ -79,48 +87,7 @@ class UserController extends Controller
         }
     }
 
-    // ------------ [ User Login ] -------------------
-    public function login(Request $request)
-    {
-
-        $validator = Validator::make(
-            $request->all(),
-            [
-                "username" => "required",
-                "password" => "required"
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json([
-                "status" => "error", 
-                "message" => $validator->errors(), 
-                "validator_error" => true 
-            ]);
-        }
-
-        // check if entered username exists in db
-        $username_status = User::where("username", $request->username)
-                                ->where("user_is_enable", true)
-                                ->where("user_is_deleted", false)                        
-                                ->first();
-
-        // if username exists then we will check password for the same username
-        if (!is_null($username_status)) {
-            $password_status = User::where("username", $request->username)->where("password", md5($request->password))->first();
-
-            // if password is correct
-            if (!is_null($password_status)) {
-                $user = $this->userDetail($request->username);
-
-                return response()->json(["status" => "success", "data" => $user]);
-            } else {
-                return response()->json(["status" => "error", "message" => "Unable to login. Incorrect password."]);
-            }
-        } else {
-            return response()->json(["status" => "error", "message" => "Unable to login. Username doesn't exist."]);
-        }
-    }
+    // SEC-03: Legacy MD5 login REMOVED — use AuthController::login() instead
 
     // ------------------ [ User Detail ] ---------------------
     public function userDetail($username)
@@ -193,12 +160,18 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required',
-            'role' => 'required',
+            'role' => 'required|in:admin,manager,production,graphic,sale,technician,telesale,account',
             'user_nickname' => 'required',
             'user_is_enable' => 'required',
         ]);
 
-        $data_input = $request->except('user_created_by', 'user_created_date');
+        // SEC-08: Use only() to whitelist allowed fields
+        $data_input = $request->only([
+            'username', 'role', 'user_nickname', 'user_uuid',
+            'user_firstname', 'user_lastname', 'user_phone',
+            'user_position', 'user_emp_no', 'user_is_enable',
+            'user_updated_by', 'sub_role_ids'
+        ]);
 
         try {
             DB::beginTransaction();
@@ -211,6 +184,8 @@ class UserController extends Controller
 
             $query = MasterUser::where('user_uuid', $id)->firstOrFail();
             $query->fill($data_input);
+            // SEC-08: Set role explicitly (removed from $fillable)
+            $query->role = $data_input['role'];
             $query->user_is_enable = filter_var($data_input['user_is_enable'], FILTER_VALIDATE_BOOLEAN);
             $query->user_updated_date = now();
             $query->save();
@@ -374,26 +349,35 @@ class UserController extends Controller
             $query = MasterUser::where("user_uuid", $id)->firstOrFail();
 
             if ($request->is_reset) {
-                $validated = $request->validate([
-                    'username' => 'required'
-                ]);
-                $query->password = md5($validated['username'].'@153153');
-                $query->new_pass = Hash::make($validated['username'].'@153153');
-                
+                // SEC-10: Use random password instead of predictable {username}@153153
+                $randomPassword = Str::random(12) . '!1Aa';
+                $query->new_pass = Hash::make($randomPassword);
+                // SEC-03: Removed MD5
             } else {
-                $data_input = $request->all();
-
-                $query->password = md5($data_input['password']);
-                $query->new_pass = Hash::make($data_input['password']);
+                $request->validate([
+                    'password' => [
+                        'required',
+                        'string',
+                        'min:8',
+                        'regex:/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[#?!@$%^&*-]).{8,}$/'
+                    ],
+                ]);
+                // SEC-03: Use only bcrypt, no MD5
+                $query->new_pass = Hash::make($request->password);
             }
 
+            $query->pass_is_updated = true;
             $query->save();
 
             DB::commit();
 
-            return response()->json([
-                'status' => 'success',
-            ]);
+            $response = ['status' => 'success'];
+            // If reset, include the generated password so admin can share it
+            if ($request->is_reset) {
+                $response['generated_password'] = $randomPassword;
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
             DB::rollBack();

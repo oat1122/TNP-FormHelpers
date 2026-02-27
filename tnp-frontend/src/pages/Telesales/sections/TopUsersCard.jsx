@@ -7,8 +7,9 @@ import { Paper, Typography, Box, Chip, Skeleton } from "@mui/material";
  * @param {Object} props
  * @param {Array} props.byUser - Array of users with { user_id, full_name, count }
  * @param {boolean} props.isLoading - Loading state
+ * @param {function} props.onUserClick - Handler when user is clicked
  */
-const TopUsersCard = ({ byUser = [], isLoading }) => {
+const TopUsersCard = ({ byUser = [], isLoading, onUserClick }) => {
   return (
     <Paper elevation={2} sx={{ p: 2, height: "100%" }}>
       <Typography variant="h6" gutterBottom fontWeight={600}>
@@ -30,6 +31,7 @@ const TopUsersCard = ({ byUser = [], isLoading }) => {
           {byUser.map((user, index) => (
             <Box
               key={user.user_id}
+              onClick={() => onUserClick && onUserClick(user)}
               display="flex"
               alignItems="center"
               justifyContent="space-between"
@@ -37,6 +39,10 @@ const TopUsersCard = ({ byUser = [], isLoading }) => {
               sx={{
                 borderBottom: index < byUser.length - 1 ? 1 : 0,
                 borderColor: "divider",
+                cursor: onUserClick ? "pointer" : "default",
+                "&:hover": onUserClick ? { backgroundColor: "action.hover" } : {},
+                px: onUserClick ? 1 : 0,
+                borderRadius: onUserClick ? 1 : 0,
               }}
             >
               <Box display="flex" alignItems="center" gap={1}>

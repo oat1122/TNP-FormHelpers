@@ -25,7 +25,7 @@ class KpiRepository extends BaseRepository implements KpiRepositoryInterface
      * @param array<string, string> $dateRange
      * @return Builder<\App\Models\MasterCustomer>
      */
-    public function getBaseDashboardQuery(array $dateRange, string $sourceFilter, ?int $targetUserId): Builder
+    public function getBaseDashboardQuery(array $dateRange, string $sourceFilter, ?int $targetUserId, string $userColumn = 'cus_allocated_by'): Builder
     {
         $query = $this->model->where('cus_is_use', true)
             ->whereBetween('cus_created_date', [$dateRange['start'], $dateRange['end']]);
@@ -37,7 +37,7 @@ class KpiRepository extends BaseRepository implements KpiRepositoryInterface
 
         // Apply user filter
         if ($targetUserId) {
-            $query->where('cus_allocated_by', $targetUserId);
+            $query->where($userColumn, $targetUserId);
         }
 
         return $query;
@@ -83,6 +83,44 @@ class KpiRepository extends BaseRepository implements KpiRepositoryInterface
     }
 
     /**
+     * Get statistics grouped by business type
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @return array<int, mixed>
+     */
+    public function getByBusinessTypeStats(Builder $query): array
+    {
+        return collect($query->leftJoin('master_business_types', 'master_customers.cus_bt_id', '=', 'master_business_types.bt_id')
+            ->select('master_business_types.bt_name', DB::raw('COUNT(master_customers.cus_id) as count'))
+            ->groupBy('master_business_types.bt_name')
+            ->orderByDesc('count')
+            ->get()->toArray())
+            ->map(fn ($item) => [
+                'business_type' => $item['bt_name'] ?? 'ไม่ระบุ',
+                'count' => $item['count'],
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Get statistics for allocation status
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @return array<int, mixed>
+     */
+    public function getByAllocationStats(Builder $query): array
+    {
+        return collect($query->select('cus_allocation_status', DB::raw('COUNT(*) as count'))
+            ->groupBy('cus_allocation_status')
+            ->get()->toArray())
+            ->map(fn ($item) => [
+                'status' => $item['cus_allocation_status'] === 'pool' ? 'รอจัดสรร' : 'จัดสรรแล้ว',
+                'count' => $item['count'],
+            ])
+            ->toArray();
+    }
+
+    /**
      * Get statistics grouped by user (cus_allocated_by)
      *
      * @param Builder<\App\Models\MasterCustomer> $query
@@ -90,28 +128,28 @@ class KpiRepository extends BaseRepository implements KpiRepositoryInterface
      */
     public function getByUserStats(Builder $query): array
     {
-        $stats = $query->select('cus_allocated_by', DB::raw('COUNT(*) as count'))
-            ->whereNotNull('cus_allocated_by')
-            ->groupBy('cus_allocated_by')
+        $stats = $query->select('cus_created_by', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('cus_created_by')
+            ->groupBy('cus_created_by')
             ->orderByDesc('count')
             ->limit(10)
             ->get();
 
-        $userIds = $stats->pluck('cus_allocated_by')->unique();
+        $userIds = $stats->pluck('cus_created_by')->unique();
         $users = User::whereIn('user_id', $userIds)
             ->select('user_id', 'username', 'user_firstname', 'user_lastname', 'user_nickname')
             ->get()
             ->keyBy('user_id');
 
         return $stats->map(function ($stat) use ($users) {
-            $user = $users->get($stat->cus_allocated_by);
+            $user = $users->get($stat->cus_created_by);
             $fullName = $user
                 ? trim($user->user_firstname.' '.$user->user_lastname.
                        ($user->user_nickname ? " ({$user->user_nickname})" : ''))
                 : 'Unknown';
 
             return [
-                'user_id' => $stat->cus_allocated_by,
+                'user_id' => $stat->cus_created_by,
                 'username' => $user->username ?? 'Unknown',
                 'full_name' => $fullName,
                 'count' => $stat->count,

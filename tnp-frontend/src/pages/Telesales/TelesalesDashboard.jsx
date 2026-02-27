@@ -20,6 +20,7 @@ import {
   PersonalStatsCard,
   RecallStatsCard,
   RecallBySalesTable,
+  KpiChartsCard,
 } from "./sections";
 import {
   useGetKpiDashboardQuery,
@@ -48,6 +49,7 @@ const TelesalesDashboard = () => {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [isKpiDialogOpen, setIsKpiDialogOpen] = useState(false);
   const [selectedKpiType, setSelectedKpiType] = useState(null);
+  const [selectedTopUser, setSelectedTopUser] = useState(null); // For Top Customer Adders
 
   // Recall State
   const [isRecallDialogOpen, setIsRecallDialogOpen] = useState(false);
@@ -111,11 +113,19 @@ const TelesalesDashboard = () => {
   // Handlers
   const handleKpiCardClick = (kpiType) => {
     setSelectedKpiType(kpiType);
+    setSelectedTopUser(null);
+    setIsKpiDialogOpen(true);
+  };
+
+  const handleTopUserClick = (user) => {
+    setSelectedKpiType("created_by");
+    setSelectedTopUser(user);
     setIsKpiDialogOpen(true);
   };
 
   const handleKpiDialogClose = () => {
     setIsKpiDialogOpen(false);
+    setSelectedTopUser(null);
   };
 
   const handleRecallCardClick = (recallType) => {
@@ -140,6 +150,8 @@ const TelesalesDashboard = () => {
   const periodLabel = stats?.period?.label || "";
   const summary = stats?.summary || {};
   const bySource = stats?.by_source || [];
+  const byBusinessType = stats?.by_business_type || [];
+  const byAllocation = stats?.by_allocation || [];
   const byUser = stats?.by_user || [];
   const recallStats = stats?.recall_stats || {};
   const recallByUser = stats?.recall_by_user || [];
@@ -257,25 +269,40 @@ const TelesalesDashboard = () => {
 
             {/* Charts and Details */}
             <Grid container spacing={3}>
-              {/* Source Distribution Chart */}
-              <Grid item xs={12} md={6}>
+              {/* Modern KPI Charts Card (Tabs + Donut Charts) */}
+              <Grid item xs={12} md={12}>
+                <KpiChartsCard
+                  recallStats={recallStats}
+                  bySource={bySource}
+                  byBusinessType={byBusinessType}
+                  byAllocation={byAllocation}
+                  isLoading={isLoading || isFetching}
+                />
+              </Grid>
+
+              {/* Source Distribution Chart removed as per request */}
+              {/* <Grid item xs={12} md={6}>
                 <SourceDistributionChart
                   data={bySource}
                   loading={isLoading || isFetching}
                   displayLabel={periodLabel}
                 />
-              </Grid>
+              </Grid> */}
 
               {/* Top Users (Team view only) */}
               {isTeamView && (
-                <Grid item xs={12} md={6}>
-                  <TopUsersCard byUser={byUser} isLoading={isLoading || isFetching} />
+                <Grid item xs={12} md={12}>
+                  <TopUsersCard
+                    byUser={byUser}
+                    isLoading={isLoading || isFetching}
+                    onUserClick={handleTopUserClick}
+                  />
                 </Grid>
               )}
 
               {/* Personal view - show personal stats */}
               {!isTeamView && (
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={12}>
                   <PersonalStatsCard summary={summary} comparison={comparison} />
                 </Grid>
               )}
@@ -291,7 +318,13 @@ const TelesalesDashboard = () => {
               endDate={periodFilter.endDate}
               sourceFilter={sourceFilter}
               userId={
-                isTeamView && sourceFilter !== "all" ? undefined : isTeamView ? "all" : undefined
+                selectedTopUser
+                  ? selectedTopUser.user_id
+                  : isTeamView && sourceFilter !== "all"
+                    ? undefined
+                    : isTeamView
+                      ? "all"
+                      : undefined
               }
             />
 

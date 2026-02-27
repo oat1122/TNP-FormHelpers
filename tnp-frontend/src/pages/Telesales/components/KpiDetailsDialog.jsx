@@ -49,6 +49,8 @@ const KpiDetailsDialog = ({
         return "รายละเอียดลูกค้ารอจัดสรร (Pool)";
       case "allocated":
         return "รายละเอียดลูกค้าที่จัดสรรแล้ว";
+      case "created_by":
+        return "รายละเอียดลูกค้าที่เพิ่ม";
       default:
         return "รายละเอียดลูกค้า";
     }

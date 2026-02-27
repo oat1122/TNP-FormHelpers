@@ -5,3 +5,4 @@ export { default as TopUsersCard } from "./TopUsersCard";
 export { default as PersonalStatsCard } from "./PersonalStatsCard";
 export { default as RecallStatsCard } from "./RecallStatsCard";
 export { default as RecallBySalesTable } from "./RecallBySalesTable";
+export { default as KpiChartsCard } from "./KpiChartsCard";

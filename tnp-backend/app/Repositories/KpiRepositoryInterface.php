@@ -31,6 +31,22 @@ interface KpiRepositoryInterface extends BaseRepositoryInterface
     public function getBySourceStats(Builder $query): array;
 
     /**
+     * Get statistics grouped by business type
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @return array<int, mixed>
+     */
+    public function getByBusinessTypeStats(Builder $query): array;
+
+    /**
+     * Get statistics for allocation status
+     *
+     * @param Builder<\App\Models\MasterCustomer> $query
+     * @return array<int, mixed>
+     */
+    public function getByAllocationStats(Builder $query): array;
+
+    /**
      * Get statistics grouped by user (cus_allocated_by)
      *
      * @param Builder<\App\Models\MasterCustomer> $query

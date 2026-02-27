@@ -157,6 +157,9 @@ class KpiService
         $recallStats = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange);
         $recallByUser = ($isAdmin && ! $targetUserId) ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange) : [];
 
+        $byBusinessType = $this->kpiRepository->getByBusinessTypeStats(clone $baseQuery);
+        $byAllocation = $this->kpiRepository->getByAllocationStats(clone $baseQuery);
+
         $prevDateRange = $this->getDateRange('prev_'.($period === 'today' ? 'month' : $period), null, null);
         $comparison = $this->kpiRepository->getPeriodComparison($summary, $prevDateRange, $sourceFilter, $targetUserId);
 
@@ -169,6 +172,8 @@ class KpiService
             ],
             'summary' => $summary,
             'by_source' => $bySource,
+            'by_business_type' => $byBusinessType,
+            'by_allocation' => $byAllocation,
             'by_user' => $byUser,
             'time_series' => $timeSeries,
             'recall_stats' => $recallStats,
@@ -194,7 +199,8 @@ class KpiService
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
 
-        $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId);
+        $userColumn = ($kpiType === 'created_by') ? 'cus_created_by' : 'cus_allocated_by';
+        $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId, $userColumn);
         $customers = $this->kpiRepository->getPaginatedDetails($baseQuery, $kpiType, $perPage);
 
         $transformedData = $customers->map(function ($customer) {

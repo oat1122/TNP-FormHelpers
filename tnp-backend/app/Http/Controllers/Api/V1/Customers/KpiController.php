@@ -121,7 +121,7 @@ class KpiController extends Controller
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date',
                 'source_filter' => 'nullable|in:telesales,sales,online,office,all',
-                'kpi_type' => 'required|in:total,pool,allocated',
+                'kpi_type' => 'required|in:total,pool,allocated,created_by',
                 'user_id' => 'nullable|integer',
                 'per_page' => 'nullable|integer|max:100',
             ]);

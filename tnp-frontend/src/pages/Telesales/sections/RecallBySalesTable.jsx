@@ -19,8 +19,9 @@ import {
  * @param {Object} props
  * @param {Array} props.data - Array of user recall stats
  * @param {boolean} props.isLoading - Loading state
+ * @param {Function} props.onCellClick - Handler for when a stat cell is clicked: (userId, recallType) => void
  */
-const RecallBySalesTable = ({ data = [], isLoading = false }) => {
+const RecallBySalesTable = ({ data = [], isLoading = false, onCellClick }) => {
   if (!isLoading && (!data || data.length === 0)) {
     return null;
   }
@@ -106,12 +107,29 @@ const RecallBySalesTable = ({ data = [], isLoading = false }) => {
                         size="small"
                         color={user.waiting_count > 0 ? "error" : "default"}
                         variant={user.waiting_count > 0 ? "filled" : "outlined"}
+                        onClick={
+                          onCellClick ? () => onCellClick(user.user_id, "waiting") : undefined
+                        }
+                        sx={{ cursor: onCellClick ? "pointer" : "default" }}
                       />
                     </TableCell>
                     <TableCell align="center" sx={{ fontFamily: "Kanit" }}>
-                      <Typography color="success.main" fontWeight={500}>
-                        {user.in_criteria_count.toLocaleString()}
-                      </Typography>
+                      <Box
+                        onClick={
+                          onCellClick ? () => onCellClick(user.user_id, "in_criteria") : undefined
+                        }
+                        sx={{
+                          cursor: onCellClick ? "pointer" : "default",
+                          display: "inline-block",
+                          p: 1,
+                          borderRadius: 1,
+                          "&:hover": { bgcolor: onCellClick ? "action.hover" : "transparent" },
+                        }}
+                      >
+                        <Typography color="success.main" fontWeight={500}>
+                          {user.in_criteria_count.toLocaleString()}
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell align="center" sx={{ fontFamily: "Kanit" }}>
                       <Chip
@@ -119,6 +137,8 @@ const RecallBySalesTable = ({ data = [], isLoading = false }) => {
                         size="small"
                         color="info"
                         variant="outlined"
+                        onClick={onCellClick ? () => onCellClick(user.user_id, "made") : undefined}
+                        sx={{ cursor: onCellClick ? "pointer" : "default" }}
                       />
                     </TableCell>
                   </TableRow>

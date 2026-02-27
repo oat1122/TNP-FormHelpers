@@ -1,18 +1,9 @@
-import React, { useState } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Typography,
-  Box,
-  Chip,
-} from "@mui/material";
 import { Close as CloseIcon, FilterList as FilterIcon } from "@mui/icons-material";
+import { Dialog, DialogTitle, DialogContent, IconButton, Typography, Box } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { useState } from "react";
+
 import { useGetKpiRecallDetailsQuery } from "../../../features/Customer/customerApi";
-import dayjs from "dayjs";
-import "dayjs/locale/th";
 
 /**
  * Dialog to show the list of customers for a specific Recall Status
@@ -63,33 +54,10 @@ const RecallDetailsDialog = ({
       minWidth: 200,
     },
     {
-      field: "status",
-      headerName: "สถานะล่าสุด",
+      field: "manager_name",
+      headerName: "ผู้ดูแล",
       flex: 1,
-      minWidth: 150,
-      renderCell: (params) => (
-        <Chip label={params.value || "ไม่ระบุ"} size="small" color="primary" variant="outlined" />
-      ),
-    },
-    {
-      field: "target_date",
-      headerName: "กำหนดการโทร (Target Date)",
-      flex: 1,
-      minWidth: 180,
-      renderCell: (params) => {
-        if (!params.value) return "-";
-        return dayjs(params.value).locale("th").format("D MMM YYYY HH:mm");
-      },
-    },
-    {
-      field: "updated_date",
-      headerName: "วันที่อัปเดต (Updated Date)",
-      flex: 1,
-      minWidth: 180,
-      renderCell: (params) => {
-        if (!params.value) return "-";
-        return dayjs(params.value).locale("th").format("D MMM YYYY HH:mm");
-      },
+      minWidth: 200,
     },
     {
       field: "group_name",

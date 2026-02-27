@@ -124,6 +124,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'dashboard']);
         Route::get('/details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'details']);
         Route::get('/recall-details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallDetails']);
+        Route::get('/recall-history', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallHistory']);
     });    //---------- Supplier System ----------
     Route::prefix('supplier')->group(function () {
         Route::get('/products', [SupplierProductController::class, 'index']);

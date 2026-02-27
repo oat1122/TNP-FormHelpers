@@ -12,6 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // Snapshot historical recall tracking every night at 23:55
+        $schedule->command('recall:take-snapshot')->dailyAt('23:55')->runInBackground();
+
         $schedule->command('customer:update-customer-manage-by')->runInBackground();
         
         // PDF Cache Management - Clear expired cache every 6 hours

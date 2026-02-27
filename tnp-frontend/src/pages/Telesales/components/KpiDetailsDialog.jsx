@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, IconButton, Typography } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
+import { Dialog, DialogTitle, DialogContent, IconButton, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { useState } from "react";
+
 import { useGetKpiDashboardDetailsQuery } from "../../../features/Customer/customerApi";
 
 /**

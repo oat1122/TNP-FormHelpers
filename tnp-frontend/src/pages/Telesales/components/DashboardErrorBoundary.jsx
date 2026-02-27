@@ -1,6 +1,6 @@
-import React from "react";
-import { Box, Container, Paper, Typography, Button } from "@mui/material";
 import { ErrorOutline } from "@mui/icons-material";
+import { Box, Container, Paper, Typography, Button } from "@mui/material";
+import React from "react";
 
 /**
  * Error Boundary component for dashboard crashes
@@ -16,7 +16,7 @@ class DashboardErrorBoundary extends React.Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -64,6 +64,7 @@ class DashboardErrorBoundary extends React.Component {
                 "แดชบอร์ดประสบปัญหาในการแสดงผล กรุณารีเฟรชหน้าหรือติดต่อผู้ดูแลระบบ"}
             </Typography>
 
+            {/* eslint-disable-next-line no-undef */}
             {process.env.NODE_ENV === "development" && this.state.errorInfo && (
               <Box
                 sx={{

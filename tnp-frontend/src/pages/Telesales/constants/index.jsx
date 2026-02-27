@@ -1,11 +1,9 @@
-import React from "react";
 import {
   Today as TodayIcon,
   DateRange as WeekIcon,
   Event as MonthIcon,
   EventNote as QuarterIcon,
   CalendarToday as YearIcon,
-  History as HistoryIcon,
 } from "@mui/icons-material";
 
 /**

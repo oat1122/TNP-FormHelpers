@@ -300,14 +300,34 @@ export const customerApi = createApi({
           queryParams.user_id = params.user_id;
         }
 
-        // Pass dates for custom period or date logic
-        if (params.period === "custom" && params.start_date && params.end_date) {
+        // Always pass dates if they exist to support historical drill-down
+        if (params.start_date && params.end_date) {
           queryParams.start_date = params.start_date;
           queryParams.end_date = params.end_date;
         }
 
         return {
           url: "/customers/kpi/recall-details",
+          params: queryParams,
+        };
+      },
+    }),
+    // KPI Recall History - get historical recall snapshot data
+    getKpiRecallHistory: builder.query({
+      query: (params) => {
+        const queryParams = {
+          month: params.month,
+          status: params.status,
+          source_filter: params.source_filter || "all",
+        };
+
+        if (params.user_id) {
+          queryParams.user_id = params.user_id;
+        }
+
+        return {
+          url: "/customers/kpi/recall-history",
+          method: "GET",
           params: queryParams,
         };
       },
@@ -339,4 +359,5 @@ export const {
   useGetKpiDashboardDetailsQuery,
   useLazyGetKpiDashboardDetailsQuery,
   useGetKpiRecallDetailsQuery,
+  useGetKpiRecallHistoryQuery,
 } = customerApi;

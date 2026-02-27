@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+import {
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
+  DateRange as DateRangeIcon,
+} from "@mui/icons-material";
 import {
   Paper,
   Tabs,
@@ -13,15 +17,12 @@ import {
   Menu,
   Button,
 } from "@mui/material";
-import {
-  KeyboardArrowLeft,
-  KeyboardArrowRight,
-  DateRange as DateRangeIcon,
-} from "@mui/icons-material";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
+import { useState, useEffect } from "react";
+
 import "dayjs/locale/th";
 import { PERIOD_TABS, SOURCE_OPTIONS } from "../constants/index.jsx";
 
@@ -32,13 +33,7 @@ dayjs.locale("th");
  * Period Tabs component
  * Displays period selection tabs, custom date picker, navigation arrows, and source filter dropdown
  */
-const PeriodTabs = ({
-  periodFilter,
-  onPeriodChange,
-  sourceFilter,
-  onSourceFilterChange,
-  comparison,
-}) => {
+const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilterChange }) => {
   const { mode, startDate, endDate } = periodFilter;
 
   // Internal state for the reference date when navigating using arrows
@@ -127,13 +122,14 @@ const PeriodTabs = ({
         newStart = newRefDate.startOf("year");
         newEnd = newRefDate.endOf("year");
         break;
-      case "custom":
+      case "custom": {
         // For custom, shift by the exact difference in days
         const diff = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
         newRefDate = referenceDate.add(amount * diff, "day");
         newStart = newRefDate;
         newEnd = dayjs(endDate).add(amount * diff, "day");
         break;
+      }
       default:
         return;
     }

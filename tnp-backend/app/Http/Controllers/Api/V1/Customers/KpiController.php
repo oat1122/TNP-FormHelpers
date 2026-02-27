@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Customers;
 use App\Http\Controllers\Controller;
 use App\Helpers\AccountingHelper;
 use App\Models\MasterCustomer;
+use App\Models\RecallStatusHistory;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -328,6 +329,7 @@ class KpiController extends Controller
             $query = MasterCustomer::query()
                 ->join('customer_details', 'master_customers.cus_id', '=', 'customer_details.cd_cus_id')
                 ->join('master_customer_groups', 'master_customers.cus_mcg_id', '=', 'master_customer_groups.mcg_id')
+                ->leftJoin('users', 'master_customers.cus_manage_by', '=', 'users.user_id')
                 ->where('master_customers.cus_is_use', true)
                 ->where('customer_details.cd_is_use', true);
 
@@ -362,10 +364,13 @@ class KpiController extends Controller
                 'master_customers.cus_lastname',
                 'master_customers.cus_source',
                 'master_customers.cus_allocation_status',
-                'customer_details.cd_note as status_note', // Changed from cd_last_status
+                'customer_details.cd_note as status_note', // Changed from md_last_status
                 'customer_details.cd_last_datetime',
                 'customer_details.cd_updated_date',
-                'master_customer_groups.mcg_name as group_name'
+                'master_customer_groups.mcg_name as group_name',
+                'users.user_firstname as m_fname',
+                'users.user_lastname as m_lname',
+                'users.username as m_username'
             ]);
 
             // Default Sorting: closest/longest due date based on type
@@ -382,10 +387,18 @@ class KpiController extends Controller
 
             // Transform data for frontend
             $customers = $paginator->map(function ($customer) {
+                // Determine display name for customer
                 $fullNameParts = array_filter([$customer->cus_firstname, $customer->cus_lastname]);
                 $fullName = !empty($fullNameParts) ? implode(' ', $fullNameParts) : '-';
                 if ($customer->cus_name) {
                      $fullName .= " ({$customer->cus_name})";
+                }
+
+                // Determine display manager name
+                $managerNameParts = array_filter([$customer->m_fname, $customer->m_lname]);
+                $managerName = !empty($managerNameParts) ? implode(' ', $managerNameParts) : 'ไม่ระบุผู้ดูแล';
+                if ($customer->m_username) {
+                    $managerName .= " ({$customer->m_username})";
                 }
 
                 return [
@@ -397,9 +410,7 @@ class KpiController extends Controller
                     'cus_name' => $customer->cus_name,
                     'group_name' => $customer->group_name,
                     'source' => $customer->cus_source,
-                    'status' => $customer->status_note ?? 'กำลังติดตาม',
-                    'target_date' => Carbon::parse($customer->cd_last_datetime)->format('Y-m-d H:i:s'),
-                    'updated_date' => Carbon::parse($customer->cd_updated_date)->format('Y-m-d H:i:s'),
+                    'manager_name' => $managerName
                 ];
             });
 
@@ -887,6 +898,112 @@ class KpiController extends Controller
             'change' => $change,
             'change_percent' => $changePercent,
         ];
+    }
+
+    /**
+     * Get historical recall status for trend analysis and drill-down
+     * GET /api/v1/customers/kpi/recall-history
+     */
+    public function recallHistory(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            $isTeamView = AccountingHelper::hasRole(['admin', 'manager', 'Head']);
+
+            $targetUserId = null;
+            if (!$isTeamView) {
+                $targetUserId = $user->user_id;
+            } elseif ($request->has('user_id') && $request->user_id !== 'all') {
+                $targetUserId = $request->user_id;
+            }
+
+            // Parameters
+            $month = $request->query('month'); // format: YYYY-MM
+            $status = $request->query('status'); // 'overdue' or 'in_criteria'
+            $sourceFilter = $request->query('source_filter', 'all');
+
+            if (!$month) {
+                // If no month provided, return aggregate trend (e.g., last 6 months)
+                $query = RecallStatusHistory::query()
+                    ->selectRaw("DATE_FORMAT(snapshot_date, '%Y-%m') as month")
+                    ->selectRaw("SUM(CASE WHEN recall_status = 'overdue' THEN 1 ELSE 0 END) as overdue_count")
+                    ->selectRaw("SUM(CASE WHEN recall_status = 'in_criteria' THEN 1 ELSE 0 END) as in_criteria_count")
+                    ->groupByRaw("DATE_FORMAT(snapshot_date, '%Y-%m')")
+                    ->orderBy('month', 'desc')
+                    ->limit(6);
+
+                if ($targetUserId) $query->where('manage_by', $targetUserId);
+                if ($sourceFilter !== 'all') $query->where('source', $sourceFilter);
+
+                // For monthly trends, we want the LAST snapshot of the month
+                // This is a simplified approach. In a complex app you might join with a max(date) subquery
+                $query->whereRaw("snapshot_date IN (SELECT MAX(snapshot_date) FROM recall_status_histories GROUP BY DATE_FORMAT(snapshot_date, '%Y-%m'))");
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $query->get()
+                ]);
+            }
+
+            // --- Drill-down for a specific month ---
+            $startDate = Carbon::parse($month . '-01')->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+
+            // Find the last snapshot available in that month
+            $lastSnapshotDate = RecallStatusHistory::whereBetween('snapshot_date', [$startDate, $endDate])
+                ->max('snapshot_date');
+
+            if (!$lastSnapshotDate) {
+                return response()->json(['success' => true, 'data' => []]);
+            }
+
+            $query = RecallStatusHistory::where('snapshot_date', $lastSnapshotDate)
+                ->leftJoin('users', 'recall_status_histories.manage_by', '=', 'users.user_id');
+
+            if ($targetUserId) $query->where('manage_by', $targetUserId);
+            if ($sourceFilter !== 'all') $query->where('source', $sourceFilter);
+            if ($status) $query->where('recall_status', $status);
+
+            $query->select([
+                'recall_status_histories.*',
+                'users.user_firstname as m_fname',
+                'users.user_lastname as m_lname',
+                'users.username as m_username'
+            ]);
+
+            $records = $query->orderByDesc('days_overdue')->get();
+
+            // Transform data for frontend specifically for history view to match dialog fields
+            $mappedRecords = $records->map(function ($record) {
+                // Determine display manager name
+                $managerNameParts = array_filter([$record->m_fname, $record->m_lname]);
+                $managerName = !empty($managerNameParts) ? implode(' ', $managerNameParts) : 'ไม่ระบุผู้ดูแล';
+                if ($record->m_username) {
+                    $managerName .= " ({$record->m_username})";
+                }
+
+                return [
+                    'id' => $record->id,
+                    'cus_id' => $record->customer_id,
+                    'full_name' => $record->customer_name ?: 'ไม่ระบุชื่อ',
+                    'source' => $record->source,
+                    'manager_name' => $managerName
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'snapshot_date' => $lastSnapshotDate,
+                'data' => $mappedRecords
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Recall History Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching recall history: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

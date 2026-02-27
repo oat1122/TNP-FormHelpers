@@ -1,4 +1,4 @@
-import React from "react";
+import { Refresh as RefreshIcon, FileDownload as DownloadIcon } from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -8,7 +8,6 @@ import {
   Tooltip,
   CircularProgress,
 } from "@mui/material";
-import { Refresh as RefreshIcon, FileDownload as DownloadIcon } from "@mui/icons-material";
 
 /**
  * Dashboard Header component

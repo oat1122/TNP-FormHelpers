@@ -1,4 +1,4 @@
-import React from "react";
+import { BarChart as BarChartIcon } from "@mui/icons-material";
 import { Card, CardHeader, CardContent, Skeleton, CircularProgress } from "@mui/material";
 import {
   ResponsiveContainer,
@@ -10,9 +10,9 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { getSourceDisplayName, getSourceColor } from "../../../features/Customer/customerUtils";
+
 import EmptyState from "./EmptyState";
-import { BarChart as BarChartIcon } from "@mui/icons-material";
+import { getSourceDisplayName, getSourceColor } from "../../../features/Customer/customerUtils";
 
 /**
  * Source Distribution Chart component using Recharts

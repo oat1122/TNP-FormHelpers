@@ -1,9 +1,9 @@
-import { Grid, Paper, Typography, Box, Skeleton, CardActionArea } from "@mui/material";
 import {
   NotificationsActive as WaitingIcon,
   CheckCircle as InCriteriaIcon,
   Update as RecentrecallIcon,
 } from "@mui/icons-material";
+import { Grid, Paper, Typography, Box, Skeleton, CardActionArea } from "@mui/material";
 
 /**
  * Recall Stats Card
@@ -11,11 +11,21 @@ import {
  *
  * @param {Object} props
  * @param {Object} props.stats - Stats object { total_waiting, total_in_criteria, recalls_made_count }
+ * @param {Object} props.historicalData - The snapshot data from history API
+ * @param {boolean} props.isPastPeriod - Whether the current filter is for a past period
  * @param {boolean} props.isLoading - Loading state
  * @param {Function} props.onCardClick - Click handler passing the recall type ('waiting', 'in_criteria', 'made')
  */
-const RecallStatsCard = ({ stats = {}, isLoading = false, onCardClick }) => {
-  const { total_waiting = 0, total_in_criteria = 0, recalls_made_count = 0 } = stats || {};
+const RecallStatsCard = ({
+  stats = {},
+  historicalData = null,
+  isPastPeriod = false,
+  isLoading = false,
+  onCardClick,
+}) => {
+  // Use historical data if looking at a past period, otherwise use live dashboard stats
+  const activeStats = isPastPeriod && historicalData ? historicalData : stats;
+  const { total_waiting = 0, total_in_criteria = 0, recalls_made_count = 0 } = activeStats || {};
 
   const items = [
     {

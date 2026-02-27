@@ -1,4 +1,4 @@
-import React from "react";
+import { TrendingUp } from "@mui/icons-material";
 import {
   Card,
   CardContent,
@@ -8,7 +8,6 @@ import {
   Skeleton,
   CardActionArea,
 } from "@mui/material";
-import { TrendingUp } from "@mui/icons-material";
 
 /**
  * Stat Card component for displaying KPI metrics

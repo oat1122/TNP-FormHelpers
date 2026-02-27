@@ -9,6 +9,7 @@ use App\Models\RelationCustomerUser as CustomerUser;
 use App\Models\MasterCustomerGroup as CustomerGroup;
 use App\Helpers\AccountingHelper;
 use App\Models\CustomerTransferHistory;
+use App\Models\RecallActionLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -266,11 +267,40 @@ class CustomerService
                 ->firstOrFail();
             
             $detail = CustomerDetail::findOrFail($id);
+            
+            // --- Determine status before updating ---
+            $previousDatetimeStr = $detail->cd_last_datetime;
+            $previousDatetime = $previousDatetimeStr ? Carbon::parse($previousDatetimeStr) : null;
+            $now = Carbon::now();
+            $wasOverdue = false;
+            $daysOverdue = 0;
+            
+            if ($previousDatetime && $previousDatetime->isPast()) {
+                $wasOverdue = true;
+                $daysOverdue = (int) $previousDatetime->startOfDay()->diffInDays($now->copy()->startOfDay());
+            }
+
+            // --- Update Customer Detail ---
             $detail->fill($data);
-            $detail->cd_last_datetime = $this->setRecallDatetime($group->mcg_recall_default);
-            $detail->cd_updated_date = now();
+            $newDatetime = $this->setRecallDatetime($group->mcg_recall_default);
+            $detail->cd_last_datetime = $newDatetime;
+            $detail->cd_updated_date = $now;
             $detail->cd_updated_by = Auth::id();
             $detail->save();
+
+            // --- Log Call Action ---
+            RecallActionLog::create([
+                'id' => Str::uuid()->toString(),
+                'customer_id' => $detail->cd_cus_id,
+                'user_id' => Auth::id(),
+                'previous_datetime' => $previousDatetime,
+                'new_datetime' => $newDatetime,
+                'recall_note' => $data['cd_note'] ?? null,
+                'customer_group_id' => $groupId,
+                'was_overdue' => $wasOverdue,
+                'days_overdue' => $daysOverdue,
+                'created_at' => $now
+            ]);
             
             return $detail;
         });

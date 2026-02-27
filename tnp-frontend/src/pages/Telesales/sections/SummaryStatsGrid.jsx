@@ -1,6 +1,6 @@
-import React from "react";
-import { Grid } from "@mui/material";
 import { People as PeopleIcon, Schedule as ScheduleIcon, TrendingUp } from "@mui/icons-material";
+import { Grid } from "@mui/material";
+
 import StatCard from "../components/StatCard";
 
 /**

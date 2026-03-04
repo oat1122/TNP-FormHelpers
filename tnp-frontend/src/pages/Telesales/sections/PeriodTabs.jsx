@@ -34,7 +34,7 @@ dayjs.locale("th");
  * Displays period selection tabs, custom date picker, navigation arrows, and source filter dropdown
  */
 const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilterChange }) => {
-  const { mode, startDate, endDate } = periodFilter;
+  const { mode, shiftUnit, startDate, endDate } = periodFilter;
 
   // Internal state for the reference date when navigating using arrows
   const [referenceDate, setReferenceDate] = useState(dayjs());
@@ -85,6 +85,7 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
     setReferenceDate(newStart);
     onPeriodChange({
       mode: newValue,
+      shiftUnit: newValue,
       startDate: newStart.format("YYYY-MM-DD"),
       endDate: newEnd.format("YYYY-MM-DD"),
     });
@@ -96,7 +97,10 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
     let newEnd = referenceDate;
     const amount = direction === "prev" ? -1 : 1;
 
-    switch (mode) {
+    // Use shiftUnit if mode is custom, otherwise fallback to mode.
+    const effectiveUnit = mode === "custom" && shiftUnit ? shiftUnit : mode;
+
+    switch (effectiveUnit) {
       case "today":
         newRefDate = referenceDate.add(amount, "day");
         newStart = newRefDate.startOf("day");
@@ -123,7 +127,7 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
         newEnd = newRefDate.endOf("year");
         break;
       case "custom": {
-        // For custom, shift by the exact difference in days
+        // For custom explicitly requested by date range, shift by the exact difference in days
         const diff = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
         newRefDate = referenceDate.add(amount * diff, "day");
         newStart = newRefDate;
@@ -135,9 +139,22 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
     }
 
     setReferenceDate(newRefDate);
-    // When shifting, we switch to 'custom' mode because it's no longer the "current" month/week
+
+    // UX Improvement: Check if the shifted date brings us back to "current".
+    // e.g. If we shift back into "This Month", reactivate the "month" tab.
+    let newMode = "custom";
+    const today = dayjs();
+    if (effectiveUnit === "today" && newStart.isSame(today, "day")) newMode = "today";
+    if (effectiveUnit === "week" && newStart.isSame(today.startOf("week"), "day")) newMode = "week";
+    if (effectiveUnit === "month" && newStart.isSame(today.startOf("month"), "day"))
+      newMode = "month";
+    if (effectiveUnit === "quarter" && newStart.isSame(today.startOf("quarter"), "day"))
+      newMode = "quarter";
+    if (effectiveUnit === "year" && newStart.isSame(today.startOf("year"), "day")) newMode = "year";
+
     onPeriodChange({
-      mode: "custom",
+      mode: newMode,
+      shiftUnit: effectiveUnit,
       startDate: newStart.format("YYYY-MM-DD"),
       endDate: newEnd.format("YYYY-MM-DD"),
     });
@@ -188,6 +205,7 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
       setReferenceDate(finalStart);
       onPeriodChange({
         mode: "custom",
+        shiftUnit: "custom",
         startDate: finalStart.format("YYYY-MM-DD"),
         endDate: finalEnd.format("YYYY-MM-DD"),
       });

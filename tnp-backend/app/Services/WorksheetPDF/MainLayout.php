@@ -30,7 +30,7 @@ class MainLayout
         $this->pdf = $pdf;
         $this->data = $worksheet_data;
         $this->work_id = $worksheet_data->work_id;
-        $this->saleName = $this->worksheetService->limitStringForDisplay($this->data->nwsCreatedBy?->user_nickname, 12);
+        $this->saleName = $this->worksheetService->limitStringForDisplay($this->data->user?->user_nickname ?? $this->data->user?->username, 12);
         $this->managerName = $this->worksheetService->limitStringForDisplay($this->data->managerName?->user_nickname, 7);
         $this->productionName = $this->worksheetService->limitStringForDisplay($this->data->productionName?->user_nickname, 6);
         $this->creatorName = $this->worksheetService->limitStringForDisplay($this->data->creatorName?->user_nickname, 8);

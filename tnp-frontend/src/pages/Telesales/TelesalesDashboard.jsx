@@ -36,11 +36,11 @@ const TelesalesDashboard = () => {
   const navigate = useNavigate();
 
   // State
-  // We now use an object to support custom date ranges and shifting
   const [periodFilter, setPeriodFilter] = useState(() => {
     const today = dayjs();
     return {
       mode: "month",
+      shiftUnit: "month", // Tracks the underlying unit for date shifting
       startDate: today.startOf("month").format("YYYY-MM-DD"),
       endDate: today.endOf("month").format("YYYY-MM-DD"),
     };

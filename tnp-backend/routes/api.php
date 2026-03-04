@@ -503,3 +503,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         // Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses'); // UNUSED
     });
 });
+
+// ========== EMERGENCY ROUTE (Clear Cache on Production Without SSH) ==========
+Route::get('/clear-system-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+    return response()->json([
+        'success' => true,
+        'message' => 'System Cache (Config, Route, View, Event) has been cleared successfully.'
+    ]);
+});

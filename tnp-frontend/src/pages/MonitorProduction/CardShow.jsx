@@ -35,10 +35,15 @@ function CardShow({ data }) {
   const { data: dataNote } = useGetAllNotesQuery();
   const [showImage, setShowImage] = useState(false);
   const [contentModal, setContentModal] = useState(null);
+  const [pdfUrlToRevoke, setPdfUrlToRevoke] = useState(null);
 
   const handleClose = () => {
     setShowImage(false);
     setContentModal(null);
+    if (pdfUrlToRevoke) {
+      URL.revokeObjectURL(pdfUrlToRevoke);
+      setPdfUrlToRevoke(null);
+    }
   };
   const handleShow = async () => {
     open_dialog_loading();
@@ -46,15 +51,37 @@ function CardShow({ data }) {
     if (isWsNew) {
       await handleGenPdf();
     } else {
+      const pdfUrl = `https://izasskobibe.com/worksheets/preview.php?view=${data.worksheet_id}`;
       setContentModal(
-        <iframe
-          src={`https://izasskobibe.com/worksheets/preview.php?view=${data.worksheet_id}`}
-          width="100%"
-          height="100%"
-          onLoad={(e) => {
-            URL.revokeObjectURL(e.target.src); // Clean up the blob URL
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            minHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
           }}
-        ></iframe>
+        >
+          <div className="text-center mb-2">
+            <a href={pdfUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+              <svg
+                stroke="currentColor"
+                fill="currentColor"
+                strokeWidth="0"
+                viewBox="0 0 16 16"
+                height="1em"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+                className="me-2"
+              >
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"></path>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"></path>
+              </svg>
+              เปิดดูไฟล์ PDF / ดาวน์โหลด (สำหรับมือถือ)
+            </a>
+          </div>
+          <iframe src={pdfUrl} width="100%" style={{ flexGrow: 1, border: "none" }}></iframe>
+        </div>
       );
     }
 
@@ -92,16 +119,44 @@ function CardShow({ data }) {
       // Create a blob from the response data
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrlToRevoke(blobUrl);
 
       setContentModal(
-        <iframe
-          src={blobUrl}
-          width="100%"
-          height="100%"
-          onLoad={(e) => {
-            URL.revokeObjectURL(e.target.src); // Clean up the blob URL
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            minHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
           }}
-        ></iframe>
+        >
+          <div className="text-center mb-2">
+            <a
+              href={blobUrl}
+              target="_blank"
+              rel="noreferrer"
+              download={`worksheet_${data.worksheet_id}.pdf`}
+              className="btn btn-primary"
+            >
+              <svg
+                stroke="currentColor"
+                fill="currentColor"
+                strokeWidth="0"
+                viewBox="0 0 16 16"
+                height="1em"
+                width="1em"
+                xmlns="http://www.w3.org/2000/svg"
+                className="me-2"
+              >
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"></path>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"></path>
+              </svg>
+              เปิดดูไฟล์ PDF / ดาวน์โหลด (สำหรับมือถือ)
+            </a>
+          </div>
+          <iframe src={blobUrl} width="100%" style={{ flexGrow: 1, border: "none" }}></iframe>
+        </div>
       );
     } catch (err) {
       console.error("Error downloading the PDF:", err);

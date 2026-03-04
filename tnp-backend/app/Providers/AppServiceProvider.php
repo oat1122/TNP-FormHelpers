@@ -27,6 +27,18 @@ class AppServiceProvider extends ServiceProvider
             NotificationRepositoryInterface::class,
             NotificationRepository::class
         );
+
+        // Register KPI & Customer Repositories
+        // (ย้ายมาไว้ที่นี่เพื่อให้ Production ที่มี config cache เก่าสามารถใช้งานได้
+        //  เนื่องจาก AppServiceProvider อยู่ใน cached config ตั้งแต่แรก)
+        $this->app->bind(
+            \App\Repositories\KpiRepositoryInterface::class,
+            \App\Repositories\KpiRepository::class
+        );
+        $this->app->bind(
+            \App\Repositories\CustomerRepositoryInterface::class,
+            \App\Repositories\CustomerRepository::class
+        );
     }
 
     /**

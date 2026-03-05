@@ -154,8 +154,10 @@ class KpiService
         $byUser = $isAdmin ? $this->kpiRepository->getByUserStats(clone $baseQuery) : [];
         $timeSeries = $this->kpiRepository->getTimeSeriesStats(clone $baseQuery, $dateRange);
 
-        $recallStats = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange);
-        $recallByUser = ($isAdmin && ! $targetUserId) ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange) : [];
+        $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
+
+        $recallStats  = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange, $isPastPeriod);
+        $recallByUser = ($isAdmin && ! $targetUserId) ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange, $isPastPeriod) : [];
 
         $byBusinessType = $this->kpiRepository->getByBusinessTypeStats(clone $baseQuery);
         $byAllocation = $this->kpiRepository->getByAllocationStats(clone $baseQuery);
@@ -255,10 +257,11 @@ class KpiService
      */
     public function getRecallDetails(string $type, string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, int $perPage): array
     {
-        $dateRange = $this->getDateRange($period, $startDate, $endDate);
+        $dateRange    = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+        $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
 
-        $paginator = $this->kpiRepository->getPaginatedRecallDetails($type, $sourceFilter, $targetUserId, $dateRange, $perPage);
+        $paginator = $this->kpiRepository->getPaginatedRecallDetails($type, $sourceFilter, $targetUserId, $dateRange, $perPage, $isPastPeriod);
 
         $customers = $paginator->map(function ($customer) {
             $fullNameParts = array_filter([$customer->cus_firstname, $customer->cus_lastname]);

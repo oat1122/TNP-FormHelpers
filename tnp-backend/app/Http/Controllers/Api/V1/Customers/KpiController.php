@@ -182,7 +182,6 @@ class KpiController extends Controller
             $customStartDate = $request->query('start_date');
             $customEndDate = $request->query('end_date');
             $requestedUserId = $request->input('user_id');
-            // Team view but filtering by specific user? user_id will come through request
 
             if (! in_array($type, ['waiting', 'in_criteria', 'made'])) {
                 return response()->json(['success' => false, 'message' => 'Invalid recall type'], 400);

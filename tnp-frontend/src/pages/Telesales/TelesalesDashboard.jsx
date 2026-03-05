@@ -22,10 +22,7 @@ import {
   RecallBySalesTable,
   KpiChartsCard,
 } from "./sections";
-import {
-  useGetKpiDashboardQuery,
-  useGetKpiRecallHistoryQuery,
-} from "../../features/Customer/customerApi";
+import { useGetKpiDashboardQuery } from "../../features/Customer/customerApi";
 
 /**
  * KPI Dashboard Page
@@ -86,26 +83,8 @@ const TelesalesDashboard = () => {
     refetchOnMountOrArgChange: true,
   });
 
-  // Historical Recall logic
-  // Determine if the selected end date is strictly in the past (before today)
+  // Historical Recall: no longer needed — backend routes past periods to snapshots automatically
   const isPastPeriod = dayjs(periodFilter.endDate).isBefore(dayjs().startOf("day"));
-  const targetMonth = dayjs(periodFilter.endDate).format("YYYY-MM");
-
-  const {
-    data: historyData,
-    isLoading: isHistoryLoading,
-    isFetching: isHistoryFetching,
-  } = useGetKpiRecallHistoryQuery(
-    {
-      month: targetMonth,
-      source_filter: sourceFilter,
-    },
-    {
-      // Only fetch history if we are looking at a past period and we have access
-      skip: !hasAccess || !isPastPeriod,
-      refetchOnMountOrArgChange: true,
-    }
-  );
 
   // Role label for display
   const roleLabel = isTeamView ? "ภาพรวมทีม" : "ข้อมูลส่วนตัว";
@@ -156,29 +135,6 @@ const TelesalesDashboard = () => {
   const recallStats = stats?.recall_stats || {};
   const recallByUser = stats?.recall_by_user || [];
   const comparison = stats?.comparison || {};
-
-  // Conditionally process history data
-  let historicalRecallStats = null;
-  if (isPastPeriod && historyData?.success) {
-    const records = historyData.data || [];
-    // The history endpoint groups by month when no specific target is given,
-    // or returns individual customer snapshots if a specific status/month is given.
-    // For the top-level cards (no status filter), we just sum the records.
-    historicalRecallStats = {
-      total_waiting: records.reduce(
-        (sum, row) =>
-          sum + (Number(row.overdue_count) || (row.recall_status === "overdue" ? 1 : 0)),
-        0
-      ),
-      total_in_criteria: records.reduce(
-        (sum, row) =>
-          sum + (Number(row.in_criteria_count) || (row.recall_status === "in_criteria" ? 1 : 0)),
-        0
-      ),
-      // Action logs for 'made' aren't in the snapshot table directly, we fall back to 0 or could build another query.
-      recalls_made_count: 0,
-    };
-  }
 
   // Check authorization
   if (!hasAccess) {
@@ -252,9 +208,7 @@ const TelesalesDashboard = () => {
             {/* Recall Stats Card */}
             <RecallStatsCard
               stats={recallStats}
-              historicalData={historicalRecallStats}
-              isPastPeriod={isPastPeriod}
-              isLoading={isLoading || isFetching || isHistoryLoading || isHistoryFetching}
+              isLoading={isLoading || isFetching}
               onCardClick={handleRecallCardClick}
             />
 

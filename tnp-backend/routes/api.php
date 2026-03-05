@@ -512,3 +512,17 @@ Route::get('/clear-system-cache', function() {
         'message' => 'System Cache (Config, Route, View, Event) has been cleared successfully.'
     ]);
 });
+
+// ========== EMERGENCY ROUTE (Run Recall Snapshot Without SSH) ==========
+Route::get('/run-recall-snapshot', function() {
+    $exitCode = \Illuminate\Support\Facades\Artisan::call('recall:take-snapshot');
+    $output = \Illuminate\Support\Facades\Artisan::output();
+    return response()->json([
+        'success' => $exitCode === 0,
+        'message' => $exitCode === 0
+            ? 'Recall snapshot completed successfully.'
+            : 'Recall snapshot failed. Check server logs.',
+        'output' => $output,
+        'executed_at' => now()->format('Y-m-d H:i:s'),
+    ]);
+});

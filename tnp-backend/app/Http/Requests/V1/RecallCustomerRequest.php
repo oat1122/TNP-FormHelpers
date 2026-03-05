@@ -28,7 +28,7 @@ class RecallCustomerRequest extends FormRequest
     {
         return [
             // Required: Customer Group ID for calculating recall datetime
-            'cus_mcg_id' => ['required', 'string', 'max:36', 'exists:master_customer_groups,mcg_id'],
+            'cus_mcg_id' => ['nullable', 'string', 'max:36', 'exists:master_customer_groups,mcg_id'],
             
             // Optional: Note and status
             'cd_note' => ['nullable', 'string', 'max:2000'],

@@ -197,10 +197,26 @@ class CustomerController extends Controller
     public function recall(RecallCustomerRequest $request, string $id): JsonResponse
     {
         try {
+            // Resolve groupId: use request value, fallback to customer's own group, then Grade D
+            $groupId = $request->cus_mcg_id;
+            if (!$groupId) {
+                $detail = \App\Models\CustomerDetail::find($id);
+                if ($detail) {
+                    $customer = \App\Models\MasterCustomer::find($detail->cd_cus_id);
+                    $groupId = $customer?->cus_mcg_id;
+                }
+                // Final fallback: Grade D (mcg_sort = 4)
+                if (!$groupId) {
+                    $groupId = \App\Models\MasterCustomerGroup::where('mcg_sort', 4)
+                        ->where('mcg_is_use', true)
+                        ->value('mcg_id');
+                }
+            }
+
             $this->customerService->recallCustomer(
                 $id,
                 $request->validated(),
-                $request->cus_mcg_id
+                $groupId
             );
 
             return response()->json(['status' => 'success']);

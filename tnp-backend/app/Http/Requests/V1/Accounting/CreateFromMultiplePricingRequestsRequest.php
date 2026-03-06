@@ -26,7 +26,7 @@ class CreateFromMultiplePricingRequestsRequest extends FormRequest
             'pricing_request_ids' => 'required|array|min:1',
             'pricing_request_ids.*' => 'required|string|exists:pricing_requests,pr_id',
             'customer_id' => 'required|string|exists:master_customers,cus_id',
-            'additional_notes' => 'nullable|string',
+            'notes' => 'nullable|string',
             'subtotal' => 'nullable|numeric|min:0',
             'tax_amount' => 'nullable|numeric|min:0',
             'special_discount_percentage' => 'nullable|numeric|min:0|max:100',

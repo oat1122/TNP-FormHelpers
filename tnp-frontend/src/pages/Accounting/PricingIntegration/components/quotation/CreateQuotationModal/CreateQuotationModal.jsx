@@ -81,7 +81,7 @@ const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
       const submitData = {
         pricingRequestIds: selectedPricingItems,
         customerId: pricingRequest?.customer?.cus_id,
-        additional_notes: additionalNotes,
+        notes: additionalNotes,
         selectedRequestsData: selectionsWithCustomer,
         customer: pricingRequest?.customer, // *** ส่ง customer กลับไปด้วย ***
       };

@@ -426,7 +426,7 @@ const PricingIntegration = () => {
         items,
 
         // หมายเหตุเพิ่มเติม
-        additional_notes: data.notes || "",
+        notes: data.notes || "",
         sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
       };
 
@@ -539,7 +539,7 @@ const PricingIntegration = () => {
         items,
 
         // หมายเหตุเพิ่มเติม
-        additional_notes: data.notes || "",
+        notes: data.notes || "",
         sample_images: Array.isArray(data.sample_images) ? data.sample_images : [],
       };
 

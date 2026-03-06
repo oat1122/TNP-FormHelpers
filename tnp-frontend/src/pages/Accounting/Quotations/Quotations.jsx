@@ -73,6 +73,7 @@ const Quotations = () => {
 
   const [viewMode, setViewMode] = useState("table");
   const [signatureOnly, setSignatureOnly] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
@@ -93,6 +94,7 @@ const Quotations = () => {
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
     ...getQueryArgs(),
     signature_uploaded: signatureOnly ? 1 : undefined,
+    only_mine: showOnlyMine ? 1 : undefined,
     page: 1, // Fetch all for client-side pagination, can be adjusted
     per_page: 1000,
   });
@@ -241,6 +243,7 @@ const Quotations = () => {
 
   const handleResetFilters = () => {
     setSignatureOnly(false);
+    setShowOnlyMine(false);
   };
 
   const handlePageChange = useCallback((e, p) => {
@@ -298,6 +301,23 @@ const Quotations = () => {
             >
               {/* Left side: Extra filter & View Toggle */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showOnlyMine}
+                      onChange={(e) => setShowOnlyMine(e.target.checked)}
+                      color="primary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      แสดงเฉพาะฉัน
+                    </Typography>
+                  }
+                  sx={{ m: 0 }}
+                />
+
                 <FormControlLabel
                   control={
                     <Checkbox

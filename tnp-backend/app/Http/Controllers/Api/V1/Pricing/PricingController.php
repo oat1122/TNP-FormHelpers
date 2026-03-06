@@ -35,7 +35,7 @@ class PricingController extends Controller
     {
         try {
             // query user
-            $user_q = User::where('user_is_enable', true)->where('user_uuid', $request->user)->select('user_uuid', 'role')->first();
+            $user_q = User::where('user_is_enable', true)->where('user_uuid', $request->user)->select('user_uuid', 'role', 'user_id')->first();
 
             $status_q = MasterStatus::where('status_type', '1')
                 ->where('status_is_deleted', false)
@@ -81,6 +81,17 @@ class PricingController extends Controller
                 $prepared_statement->where('pr_created_by', $user_q->user_uuid);
                 $total_query->where('pr_created_by', $user_q->user_uuid);
             };
+
+            // query with only_mine
+            if ($request->has('only_mine') && $request->only_mine) {
+                $only_mine_sql = function ($query) use ($user_q) {
+                    $query->whereHas('pricingCustomer', function ($qc) use ($user_q) {
+                        $qc->where('cus_manage_by', $user_q->user_id);
+                    });
+                };
+                $prepared_statement->where($only_mine_sql);
+                $total_query->where($only_mine_sql);
+            }
 
             // for search
             if ($request->has('search')) {

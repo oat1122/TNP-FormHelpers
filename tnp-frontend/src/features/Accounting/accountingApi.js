@@ -734,6 +734,13 @@ export const accountingApi = createApi({
         return { url: "/customers/search", params: { q: query, user: userUuid } };
       },
     }),
+    // ===================== QUOTATION REPORT =====================
+    getQuotationReport: builder.query({
+      query: (params = {}) => ({ url: "/quotations/report", params }),
+      providesTags: ["Quotation"],
+      keepUnusedDataFor: 60,
+    }),
+
     getDashboardStats: builder.query({
       query: () => "/dashboard/stats",
       providesTags: ["Dashboard"],
@@ -782,6 +789,8 @@ export const {
   useGenerateQuotationPDFMutation,
   useGetQuotationRelatedInvoicesQuery,
   useGetSyncJobStatusQuery,
+  useGetQuotationReportQuery,
+  useLazyGetQuotationReportQuery,
   // Invoices
   useGetQuotationsAwaitingInvoiceQuery,
   useGetInvoicesQuery,

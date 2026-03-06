@@ -7,6 +7,7 @@ import {
   Logout as LogoutIcon,
   Home as HomeIcon,
   GetApp as ImportIcon,
+  BarChart as ReportIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -58,6 +59,12 @@ const navigationItems = [
     title: "การจัดส่ง",
     icon: DeliveryIcon,
     path: "/accounting/delivery-notes",
+  },
+  {
+    id: "report",
+    title: "รายงาน",
+    icon: ReportIcon,
+    path: "/accounting/quotations/report",
   },
 ];
 

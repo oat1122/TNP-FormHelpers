@@ -85,7 +85,7 @@ const CreateQuotationForm = ({
     items: [],
     notes: DEFAULT_NOTES,
     // terms (UI-facing)
-    paymentTermsType: "credit_30", // 'cash' | 'credit_30' | 'credit_60' | 'other'
+    paymentTermsType: "cash", // 'cash' | 'credit_30' | 'credit_60' | 'other'
     paymentTermsCustom: "",
     depositMode: "percentage", // 'percentage' | 'amount'
     depositPct: 50, // when percentage mode
@@ -146,7 +146,7 @@ const CreateQuotationForm = ({
       customer,
       items,
       dueDate: dd,
-      paymentTermsType: "credit_30",
+      paymentTermsType: "cash",
       depositPct: 50,
     }));
   }, [selectedPricingRequests]);

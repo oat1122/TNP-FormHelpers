@@ -61,6 +61,7 @@ const PricingIntegration = () => {
   // Simple search without debouncing for now
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("table");
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -90,6 +91,7 @@ const PricingIntegration = () => {
     date_start: dateRange.start,
     date_end: dateRange.end,
     customer_id: selectedCustomer?.id,
+    only_mine: showOnlyMine ? 1 : undefined,
     page: 1,
     per_page: 1000,
   });
@@ -593,6 +595,7 @@ const PricingIntegration = () => {
     setSearchTerm("");
     setDateRange({ start: null, end: null });
     setSelectedCustomer(null);
+    setShowOnlyMine(false);
     dispatch(resetFilters());
   };
 
@@ -620,7 +623,12 @@ const PricingIntegration = () => {
               sx={{ py: 4, px: viewMode === "table" ? { xs: 2, md: 3, lg: 4 } : undefined }}
             >
               {/* Filters Section */}
-              <FilterSection searchQuery={searchTerm} onSearchChange={handleSearch} />
+              <FilterSection
+                searchQuery={searchTerm}
+                onSearchChange={handleSearch}
+                showOnlyMine={showOnlyMine}
+                onOnlyMineChange={(checked) => setShowOnlyMine(checked)}
+              />
 
               {/* Content */}
               {error && (

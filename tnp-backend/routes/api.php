@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
 use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
 use App\Http\Controllers\Api\V1\Accounting\AutofillController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
+use App\Http\Controllers\Api\V1\Accounting\QuotationReportController;
 use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
 use App\Http\Controllers\Api\V1\CompanyController;
@@ -333,6 +334,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         // Route::get('/invoices/autofill/quotation/{id}', 'getQuotationAutofillForInvoice');
         // Route::get('/receipts/autofill/invoice/{id}', 'getInvoiceAutofillForReceipt');
         // Route::get('/delivery-notes/autofill/receipt/{id}', 'getReceiptAutofillForDeliveryNote');
+    });
+
+    // Quotation Report APIs (must be BEFORE wildcard quotations/{id} routes)
+    Route::controller(QuotationReportController::class)->prefix('quotations/report')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/export', 'export');
     });
 
     // Quotation APIs

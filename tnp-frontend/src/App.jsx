@@ -33,6 +33,7 @@ const PricingIntegration = lazy(
   () => import("./pages/Accounting/PricingIntegration/PricingIntegration")
 );
 const Quotations = lazy(() => import("./pages/Accounting/Quotations/Quotations"));
+const QuotationReport = lazy(() => import("./pages/Accounting/Quotations/report/QuotationReport"));
 const Invoices = lazy(() => import("./pages/Accounting/Invoices/Invoices"));
 const DeliveryNotes = lazy(() => import("./pages/Accounting/DeliveryNotes/DeliveryNotes"));
 
@@ -99,6 +100,7 @@ function App() {
               <Route index element={<PricingIntegration />} />
               <Route path="pricing-integration" element={<PricingIntegration />} />
               <Route path="quotations" element={<Quotations />} />
+              <Route path="quotations/report" element={<QuotationReport />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="delivery-notes" element={<DeliveryNotes />} />
             </Route>

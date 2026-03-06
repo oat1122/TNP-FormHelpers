@@ -1,8 +1,16 @@
 import { Search as SearchIcon } from "@mui/icons-material";
-import { Box, TextField, InputAdornment, Stack } from "@mui/material";
+import {
+  Box,
+  TextField,
+  InputAdornment,
+  Stack,
+  FormControlLabel,
+  Checkbox,
+  Typography,
+} from "@mui/material";
 import React from "react";
 
-const FilterSection = ({ searchQuery, onSearchChange }) => {
+const FilterSection = ({ searchQuery, onSearchChange, showOnlyMine, onOnlyMineChange }) => {
   return (
     <Box
       sx={{
@@ -33,6 +41,26 @@ const FilterSection = ({ searchQuery, onSearchChange }) => {
             ),
           }}
         />
+
+        {/* Show Only Mine Filter */}
+        {onOnlyMineChange && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showOnlyMine || false}
+                onChange={(e) => onOnlyMineChange(e.target.checked)}
+                color="primary"
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
+                แสดงเฉพาะฉัน
+              </Typography>
+            }
+            sx={{ m: 0, pl: 1 }}
+          />
+        )}
       </Stack>
     </Box>
   );

@@ -48,7 +48,8 @@ class QuotationController extends Controller
                 'date_from' => $request->query('date_from'),
                 'date_to' => $request->query('date_to'),
                 'search' => $request->query('search'),
-                'signature_uploaded' => $request->query('signature_uploaded')
+                'signature_uploaded' => $request->query('signature_uploaded'),
+                'only_mine' => $request->query('only_mine')
             ];
 
             $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 15), 15, 50);

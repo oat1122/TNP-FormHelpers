@@ -281,6 +281,13 @@ class QuotationService
                 $query->whereDate('created_at', '<=', $filters['date_to']);
             }
 
+            if (!empty($filters['only_mine'])) {
+                $userId = auth()->user()->user_id;
+                $query->whereHas('customer', function ($q) use ($userId) {
+                    $q->where('cus_manage_by', $userId);
+                });
+            }
+
             if (!empty($filters['search'])) {
                 $rawSearch = trim($filters['search']);
                 $like = '%' . $rawSearch . '%';

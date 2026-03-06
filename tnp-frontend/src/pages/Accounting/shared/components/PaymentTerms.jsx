@@ -1,4 +1,13 @@
-import { Grid, Typography, TextField, ToggleButtonGroup, ToggleButton } from "@mui/material";
+import {
+  Grid,
+  Typography,
+  TextField,
+  ToggleButtonGroup,
+  ToggleButton,
+  Box,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 import React from "react";
 
 import {
@@ -82,16 +91,40 @@ export default function PaymentTerms({
           </Typography>
           {isEditing ? (
             <>
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                value={depositMode}
-                onChange={(e, val) => val && onChangeDepositMode(val)}
-                sx={{ mb: 1 }}
-              >
-                <ToggleButton value="percentage">เปอร์เซ็นต์</ToggleButton>
-                <ToggleButton value="amount">จำนวนเงิน</ToggleButton>
-              </ToggleButtonGroup>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={depositMode}
+                  onChange={(e, val) => val && onChangeDepositMode(val)}
+                >
+                  <ToggleButton value="percentage">เปอร์เซ็นต์</ToggleButton>
+                  <ToggleButton value="amount">จำนวนเงิน</ToggleButton>
+                </ToggleButtonGroup>
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={depositMode === "percentage" && String(depositPercentage) === "100"}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          onChangeDepositMode("percentage");
+                          onChangeDepositPercentage("100");
+                        } else {
+                          onChangeDepositPercentage("50");
+                        }
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" fontWeight={600} color="primary">
+                      จ่ายเต็มจำนวน (100%)
+                    </Typography>
+                  }
+                  sx={{ m: 0 }}
+                />
+              </Box>
               {depositMode === "percentage" ? (
                 <TextField
                   fullWidth

@@ -337,4 +337,109 @@ class KpiService
 
         return $this->kpiRepository->getRecallHistory($month, $sourceFilter, $targetUserId);
     }
+
+    /**
+     * Get Notebook Summary Statistics
+     */
+    public function getNotebookSummaryData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
+    {
+        $dateRange = $this->getDateRange($period, $startDate, $endDate);
+        $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+
+        // Fetch query grouped by user
+        // Actions tracked: 'created' or 'updated'
+        $query = \App\Models\NotebookHistory::query()
+            ->with('actionBy')
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+
+        if ($targetUserId) {
+            $query->where('action_by', $targetUserId);
+        }
+
+        // Grouping
+        $summary = $query->get()->groupBy('action_by')->map(function ($histories, $userId) {
+            $addedCount = $histories->where('action', 'created')->count();
+            $updatedCount = $histories->where('action', 'updated')->count();
+            
+            $actionBy = $histories->first()->actionBy;
+            $allocatorName = $actionBy
+                ? trim($actionBy->user_firstname.' '.$actionBy->user_lastname.
+                       ($actionBy->user_nickname ? " ({$actionBy->user_nickname})" : ''))
+                : 'ไม่ระบุ';
+
+            return [
+                'user_id' => $userId,
+                'user_name' => $allocatorName,
+                'added_count' => $addedCount,
+                'updated_count' => $updatedCount,
+            ];
+        })->values()->toArray();
+
+        // Sort descending by total actions
+        usort($summary, function($a, $b) {
+            return ($b['added_count'] + $b['updated_count']) <=> ($a['added_count'] + $a['updated_count']);
+        });
+
+        return [
+            'period' => [
+                'type' => $period,
+                'start_date' => $dateRange['start']->format('Y-m-d'),
+                'end_date' => $dateRange['end']->format('Y-m-d'),
+                'label' => $dateRange['label'],
+            ],
+            'summary' => $summary,
+        ];
+    }
+
+    /**
+     * Get Detailed Notebook History for a specific user
+     */
+    public function getNotebookDetailsData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
+    {
+        $dateRange = $this->getDateRange($period, $startDate, $endDate);
+        $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+
+        $query = \App\Models\NotebookHistory::query()
+            ->with(['actionBy', 'notebook']) // Ensure Notebook is mapped in NotebookHistory model if possible, or join it.
+            ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
+
+        // Join notebooks to get the customer name context
+        $query->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
+              ->select('notebook_histories.*', 'notebooks.nb_customer_name', 'notebooks.nb_is_online', 'notebooks.nb_contact_number');
+
+        if ($targetUserId) {
+            $query->where('notebook_histories.action_by', $targetUserId);
+        }
+
+        $query->orderBy('notebook_histories.created_at', 'desc');
+
+        $histories = $query->get()->map(function ($history) {
+            $actionBy = $history->actionBy;
+            $allocatorName = $actionBy
+                ? trim($actionBy->user_firstname.' '.$actionBy->user_lastname)
+                : 'admin';
+
+            return [
+                'history_id' => $history->id,
+                'notebook_id' => $history->notebook_id,
+                'nb_customer_name' => collect([$history->nb_customer_name, $history->nb_is_online ? '(Online)' : null])->filter()->join(' '),
+                'nb_contact_number' => $history->nb_contact_number,
+                'action_type' => $history->action,
+                'old_values' => $history->old_values,
+                'new_values' => $history->new_values,
+                'action_by_name' => $allocatorName,
+                'created_at' => Carbon::parse($history->created_at)->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return [
+            'period' => [
+                'type' => $period,
+                'start_date' => $dateRange['start']->format('Y-m-d'),
+                'end_date' => $dateRange['end']->format('Y-m-d'),
+                'label' => $dateRange['label'],
+            ],
+            'details' => $histories,
+        ];
+    }
 }

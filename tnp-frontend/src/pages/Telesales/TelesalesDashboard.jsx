@@ -21,6 +21,7 @@ import {
   RecallStatsCard,
   RecallBySalesTable,
   KpiChartsCard,
+  NotebookReportSection,
 } from "./sections";
 import { useGetKpiDashboardQuery } from "../../features/Customer/customerApi";
 
@@ -261,6 +262,13 @@ const TelesalesDashboard = () => {
                 </Grid>
               )}
             </Grid>
+
+            {/* Notebook Report Section */}
+            <NotebookReportSection
+              sourceFilter={sourceFilter}
+              globalPeriodFilter={periodFilter}
+              isTeamView={isTeamView}
+            />
 
             {/* KPI Details Dialog */}
             <KpiDetailsDialog

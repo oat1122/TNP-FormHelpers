@@ -49,6 +49,7 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import MenuIcon from "@mui/icons-material/Menu";
 
 import accountingTheme from "../../theme/accountingTheme";
 import {
@@ -60,7 +61,12 @@ import ReportSummaryCards from "./components/ReportSummaryCards";
 import ReportTableView from "./components/ReportTableView";
 import ReportExportButton from "./components/ReportExportButton";
 
+import { useOutletContext } from "react-router-dom";
+
 const QuotationReport = () => {
+  // Navigation context to open drawer
+  const context = useOutletContext();
+
   // Filters
   const [activeTab, setActiveTab] = useState("all");
 
@@ -223,6 +229,25 @@ const QuotationReport = () => {
     return allReportData.filter((r) => r.status === activeTab);
   }, [allReportData, activeTab]);
 
+  // Dynamically calculate summary based on the currently displayed data
+  const dynamicSummary = useMemo(() => {
+    // For counting, we include all items in the current view
+    const count = displayData.length;
+
+    // For totals, we exclude rejected items (same logic as table footer)
+    const activeRows = displayData.filter((r) => r.status !== "rejected");
+    const subtotal = activeRows.reduce((sum, r) => sum + Number(r.subtotal || 0), 0);
+    const tax_amount = activeRows.reduce((sum, r) => sum + Number(r.tax_amount || 0), 0);
+    const total_amount = activeRows.reduce((sum, r) => sum + Number(r.final_total_amount || 0), 0);
+
+    return {
+      count,
+      subtotal,
+      tax_amount,
+      total_amount,
+    };
+  }, [displayData]);
+
   const handleSearchSubmit = useCallback(
     (e) => {
       e.preventDefault();
@@ -252,6 +277,15 @@ const QuotationReport = () => {
             }}
           >
             <Stack direction="row" alignItems="center" spacing={1.5}>
+              <IconButton
+                edge="start"
+                color="inherit"
+                aria-label="menu"
+                sx={{ mr: 1 }}
+                onClick={context?.onMenuClick}
+              >
+                <MenuIcon fontSize="large" />
+              </IconButton>
               <BarChartIcon sx={{ fontSize: 28 }} />
               <Box>
                 <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
@@ -461,7 +495,7 @@ const QuotationReport = () => {
             )}
 
             {/* Summary Cards */}
-            <ReportSummaryCards summary={summary} />
+            <ReportSummaryCards summary={dynamicSummary} />
 
             {/* Status Tabs + Table */}
             <Box>

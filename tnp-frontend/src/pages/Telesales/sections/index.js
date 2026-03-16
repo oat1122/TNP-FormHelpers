@@ -6,3 +6,4 @@ export { default as PersonalStatsCard } from "./PersonalStatsCard";
 export { default as RecallStatsCard } from "./RecallStatsCard";
 export { default as RecallBySalesTable } from "./RecallBySalesTable";
 export { default as KpiChartsCard } from "./KpiChartsCard";
+export { default as NotebookReportSection } from "./NotebookReportSection";

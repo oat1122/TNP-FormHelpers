@@ -27,7 +27,7 @@ export const notebookApi = createApi({
         url: `/notebooks/${id}`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: "Notebook", id }],
+      providesTags: (result, error, id) => [{ type: "Notebook", id }, "NotebookHistory"],
     }),
     addNotebook: builder.mutation({
       query: (data) => ({

@@ -37,6 +37,11 @@ class CompanyLogoService
      */
     public static function getLogoPath(?string $companyId): ?string
     {
+        // ถ้าบริษัทไม่มีใน COMPANY_LOGO_MAP ให้ return null ทันที
+        if (!isset(self::COMPANY_LOGO_MAP[$companyId])) {
+            return null;
+        }
+
         // กำหนดชื่อไฟล์โลโก้ตาม Company ID
         $logoFileName = self::getLogoFileName($companyId);
 
@@ -70,6 +75,11 @@ class CompanyLogoService
      */
     public static function getLogoUrl(?string $companyId): ?string
     {
+        // ถ้าบริษัทไม่มีใน COMPANY_LOGO_MAP ให้ return null ทันที
+        if (!isset(self::COMPANY_LOGO_MAP[$companyId])) {
+            return null;
+        }
+
         $logoFileName = self::getLogoFileName($companyId);
 
         // ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่

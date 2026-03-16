@@ -32,7 +32,7 @@ class NotebookController extends Controller
         if ($request->has('include')) {
             $includes = explode(',', $request->input('include'));
             if (in_array('histories', $includes)) {
-                $query->with('histories');
+                $query->with('histories.actionBy');
             }
         }
 
@@ -92,7 +92,7 @@ class NotebookController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $notebook = \App\Models\Notebook::findOrFail($id);
+        $notebook = \App\Models\Notebook::with(['histories.actionBy'])->findOrFail($id);
         return response()->json($notebook);
     }
 
@@ -119,7 +119,7 @@ class NotebookController extends Controller
 
         $notebook->update($data);
 
-        return response()->json($notebook);
+        return response()->json($notebook->load('histories.actionBy'));
     }
 
     /**

@@ -343,4 +343,130 @@ class KpiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get Notebook Summary Statistics
+     *
+     * GET /api/v1/customers/kpi/notebook-summary
+     */
+    public function notebookSummary(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: Access denied',
+            ], 403);
+        }
+
+        try {
+            if ($request->input('user_id') === 'all') {
+                $request->merge(['user_id' => null]);
+            }
+
+            $request->validate([
+                'period' => 'nullable|in:today,week,month,quarter,year,custom,prev_month,prev_week,prev_quarter',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date',
+                'source_filter' => 'nullable|in:telesales,sales,online,office,all',
+                'user_id' => 'nullable|integer',
+            ]);
+
+            $period = $request->input('period', 'month');
+            $sourceFilter = $request->input('source_filter', 'all');
+            $requestedUserId = $request->input('user_id');
+
+            $data = $this->kpiService->getNotebookSummaryData(
+                $period,
+                $request->start_date,
+                $request->end_date,
+                $sourceFilter,
+                $requestedUserId,
+                $user
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data['summary'],
+                'meta' => [
+                    'period' => $data['period']
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Notebook Summary KPI error: '.$e->getMessage(), [
+                'user_id' => $user->user_id ?? null,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching notebook summary: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Notebook Details History
+     *
+     * GET /api/v1/customers/kpi/notebook-details
+     */
+    public function notebookDetails(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized: Access denied',
+            ], 403);
+        }
+
+        try {
+            if ($request->input('user_id') === 'all') {
+                $request->merge(['user_id' => null]);
+            }
+
+            $request->validate([
+                'period' => 'nullable|in:today,week,month,quarter,year,custom,prev_month,prev_week,prev_quarter',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date',
+                'source_filter' => 'nullable|in:telesales,sales,online,office,all',
+                'user_id' => 'required|integer', // Ensure we are drilling down to a user
+            ]);
+
+            $period = $request->input('period', 'month');
+            $sourceFilter = $request->input('source_filter', 'all');
+            $requestedUserId = $request->input('user_id');
+
+            $data = $this->kpiService->getNotebookDetailsData(
+                $period,
+                $request->start_date,
+                $request->end_date,
+                $sourceFilter,
+                $requestedUserId,
+                $user
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data['details'],
+                'meta' => [
+                    'period' => $data['period']
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Notebook Details KPI error: '.$e->getMessage(), [
+                'user_id' => $user->user_id ?? null,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching notebook details: '.$e->getMessage(),
+            ], 500);
+        }
+    }
 }

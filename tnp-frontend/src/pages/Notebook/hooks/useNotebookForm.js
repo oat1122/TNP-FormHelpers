@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import {
   useAddNotebookMutation,
+  useGetNotebookQuery,
   useUpdateNotebookMutation,
 } from "../../../features/Notebook/notebookApi";
 import {
@@ -30,6 +31,12 @@ export const useNotebookForm = () => {
 
   const [addNotebook, { isLoading: isAdding }] = useAddNotebookMutation();
   const [updateNotebook, { isLoading: isUpdating }] = useUpdateNotebookMutation();
+
+  // Fetch full notebook with histories when editing
+  const { data: notebookDetail } = useGetNotebookQuery(selectedNotebook?.id, {
+    skip: !selectedNotebook?.id || dialogMode !== "edit",
+  });
+  const notebookHistories = notebookDetail?.histories || [];
 
   // Duplicate Check Hook
   const {
@@ -158,6 +165,8 @@ export const useNotebookForm = () => {
     isSubmitting: isAdding || isUpdating,
     currentUser,
     isAdmin,
+    notebookDetail,
+    notebookHistories,
     // Handlers
     handleClose,
     handleChange,

@@ -14,18 +14,18 @@
     // ดึงข้อมูลโลโก้จาก CompanyLogoService
     $logoInfo = app(CompanyLogoService::class)->getLogoInfo($companyId);
     
-    // เลือกโลโก้ตาม priority: ที่ส่งมา > service > default
+    // เลือกโลโก้ตาม priority: ที่ส่งมา > service (ไม่มี default fallback)
+    $src = null;
     if ($forPdf) {
-        $resolvedPath = $logoPath ?? $logoInfo['path'] ?? public_path('images/logo.png');
+        $resolvedPath = $logoPath ?? $logoInfo['path'] ?? null;
         
         // สำหรับ mPDF ใช้ data URI เพื่อให้อ่านไฟล์ได้แน่นอน
-        $src = $resolvedPath;
         if (is_string($resolvedPath) && is_file($resolvedPath)) {
             $mime = mime_content_type($resolvedPath) ?: 'image/png';
             $src = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($resolvedPath));
         }
     } else {
-        $src = $logoUrl ?? $logoInfo['url'] ?? asset('images/logo.png');
+        $src = $logoUrl ?? $logoInfo['url'] ?? null;
     }
 @endphp
 

@@ -73,6 +73,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
         Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
         Route::get('/customers/kpi/details', 'details'); // KPI details list
+        Route::get('/customers/kpi/notebook-summary', 'notebookSummary'); // Notebook KPI Summary
+        Route::get('/customers/kpi/notebook-details', 'notebookDetails'); // Notebook KPI Details
         Route::get('/customers/kpi/export', 'export'); // CSV export
     });
 

@@ -17,6 +17,8 @@ const NotebookList = () => {
     setPaginationModel,
     periodFilter,
     setPeriodFilter,
+    dateFilterBy,
+    setDateFilterBy,
     customerDialogOpen,
     setCustomerDialogOpen,
     pdfDialogOpen,
@@ -24,6 +26,7 @@ const NotebookList = () => {
     // Data
     data,
     isLoading,
+    isFetching,
     // Handlers
     handleAdd,
     handleEdit,
@@ -62,12 +65,28 @@ const NotebookList = () => {
           </Box>
         </Box>
 
-        <PeriodTabs periodFilter={periodFilter} onPeriodChange={setPeriodFilter} />
+        <PeriodTabs
+          periodFilter={periodFilter}
+          onPeriodChange={setPeriodFilter}
+          filters={[
+            {
+              label: "ประเภทวันที่",
+              value: dateFilterBy,
+              onChange: setDateFilterBy,
+              options: [
+                { value: "all", label: "ทั้งหมด" },
+                { value: "created_at", label: "วันที่สร้าง" },
+                { value: "updated_at", label: "วันที่อัพเดท" },
+              ],
+            },
+          ]}
+          isLoading={isLoading || isFetching}
+        />
 
         <NotebookTable
           data={data?.data}
           total={data?.total}
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           onEdit={handleEdit}

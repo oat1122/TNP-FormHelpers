@@ -147,10 +147,16 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
 
       if (histories.length === 0) {
         // No histories — use the notebook's current values as single row
-        flatRows.push({ notebook, historyEntry: null, at: new Date(notebook.updated_at || notebook.created_at) });
+        flatRows.push({
+          notebook,
+          historyEntry: null,
+          at: new Date(notebook.updated_at || notebook.created_at),
+        });
       } else {
         // Sort histories ascending (oldest first = top of CSV)
-        const sorted = [...histories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const sorted = [...histories].sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
 
         // Only include entries where a text field changed AND within the date range
         const relevant = sorted.filter((h) => {
@@ -181,7 +187,6 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
     const rows = flatRows.map(({ notebook, historyEntry, at }) => {
       // Resolve field values: history new_values takes priority, fallback to notebook
       const nv = historyEntry?.new_values || {};
-      const ov = historyEntry?.old_values || {};
 
       // Date: prefer nb_date from new_values, then notebook nb_date, then history created_at
       const rawDate = nv.nb_date || notebook.nb_date;
@@ -205,9 +210,9 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
 
       // Fields: history new_values → notebook
       const additionalInfo = nv.nb_additional_info ?? notebook.nb_additional_info;
-      const remarks       = nv.nb_remarks       ?? notebook.nb_remarks;
-      const status        = nv.nb_status        ?? notebook.nb_status;
-      const action        = nv.nb_action        ?? notebook.nb_action;
+      const remarks = nv.nb_remarks ?? notebook.nb_remarks;
+      const status = nv.nb_status ?? notebook.nb_status;
+      const action = nv.nb_action ?? notebook.nb_action;
 
       let customerCol = notebook.nb_customer_name || "-";
       if (notebook.nb_is_online) customerCol += " / online";

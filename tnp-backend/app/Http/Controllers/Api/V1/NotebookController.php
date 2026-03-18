@@ -46,9 +46,34 @@ class NotebookController extends Controller
             });
         }
 
-        // Filter by date range
+        // Filter by date range and type
         if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('nb_date', [$request->input('start_date'), $request->input('end_date')]);
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $dateFilterBy = $request->input('date_filter_by', 'nb_date'); // Default to nb_date for backwards compatibility
+            
+            // Map the generic 'created_at' and 'updated_at' string
+            $column = in_array($dateFilterBy, ['nb_date', 'created_at', 'updated_at', 'all']) ? $dateFilterBy : 'nb_date';
+
+            if ($column === 'all') {
+                $query->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('created_at', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59'
+                    ])->orWhereBetween('updated_at', [
+                        $startDate . ' 00:00:00',
+                        $endDate . ' 23:59:59'
+                    ]);
+                });
+            } else if ($column === 'nb_date') {
+                $query->whereBetween($column, [$startDate, $endDate]);
+            } else {
+                // For timestamp columns, append times to cover the whole day
+                $query->whereBetween($column, [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59'
+                ]);
+            }
         }
 
         // Filter by status

@@ -296,6 +296,7 @@ export const customerApi = createApi({
           end_date: payload?.end_date,
           source_filter: payload?.source_filter || "all",
           user_id: payload?.user_id,
+          nb_status: payload?.nb_status || "all",
         },
       }),
     }),
@@ -310,12 +311,13 @@ export const customerApi = createApi({
           end_date: payload?.end_date,
           source_filter: payload?.source_filter || "all",
           user_id: payload?.user_id,
+          nb_status: payload?.nb_status || "all",
         },
       }),
       transformResponse: (response) => {
         // We use history_id as the unique row identifier if mapping into data grid
         if (response.data) {
-          const formatted = response.data.map(item => ({ ...item, id: item.history_id }));
+          const formatted = response.data.map((item) => ({ ...item, id: item.history_id }));
           return { ...response, data: formatted };
         }
         return response;

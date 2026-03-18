@@ -29,6 +29,7 @@ export const useNotebookList = () => {
     startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
     endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
   });
+  const [dateFilterBy, setDateFilterBy] = useState("all");
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
@@ -36,6 +37,7 @@ export const useNotebookList = () => {
   // API Hooks
   const {
     data,
+    isFetching,
     isLoading,
     refetch,
     error: fetchError,
@@ -45,6 +47,7 @@ export const useNotebookList = () => {
     search: globalKeyword,
     start_date: periodFilter.startDate,
     end_date: periodFilter.endDate,
+    date_filter_by: dateFilterBy,
     include: "histories",
   });
 
@@ -125,6 +128,8 @@ export const useNotebookList = () => {
     setPaginationModel,
     periodFilter,
     setPeriodFilter,
+    dateFilterBy,
+    setDateFilterBy,
     customerDialogOpen,
     setCustomerDialogOpen,
     pdfDialogOpen,
@@ -133,6 +138,7 @@ export const useNotebookList = () => {
     // Data
     data,
     isLoading,
+    isFetching,
     // Handlers
     handleAdd,
     handleEdit,

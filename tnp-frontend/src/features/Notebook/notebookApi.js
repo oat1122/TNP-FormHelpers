@@ -16,6 +16,7 @@ export const notebookApi = createApi({
           search: params?.search,
           start_date: params?.start_date,
           end_date: params?.end_date,
+          date_filter_by: params?.date_filter_by,
           status: params?.status,
           include: params?.include,
         },

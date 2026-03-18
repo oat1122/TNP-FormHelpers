@@ -1,16 +1,16 @@
 import { ErrorOutline } from "@mui/icons-material";
-import { Container, Grid, Typography, Button, Alert } from "@mui/material";
+import { Container, Grid, Typography, Button, Alert, Box } from "@mui/material";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
   DashboardErrorBoundary,
-  SourceDistributionChart,
   EmptyState,
   KpiDetailsDialog,
   RecallDetailsDialog,
 } from "./components";
+import { SOURCE_OPTIONS } from "./constants";
 import { useUserAccess, useCsvExport } from "./hooks";
 import {
   DashboardHeader,
@@ -85,7 +85,6 @@ const TelesalesDashboard = () => {
   });
 
   // Historical Recall: no longer needed — backend routes past periods to snapshots automatically
-  const isPastPeriod = dayjs(periodFilter.endDate).isBefore(dayjs().startOf("day"));
 
   // Role label for display
   const roleLabel = isTeamView ? "ภาพรวมทีม" : "ข้อมูลส่วนตัว";
@@ -163,26 +162,50 @@ const TelesalesDashboard = () => {
   return (
     <DashboardErrorBoundary>
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <DashboardHeader
-          userName={userName}
-          roleLabel={roleLabel}
-          onExportCsv={handleExportCsv}
-          onRefresh={refetch}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          isExporting={isExporting}
-        />
+        {/* Sticky Header containing title, actions, and period tabs */}
+        <Box
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1100,
+            bgcolor: "background.default",
+            pt: 2,
+            pb: 1,
+            mt: -2,
+            mx: -2,
+            px: 2,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          {/* Header */}
+          <DashboardHeader
+            userName={userName}
+            roleLabel={roleLabel}
+            onExportCsv={handleExportCsv}
+            onRefresh={refetch}
+            isLoading={isLoading}
+            isFetching={isFetching}
+            isExporting={isExporting}
+          />
 
         {/* Period Tabs */}
         <PeriodTabs
           periodFilter={periodFilter}
           onPeriodChange={setPeriodFilter}
-          sourceFilter={sourceFilter}
-          onSourceFilterChange={setSourceFilter}
+          filters={[
+            {
+              label: "แหล่งที่มา",
+              value: sourceFilter,
+              onChange: setSourceFilter,
+              options: SOURCE_OPTIONS,
+            },
+          ]}
           periodLabel={periodLabel}
           comparison={comparison}
+          isLoading={isLoading || isFetching}
         />
+        </Box>
 
         {/* Error State */}
         {isError && (

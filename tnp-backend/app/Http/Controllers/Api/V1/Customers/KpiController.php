@@ -371,11 +371,13 @@ class KpiController extends Controller
                 'end_date' => 'nullable|date',
                 'source_filter' => 'nullable|in:telesales,sales,online,office,all',
                 'user_id' => 'nullable|integer',
+                'nb_status' => 'nullable|string',
             ]);
 
             $period = $request->input('period', 'month');
             $sourceFilter = $request->input('source_filter', 'all');
             $requestedUserId = $request->input('user_id');
+            $nbStatus = $request->input('nb_status', 'all');
 
             $data = $this->kpiService->getNotebookSummaryData(
                 $period,
@@ -383,7 +385,8 @@ class KpiController extends Controller
                 $request->end_date,
                 $sourceFilter,
                 $requestedUserId,
-                $user
+                $user,
+                $nbStatus
             );
 
             return response()->json([
@@ -434,11 +437,13 @@ class KpiController extends Controller
                 'end_date' => 'nullable|date',
                 'source_filter' => 'nullable|in:telesales,sales,online,office,all',
                 'user_id' => 'required|integer', // Ensure we are drilling down to a user
+                'nb_status' => 'nullable|string',
             ]);
 
             $period = $request->input('period', 'month');
             $sourceFilter = $request->input('source_filter', 'all');
             $requestedUserId = $request->input('user_id');
+            $nbStatus = $request->input('nb_status', 'all');
 
             $data = $this->kpiService->getNotebookDetailsData(
                 $period,
@@ -446,7 +451,8 @@ class KpiController extends Controller
                 $request->end_date,
                 $sourceFilter,
                 $requestedUserId,
-                $user
+                $user,
+                $nbStatus
             );
 
             return response()->json([

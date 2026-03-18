@@ -12,6 +12,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
   IconButton,
   Typography,
   Menu,
@@ -24,7 +25,7 @@ import dayjs from "dayjs";
 import { useState, useEffect } from "react";
 
 import "dayjs/locale/th";
-import { PERIOD_TABS, SOURCE_OPTIONS } from "../constants/index.jsx";
+import { PERIOD_TABS } from "../constants/index.jsx";
 
 // Set default locale for dayjs
 dayjs.locale("th");
@@ -33,7 +34,7 @@ dayjs.locale("th");
  * Period Tabs component
  * Displays period selection tabs, custom date picker, navigation arrows, and source filter dropdown
  */
-const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilterChange }) => {
+const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = false }) => {
   const { mode, shiftUnit, startDate, endDate } = periodFilter;
 
   // Internal state for the reference date when navigating using arrows
@@ -215,7 +216,7 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
-      <Paper elevation={1} sx={{ mb: 3 }}>
+      <Paper elevation={1} sx={{ mb: 1 }}>
         {/* Top Tabs */}
         <Tabs
           value={mode !== "custom" ? mode : false} // If custom, no tab is "active"
@@ -251,24 +252,27 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
           flexWrap="wrap"
           gap={2}
         >
-          {/* Left Side: Source Filter */}
-          {onSourceFilterChange && (
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ fontFamily: "Kanit" }}>แหล่งที่มา</InputLabel>
-              <Select
-                value={sourceFilter}
-                onChange={(e) => onSourceFilterChange(e.target.value)}
-                label="แหล่งที่มา"
-                sx={{ fontFamily: "Kanit" }}
-              >
-                {SOURCE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value} sx={{ fontFamily: "Kanit" }}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+          {/* Filters (e.g. Source, Date Type) */}
+          <Box display="flex" gap={2}>
+            {filters.map((filter, idx) => (
+              <FormControl key={idx} size="small" sx={{ minWidth: 150 }}>
+                <InputLabel sx={{ fontFamily: "Kanit" }}>{filter.label}</InputLabel>
+                <Select
+                  value={filter.value}
+                  onChange={(e) => filter.onChange(e.target.value)}
+                  label={filter.label}
+                  sx={{ fontFamily: "Kanit" }}
+                >
+                  {filter.options.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value} sx={{ fontFamily: "Kanit" }}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ))}
+            {isLoading && <CircularProgress size={24} sx={{ ml: 1 }} />}
+          </Box>
 
           {/* Center: Date Navigation Arrows */}
           <Box

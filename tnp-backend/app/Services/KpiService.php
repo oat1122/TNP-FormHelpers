@@ -341,7 +341,7 @@ class KpiService
     /**
      * Get Notebook Summary Statistics
      */
-    public function getNotebookSummaryData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
+    public function getNotebookSummaryData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, ?string $nbStatus = 'all'): array
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
@@ -350,10 +350,15 @@ class KpiService
         // Actions tracked: 'created' or 'updated'
         $query = \App\Models\NotebookHistory::query()
             ->with('actionBy')
-            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']]);
+            ->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
+            ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
 
         if ($targetUserId) {
-            $query->where('action_by', $targetUserId);
+            $query->where('notebook_histories.action_by', $targetUserId);
+        }
+
+        if ($nbStatus && $nbStatus !== 'all') {
+            $query->where('notebooks.nb_status', $nbStatus);
         }
 
         // Grouping
@@ -394,7 +399,7 @@ class KpiService
     /**
      * Get Detailed Notebook History for a specific user
      */
-    public function getNotebookDetailsData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
+    public function getNotebookDetailsData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, ?string $nbStatus = 'all'): array
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
@@ -405,10 +410,25 @@ class KpiService
 
         // Join notebooks to get the customer name context
         $query->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
-              ->select('notebook_histories.*', 'notebooks.nb_customer_name', 'notebooks.nb_is_online', 'notebooks.nb_contact_number');
+              ->select(
+                  'notebook_histories.*', 
+                  'notebooks.nb_customer_name', 
+                  'notebooks.nb_is_online', 
+                  'notebooks.nb_contact_number',
+                  'notebooks.nb_status',
+                  'notebooks.nb_additional_info',
+                  'notebooks.nb_remarks',
+                  'notebooks.nb_action',
+                  'notebooks.nb_date',
+                  'notebooks.nb_time'
+              );
 
         if ($targetUserId) {
             $query->where('notebook_histories.action_by', $targetUserId);
+        }
+
+        if ($nbStatus && $nbStatus !== 'all') {
+            $query->where('notebooks.nb_status', $nbStatus);
         }
 
         $query->orderBy('notebook_histories.created_at', 'desc');
@@ -424,6 +444,15 @@ class KpiService
                 'notebook_id' => $history->notebook_id,
                 'nb_customer_name' => collect([$history->nb_customer_name, $history->nb_is_online ? '(Online)' : null])->filter()->join(' '),
                 'nb_contact_number' => $history->nb_contact_number,
+                
+                // Current info directly from notebook table
+                'nb_status' => $history->nb_status,
+                'nb_additional_info' => $history->nb_additional_info,
+                'nb_remarks' => $history->nb_remarks,
+                'nb_action' => $history->nb_action,
+                'nb_date' => $history->nb_date,
+                'nb_time' => $history->nb_time,
+
                 'action_type' => $history->action,
                 'old_values' => $history->old_values,
                 'new_values' => $history->new_values,

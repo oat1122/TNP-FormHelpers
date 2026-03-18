@@ -288,9 +288,14 @@
                 $withholdingTaxAmount = (float) ($quotation->withholding_tax_amount ?? 0);
                 $finalTotalAmount = (float) ($quotation->final_total_amount ?? 0);
                 
+                // VAT settings
+                $hasVat = (bool) ($quotation->has_vat ?? true);
+                $vatPercentage = (float) ($quotation->vat_percentage ?? 7);
+                
                 // Conditional display logic
                 $showSpecialDiscount = $specialDiscountAmount > 0;
                 $showWithholdingTax = $hasWithholdingTax && $withholdingTaxAmount > 0;
+                $showVat = $hasVat && $taxAmount > 0;
               @endphp
 
               <table class="summary-table">
@@ -321,15 +326,17 @@
                   </tr>
                 @endif
                 
-                {{-- 2. VAT --}}
-                <tr>
-                  <td class="summary-label">ภาษีมูลค่าเพิ่ม (VAT 7%)</td>
-                  <td class="summary-amount">
-                    <div class="amount-container">
-                      <span class="amount-main">{{ number_format($taxAmount, 2) }}</span>
-                    </div>
-                  </td>
-                </tr>
+                {{-- 2. VAT (conditional: show only if has_vat = 1) --}}
+                @if($showVat)
+                  <tr>
+                    <td class="summary-label">ภาษีมูลค่าเพิ่ม (VAT {{ number_format($vatPercentage, 0) }}%)</td>
+                    <td class="summary-amount">
+                      <div class="amount-container">
+                        <span class="amount-main">{{ number_format($taxAmount, 2) }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                @endif
 
                 
 

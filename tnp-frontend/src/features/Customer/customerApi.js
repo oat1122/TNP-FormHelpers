@@ -285,6 +285,42 @@ export const customerApi = createApi({
         return response;
       },
     }),
+    // Notebook KPI Summary endpoint
+    getNotebookKpiSummary: builder.query({
+      query: (payload) => ({
+        url: "/customers/kpi/notebook-summary",
+        method: "GET",
+        params: {
+          period: payload?.period || "month",
+          start_date: payload?.start_date,
+          end_date: payload?.end_date,
+          source_filter: payload?.source_filter || "all",
+          user_id: payload?.user_id,
+        },
+      }),
+    }),
+    // Notebook KPI Details endpoint
+    getNotebookKpiDetails: builder.query({
+      query: (payload) => ({
+        url: "/customers/kpi/notebook-details",
+        method: "GET",
+        params: {
+          period: payload?.period || "month",
+          start_date: payload?.start_date,
+          end_date: payload?.end_date,
+          source_filter: payload?.source_filter || "all",
+          user_id: payload?.user_id,
+        },
+      }),
+      transformResponse: (response) => {
+        // We use history_id as the unique row identifier if mapping into data grid
+        if (response.data) {
+          const formatted = response.data.map(item => ({ ...item, id: item.history_id }));
+          return { ...response, data: formatted };
+        }
+        return response;
+      },
+    }),
     // KPI Recall Details - get customer list for overdue, in criteria, or made recalls
     getKpiRecallDetails: builder.query({
       query: (params) => {
@@ -358,6 +394,8 @@ export const {
   useLazyGetKpiDashboardQuery,
   useGetKpiDashboardDetailsQuery,
   useLazyGetKpiDashboardDetailsQuery,
+  useGetNotebookKpiSummaryQuery,
+  useGetNotebookKpiDetailsQuery,
   useGetKpiRecallDetailsQuery,
   useGetKpiRecallHistoryQuery,
 } = customerApi;

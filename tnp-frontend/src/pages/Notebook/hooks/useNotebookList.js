@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -22,6 +23,12 @@ export const useNotebookList = () => {
 
   // States
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
+  const [periodFilter, setPeriodFilter] = useState({
+    mode: "month",
+    shiftUnit: "month",
+    startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+    endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+  });
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
@@ -36,6 +43,8 @@ export const useNotebookList = () => {
     page: paginationModel.page,
     per_page: paginationModel.pageSize,
     search: globalKeyword,
+    start_date: periodFilter.startDate,
+    end_date: periodFilter.endDate,
     include: "histories",
   });
 
@@ -114,6 +123,8 @@ export const useNotebookList = () => {
     // State
     paginationModel,
     setPaginationModel,
+    periodFilter,
+    setPeriodFilter,
     customerDialogOpen,
     setCustomerDialogOpen,
     pdfDialogOpen,

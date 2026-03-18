@@ -27,6 +27,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 // THEME & SHARED UI
 import SpecialDiscountField from "./components/SpecialDiscountField";
 import WithholdingTaxField from "./components/WithholdingTaxField";
+import VatField from "./components/VatField";
 import PricingModeSelector from "./components/PricingModeSelector";
 import { useUploadQuotationSampleImagesTempMutation } from "../../../../../../features/Accounting/accountingApi";
 import Calculation from "../../../../shared/components/Calculation";
@@ -1117,6 +1118,21 @@ const CreateQuotationForm = ({
                       }
                       onTaxPercentageChange={(percentage) =>
                         setFormData((p) => ({ ...p, withholdingTaxPercentage: percentage }))
+                      }
+                      disabled={!isCalcEditing}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <VatField
+                      hasVat={formData.hasVat}
+                      vatPercentage={formData.vatPercentage}
+                      vatAmount={vat}
+                      subtotalAmount={discountedSubtotal}
+                      onToggleVat={(enabled) =>
+                        setFormData((p) => ({ ...p, hasVat: enabled }))
+                      }
+                      onVatPercentageChange={(percentage) =>
+                        setFormData((p) => ({ ...p, vatPercentage: percentage }))
                       }
                       disabled={!isCalcEditing}
                     />

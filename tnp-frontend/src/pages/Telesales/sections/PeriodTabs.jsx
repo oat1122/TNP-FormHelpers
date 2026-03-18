@@ -252,21 +252,23 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, sourceFilter, onSourceFilter
           gap={2}
         >
           {/* Left Side: Source Filter */}
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel sx={{ fontFamily: "Kanit" }}>แหล่งที่มา</InputLabel>
-            <Select
-              value={sourceFilter}
-              onChange={(e) => onSourceFilterChange(e.target.value)}
-              label="แหล่งที่มา"
-              sx={{ fontFamily: "Kanit" }}
-            >
-              {SOURCE_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontFamily: "Kanit" }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {onSourceFilterChange && (
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel sx={{ fontFamily: "Kanit" }}>แหล่งที่มา</InputLabel>
+              <Select
+                value={sourceFilter}
+                onChange={(e) => onSourceFilterChange(e.target.value)}
+                label="แหล่งที่มา"
+                sx={{ fontFamily: "Kanit" }}
+              >
+                {SOURCE_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value} sx={{ fontFamily: "Kanit" }}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {/* Center: Date Navigation Arrows */}
           <Box

@@ -15,7 +15,6 @@ import {
   Select,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
@@ -96,14 +95,13 @@ const FieldSection = ({
   currentUser,
   isLoading,
 }) => {
-  const [open, setOpen] = useState(false);       // history list open/closed
+  const [open, setOpen] = useState(false); // history list open/closed
   const [editing, setEditing] = useState(false); // textarea visible
   const [pendingEntries, setPendingEntries] = useState([]); // local optimistic entries
 
   const rows = getHistoriesForField(histories, fieldName);
 
   // Reset pending entries when histories update (after real save)
-  const totalHistories = rows.length;
 
   const handleDone = () => {
     if (value && String(value).trim() !== "") {
@@ -128,8 +126,10 @@ const FieldSection = ({
   const renderRow = (item, idx) => {
     const isPending = item._type === "pending";
     const val = isPending ? item.val : item.new_values?.[fieldName];
-    const actor = isPending ? item.actor : (item.action_by?.username || item.action_by?.user_nickname || null);
-    const savedAt = isPending ? item.savedAt : (item.created_at ? new Date(item.created_at) : null);
+    const actor = isPending
+      ? item.actor
+      : item.action_by?.username || item.action_by?.user_nickname || null;
+    const savedAt = isPending ? item.savedAt : item.created_at ? new Date(item.created_at) : null;
     const dateLabel = savedAt
       ? savedAt.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
       : "-";
@@ -143,7 +143,7 @@ const FieldSection = ({
         sx={{
           px: 1.5,
           py: 0.75,
-          bgcolor: isPending ? "#fffbea" : (idx % 2 === 0 ? "#f7faff" : "#ffffff"),
+          bgcolor: isPending ? "#fffbea" : idx % 2 === 0 ? "#f7faff" : "#ffffff",
           borderBottom: idx < allRows.length - 1 ? "1px solid" : "none",
           borderColor: isPending ? "warning.100" : "grey.100",
           borderLeft: isPending ? "3px solid" : "none",
@@ -151,7 +151,14 @@ const FieldSection = ({
         }}
       >
         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.25 }}>
-          <Typography variant="caption" sx={{ color: isPending ? "warning.dark" : "primary.main", fontWeight: 600, fontSize: "0.68rem" }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: isPending ? "warning.dark" : "primary.main",
+              fontWeight: 600,
+              fontSize: "0.68rem",
+            }}
+          >
             {dateLabel} {timeLabel}
           </Typography>
           {actor && (
@@ -170,7 +177,14 @@ const FieldSection = ({
         </Stack>
         <Typography
           variant="caption"
-          sx={{ color: "text.primary", whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.6, fontSize: "0.78rem", display: "block" }}
+          sx={{
+            color: "text.primary",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            lineHeight: 1.6,
+            fontSize: "0.78rem",
+            display: "block",
+          }}
         >
           {val !== null && val !== undefined ? String(val) : "(ว่าง)"}
         </Typography>
@@ -181,7 +195,12 @@ const FieldSection = ({
   return (
     <Box>
       {/* Toolbar */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: open || editing ? 0.75 : 0.5 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: open || editing ? 0.75 : 0.5 }}
+      >
         {/* Left: history toggle */}
         {hasRows ? (
           <Button
@@ -189,7 +208,9 @@ const FieldSection = ({
             variant="text"
             onClick={() => setOpen((v) => !v)}
             disabled={isLoading}
-            startIcon={isLoading ? <CircularProgress size={12} color="inherit" /> : <MdHistory size={13} />}
+            startIcon={
+              isLoading ? <CircularProgress size={12} color="inherit" /> : <MdHistory size={13} />
+            }
             endIcon={open ? <MdExpandLess size={14} /> : <MdExpandMore size={14} />}
             sx={{
               fontSize: "0.68rem",
@@ -202,7 +223,7 @@ const FieldSection = ({
               "&:hover": { bgcolor: "primary.50" },
             }}
           >
-            ประวัติ ({allRows.length})
+            ประวัติ {label} ({allRows.length})
           </Button>
         ) : (
           <Box />
@@ -268,164 +289,6 @@ const FieldSection = ({
   );
 };
 
-
-const HISTORY_FIELD_LABELS = {
-  nb_additional_info: "รายละเอียด",
-  nb_remarks: "หมายเหตุ (Internal Note)",
-  nb_status: "สถานะ",
-  nb_action: "Next Action",
-  nb_customer_name: "ชื่อลูกค้า",
-  nb_contact_person: "ผู้ติดต่อ",
-  nb_contact_number: "เบอร์ติดต่อ",
-  nb_email: "E-mail",
-  nb_is_online: "ช่องทาง",
-  nb_manage_by: "ผู้ดูแล",
-};
-
-const formatHistoryDate = (dateStr) => {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  return d.toLocaleString("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const HistoryItem = ({ history, index }) => {
-  const [expanded, setExpanded] = useState(false);
-  const changedKeys = Object.keys(history.new_values || {}).filter(
-    (k) => !["updated_at", "created_at"].includes(k)
-  );
-  const actor = history.action_by?.username || history.action_by?.user_nickname || `User #${history.action_by}`;
-
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        pl: 3,
-        pb: 2,
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          left: "10px",
-          top: "20px",
-          bottom: 0,
-          width: "2px",
-          bgcolor: "grey.200",
-          display: index === 0 ? "none" : "block",
-        },
-      }}
-    >
-      {/* Timeline dot */}
-      <Box
-        sx={{
-          position: "absolute",
-          left: 0,
-          top: "6px",
-          width: 20,
-          height: 20,
-          borderRadius: "50%",
-          bgcolor: history.action === "created" ? "success.main" : "primary.main",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1,
-          boxShadow: 2,
-        }}
-      >
-        {history.action === "created" ? (
-          <MdEditDocument size={10} color="white" />
-        ) : (
-          <MdEdit size={10} color="white" />
-        )}
-      </Box>
-
-      <Box
-        sx={{
-          ml: 1.5,
-          p: 1.5,
-          bgcolor: "grey.50",
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "grey.200",
-          cursor: changedKeys.length > 0 ? "pointer" : "default",
-          "&:hover": { bgcolor: changedKeys.length > 0 ? "grey.100" : "grey.50" },
-          transition: "background 0.2s",
-        }}
-        onClick={() => changedKeys.length > 0 && setExpanded(!expanded)}
-      >
-        {/* Header Row */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Chip
-              label={history.action === "created" ? "สร้าง" : "แก้ไข"}
-              size="small"
-              color={history.action === "created" ? "success" : "primary"}
-              sx={{ fontSize: "0.65rem", height: 20 }}
-            />
-            <Typography variant="caption" fontWeight={600} color="text.primary">
-              {actor}
-            </Typography>
-          </Stack>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="caption" color="text.secondary">
-              {formatHistoryDate(history.created_at)}
-            </Typography>
-            {changedKeys.length > 0 && (
-              <Box sx={{ color: "text.secondary", display: "flex" }}>
-                {expanded ? <MdExpandLess size={16} /> : <MdExpandMore size={16} />}
-              </Box>
-            )}
-          </Stack>
-        </Stack>
-
-        {/* Changed fields summary */}
-        {changedKeys.length > 0 && !expanded && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-            เปลี่ยน: {changedKeys.map((k) => HISTORY_FIELD_LABELS[k] || k).join(", ")}
-          </Typography>
-        )}
-
-        {/* Expanded diff */}
-        <Collapse in={expanded}>
-          <Box sx={{ mt: 1.5 }}>
-            {changedKeys.map((key) => {
-              const oldVal = history.old_values?.[key];
-              const newVal = history.new_values?.[key];
-              const label = HISTORY_FIELD_LABELS[key] || key;
-              return (
-                <Box
-                  key={key}
-                  sx={{ mb: 1, p: 1, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}
-                >
-                  <Typography variant="caption" fontWeight={700} color="primary.main" display="block" sx={{ mb: 0.5 }}>
-                    {label}
-                  </Typography>
-                  {oldVal !== undefined && oldVal !== null && String(oldVal).trim() !== "" && (
-                    <Box sx={{ display: "flex", gap: 0.5, mb: 0.5, flexWrap: "wrap" }}>
-                      <Typography variant="caption" sx={{ bgcolor: "#ffeaea", px: 1, py: 0.25, borderRadius: 1, color: "error.dark", fontStyle: "italic", maxWidth: "100%", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                        เดิม: {String(oldVal)}
-                      </Typography>
-                    </Box>
-                  )}
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                    <Typography variant="caption" sx={{ bgcolor: "#eaffea", px: 1, py: 0.25, borderRadius: 1, color: "success.dark", maxWidth: "100%", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                      ใหม่: {newVal !== null && newVal !== undefined ? String(newVal) : "(ว่าง)"}
-                    </Typography>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        </Collapse>
-      </Box>
-    </Box>
-  );
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const NotebookDialog = () => {
@@ -441,7 +304,6 @@ const NotebookDialog = () => {
     isSubmitting,
     currentUser,
     isAdmin,
-    notebookDetail,
     notebookHistories,
     // Handlers
     handleClose,
@@ -803,7 +665,10 @@ const NotebookDialog = () => {
                       isLoading={isSubmitting}
                       inputProps={{
                         startAdornment: (
-                          <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1.2 }}>
+                          <InputAdornment
+                            position="start"
+                            sx={{ alignSelf: "flex-start", mt: 1.2 }}
+                          >
                             <MdNote color={theme.palette.text.secondary} />
                           </InputAdornment>
                         ),
@@ -823,7 +688,10 @@ const NotebookDialog = () => {
                       size="small"
                       InputProps={{
                         startAdornment: (
-                          <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1.2 }}>
+                          <InputAdornment
+                            position="start"
+                            sx={{ alignSelf: "flex-start", mt: 1.2 }}
+                          >
                             <MdNote color={theme.palette.text.secondary} />
                           </InputAdornment>
                         ),
@@ -835,8 +703,6 @@ const NotebookDialog = () => {
               </Grid>
             </StyledPaper>
           </Grid>
-
-
         </Grid>
       </DialogContent>
 

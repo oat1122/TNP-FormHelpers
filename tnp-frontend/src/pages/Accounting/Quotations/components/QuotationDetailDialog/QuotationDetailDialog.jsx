@@ -47,6 +47,7 @@ import { sanitizeInt } from "./utils/sanitizers";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
 import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import VatField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
 import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import SyncConfirmationDialog from "../SyncConfirmationDialog";
 import SyncProgressDialog from "../SyncProgressDialog";
@@ -563,6 +564,21 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                           }
                           onTaxPercentageChange={(p) =>
                             isEditing && dialogLogic.setWithholdingTaxPercentage(p)
+                          }
+                          disabled={!isEditing}
+                        />
+                      </Grid>
+
+                      {/* VAT Field */}
+                      <Grid item xs={12} md={6}>
+                        <VatField
+                          hasVat={dialogLogic.hasVat}
+                          vatPercentage={dialogLogic.vatPercentage}
+                          vatAmount={financials.vat}
+                          subtotalAmount={financials.discountedSubtotal}
+                          onToggleVat={(enabled) => isEditing && dialogLogic.setHasVat(enabled)}
+                          onVatPercentageChange={(percentage) =>
+                            isEditing && dialogLogic.setVatPercentage(percentage)
                           }
                           disabled={!isEditing}
                         />

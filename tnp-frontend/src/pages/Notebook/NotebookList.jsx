@@ -8,12 +8,15 @@ import PrintPDFDialog from "./components/PrintPDFDialog";
 import { useNotebookList } from "./hooks/useNotebookList";
 import TitleBar from "../../components/TitleBar";
 import { DialogForm } from "../Customer/components/Forms";
+import PeriodTabs from "../Telesales/sections/PeriodTabs";
 
 const NotebookList = () => {
   const {
     // State
     paginationModel,
     setPaginationModel,
+    periodFilter,
+    setPeriodFilter,
     customerDialogOpen,
     setCustomerDialogOpen,
     pdfDialogOpen,
@@ -58,6 +61,8 @@ const NotebookList = () => {
             </Button>
           </Box>
         </Box>
+
+        <PeriodTabs periodFilter={periodFilter} onPeriodChange={setPeriodFilter} />
 
         <NotebookTable
           data={data?.data}

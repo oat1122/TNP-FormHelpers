@@ -162,7 +162,18 @@ const TelesalesDashboard = () => {
   return (
     <DashboardErrorBoundary>
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Sticky Header containing title, actions, and period tabs */}
+        {/* Header (Scrolls normally) */}
+        <DashboardHeader
+          userName={userName}
+          roleLabel={roleLabel}
+          onExportCsv={handleExportCsv}
+          onRefresh={refetch}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isExporting={isExporting}
+        />
+
+        {/* Sticky Period Tabs */}
         <Box
           sx={{
             position: "sticky",
@@ -178,16 +189,6 @@ const TelesalesDashboard = () => {
             borderColor: "divider",
           }}
         >
-          {/* Header */}
-          <DashboardHeader
-            userName={userName}
-            roleLabel={roleLabel}
-            onExportCsv={handleExportCsv}
-            onRefresh={refetch}
-            isLoading={isLoading}
-            isFetching={isFetching}
-            isExporting={isExporting}
-          />
 
         {/* Period Tabs */}
         <PeriodTabs

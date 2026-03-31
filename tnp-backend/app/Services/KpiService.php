@@ -13,13 +13,10 @@ class KpiService
     ) {}
 
     /**
-     * Get date range based on period type
-     * 
      * @return array{start: Carbon, end: Carbon, label: string}
      */
     public function getDateRange(string $period, ?string $startDate, ?string $endDate): array
     {
-        // If start_date and end_date are explicitly provided, always use them
         if ($startDate && $endDate) {
             $start = Carbon::parse($startDate)->startOfDay();
             $end = Carbon::parse($endDate)->endOfDay();
@@ -38,31 +35,31 @@ class KpiService
                 return [
                     'start' => $now->copy()->startOfDay(),
                     'end' => $now->copy()->endOfDay(),
-                    'label' => 'วันนี้',
+                    'label' => 'เธงเธฑเธเธเธตเน',
                 ];
             case 'week':
                 return [
                     'start' => $now->copy()->startOfWeek(),
                     'end' => $now->copy()->endOfWeek(),
-                    'label' => 'สัปดาห์นี้',
+                    'label' => 'เธชเธฑเธเธ”เธฒเธซเนเธเธตเน',
                 ];
             case 'month':
                 return [
                     'start' => $now->copy()->startOfMonth(),
                     'end' => $now->copy()->endOfMonth(),
-                    'label' => 'เดือนนี้',
+                    'label' => 'เน€เธ”เธทเธญเธเธเธตเน',
                 ];
             case 'quarter':
                 return [
                     'start' => $now->copy()->startOfQuarter(),
                     'end' => $now->copy()->endOfQuarter(),
-                    'label' => 'ไตรมาสนี้ (Q'.$now->quarter.')',
+                    'label' => 'เนเธ•เธฃเธกเธฒเธชเธเธตเน (Q'.$now->quarter.')',
                 ];
             case 'year':
                 return [
                     'start' => $now->copy()->startOfYear(),
                     'end' => $now->copy()->endOfYear(),
-                    'label' => 'ปีนี้ ('.$now->year.')',
+                    'label' => 'เธเธตเธเธตเน ('.$now->year.')',
                 ];
             case 'custom':
                 $start = Carbon::parse($startDate)->startOfDay();
@@ -73,39 +70,33 @@ class KpiService
                     'end' => $end,
                     'label' => $start->format('d/m/Y').' - '.$end->format('d/m/Y'),
                 ];
-
-                // Previous periods
             case 'prev_month':
                 return [
                     'start' => $now->copy()->subMonth()->startOfMonth(),
                     'end' => $now->copy()->subMonth()->endOfMonth(),
-                    'label' => 'เดือนที่แล้ว',
+                    'label' => 'เน€เธ”เธทเธญเธเธ—เธตเนเนเธฅเนเธง',
                 ];
             case 'prev_week':
                 return [
                     'start' => $now->copy()->subWeek()->startOfWeek(),
                     'end' => $now->copy()->subWeek()->endOfWeek(),
-                    'label' => 'สัปดาห์ที่แล้ว',
+                    'label' => 'เธชเธฑเธเธ”เธฒเธซเนเธ—เธตเนเนเธฅเนเธง',
                 ];
             case 'prev_quarter':
                 return [
                     'start' => $now->copy()->subQuarter()->startOfQuarter(),
                     'end' => $now->copy()->subQuarter()->endOfQuarter(),
-                    'label' => 'ไตรมาสที่แล้ว (Q'.$now->copy()->subQuarter()->quarter.')',
+                    'label' => 'เนเธ•เธฃเธกเธฒเธชเธ—เธตเนเนเธฅเนเธง (Q'.$now->copy()->subQuarter()->quarter.')',
                 ];
-
             default:
                 return [
                     'start' => $now->copy()->startOfMonth(),
                     'end' => $now->copy()->endOfMonth(),
-                    'label' => 'เดือนนี้',
+                    'label' => 'เน€เธ”เธทเธญเธเธเธตเน',
                 ];
         }
     }
 
-    /**
-     * Get Thai label for source
-     */
     public function getSourceLabel(?string $source): string
     {
         return match ($source) {
@@ -113,40 +104,30 @@ class KpiService
             'sales' => 'Sales',
             'online' => 'Online',
             'office' => 'Office',
-            default => $source ?? 'ไม่ระบุ',
+            default => $source ?? 'เนเธกเนเธฃเธฐเธเธธ',
         };
     }
 
-    /**
-     * Determine user target id based on role and request
-     * 
-     * @param \App\Models\User $user
-     */
     public function getTargetUserId(?int $requestedUserId, $user): ?int
     {
         $isAdmin = AccountingHelper::hasRole(['admin', 'manager']);
         if ($requestedUserId && $isAdmin) {
             return $requestedUserId;
-        } elseif (! $isAdmin) {
+        }
+
+        if (! $isAdmin) {
             return $user->user_id;
         }
 
         return null;
     }
 
-    /**
-     * Get dashboard data
-     * 
-     * @param \App\Models\User $user
-     * @return array<string, mixed>
-     */
     public function getDashboardData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
     {
         $isAdmin = AccountingHelper::hasRole(['admin', 'manager']);
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
 
-        // Fetch query
         $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId);
 
         $summary = $this->kpiRepository->getSummaryStats(clone $baseQuery);
@@ -156,8 +137,10 @@ class KpiService
 
         $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
 
-        $recallStats  = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange, $isPastPeriod);
-        $recallByUser = ($isAdmin && ! $targetUserId) ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange, $isPastPeriod) : [];
+        $recallStats = $this->kpiRepository->getRecallStats($sourceFilter, $targetUserId, $dateRange, $isPastPeriod);
+        $recallByUser = ($isAdmin && ! $targetUserId)
+            ? $this->kpiRepository->getRecallStatsByUser($sourceFilter, $dateRange, $isPastPeriod)
+            : [];
 
         $byBusinessType = $this->kpiRepository->getByBusinessTypeStats(clone $baseQuery);
         $byAllocation = $this->kpiRepository->getByAllocationStats(clone $baseQuery);
@@ -190,26 +173,20 @@ class KpiService
         ];
     }
 
-    /**
-     * Get KPI Specific Details
-     * 
-     * @param \App\Models\User $user
-     * @return array{data: mixed, meta: array<string, mixed>}
-     */
     public function getKpiDetails(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, string $kpiType, ?int $requestedUserId, $user, int $perPage): array
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
 
-        $userColumn = ($kpiType === 'created_by') ? 'cus_created_by' : 'cus_allocated_by';
+        $userColumn = $kpiType === 'created_by' ? 'cus_created_by' : 'cus_allocated_by';
         $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId, $userColumn);
         $customers = $this->kpiRepository->getPaginatedDetails($baseQuery, $kpiType, $perPage);
 
         $transformedData = $customers->map(function ($customer) {
             $allocatorName = $customer->allocatedBy
                 ? trim($customer->allocatedBy->user_firstname.' '.$customer->allocatedBy->user_lastname.
-                       ($customer->allocatedBy->user_nickname ? " ({$customer->allocatedBy->user_nickname})" : ''))
-                : 'ไม่ระบุ';
+                    ($customer->allocatedBy->user_nickname ? " ({$customer->allocatedBy->user_nickname})" : ''))
+                : 'เนเธกเนเธฃเธฐเธเธธ';
 
             $fullNameParts = [];
             if (! empty($customer->cus_firstname)) {
@@ -218,8 +195,8 @@ class KpiService
             if (! empty($customer->cus_lastname)) {
                 $fullNameParts[] = trim($customer->cus_lastname);
             }
-            $fullNameStr = implode(' ', $fullNameParts);
 
+            $fullNameStr = implode(' ', $fullNameParts);
             if (! empty($customer->cus_name)) {
                 $fullNameStr = $fullNameStr ? $fullNameStr.' ('.trim($customer->cus_name).')' : trim($customer->cus_name);
             }
@@ -249,15 +226,9 @@ class KpiService
         ];
     }
 
-    /**
-     * Get KPI Recall Specific Details
-     * 
-     * @param \App\Models\User $user
-     * @return array{customers: mixed, current_page: int, last_page: int, per_page: int, total: int}
-     */
     public function getRecallDetails(string $type, string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, int $perPage): array
     {
-        $dateRange    = $this->getDateRange($period, $startDate, $endDate);
+        $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
         $isPastPeriod = $dateRange['end']->lt(Carbon::today()->startOfDay());
 
@@ -270,16 +241,10 @@ class KpiService
                 $fullName .= " ({$customer->cus_name})";
             }
 
-            /** @var string|null $mFname */
-            $mFname = $customer->m_fname ?? null;
-            /** @var string|null $mLname */
-            $mLname = $customer->m_lname ?? null;
-            $managerNameParts = array_filter([$mFname, $mLname]);
-            $managerName = ! empty($managerNameParts) ? implode(' ', $managerNameParts) : 'ไม่ระบุผู้ดูแล';
-            /** @var string|null $mUsername */
-            $mUsername = $customer->m_username ?? null;
-            if ($mUsername) {
-                $managerName .= " ({$mUsername})";
+            $managerNameParts = array_filter([$customer->m_fname ?? null, $customer->m_lname ?? null]);
+            $managerName = ! empty($managerNameParts) ? implode(' ', $managerNameParts) : 'เนเธกเนเธฃเธฐเธเธธเธเธนเนเธ”เธนเนเธฅ';
+            if ($customer->m_username ?? null) {
+                $managerName .= " ({$customer->m_username})";
             }
 
             return [
@@ -304,12 +269,6 @@ class KpiService
         ];
     }
 
-    /**
-     * Get KPI Data for Export
-     * 
-     * @param \App\Models\User $user
-     * @return array{customers: \Illuminate\Support\Collection<int, \App\Models\MasterCustomer>, filename: string}
-     */
     public function getExportData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user): array
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
@@ -325,191 +284,10 @@ class KpiService
         ];
     }
 
-    /**
-     * Get Historical Recall
-     * 
-     * @param \App\Models\User $user
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\RecallStatusHistory>
-     */
     public function getRecallHistory(string $month, string $sourceFilter, ?int $requestedUserId, $user)
     {
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
 
         return $this->kpiRepository->getRecallHistory($month, $sourceFilter, $targetUserId);
-    }
-
-    /**
-     * Get Notebook Summary Statistics
-     */
-    public function getNotebookSummaryData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, ?string $nbStatus = 'all'): array
-    {
-        $dateRange = $this->getDateRange($period, $startDate, $endDate);
-        $targetUserId = $this->getTargetUserId($requestedUserId, $user);
-
-        // Fetch query grouped by user
-        // Actions tracked: 'created' or 'updated'
-        $query = \App\Models\NotebookHistory::query()
-            ->with('actionBy')
-            ->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
-            ->select('notebook_histories.*')
-            ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
-
-        $this->applyNotebookSourceFilter($query, $sourceFilter);
-
-        if ($targetUserId) {
-            $query->where('notebook_histories.action_by', $targetUserId);
-        }
-
-        if ($nbStatus && $nbStatus !== 'all') {
-            $query->where('notebooks.nb_status', $nbStatus);
-        }
-
-        // Grouping
-        $summary = $query->get()->groupBy('action_by')->map(function ($histories, $userId) {
-            $addedCount = $histories->where('action', 'created')->count();
-            $updatedCount = $histories->where('action', 'updated')->count();
-            
-            $actionBy = $histories->first()->actionBy;
-            $allocatorName = $actionBy
-                ? trim($actionBy->user_firstname.' '.$actionBy->user_lastname.
-                       ($actionBy->user_nickname ? " ({$actionBy->user_nickname})" : ''))
-                : 'ไม่ระบุ';
-
-            return [
-                'user_id' => $userId,
-                'user_name' => $allocatorName,
-                'added_count' => $addedCount,
-                'updated_count' => $updatedCount,
-            ];
-        })->values()->toArray();
-
-        // Sort descending by total actions
-        usort($summary, function($a, $b) {
-            return ($b['added_count'] + $b['updated_count']) <=> ($a['added_count'] + $a['updated_count']);
-        });
-
-        return [
-            'period' => [
-                'type' => $period,
-                'start_date' => $dateRange['start']->format('Y-m-d'),
-                'end_date' => $dateRange['end']->format('Y-m-d'),
-                'label' => $dateRange['label'],
-            ],
-            'summary' => $summary,
-        ];
-    }
-
-    /**
-     * Get Detailed Notebook History for a specific user
-     */
-    public function getNotebookDetailsData(string $period, ?string $startDate, ?string $endDate, string $sourceFilter, ?int $requestedUserId, $user, ?string $nbStatus = 'all'): array
-    {
-        $dateRange = $this->getDateRange($period, $startDate, $endDate);
-        $targetUserId = $this->getTargetUserId($requestedUserId, $user);
-
-        $query = \App\Models\NotebookHistory::query()
-            ->with(['actionBy', 'notebook']) // Ensure Notebook is mapped in NotebookHistory model if possible, or join it.
-            ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
-
-        // Join notebooks to get the customer name context
-        $query->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
-              ->select(
-                  'notebook_histories.*', 
-                  'notebooks.nb_customer_name', 
-                  'notebooks.nb_is_online', 
-                  'notebooks.nb_contact_number',
-                  'notebooks.nb_status',
-                  'notebooks.nb_additional_info',
-                  'notebooks.nb_remarks',
-                  'notebooks.nb_action',
-                   'notebooks.nb_date',
-                   'notebooks.nb_time'
-               );
-
-        $this->applyNotebookSourceFilter($query, $sourceFilter);
-
-        if ($targetUserId) {
-            $query->where('notebook_histories.action_by', $targetUserId);
-        }
-
-        if ($nbStatus && $nbStatus !== 'all') {
-            $query->where('notebooks.nb_status', $nbStatus);
-        }
-
-        $query->orderBy('notebook_histories.created_at', 'desc');
-
-        $histories = $query->get()->map(function ($history) {
-            $actionBy = $history->actionBy;
-            $allocatorName = $actionBy
-                ? trim($actionBy->user_firstname.' '.$actionBy->user_lastname)
-                : 'admin';
-
-            return [
-                'history_id' => $history->id,
-                'notebook_id' => $history->notebook_id,
-                'nb_customer_name' => collect([$history->nb_customer_name, $history->nb_is_online ? '(Online)' : null])->filter()->join(' '),
-                'nb_contact_number' => $history->nb_contact_number,
-                
-                // Current info directly from notebook table
-                'nb_status' => $history->nb_status,
-                'nb_additional_info' => $history->nb_additional_info,
-                'nb_remarks' => $history->nb_remarks,
-                'nb_action' => $history->nb_action,
-                'nb_date' => $history->nb_date,
-                'nb_time' => $history->nb_time,
-
-                'action_type' => $history->action,
-                'old_values' => $history->old_values,
-                'new_values' => $history->new_values,
-                'action_by_name' => $allocatorName,
-                'created_at' => Carbon::parse($history->created_at)->format('Y-m-d H:i:s'),
-            ];
-        });
-
-        return [
-            'period' => [
-                'type' => $period,
-                'start_date' => $dateRange['start']->format('Y-m-d'),
-                'end_date' => $dateRange['end']->format('Y-m-d'),
-                'label' => $dateRange['label'],
-            ],
-            'details' => $histories,
-        ];
-    }
-
-    private function applyNotebookSourceFilter($query, string $sourceFilter): void
-    {
-        if ($sourceFilter === 'all') {
-            return;
-        }
-
-        if ($sourceFilter === 'online') {
-            $query->where('notebooks.nb_is_online', true);
-            return;
-        }
-
-        $roleMap = [
-            'sales' => 'sale',
-            'telesales' => 'telesale',
-            'office' => 'office',
-        ];
-
-        $targetRole = $roleMap[$sourceFilter] ?? null;
-        if (!$targetRole) {
-            return;
-        }
-
-        $query->leftJoin('users as notebook_manage_users', 'notebooks.nb_manage_by', '=', 'notebook_manage_users.user_id')
-            ->leftJoin('users as notebook_created_users', 'notebooks.created_by', '=', 'notebook_created_users.user_id')
-            ->where('notebooks.nb_is_online', false)
-            ->where(function ($roleQuery) use ($targetRole) {
-                $roleQuery->where(function ($query) use ($targetRole) {
-                    $query->whereNotNull('notebooks.nb_manage_by')
-                        ->where('notebook_manage_users.role', $targetRole);
-                })->orWhere(function ($query) use ($targetRole) {
-                    $query->whereNull('notebooks.nb_manage_by')
-                        ->where('notebook_created_users.role', $targetRole);
-                });
-            });
     }
 }

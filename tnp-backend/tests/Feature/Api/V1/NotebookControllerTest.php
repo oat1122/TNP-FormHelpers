@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\Notebook;
+use App\Models\NotebookHistory;
 use App\Models\User\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -175,9 +176,123 @@ class NotebookControllerTest extends TestCase
         $this->assertIsArray($response->json());
     }
 
+    public function test_notebook_summary_requires_allowed_role(): void
+    {
+        $productionUser = User::factory()->create(['role' => 'production']);
+
+        Sanctum::actingAs($productionUser);
+
+        $this->getJson('/api/v1/customers/kpi/notebook-summary')
+            ->assertForbidden();
+    }
+
+    public function test_notebook_summary_uses_source_filter_with_manage_by_fallback(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $salesUser = User::factory()->sales()->create([
+            'user_firstname' => 'Sale',
+            'user_lastname' => 'Owner',
+        ]);
+        $telesalesUser = User::factory()->create([
+            'role' => 'telesale',
+            'user_firstname' => 'Tele',
+            'user_lastname' => 'Owner',
+        ]);
+
+        $salesNotebook = $this->createNotebook($salesUser, [
+            'nb_customer_name' => 'Sales Notebook',
+            'nb_manage_by' => null,
+            'nb_is_online' => false,
+        ]);
+        $telesalesNotebook = $this->createNotebook($telesalesUser, [
+            'nb_customer_name' => 'Telesales Notebook',
+            'nb_manage_by' => $telesalesUser->user_id,
+            'nb_is_online' => false,
+        ]);
+
+        NotebookHistory::create([
+            'notebook_id' => $salesNotebook->id,
+            'action' => 'created',
+            'old_values' => null,
+            'new_values' => ['nb_customer_name' => 'Sales Notebook'],
+            'action_by' => $salesUser->user_id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        NotebookHistory::create([
+            'notebook_id' => $telesalesNotebook->id,
+            'action' => 'created',
+            'old_values' => null,
+            'new_values' => ['nb_customer_name' => 'Telesales Notebook'],
+            'action_by' => $telesalesUser->user_id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/v1/customers/kpi/notebook-summary?period=month&source_filter=sales')
+            ->assertOk();
+
+        $response->assertJsonPath('status', 'success');
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.user_id', $salesUser->user_id);
+        $response->assertJsonPath('data.0.added_count', 1);
+    }
+
+    public function test_notebook_details_returns_only_requested_user_entries(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $salesUser = User::factory()->sales()->create([
+            'user_firstname' => 'Sale',
+            'user_lastname' => 'Owner',
+        ]);
+        $otherSalesUser = User::factory()->sales()->create([
+            'user_firstname' => 'Other',
+            'user_lastname' => 'Owner',
+        ]);
+
+        $salesNotebook = $this->createNotebook($salesUser, [
+            'nb_customer_name' => 'Notebook A',
+        ]);
+        $otherNotebook = $this->createNotebook($otherSalesUser, [
+            'nb_customer_name' => 'Notebook B',
+        ]);
+
+        NotebookHistory::create([
+            'notebook_id' => $salesNotebook->id,
+            'action' => 'updated',
+            'old_values' => ['nb_status' => 'old'],
+            'new_values' => ['nb_status' => 'new'],
+            'action_by' => $salesUser->user_id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        NotebookHistory::create([
+            'notebook_id' => $otherNotebook->id,
+            'action' => 'updated',
+            'old_values' => ['nb_status' => 'old'],
+            'new_values' => ['nb_status' => 'new'],
+            'action_by' => $otherSalesUser->user_id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/v1/customers/kpi/notebook-details?period=month&source_filter=all&user_id='.$salesUser->user_id)
+            ->assertOk();
+
+        $response->assertJsonPath('status', 'success');
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.notebook_id', $salesNotebook->id);
+        $response->assertJsonPath('data.0.action_by_name', 'Sale Owner');
+    }
+
     private function createNotebook(User $owner, array $overrides = []): Notebook
     {
-        $notebook = new Notebook(array_merge([
+        return Notebook::withoutEvents(function () use ($owner, $overrides) {
+            $notebook = new Notebook(array_merge([
             'nb_customer_name' => 'Notebook Test',
             'nb_status' => 'เธเธดเธเธฒเธฃเธ“เธฒ',
             'nb_manage_by' => $owner->user_id,
@@ -187,6 +302,7 @@ class NotebookControllerTest extends TestCase
         $notebook->updated_by = $owner->user_id;
         $notebook->save();
 
-        return $notebook;
+            return $notebook;
+        });
     }
 }

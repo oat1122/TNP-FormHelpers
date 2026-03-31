@@ -31,6 +31,8 @@ use App\Http\Controllers\Api\V1\Supy\SupplierProductController;
 use App\Http\Controllers\Api\V1\Supy\SupplierTagController;
 use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
 use App\Http\Controllers\Api\V1\Supy\SupplierSellerController;
+use App\Http\Controllers\Api\V1\Notebook\NotebookController;
+use App\Http\Controllers\Api\V1\Notebook\NotebookKpiController;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -67,16 +69,18 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Telesales & Allocation (Protected Routes) ----------
-    Route::post('/notebooks/{id}/convert', [\App\Http\Controllers\Api\V1\NotebookController::class, 'convert']);
-    Route::apiResource('notebooks', \App\Http\Controllers\Api\V1\NotebookController::class);
+    Route::post('/notebooks/{id}/convert', [NotebookController::class, 'convert']);
+    Route::apiResource('notebooks', NotebookController::class);
 
     //---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
         Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
         Route::get('/customers/kpi/details', 'details'); // KPI details list
-        Route::get('/customers/kpi/notebook-summary', 'notebookSummary'); // Notebook KPI Summary
-        Route::get('/customers/kpi/notebook-details', 'notebookDetails'); // Notebook KPI Details
         Route::get('/customers/kpi/export', 'export'); // CSV export
+    });
+    Route::controller(NotebookKpiController::class)->group(function () {
+        Route::get('/customers/kpi/notebook-summary', 'summary'); // Notebook KPI Summary
+        Route::get('/customers/kpi/notebook-details', 'details'); // Notebook KPI Details
     });
 
     Route::controller(CustomerController::class)->group(function () {

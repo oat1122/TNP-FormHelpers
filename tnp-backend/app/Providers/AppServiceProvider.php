@@ -39,6 +39,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Repositories\CustomerRepositoryInterface::class,
             \App\Repositories\CustomerRepository::class
         );
+        $this->app->bind(
+            \App\Repositories\NotebookRepositoryInterface::class,
+            \App\Repositories\NotebookRepository::class
+        );
     }
 
     /**

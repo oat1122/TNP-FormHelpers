@@ -1,0 +1,4 @@
+interface:
+  display_name: "TNP UX/UI Design"
+  short_description: "UX-first design guidance for TNP FormHelpers"
+  default_prompt: "Use $design-tnp-ux-ui to improve a TNP FormHelpers screen or workflow with UX-first recommendations and implementation guidance."

@@ -3,28 +3,31 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Helpers\AccountingHelper;
 use App\Constants\UserRole;
+use App\Models\Notebook;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\Rule;
 
 class NotebookController extends Controller
 {
-    //
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = \App\Models\Notebook::query();
         $user = $request->user();
 
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
+        $query = Notebook::query();
+
         // Check permission (Admin/Manager see all, others see only their assigned notebooks)
-        if (!AccountingHelper::hasRole([UserRole::ADMIN, UserRole::MANAGER])) {
+        if (!$this->canManageAllNotebooks($user)) {
             $query->where('nb_manage_by', $user->user_id);
         }
 
@@ -84,7 +87,11 @@ class NotebookController extends Controller
         // Default sort by created_at desc
         $query->orderBy('created_at', 'desc');
 
-        return response()->json($query->paginate($request->input('per_page', 15)));
+        if (!$request->boolean('paginate', true)) {
+            return response()->json($query->get());
+        }
+
+        return response()->json($query->paginate((int) $request->input('per_page', 15)));
     }
 
     /**
@@ -92,32 +99,29 @@ class NotebookController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'nb_customer_name' => 'required|string|max:255',
-            'nb_date' => 'nullable|date',
-            'nb_time' => 'nullable|string',
-            'nb_is_online' => 'boolean',
-            'nb_contact_number' => 'nullable|string',
-            'nb_email' => 'nullable|email',
-            'nb_status' => 'nullable|string',
-            'nb_manage_by' => 'nullable|integer',
-        ]);
+        $user = $request->user();
+        $validated = $request->validate($this->notebookRules($user, false));
+        $data = $this->extractNotebookPayload($validated, $user, false);
 
-        // Add creator info
-        $data = $request->all();
-        $data['created_by'] = $request->user()->user_id ?? null; // Assuming auth is used
+        $notebook = new Notebook($data);
+        $notebook->created_by = $user->user_id;
+        $notebook->updated_by = $user->user_id;
+        $notebook->save();
 
-        $notebook = \App\Models\Notebook::create($data);
-
-        return response()->json($notebook, 201);
+        return response()->json($notebook->load('histories.actionBy'), 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $notebook = \App\Models\Notebook::with(['histories.actionBy'])->findOrFail($id);
+        $notebook = Notebook::with(['histories.actionBy'])->findOrFail($id);
+
+        if (!$this->canAccessNotebook($request->user(), $notebook)) {
+            return $this->forbiddenResponse('Unauthorized: You do not have permission to view this notebook.');
+        }
+
         return response()->json($notebook);
     }
 
@@ -126,25 +130,55 @@ class NotebookController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $notebook = \App\Models\Notebook::findOrFail($id);
+        $notebook = Notebook::findOrFail($id);
         $user = $request->user();
 
-        // Permission check
-        if (!AccountingHelper::hasRole([UserRole::ADMIN, UserRole::MANAGER])) {
-            if ($notebook->nb_manage_by != $user->user_id) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Unauthorized: You do not have permission to edit this notebook.'
-                ], 403);
-            }
+        if (!$this->canAccessNotebook($user, $notebook)) {
+            return $this->forbiddenResponse('Unauthorized: You do not have permission to edit this notebook.');
         }
-        
-        $data = $request->all();
-        $data['updated_by'] = $request->user()->user_id ?? null;
 
-        $notebook->update($data);
+        $validated = $request->validate($this->notebookRules($user, true));
+        $data = $this->extractNotebookPayload($validated, $user, true);
 
-        return response()->json($notebook->load('histories.actionBy'));
+        $notebook->fill($data);
+        $notebook->updated_by = $user->user_id;
+        $notebook->save();
+
+        return response()->json($notebook->fresh()->load('histories.actionBy'));
+    }
+
+    /**
+     * Mark the specified notebook as converted.
+     */
+    public function convert(Request $request, string $id): JsonResponse
+    {
+        $notebook = Notebook::findOrFail($id);
+        $user = $request->user();
+
+        if (!$this->canAccessNotebook($user, $notebook)) {
+            return $this->forbiddenResponse('Unauthorized: You do not have permission to convert this notebook.');
+        }
+
+        if ($notebook->nb_converted_at) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Notebook has already been converted.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'nb_status' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if (array_key_exists('nb_status', $validated)) {
+            $notebook->nb_status = $validated['nb_status'];
+        }
+
+        $notebook->nb_converted_at = now();
+        $notebook->updated_by = $user->user_id;
+        $notebook->save();
+
+        return response()->json($notebook->fresh()->load('histories.actionBy'));
     }
 
     /**
@@ -152,18 +186,91 @@ class NotebookController extends Controller
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $notebook = \App\Models\Notebook::findOrFail($id);
-        $user = $request->user();
+        $notebook = Notebook::findOrFail($id);
 
         // Permission check - Only Admin can delete
         if (!AccountingHelper::hasRole([UserRole::ADMIN])) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized: Only Admin can delete notebooks.'
-            ], 403);
+            return $this->forbiddenResponse('Unauthorized: Only Admin can delete notebooks.');
         }
         $notebook->delete();
 
         return response()->json(['message' => 'Deleted successfully']);
+    }
+
+    private function notebookRules($user, bool $isUpdate): array
+    {
+        $rules = [
+            'nb_customer_name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'nb_date' => ['nullable', 'date'],
+            'nb_time' => ['nullable', 'string', 'max:255'],
+            'nb_is_online' => ['sometimes', 'boolean'],
+            'nb_additional_info' => ['nullable', 'string'],
+            'nb_contact_number' => ['nullable', 'string', 'max:255'],
+            'nb_email' => ['nullable', 'email', 'max:255'],
+            'nb_contact_person' => ['nullable', 'string', 'max:255'],
+            'nb_action' => ['nullable', 'string', 'max:255'],
+            'nb_status' => ['nullable', 'string', 'max:255'],
+            'nb_remarks' => ['nullable', 'string'],
+        ];
+
+        if ($this->canManageAllNotebooks($user)) {
+            $rules['nb_manage_by'] = ['sometimes', 'nullable', 'integer', Rule::exists('users', 'user_id')];
+        }
+
+        return $rules;
+    }
+
+    private function extractNotebookPayload(array $validated, $user, bool $isUpdate): array
+    {
+        $data = Arr::only($validated, [
+            'nb_date',
+            'nb_time',
+            'nb_customer_name',
+            'nb_is_online',
+            'nb_additional_info',
+            'nb_contact_number',
+            'nb_email',
+            'nb_contact_person',
+            'nb_action',
+            'nb_status',
+            'nb_remarks',
+            'nb_manage_by',
+        ]);
+
+        if (!$this->canManageAllNotebooks($user)) {
+            if (!$isUpdate) {
+                $data['nb_manage_by'] = $user->user_id;
+            } else {
+                unset($data['nb_manage_by']);
+            }
+        }
+
+        return $data;
+    }
+
+    private function canAccessNotebook($user, Notebook $notebook): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        if ($this->canManageAllNotebooks($user)) {
+            return true;
+        }
+
+        return (int) $notebook->nb_manage_by === (int) $user->user_id;
+    }
+
+    private function canManageAllNotebooks($user): bool
+    {
+        return (bool) $user && in_array($user->role, [UserRole::ADMIN, UserRole::MANAGER], true);
+    }
+
+    private function forbiddenResponse(string $message): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => $message,
+        ], 403);
     }
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "TNP Database Schema"
+  short_description: "Laravel database design guidance for TNP backend"
+  default_prompt: "Use $build-tnp-database-schema to add or change a Laravel database schema in TNP FormHelpers in a way that stays aligned with the backend API structure."

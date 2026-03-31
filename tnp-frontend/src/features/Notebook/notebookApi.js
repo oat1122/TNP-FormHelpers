@@ -30,6 +30,23 @@ export const notebookApi = createApi({
       }),
       providesTags: (result, error, id) => [{ type: "Notebook", id }, "NotebookHistory"],
     }),
+    getNotebookExport: builder.query({
+      query: (params) => ({
+        url: "/notebooks",
+        method: "GET",
+        params: {
+          search: params?.search,
+          start_date: params?.start_date,
+          end_date: params?.end_date,
+          date_filter_by: params?.date_filter_by,
+          status: params?.status,
+          include: params?.include || "histories",
+          paginate: false,
+        },
+      }),
+      transformResponse: (response) => (Array.isArray(response) ? response : []),
+      providesTags: ["Notebook"],
+    }),
     addNotebook: builder.mutation({
       query: (data) => ({
         url: "/notebooks",
@@ -53,13 +70,23 @@ export const notebookApi = createApi({
       }),
       invalidatesTags: ["Notebook"],
     }),
+    convertNotebook: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/notebooks/${id}/convert`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, { id }) => ["Notebook", { type: "Notebook", id }],
+    }),
   }),
 });
 
 export const {
   useGetNotebooksQuery,
   useGetNotebookQuery,
+  useLazyGetNotebookExportQuery,
   useAddNotebookMutation,
   useUpdateNotebookMutation,
   useDeleteNotebookMutation,
+  useConvertNotebookMutation,
 } = notebookApi;

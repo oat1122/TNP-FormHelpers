@@ -1,12 +1,13 @@
 import dayjs from "dayjs";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { setInputList, setMode } from "../../../features/Customer/customerSlice";
 import {
+  useConvertNotebookMutation,
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
-  useUpdateNotebookMutation,
+  useLazyGetNotebookExportQuery,
 } from "../../../features/Notebook/notebookApi";
 import {
   setDialogMode,
@@ -14,14 +15,13 @@ import {
   setSelectedNotebook,
 } from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
-import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/toast";
+import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
 import { mapNotebookToCustomer } from "../utils/notebookMapping";
 
 export const useNotebookList = () => {
   const dispatch = useDispatch();
   const globalKeyword = useSelector((state) => state.global.keyword);
 
-  // States
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
   const [periodFilter, setPeriodFilter] = useState({
     mode: "month",
@@ -34,7 +34,17 @@ export const useNotebookList = () => {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
 
-  // API Hooks
+  const exportFilters = useMemo(
+    () => ({
+      search: globalKeyword,
+      start_date: periodFilter.startDate,
+      end_date: periodFilter.endDate,
+      date_filter_by: dateFilterBy,
+      include: "histories",
+    }),
+    [globalKeyword, periodFilter.startDate, periodFilter.endDate, dateFilterBy]
+  );
+
   const {
     data,
     isFetching,
@@ -52,16 +62,38 @@ export const useNotebookList = () => {
   });
 
   const [deleteNotebook] = useDeleteNotebookMutation();
-  const [updateNotebook] = useUpdateNotebookMutation();
+  const [convertNotebook] = useConvertNotebookMutation();
+  const [
+    fetchNotebookExport,
+    {
+      data: exportData,
+      isFetching: isExportFetching,
+      isLoading: isExportLoading,
+      error: exportError,
+    },
+  ] = useLazyGetNotebookExportQuery();
 
-  // Effects
   useEffect(() => {
     if (fetchError) {
       showError("ไม่สามารถดึงข้อมูลได้: " + (fetchError?.data?.message || "Internal Server Error"));
     }
   }, [fetchError]);
 
-  // Handlers
+  useEffect(() => {
+    if (pdfDialogOpen) {
+      fetchNotebookExport(exportFilters);
+    }
+  }, [pdfDialogOpen, fetchNotebookExport, exportFilters]);
+
+  useEffect(() => {
+    if (exportError) {
+      showError(
+        "ไม่สามารถดึงข้อมูลเพื่อ export ได้: " +
+          (exportError?.data?.message || "Internal Server Error")
+      );
+    }
+  }, [exportError]);
+
   const handleAdd = () => {
     dispatch(setDialogMode("create"));
     dispatch(setSelectedNotebook(null));
@@ -76,20 +108,22 @@ export const useNotebookList = () => {
 
   const handleDelete = async (id) => {
     const isConfirmed = await dialog_confirm_yes_no("ยืนยันการลบรายการนี้?");
-    if (isConfirmed) {
-      const loadingId = showLoading("กำลังลบรายการ...");
-      try {
-        await deleteNotebook(id).unwrap();
-        showSuccess("ลบรายการสำเร็จ");
-      } catch (error) {
-        if (error?.status === 403) {
-          showError("คุณไม่มีสิทธิ์ลบรายการนี้ (เฉพาะ Admin)");
-        } else {
-          showError("ลบรายการไม่สำเร็จ");
-        }
-      } finally {
-        dismissToast(loadingId);
+    if (!isConfirmed) {
+      return;
+    }
+
+    const loadingId = showLoading("กำลังลบรายการ...");
+    try {
+      await deleteNotebook(id).unwrap();
+      showSuccess("ลบรายการสำเร็จ");
+    } catch (error) {
+      if (error?.status === 403) {
+        showError("คุณไม่มีสิทธิ์ลบรายการนี้ (เฉพาะ Admin)");
+      } else {
+        showError("ลบรายการไม่สำเร็จ");
       }
+    } finally {
+      dismissToast(loadingId);
     }
   };
 
@@ -105,9 +139,8 @@ export const useNotebookList = () => {
     if (convertingNotebookId) {
       const loadingId = showLoading("กำลังอัปเดตสถานะ Notebook...");
       try {
-        await updateNotebook({
+        await convertNotebook({
           id: convertingNotebookId,
-          nb_converted_at: new Date().toISOString(),
           nb_status: "ได้งาน",
         }).unwrap();
         showSuccess("สร้างลูกค้าและอัปเดต Notebook เรียบร้อย");
@@ -119,11 +152,11 @@ export const useNotebookList = () => {
         dismissToast(loadingId);
       }
     }
+
     refetch();
   };
 
   return {
-    // State
     paginationModel,
     setPaginationModel,
     periodFilter,
@@ -135,11 +168,13 @@ export const useNotebookList = () => {
     pdfDialogOpen,
     setPdfDialogOpen,
     convertingNotebookId,
-    // Data
+    exportFilters,
     data,
+    exportData,
     isLoading,
     isFetching,
-    // Handlers
+    isExportLoading,
+    isExportFetching,
     handleAdd,
     handleEdit,
     handleDelete,

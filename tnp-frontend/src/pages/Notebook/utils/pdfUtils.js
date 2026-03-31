@@ -44,12 +44,16 @@ export const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
   // Column widths
-  colDate: { width: "12%" },
-  colCustomer: { width: "20%" },
-  colContact: { width: "12%" },
-  colAction: { width: "14%" },
-  colStatus: { width: "12%" },
-  colRemarks: { width: "30%" },
+  colDate: { width: "8%" },
+  colTime: { width: "7%" },
+  colCustomer: { width: "16%" },
+  colAdditional: { width: "17%" },
+  colContact: { width: "10%" },
+  colEmail: { width: "12%" },
+  colPerson: { width: "10%" },
+  colAction: { width: "8%" },
+  colStatus: { width: "6%" },
+  colRemarks: { width: "14%" },
   // Text styles
   headerText: {
     fontWeight: 600,

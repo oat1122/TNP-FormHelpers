@@ -23,6 +23,9 @@ const NotebookList = () => {
     setCustomerDialogOpen,
     pdfDialogOpen,
     setPdfDialogOpen,
+    exportData,
+    isExportLoading,
+    isExportFetching,
     // Data
     data,
     isLoading,
@@ -102,7 +105,13 @@ const NotebookList = () => {
       <PrintPDFDialog
         open={pdfDialogOpen}
         onClose={() => setPdfDialogOpen(false)}
-        data={data?.data || []}
+        data={exportData || []}
+        isLoading={isExportLoading || isExportFetching}
+        initialDateRange={{
+          start: periodFilter.startDate,
+          end: periodFilter.endDate,
+        }}
+        dateFilterBy={dateFilterBy}
       />
 
       <DialogForm

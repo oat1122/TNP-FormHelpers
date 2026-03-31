@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -25,18 +26,26 @@ import { MdFileDownload, MdPictureAsPdf, MdSelectAll } from "react-icons/md";
 
 import NotebookPDF from "./NotebookPDF";
 import { DATE_PRESETS } from "../utils/datePresets";
+import {
+  buildNotebookCsvContent,
+  buildNotebookExportRows,
+  filterNotebookExportData,
+} from "../utils/notebookExport";
 
-const PrintPDFDialog = ({ open, onClose, data = [] }) => {
-  // Get current user from localStorage (as used throughout the app)
+const PrintPDFDialog = ({
+  open,
+  onClose,
+  data = [],
+  isLoading = false,
+  initialDateRange,
+  dateFilterBy = "all",
+}) => {
   const user = JSON.parse(localStorage.getItem("userData") || "{}");
-
-  // Format user name: prefer firstname+lastname > nickname > username
   const firstName = user.user_firstname || "";
   const lastName = user.user_lastname || "";
   const fullName = `${firstName} ${lastName}`.trim();
   const userName = fullName || user.user_nickname || user.username || "ไม่ระบุ";
 
-  // States
   const [selectedIds, setSelectedIds] = useState([]);
   const [dateRange, setDateRange] = useState({
     start: format(startOfMonth(new Date()), "yyyy-MM-dd"),
@@ -44,31 +53,34 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
   });
   const [activePreset, setActivePreset] = useState("เดือนนี้");
 
-  // Reset selections when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedIds(data.map((item) => item.id));
     }
   }, [open, data]);
 
-  // Filter data by date range
-  const filteredData = useMemo(() => {
-    return data.filter((item) => {
-      if (!item.updated_at) return false;
-      const itemDate = new Date(item.updated_at);
-      const startDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
-      endDate.setHours(23, 59, 59, 999);
-      return itemDate >= startDate && itemDate <= endDate;
-    });
-  }, [data, dateRange]);
+  useEffect(() => {
+    if (open && initialDateRange?.start && initialDateRange?.end) {
+      setDateRange(initialDateRange);
+      setActivePreset(null);
+    }
+  }, [open, initialDateRange]);
 
-  // Selected data for PDF
-  const selectedData = useMemo(() => {
-    return filteredData.filter((item) => selectedIds.includes(item.id));
-  }, [filteredData, selectedIds]);
+  const filteredData = useMemo(
+    () => filterNotebookExportData(data, dateRange, dateFilterBy),
+    [data, dateRange, dateFilterBy]
+  );
 
-  // Handlers
+  const selectedData = useMemo(
+    () => filteredData.filter((item) => selectedIds.includes(item.id)),
+    [filteredData, selectedIds]
+  );
+
+  const exportRows = useMemo(
+    () => buildNotebookExportRows(selectedData, dateRange),
+    [selectedData, dateRange]
+  );
+
   const handlePresetClick = (preset) => {
     const { start, end } = preset.getValue();
     setDateRange({
@@ -84,7 +96,7 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
   };
 
   const handleToggle = (id) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]));
   };
 
   const handleSelectAll = () => {
@@ -95,158 +107,18 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
     }
   };
 
-  const isAllSelected = selectedIds.length === filteredData.length && filteredData.length > 0;
-
-  // Export CSV function — one row per history entry
   const handleExportCSV = () => {
-    if (selectedData.length === 0) return;
+    if (exportRows.length === 0) {
+      return;
+    }
 
-    // Header values
-    const exportMonth = format(new Date(dateRange.start), "MMMM", { locale: th });
-    const exportYear = new Date(dateRange.start).getFullYear() + 543;
-    const monthHeader = `ประจำเดือน ${exportMonth} ${exportYear}`;
     const exporterName = `ผู้ส่งออก: ${firstName} ${lastName}`.trim();
-
-    // CSV Headers
-    const row1 = [exporterName, "", "", "", "", "", "", "", "", monthHeader];
-    const row2 = [
-      "",
-      "เวลา",
-      "ชื่อลูกค้า / บริษัท\n(ถ้าเป็นออนไลน์ใส่ / online)",
-      "เพิ่มเติม",
-      "",
-      "",
-      "",
-      "ขั้นตอน",
-      "",
-      "",
-    ];
-    const row3 = [
-      "",
-      "",
-      "",
-      "",
-      "เบอร์ติดต่อ",
-      "E-mail",
-      "ชื่อผู้ติดต่อ",
-      "การกระทำ",
-      "สถานะ",
-      "หมายเหตุ",
-    ];
-
-    // Flatten: one row per history entry where nb_additional_info OR nb_remarks changed
-    // AND the history entry falls within the selected date range
-    const TEXT_FIELDS = ["nb_additional_info", "nb_remarks"];
-    const rangeStart = new Date(dateRange.start);
-    const rangeEnd = new Date(dateRange.end);
-    rangeEnd.setHours(23, 59, 59, 999);
-    const flatRows = [];
-
-    selectedData.forEach((notebook) => {
-      const histories = notebook.histories || [];
-
-      if (histories.length === 0) {
-        // No histories — use the notebook's current values as single row
-        flatRows.push({
-          notebook,
-          historyEntry: null,
-          at: new Date(notebook.updated_at || notebook.created_at),
-        });
-      } else {
-        // Sort histories ascending (oldest first = top of CSV)
-        const sorted = [...histories].sort(
-          (a, b) => new Date(a.created_at) - new Date(b.created_at)
-        );
-
-        // Only include entries where a text field changed AND within the date range
-        const relevant = sorted.filter((h) => {
-          const hAt = new Date(h.created_at);
-          const inRange = hAt >= rangeStart && hAt <= rangeEnd;
-          const hasTextField = TEXT_FIELDS.some((f) => h.new_values && f in h.new_values);
-          return inRange && hasTextField;
-        });
-
-        if (relevant.length === 0) {
-          // No matching histories in range — skip this notebook (don't add a row)
-          // unless notebook itself has no histories at all (handled above)
-          return;
-        }
-
-        relevant.forEach((h) => {
-          flatRows.push({ notebook, historyEntry: h, at: new Date(h.created_at) });
-        });
-      }
+    const csvContent = buildNotebookCsvContent({
+      rows: exportRows,
+      exporterName,
+      dateRange,
     });
 
-    // Sort entire flat list by timestamp ascending
-    flatRows.sort((a, b) => a.at - b.at);
-
-    // Generate CSV rows
-    let previousDateStr = null;
-
-    const rows = flatRows.map(({ notebook, historyEntry, at }) => {
-      // Resolve field values: history new_values takes priority, fallback to notebook
-      const nv = historyEntry?.new_values || {};
-
-      // Date: prefer nb_date from new_values, then notebook nb_date, then history created_at
-      const rawDate = nv.nb_date || notebook.nb_date;
-      const itemDate = rawDate ? new Date(rawDate) : at;
-      const dayMonth = format(itemDate, "dd/MM");
-      const year = itemDate.getFullYear() + 543;
-      const currentDateStr = `${dayMonth}/${year}`;
-
-      const displayDateStr = currentDateStr === previousDateStr ? "" : currentDateStr;
-      previousDateStr = currentDateStr;
-
-      // Time: history new_values → notebook nb_time → history created_at
-      const rawTime = nv.nb_time || notebook.nb_time;
-      let timeStr = "-";
-      if (rawTime) {
-        const timeParts = rawTime.split(/[:.]/).slice(0, 2);
-        timeStr = timeParts.map((p) => p.padStart(2, "0")).join(".");
-      } else {
-        timeStr = format(at, "HH.mm");
-      }
-
-      // Fields: history new_values → notebook
-      const additionalInfo = nv.nb_additional_info ?? notebook.nb_additional_info;
-      const remarks = nv.nb_remarks ?? notebook.nb_remarks;
-      const status = nv.nb_status ?? notebook.nb_status;
-      const action = nv.nb_action ?? notebook.nb_action;
-
-      let customerCol = notebook.nb_customer_name || "-";
-      if (notebook.nb_is_online) customerCol += " / online";
-
-      return [
-        displayDateStr,
-        timeStr,
-        customerCol,
-        additionalInfo || "-",
-        notebook.nb_contact_number ? `="${notebook.nb_contact_number}"` : "-",
-        notebook.nb_email || "-",
-        notebook.nb_contact_person || "-",
-        action || "-",
-        status || "-",
-        remarks || "-",
-      ];
-    });
-
-    // Create CSV content with BOM for Thai characters
-    const bom = "\uFEFF";
-    const csvContent =
-      bom +
-      [row1, row2, row3, ...rows]
-        .map((row) =>
-          row
-            .map((cell) => {
-              const cellString = String(cell).replace(/"/g, '""');
-              return `"${cellString}"`;
-            })
-            .join(",")
-        )
-        .join("\n");
-
-    // Download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -256,22 +128,17 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
     URL.revokeObjectURL(url);
   };
 
+  const isAllSelected = selectedIds.length === filteredData.length && filteredData.length > 0;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600 }}>Export ข้อมูล</DialogTitle>
 
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
         <DialogContent dividers>
-          {/* Date Range Filter */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
               ช่วงเวลา
-              <Box
-                component="span"
-                sx={{ fontSize: "0.7rem", fontWeight: 400, ml: 1, color: "text.secondary" }}
-              >
-                (เรียงตามวันที่อัพเดทล่าสุด)
-              </Box>
             </Typography>
             <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
               {DATE_PRESETS.map((preset) => (
@@ -320,11 +187,8 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
             </Box>
           </Box>
 
-          {/* Customer Selection */}
           <Box>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography variant="subtitle2" sx={{ fontFamily: "Kanit" }}>
                 เลือกรายการ ({selectedData.length}/{filteredData.length})
               </Typography>
@@ -332,6 +196,7 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
                 size="small"
                 startIcon={<MdSelectAll />}
                 onClick={handleSelectAll}
+                disabled={isLoading}
                 sx={{ fontFamily: "Kanit" }}
               >
                 {isAllSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
@@ -347,7 +212,11 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
                 borderRadius: 1,
               }}
             >
-              {filteredData.length === 0 ? (
+              {isLoading ? (
+                <ListItem sx={{ justifyContent: "center", py: 4 }}>
+                  <CircularProgress size={28} />
+                </ListItem>
+              ) : filteredData.length === 0 ? (
                 <ListItem>
                   <ListItemText
                     primary="ไม่พบข้อมูลในช่วงเวลานี้"
@@ -358,27 +227,15 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
                 filteredData.map((item) => (
                   <ListItemButton key={item.id} onClick={() => handleToggle(item.id)} dense>
                     <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Checkbox
-                        edge="start"
-                        checked={selectedIds.includes(item.id)}
-                        tabIndex={-1}
-                        size="small"
-                      />
+                      <Checkbox edge="start" checked={selectedIds.includes(item.id)} tabIndex={-1} size="small" />
                     </ListItemIcon>
                     <ListItemText
                       primary={item.nb_customer_name || "ไม่ระบุชื่อ"}
                       secondary={
                         <Box component="span">
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            display="block"
-                            sx={{ fontSize: 12 }}
-                          >
+                          <Typography component="span" variant="body2" display="block" sx={{ fontSize: 12 }}>
                             สร้าง:{" "}
-                            {item.created_at
-                              ? format(new Date(item.created_at), "dd MMM yyyy", { locale: th })
-                              : "-"}
+                            {item.created_at ? format(new Date(item.created_at), "dd MMM yyyy", { locale: th }) : "-"}
                           </Typography>
                           <Typography
                             component="span"
@@ -387,9 +244,7 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
                             sx={{ fontSize: 12, color: "text.secondary" }}
                           >
                             อัพเดท:{" "}
-                            {item.updated_at
-                              ? format(new Date(item.updated_at), "dd MMM yyyy", { locale: th })
-                              : "-"}
+                            {item.updated_at ? format(new Date(item.updated_at), "dd MMM yyyy", { locale: th }) : "-"}
                           </Typography>
                         </Box>
                       }
@@ -425,15 +280,15 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
           variant="outlined"
           startIcon={<MdFileDownload />}
           onClick={handleExportCSV}
-          disabled={selectedData.length === 0}
+          disabled={exportRows.length === 0 || isLoading}
           sx={{ fontFamily: "Kanit", borderColor: "#388e3c", color: "#388e3c" }}
         >
-          ดาวน์โหลด CSV ({selectedData.length})
+          ดาวน์โหลด CSV ({exportRows.length})
         </Button>
         <PDFDownloadLink
           document={
             <NotebookPDF
-              data={selectedData}
+              rows={exportRows}
               userName={userName}
               dateRange={{
                 start: dateRange.start,
@@ -448,10 +303,10 @@ const PrintPDFDialog = ({ open, onClose, data = [] }) => {
             <Button
               variant="contained"
               startIcon={<MdPictureAsPdf />}
-              disabled={loading || selectedData.length === 0}
+              disabled={loading || exportRows.length === 0 || isLoading}
               sx={{ fontFamily: "Kanit" }}
             >
-              {loading ? "กำลังสร้าง..." : `ดาวน์โหลด PDF (${selectedData.length})`}
+              {loading ? "กำลังสร้าง..." : `ดาวน์โหลด PDF (${exportRows.length})`}
             </Button>
           )}
         </PDFDownloadLink>

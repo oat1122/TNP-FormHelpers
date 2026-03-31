@@ -1,0 +1,4 @@
+interface:
+  display_name: "TNP Backend API"
+  short_description: "Layered Laravel API guidance for TNP backend"
+  default_prompt: "Use $build-tnp-backend-api to add or refactor a Laravel API endpoint in TNP FormHelpers with clear file responsibilities and layered structure."

@@ -21,10 +21,7 @@ class Notebook extends Model
         'nb_action',
         'nb_status',
         'nb_remarks',
-        'nb_manage_by',
-        'nb_converted_at',
-        'created_by',
-        'updated_by'
+        'nb_manage_by'
     ];
 
     protected $casts = [

@@ -67,6 +67,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::post('/notebooks/{id}/convert', [\App\Http\Controllers\Api\V1\NotebookController::class, 'convert']);
     Route::apiResource('notebooks', \App\Http\Controllers\Api\V1\NotebookController::class);
 
     //---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------

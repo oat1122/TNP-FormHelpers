@@ -1,0 +1,4 @@
+interface:
+  display_name: "TNP Frontend Structure"
+  short_description: "Frontend structure and loading performance guidance"
+  default_prompt: "Use $build-tnp-frontend-structure to add or refactor a TNP FormHelpers frontend screen with clear file responsibilities and better data-loading performance."

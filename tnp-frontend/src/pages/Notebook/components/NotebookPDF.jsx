@@ -1,22 +1,20 @@
 /**
  * NotebookPDF Component
- * PDF report for Notebook entries using @react-pdf/renderer
+ * PDF report for Notebook export rows using @react-pdf/renderer
  */
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
-// Import font configuration
 import "../../../utils/pdfFontConfig";
-import { styles, formatDate, getStatusStyle, getHistoryChanges } from "../utils/pdfUtils";
+import { styles, getStatusStyle } from "../utils/pdfUtils";
 
-// PDF Document Component
-const NotebookPDF = ({ data = [], userName = "", dateRange = null }) => {
+const NotebookPDF = ({ rows = [], userName = "", dateRange = null }) => {
   const printDate = format(new Date(), "dd MMMM yyyy HH:mm", { locale: th });
 
-  // Format date range for display
   const formatDateRange = () => {
     if (!dateRange?.start || !dateRange?.end) return "";
+
     try {
       const start = format(new Date(dateRange.start), "dd MMM yyyy", { locale: th });
       const end = format(new Date(dateRange.end), "dd MMM yyyy", { locale: th });
@@ -29,7 +27,6 @@ const NotebookPDF = ({ data = [], userName = "", dateRange = null }) => {
   return (
     <Document title="รายงานสมุดจดบันทึก">
       <Page size="A4" orientation="landscape" style={styles.page}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>รายงานสมุดจดบันทึก (Notebook Report)</Text>
           {dateRange && <Text style={styles.subtitle}>ช่วงเวลา: {formatDateRange()}</Text>}
@@ -39,18 +36,28 @@ const NotebookPDF = ({ data = [], userName = "", dateRange = null }) => {
           </Text>
         </View>
 
-        {/* Table */}
         <View style={styles.table}>
-          {/* Table Header */}
           <View style={[styles.tableRow, styles.tableHeader]}>
             <View style={[styles.tableCell, styles.colDate]}>
               <Text style={styles.headerText}>วันที่</Text>
             </View>
+            <View style={[styles.tableCell, styles.colTime]}>
+              <Text style={styles.headerText}>เวลา</Text>
+            </View>
             <View style={[styles.tableCell, styles.colCustomer]}>
               <Text style={styles.headerText}>ชื่อลูกค้า / บริษัท</Text>
             </View>
+            <View style={[styles.tableCell, styles.colAdditional]}>
+              <Text style={styles.headerText}>เพิ่มเติม</Text>
+            </View>
             <View style={[styles.tableCell, styles.colContact]}>
-              <Text style={styles.headerText}>เบอร์ติดต่อ</Text>
+              <Text style={styles.headerText}>เบอร์</Text>
+            </View>
+            <View style={[styles.tableCell, styles.colEmail]}>
+              <Text style={styles.headerText}>E-mail</Text>
+            </View>
+            <View style={[styles.tableCell, styles.colPerson]}>
+              <Text style={styles.headerText}>ผู้ติดต่อ</Text>
             </View>
             <View style={[styles.tableCell, styles.colAction]}>
               <Text style={styles.headerText}>การกระทำ</Text>
@@ -63,75 +70,50 @@ const NotebookPDF = ({ data = [], userName = "", dateRange = null }) => {
             </View>
           </View>
 
-          {/* Table Rows */}
-          {data.length === 0 ? (
+          {rows.length === 0 ? (
             <View style={styles.tableRow}>
               <View style={[styles.tableCell, { width: "100%" }]}>
                 <Text style={styles.cellText}>ไม่มีข้อมูล</Text>
               </View>
             </View>
           ) : (
-            data.map((item, index) => (
-              <View key={item.id || index} wrap={false}>
-                <View style={styles.tableRow}>
-                  <View style={[styles.tableCell, styles.colDate]}>
-                    <Text style={styles.cellText}>{formatDate(item.nb_date)}</Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.colCustomer]}>
-                    <Text style={styles.cellText}>
-                      {item.nb_customer_name || "-"}
-                      {item.nb_is_online ? " (Online)" : ""}
-                    </Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.colContact]}>
-                    <Text style={styles.cellText}>{item.nb_contact_number || "-"}</Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.colAction]}>
-                    <Text style={styles.cellText}>{item.nb_action || "-"}</Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.colStatus]}>
-                    <Text style={[styles.cellText, getStatusStyle(item.nb_status)]}>
-                      {item.nb_status || "-"}
-                    </Text>
-                  </View>
-                  <View style={[styles.tableCell, styles.colRemarks]}>
-                    <Text style={styles.cellText}>{item.nb_remarks || "-"}</Text>
-                  </View>
+            rows.map((row) => (
+              <View key={row.id} style={styles.tableRow}>
+                <View style={[styles.tableCell, styles.colDate]}>
+                  <Text style={styles.cellText}>{row.date || "-"}</Text>
                 </View>
-                {/* History Rows */}
-                {item.histories?.map((history, hIndex) => {
-                  const changes = getHistoryChanges(history);
-                  if (changes.length === 0) return null;
-
-                  return (
-                    <View key={`hist-${index}-${hIndex}`} style={styles.historyRow}>
-                      <View style={styles.historyDateCell}>
-                        <Text style={styles.historyText}>
-                          {formatDate(history.created_at, true)}
-                        </Text>
-                      </View>
-                      <View style={styles.historyDetailCell}>
-                        <Text style={styles.historyText}>
-                          {changes.map((change, cIndex) => (
-                            <Text key={cIndex}>
-                              <Text style={{ fontWeight: 600 }}>{change.label}: </Text>
-                              <Text>
-                                {change.oldVal} {"->"} {change.newVal}
-                              </Text>
-                              {cIndex < changes.length - 1 ? ", " : ""}
-                            </Text>
-                          ))}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
+                <View style={[styles.tableCell, styles.colTime]}>
+                  <Text style={styles.cellText}>{row.time || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colCustomer]}>
+                  <Text style={styles.cellText}>{row.customer || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colAdditional]}>
+                  <Text style={styles.cellText}>{row.additionalInfo || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colContact]}>
+                  <Text style={styles.cellText}>{row.contactNumber || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colEmail]}>
+                  <Text style={styles.cellText}>{row.email || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colPerson]}>
+                  <Text style={styles.cellText}>{row.contactPerson || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colAction]}>
+                  <Text style={styles.cellText}>{row.action || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colStatus]}>
+                  <Text style={[styles.cellText, getStatusStyle(row.status)]}>{row.status || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colRemarks]}>
+                  <Text style={styles.cellText}>{row.remarks || "-"}</Text>
+                </View>
               </View>
             ))
           )}
         </View>
 
-        {/* Footer */}
         <Text
           style={styles.footer}
           render={({ pageNumber, totalPages }) => `หน้า ${pageNumber} / ${totalPages}`}

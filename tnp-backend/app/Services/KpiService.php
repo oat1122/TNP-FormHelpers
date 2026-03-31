@@ -351,7 +351,10 @@ class KpiService
         $query = \App\Models\NotebookHistory::query()
             ->with('actionBy')
             ->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
+            ->select('notebook_histories.*')
             ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
+
+        $this->applyNotebookSourceFilter($query, $sourceFilter);
 
         if ($targetUserId) {
             $query->where('notebook_histories.action_by', $targetUserId);
@@ -419,9 +422,11 @@ class KpiService
                   'notebooks.nb_additional_info',
                   'notebooks.nb_remarks',
                   'notebooks.nb_action',
-                  'notebooks.nb_date',
-                  'notebooks.nb_time'
-              );
+                   'notebooks.nb_date',
+                   'notebooks.nb_time'
+               );
+
+        $this->applyNotebookSourceFilter($query, $sourceFilter);
 
         if ($targetUserId) {
             $query->where('notebook_histories.action_by', $targetUserId);
@@ -470,5 +475,41 @@ class KpiService
             ],
             'details' => $histories,
         ];
+    }
+
+    private function applyNotebookSourceFilter($query, string $sourceFilter): void
+    {
+        if ($sourceFilter === 'all') {
+            return;
+        }
+
+        if ($sourceFilter === 'online') {
+            $query->where('notebooks.nb_is_online', true);
+            return;
+        }
+
+        $roleMap = [
+            'sales' => 'sale',
+            'telesales' => 'telesale',
+            'office' => 'office',
+        ];
+
+        $targetRole = $roleMap[$sourceFilter] ?? null;
+        if (!$targetRole) {
+            return;
+        }
+
+        $query->leftJoin('users as notebook_manage_users', 'notebooks.nb_manage_by', '=', 'notebook_manage_users.user_id')
+            ->leftJoin('users as notebook_created_users', 'notebooks.created_by', '=', 'notebook_created_users.user_id')
+            ->where('notebooks.nb_is_online', false)
+            ->where(function ($roleQuery) use ($targetRole) {
+                $roleQuery->where(function ($query) use ($targetRole) {
+                    $query->whereNotNull('notebooks.nb_manage_by')
+                        ->where('notebook_manage_users.role', $targetRole);
+                })->orWhere(function ($query) use ($targetRole) {
+                    $query->whereNull('notebooks.nb_manage_by')
+                        ->where('notebook_created_users.role', $targetRole);
+                });
+            });
     }
 }

@@ -13,7 +13,7 @@ export const formatDate = (date, formatStr = "dd/MM/yyyy") => {
 export const getStatusColor = (status) => {
   if (status === "ได้งาน") return "success";
   if (status === "พิจารณา") return "info";
-  if (status === "ยังไม่แผนทำ") return "warning";
+  if (status === "ยังไม่มีแผนทำ") return "warning";
   if (status === "หลุด" || status === "ไม่ได้งาน") return "error";
   return "default";
 };

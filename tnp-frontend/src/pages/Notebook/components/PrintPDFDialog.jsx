@@ -13,122 +13,47 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Stack,
   Typography,
 } from "@mui/material";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { useEffect, useMemo, useState } from "react";
 import { MdFileDownload, MdPictureAsPdf, MdSelectAll } from "react-icons/md";
 
 import NotebookPDF from "./NotebookPDF";
 import { DATE_PRESETS } from "../utils/datePresets";
-import {
-  buildNotebookCsvContent,
-  buildNotebookExportRows,
-  filterNotebookExportData,
-} from "../utils/notebookExport";
 
 const PrintPDFDialog = ({
   open,
   onClose,
-  data = [],
-  isLoading = false,
-  initialDateRange,
-  dateFilterBy = "all",
+  items,
+  filteredItems,
+  exportRows,
+  selectedIds,
+  dateRange,
+  activePreset,
+  loadingState,
+  currentUser,
+  onPresetClick,
+  onDateChange,
+  onToggleSelection,
+  onSelectAll,
+  onExportCsv,
+  isAllSelected,
 }) => {
-  const user = JSON.parse(localStorage.getItem("userData") || "{}");
-  const firstName = user.user_firstname || "";
-  const lastName = user.user_lastname || "";
-  const fullName = `${firstName} ${lastName}`.trim();
-  const userName = fullName || user.user_nickname || user.username || "ไม่ระบุ";
-
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [dateRange, setDateRange] = useState({
-    start: format(startOfMonth(new Date()), "yyyy-MM-dd"),
-    end: format(endOfMonth(new Date()), "yyyy-MM-dd"),
-  });
-  const [activePreset, setActivePreset] = useState("เดือนนี้");
-
-  useEffect(() => {
-    if (open) {
-      setSelectedIds(data.map((item) => item.id));
-    }
-  }, [open, data]);
-
-  useEffect(() => {
-    if (open && initialDateRange?.start && initialDateRange?.end) {
-      setDateRange(initialDateRange);
-      setActivePreset(null);
-    }
-  }, [open, initialDateRange]);
-
-  const filteredData = useMemo(
-    () => filterNotebookExportData(data, dateRange, dateFilterBy),
-    [data, dateRange, dateFilterBy]
-  );
-
-  const selectedData = useMemo(
-    () => filteredData.filter((item) => selectedIds.includes(item.id)),
-    [filteredData, selectedIds]
-  );
-
-  const exportRows = useMemo(
-    () => buildNotebookExportRows(selectedData, dateRange),
-    [selectedData, dateRange]
-  );
-
-  const handlePresetClick = (preset) => {
-    const { start, end } = preset.getValue();
-    setDateRange({
-      start: format(start, "yyyy-MM-dd"),
-      end: format(end, "yyyy-MM-dd"),
-    });
-    setActivePreset(preset.label);
-  };
-
-  const handleDateChange = (field, value) => {
-    setDateRange((prev) => ({ ...prev, [field]: value }));
-    setActivePreset(null);
-  };
-
-  const handleToggle = (id) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]));
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === filteredData.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(filteredData.map((item) => item.id));
-    }
-  };
-
-  const handleExportCSV = () => {
-    if (exportRows.length === 0) {
-      return;
-    }
-
-    const exporterName = `ผู้ส่งออก: ${firstName} ${lastName}`.trim();
-    const csvContent = buildNotebookCsvContent({
-      rows: exportRows,
-      exporterName,
-      dateRange,
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `notebook_export_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const isAllSelected = selectedIds.length === filteredData.length && filteredData.length > 0;
+  const fullName = `${currentUser?.user_firstname || ""} ${
+    currentUser?.user_lastname || ""
+  }`.trim();
+  const userName = fullName || currentUser?.user_nickname || currentUser?.username || "ไม่ระบุ";
+  const isLoading = loadingState.isLoading || loadingState.isFetching;
+  const selectionSummary =
+    filteredItems.length === 0
+      ? "ไม่มีรายการให้เลือก"
+      : `เลือกแล้ว ${selectedIds.length} จาก ${filteredItems.length} รายการ`;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -136,139 +61,202 @@ const PrintPDFDialog = ({
 
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
         <DialogContent dividers>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
-              ช่วงเวลา
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
-              {DATE_PRESETS.map((preset) => (
+          <Stack spacing={2.5}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
+                สรุปการ export
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
                 <Chip
-                  key={preset.label}
-                  label={preset.label}
-                  onClick={() => handlePresetClick(preset)}
-                  color={activePreset === preset.label ? "primary" : "default"}
-                  variant={activePreset === preset.label ? "filled" : "outlined"}
-                  size="small"
+                  label={`ข้อมูลทั้งหมด ${items.length} รายการ`}
+                  variant="outlined"
                   sx={{ fontFamily: "Kanit" }}
                 />
-              ))}
-            </Box>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <DatePicker
-                label="จากวันที่"
-                value={new Date(dateRange.start)}
-                onChange={(newValue) => {
-                  if (newValue) handleDateChange("start", format(newValue, "yyyy-MM-dd"));
-                }}
-                format="dd MMMM yyyy"
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    sx: { flex: 1 },
-                  },
-                }}
-              />
-              <DatePicker
-                label="ถึงวันที่"
-                value={new Date(dateRange.end)}
-                onChange={(newValue) => {
-                  if (newValue) handleDateChange("end", format(newValue, "yyyy-MM-dd"));
-                }}
-                format="dd MMMM yyyy"
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    sx: { flex: 1 },
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontFamily: "Kanit" }}>
-                เลือกรายการ ({selectedData.length}/{filteredData.length})
+                <Chip
+                  label={`ตรงตามช่วงเวลา ${filteredItems.length} รายการ`}
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontFamily: "Kanit" }}
+                />
+                <Chip
+                  label={selectionSummary}
+                  color={selectedIds.length > 0 ? "success" : "default"}
+                  variant="outlined"
+                  sx={{ fontFamily: "Kanit" }}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "Kanit" }}>
+                PDF และ CSV จะใช้ข้อมูลชุดเดียวกันตามตัวกรองและรายการที่คุณเลือก
               </Typography>
-              <Button
-                size="small"
-                startIcon={<MdSelectAll />}
-                onClick={handleSelectAll}
-                disabled={isLoading}
-                sx={{ fontFamily: "Kanit" }}
-              >
-                {isAllSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
-              </Button>
             </Box>
 
-            <List
-              dense
-              sx={{
-                maxHeight: 300,
-                overflow: "auto",
-                border: "1px solid #e0e0e0",
-                borderRadius: 1,
-              }}
-            >
-              {isLoading ? (
-                <ListItem sx={{ justifyContent: "center", py: 4 }}>
-                  <CircularProgress size={28} />
-                </ListItem>
-              ) : filteredData.length === 0 ? (
-                <ListItem>
-                  <ListItemText
-                    primary="ไม่พบข้อมูลในช่วงเวลานี้"
-                    sx={{ textAlign: "center", color: "text.secondary" }}
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
+                ช่วงเวลาและเงื่อนไขที่ใช้ export
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
+                {DATE_PRESETS.map((preset) => (
+                  <Chip
+                    key={preset.label}
+                    label={preset.label}
+                    onClick={() => onPresetClick(preset.label)}
+                    color={activePreset === preset.label ? "primary" : "default"}
+                    variant={activePreset === preset.label ? "filled" : "outlined"}
+                    size="small"
+                    sx={{ fontFamily: "Kanit" }}
                   />
-                </ListItem>
-              ) : (
-                filteredData.map((item) => (
-                  <ListItemButton key={item.id} onClick={() => handleToggle(item.id)} dense>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Checkbox edge="start" checked={selectedIds.includes(item.id)} tabIndex={-1} size="small" />
-                    </ListItemIcon>
+                ))}
+              </Box>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <DatePicker
+                  label="จากวันที่"
+                  value={new Date(dateRange.start)}
+                  onChange={(newValue) =>
+                    newValue && onDateChange("start", format(newValue, "yyyy-MM-dd"))
+                  }
+                  format="dd MMMM yyyy"
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+                <DatePicker
+                  label="ถึงวันที่"
+                  value={new Date(dateRange.end)}
+                  onChange={(newValue) =>
+                    newValue && onDateChange("end", format(newValue, "yyyy-MM-dd"))
+                  }
+                  format="dd MMMM yyyy"
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                    },
+                  }}
+                />
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                ระบบจะโหลดข้อมูล export แยกจากตารางหลัก และคงการกรองของหน้า list ไว้ตามเดิม
+              </Typography>
+            </Box>
+
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1,
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontFamily: "Kanit" }}>
+                  เลือกรายการ ({selectedIds.length}/{filteredItems.length})
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<MdSelectAll />}
+                  onClick={onSelectAll}
+                  disabled={isLoading || filteredItems.length === 0}
+                  sx={{ fontFamily: "Kanit" }}
+                >
+                  {isAllSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
+                </Button>
+              </Box>
+
+              <List
+                dense
+                sx={{
+                  maxHeight: 320,
+                  overflow: "auto",
+                  border: "1px solid #e0e0e0",
+                  borderRadius: 1,
+                }}
+              >
+                {isLoading ? (
+                  <ListItem sx={{ justifyContent: "center", py: 4 }}>
+                    <Box sx={{ textAlign: "center" }}>
+                      <CircularProgress size={28} />
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        กำลังโหลดข้อมูล export...
+                      </Typography>
+                    </Box>
+                  </ListItem>
+                ) : filteredItems.length === 0 ? (
+                  <ListItem sx={{ py: 4 }}>
                     <ListItemText
-                      primary={item.nb_customer_name || "ไม่ระบุชื่อ"}
-                      secondary={
-                        <Box component="span">
-                          <Typography component="span" variant="body2" display="block" sx={{ fontSize: 12 }}>
-                            สร้าง:{" "}
-                            {item.created_at ? format(new Date(item.created_at), "dd MMM yyyy", { locale: th }) : "-"}
-                          </Typography>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            display="block"
-                            sx={{ fontSize: 12, color: "text.secondary" }}
-                          >
-                            อัพเดท:{" "}
-                            {item.updated_at ? format(new Date(item.updated_at), "dd MMM yyyy", { locale: th }) : "-"}
-                          </Typography>
-                        </Box>
-                      }
-                      primaryTypographyProps={{ sx: { fontFamily: "Kanit", fontSize: 14 } }}
+                      primary="ไม่มีข้อมูลในช่วงเวลาที่เลือก"
+                      secondary="ลองขยายช่วงเวลา หรือปรับประเภทวันที่ก่อน export"
+                      primaryTypographyProps={{ textAlign: "center" }}
+                      secondaryTypographyProps={{ textAlign: "center" }}
                     />
-                    {item.nb_status && (
-                      <Chip
-                        label={item.nb_status}
-                        size="small"
-                        color={
-                          item.nb_status === "ได้งาน"
-                            ? "success"
-                            : item.nb_status === "พิจารณา"
-                              ? "info"
-                              : "default"
+                  </ListItem>
+                ) : (
+                  filteredItems.map((item) => (
+                    <ListItemButton key={item.id} onClick={() => onToggleSelection(item.id)} dense>
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <Checkbox
+                          edge="start"
+                          checked={selectedIds.includes(item.id)}
+                          tabIndex={-1}
+                          size="small"
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.nb_customer_name || "ไม่ระบุชื่อ"}
+                        secondary={
+                          <>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              display="block"
+                              sx={{ fontSize: 12 }}
+                            >
+                              สร้าง:{" "}
+                              {item.created_at
+                                ? format(new Date(item.created_at), "dd MMM yyyy", {
+                                    locale: th,
+                                  })
+                                : "-"}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              display="block"
+                              sx={{ fontSize: 12, color: "text.secondary" }}
+                            >
+                              อัปเดต:{" "}
+                              {item.updated_at
+                                ? format(new Date(item.updated_at), "dd MMM yyyy", {
+                                    locale: th,
+                                  })
+                                : "-"}
+                            </Typography>
+                          </>
                         }
-                        sx={{ fontSize: 11 }}
+                        primaryTypographyProps={{ sx: { fontFamily: "Kanit", fontSize: 14 } }}
                       />
-                    )}
-                  </ListItemButton>
-                ))
-              )}
-            </List>
-          </Box>
+                      {item.nb_status && (
+                        <Chip
+                          label={item.nb_status}
+                          size="small"
+                          color={
+                            item.nb_status === "ได้งาน"
+                              ? "success"
+                              : item.nb_status === "พิจารณา"
+                                ? "info"
+                                : "default"
+                          }
+                          sx={{ fontSize: 11 }}
+                        />
+                      )}
+                    </ListItemButton>
+                  ))
+                )}
+              </List>
+            </Box>
+          </Stack>
         </DialogContent>
       </LocalizationProvider>
 
@@ -279,23 +267,14 @@ const PrintPDFDialog = ({
         <Button
           variant="outlined"
           startIcon={<MdFileDownload />}
-          onClick={handleExportCSV}
+          onClick={onExportCsv}
           disabled={exportRows.length === 0 || isLoading}
           sx={{ fontFamily: "Kanit", borderColor: "#388e3c", color: "#388e3c" }}
         >
           ดาวน์โหลด CSV ({exportRows.length})
         </Button>
         <PDFDownloadLink
-          document={
-            <NotebookPDF
-              rows={exportRows}
-              userName={userName}
-              dateRange={{
-                start: dateRange.start,
-                end: dateRange.end,
-              }}
-            />
-          }
+          document={<NotebookPDF rows={exportRows} userName={userName} dateRange={dateRange} />}
           fileName={`notebook_report_${format(new Date(), "yyyy-MM-dd")}.pdf`}
           style={{ textDecoration: "none" }}
         >
@@ -306,7 +285,7 @@ const PrintPDFDialog = ({
               disabled={loading || exportRows.length === 0 || isLoading}
               sx={{ fontFamily: "Kanit" }}
             >
-              {loading ? "กำลังสร้าง..." : `ดาวน์โหลด PDF (${exportRows.length})`}
+              {loading ? "กำลังสร้าง PDF..." : `ดาวน์โหลด PDF (${exportRows.length})`}
             </Button>
           )}
         </PDFDownloadLink>

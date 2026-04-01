@@ -104,7 +104,7 @@ export const formatDate = (dateStr, withTime = false) => {
 export const getStatusStyle = (status) => {
   if (status === "ได้งาน") return styles.statusSuccess;
   if (status === "พิจารณา") return styles.statusInfo;
-  if (status === "ยังไม่แผนทำ") return styles.statusWarning;
+  if (status === "ยังไม่มีแผนทำ") return styles.statusWarning;
   if (status === "หลุด" || status === "ไม่ได้งาน") return styles.statusError;
   return {};
 };

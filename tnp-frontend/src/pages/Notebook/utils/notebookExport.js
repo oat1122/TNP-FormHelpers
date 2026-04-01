@@ -49,11 +49,15 @@ export const buildNotebookExportRows = (selectedData = [], dateRange) => {
       return;
     }
 
-    const sortedHistories = [...histories].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const sortedHistories = [...histories].sort(
+      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
     const relevantHistories = sortedHistories.filter((history) => {
       const historyAt = new Date(history.created_at);
       const isInRange = historyAt >= rangeStart && historyAt <= rangeEnd;
-      const hasTextField = TEXT_FIELDS.some((field) => history.new_values && field in history.new_values);
+      const hasTextField = TEXT_FIELDS.some(
+        (field) => history.new_values && field in history.new_values
+      );
       return isInRange && hasTextField;
     });
 

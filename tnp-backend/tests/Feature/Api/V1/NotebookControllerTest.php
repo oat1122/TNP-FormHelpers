@@ -16,9 +16,11 @@ class NotebookControllerTest extends TestCase
     {
         parent::setUp();
 
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('notebook_histories');
         Schema::dropIfExists('notebooks');
         Schema::dropIfExists('users');
+        Schema::enableForeignKeyConstraints();
 
         Schema::create('users', function (Blueprint $table) {
             $table->bigIncrements('user_id');
@@ -174,6 +176,52 @@ class NotebookControllerTest extends TestCase
 
         $response->assertJsonCount(2);
         $this->assertIsArray($response->json());
+    }
+
+    public function test_show_returns_histories_with_action_by_for_edit_dialog(): void
+    {
+        $owner = User::factory()->sales()->create([
+            'username' => 'history-owner',
+            'user_nickname' => 'Owner',
+        ]);
+
+        Sanctum::actingAs($owner);
+
+        $createdResponse = $this->postJson('/api/v1/notebooks', [
+            'nb_customer_name' => 'Notebook History Detail',
+            'nb_additional_info' => null,
+        ])->assertCreated();
+
+        $notebookId = $createdResponse->json('id');
+
+        $response = $this->getJson("/api/v1/notebooks/{$notebookId}")
+            ->assertOk();
+
+        $response->assertJsonPath('histories.0.action', 'created');
+        $response->assertJsonPath('histories.0.action_by.user_id', $owner->user_id);
+    }
+
+    public function test_created_history_keeps_nullable_additional_info_field_for_edit_dialog(): void
+    {
+        $owner = User::factory()->sales()->create();
+
+        Sanctum::actingAs($owner);
+
+        $createdResponse = $this->postJson('/api/v1/notebooks', [
+            'nb_customer_name' => 'Notebook Blank Additional Info',
+            'nb_additional_info' => null,
+        ])->assertCreated();
+
+        $notebookId = $createdResponse->json('id');
+
+        $response = $this->getJson("/api/v1/notebooks/{$notebookId}")
+            ->assertOk();
+
+        $histories = $response->json('histories');
+
+        $this->assertNotEmpty($histories);
+        $this->assertArrayHasKey('nb_additional_info', $histories[0]['new_values']);
+        $this->assertNull($histories[0]['new_values']['nb_additional_info']);
     }
 
     public function test_notebook_summary_requires_allowed_role(): void

@@ -104,7 +104,9 @@ const NotebookPDF = ({ rows = [], userName = "", dateRange = null }) => {
                   <Text style={styles.cellText}>{row.action || "-"}</Text>
                 </View>
                 <View style={[styles.tableCell, styles.colStatus]}>
-                  <Text style={[styles.cellText, getStatusStyle(row.status)]}>{row.status || "-"}</Text>
+                  <Text style={[styles.cellText, getStatusStyle(row.status)]}>
+                    {row.status || "-"}
+                  </Text>
                 </View>
                 <View style={[styles.tableCell, styles.colRemarks]}>
                   <Text style={styles.cellText}>{row.remarks || "-"}</Text>

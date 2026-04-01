@@ -1,49 +1,23 @@
-import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
 
+import { useNotebookExport } from "./useNotebookExport";
+import { useNotebookPageState } from "./useNotebookPageState";
 import { setInputList, setMode } from "../../../features/Customer/customerSlice";
 import {
   useConvertNotebookMutation,
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
-  useLazyGetNotebookExportQuery,
 } from "../../../features/Notebook/notebookApi";
-import {
-  setDialogMode,
-  setDialogOpen,
-  setSelectedNotebook,
-} from "../../../features/Notebook/notebookSlice";
+import { setDialogOpen, setSelectedNotebook } from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
 import { mapNotebookToCustomer } from "../utils/notebookMapping";
 
 export const useNotebookList = () => {
   const dispatch = useDispatch();
-  const globalKeyword = useSelector((state) => state.global.keyword);
-
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
-  const [periodFilter, setPeriodFilter] = useState({
-    mode: "month",
-    shiftUnit: "month",
-    startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-    endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
-  });
-  const [dateFilterBy, setDateFilterBy] = useState("all");
-  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const pageState = useNotebookPageState();
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
-
-  const exportFilters = useMemo(
-    () => ({
-      search: globalKeyword,
-      start_date: periodFilter.startDate,
-      end_date: periodFilter.endDate,
-      date_filter_by: dateFilterBy,
-      include: "histories",
-    }),
-    [globalKeyword, periodFilter.startDate, periodFilter.endDate, dateFilterBy]
-  );
 
   const {
     data,
@@ -51,64 +25,20 @@ export const useNotebookList = () => {
     isLoading,
     refetch,
     error: fetchError,
-  } = useGetNotebooksQuery({
-    page: paginationModel.page,
-    per_page: paginationModel.pageSize,
-    search: globalKeyword,
-    start_date: periodFilter.startDate,
-    end_date: periodFilter.endDate,
-    date_filter_by: dateFilterBy,
-    include: "histories",
-  });
+  } = useGetNotebooksQuery(pageState.queryFilters);
 
   const [deleteNotebook] = useDeleteNotebookMutation();
-  const [convertNotebook] = useConvertNotebookMutation();
-  const [
-    fetchNotebookExport,
-    {
-      data: exportData,
-      isFetching: isExportFetching,
-      isLoading: isExportLoading,
-      error: exportError,
-    },
-  ] = useLazyGetNotebookExportQuery();
+  const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
 
-  useEffect(() => {
-    if (fetchError) {
-      showError("ไม่สามารถดึงข้อมูลได้: " + (fetchError?.data?.message || "Internal Server Error"));
-    }
-  }, [fetchError]);
-
-  useEffect(() => {
-    if (pdfDialogOpen) {
-      fetchNotebookExport(exportFilters);
-    }
-  }, [pdfDialogOpen, fetchNotebookExport, exportFilters]);
-
-  useEffect(() => {
-    if (exportError) {
-      showError(
-        "ไม่สามารถดึงข้อมูลเพื่อ export ได้: " +
-          (exportError?.data?.message || "Internal Server Error")
-      );
-    }
-  }, [exportError]);
-
-  const handleAdd = () => {
-    dispatch(setDialogMode("create"));
-    dispatch(setSelectedNotebook(null));
-    dispatch(setDialogOpen(true));
-  };
-
-  const handleEdit = (notebook) => {
-    dispatch(setDialogMode("edit"));
-    dispatch(setSelectedNotebook(notebook));
-    dispatch(setDialogOpen(true));
-  };
+  const exportState = useNotebookExport({
+    open: pageState.exportDialogOpen,
+    filters: pageState.exportFilters,
+    currentUser: pageState.currentUser,
+  });
 
   const handleDelete = async (id) => {
-    const isConfirmed = await dialog_confirm_yes_no("ยืนยันการลบรายการนี้?");
-    if (!isConfirmed) {
+    const confirmed = await dialog_confirm_yes_no("ยืนยันการลบรายการนี้?");
+    if (!confirmed) {
       return;
     }
 
@@ -128,11 +58,15 @@ export const useNotebookList = () => {
   };
 
   const handleConvert = (notebook) => {
-    const mappingData = mapNotebookToCustomer(notebook);
-    dispatch(setInputList(mappingData));
+    dispatch(setInputList(mapNotebookToCustomer(notebook)));
     dispatch(setMode("create"));
     setConvertingNotebookId(notebook.id);
-    setCustomerDialogOpen(true);
+    pageState.setCustomerDialogOpen(true);
+  };
+
+  const handleCloseNotebookDialog = () => {
+    dispatch(setDialogOpen(false));
+    dispatch(setSelectedNotebook(null));
   };
 
   const handleAfterCustomerSave = async () => {
@@ -144,8 +78,7 @@ export const useNotebookList = () => {
           nb_status: "ได้งาน",
         }).unwrap();
         showSuccess("สร้างลูกค้าและอัปเดต Notebook เรียบร้อย");
-      } catch (error) {
-        console.error("Failed to update notebook conversion status:", error);
+      } catch {
         showError("สร้างลูกค้าสำเร็จ แต่ไม่สามารถอัปเดต Notebook ได้");
       } finally {
         setConvertingNotebookId(null);
@@ -154,31 +87,24 @@ export const useNotebookList = () => {
     }
 
     refetch();
+    pageState.setCustomerDialogOpen(false);
   };
 
   return {
-    paginationModel,
-    setPaginationModel,
-    periodFilter,
-    setPeriodFilter,
-    dateFilterBy,
-    setDateFilterBy,
-    customerDialogOpen,
-    setCustomerDialogOpen,
-    pdfDialogOpen,
-    setPdfDialogOpen,
-    convertingNotebookId,
-    exportFilters,
-    data,
-    exportData,
+    ...pageState,
+    rows: data?.rows || [],
+    total: data?.total || 0,
+    listMeta: data?.meta,
+    listError: fetchError,
     isLoading,
     isFetching,
-    isExportLoading,
-    isExportFetching,
-    handleAdd,
-    handleEdit,
+    isConverting,
+    convertingNotebookId,
+    exportState,
+    refetch,
     handleDelete,
     handleConvert,
     handleAfterCustomerSave,
+    handleCloseNotebookDialog,
   };
 };

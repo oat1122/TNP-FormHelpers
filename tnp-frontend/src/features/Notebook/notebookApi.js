@@ -1,4 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+
+import {
+  normalizeNotebookExportResponse,
+  normalizeNotebookListResponse,
+} from "./notebookApiAdapters";
 import axiosBaseQuery from "../Customer/axiosBaseQuery";
 
 export const notebookApi = createApi({
@@ -21,7 +26,11 @@ export const notebookApi = createApi({
           include: params?.include,
         },
       }),
-      providesTags: ["Notebook"],
+      transformResponse: normalizeNotebookListResponse,
+      providesTags: (result) => {
+        const rowTags = result?.rows?.map((item) => ({ type: "Notebook", id: item.id })) || [];
+        return ["Notebook", ...rowTags];
+      },
     }),
     getNotebook: builder.query({
       query: (id) => ({
@@ -44,7 +53,7 @@ export const notebookApi = createApi({
           paginate: false,
         },
       }),
-      transformResponse: (response) => (Array.isArray(response) ? response : []),
+      transformResponse: normalizeNotebookExportResponse,
       providesTags: ["Notebook"],
     }),
     addNotebook: builder.mutation({

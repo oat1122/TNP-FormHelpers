@@ -25,7 +25,7 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
         return $this->buildIndexQuery($filters, $user)->get();
     }
 
-    public function findWithRelationsOrFail(string $id, array $includes = ['histories.actionBy']): Notebook
+    public function findWithRelationsOrFail(string $id, array $includes = ['histories']): Notebook
     {
         return $this->newQuery()
             ->withRequestedIncludes($this->normalizeIncludes($includes))
@@ -106,7 +106,12 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             $includes = array_filter(array_map('trim', explode(',', $includes)));
         }
 
-        return array_values(array_intersect((array) $includes, ['histories']));
+        $normalized = array_map(
+            static fn ($include) => str_starts_with((string) $include, 'histories') ? 'histories' : $include,
+            (array) $includes
+        );
+
+        return array_values(array_unique(array_intersect($normalized, ['histories'])));
     }
 
     protected function applyNotebookSourceFilter(Builder $query, string $sourceFilter): void

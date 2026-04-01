@@ -1,191 +1,262 @@
-import { Box, Chip, IconButton, Tooltip } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  LinearProgress,
+  Skeleton,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { MdDelete, MdEdit, MdPersonAdd } from "react-icons/md";
 
-import { formatDate, getStatusColor } from "../utils/notebookCommon";
+import { buildNotebookTableColumns } from "../utils/notebookTableColumns.jsx";
+
+const THAI_LOCALE_TEXT = {
+  noRowsLabel: "ไม่พบข้อมูล",
+  MuiTablePagination: {
+    labelRowsPerPage: "รายการต่อหน้า:",
+    labelDisplayedRows: ({ from, to, count }) =>
+      `${from}-${to} จาก ${count !== -1 ? count : `มากกว่า ${to}`}`,
+  },
+};
+
+const NotebookTableSkeleton = ({ isCompact }) => (
+  <Box sx={{ p: { xs: 2, md: 2.5 } }}>
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      spacing={1.5}
+      justifyContent="space-between"
+      alignItems={{ xs: "flex-start", md: "center" }}
+      sx={{ mb: 2 }}
+    >
+      <Stack spacing={1} sx={{ width: "100%", maxWidth: 360 }}>
+        <Skeleton variant="text" width="45%" height={34} />
+        <Skeleton variant="text" width="85%" height={24} />
+      </Stack>
+
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Skeleton variant="rounded" width={isCompact ? 110 : 140} height={32} />
+        <Skeleton variant="rounded" width={isCompact ? 140 : 180} height={32} />
+      </Stack>
+    </Stack>
+
+    <Divider sx={{ mb: 2 }} />
+
+    <Stack spacing={1.25}>
+      {Array.from({ length: isCompact ? 5 : 7 }).map((_, index) => (
+        <Skeleton key={index} variant="rounded" height={isCompact ? 72 : 64} />
+      ))}
+    </Stack>
+  </Box>
+);
+
+const NotebookTableEmptyState = ({ filterSummary }) => (
+  <Stack
+    sx={{ height: "100%", alignItems: "center", justifyContent: "center", px: 3, py: 4 }}
+    spacing={1.25}
+  >
+    <Typography variant="h6" color="text.secondary" sx={{ textAlign: "center" }}>
+      ไม่พบรายการ Notebook ในช่วงที่เลือก
+    </Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 480 }}>
+      ลองปรับคำค้นหา ช่วงเวลา หรือประเภทวันที่ แล้วตรวจสอบอีกครั้ง
+    </Typography>
+
+    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" justifyContent="center">
+      {[filterSummary?.keywordLabel, filterSummary?.typeLabel, filterSummary?.dateLabel]
+        .filter(Boolean)
+        .map((label) => (
+          <Chip
+            key={label}
+            label={label}
+            size="small"
+            variant="outlined"
+            sx={{
+              maxWidth: "100%",
+              "& .MuiChip-label": {
+                display: "block",
+              },
+            }}
+          />
+        ))}
+    </Stack>
+  </Stack>
+);
+
+const NotebookTableErrorState = ({ onRetry }) => (
+  <Box sx={{ p: 3 }}>
+    <Alert
+      severity="error"
+      action={
+        <Button color="inherit" size="small" onClick={onRetry}>
+          ลองใหม่
+        </Button>
+      }
+    >
+      ไม่สามารถโหลดข้อมูล Notebook ได้
+    </Alert>
+  </Box>
+);
+
+const NotebookTableContextBar = ({ rowsCount, total }) => (
+  <Stack
+    direction={{ xs: "column", md: "row" }}
+    spacing={2}
+    justifyContent="space-between"
+    alignItems={{ xs: "flex-start", md: "center" }}
+    sx={{ px: { xs: 2, md: 2.5 }, py: 2 }}
+  >
+    <Stack spacing={0.75}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "text.primary" }}>
+        แสดง {rowsCount} รายการ
+        {typeof total === "number" ? ` จากทั้งหมด ${total} รายการ` : ""}
+      </Typography>
+    </Stack>
+  </Stack>
+);
 
 const NotebookTable = ({
-  data,
-  isLoading,
+  rows,
   total,
-  paginationModel,
-  onPaginationModelChange,
-  onEdit,
-  onDelete,
-  onConvert,
+  loadingState,
+  error,
+  pagination,
+  actions,
   userRole,
+  filterSummary,
+  onRetry,
 }) => {
-  const columns = [
-    {
-      field: "nb_date",
-      headerName: "วันที่",
-      flex: 1,
-      minWidth: 100,
-      renderCell: (params) => {
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
-            <Box component="span" sx={{ lineHeight: 1.2 }}>
-              {formatDate(params.row.created_at)}
-            </Box>
-            <Box
-              component="span"
-              sx={{ lineHeight: 1.2, fontSize: "0.55rem", color: "text.secondary" }}
-            >
-              อัพเดทล่าสุด {formatDate(params.row.updated_at)}
-            </Box>
-          </Box>
-        );
-      },
-    },
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("md"));
 
-    {
-      field: "nb_customer_name",
-      headerName: "ชื่อลูกค้า/ชื่อย่อ",
-      flex: 1.5,
-      minWidth: 150,
-      renderCell: (params) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {params.value}
-          {params.row.nb_is_online && (
-            <Chip
-              label="Online"
-              color="info"
-              size="small"
-              variant="outlined"
-              sx={{ height: 20, fontSize: "0.7rem" }}
-            />
-          )}
-        </Box>
-      ),
-    },
-    {
-      field: "nb_additional_info",
-      headerName: "เพิ่มเติม",
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      field: "nb_contact_number",
-      headerName: "เบอร์ติดต่อ",
-      flex: 1,
-      minWidth: 100,
-    },
-    {
-      field: "nb_email",
-      headerName: "Email",
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      field: "nb_contact_person",
-      headerName: "ชื่อลูกค้า",
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      field: "nb_action",
-      headerName: "การกระทำ",
-      flex: 1,
-      minWidth: 120,
-      renderCell: (params) =>
-        params.value ? (
-          <Chip label={params.value} size="small" color="primary" variant="outlined" />
-        ) : (
-          ""
-        ),
-    },
-    {
-      field: "nb_status",
-      headerName: "สถานะ",
-      flex: 1,
-      minWidth: 100,
-      renderCell: (params) => {
-        const color = getStatusColor(params.value);
-        return params.value ? <Chip label={params.value} color={color} size="small" /> : "";
-      },
-    },
-    {
-      field: "nb_remarks",
-      headerName: "หมายเหตุ",
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      field: "actions",
-      headerName: "จัดการ",
-      flex: 1,
-      minWidth: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <Box>
-          <Tooltip title="สร้างลูกค้า">
-            <span>
-              <IconButton
-                color="success"
-                onClick={() => onConvert(params.row)}
-                disabled={!!params.row.nb_converted_at}
-              >
-                <MdPersonAdd />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="แก้ไข">
-            <span>
-              <IconButton
-                color="primary"
-                onClick={() => onEdit(params.row)}
-                disabled={!!params.row.nb_converted_at}
-              >
-                <MdEdit />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={userRole === "admin" ? "ลบ" : "เฉพาะ Admin"}>
-            <span>
-              <IconButton
-                color="error"
-                onClick={() => onDelete(params.row.id)}
-                disabled={!!params.row.nb_converted_at || userRole !== "admin"}
-              >
-                <MdDelete />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      ),
-    },
-  ];
+  const columns = buildNotebookTableColumns({
+    onView: actions.onView,
+    onEdit: actions.onEdit,
+    onDelete: actions.onDelete,
+    onConvert: actions.onConvert,
+    userRole,
+    isCompact,
+  });
+
+  const isInitialLoading = loadingState.isLoading && rows.length === 0;
+  const isRefreshing = loadingState.isFetching && rows.length > 0;
+  const hasStaleRows = Boolean(error) && rows.length > 0;
+  const tableHeight = isCompact ? 540 : 640;
 
   return (
-    <Box sx={{ height: 600, width: "100%", bgcolor: "white", p: 2, borderRadius: 2 }}>
-      <DataGrid
-        rows={data || []}
-        columns={columns}
-        loading={isLoading}
-        rowCount={total || 0}
-        paginationMode="server"
-        paginationModel={paginationModel}
-        onPaginationModelChange={onPaginationModelChange}
-        pageSizeOptions={[15, 30, 50]}
-        disableRowSelectionOnClick
-        sx={{
-          border: "none",
-          "& .MuiDataGrid-cell": {
-            borderBottom: "1px solid #f0f0f0",
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            bgcolor: "#f5f5f5",
-            borderBottom: "1px solid #e0e0e0",
-          },
-        }}
-      />
+    <Box
+      sx={{
+        width: "100%",
+        bgcolor: "white",
+        borderRadius: 2,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "divider",
+        boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
+      }}
+    >
+      {isRefreshing ? <LinearProgress /> : null}
+
+      {error && rows.length === 0 ? (
+        <NotebookTableErrorState onRetry={onRetry} />
+      ) : isInitialLoading ? (
+        <NotebookTableSkeleton isCompact={isCompact} />
+      ) : (
+        <Box>
+          <NotebookTableContextBar rowsCount={rows.length} total={total} />
+
+          <Divider />
+
+          {hasStaleRows ? (
+            <Box sx={{ px: { xs: 2, md: 2.5 }, pt: 2 }}>
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={onRetry}>
+                    ลองใหม่
+                  </Button>
+                }
+              >
+                ไม่สามารถอัปเดตข้อมูลล่าสุดได้ ตอนนี้กำลังแสดงข้อมูลชุดล่าสุดที่ยังมีอยู่
+              </Alert>
+            </Box>
+          ) : null}
+
+          <Box sx={{ height: tableHeight, width: "100%", p: { xs: 1, md: 1.5 } }}>
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              loading={false}
+              rowCount={total || 0}
+              paginationMode="server"
+              paginationModel={pagination.model}
+              onPaginationModelChange={pagination.onChange}
+              pageSizeOptions={[15, 30, 50]}
+              disableRowSelectionOnClick
+              hideFooterSelectedRowCount
+              localeText={THAI_LOCALE_TEXT}
+              slots={{
+                noRowsOverlay: () => <NotebookTableEmptyState filterSummary={filterSummary} />,
+              }}
+              getRowHeight={() => "auto"}
+              getEstimatedRowHeight={() => (isCompact ? 92 : 76)}
+              getRowClassName={(params) =>
+                params.indexRelativeToCurrentPage % 2 === 0
+                  ? "notebook-row-even"
+                  : "notebook-row-odd"
+              }
+              sx={{
+                border: "none",
+                "& .MuiDataGrid-main": {
+                  borderRadius: 2,
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  py: 1.25,
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: "1px solid",
+                  borderColor: "rgba(15, 23, 42, 0.08)",
+                  alignItems: "center",
+                  py: 1.25,
+                  px: 1.5,
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  bgcolor: "#f7f8fa",
+                  borderBottom: "1px solid",
+                  borderColor: "rgba(15, 23, 42, 0.08)",
+                  color: "text.secondary",
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  minHeight: 58,
+                  borderTop: "1px solid",
+                  borderColor: "rgba(15, 23, 42, 0.08)",
+                  bgcolor: "#fcfcfd",
+                },
+                "& .MuiTablePagination-root, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                  {
+                    fontFamily: "Kanit, sans-serif",
+                  },
+                "& .notebook-row-even": {
+                  bgcolor: "#ffffff",
+                },
+                "& .notebook-row-odd": {
+                  bgcolor: "#fbfbfc",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  bgcolor: "#fff8f8",
+                },
+                "& .MuiDataGrid-overlay": {
+                  bgcolor: "#fff",
+                },
+              }}
+            />
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

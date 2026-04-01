@@ -2,397 +2,430 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
-  Divider,
+  Fab,
   FormControl,
   Grid,
-  InputAdornment,
   MenuItem,
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MdAssignment,
   MdBusiness,
-  MdDonutLarge,
   MdEdit,
-  MdEditDocument,
-  MdEmail,
-  MdExpandLess,
-  MdExpandMore,
-  MdHistory,
-  MdNextPlan,
   MdNote,
-  MdPerson,
-  MdPhone,
+  MdRemoveRedEye,
   MdSave,
   MdSupervisorAccount,
 } from "react-icons/md";
 
+import NotebookHistoryTimeline from "./NotebookHistoryTimeline";
+import NotebookNoteField from "./NotebookNoteField";
+import NotebookQuickActions from "./NotebookQuickActions";
+import NotebookSummaryBar from "./NotebookSummaryBar";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
 import DuplicatePhoneDialog from "../../Customer/components/Forms/DuplicatePhoneDialog";
 import { useNotebookForm } from "../hooks/useNotebookForm";
+import {
+  NOTEBOOK_STATUS_OPTIONS,
+  getNotebookActionLabel,
+  getNotebookSourceMeta,
+  getNotebookStatusLabel,
+  getNotebookStatusOption,
+} from "../utils/notebookDialogConfig";
 
-// ─── Styled Components ───────────────────────────────────────────────────────
-
-const StyledDialogTitle = styled("div")(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.common.white,
-  padding: theme.spacing(2, 3),
-  fontSize: "1.25rem",
-  fontWeight: 600,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+const SectionCard = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2.25),
+  borderRadius: theme.spacing(1.5),
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
 }));
 
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontSize: "0.9rem",
-  fontWeight: 600,
-  color: theme.palette.text.secondary,
-  marginBottom: theme.spacing(1.5),
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
+const SectionHeading = styled(Typography)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: theme.spacing(1),
+  fontSize: "1rem",
+  fontWeight: 700,
+  marginBottom: theme.spacing(0.5),
 }));
 
-const StyledPaper = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.shape.borderRadius * 2,
-  padding: theme.spacing(2.5),
-  marginBottom: theme.spacing(1),
-  boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
-  "&:hover": {
-    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+const SourceToggleButton = styled(ToggleButton)(({ theme }) => ({
+  textTransform: "none",
+  borderRadius: 999,
+  paddingInline: theme.spacing(1.5),
+  border: `1px solid ${theme.palette.divider}`,
+}));
+
+const createSyntheticEvent = (name, value) => ({
+  target: {
+    name,
+    value,
+    type: "text",
   },
-  transition: "box-shadow 0.3s ease",
-}));
+});
 
-// ─── FieldSection: history toggle (left) + edit button (right) + click-to-edit textarea ──
-
-const getHistoriesForField = (histories, fieldName) =>
-  (histories || []).filter((h) => h.new_values && fieldName in h.new_values);
-
-const FieldSection = ({
-  histories,
-  fieldName,
-  label,
-  placeholder,
-  value,
-  onChange,
-  inputProps,
-  size,
-  currentUser,
-  isLoading,
-}) => {
-  const [open, setOpen] = useState(false); // history list open/closed
-  const [editing, setEditing] = useState(false); // textarea visible
-  const [pendingEntries, setPendingEntries] = useState([]); // local optimistic entries
-
-  const rows = getHistoriesForField(histories, fieldName);
-
-  // Reset pending entries when histories update (after real save)
-
-  const handleDone = () => {
-    if (value && String(value).trim() !== "") {
-      const now = new Date();
-      const actor = currentUser?.username || currentUser?.user_nickname || "คุณ";
-      setPendingEntries((prev) => [
-        { _pending: true, val: String(value), actor, savedAt: now },
-        ...prev,
-      ]);
-      setOpen(true); // auto-open history to show the new entry
-    }
-    setEditing(false);
-  };
-
-  // Clear pending entries that already appear in real histories (after RTK refetch)
-  const allRows = [
-    ...pendingEntries.map((p) => ({ ...p, _type: "pending" })),
-    ...rows.map((r) => ({ ...r, _type: "saved" })),
-  ];
-  const hasRows = allRows.length > 0;
-
-  const renderRow = (item, idx) => {
-    const isPending = item._type === "pending";
-    const val = isPending ? item.val : item.new_values?.[fieldName];
-    const actor = isPending
-      ? item.actor
-      : item.action_by?.username || item.action_by?.user_nickname || null;
-    const savedAt = isPending ? item.savedAt : item.created_at ? new Date(item.created_at) : null;
-    const dateLabel = savedAt
-      ? savedAt.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
-      : "-";
-    const timeLabel = savedAt
-      ? savedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
-      : "";
-
-    return (
-      <Box
-        key={isPending ? `p-${idx}` : (item.id ?? idx)}
-        sx={{
-          px: 1.5,
-          py: 0.75,
-          bgcolor: isPending ? "#fffbea" : idx % 2 === 0 ? "#f7faff" : "#ffffff",
-          borderBottom: idx < allRows.length - 1 ? "1px solid" : "none",
-          borderColor: isPending ? "warning.100" : "grey.100",
-          borderLeft: isPending ? "3px solid" : "none",
-          borderLeftColor: "warning.main",
-        }}
-      >
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.25 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              color: isPending ? "warning.dark" : "primary.main",
-              fontWeight: 600,
-              fontSize: "0.68rem",
-            }}
-          >
-            {dateLabel} {timeLabel}
-          </Typography>
-          {actor && (
-            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
-              · {actor}
-            </Typography>
-          )}
-          {isPending && (
-            <Chip
-              label="รอบันทึก"
-              size="small"
-              color="warning"
-              sx={{ fontSize: "0.58rem", height: 16, ml: 0.5 }}
-            />
-          )}
-        </Stack>
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.primary",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            lineHeight: 1.6,
-            fontSize: "0.78rem",
-            display: "block",
-          }}
-        >
-          {val !== null && val !== undefined ? String(val) : "(ว่าง)"}
-        </Typography>
-      </Box>
-    );
-  };
-
-  return (
-    <Box>
-      {/* Toolbar */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: open || editing ? 0.75 : 0.5 }}
-      >
-        {/* Left: history toggle */}
-        {hasRows ? (
-          <Button
-            size="small"
-            variant="text"
-            onClick={() => setOpen((v) => !v)}
-            disabled={isLoading}
-            startIcon={
-              isLoading ? <CircularProgress size={12} color="inherit" /> : <MdHistory size={13} />
-            }
-            endIcon={open ? <MdExpandLess size={14} /> : <MdExpandMore size={14} />}
-            sx={{
-              fontSize: "0.68rem",
-              color: "primary.main",
-              textTransform: "none",
-              px: 0.75,
-              py: 0.25,
-              minHeight: 0,
-              fontWeight: 600,
-              "&:hover": { bgcolor: "primary.50" },
-            }}
-          >
-            ประวัติ {label} ({allRows.length})
-          </Button>
-        ) : (
-          <Box />
-        )}
-
-        {/* Right: edit / done button — visible only after history is opened, or while editing */}
-        {(open || editing) && (
-          <Button
-            size="small"
-            variant={editing ? "contained" : "outlined"}
-            color={editing ? "success" : "primary"}
-            startIcon={editing ? <MdSave size={12} /> : <MdEdit size={12} />}
-            onClick={editing ? handleDone : () => setEditing(true)}
-            sx={{
-              fontSize: "0.68rem",
-              textTransform: "none",
-              px: 1,
-              py: 0.25,
-              minHeight: 0,
-              borderRadius: 5,
-            }}
-          >
-            {editing ? "เสร็จ" : "แก้ไข"}
-          </Button>
-        )}
-      </Stack>
-
-      {/* History rows (collapsible) */}
-      {hasRows && (
-        <Collapse in={open}>
-          <Box
-            sx={{
-              border: "1px dashed",
-              borderColor: "primary.200",
-              borderRadius: 1.5,
-              overflow: "hidden",
-              mb: 0.75,
-            }}
-          >
-            {allRows.map((item, idx) => renderRow(item, idx))}
-          </Box>
-        </Collapse>
-      )}
-
-      {/* TextField — only visible when editing */}
-      <Collapse in={editing}>
-        <TextField
-          fullWidth
-          multiline
-          minRows={2}
-          maxRows={10}
-          label={label}
-          name={fieldName}
-          value={value || ""}
-          onChange={onChange}
-          placeholder={placeholder}
-          size={size || "medium"}
-          InputProps={inputProps}
-          sx={{ "& .MuiOutlinedInput-root": { alignItems: "flex-start" } }}
-        />
-      </Collapse>
-    </Box>
-  );
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-const NotebookDialog = () => {
+const NotebookDialog = ({ currentUser = {} }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const noteInputRef = useRef(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [pendingDraftMap, setPendingDraftMap] = useState({});
+
   const {
-    // State
     dialogOpen,
     dialogMode,
-    inputData,
+    recordKey,
+    draft,
     errors,
     duplicatePhoneDialogOpen,
     duplicatePhoneData,
     isSubmitting,
-    currentUser,
     isAdmin,
     notebookHistories,
-    // Handlers
+    isNotebookDetailFetching,
     handleClose,
     handleChange,
+    handleBlur,
     handleOnlineToggle,
     handleSubmit,
     closeDuplicatePhoneDialog,
     checkPhoneDuplicate,
-  } = useNotebookForm();
+  } = useNotebookForm({ currentUser });
 
-  // Fetch sales list for admin
   const { data: userData } = useGetAllUserQuery(
     { per_page: 1000 },
     {
-      skip: !isAdmin && dialogMode !== "view",
+      skip: !isAdmin,
     }
   );
-  const salesList = userData?.data || [];
 
+  const salesList = userData?.data || [];
   const isEditMode = dialogMode === "edit";
+  const isViewMode = dialogMode === "view";
+  const isCreateMode = dialogMode === "create";
+  const historyLoading = !isCreateMode && isNotebookDetailFetching;
+  const summaryTitle = draft.nb_customer_name?.trim() || "New sales note";
+  const statusMeta = getNotebookStatusOption(draft.nb_status);
+  const sourceMeta = getNotebookSourceMeta(Boolean(draft.nb_is_online));
+  const selectedSalesOwner = salesList.find((user) => user.user_id === draft.nb_manage_by);
+  const salesOwnerLabel = isAdmin
+    ? selectedSalesOwner?.username || selectedSalesOwner?.user_nickname || "Sales owner not set"
+    : currentUser.username || currentUser.user_nickname || "Sales owner";
+  const resetKey = `${recordKey}-${historyLoading ? "loading" : "ready"}`;
+
+  useEffect(() => {
+    setShowHistory(false);
+    setPendingDraftMap({});
+  }, [dialogOpen, resetKey]);
+
+  const pendingDrafts = useMemo(
+    () =>
+      Object.values(pendingDraftMap)
+        .filter(Boolean)
+        .map((draftItem) => ({
+          ...draftItem,
+          actor: currentUser?.username || currentUser?.user_nickname || "Current user",
+        })),
+    [currentUser, pendingDraftMap]
+  );
+  const visibleHistories = useMemo(
+    () => notebookHistories.filter((history) => history?.action !== "created"),
+    [notebookHistories]
+  );
+
+  const setFieldValue = (name, value) => {
+    handleChange(createSyntheticEvent(name, value));
+  };
+
+  const handleActionChange = (value) => {
+    if (isViewMode) {
+      return;
+    }
+
+    setFieldValue("nb_action", value);
+    requestAnimationFrame(() => noteInputRef.current?.focus());
+  };
+
+  const handleStatusChange = (_, value) => {
+    if (!value) {
+      return;
+    }
+
+    setFieldValue("nb_status", value);
+  };
+
+  const handlePendingDraftChange = (fieldName, draftItem) => {
+    setPendingDraftMap((previous) => {
+      const next = { ...previous };
+
+      if (!draftItem) {
+        delete next[fieldName];
+        return next;
+      }
+
+      next[fieldName] = draftItem;
+      return next;
+    });
+  };
+
+  const modeLabel = isViewMode
+    ? "Notebook view"
+    : isEditMode
+      ? "Notebook update"
+      : "New sales note";
+  const closeButtonLabel = isViewMode ? "Close" : "Cancel";
+  const noteDescription = isEditMode
+    ? "Add the newest customer-facing update here. The last saved note stays visible in activity."
+    : "Capture the customer-facing details, objections, and the next commitment.";
+  const internalNoteDescription = isEditMode
+    ? "Add the newest internal update here without deleting the last saved note."
+    : "Keep reminders, pricing context, or internal-only coaching notes here.";
 
   return (
     <Dialog
       open={dialogOpen}
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: { xs: 0, sm: 3 },
           overflow: "hidden",
+          bgcolor: "grey.50",
+          maxHeight: { xs: "100%", sm: "92vh" },
         },
       }}
     >
-      <StyledDialogTitle>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {dialogMode === "create" ? <MdEditDocument size={24} /> : <MdEdit size={24} />}
-          {dialogMode === "create" ? "จดบันทึกใหม่" : "แก้ไขบันทึก"}
-        </Box>
-      </StyledDialogTitle>
+      <DialogContent
+        sx={{
+          p: { xs: 2, sm: 2.5, md: 3 },
+          pb: { xs: 11, sm: 3 },
+          bgcolor: "grey.50",
+        }}
+      >
+        <Stack spacing={2.25}>
+          <NotebookSummaryBar
+            title={summaryTitle}
+            modeLabel={modeLabel}
+            statusMeta={statusMeta}
+            actionLabel={getNotebookActionLabel(draft.nb_action)}
+            salesOwnerLabel={salesOwnerLabel}
+            sourceMeta={sourceMeta}
+            onClose={handleClose}
+          />
 
-      <DialogContent sx={{ p: 3, bgcolor: "#FAFAFA" }}>
-        <Grid container spacing={3}>
-          {/* 1. Header Section: Sales Rep + Online Toggle */}
-          <Grid item xs={12}>
-            <StyledPaper>
-              <Grid container spacing={3} alignItems="center">
-                {/* Sale Rep Info */}
-                <Grid item xs={12} md={5}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1.5,
-                      p: 1.5,
-                      borderRadius: 2,
-                      bgcolor: isAdmin ? "transparent" : "primary.light",
-                      color: isAdmin ? "inherit" : "primary.dark",
-                      border: isAdmin ? "none" : "1px dashed",
-                      borderColor: "primary.main",
-                    }}
+          <NotebookQuickActions
+            value={draft.nb_action}
+            onChange={handleActionChange}
+            readOnly={isViewMode}
+          />
+
+          <Grid container spacing={2.25}>
+            <Grid item xs={12} md={7}>
+              <Stack spacing={2.25}>
+                <SectionCard>
+                  <SectionHeading>
+                    <MdAssignment />
+                    Follow-up status
+                  </SectionHeading>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Confirm the latest status without opening another menu.
+                  </Typography>
+
+                  <ToggleButtonGroup
+                    exclusive
+                    value={draft.nb_status || null}
+                    onChange={handleStatusChange}
+                    disabled={isViewMode}
+                    sx={{ flexWrap: "wrap", gap: 1 }}
                   >
-                    <Box
-                      sx={{
-                        p: 1,
-                        bgcolor: "white",
-                        borderRadius: "50%",
-                        boxShadow: 1,
-                        display: "flex",
+                    {NOTEBOOK_STATUS_OPTIONS.map((option) => (
+                      <ToggleButton
+                        key={option.value}
+                        value={option.value}
+                        sx={{
+                          borderRadius: 999,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          textTransform: "none",
+                          px: 1.5,
+                          py: 0.75,
+                        }}
+                      >
+                        {option.label}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
+                    <Chip
+                      color={statusMeta?.color || "default"}
+                      variant={statusMeta ? "filled" : "outlined"}
+                      label={getNotebookStatusLabel(draft.nb_status)}
+                    />
+                    <Chip
+                      color="primary"
+                      variant={draft.nb_action ? "filled" : "outlined"}
+                      label={getNotebookActionLabel(draft.nb_action)}
+                    />
+                  </Stack>
+                </SectionCard>
+
+                <NotebookNoteField
+                  title="Interaction notes"
+                  description={noteDescription}
+                  name="nb_additional_info"
+                  value={draft.nb_additional_info}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Summarize the conversation, customer needs, and the next agreed step..."
+                  resetKey={resetKey}
+                  onDraftChange={(draftItem) =>
+                    handlePendingDraftChange("nb_additional_info", draftItem)
+                  }
+                  inputRef={noteInputRef}
+                  minRows={6}
+                  readOnly={isViewMode}
+                />
+
+                <NotebookNoteField
+                  title="Internal notes"
+                  description={internalNoteDescription}
+                  name="nb_remarks"
+                  value={draft.nb_remarks}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Add internal reminders, risks, or prep for the next follow-up..."
+                  resetKey={resetKey}
+                  onDraftChange={(draftItem) => handlePendingDraftChange("nb_remarks", draftItem)}
+                  minRows={4}
+                  readOnly={isViewMode}
+                />
+
+                {historyLoading || visibleHistories.length > 0 || pendingDrafts.length > 0 ? (
+                  <NotebookHistoryTimeline
+                    histories={visibleHistories}
+                    isLoading={historyLoading}
+                    showAll={showHistory}
+                    onToggle={() => setShowHistory((previous) => !previous)}
+                    pendingDrafts={pendingDrafts}
+                  />
+                ) : null}
+              </Stack>
+            </Grid>
+
+            <Grid item xs={12} md={5}>
+              <Stack spacing={2.25}>
+                <SectionCard>
+                  <SectionHeading>
+                    <MdBusiness />
+                    Customer info
+                  </SectionHeading>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Keep contact details close by, but out of the primary action path.
+                  </Typography>
+
+                  <Stack spacing={1.5}>
+                    <TextField
+                      fullWidth
+                      label="Customer / lead"
+                      name="nb_customer_name"
+                      value={draft.nb_customer_name || ""}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      InputProps={{ readOnly: isViewMode }}
+                      error={!!errors.nb_customer_name}
+                      helperText={errors.nb_customer_name}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Contact person"
+                      name="nb_contact_person"
+                      value={draft.nb_contact_person || ""}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      InputProps={{ readOnly: isViewMode }}
+                      error={!!errors.nb_contact_person}
+                      helperText={errors.nb_contact_person}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Phone"
+                      name="nb_contact_number"
+                      value={draft.nb_contact_number || ""}
+                      onChange={handleChange}
+                      onBlur={(event) => {
+                        if (isViewMode) {
+                          return;
+                        }
+
+                        handleBlur(event);
+                        checkPhoneDuplicate(event.target.value);
                       }}
-                    >
-                      <MdSupervisorAccount size={20} color={theme.palette.primary.main} />
-                    </Box>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        ผู้ดูแล (Sales Rep)
+                      InputProps={{ readOnly: isViewMode }}
+                      error={!!errors.nb_contact_number}
+                      helperText={
+                        errors.nb_contact_number ||
+                        "Duplicate checking runs when you leave the field."
+                      }
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      name="nb_email"
+                      value={draft.nb_email || ""}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      InputProps={{ readOnly: isViewMode }}
+                      error={!!errors.nb_email}
+                      helperText={errors.nb_email}
+                    />
+                  </Stack>
+                </SectionCard>
+
+                <SectionCard>
+                  <SectionHeading>
+                    <MdSupervisorAccount />
+                    Ownership & source
+                  </SectionHeading>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Supporting context stays visible without stealing focus from the next move.
+                  </Typography>
+
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                        Sales owner
                       </Typography>
+
                       {isAdmin ? (
-                        <FormControl fullWidth size="small" variant="standard">
+                        <FormControl fullWidth size="small">
                           <Select
-                            disableUnderline
                             name="nb_manage_by"
-                            value={inputData.nb_manage_by || ""}
+                            value={draft.nb_manage_by || ""}
                             onChange={handleChange}
-                            sx={{ fontWeight: 600, fontSize: "1rem" }}
+                            onBlur={handleBlur}
                             displayEmpty
+                            disabled={isViewMode}
                           >
-                            <MenuItem value="" disabled>
-                              <em>เลือกเซลล์</em>
+                            <MenuItem value="">
+                              <em>Select sales owner</em>
                             </MenuItem>
                             {salesList.map((user) => (
                               <MenuItem key={user.user_id} value={user.user_id}>
@@ -402,330 +435,173 @@ const NotebookDialog = () => {
                           </Select>
                         </FormControl>
                       ) : (
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {currentUser.username || "คุณ"}
-                        </Typography>
+                        <Chip
+                          color="default"
+                          variant="outlined"
+                          label={
+                            currentUser.username || currentUser.user_nickname || "Current user"
+                          }
+                        />
                       )}
                     </Box>
-                  </Box>
-                </Grid>
 
-                <Grid item xs={12} md={7}>
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={2}
-                    justifyContent="flex-end"
-                    alignItems="center"
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        bgcolor: "grey.200",
-                        borderRadius: 10,
-                        p: 0.25,
-                      }}
-                    >
-                      <Button
-                        size="small"
-                        variant={inputData.nb_is_online ? "contained" : "text"}
-                        color="success"
-                        sx={{
-                          borderRadius: 10,
-                          px: 1,
-                          py: 0.25,
-                          minWidth: 0,
-                          fontSize: "0.7rem",
-                          whiteSpace: "nowrap",
-                          boxShadow: inputData.nb_is_online ? 2 : 0,
-                          backgroundColor: inputData.nb_is_online ? "success.main" : "transparent",
-                          color: inputData.nb_is_online ? "white" : "text.secondary",
-                          "&:hover": {
-                            backgroundColor: inputData.nb_is_online ? "success.dark" : "grey.300",
-                          },
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                        Source
+                      </Typography>
+
+                      <ToggleButtonGroup
+                        exclusive
+                        value={draft.nb_is_online ? "online" : "onsite"}
+                        onChange={(_, value) => {
+                          if (!value) {
+                            return;
+                          }
+
+                          handleOnlineToggle(value === "online");
                         }}
-                        onClick={() => handleOnlineToggle(true)}
+                        disabled={isViewMode}
+                        sx={{ gap: 1 }}
                       >
-                        Online
-                      </Button>
-                      <Button
-                        size="small"
-                        variant={!inputData.nb_is_online ? "contained" : "text"}
-                        color="warning"
-                        sx={{
-                          borderRadius: 10,
-                          px: 1,
-                          py: 0.25,
-                          minWidth: 0,
-                          fontSize: "0.7rem",
-                          whiteSpace: "nowrap",
-                          boxShadow: !inputData.nb_is_online ? 2 : 0,
-                          backgroundColor: !inputData.nb_is_online ? "warning.main" : "transparent",
-                          color: !inputData.nb_is_online ? "white" : "text.secondary",
-                          "&:hover": {
-                            backgroundColor: !inputData.nb_is_online ? "warning.dark" : "grey.300",
-                          },
-                        }}
-                        onClick={() => handleOnlineToggle(false)}
-                      >
-                        On-site
-                      </Button>
+                        <SourceToggleButton value="online">Online</SourceToggleButton>
+                        <SourceToggleButton value="onsite">On-site</SourceToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
+
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                      <Chip variant="outlined" label={sourceMeta.label} color={sourceMeta.color} />
+                      <Chip
+                        variant="outlined"
+                        icon={
+                          isViewMode ? <MdRemoveRedEye /> : isEditMode ? <MdEdit /> : <MdSave />
+                        }
+                        label={isViewMode ? "View mode" : isEditMode ? "Edit mode" : "Create mode"}
+                      />
+                      {draft.nb_contact_number ? (
+                        <Chip variant="outlined" label="Phone ready for follow-up" />
+                      ) : null}
+                    </Stack>
+                  </Stack>
+                </SectionCard>
+
+                <SectionCard>
+                  <SectionHeading>
+                    <MdNote />
+                    Workflow summary
+                  </SectionHeading>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    A compact recap keeps long notes from hiding the important decision points.
+                  </Typography>
+
+                  <Stack spacing={1.25}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Next action
+                      </Typography>
+                      <Typography variant="body1" fontWeight={600}>
+                        {getNotebookActionLabel(draft.nb_action)}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Status
+                      </Typography>
+                      <Typography variant="body1" fontWeight={600}>
+                        {getNotebookStatusLabel(draft.nb_status)}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Save behavior
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Save stays visible at the bottom on desktop and as a floating CTA on mobile.
+                      </Typography>
                     </Box>
                   </Stack>
-                </Grid>
-              </Grid>
-            </StyledPaper>
+                </SectionCard>
+              </Stack>
+            </Grid>
           </Grid>
-
-          {/* 2. Customer Information */}
-          <Grid item xs={12}>
-            <SectionTitle>
-              <MdBusiness style={{ fontSize: "1.1rem" }} />
-              ข้อมูลลูกค้า
-            </SectionTitle>
-            <StyledPaper>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="ชื่อลูกค้า/ชื่อย่อ(เพื่อค้นหา) "
-                    name="nb_customer_name"
-                    value={inputData.nb_customer_name || ""}
-                    onChange={handleChange}
-                    error={!!errors.nb_customer_name}
-                    helperText={errors.nb_customer_name}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdBusiness color={theme.palette.action.active} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="ชื่อลูกค้า"
-                    name="nb_contact_person"
-                    value={inputData.nb_contact_person || ""}
-                    onChange={handleChange}
-                    placeholder="ระบุชื่อลูกค้า หรือบริษัท"
-                    error={!!errors.nb_contact_person}
-                    helperText={errors.nb_contact_person}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdPerson color={theme.palette.action.active} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="เบอร์ติดต่อ"
-                    name="nb_contact_number"
-                    value={inputData.nb_contact_number || ""}
-                    onChange={handleChange}
-                    error={!!errors.nb_contact_number}
-                    helperText={errors.nb_contact_number}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdPhone color={theme.palette.action.active} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    onBlur={(e) => checkPhoneDuplicate(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="E-mail"
-                    name="nb_email"
-                    value={inputData.nb_email || ""}
-                    onChange={handleChange}
-                    error={!!errors.nb_email}
-                    helperText={errors.nb_email}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdEmail color={theme.palette.action.active} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </StyledPaper>
-          </Grid>
-
-          {/* 3. Status & Tracking */}
-          <Grid item xs={12}>
-            <SectionTitle>
-              <MdAssignment style={{ fontSize: "1.1rem" }} />
-              สถานะและการติดตาม
-            </SectionTitle>
-            <StyledPaper sx={{ borderLeft: `6px solid ${theme.palette.info.main}` }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="สถานะปัจจุบัน"
-                    name="nb_status"
-                    value={inputData.nb_status || ""}
-                    onChange={handleChange}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdDonutLarge color={theme.palette.info.main} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  >
-                    <MenuItem value="พิจารณา">พิจารณา</MenuItem>
-                    <MenuItem value="ได้งาน">ได้งาน</MenuItem>
-                    <MenuItem value="หลุด">หลุด</MenuItem>
-                    <MenuItem value="ไม่ได้งาน">ไม่ได้งาน</MenuItem>
-                    <MenuItem value="ยังไม่แผนทำ">ยังไม่แผนทำ</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="สิ่งที่ต้องทำถัดไป (Next Action)"
-                    name="nb_action"
-                    value={inputData.nb_action || ""}
-                    onChange={handleChange}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <MdNextPlan color={theme.palette.warning.main} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  >
-                    <MenuItem value="โทร">โทร</MenuItem>
-                    <MenuItem value="ส่งเมล/Company Profile">ส่งเมล/Company Profile</MenuItem>
-                    <MenuItem value="ลูกค้ามาพบ">ลูกค้ามาพบ</MenuItem>
-                    <MenuItem value="ส่งงานมา">ส่งงานมา</MenuItem>
-                    <MenuItem value="ได้เข้าพบ">ได้เข้าพบ</MenuItem>
-                  </TextField>
-                </Grid>
-
-                {/* 4. Details & Remarks — Auto-Expanding */}
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 1 }} />
-                </Grid>
-
-                <Grid item xs={12}>
-                  {isEditMode ? (
-                    <FieldSection
-                      histories={notebookHistories}
-                      fieldName="nb_additional_info"
-                      label="รายละเอียด / ข้อมูลเพิ่มเติม"
-                      placeholder="บันทึกรายละเอียดการพูดคุย หรือสิ่งที่ลูกค้าต้องการ..."
-                      value={inputData.nb_additional_info}
-                      onChange={handleChange}
-                      currentUser={currentUser}
-                      isLoading={isSubmitting}
-                    />
-                  ) : (
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      maxRows={10}
-                      label="รายละเอียด / ข้อมูลเพิ่มเติม"
-                      name="nb_additional_info"
-                      value={inputData.nb_additional_info || ""}
-                      onChange={handleChange}
-                      placeholder="บันทึกรายละเอียดการพูดคุย หรือสิ่งที่ลูกค้าต้องการ..."
-                      variant="outlined"
-                      sx={{ "& .MuiOutlinedInput-root": { alignItems: "flex-start" } }}
-                    />
-                  )}
-                </Grid>
-
-                <Grid item xs={12}>
-                  {isEditMode ? (
-                    <FieldSection
-                      histories={notebookHistories}
-                      fieldName="nb_remarks"
-                      label="หมายเหตุ (Internal Note)"
-                      placeholder="บันทึกหมายเหตุภายใน..."
-                      value={inputData.nb_remarks}
-                      onChange={handleChange}
-                      size="small"
-                      currentUser={currentUser}
-                      isLoading={isSubmitting}
-                      inputProps={{
-                        startAdornment: (
-                          <InputAdornment
-                            position="start"
-                            sx={{ alignSelf: "flex-start", mt: 1.2 }}
-                          >
-                            <MdNote color={theme.palette.text.secondary} />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  ) : (
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      maxRows={10}
-                      label="หมายเหตุ (Internal Note)"
-                      name="nb_remarks"
-                      value={inputData.nb_remarks || ""}
-                      onChange={handleChange}
-                      placeholder="บันทึกหมายเหตุภายใน..."
-                      size="small"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment
-                            position="start"
-                            sx={{ alignSelf: "flex-start", mt: 1.2 }}
-                          >
-                            <MdNote color={theme.palette.text.secondary} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{ "& .MuiOutlinedInput-root": { alignItems: "flex-start" } }}
-                    />
-                  )}
-                </Grid>
-              </Grid>
-            </StyledPaper>
-          </Grid>
-        </Grid>
+        </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, bgcolor: "#FAFAFA", borderTop: "1px solid #eee" }}>
-        <Button onClick={handleClose} color="inherit" size="large" sx={{ mr: 2 }}>
-          ยกเลิก
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          startIcon={<MdSave />}
-          disabled={isSubmitting}
-          size="large"
+      {!isMobile && !isViewMode && (
+        <DialogActions
           sx={{
-            px: 4,
-            borderRadius: 8,
-            textTransform: "none",
-            fontSize: "1rem",
+            p: 2.5,
+            gap: 1,
+            bgcolor: "rgba(250,250,250,0.92)",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            backdropFilter: "blur(10px)",
+            position: "sticky",
+            bottom: 0,
+            zIndex: 2,
           }}
         >
-          {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-        </Button>
-      </DialogActions>
+          <Button onClick={handleClose} color="inherit" size="large">
+            {closeButtonLabel}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            startIcon={<MdSave />}
+            disabled={isSubmitting}
+            size="large"
+            sx={{
+              px: 3.5,
+              borderRadius: 999,
+              textTransform: "none",
+              fontSize: "1rem",
+            }}
+          >
+            {isSubmitting ? "Saving..." : "Save note"}
+          </Button>
+        </DialogActions>
+      )}
+
+      {!isMobile && isViewMode && (
+        <DialogActions
+          sx={{
+            p: 2.5,
+            gap: 1,
+            bgcolor: "rgba(250,250,250,0.92)",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            backdropFilter: "blur(10px)",
+            position: "sticky",
+            bottom: 0,
+            zIndex: 2,
+          }}
+        >
+          <Button onClick={handleClose} color="primary" variant="contained" size="large">
+            {closeButtonLabel}
+          </Button>
+        </DialogActions>
+      )}
+
+      {isMobile && dialogOpen && !isViewMode && (
+        <Fab
+          color="primary"
+          variant="extended"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          sx={{
+            position: "fixed",
+            right: 16,
+            bottom: 16,
+            zIndex: theme.zIndex.modal + 1,
+            borderRadius: 999,
+            px: 2.5,
+          }}
+        >
+          <MdSave style={{ marginRight: 8 }} />
+          {isSubmitting ? "Saving..." : "Save note"}
+        </Fab>
+      )}
 
       <DuplicatePhoneDialog
         open={duplicatePhoneDialogOpen}

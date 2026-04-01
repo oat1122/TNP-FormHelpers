@@ -178,6 +178,45 @@ class NotebookControllerTest extends TestCase
         $this->assertIsArray($response->json());
     }
 
+    public function test_manager_can_filter_index_by_action_and_manage_by(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $salesOwner = User::factory()->sales()->create();
+        $otherSalesOwner = User::factory()->sales()->create();
+
+        $matchingNotebook = $this->createNotebook($salesOwner, [
+            'nb_customer_name' => 'Call Prospect',
+            'nb_action' => 'โทร',
+            'nb_manage_by' => $salesOwner->user_id,
+        ]);
+
+        $this->createNotebook($salesOwner, [
+            'nb_customer_name' => 'Meeting Prospect',
+            'nb_action' => 'ได้เข้าพบ',
+            'nb_manage_by' => $salesOwner->user_id,
+        ]);
+
+        $this->createNotebook($otherSalesOwner, [
+            'nb_customer_name' => 'Other Sales Call',
+            'nb_action' => 'โทร',
+            'nb_manage_by' => $otherSalesOwner->user_id,
+        ]);
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson(sprintf(
+            '/api/v1/notebooks?action=%s&manage_by=%s',
+            urlencode('โทร'),
+            $salesOwner->user_id
+        ))->assertOk();
+
+        $response->assertJsonPath('total', 1);
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $matchingNotebook->id);
+        $response->assertJsonPath('data.0.nb_action', 'โทร');
+        $response->assertJsonPath('data.0.nb_manage_by', $salesOwner->user_id);
+    }
+
     public function test_show_returns_histories_with_action_by_for_edit_dialog(): void
     {
         $owner = User::factory()->sales()->create([

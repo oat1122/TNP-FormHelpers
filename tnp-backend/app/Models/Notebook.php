@@ -124,4 +124,22 @@ class Notebook extends Model
 
         return $query;
     }
+
+    public function scopeFilterAction(Builder $query, ?string $action): Builder
+    {
+        if ($action !== null && $action !== '') {
+            $query->where('nb_action', $action);
+        }
+
+        return $query;
+    }
+
+    public function scopeFilterManageBy(Builder $query, ?int $manageBy): Builder
+    {
+        if ($manageBy !== null) {
+            $query->where('nb_manage_by', $manageBy);
+        }
+
+        return $query;
+    }
 }

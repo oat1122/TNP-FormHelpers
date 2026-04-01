@@ -4,6 +4,7 @@ const initialState = {
   dialogOpen: false,
   selectedNotebook: null,
   dialogMode: "create",
+  dialogFocusTarget: null,
 };
 
 export const notebookSlice = createSlice({
@@ -19,15 +20,24 @@ export const notebookSlice = createSlice({
     setDialogMode: (state, action) => {
       state.dialogMode = action.payload;
     },
+    setDialogFocusTarget: (state, action) => {
+      state.dialogFocusTarget = action.payload;
+    },
     resetNotebookDialog: (state) => {
       state.dialogOpen = false;
       state.selectedNotebook = null;
       state.dialogMode = "create";
+      state.dialogFocusTarget = null;
     },
   },
 });
 
-export const { setDialogOpen, setSelectedNotebook, setDialogMode, resetNotebookDialog } =
-  notebookSlice.actions;
+export const {
+  setDialogOpen,
+  setSelectedNotebook,
+  setDialogMode,
+  setDialogFocusTarget,
+  resetNotebookDialog,
+} = notebookSlice.actions;
 
 export default notebookSlice.reducer;

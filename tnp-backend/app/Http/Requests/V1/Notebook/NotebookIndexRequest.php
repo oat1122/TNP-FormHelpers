@@ -32,6 +32,8 @@ class NotebookIndexRequest extends NotebookRequest
             'end_date' => ['nullable', 'date'],
             'date_filter_by' => ['nullable', 'in:nb_date,created_at,updated_at,all'],
             'status' => ['nullable', 'string', 'max:255'],
+            'action' => ['nullable', 'string', 'max:255'],
+            'manage_by' => ['nullable', 'integer', 'min:1'],
             'include' => ['nullable', 'string'],
             'paginate' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

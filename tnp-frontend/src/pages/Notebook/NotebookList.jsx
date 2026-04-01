@@ -15,10 +15,22 @@ const NotebookList = () => {
     userRole,
     paginationModel,
     setPaginationModel,
+    searchInput,
+    setSearchInput,
     periodFilter,
     setPeriodFilter,
     dateFilterBy,
     setDateFilterBy,
+    statusFilter,
+    setStatusFilter,
+    actionFilter,
+    setActionFilter,
+    salesFilter,
+    setSalesFilter,
+    salesOptions,
+    canFilterBySales,
+    viewMode,
+    setViewMode,
     filterSummary,
     customerDialogOpen,
     setCustomerDialogOpen,
@@ -33,10 +45,12 @@ const NotebookList = () => {
     exportState,
     handleAdd,
     handleEdit,
+    handleEditWorkflow,
     handleView,
     handleDelete,
     handleConvert,
     handleAfterCustomerSave,
+    handleClearFilters,
   } = useNotebookList();
 
   return (
@@ -53,10 +67,22 @@ const NotebookList = () => {
         />
 
         <NotebookFilterSection
+          searchInput={searchInput}
+          onSearchChange={setSearchInput}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          actionFilter={actionFilter}
+          onActionChange={setActionFilter}
+          salesFilter={salesFilter}
+          onSalesChange={setSalesFilter}
+          salesOptions={salesOptions}
+          canFilterBySales={canFilterBySales}
           periodFilter={periodFilter}
           onPeriodChange={setPeriodFilter}
           dateFilterBy={dateFilterBy}
           onDateFilterChange={setDateFilterBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           isLoading={isLoading}
         />
 
@@ -72,11 +98,14 @@ const NotebookList = () => {
           actions={{
             onView: handleView,
             onEdit: handleEdit,
+            onEditWorkflow: handleEditWorkflow,
             onDelete: handleDelete,
             onConvert: handleConvert,
           }}
           userRole={userRole}
           filterSummary={filterSummary}
+          viewMode={viewMode}
+          onClearFilters={handleClearFilters}
           onRetry={refetch}
         />
       </Box>

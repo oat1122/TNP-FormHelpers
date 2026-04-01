@@ -17,7 +17,9 @@ import { validationSchema } from "../utils/validationSchema";
 export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const dispatch = useDispatch();
   const isAdmin = currentUser?.role === "admin";
-  const { dialogOpen, selectedNotebook, dialogMode } = useSelector((state) => state.notebook);
+  const { dialogOpen, selectedNotebook, dialogMode, dialogFocusTarget } = useSelector(
+    (state) => state.notebook
+  );
 
   const [draft, setDraft] = useState(() =>
     buildNotebookDraft({ notebook: null, currentUser, isAdmin })
@@ -218,6 +220,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
   return {
     dialogOpen,
     dialogMode,
+    dialogFocusTarget,
     recordKey: `${dialogMode}-${selectedNotebook?.id || "create"}`,
     draft,
     errors,

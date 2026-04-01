@@ -8,6 +8,13 @@ export const getStoredNotebookUser = () => {
   }
 };
 
+export const getDefaultNotebookPeriodFilter = () => ({
+  mode: "month",
+  shiftUnit: "month",
+  startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+  endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+});
+
 export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
   nb_date: notebook?.nb_date || dayjs().format("YYYY-MM-DD"),
   nb_time: notebook?.nb_time || dayjs().format("HH:mm"),
@@ -23,21 +30,84 @@ export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
   nb_manage_by: isAdmin ? (notebook?.nb_manage_by ?? "") : (currentUser?.user_id ?? null),
 });
 
-export const buildNotebookFilterSummary = ({ keyword, periodFilter, dateFilterBy }) => {
+export const buildNotebookFilterSummary = ({
+  keyword,
+  periodFilter,
+  dateFilterBy,
+  statusFilter,
+  actionFilter,
+  salesFilter,
+  salesOptions = [],
+  defaults,
+}) => {
   const dateTypeLabelMap = {
     all: "สร้างหรืออัปเดต",
+    nb_date: "วันติดตาม",
     created_at: "วันที่สร้าง",
     updated_at: "วันที่อัปเดต",
   };
 
-  const dateLabel = `${periodFilter.startDate} ถึง ${periodFilter.endDate}`;
-  const keywordLabel = keyword ? `คำค้นหา: "${keyword}"` : "คำค้นหา: ทั้งหมด";
-  const typeLabel = `ประเภทวันที่: ${dateTypeLabelMap[dateFilterBy] || "ทั้งหมด"}`;
+  const salesLabel =
+    salesOptions.find((option) => String(option.value) === String(salesFilter))?.label || salesFilter;
+  const dateLabel = `ช่วง ${periodFilter.startDate} ถึง ${periodFilter.endDate}`;
+  const chips = [
+    {
+      key: "date",
+      label: dateLabel,
+    },
+    {
+      key: "date-type",
+      label: `วันที่: ${dateTypeLabelMap[dateFilterBy] || "ทั้งหมด"}`,
+    },
+  ];
+
+  if (keyword) {
+    chips.unshift({
+      key: "keyword",
+      label: `ค้นหา: "${keyword}"`,
+    });
+  }
+
+  if (statusFilter && statusFilter !== "all") {
+    chips.push({
+      key: "status",
+      label: `สถานะ: ${statusFilter}`,
+    });
+  }
+
+  if (actionFilter && actionFilter !== "all") {
+    chips.push({
+      key: "action",
+      label: `Next action: ${actionFilter}`,
+    });
+  }
+
+  if (salesFilter && salesFilter !== "all" && salesLabel) {
+    chips.push({
+      key: "sales",
+      label: `Sales: ${salesLabel}`,
+    });
+  }
+
+  const hasCustomFilters =
+    Boolean(keyword) ||
+    dateFilterBy !== defaults.dateFilterBy ||
+    statusFilter !== defaults.statusFilter ||
+    actionFilter !== defaults.actionFilter ||
+    String(salesFilter) !== String(defaults.salesFilter) ||
+    periodFilter.startDate !== defaults.periodFilter.startDate ||
+    periodFilter.endDate !== defaults.periodFilter.endDate ||
+    periodFilter.mode !== defaults.periodFilter.mode;
 
   return {
-    label: `${keywordLabel} | ${typeLabel} | ช่วงเวลา ${dateLabel}`,
-    keywordLabel,
-    typeLabel,
+    chips,
+    hasCustomFilters,
+    keywordLabel: keyword ? `ค้นหา: "${keyword}"` : "",
+    typeLabel: `วันที่: ${dateTypeLabelMap[dateFilterBy] || "ทั้งหมด"}`,
     dateLabel,
+    statusLabel: statusFilter && statusFilter !== "all" ? `สถานะ: ${statusFilter}` : "",
+    actionLabel: actionFilter && actionFilter !== "all" ? `Next action: ${actionFilter}` : "",
+    salesLabel:
+      salesFilter && salesFilter !== "all" && salesLabel ? `Sales: ${salesLabel}` : "",
   };
 };

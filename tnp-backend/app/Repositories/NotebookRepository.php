@@ -97,6 +97,8 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
                 $filters['date_filter_by'] ?? 'nb_date'
             )
             ->filterStatus($filters['status'] ?? null)
+            ->filterAction($filters['action'] ?? null)
+            ->filterManageBy(isset($filters['manage_by']) ? (int) $filters['manage_by'] : null)
             ->orderByDesc('created_at');
     }
 

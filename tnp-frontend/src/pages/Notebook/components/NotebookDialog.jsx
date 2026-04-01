@@ -80,12 +80,14 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const noteInputRef = useRef(null);
+  const workflowSectionRef = useRef(null);
   const [showHistory, setShowHistory] = useState(false);
   const [pendingDraftMap, setPendingDraftMap] = useState({});
 
   const {
     dialogOpen,
     dialogMode,
+    dialogFocusTarget,
     recordKey,
     draft,
     errors,
@@ -129,6 +131,24 @@ const NotebookDialog = ({ currentUser = {} }) => {
     setShowHistory(false);
     setPendingDraftMap({});
   }, [dialogOpen, resetKey]);
+
+  useEffect(() => {
+    if (!dialogOpen || dialogFocusTarget !== "workflow") {
+      return;
+    }
+
+    const handle = requestAnimationFrame(() => {
+      workflowSectionRef.current?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
+      workflowSectionRef.current?.focus();
+    });
+
+    return () => {
+      cancelAnimationFrame(handle);
+    };
+  }, [dialogFocusTarget, dialogOpen, resetKey]);
 
   const pendingDrafts = useMemo(
     () =>
@@ -227,11 +247,13 @@ const NotebookDialog = ({ currentUser = {} }) => {
             onClose={handleClose}
           />
 
-          <NotebookQuickActions
-            value={draft.nb_action}
-            onChange={handleActionChange}
-            readOnly={isViewMode}
-          />
+          <Box ref={workflowSectionRef} tabIndex={-1} sx={{ outline: "none" }}>
+            <NotebookQuickActions
+              value={draft.nb_action}
+              onChange={handleActionChange}
+              readOnly={isViewMode}
+            />
+          </Box>
 
           <Grid container spacing={2.25}>
             <Grid item xs={12} md={7}>
@@ -496,7 +518,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
                   <Stack spacing={1.25}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">
-                        Next action
+                        Action
                       </Typography>
                       <Typography variant="body1" fontWeight={600}>
                         {getNotebookActionLabel(draft.nb_action)}

@@ -135,4 +135,78 @@ interface KpiRepositoryInterface extends BaseRepositoryInterface
      * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\MasterCustomer>
      */
     public function getExportData(Builder $query);
+
+    /**
+     * Get base notebook lead KPI query.
+     *
+     * @param array<string, \Carbon\Carbon> $dateRange
+     * @return Builder<\App\Models\Notebook>
+     */
+    public function getNotebookLeadBaseQuery(array $dateRange, string $sourceFilter, ?int $targetUserId): Builder;
+
+    /**
+     * Get summary statistics for notebook lead KPI.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return array<string, mixed>
+     */
+    public function getNotebookLeadSummaryStats(Builder $query): array;
+
+    /**
+     * Get statistics grouped by source for notebook lead KPI.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return array<int, mixed>
+     */
+    public function getNotebookLeadBySourceStats(Builder $query): array;
+
+    /**
+     * Get statistics grouped by business type for notebook lead KPI.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return array<int, mixed>
+     */
+    public function getNotebookLeadByBusinessTypeStats(Builder $query): array;
+
+    /**
+     * Get statistics for queue/claimed state for notebook leads.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return array<int, mixed>
+     */
+    public function getNotebookLeadByAllocationStats(Builder $query): array;
+
+    /**
+     * Get daily notebook lead additions for the selected period.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @param array<string, \Carbon\Carbon> $dateRange
+     * @return array<int, mixed>
+     */
+    public function getNotebookLeadTimeSeriesStats(Builder $query, array $dateRange): array;
+
+    /**
+     * Compare notebook lead additions to previous period.
+     *
+     * @param array<string, mixed> $currentStats
+     * @param array<string, \Carbon\Carbon> $prevDateRange
+     * @return array<string, mixed>
+     */
+    public function getNotebookLeadPeriodComparison(array $currentStats, array $prevDateRange, string $sourceFilter, ?int $targetUserId): array;
+
+    /**
+     * Get paginated notebook leads for KPI detail dialogs.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return \Illuminate\Pagination\LengthAwarePaginator<\App\Models\Notebook>
+     */
+    public function getNotebookLeadPaginatedDetails(Builder $query, string $kpiType, int $perPage);
+
+    /**
+     * Export notebook lead KPI rows.
+     *
+     * @param Builder<\App\Models\Notebook> $query
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Notebook>
+     */
+    public function getNotebookLeadExportData(Builder $query);
 }

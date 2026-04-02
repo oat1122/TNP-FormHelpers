@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Constants\UserRole;
+use App\Helpers\UserSubRoleHelper;
+use App\Models\MasterCustomer;
 use App\Models\User\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +13,26 @@ use Illuminate\Database\Eloquent\Model;
 class Notebook extends Model
 {
     use HasFactory;
+
+    public const WORKFLOW_STANDARD = 'standard';
+
+    public const WORKFLOW_LEAD_QUEUE = 'lead_queue';
+
+    public const ENTRY_TYPE_STANDARD = 'standard';
+
+    public const ENTRY_TYPE_CUSTOMER_CARE = 'customer_care';
+
+    public const SOURCE_TYPE_CUSTOMER = 'customer';
+
+    public const SOURCE_TYPE_NOTEBOOK = 'notebook';
+
+    public const USER_RELATION_COLUMNS = 'user_id,username,user_nickname,user_firstname,user_lastname,role';
+
+    protected ?string $historyActionOverride = null;
+
+    protected ?array $historyOldValuesOverride = null;
+
+    protected ?array $historyNewValuesOverride = null;
 
     protected $fillable = [
         'nb_date',
@@ -24,13 +46,29 @@ class Notebook extends Model
         'nb_action',
         'nb_status',
         'nb_remarks',
-        'nb_manage_by'
+        'nb_manage_by',
+        'nb_workflow',
+        'nb_entry_type',
+        'nb_source_type',
+        'nb_source_customer_id',
+        'nb_source_notebook_id',
+        'nb_lead_payload',
+        'nb_claimed_at',
+        'nb_converted_customer_id',
+    ];
+
+    protected $attributes = [
+        'nb_workflow' => self::WORKFLOW_STANDARD,
+        'nb_entry_type' => self::ENTRY_TYPE_STANDARD,
     ];
 
     protected $casts = [
         'nb_is_online' => 'boolean',
         'nb_date' => 'date',
         'nb_converted_at' => 'datetime',
+        'nb_claimed_at' => 'datetime',
+        'nb_source_notebook_id' => 'integer',
+        'nb_lead_payload' => 'array',
     ];
 
     public function manageBy()
@@ -53,19 +91,91 @@ class Notebook extends Model
         return $this->hasMany(NotebookHistory::class)->orderBy('created_at', 'desc');
     }
 
-    public function scopeVisibleTo(Builder $query, $user): Builder
+    public function sourceCustomer()
     {
-        if (! $user || ! in_array($user->role, [UserRole::ADMIN, UserRole::MANAGER], true)) {
-            $query->where('nb_manage_by', $user?->user_id);
+        return $this->belongsTo(MasterCustomer::class, 'nb_source_customer_id', 'cus_id');
+    }
+
+    public function sourceNotebook()
+    {
+        return $this->belongsTo(self::class, 'nb_source_notebook_id');
+    }
+
+    public function isLeadQueue(): bool
+    {
+        return $this->nb_workflow === self::WORKFLOW_LEAD_QUEUE;
+    }
+
+    public function isCustomerCare(): bool
+    {
+        return $this->nb_entry_type === self::ENTRY_TYPE_CUSTOMER_CARE;
+    }
+
+    public function setHistoryContext(?string $action = null, ?array $oldValues = null, ?array $newValues = null): self
+    {
+        $this->historyActionOverride = $action;
+        $this->historyOldValuesOverride = $oldValues;
+        $this->historyNewValuesOverride = $newValues;
+
+        return $this;
+    }
+
+    public function pullHistoryContext(): array
+    {
+        $context = [
+            'action' => $this->historyActionOverride,
+            'old_values' => $this->historyOldValuesOverride,
+            'new_values' => $this->historyNewValuesOverride,
+        ];
+
+        $this->historyActionOverride = null;
+        $this->historyOldValuesOverride = null;
+        $this->historyNewValuesOverride = null;
+
+        return $context;
+    }
+
+    public function scopeLeadQueue(Builder $query): Builder
+    {
+        return $query->where('nb_workflow', self::WORKFLOW_LEAD_QUEUE);
+    }
+
+    public function scopeQueueInbox(Builder $query): Builder
+    {
+        return $query->leadQueue()
+            ->whereNull('nb_manage_by')
+            ->whereNull('nb_converted_at');
+    }
+
+    public function scopeVisibleTo(Builder $query, $user, ?string $scope = null): Builder
+    {
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
         }
 
-        return $query;
+        $resolvedScope = $scope ?? (UserSubRoleHelper::canManageAllNotebooks($user) ? 'all' : 'mine');
+
+        if ($resolvedScope === 'queue') {
+            if (! UserSubRoleHelper::canReserveNotebookQueue($user)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->queueInbox();
+        }
+
+        if (UserSubRoleHelper::canManageAllNotebooks($user) && $resolvedScope === 'all') {
+            return $query;
+        }
+
+        return $query->where('nb_manage_by', $user?->user_id);
     }
 
     public function scopeWithRequestedIncludes(Builder $query, array $includes): Builder
     {
+        $query->with(['manageBy:'.self::USER_RELATION_COLUMNS]);
+
         if (in_array('histories', $includes, true)) {
-            $query->with('histories.actionBy');
+            $query->with(['histories.actionBy:'.self::USER_RELATION_COLUMNS]);
         }
 
         return $query;
@@ -138,6 +248,24 @@ class Notebook extends Model
     {
         if ($manageBy !== null) {
             $query->where('nb_manage_by', $manageBy);
+        }
+
+        return $query;
+    }
+
+    public function scopeFilterWorkflow(Builder $query, ?string $workflow): Builder
+    {
+        if ($workflow !== null && $workflow !== '') {
+            $query->where('nb_workflow', $workflow);
+        }
+
+        return $query;
+    }
+
+    public function scopeFilterEntryType(Builder $query, ?string $entryType): Builder
+    {
+        if ($entryType !== null && $entryType !== '' && $entryType !== 'all') {
+            $query->where('nb_entry_type', $entryType);
         }
 
         return $query;

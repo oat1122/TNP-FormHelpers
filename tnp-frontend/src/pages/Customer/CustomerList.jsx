@@ -41,6 +41,7 @@ import { setPaginationModel, setInputList, setMode } from "../../features/Custom
 import { AssignDialog, PoolCustomersTable } from "../AllocationHub/components";
 import { useAllocationHub, useSnackbar } from "../AllocationHub/hooks";
 import { AllocationTabs } from "../AllocationHub/sections";
+import { canOpenNotebookQuickLeadForm } from "../../utils/userAccess";
 
 function CustomerList() {
   const dispatch = useDispatch();
@@ -52,6 +53,7 @@ function CustomerList() {
 
   // User data
   const user = JSON.parse(localStorage.getItem("userData"));
+  const canOpenQuickLeadForm = canOpenNotebookQuickLeadForm(user);
 
   // Check if user is HEAD
   const userSubRole = useMemo(() => {
@@ -374,7 +376,7 @@ function CustomerList() {
                     <RiAddLargeFill style={{ width: 24, height: 24 }} />
                   </Button>
                 )}
-                {(user.role === "telesale" || user.role === "admin") && (
+                {canOpenQuickLeadForm && (
                   <Button
                     variant="contained"
                     color="success"

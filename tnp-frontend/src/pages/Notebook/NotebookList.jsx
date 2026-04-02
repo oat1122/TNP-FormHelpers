@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import NotebookDialog from "./components/NotebookDialog";
+import CustomerCareDialog from "./components/CustomerCareDialog";
 import NotebookTable from "./components/NotebookTable";
 import PrintPDFDialog from "./components/PrintPDFDialog";
 import { useNotebookList } from "./hooks/useNotebookList";
@@ -15,6 +16,8 @@ const NotebookList = () => {
     userRole,
     paginationModel,
     setPaginationModel,
+    scopeFilter,
+    setScopeFilter,
     searchInput,
     setSearchInput,
     periodFilter,
@@ -25,10 +28,15 @@ const NotebookList = () => {
     setStatusFilter,
     actionFilter,
     setActionFilter,
+    entryTypeFilter,
+    setEntryTypeFilter,
     salesFilter,
     setSalesFilter,
     salesOptions,
     canFilterBySales,
+    canUseQueueTabs,
+    canSelfReport,
+    canCreateCustomerCare,
     viewMode,
     setViewMode,
     filterSummary,
@@ -36,6 +44,8 @@ const NotebookList = () => {
     setCustomerDialogOpen,
     exportDialogOpen,
     setExportDialogOpen,
+    customerCareDialogState,
+    closeCustomerCareDialog,
     rows,
     total,
     listError,
@@ -44,10 +54,12 @@ const NotebookList = () => {
     refetch,
     exportState,
     handleAdd,
+    handleAddCustomerCare,
     handleEdit,
     handleEditWorkflow,
     handleView,
     handleDelete,
+    handleReserve,
     handleConvert,
     handleAfterCustomerSave,
     handleClearFilters,
@@ -63,7 +75,14 @@ const NotebookList = () => {
           isRefreshing={isFetching}
           onOpenExport={() => setExportDialogOpen(true)}
           onAdd={handleAdd}
+          onAddCustomerCare={handleAddCustomerCare}
           disableExport={isLoading}
+          canCreateCustomerCare={canCreateCustomerCare}
+          scopeFilter={scopeFilter}
+          onScopeChange={setScopeFilter}
+          showScopeTabs={canUseQueueTabs}
+          showAllScopeTab={userRole === "admin" || userRole === "manager"}
+          canSelfReport={canSelfReport}
         />
 
         <NotebookFilterSection
@@ -73,6 +92,8 @@ const NotebookList = () => {
           onStatusChange={setStatusFilter}
           actionFilter={actionFilter}
           onActionChange={setActionFilter}
+          entryTypeFilter={entryTypeFilter}
+          onEntryTypeChange={setEntryTypeFilter}
           salesFilter={salesFilter}
           onSalesChange={setSalesFilter}
           salesOptions={salesOptions}
@@ -100,11 +121,14 @@ const NotebookList = () => {
             onEdit: handleEdit,
             onEditWorkflow: handleEditWorkflow,
             onDelete: handleDelete,
+            onReserve: handleReserve,
             onConvert: handleConvert,
           }}
           userRole={userRole}
           filterSummary={filterSummary}
           viewMode={viewMode}
+          scopeFilter={scopeFilter}
+          canReserveQueue={canUseQueueTabs}
           onClearFilters={handleClearFilters}
           onRetry={refetch}
         />
@@ -112,12 +136,22 @@ const NotebookList = () => {
 
       <NotebookDialog currentUser={currentUser} />
 
+      <CustomerCareDialog
+        open={customerCareDialogState.open}
+        mode={customerCareDialogState.mode}
+        selectedRecord={customerCareDialogState.selectedRecord}
+        currentUser={currentUser}
+        onClose={closeCustomerCareDialog}
+      />
+
       <PrintPDFDialog
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
         items={exportState.exportItems}
         filteredItems={exportState.filteredItems}
         exportRows={exportState.exportRows}
+        pdfRows={exportState.pdfRows}
+        leadSummaryRows={exportState.leadSummaryRows}
         selectedIds={exportState.selectedIds}
         dateRange={exportState.dateRange}
         activePreset={exportState.activePreset}
@@ -132,6 +166,7 @@ const NotebookList = () => {
         onSelectAll={exportState.handleSelectAll}
         onExportCsv={exportState.handleExportCsv}
         isAllSelected={exportState.isAllSelected}
+        isSelfReportMode={exportState.isSelfReportMode}
       />
 
       <DialogForm

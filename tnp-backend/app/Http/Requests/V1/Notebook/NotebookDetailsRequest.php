@@ -3,6 +3,7 @@
 namespace App\Http\Requests\V1\Notebook;
 
 use App\Constants\UserRole;
+use App\Helpers\UserSubRoleHelper;
 
 class NotebookDetailsRequest extends NotebookRequest
 {
@@ -10,12 +11,14 @@ class NotebookDetailsRequest extends NotebookRequest
     {
         $user = $this->user();
 
-        return (bool) $user && in_array($user->role, [
-            UserRole::ADMIN,
-            UserRole::MANAGER,
-            UserRole::TELESALE,
-            UserRole::SALE,
-        ], true);
+        return (bool) $user && (
+            in_array($user->role, [
+                UserRole::ADMIN,
+                UserRole::MANAGER,
+                UserRole::TELESALE,
+                UserRole::SALE,
+            ], true) || UserSubRoleHelper::isNotebookQueueUser($user)
+        );
     }
 
     public function rules(): array

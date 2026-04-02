@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Helpers\UserSubRoleHelper;
 use App\Models\Notebook;
 use App\Models\NotebookHistory;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,6 +39,7 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             ->with('actionBy')
             ->join('notebooks', 'notebook_histories.notebook_id', '=', 'notebooks.id')
             ->select('notebook_histories.*')
+            ->distinct()
             ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
 
         $this->applyNotebookSourceFilter($query, $sourceFilter);
@@ -70,6 +72,7 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
                 'notebooks.nb_date',
                 'notebooks.nb_time'
             )
+            ->distinct()
             ->whereBetween('notebook_histories.created_at', [$dateRange['start'], $dateRange['end']]);
 
         $this->applyNotebookSourceFilter($query, $sourceFilter);
@@ -85,10 +88,61 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
         return $query->orderBy('notebook_histories.created_at', 'desc');
     }
 
-    protected function buildIndexQuery(array $filters, $user): Builder
+    public function getSelfReportLeadAdditions(array $filters, $user): Collection
     {
         return $this->newQuery()
-            ->visibleTo($user)
+            ->withRequestedIncludes($this->normalizeIncludes($filters['include'] ?? []))
+            ->leadQueue()
+            ->where('created_by', $user?->user_id)
+            ->filterDateRange(
+                $filters['start_date'] ?? null,
+                $filters['end_date'] ?? null,
+                'created_at'
+            )
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    public function getSelfReportActivityItems(array $filters, $user): Collection
+    {
+        $startDate = $filters['start_date'] ?? null;
+        $endDate = $filters['end_date'] ?? null;
+
+        return $this->newQuery()
+            ->with([
+                'histories' => function ($historyQuery) use ($user, $startDate, $endDate) {
+                    $historyQuery->where('action_by', $user?->user_id)
+                        ->with('actionBy')
+                        ->orderBy('created_at', 'asc');
+
+                    if ($startDate && $endDate) {
+                        $historyQuery->whereBetween('created_at', [
+                            $startDate.' 00:00:00',
+                            $endDate.' 23:59:59',
+                        ]);
+                    }
+                },
+            ])
+            ->whereHas('histories', function (Builder $historyQuery) use ($user, $startDate, $endDate) {
+                $historyQuery->where('action_by', $user?->user_id);
+
+                if ($startDate && $endDate) {
+                    $historyQuery->whereBetween('created_at', [
+                        $startDate.' 00:00:00',
+                        $endDate.' 23:59:59',
+                    ]);
+                }
+            })
+            ->orderByDesc('updated_at')
+            ->get();
+    }
+
+    protected function buildIndexQuery(array $filters, $user): Builder
+    {
+        $scope = $filters['scope'] ?? null;
+
+        return $this->newQuery()
+            ->visibleTo($user, $scope)
             ->withRequestedIncludes($this->normalizeIncludes($filters['include'] ?? []))
             ->applySearch($filters['search'] ?? null)
             ->filterDateRange(
@@ -98,6 +152,8 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             )
             ->filterStatus($filters['status'] ?? null)
             ->filterAction($filters['action'] ?? null)
+            ->filterEntryType($filters['entry_type'] ?? null)
+            ->filterWorkflow($filters['workflow'] ?? null)
             ->filterManageBy(isset($filters['manage_by']) ? (int) $filters['manage_by'] : null)
             ->orderByDesc('created_at');
     }
@@ -142,6 +198,8 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
         $query
             ->leftJoin('users as notebook_manage_users', 'notebooks.nb_manage_by', '=', 'notebook_manage_users.user_id')
             ->leftJoin('users as notebook_created_users', 'notebooks.created_by', '=', 'notebook_created_users.user_id')
+            ->leftJoin('user_sub_roles as notebook_created_user_sub_roles', 'notebook_created_users.user_id', '=', 'notebook_created_user_sub_roles.usr_user_id')
+            ->leftJoin('master_sub_roles as notebook_created_master_sub_roles', 'notebook_created_user_sub_roles.usr_sub_role_id', '=', 'notebook_created_master_sub_roles.msr_id')
             ->where('notebooks.nb_is_online', false)
             ->where(function (Builder $roleQuery) use ($targetRole) {
                 $roleQuery
@@ -151,7 +209,17 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
                     })
                     ->orWhere(function (Builder $query) use ($targetRole) {
                         $query->whereNull('notebooks.nb_manage_by')
-                            ->where('notebook_created_users.role', $targetRole);
+                            ->where(function (Builder $createdQuery) use ($targetRole) {
+                                $createdQuery->where('notebook_created_users.role', $targetRole);
+
+                                if ($targetRole === 'sale') {
+                                    $createdQuery->orWhere('notebook_created_master_sub_roles.msr_code', UserSubRoleHelper::SUPPORT_SALES);
+                                }
+
+                                if ($targetRole === 'telesale') {
+                                    $createdQuery->orWhere('notebook_created_master_sub_roles.msr_code', UserSubRoleHelper::TALESALES);
+                                }
+                            });
                     });
             });
     }

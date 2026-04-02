@@ -21,8 +21,8 @@ class NotebookKpiService
             ->get()
             ->groupBy('action_by')
             ->map(function ($histories, $userId) {
-                $addedCount = $histories->where('action', 'created')->count();
-                $updatedCount = $histories->where('action', 'updated')->count();
+                $addedCount = $histories->filter(fn ($history) => $this->isCreateAction($history->action))->count();
+                $updatedCount = $histories->filter(fn ($history) => ! $this->isCreateAction($history->action))->count();
 
                 $actionBy = $histories->first()?->actionBy;
                 $allocatorName = $actionBy
@@ -78,7 +78,7 @@ class NotebookKpiService
                     'nb_action' => $history->nb_action,
                     'nb_date' => $history->nb_date,
                     'nb_time' => $history->nb_time,
-                    'action_type' => $history->action,
+                    'action_type' => $this->normalizeHistoryAction($history->action),
                     'old_values' => $history->old_values,
                     'new_values' => $history->new_values,
                     'action_by_name' => $allocatorName,
@@ -174,5 +174,15 @@ class NotebookKpiService
             'end_date' => $dateRange['end']->format('Y-m-d'),
             'label' => $dateRange['label'],
         ];
+    }
+
+    protected function isCreateAction(?string $action): bool
+    {
+        return in_array($action, ['created', 'created_to_queue', 'created_to_mine'], true);
+    }
+
+    protected function normalizeHistoryAction(?string $action): string
+    {
+        return $this->isCreateAction($action) ? 'created' : 'updated';
     }
 }

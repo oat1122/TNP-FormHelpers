@@ -18,9 +18,20 @@ import {
   getNotebookNotePreview,
   getStatusColor,
 } from "../utils/notebookCommon";
-import { getNotebookActionLabel } from "../utils/notebookDialogConfig";
+import {
+  getNotebookActionLabel,
+  getNotebookEntryTypeLabel,
+} from "../utils/notebookDialogConfig";
 
-const NotebookCardList = ({ rows, total, pagination, actions, userRole }) => (
+const NotebookCardList = ({
+  rows,
+  total,
+  pagination,
+  actions,
+  userRole,
+  scopeFilter,
+  canReserveQueue,
+}) => (
   <Stack spacing={1.5} sx={{ px: { xs: 1.25, md: 1.5 }, py: 1.5 }}>
     {rows.map((row) => {
       const contactLines = getNotebookContactLines(row);
@@ -47,7 +58,11 @@ const NotebookCardList = ({ rows, total, pagination, actions, userRole }) => (
                   alignItems={{ xs: "flex-start", sm: "center" }}
                 >
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ letterSpacing: 0.3 }}
+                    >
                       ติดตาม {formatDate(row.nb_date || row.created_at) || "-"}
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
@@ -56,6 +71,12 @@ const NotebookCardList = ({ rows, total, pagination, actions, userRole }) => (
                   </Box>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      label={getNotebookEntryTypeLabel(row.nb_entry_type)}
+                      size="small"
+                      color={row.nb_entry_type === "customer_care" ? "secondary" : "default"}
+                      variant="outlined"
+                    />
                     {row.nb_is_online ? (
                       <Chip label="Online" size="small" color="info" variant="outlined" />
                     ) : null}
@@ -121,8 +142,11 @@ const NotebookCardList = ({ rows, total, pagination, actions, userRole }) => (
               onView={actions.onView}
               onEdit={actions.onEdit}
               onDelete={actions.onDelete}
+              onReserve={actions.onReserve}
               onConvert={actions.onConvert}
               variant="card"
+              scopeFilter={scopeFilter}
+              canReserveQueue={canReserveQueue}
             />
           </Box>
         </Card>

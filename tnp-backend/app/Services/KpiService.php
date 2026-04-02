@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Helpers\AccountingHelper;
+use App\Helpers\UserSubRoleHelper;
+use App\Models\User;
 use App\Repositories\KpiRepositoryInterface;
 use Carbon\Carbon;
 
@@ -127,6 +129,48 @@ class KpiService
         $isAdmin = AccountingHelper::hasRole(['admin', 'manager']);
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+        $useNotebookLeadSource = $this->shouldUseNotebookLeadSource($targetUserId, $user);
+
+        if ($useNotebookLeadSource) {
+            $baseQuery = $this->kpiRepository->getNotebookLeadBaseQuery($dateRange, $sourceFilter, $targetUserId);
+
+            $summary = $this->kpiRepository->getNotebookLeadSummaryStats(clone $baseQuery);
+            $bySource = $this->kpiRepository->getNotebookLeadBySourceStats(clone $baseQuery);
+            $timeSeries = $this->kpiRepository->getNotebookLeadTimeSeriesStats(clone $baseQuery, $dateRange);
+            $byBusinessType = $this->kpiRepository->getNotebookLeadByBusinessTypeStats(clone $baseQuery);
+            $byAllocation = $this->kpiRepository->getNotebookLeadByAllocationStats(clone $baseQuery);
+            $prevDateRange = $this->getDateRange('prev_'.($period === 'today' ? 'month' : $period), null, null);
+            $comparison = $this->kpiRepository->getNotebookLeadPeriodComparison($summary, $prevDateRange, $sourceFilter, $targetUserId);
+
+            return [
+                'period' => [
+                    'type' => $period,
+                    'start_date' => $dateRange['start']->format('Y-m-d'),
+                    'end_date' => $dateRange['end']->format('Y-m-d'),
+                    'label' => $dateRange['label'],
+                ],
+                'summary' => $summary,
+                'by_source' => $bySource,
+                'by_business_type' => $byBusinessType,
+                'by_allocation' => $byAllocation,
+                'by_user' => [],
+                'time_series' => $timeSeries,
+                'recall_stats' => [
+                    'total_waiting' => 0,
+                    'total_in_criteria' => 0,
+                    'recalls_made_count' => 0,
+                ],
+                'recall_by_user' => [],
+                'comparison' => $comparison,
+                'meta' => [
+                    'user_role' => $user->role,
+                    'is_team_view' => $isAdmin && ! $targetUserId,
+                    'target_user_id' => $targetUserId,
+                    'source_filter' => $sourceFilter,
+                    'data_source' => 'notebook_leads',
+                ],
+            ];
+        }
 
         $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId);
 
@@ -169,6 +213,7 @@ class KpiService
                 'is_team_view' => $isAdmin && ! $targetUserId,
                 'target_user_id' => $targetUserId,
                 'source_filter' => $sourceFilter,
+                'data_source' => 'customers',
             ],
         ];
     }
@@ -177,6 +222,41 @@ class KpiService
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+        $useNotebookLeadSource = $this->shouldUseNotebookLeadSource($targetUserId, $user);
+
+        if ($useNotebookLeadSource) {
+            $baseQuery = $this->kpiRepository->getNotebookLeadBaseQuery($dateRange, $sourceFilter, $targetUserId);
+            $notebooks = $this->kpiRepository->getNotebookLeadPaginatedDetails($baseQuery, $kpiType, $perPage);
+
+            $transformedData = $notebooks->map(function ($notebook) {
+                $ownerName = $notebook->manageBy
+                    ? trim($notebook->manageBy->user_firstname.' '.$notebook->manageBy->user_lastname.
+                        ($notebook->manageBy->user_nickname ? " ({$notebook->manageBy->user_nickname})" : ''))
+                    : 'Central Queue';
+
+                return [
+                    'cus_id' => 'notebook-'.$notebook->id,
+                    'full_name' => $notebook->nb_contact_person ?: $notebook->nb_customer_name ?: '-',
+                    'company' => $notebook->nb_customer_name ?: '-',
+                    'mobile' => $notebook->nb_contact_number ?: '-',
+                    'source' => $this->getSourceLabel($this->resolveNotebookLeadSourceLabel($notebook)),
+                    'allocation_status' => $notebook->nb_manage_by || $notebook->nb_converted_at ? 'allocated' : 'pool',
+                    'sales_full_name' => $ownerName,
+                    'created_date' => $notebook->created_at?->format('Y-m-d H:i:s'),
+                ];
+            });
+
+            return [
+                'data' => $transformedData,
+                'meta' => [
+                    'current_page' => $notebooks->currentPage(),
+                    'last_page' => $notebooks->lastPage(),
+                    'per_page' => $notebooks->perPage(),
+                    'total' => $notebooks->total(),
+                    'kpi_type' => $kpiType,
+                ],
+            ];
+        }
 
         $userColumn = $kpiType === 'created_by' ? 'cus_created_by' : 'cus_allocated_by';
         $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId, $userColumn);
@@ -273,6 +353,19 @@ class KpiService
     {
         $dateRange = $this->getDateRange($period, $startDate, $endDate);
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
+        $useNotebookLeadSource = $this->shouldUseNotebookLeadSource($targetUserId, $user);
+
+        if ($useNotebookLeadSource) {
+            $baseQuery = $this->kpiRepository->getNotebookLeadBaseQuery($dateRange, $sourceFilter, $targetUserId);
+            $notebooks = $this->kpiRepository->getNotebookLeadExportData($baseQuery);
+            $filename = 'kpi_notebook_leads_'.$dateRange['start']->format('Ymd').'_'.$dateRange['end']->format('Ymd').'.csv';
+
+            return [
+                'notebooks' => $notebooks,
+                'filename' => $filename,
+                'data_source' => 'notebook_leads',
+            ];
+        }
 
         $baseQuery = $this->kpiRepository->getBaseDashboardQuery($dateRange, $sourceFilter, $targetUserId);
         $customers = $this->kpiRepository->getExportData($baseQuery);
@@ -281,6 +374,7 @@ class KpiService
         return [
             'customers' => $customers,
             'filename' => $filename,
+            'data_source' => 'customers',
         ];
     }
 
@@ -289,5 +383,36 @@ class KpiService
         $targetUserId = $this->getTargetUserId($requestedUserId, $user);
 
         return $this->kpiRepository->getRecallHistory($month, $sourceFilter, $targetUserId);
+    }
+
+    protected function shouldUseNotebookLeadSource(?int $targetUserId, $user): bool
+    {
+        if ($targetUserId) {
+            $targetUser = User::query()->with('subRoles')->find($targetUserId);
+
+            return UserSubRoleHelper::isNotebookQueueUser($targetUser);
+        }
+
+        return UserSubRoleHelper::isNotebookQueueUser($user);
+    }
+
+    protected function resolveNotebookLeadSourceLabel($notebook): string
+    {
+        if ($notebook->nb_is_online) {
+            return 'online';
+        }
+
+        $createdBy = $notebook->createdBy;
+        $subRoleCodes = UserSubRoleHelper::getSubRoleCodes($createdBy);
+
+        if (($createdBy?->role === 'sale') || in_array(UserSubRoleHelper::SUPPORT_SALES, $subRoleCodes, true)) {
+            return 'sales';
+        }
+
+        if (($createdBy?->role === 'telesale') || in_array(UserSubRoleHelper::TALESALES, $subRoleCodes, true)) {
+            return 'telesales';
+        }
+
+        return $createdBy?->role ?: 'all';
     }
 }

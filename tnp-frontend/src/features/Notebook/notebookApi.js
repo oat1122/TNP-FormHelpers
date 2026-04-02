@@ -1,6 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 
 import {
+  normalizeCustomerCareSourceResponse,
   normalizeNotebookExportResponse,
   normalizeNotebookListResponse,
 } from "./notebookApiAdapters";
@@ -18,13 +19,16 @@ export const notebookApi = createApi({
         params: {
           page: params?.page + 1,
           per_page: params?.per_page || 15,
+          scope: params?.scope,
           search: params?.search,
           start_date: params?.start_date,
           end_date: params?.end_date,
           date_filter_by: params?.date_filter_by,
           status: params?.status,
           action: params?.action,
+          entry_type: params?.entry_type,
           manage_by: params?.manage_by,
+          workflow: params?.workflow,
           include: params?.include,
         },
       }),
@@ -46,13 +50,16 @@ export const notebookApi = createApi({
         url: "/notebooks",
         method: "GET",
         params: {
+          scope: params?.scope,
           search: params?.search,
           start_date: params?.start_date,
           end_date: params?.end_date,
           date_filter_by: params?.date_filter_by,
           status: params?.status,
           action: params?.action,
+          entry_type: params?.entry_type,
           manage_by: params?.manage_by,
+          workflow: params?.workflow,
           include: params?.include || "histories",
           paginate: false,
         },
@@ -60,9 +67,50 @@ export const notebookApi = createApi({
       transformResponse: normalizeNotebookExportResponse,
       providesTags: ["Notebook"],
     }),
+    getNotebookSelfReport: builder.query({
+      query: (params) => ({
+        url: "/notebooks/self-report",
+        method: "GET",
+        params: {
+          start_date: params?.start_date,
+          end_date: params?.end_date,
+          include: "histories",
+        },
+      }),
+      providesTags: ["Notebook"],
+    }),
+    getCustomerCareSources: builder.query({
+      query: (params) => ({
+        url: "/notebooks/customer-care/sources",
+        method: "GET",
+        params: {
+          source: params?.source,
+          search: params?.search,
+          page: params?.page + 1,
+          per_page: params?.per_page || 10,
+        },
+      }),
+      transformResponse: normalizeCustomerCareSourceResponse,
+    }),
     addNotebook: builder.mutation({
       query: (data) => ({
         url: "/notebooks",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: ["Notebook"],
+    }),
+    addCustomerCare: builder.mutation({
+      query: (data) => ({
+        url: "/notebooks/customer-care",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: ["Notebook"],
+    }),
+    addNotebookLead: builder.mutation({
+      query: (data) => ({
+        url: "/notebooks/leads",
         method: "POST",
         data,
       }),
@@ -91,6 +139,13 @@ export const notebookApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => ["Notebook", { type: "Notebook", id }],
     }),
+    reserveNotebook: builder.mutation({
+      query: ({ id }) => ({
+        url: `/notebooks/${id}/reserve`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, { id }) => ["Notebook", { type: "Notebook", id }],
+    }),
   }),
 });
 
@@ -98,8 +153,13 @@ export const {
   useGetNotebooksQuery,
   useGetNotebookQuery,
   useLazyGetNotebookExportQuery,
+  useLazyGetNotebookSelfReportQuery,
+  useGetCustomerCareSourcesQuery,
   useAddNotebookMutation,
+  useAddCustomerCareMutation,
+  useAddNotebookLeadMutation,
   useUpdateNotebookMutation,
   useDeleteNotebookMutation,
   useConvertNotebookMutation,
+  useReserveNotebookMutation,
 } = notebookApi;

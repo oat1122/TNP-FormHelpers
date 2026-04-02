@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import { isNotebookQueueUser } from "../../../utils/userAccess";
+
 /**
  * Custom hook for role-based access control
  * Determines user permissions and view type for the dashboard
@@ -17,9 +19,10 @@ export const useUserAccess = () => {
       const user = JSON.parse(localStorage.getItem("userData") || "{}");
       const allowedRoles = ["admin", "manager", "telesale", "sale"];
       const isAdmin = ["admin", "manager"].includes(user?.role);
+      const hasQueueSubRole = isNotebookQueueUser(user);
 
       return {
-        hasAccess: allowedRoles.includes(user?.role),
+        hasAccess: allowedRoles.includes(user?.role) || hasQueueSubRole,
         userRole: user?.role,
         userName: user?.username || user?.user_firstname,
         userId: user?.user_id,

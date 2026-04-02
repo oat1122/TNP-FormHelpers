@@ -22,167 +22,188 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import "dayjs/locale/th";
 import { PERIOD_TABS } from "../constants/index.jsx";
 
-// Set default locale for dayjs
 dayjs.locale("th");
 
-/**
- * Period Tabs component
- * Displays period selection tabs, custom date picker, navigation arrows, and source filter dropdown
- */
+const CUSTOM_MODE = "custom";
+const QUARTER_MONTH_COUNT = 3;
+
+const getQuarterRange = (baseDate) => {
+  const quarterStartMonth = Math.floor(baseDate.month() / QUARTER_MONTH_COUNT) * QUARTER_MONTH_COUNT;
+  const start = baseDate.month(quarterStartMonth).startOf("month");
+
+  return {
+    start,
+    end: start.add(QUARTER_MONTH_COUNT - 1, "month").endOf("month"),
+  };
+};
+
+const getPresetRange = (baseDate, unit) => {
+  switch (unit) {
+    case "today":
+      return {
+        start: baseDate.startOf("day"),
+        end: baseDate.endOf("day"),
+      };
+    case "week":
+      return {
+        start: baseDate.startOf("week"),
+        end: baseDate.endOf("week"),
+      };
+    case "month":
+      return {
+        start: baseDate.startOf("month"),
+        end: baseDate.endOf("month"),
+      };
+    case "quarter":
+      return getQuarterRange(baseDate);
+    case "year":
+      return {
+        start: baseDate.startOf("year"),
+        end: baseDate.endOf("year"),
+      };
+    default:
+      return {
+        start: baseDate.startOf("month"),
+        end: baseDate.endOf("month"),
+      };
+  }
+};
+
+const getShiftedRange = ({ referenceDate, effectiveUnit, amount, startDate, endDate }) => {
+  if (effectiveUnit === CUSTOM_MODE) {
+    const diffInDays = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
+    const nextStart = referenceDate.add(amount * diffInDays, "day");
+
+    return {
+      referenceDate: nextStart,
+      start: nextStart,
+      end: dayjs(endDate).add(amount * diffInDays, "day"),
+      mode: CUSTOM_MODE,
+      shiftUnit: CUSTOM_MODE,
+    };
+  }
+
+  if (effectiveUnit === "quarter") {
+    const nextReferenceDate = referenceDate.add(amount * QUARTER_MONTH_COUNT, "month");
+    const range = getPresetRange(nextReferenceDate, "quarter");
+
+    return {
+      referenceDate: nextReferenceDate,
+      start: range.start,
+      end: range.end,
+      mode: "quarter",
+      shiftUnit: "quarter",
+    };
+  }
+
+  const addUnitMap = {
+    today: "day",
+    week: "week",
+    month: "month",
+    year: "year",
+  };
+
+  const nextReferenceDate = referenceDate.add(amount, addUnitMap[effectiveUnit] || "month");
+  const range = getPresetRange(nextReferenceDate, effectiveUnit);
+
+  return {
+    referenceDate: nextReferenceDate,
+    start: range.start,
+    end: range.end,
+    mode: effectiveUnit,
+    shiftUnit: effectiveUnit,
+  };
+};
+
 const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = false }) => {
   const { mode, shiftUnit, startDate, endDate } = periodFilter;
-
-  // Internal state for the reference date when navigating using arrows
   const [referenceDate, setReferenceDate] = useState(dayjs());
-
-  // State for the custom date range picker popover
   const [anchorEl, setAnchorEl] = useState(null);
   const [tempStart, setTempStart] = useState(startDate ? dayjs(startDate) : dayjs());
   const [tempEnd, setTempEnd] = useState(endDate ? dayjs(endDate) : dayjs());
 
-  // Initialize dates base on mode
+  const activeTabValue =
+    mode === CUSTOM_MODE ? (shiftUnit && shiftUnit !== CUSTOM_MODE ? shiftUnit : false) : mode;
+  const isManualCustomRange = mode === CUSTOM_MODE && shiftUnit === CUSTOM_MODE;
+
   useEffect(() => {
-    if (mode === "custom" && startDate && endDate) {
-      setReferenceDate(dayjs(startDate));
+    if (!startDate) {
+      return;
     }
-  }, [mode, startDate, endDate]);
+
+    setReferenceDate(dayjs(startDate));
+  }, [startDate]);
 
   const handleTabChange = (_, newValue) => {
-    const today = dayjs();
-    let newStart = today;
-    let newEnd = today;
-
-    switch (newValue) {
-      case "today":
-        newStart = today.startOf("day");
-        newEnd = today.endOf("day");
-        break;
-      case "week":
-        newStart = today.startOf("week");
-        newEnd = today.endOf("week");
-        break;
-      case "month":
-        newStart = today.startOf("month");
-        newEnd = today.endOf("month");
-        break;
-      case "quarter":
-        newStart = today.startOf("quarter");
-        newEnd = today.endOf("quarter");
-        break;
-      case "year":
-        newStart = today.startOf("year");
-        newEnd = today.endOf("year");
-        break;
-      default:
-        newStart = today.startOf("month");
-        newEnd = today.endOf("month");
+    if (!newValue) {
+      return;
     }
 
-    setReferenceDate(newStart);
+    const { start, end } = getPresetRange(dayjs(), newValue);
+
+    setReferenceDate(start);
     onPeriodChange({
       mode: newValue,
       shiftUnit: newValue,
-      startDate: newStart.format("YYYY-MM-DD"),
-      endDate: newEnd.format("YYYY-MM-DD"),
+      startDate: start.format("YYYY-MM-DD"),
+      endDate: end.format("YYYY-MM-DD"),
     });
   };
 
   const shiftDate = (direction) => {
-    let newRefDate = referenceDate;
-    let newStart = referenceDate;
-    let newEnd = referenceDate;
     const amount = direction === "prev" ? -1 : 1;
+    const effectiveUnit = mode === CUSTOM_MODE ? shiftUnit || CUSTOM_MODE : mode;
 
-    // Use shiftUnit if mode is custom, otherwise fallback to mode.
-    const effectiveUnit = mode === "custom" && shiftUnit ? shiftUnit : mode;
-
-    switch (effectiveUnit) {
-      case "today":
-        newRefDate = referenceDate.add(amount, "day");
-        newStart = newRefDate.startOf("day");
-        newEnd = newRefDate.endOf("day");
-        break;
-      case "week":
-        newRefDate = referenceDate.add(amount, "week");
-        newStart = newRefDate.startOf("week");
-        newEnd = newRefDate.endOf("week");
-        break;
-      case "month":
-        newRefDate = referenceDate.add(amount, "month");
-        newStart = newRefDate.startOf("month");
-        newEnd = newRefDate.endOf("month");
-        break;
-      case "quarter":
-        newRefDate = referenceDate.add(amount, "quarter");
-        newStart = newRefDate.startOf("quarter");
-        newEnd = newRefDate.endOf("quarter");
-        break;
-      case "year":
-        newRefDate = referenceDate.add(amount, "year");
-        newStart = newRefDate.startOf("year");
-        newEnd = newRefDate.endOf("year");
-        break;
-      case "custom": {
-        // For custom explicitly requested by date range, shift by the exact difference in days
-        const diff = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
-        newRefDate = referenceDate.add(amount * diff, "day");
-        newStart = newRefDate;
-        newEnd = dayjs(endDate).add(amount * diff, "day");
-        break;
-      }
-      default:
-        return;
+    if (!effectiveUnit) {
+      return;
     }
 
-    setReferenceDate(newRefDate);
+    const nextRange = getShiftedRange({
+      referenceDate,
+      effectiveUnit,
+      amount,
+      startDate,
+      endDate,
+    });
 
-    // UX Improvement: Check if the shifted date brings us back to "current".
-    // e.g. If we shift back into "This Month", reactivate the "month" tab.
-    let newMode = "custom";
-    const today = dayjs();
-    if (effectiveUnit === "today" && newStart.isSame(today, "day")) newMode = "today";
-    if (effectiveUnit === "week" && newStart.isSame(today.startOf("week"), "day")) newMode = "week";
-    if (effectiveUnit === "month" && newStart.isSame(today.startOf("month"), "day"))
-      newMode = "month";
-    if (effectiveUnit === "quarter" && newStart.isSame(today.startOf("quarter"), "day"))
-      newMode = "quarter";
-    if (effectiveUnit === "year" && newStart.isSame(today.startOf("year"), "day")) newMode = "year";
-
+    setReferenceDate(nextRange.referenceDate);
     onPeriodChange({
-      mode: newMode,
-      shiftUnit: effectiveUnit,
-      startDate: newStart.format("YYYY-MM-DD"),
-      endDate: newEnd.format("YYYY-MM-DD"),
+      mode: nextRange.mode,
+      shiftUnit: nextRange.shiftUnit,
+      startDate: nextRange.start.format("YYYY-MM-DD"),
+      endDate: nextRange.end.format("YYYY-MM-DD"),
     });
   };
 
-  // Helper to format the label shown between the arrows
   const getDisplayLabel = () => {
     if (!startDate || !endDate) return "กำลังโหลด...";
+
     const start = dayjs(startDate);
     const end = dayjs(endDate);
-
     const isSameDay = start.isSame(end, "day");
     const isSameMonth = start.isSame(end, "month") && start.isSame(end, "year");
     const isSameYear = start.isSame(end, "year");
 
     if (isSameDay) {
       return start.format("D MMM YYYY");
-    } else if (isSameMonth && start.date() === 1 && end.date() === end.daysInMonth()) {
-      return start.format("MMMM YYYY");
-    } else if (isSameYear) {
-      return `${start.format("D MMM")} - ${end.format("D MMM YYYY")}`;
-    } else {
-      return `${start.format("D MMM YYYY")} - ${end.format("D MMM YYYY")}`;
     }
+
+    if (isSameMonth && start.date() === 1 && end.date() === end.daysInMonth()) {
+      return start.format("MMMM YYYY");
+    }
+
+    if (isSameYear) {
+      return `${start.format("D MMM")} - ${end.format("D MMM YYYY")}`;
+    }
+
+    return `${start.format("D MMM YYYY")} - ${end.format("D MMM YYYY")}`;
   };
 
-  // Date Range Picker Handlers
   const openCustomDatePicker = (event) => {
     setTempStart(startDate ? dayjs(startDate) : dayjs());
     setTempEnd(endDate ? dayjs(endDate) : dayjs());
@@ -194,32 +215,33 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
   };
 
   const applyCustomDateRange = () => {
-    if (tempStart && tempEnd) {
-      // Ensure start is before end
-      let finalStart = tempStart;
-      let finalEnd = tempEnd;
-      if (tempStart.isAfter(tempEnd)) {
-        finalStart = tempEnd;
-        finalEnd = tempStart;
-      }
-
-      setReferenceDate(finalStart);
-      onPeriodChange({
-        mode: "custom",
-        shiftUnit: "custom",
-        startDate: finalStart.format("YYYY-MM-DD"),
-        endDate: finalEnd.format("YYYY-MM-DD"),
-      });
-      closeCustomDatePicker();
+    if (!tempStart || !tempEnd) {
+      return;
     }
+
+    let finalStart = tempStart;
+    let finalEnd = tempEnd;
+
+    if (tempStart.isAfter(tempEnd)) {
+      finalStart = tempEnd;
+      finalEnd = tempStart;
+    }
+
+    setReferenceDate(finalStart);
+    onPeriodChange({
+      mode: CUSTOM_MODE,
+      shiftUnit: CUSTOM_MODE,
+      startDate: finalStart.format("YYYY-MM-DD"),
+      endDate: finalEnd.format("YYYY-MM-DD"),
+    });
+    closeCustomDatePicker();
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="th">
       <Paper elevation={1} sx={{ mb: 1 }}>
-        {/* Top Tabs */}
         <Tabs
-          value={mode !== "custom" ? mode : false} // If custom, no tab is "active"
+          value={activeTabValue}
           onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
@@ -243,7 +265,6 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
           ))}
         </Tabs>
 
-        {/* Filters and Navigation Row */}
         <Box
           display="flex"
           justifyContent="space-between"
@@ -252,29 +273,31 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
           flexWrap="wrap"
           gap={2}
         >
-          {/* Filters (e.g. Source, Date Type) */}
           <Box display="flex" gap={2}>
-            {filters.map((filter, idx) => (
-              <FormControl key={idx} size="small" sx={{ minWidth: 150 }}>
+            {filters.map((filter, index) => (
+              <FormControl key={index} size="small" sx={{ minWidth: 150 }}>
                 <InputLabel sx={{ fontFamily: "Kanit" }}>{filter.label}</InputLabel>
                 <Select
                   value={filter.value}
-                  onChange={(e) => filter.onChange(e.target.value)}
+                  onChange={(event) => filter.onChange(event.target.value)}
                   label={filter.label}
                   sx={{ fontFamily: "Kanit" }}
                 >
-                  {filter.options.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value} sx={{ fontFamily: "Kanit" }}>
-                      {opt.label}
+                  {filter.options.map((option) => (
+                    <MenuItem
+                      key={option.value}
+                      value={option.value}
+                      sx={{ fontFamily: "Kanit" }}
+                    >
+                      {option.label}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             ))}
-            {isLoading && <CircularProgress size={24} sx={{ ml: 1 }} />}
+            {isLoading ? <CircularProgress size={24} sx={{ ml: 1 }} /> : null}
           </Box>
 
-          {/* Center: Date Navigation Arrows */}
           <Box
             display="flex"
             alignItems="center"
@@ -307,7 +330,6 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
             </IconButton>
           </Box>
 
-          {/* Right Side: Custom Date Range Trigger */}
           <Button
             variant="outlined"
             startIcon={<DateRangeIcon />}
@@ -324,10 +346,9 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
               },
             }}
           >
-            {mode === "custom" ? "กำหนดช่วงเวลาเอง" : "ระบุวันที่"}
+            {isManualCustomRange ? "กำหนดช่วงเวลาเอง" : "ระบุวันที่"}
           </Button>
 
-          {/* The Custom Date Range Popover */}
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}

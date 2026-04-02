@@ -39,8 +39,14 @@ const normalizeFields = (history) =>
     .map(([fieldName, value]) => ({
       fieldName,
       label: NOTEBOOK_HISTORY_FIELD_LABELS[fieldName],
-      oldValue: formatNotebookHistoryValue(fieldName, history?.old_values?.[fieldName]),
-      value: formatNotebookHistoryValue(fieldName, value),
+      oldValue: formatNotebookHistoryValue(
+        fieldName,
+        history?.display_old_values?.[fieldName] ?? history?.old_values?.[fieldName]
+      ),
+      value: formatNotebookHistoryValue(
+        fieldName,
+        history?.display_new_values?.[fieldName] ?? value
+      ),
     }));
 
 const hasValueChanged = (field) =>

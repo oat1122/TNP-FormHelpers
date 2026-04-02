@@ -18,4 +18,8 @@ interface NotebookRepositoryInterface extends BaseRepositoryInterface
     public function getNotebookSummaryQuery(array $dateRange, string $sourceFilter, ?int $targetUserId, ?string $nbStatus): Builder;
 
     public function getNotebookDetailsQuery(array $dateRange, string $sourceFilter, ?int $targetUserId, ?string $nbStatus): Builder;
+
+    public function getSelfReportLeadAdditions(array $filters, $user): Collection;
+
+    public function getSelfReportActivityItems(array $filters, $user): Collection;
 }

@@ -8,6 +8,7 @@ const NotebookSummaryBar = ({
   actionLabel,
   salesOwnerLabel,
   sourceMeta,
+  extraChips = [],
   onClose,
 }) => (
   <Box
@@ -66,6 +67,14 @@ const NotebookSummaryBar = ({
           label={salesOwnerLabel || "Sales owner not set"}
         />
         <Chip color={sourceMeta.color} variant="outlined" label={sourceMeta.label} />
+        {extraChips.map((chip) => (
+          <Chip
+            key={`${chip.label}-${chip.color || "default"}`}
+            color={chip.color || "default"}
+            variant={chip.variant || "outlined"}
+            label={chip.label}
+          />
+        ))}
       </Stack>
     </Stack>
   </Box>

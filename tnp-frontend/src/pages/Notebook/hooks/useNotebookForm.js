@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -10,6 +11,10 @@ import {
 import { resetNotebookDialog } from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
+import {
+  shouldNotebookCreateIntoMine,
+  shouldNotebookCreateIntoQueue,
+} from "../../../utils/userAccess";
 import { useDuplicateCheck } from "../../Customer/hooks/useDuplicateCheck";
 import { buildNotebookDraft } from "../utils/notebookAdapters";
 import { validationSchema } from "../utils/validationSchema";
@@ -17,6 +22,8 @@ import { validationSchema } from "../utils/validationSchema";
 export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const dispatch = useDispatch();
   const isAdmin = currentUser?.role === "admin";
+  const shouldCreateIntoQueue = shouldNotebookCreateIntoQueue(currentUser);
+  const shouldCreateIntoMine = shouldNotebookCreateIntoMine(currentUser);
   const { dialogOpen, selectedNotebook, dialogMode, dialogFocusTarget } = useSelector(
     (state) => state.notebook
   );
@@ -58,6 +65,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     () => buildNotebookDraft({ notebook: null, currentUser, isAdmin }),
     [currentUser, isAdmin]
   );
+
   const buildDialogDraft = useCallback(
     (notebook) => {
       const nextDraft = buildNotebookDraft({ notebook, currentUser, isAdmin });
@@ -84,17 +92,16 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
       return;
     }
 
-    const sourceNotebook = dialogMode === "create" ? null : selectedNotebook;
-    setDraft(buildDialogDraft(sourceNotebook));
+    setDraft(buildDialogDraft(dialogMode === "create" ? null : selectedNotebook));
     setErrors({});
     setHasUserEdited(false);
   }, [
     buildDialogDraft,
     defaultDraft,
-    dialogOpen,
     dialogMode,
-    selectedNotebook,
+    dialogOpen,
     resetDuplicateChecks,
+    selectedNotebook,
   ]);
 
   useEffect(() => {
@@ -103,62 +110,92 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     }
 
     setDraft(buildDialogDraft(notebookDetail));
-  }, [buildDialogDraft, dialogOpen, dialogMode, notebookDetail, hasUserEdited]);
+  }, [buildDialogDraft, dialogMode, dialogOpen, hasUserEdited, notebookDetail]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setErrors({});
     setHasUserEdited(false);
     resetDuplicateChecks();
     dispatch(resetNotebookDialog());
-  };
+  }, [dispatch, resetDuplicateChecks]);
 
-  const handleChange = (event) => {
-    const { name, value, checked, type } = event.target;
-    setHasUserEdited(true);
-    setDraft((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+  const handleChange = useCallback(
+    (event) => {
+      const { name, value, checked, type } = event.target;
+      setHasUserEdited(true);
+      setDraft((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
 
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const handleBlur = async (event) => {
-    const { name } = event.target;
-
-    try {
-      await validationSchema.validateAt(name, draft);
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: null }));
       }
-    } catch (error) {
-      setErrors((prev) => ({ ...prev, [name]: error.message }));
-    }
-  };
+    },
+    [errors]
+  );
 
-  const handleOnlineToggle = (value) => {
+  const handleBlur = useCallback(
+    async (event) => {
+      const { name } = event.target;
+
+      try {
+        await validationSchema.validateAt(name, draft);
+        if (errors[name]) {
+          setErrors((prev) => ({ ...prev, [name]: null }));
+        }
+      } catch (error) {
+        setErrors((prev) => ({ ...prev, [name]: error.message }));
+      }
+    },
+    [draft, errors]
+  );
+
+  const handleOnlineToggle = useCallback((value) => {
     setHasUserEdited(true);
     setDraft((prev) => ({ ...prev, nb_is_online: value }));
-  };
+  }, []);
 
-  const handleSubmit = async () => {
+  const getCreateSuccessMessage = useCallback(() => {
+    if (shouldCreateIntoQueue) {
+      return "เพิ่ม lead เข้า Notebook queue สำเร็จ";
+    }
+
+    if (shouldCreateIntoMine) {
+      return "สร้าง lead ในลูกค้าของฉันสำเร็จ";
+    }
+
+    return "บันทึกข้อมูลสำเร็จ";
+  }, [shouldCreateIntoMine, shouldCreateIntoQueue]);
+
+  const handleSubmit = useCallback(async () => {
     try {
       setErrors({});
+
       const validatedData = validationSchema.validateSync(draft, {
         abortEarly: false,
       });
 
       const submitData = { ...validatedData };
+      delete submitData.manage_by_user;
       const sourceNotebook = notebookDetail || selectedNotebook || null;
+
       if (dialogMode === "create") {
         const now = new Date();
-        submitData.nb_date = submitData.nb_date || format(now, "yyyy-MM-dd");
+        submitData.nb_date = submitData.nb_date
+          ? dayjs(submitData.nb_date).format("YYYY-MM-DD")
+          : format(now, "yyyy-MM-dd");
         submitData.nb_time = submitData.nb_time || format(now, "HH:mm");
+
+        if (shouldCreateIntoQueue || shouldCreateIntoMine) {
+          submitData.nb_workflow = "lead_queue";
+        }
       }
 
       if (dialogMode === "edit") {
+        delete submitData.nb_date;
+        delete submitData.nb_time;
+
         ["nb_additional_info", "nb_remarks"].forEach((fieldName) => {
           if ((submitData[fieldName] === "" || submitData[fieldName] == null) && sourceNotebook) {
             submitData[fieldName] = sourceNotebook[fieldName] ?? submitData[fieldName];
@@ -166,7 +203,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
         });
       }
 
-      if (!isAdmin && dialogMode === "create") {
+      if (!isAdmin && dialogMode === "create" && !submitData.nb_workflow) {
         submitData.nb_manage_by = currentUser.user_id;
       }
 
@@ -185,7 +222,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
       try {
         if (dialogMode === "create") {
           await addNotebook(submitData).unwrap();
-          showSuccess("บันทึกข้อมูลสำเร็จ");
+          showSuccess(getCreateSuccessMessage());
         } else {
           await updateNotebook({
             id: selectedNotebook.id,
@@ -198,12 +235,13 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
         handleClose();
       } catch (error) {
         dismissToast(loadingId);
+
         if (error?.status === 403) {
           showError("คุณไม่มีสิทธิ์แก้ไขรายการนี้");
           return;
         }
 
-        showError("เกิดข้อผิดพลาด: " + (error?.data?.message || "ไม่สามารถบันทึกได้"));
+        showError(`เกิดข้อผิดพลาด: ${error?.data?.message || "ไม่สามารถบันทึกได้"}`);
       }
     } catch (error) {
       if (error.name === "ValidationError") {
@@ -215,7 +253,20 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
         showError("กรุณากรอกข้อมูลให้ครบถ้วน");
       }
     }
-  };
+  }, [
+    addNotebook,
+    currentUser.user_id,
+    dialogMode,
+    draft,
+    handleClose,
+    isAdmin,
+    notebookDetail,
+    selectedNotebook,
+    shouldCreateIntoMine,
+    shouldCreateIntoQueue,
+    updateNotebook,
+    getCreateSuccessMessage,
+  ]);
 
   return {
     dialogOpen,

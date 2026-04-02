@@ -20,7 +20,7 @@ class UpdateNotebookRequest extends NotebookRequest
         $notebook = app(NotebookRepositoryInterface::class)->find($notebookId);
 
         return $notebook instanceof Notebook
-            && app(NotebookService::class)->canAccess($user, $notebook);
+            && app(NotebookService::class)->canEdit($user, $notebook);
     }
 
     public function rules(): array

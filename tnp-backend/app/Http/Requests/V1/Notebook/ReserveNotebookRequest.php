@@ -6,7 +6,7 @@ use App\Models\Notebook;
 use App\Repositories\NotebookRepositoryInterface;
 use App\Services\Notebook\NotebookService;
 
-class ConvertNotebookRequest extends NotebookRequest
+class ReserveNotebookRequest extends NotebookRequest
 {
     public function authorize(): bool
     {
@@ -19,19 +19,16 @@ class ConvertNotebookRequest extends NotebookRequest
         $notebook = app(NotebookRepositoryInterface::class)->find($notebookId);
 
         return $notebook instanceof Notebook
-            && app(NotebookService::class)->canConvert($user, $notebook);
+            && app(NotebookService::class)->canReserve($user, $notebook);
     }
 
     public function rules(): array
     {
-        return [
-            'nb_status' => ['nullable', 'string', 'max:255'],
-            'customer_id' => ['nullable', 'string', 'max:36'],
-        ];
+        return [];
     }
 
     protected function authorizationMessage(): string
     {
-        return 'Unauthorized: You do not have permission to convert this notebook.';
+        return 'Unauthorized: You do not have permission to reserve this notebook.';
     }
 }

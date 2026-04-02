@@ -3,44 +3,25 @@
 namespace App\Http\Controllers\Api\V1\Customers;
 
 use App\Helpers\AccountingHelper;
+use App\Helpers\UserSubRoleHelper;
 use App\Http\Controllers\Controller;
 use App\Services\KpiService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * KPI Controller
- *
- * Provides KPI dashboard statistics and CSV export for telesales/sales tracking.
- * Tracks customer additions by: day, week, month, quarter, year
- * Grouped by cus_source and cus_allocated_by.
- */
 class KpiController extends Controller
 {
     public function __construct(
         protected KpiService $kpiService
     ) {}
 
-    /**
-     * Get KPI Dashboard Statistics
-     *
-     * GET /api/v1/customers/kpi
-     *
-     * @param  Request  $request
-     *                            - period: today|week|month|quarter|year|custom (default: month)
-     *                            - start_date: Y-m-d (required if period=custom)
-     *                            - end_date: Y-m-d (required if period=custom)
-     *                            - source_filter: telesales|sales|online|office|all (default: all)
-     *                            - user_id: filter by specific user (admin/manager only)
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request): JsonResponse
     {
         $user = auth()->user();
 
-        // Check authorization - allow admin, manager, and telesales
-        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+        if (! $this->canAccessKpi($user)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized: Access denied',
@@ -52,7 +33,6 @@ class KpiController extends Controller
                 $request->merge(['user_id' => null]);
             }
 
-            // Validate inputs
             $request->validate([
                 'period' => 'nullable|in:today,week,month,quarter,year,custom,prev_month,prev_week,prev_quarter',
                 'start_date' => 'nullable|date',
@@ -67,8 +47,8 @@ class KpiController extends Controller
 
             $data = $this->kpiService->getDashboardData(
                 $period,
-                $request->start_date,
-                $request->end_date,
+                $request->input('start_date'),
+                $request->input('end_date'),
                 $sourceFilter,
                 $requestedUserId,
                 $user
@@ -79,7 +59,6 @@ class KpiController extends Controller
                 'data' => $data,
                 'meta' => $data['meta'],
             ]);
-
         } catch (\Exception $e) {
             Log::error('KPI Dashboard error: '.$e->getMessage(), [
                 'user_id' => $user->user_id ?? null,
@@ -93,17 +72,11 @@ class KpiController extends Controller
         }
     }
 
-    /**
-     * Get KPI Dashboard Details (List of customers for a specific KPI)
-     *
-     * GET /api/v1/customers/kpi/details
-     */
-    public function details(Request $request): \Illuminate\Http\JsonResponse
+    public function details(Request $request): JsonResponse
     {
         $user = auth()->user();
 
-        // Check authorization - allow admin, manager, and telesales
-        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+        if (! $this->canAccessKpi($user)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized: Access denied',
@@ -115,7 +88,6 @@ class KpiController extends Controller
                 $request->merge(['user_id' => null]);
             }
 
-            // Validate inputs
             $request->validate([
                 'period' => 'nullable|in:today,week,month,quarter,year,custom,prev_month,prev_week,prev_quarter',
                 'start_date' => 'nullable|date',
@@ -134,8 +106,8 @@ class KpiController extends Controller
 
             $result = $this->kpiService->getKpiDetails(
                 $period,
-                $request->start_date,
-                $request->end_date,
+                $request->input('start_date'),
+                $request->input('end_date'),
                 $sourceFilter,
                 $kpiType,
                 $requestedUserId,
@@ -148,7 +120,6 @@ class KpiController extends Controller
                 'data' => $result['data'],
                 'meta' => $result['meta'],
             ]);
-
         } catch (\Exception $e) {
             Log::error('KPI Dashboard Details error: '.$e->getMessage(), [
                 'user_id' => $user->user_id ?? null,
@@ -162,29 +133,31 @@ class KpiController extends Controller
         }
     }
 
-    /**
-     * Get detailed list of customers for a specific Recall status type
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function recallDetails(Request $request)
+    public function recallDetails(Request $request): JsonResponse
     {
         try {
             $user = auth()->user();
 
-            // Input parameters
-            $type = $request->query('recall_type'); // 'waiting', 'in_criteria', 'made'
+            if (! $this->canAccessKpi($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: Access denied',
+                ], 403);
+            }
+
+            $type = $request->query('recall_type');
             $period = $request->query('period', 'month');
             $sourceFilter = $request->query('source_filter', 'all');
             $perPage = $request->query('per_page', 10);
-
-            // Support custom date passing
             $customStartDate = $request->query('start_date');
             $customEndDate = $request->query('end_date');
             $requestedUserId = $request->input('user_id');
 
-            if (! in_array($type, ['waiting', 'in_criteria', 'made'])) {
-                return response()->json(['success' => false, 'message' => 'Invalid recall type'], 400);
+            if (! in_array($type, ['waiting', 'in_criteria', 'made'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid recall type',
+                ], 400);
             }
 
             if ($requestedUserId === 'all') {
@@ -206,7 +179,6 @@ class KpiController extends Controller
                 'success' => true,
                 'data' => $result,
             ]);
-
         } catch (\Exception $e) {
             Log::error('KPI Recall Details Error: '.$e->getMessage());
 
@@ -217,16 +189,11 @@ class KpiController extends Controller
         }
     }
 
-    /**
-     * Export KPI data to CSV
-     *
-     * GET /api/v1/customers/kpi/export
-     */
     public function export(Request $request): StreamedResponse
     {
         $user = auth()->user();
 
-        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+        if (! $this->canAccessKpi($user)) {
             abort(403, 'Unauthorized');
         }
 
@@ -240,39 +207,96 @@ class KpiController extends Controller
 
         $exportData = $this->kpiService->getExportData(
             $period,
-            $request->start_date,
-            $request->end_date,
+            $request->input('start_date'),
+            $request->input('end_date'),
             $sourceFilter,
             $requestedUserId,
             $user
         );
 
-        $customers = $exportData['customers'];
+        $customers = $exportData['customers'] ?? collect();
+        $notebooks = $exportData['notebooks'] ?? collect();
         $filename = $exportData['filename'];
+        $dataSource = $exportData['data_source'] ?? 'customers';
 
-        return response()->streamDownload(function () use ($customers) {
+        return response()->streamDownload(function () use ($customers, $notebooks, $dataSource) {
             $handle = fopen('php://output', 'w');
 
-            // UTF-8 BOM for Excel compatibility
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // Header row
+            if ($dataSource === 'notebook_leads') {
+                fputcsv($handle, [
+                    'Notebook ID',
+                    'Customer',
+                    'Contact Person',
+                    'Phone',
+                    'Source',
+                    'Queue Status',
+                    'Current Owner',
+                    'Added By',
+                    'Added At',
+                ]);
+
+                foreach ($notebooks as $notebook) {
+                    $ownerName = $notebook->manageBy
+                        ? trim($notebook->manageBy->user_firstname.' '.$notebook->manageBy->user_lastname.
+                            ($notebook->manageBy->user_nickname ? " ({$notebook->manageBy->user_nickname})" : ''))
+                        : 'Central Queue';
+
+                    $creatorName = $notebook->createdBy
+                        ? trim($notebook->createdBy->user_firstname.' '.$notebook->createdBy->user_lastname.
+                            ($notebook->createdBy->user_nickname ? " ({$notebook->createdBy->user_nickname})" : ''))
+                        : 'Unknown';
+
+                    $creatorSubRoles = UserSubRoleHelper::getSubRoleCodes($notebook->createdBy);
+                    $sourceKey = $notebook->nb_is_online ? 'online' : 'sales';
+
+                    if (
+                        $notebook->createdBy?->role === 'telesale'
+                        || in_array(UserSubRoleHelper::TALESALES, $creatorSubRoles, true)
+                    ) {
+                        $sourceKey = 'telesales';
+                    }
+
+                    $sourceLabel = $this->kpiService->getSourceLabel($sourceKey);
+                    $queueStatus = ($notebook->nb_manage_by || $notebook->nb_converted_at)
+                        ? 'Claimed / Converted'
+                        : 'Central Queue';
+
+                    fputcsv($handle, [
+                        $notebook->id,
+                        $notebook->nb_customer_name ?? '-',
+                        $notebook->nb_contact_person ?? '-',
+                        $notebook->nb_contact_number ?? '-',
+                        $sourceLabel,
+                        $queueStatus,
+                        $ownerName,
+                        $creatorName,
+                        $notebook->created_at?->format('Y-m-d H:i') ?? '-',
+                    ]);
+                }
+
+                fclose($handle);
+
+                return;
+            }
+
             fputcsv($handle, [
-                'ธหัสลูกค้า',
-                'ชื่อลูกค้า',
-                'บริษัท',
-                'เบอร์โทร',
-                'แหล่งที่มา',
-                'สถานะ',
-                'ผู้เพิ่ม',
-                'วันที่สร้าง',
+                'Customer Code',
+                'Customer Name',
+                'Company',
+                'Phone',
+                'Source',
+                'Status',
+                'Added By',
+                'Created At',
             ]);
 
             foreach ($customers as $customer) {
                 $allocatorName = $customer->allocatedBy
                     ? trim($customer->allocatedBy->user_firstname.' '.$customer->allocatedBy->user_lastname.
-                           ($customer->allocatedBy->user_nickname ? " ({$customer->allocatedBy->user_nickname})" : ''))
-                    : 'ไม่ระบุ';
+                        ($customer->allocatedBy->user_nickname ? " ({$customer->allocatedBy->user_nickname})" : ''))
+                    : 'Unknown';
 
                 fputcsv($handle, [
                     $customer->cus_no,
@@ -280,7 +304,7 @@ class KpiController extends Controller
                     $customer->cus_company ?? '-',
                     $customer->cus_tel_1 ?? '-',
                     $this->kpiService->getSourceLabel($customer->cus_source),
-                    $customer->cus_allocation_status === 'pool' ? 'รอจัดสรร' : 'จัดสรรแล้ว',
+                    $customer->cus_allocation_status === 'pool' ? 'Pool' : 'Allocated',
                     $allocatorName,
                     $customer->cus_created_date?->format('Y-m-d H:i') ?? '-',
                 ]);
@@ -292,15 +316,11 @@ class KpiController extends Controller
         ]);
     }
 
-    /**
-     * Get historical recall status for trend analysis and drill-down
-     * GET /api/v1/customers/kpi/recall-history
-     */
-    public function recallHistory(Request $request): \Illuminate\Http\JsonResponse
+    public function recallHistory(Request $request): JsonResponse
     {
         $user = auth()->user();
 
-        if (! AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])) {
+        if (! $this->canAccessKpi($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: Access denied',
@@ -313,7 +333,7 @@ class KpiController extends Controller
             }
 
             $request->validate([
-                'month' => 'required|date_format:Y-m', // e.g. "2024-03"
+                'month' => 'required|date_format:Y-m',
                 'source_filter' => 'nullable|in:telesales,sales,online,office,all',
                 'user_id' => 'nullable|integer',
             ]);
@@ -333,7 +353,6 @@ class KpiController extends Controller
                 'success' => true,
                 'data' => $history,
             ]);
-
         } catch (\Exception $e) {
             Log::error('KPI Recall History Error: '.$e->getMessage());
 
@@ -344,4 +363,9 @@ class KpiController extends Controller
         }
     }
 
+    protected function canAccessKpi($user): bool
+    {
+        return AccountingHelper::hasRole(['admin', 'manager', 'telesale', 'sale'])
+            || UserSubRoleHelper::isNotebookQueueUser($user);
+    }
 }

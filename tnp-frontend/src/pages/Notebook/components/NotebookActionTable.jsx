@@ -9,7 +9,10 @@ import {
   getNotebookNotePreview,
   getStatusColor,
 } from "../utils/notebookCommon";
-import { getNotebookActionLabel } from "../utils/notebookDialogConfig";
+import {
+  getNotebookActionLabel,
+  getNotebookEntryTypeLabel,
+} from "../utils/notebookDialogConfig";
 
 const THAI_LOCALE_TEXT = {
   noRowsLabel: "ไม่พบข้อมูล",
@@ -20,7 +23,16 @@ const THAI_LOCALE_TEXT = {
   },
 };
 
-const NotebookActionTable = ({ rows, total, pagination, actions, userRole, onNoRowsOverlay }) => {
+const NotebookActionTable = ({
+  rows,
+  total,
+  pagination,
+  actions,
+  userRole,
+  onNoRowsOverlay,
+  scopeFilter,
+  canReserveQueue,
+}) => {
   const columns = [
     {
       field: "follow_up",
@@ -54,6 +66,12 @@ const NotebookActionTable = ({ rows, total, pagination, actions, userRole, onNoR
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 {row.nb_customer_name || "-"}
               </Typography>
+              <Chip
+                label={getNotebookEntryTypeLabel(row.nb_entry_type)}
+                size="small"
+                color={row.nb_entry_type === "customer_care" ? "secondary" : "default"}
+                variant="outlined"
+              />
               {row.nb_is_online ? (
                 <Chip label="Online" size="small" color="info" variant="outlined" />
               ) : null}
@@ -135,7 +153,10 @@ const NotebookActionTable = ({ rows, total, pagination, actions, userRole, onNoR
           onView={actions.onView}
           onEdit={actions.onEdit}
           onDelete={actions.onDelete}
+          onReserve={actions.onReserve}
           onConvert={actions.onConvert}
+          scopeFilter={scopeFilter}
+          canReserveQueue={canReserveQueue}
         />
       ),
     },

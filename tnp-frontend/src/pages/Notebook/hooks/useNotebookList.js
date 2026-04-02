@@ -8,6 +8,7 @@ import {
   useConvertNotebookMutation,
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
+  useReserveNotebookMutation,
 } from "../../../features/Notebook/notebookApi";
 import { setDialogOpen, setSelectedNotebook } from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
@@ -29,11 +30,13 @@ export const useNotebookList = () => {
 
   const [deleteNotebook] = useDeleteNotebookMutation();
   const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
+  const [reserveNotebook, { isLoading: isReserving }] = useReserveNotebookMutation();
 
   const exportState = useNotebookExport({
     open: pageState.exportDialogOpen,
     filters: pageState.exportFilters,
     currentUser: pageState.currentUser,
+    canSelfReport: pageState.canSelfReport,
   });
 
   const handleDelete = async (id) => {
@@ -48,7 +51,7 @@ export const useNotebookList = () => {
       showSuccess("ลบรายการสำเร็จ");
     } catch (error) {
       if (error?.status === 403) {
-        showError("คุณไม่มีสิทธิ์ลบรายการนี้ (เฉพาะ Admin)");
+        showError("คุณไม่มีสิทธิ์ลบรายการนี้");
       } else {
         showError("ลบรายการไม่สำเร็จ");
       }
@@ -57,7 +60,28 @@ export const useNotebookList = () => {
     }
   };
 
+  const handleReserve = async (notebook) => {
+    const confirmed = await dialog_confirm_yes_no("ยืนยันการรับลูกค้ารายนี้เข้าดูแล?");
+    if (!confirmed) {
+      return;
+    }
+
+    const loadingId = showLoading("กำลังรับลูกค้าเข้าดูแล...");
+    try {
+      await reserveNotebook({ id: notebook.id }).unwrap();
+      showSuccess("รับลูกค้าเข้าดูแลสำเร็จ");
+    } catch (error) {
+      showError(error?.data?.message || "ไม่สามารถรับลูกค้าเข้าดูแลได้");
+    } finally {
+      dismissToast(loadingId);
+    }
+  };
+
   const handleConvert = (notebook) => {
+    if (notebook?.nb_entry_type === "customer_care") {
+      return;
+    }
+
     dispatch(setInputList(mapNotebookToCustomer(notebook)));
     dispatch(setMode("create"));
     setConvertingNotebookId(notebook.id);
@@ -69,13 +93,14 @@ export const useNotebookList = () => {
     dispatch(setSelectedNotebook(null));
   };
 
-  const handleAfterCustomerSave = async () => {
+  const handleAfterCustomerSave = async (savedResponse) => {
     if (convertingNotebookId) {
       const loadingId = showLoading("กำลังอัปเดตสถานะ Notebook...");
       try {
         await convertNotebook({
           id: convertingNotebookId,
           nb_status: "ได้งาน",
+          customer_id: savedResponse?.data?.customer_id,
         }).unwrap();
         showSuccess("สร้างลูกค้าและอัปเดต Notebook เรียบร้อย");
       } catch {
@@ -99,11 +124,25 @@ export const useNotebookList = () => {
     isLoading,
     isFetching,
     isConverting,
+    isReserving,
     convertingNotebookId,
     exportState,
     refetch,
     handleDelete,
+    handleReserve,
     handleConvert,
+    handleEdit: (notebook) =>
+      notebook?.nb_entry_type === "customer_care"
+        ? pageState.handleCustomerCareEdit(notebook)
+        : pageState.handleEdit(notebook),
+    handleEditWorkflow: (notebook) =>
+      notebook?.nb_entry_type === "customer_care"
+        ? pageState.handleCustomerCareEdit(notebook)
+        : pageState.handleEditWorkflow(notebook),
+    handleView: (notebook) =>
+      notebook?.nb_entry_type === "customer_care"
+        ? pageState.handleCustomerCareView(notebook)
+        : pageState.handleView(notebook),
     handleAfterCustomerSave,
     handleCloseNotebookDialog,
   };

@@ -1,8 +1,21 @@
-import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { MdFileDownload } from "react-icons/md";
 import { RiAddLine } from "react-icons/ri";
 
-const NotebookHeaderSection = ({ total, isRefreshing, onOpenExport, onAdd, disableExport }) => (
+const NotebookHeaderSection = ({
+  total,
+  isRefreshing,
+  onOpenExport,
+  onAdd,
+  onAddCustomerCare,
+  disableExport,
+  canCreateCustomerCare = false,
+  scopeFilter = "all",
+  onScopeChange,
+  showScopeTabs = false,
+  showAllScopeTab = false,
+  canSelfReport = false,
+}) => (
   <Box
     sx={{
       display: "flex",
@@ -12,10 +25,11 @@ const NotebookHeaderSection = ({ total, isRefreshing, onOpenExport, onAdd, disab
       mb: 2,
     }}
   >
-    <Box>
+    <Box sx={{ minWidth: 0 }}>
       <Typography variant="h5" component="h1" fontWeight="bold" color="text.secondary">
         รายการที่จดบันทึก
       </Typography>
+
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
         <Chip label={`ทั้งหมด ${total || 0} รายการ`} color="default" variant="outlined" />
         <Chip
@@ -23,7 +37,22 @@ const NotebookHeaderSection = ({ total, isRefreshing, onOpenExport, onAdd, disab
           color={isRefreshing ? "info" : "success"}
           variant="outlined"
         />
+        {canSelfReport ? (
+          <Chip label="Self PDF report" color="secondary" variant="outlined" />
+        ) : null}
       </Stack>
+
+      {showScopeTabs ? (
+        <Tabs
+          value={scopeFilter}
+          onChange={(_, value) => onScopeChange?.(value)}
+          sx={{ mt: 1.5, minHeight: 40 }}
+        >
+          {showAllScopeTab ? <Tab value="all" label="ทั้งหมด" sx={{ minHeight: 40 }} /> : null}
+          <Tab value="queue" label="คิวกลาง" sx={{ minHeight: 40 }} />
+          <Tab value="mine" label="ลูกค้าของฉัน" sx={{ minHeight: 40 }} />
+        </Tabs>
+      ) : null}
     </Box>
 
     <Stack
@@ -38,7 +67,7 @@ const NotebookHeaderSection = ({ total, isRefreshing, onOpenExport, onAdd, disab
         disabled={disableExport}
         sx={{ borderColor: "#1976d2", color: "#1976d2" }}
       >
-        Export ข้อมูล
+        {canSelfReport ? "Export PDF Report" : "Export ข้อมูล"}
       </Button>
       <Button
         variant="contained"
@@ -48,6 +77,15 @@ const NotebookHeaderSection = ({ total, isRefreshing, onOpenExport, onAdd, disab
       >
         จดบันทึก
       </Button>
+      {canCreateCustomerCare ? (
+        <Button
+          variant="contained"
+          onClick={onAddCustomerCare}
+          sx={{ bgcolor: "#00695c", "&:hover": { bgcolor: "#004d40" } }}
+        >
+          ดูแลลูกค้า
+        </Button>
+      ) : null}
     </Stack>
   </Box>
 );

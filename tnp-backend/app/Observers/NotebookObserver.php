@@ -14,7 +14,14 @@ class NotebookObserver
      */
     public function created(Notebook $notebook): void
     {
-        $this->recordHistory($notebook, 'created', null, $notebook->getAttributes());
+        $context = $notebook->pullHistoryContext();
+
+        $this->recordHistory(
+            $notebook,
+            $context['action'] ?? 'created',
+            $context['old_values'],
+            $context['new_values'] ?? $notebook->getAttributes()
+        );
     }
 
     /**
@@ -22,21 +29,21 @@ class NotebookObserver
      */
     public function updated(Notebook $notebook): void
     {
-        $oldValues = [];
-        $newValues = [];
-        
-        foreach ($notebook->getDirty() as $key => $value) {
-            // Skip updated_at as it always changes on update
-            if ($key === 'updated_at') {
-                continue;
+        $context = $notebook->pullHistoryContext();
+        $oldValues = $context['old_values'] ?? [];
+        $newValues = $context['new_values'] ?? [];
+        $changes = $notebook->getChanges();
+        unset($changes['updated_at']);
+
+        if (empty($newValues)) {
+            foreach ($changes as $key => $value) {
+                $oldValues[$key] = $notebook->getOriginal($key);
+                $newValues[$key] = $value;
             }
-            
-            $oldValues[$key] = $notebook->getOriginal($key);
-            $newValues[$key] = $value;
         }
 
-        if (!empty($newValues)) {
-            $this->recordHistory($notebook, 'updated', $oldValues, $newValues);
+        if (! empty($newValues)) {
+            $this->recordHistory($notebook, $context['action'] ?? 'updated', $oldValues, $newValues);
         }
     }
 

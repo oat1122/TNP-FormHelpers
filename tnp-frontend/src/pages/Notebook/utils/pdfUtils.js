@@ -5,8 +5,8 @@ import { formatDate as commonFormatDate } from "./notebookCommon";
 // Styles
 export const styles = StyleSheet.create({
   page: {
-    padding: 30,
-    fontSize: 10,
+    padding: 24,
+    fontSize: 9,
     fontFamily: "Kanit",
     lineHeight: 1.4,
   },
@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
   },
   table: {
     display: "table",
-    width: "auto",
+    width: "100%",
     marginTop: 10,
   },
   tableRow: {
@@ -39,28 +39,42 @@ export const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   tableCell: {
-    padding: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
     borderWidth: 0.5,
     borderColor: "#ddd",
   },
   // Column widths
-  colDate: { width: "8%" },
-  colTime: { width: "7%" },
-  colCustomer: { width: "16%" },
+  colDate: { width: "7.5%" },
+  colTime: { width: "5.5%" },
+  colCustomer: { width: "13.5%" },
   colAdditional: { width: "17%" },
-  colContact: { width: "10%" },
-  colEmail: { width: "12%" },
-  colPerson: { width: "10%" },
+  colContact: { width: "8%" },
+  colEmail: { width: "12.5%" },
+  colPerson: { width: "11%" },
   colAction: { width: "8%" },
-  colStatus: { width: "6%" },
-  colRemarks: { width: "14%" },
+  colStatus: { width: "5.5%" },
+  colRemarks: { width: "11.5%" },
   // Text styles
   headerText: {
     fontWeight: 600,
-    fontSize: 9,
+    fontSize: 8,
+    lineHeight: 1.3,
   },
   cellText: {
-    fontSize: 9,
+    fontSize: 8,
+    lineHeight: 1.35,
+    maxWidth: "100%",
+    flexShrink: 1,
+  },
+  cellTextCompact: {
+    fontSize: 7,
+    lineHeight: 1.35,
+    maxWidth: "100%",
+    flexShrink: 1,
+  },
+  cellTextEmpty: {
+    color: "#a0a7b4",
   },
   statusSuccess: { color: "#2e7d32" },
   statusInfo: { color: "#1976d2" },
@@ -69,8 +83,8 @@ export const styles = StyleSheet.create({
   footer: {
     position: "absolute",
     bottom: 20,
-    left: 30,
-    right: 30,
+    left: 24,
+    right: 24,
     textAlign: "center",
     fontSize: 8,
     color: "#999",
@@ -147,6 +161,14 @@ export const getHistoryChanges = (history) => {
       typeof history.new_values === "string"
         ? JSON.parse(history.new_values)
         : history.new_values || {};
+    const displayOldVals =
+      typeof history.display_old_values === "string"
+        ? JSON.parse(history.display_old_values)
+        : history.display_old_values || {};
+    const displayNewVals =
+      typeof history.display_new_values === "string"
+        ? JSON.parse(history.display_new_values)
+        : history.display_new_values || {};
 
     // If it's not an update or no new values, just show action
     if (!newVals || Object.keys(newVals).length === 0) return [];
@@ -157,8 +179,8 @@ export const getHistoryChanges = (history) => {
       if (key === "updated_at" || key === "nb_time") return;
 
       const label = FIELD_LABELS[key] || key;
-      const oldVal = formatValue(key, oldVals[key]);
-      const newVal = formatValue(key, newVals[key]);
+      const oldVal = formatValue(key, displayOldVals[key] ?? oldVals[key]);
+      const newVal = formatValue(key, displayNewVals[key] ?? newVals[key]);
 
       // Only show if different
       if (oldVal !== newVal) {

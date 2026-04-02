@@ -69,6 +69,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     //---------- Telesales & Allocation (Protected Routes) ----------
+    Route::get('/notebooks/self-report', [NotebookController::class, 'selfReport']);
+    Route::get('/notebooks/customer-care/sources', [NotebookController::class, 'customerCareSources']);
+    Route::post('/notebooks/customer-care', [NotebookController::class, 'storeCustomerCare']);
+    Route::post('/notebooks/leads', [NotebookController::class, 'storeLead']);
+    Route::post('/notebooks/{id}/reserve', [NotebookController::class, 'reserve']);
     Route::post('/notebooks/{id}/convert', [NotebookController::class, 'convert']);
     Route::apiResource('notebooks', NotebookController::class);
 

@@ -1,16 +1,20 @@
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 
-import { useLazyGetNotebookExportQuery } from "../../../features/Notebook/notebookApi";
+import {
+  useLazyGetNotebookExportQuery,
+  useLazyGetNotebookSelfReportQuery,
+} from "../../../features/Notebook/notebookApi";
 import { showError } from "../../../utils/toast";
 import { DATE_PRESETS } from "../utils/datePresets";
 import {
   buildNotebookCsvContent,
   buildNotebookExportRows,
+  buildNotebookLeadSummaryRows,
   filterNotebookExportData,
 } from "../utils/notebookExport";
 
-export const useNotebookExport = ({ open, filters, currentUser }) => {
+export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = false }) => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [activePreset, setActivePreset] = useState("เดือนนี้");
   const [dateRange, setDateRange] = useState({
@@ -18,16 +22,47 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
     end: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   });
 
-  const [fetchNotebookExport, { data: exportItems = [], isFetching, isLoading, error }] =
-    useLazyGetNotebookExportQuery();
+  const [fetchNotebookExport, exportQueryState] = useLazyGetNotebookExportQuery();
+  const [fetchNotebookSelfReport, selfReportQueryState] = useLazyGetNotebookSelfReportQuery();
+
+  const exportItems = useMemo(() => exportQueryState.data ?? [], [exportQueryState.data]);
+  const selfReportData = useMemo(
+    () => selfReportQueryState.data ?? { lead_additions: [], activity_items: [] },
+    [selfReportQueryState.data]
+  );
+  const isLoading =
+    exportQueryState.isLoading ||
+    exportQueryState.isFetching ||
+    selfReportQueryState.isLoading ||
+    selfReportQueryState.isFetching;
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    fetchNotebookExport(filters);
-  }, [open, fetchNotebookExport, filters]);
+    fetchNotebookExport({
+      ...filters,
+      start_date: dateRange.start,
+      end_date: dateRange.end,
+      entry_type: "standard",
+    });
+
+    if (canSelfReport) {
+      fetchNotebookSelfReport({
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+      });
+    }
+  }, [
+    canSelfReport,
+    dateRange.end,
+    dateRange.start,
+    fetchNotebookExport,
+    fetchNotebookSelfReport,
+    filters,
+    open,
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -39,25 +74,26 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
       end: filters.end_date || format(endOfMonth(new Date()), "yyyy-MM-dd"),
     });
     setActivePreset(null);
-  }, [open, filters.start_date, filters.end_date]);
+  }, [filters.end_date, filters.start_date, open]);
 
   useEffect(() => {
     if (open) {
       setSelectedIds(exportItems.map((item) => item.id));
     }
-  }, [open, exportItems]);
+  }, [exportItems, open]);
 
   useEffect(() => {
-    if (error) {
+    const exportError = exportQueryState.error || selfReportQueryState.error;
+    if (exportError) {
       showError(
-        "ไม่สามารถดึงข้อมูลเพื่อ export ได้: " + (error?.data?.message || "Internal Server Error")
+        "ไม่สามารถดึงข้อมูล export ได้: " + (exportError?.data?.message || "Internal Server Error")
       );
     }
-  }, [error]);
+  }, [exportQueryState.error, selfReportQueryState.error]);
 
   const filteredItems = useMemo(
     () => filterNotebookExportData(exportItems, dateRange, filters.date_filter_by || "all"),
-    [exportItems, dateRange, filters.date_filter_by]
+    [dateRange, exportItems, filters.date_filter_by]
   );
 
   const selectedItems = useMemo(
@@ -66,10 +102,26 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
   );
 
   const exportRows = useMemo(
-    () => buildNotebookExportRows(selectedItems, dateRange),
+    () => buildNotebookExportRows(selectedItems, dateRange, { reportMode: "standard" }),
     [selectedItems, dateRange]
   );
 
+  const selfReportRows = useMemo(
+    () => buildNotebookExportRows(selfReportData.activity_items || [], dateRange, { reportMode: "self" }),
+    [dateRange, selfReportData.activity_items]
+  );
+
+  const filteredLeadAdditions = useMemo(
+    () => filterNotebookExportData(selfReportData.lead_additions || [], dateRange, "created_at"),
+    [dateRange, selfReportData.lead_additions]
+  );
+
+  const leadSummaryRows = useMemo(
+    () => buildNotebookLeadSummaryRows(filteredLeadAdditions),
+    [filteredLeadAdditions]
+  );
+
+  const pdfRows = canSelfReport ? selfReportRows : exportRows;
   const isAllSelected = filteredItems.length > 0 && selectedIds.length === filteredItems.length;
 
   const handlePresetClick = (presetLabel) => {
@@ -107,7 +159,8 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
   };
 
   const handleExportCsv = () => {
-    if (exportRows.length === 0) {
+    const rows = canSelfReport ? selfReportRows : exportRows;
+    if (rows.length === 0) {
       return;
     }
 
@@ -116,7 +169,7 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
     const exporterName = `ผู้ส่งออก: ${`${firstName} ${lastName}`.trim()}`.trim();
 
     const csvContent = buildNotebookCsvContent({
-      rows: exportRows,
+      rows,
       exporterName,
       dateRange,
     });
@@ -135,12 +188,15 @@ export const useNotebookExport = ({ open, filters, currentUser }) => {
     filteredItems,
     selectedItems,
     exportRows,
+    pdfRows,
+    leadSummaryRows,
     selectedIds,
     dateRange,
     activePreset,
     isLoading,
-    isFetching,
+    isFetching: isLoading,
     isAllSelected,
+    isSelfReportMode: canSelfReport,
     handlePresetClick,
     handleDateChange,
     handleToggleSelection,

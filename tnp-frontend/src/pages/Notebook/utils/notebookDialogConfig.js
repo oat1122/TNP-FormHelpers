@@ -64,11 +64,38 @@ export const NOTEBOOK_ACTION_OPTIONS = [
   },
 ];
 
+export const NOTEBOOK_ENTRY_TYPE_OPTIONS = [
+  {
+    value: "standard",
+    label: "จดบันทึก",
+    color: "default",
+  },
+  {
+    value: "customer_care",
+    label: "ดูแลลูกค้า",
+    color: "secondary",
+  },
+];
+
+export const NOTEBOOK_SOURCE_TYPE_OPTIONS = [
+  {
+    value: "customer",
+    label: "Customer",
+    color: "success",
+  },
+  {
+    value: "notebook",
+    label: "Notebook",
+    color: "info",
+  },
+];
+
 export const NOTEBOOK_PRIMARY_ACTIONS = NOTEBOOK_ACTION_OPTIONS.filter(
   (option) => option.kind === "primary"
 );
 
 export const NOTEBOOK_HISTORY_FIELD_LABELS = {
+  nb_date: "Follow-up date",
   nb_status: "Status",
   nb_action: "Next action",
   nb_additional_info: "Interaction notes",
@@ -87,11 +114,23 @@ export const getNotebookStatusOption = (value) =>
 export const getNotebookActionOption = (value) =>
   NOTEBOOK_ACTION_OPTIONS.find((option) => option.value === value) || null;
 
+export const getNotebookEntryTypeOption = (value) =>
+  NOTEBOOK_ENTRY_TYPE_OPTIONS.find((option) => option.value === value) || null;
+
+export const getNotebookSourceTypeOption = (value) =>
+  NOTEBOOK_SOURCE_TYPE_OPTIONS.find((option) => option.value === value) || null;
+
 export const getNotebookActionLabel = (value) =>
   getNotebookActionOption(value)?.label || value || "Next action not set";
 
 export const getNotebookStatusLabel = (value) =>
   getNotebookStatusOption(value)?.label || value || "Status not set";
+
+export const getNotebookEntryTypeLabel = (value) =>
+  getNotebookEntryTypeOption(value)?.label || value || "จดบันทึก";
+
+export const getNotebookSourceTypeLabel = (value) =>
+  getNotebookSourceTypeOption(value)?.label || value || "Source";
 
 export const getNotebookSourceMeta = (isOnline) =>
   isOnline ? { label: "Online", color: "success" } : { label: "On-site", color: "warning" };

@@ -6,6 +6,11 @@ export const formatDate = (date, formatStr = "dd/MM/yyyy") => {
   if (!date) return "";
 
   try {
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [year, month, day] = date.split("-").map(Number);
+      return format(new Date(year, month - 1, day), formatStr, { locale: th });
+    }
+
     return format(new Date(date), formatStr, { locale: th });
   } catch {
     return "";
@@ -52,8 +57,7 @@ export const getNotebookActionHighlightSx = () => ({
   py: 1.15,
   borderRadius: 2.5,
   border: "1px solid rgba(249, 115, 22, 0.28)",
-  background:
-    "linear-gradient(135deg, rgba(255,237,213,0.96) 0%, rgba(255,247,237,0.98) 100%)",
+  background: "linear-gradient(135deg, rgba(255,237,213,0.96) 0%, rgba(255,247,237,0.98) 100%)",
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
   cursor: "pointer",
   transition: "transform 120ms ease, box-shadow 120ms ease",

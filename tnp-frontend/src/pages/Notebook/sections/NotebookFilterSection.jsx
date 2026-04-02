@@ -15,15 +15,12 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import {
-  MdOutlineSearch,
-  MdOutlineTableRows,
-  MdOutlineViewAgenda,
-} from "react-icons/md";
+import { MdOutlineSearch, MdOutlineTableRows, MdOutlineViewAgenda } from "react-icons/md";
 
 import PeriodTabs from "../../Telesales/sections/PeriodTabs";
 import {
   NOTEBOOK_ACTION_OPTIONS,
+  NOTEBOOK_ENTRY_TYPE_OPTIONS,
   NOTEBOOK_STATUS_OPTIONS,
 } from "../utils/notebookDialogConfig";
 
@@ -34,6 +31,8 @@ const NotebookFilterSection = ({
   onStatusChange,
   actionFilter,
   onActionChange,
+  entryTypeFilter,
+  onEntryTypeChange,
   salesFilter,
   onSalesChange,
   salesOptions,
@@ -127,7 +126,11 @@ const NotebookFilterSection = ({
 
             <FormControl size="small" sx={{ minWidth: 170 }}>
               <InputLabel>สถานะ</InputLabel>
-              <Select value={statusFilter} label="สถานะ" onChange={(event) => onStatusChange(event.target.value)}>
+              <Select
+                value={statusFilter}
+                label="สถานะ"
+                onChange={(event) => onStatusChange(event.target.value)}
+              >
                 <MenuItem value="all">ทุกสถานะ</MenuItem>
                 {NOTEBOOK_STATUS_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -146,6 +149,22 @@ const NotebookFilterSection = ({
               >
                 <MenuItem value="all">ทุก Next action</MenuItem>
                 {NOTEBOOK_ACTION_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={entryTypeFilter}
+                label="Type"
+                onChange={(event) => onEntryTypeChange(event.target.value)}
+              >
+                <MenuItem value="all">ทุกประเภท</MenuItem>
+                {NOTEBOOK_ENTRY_TYPE_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
                   </MenuItem>

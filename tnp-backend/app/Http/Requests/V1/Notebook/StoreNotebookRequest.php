@@ -26,6 +26,7 @@ class StoreNotebookRequest extends NotebookRequest
             'nb_action' => ['nullable', 'string', 'max:255'],
             'nb_status' => ['nullable', 'string', 'max:255'],
             'nb_remarks' => ['nullable', 'string'],
+            'nb_workflow' => ['sometimes', Rule::in(['standard', 'lead_queue'])],
         ];
 
         if (app(NotebookService::class)->canManageAll($this->user())) {

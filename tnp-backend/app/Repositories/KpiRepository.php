@@ -2,7 +2,10 @@
 
 namespace App\Repositories;
 
+use App\Helpers\UserSubRoleHelper;
 use App\Models\MasterCustomer;
+use App\Models\MasterBusinessType;
+use App\Models\Notebook;
 use App\Models\RecallStatusHistory;
 use App\Models\User;
 use Carbon\Carbon;
@@ -634,5 +637,228 @@ class KpiRepository extends BaseRepository implements KpiRepositoryInterface
         return $query->with(['allocatedBy:user_id,username,user_firstname,user_lastname,user_nickname'])
             ->orderBy('cus_created_date', 'desc')
             ->get();
+    }
+
+    public function getNotebookLeadBaseQuery(array $dateRange, string $sourceFilter, ?int $targetUserId): Builder
+    {
+        $query = Notebook::query()
+            ->where('notebooks.nb_workflow', Notebook::WORKFLOW_LEAD_QUEUE)
+            ->whereBetween('notebooks.created_at', [$dateRange['start'], $dateRange['end']])
+            ->select('notebooks.*')
+            ->distinct();
+
+        $this->applyNotebookLeadSourceFilter($query, $sourceFilter);
+
+        if ($targetUserId) {
+            $query->where('notebooks.created_by', $targetUserId);
+        }
+
+        return $query;
+    }
+
+    public function getNotebookLeadSummaryStats(Builder $query): array
+    {
+        $items = (clone $query)->get(['notebooks.id', 'notebooks.nb_manage_by', 'notebooks.nb_converted_at']);
+
+        $inQueueCount = $items
+            ->filter(fn ($item) => empty($item->nb_manage_by) && empty($item->nb_converted_at))
+            ->count();
+
+        return [
+            'total_customers' => $items->count(),
+            'in_pool' => $inQueueCount,
+            'allocated' => $items->count() - $inQueueCount,
+        ];
+    }
+
+    public function getNotebookLeadBySourceStats(Builder $query): array
+    {
+        return (clone $query)
+            ->with(['createdBy.subRoles'])
+            ->get()
+            ->groupBy(fn (Notebook $notebook) => $this->resolveNotebookLeadSource($notebook))
+            ->map(fn ($items, $source) => [
+                'source' => $source,
+                'count' => $items->count(),
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    public function getNotebookLeadByBusinessTypeStats(Builder $query): array
+    {
+        $items = (clone $query)->get(['notebooks.id', 'notebooks.nb_lead_payload']);
+        $businessTypeIds = $items
+            ->map(fn (Notebook $notebook) => data_get($notebook->nb_lead_payload, 'cus_bt_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($businessTypeIds->isEmpty()) {
+            return [];
+        }
+
+        $businessTypeNames = MasterBusinessType::query()
+            ->whereIn('bt_id', $businessTypeIds)
+            ->pluck('bt_name', 'bt_id');
+
+        return $items
+            ->map(fn (Notebook $notebook) => data_get($notebook->nb_lead_payload, 'cus_bt_id'))
+            ->filter()
+            ->countBy()
+            ->map(fn ($count, $businessTypeId) => [
+                'business_type' => $businessTypeNames->get($businessTypeId, 'Unknown'),
+                'count' => $count,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    public function getNotebookLeadByAllocationStats(Builder $query): array
+    {
+        $items = (clone $query)->get(['notebooks.id', 'notebooks.nb_manage_by', 'notebooks.nb_converted_at']);
+
+        $inQueueCount = $items
+            ->filter(fn ($item) => empty($item->nb_manage_by) && empty($item->nb_converted_at))
+            ->count();
+
+        return [
+            [
+                'status' => 'Central Queue',
+                'count' => $inQueueCount,
+            ],
+            [
+                'status' => 'Claimed / Converted',
+                'count' => $items->count() - $inQueueCount,
+            ],
+        ];
+    }
+
+    public function getNotebookLeadTimeSeriesStats(Builder $query, array $dateRange): array
+    {
+        return (clone $query)
+            ->get(['notebooks.id', 'notebooks.created_at'])
+            ->groupBy(fn (Notebook $notebook) => Carbon::parse($notebook->created_at)->format('Y-m-d'))
+            ->map(fn ($items, $date) => [
+                'date' => $date,
+                'count' => $items->count(),
+            ])
+            ->sortBy('date')
+            ->values()
+            ->toArray();
+    }
+
+    public function getNotebookLeadPeriodComparison(array $currentStats, array $prevDateRange, string $sourceFilter, ?int $targetUserId): array
+    {
+        $prevQuery = $this->getNotebookLeadBaseQuery($prevDateRange, $sourceFilter, $targetUserId);
+        $prevStats = $this->getNotebookLeadSummaryStats($prevQuery);
+
+        $currentCount = $currentStats['total_customers'] ?? 0;
+        $prevCount = $prevStats['total_customers'] ?? 0;
+        $diff = $currentCount - $prevCount;
+
+        if ($prevCount == 0) {
+            $percentChange = $currentCount > 0 ? 100 : 0;
+        } else {
+            $percentChange = round(($diff / $prevCount) * 100, 1);
+        }
+
+        return [
+            'previous' => $prevCount,
+            'difference' => $diff,
+            'percent_change' => $percentChange,
+            'trend' => $diff >= 0 ? 'up' : 'down',
+            'period_label' => $prevDateRange['label'],
+        ];
+    }
+
+    public function getNotebookLeadPaginatedDetails(Builder $query, string $kpiType, int $perPage): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $query->with([
+            'createdBy:user_id,username,user_firstname,user_lastname,user_nickname',
+            'manageBy:user_id,username,user_firstname,user_lastname,user_nickname',
+        ]);
+
+        if ($kpiType === 'pool') {
+            $query->whereNull('notebooks.nb_manage_by')
+                ->whereNull('notebooks.nb_converted_at');
+        } elseif ($kpiType === 'allocated') {
+            $query->where(function (Builder $allocationQuery) {
+                $allocationQuery->whereNotNull('notebooks.nb_manage_by')
+                    ->orWhereNotNull('notebooks.nb_converted_at');
+            });
+        }
+
+        return $query->orderByDesc('notebooks.created_at')->paginate($perPage);
+    }
+
+    public function getNotebookLeadExportData(Builder $query): \Illuminate\Database\Eloquent\Collection
+    {
+        return $query->with([
+            'createdBy:user_id,username,user_firstname,user_lastname,user_nickname',
+            'manageBy:user_id,username,user_firstname,user_lastname,user_nickname',
+        ])
+            ->orderByDesc('notebooks.created_at')
+            ->get();
+    }
+
+    protected function applyNotebookLeadSourceFilter(Builder $query, string $sourceFilter): void
+    {
+        if ($sourceFilter === 'all') {
+            return;
+        }
+
+        if ($sourceFilter === 'online') {
+            $query->where('notebooks.nb_is_online', true);
+
+            return;
+        }
+
+        $query
+            ->leftJoin('users as notebook_lead_created_users', 'notebooks.created_by', '=', 'notebook_lead_created_users.user_id')
+            ->leftJoin('user_sub_roles as notebook_lead_user_sub_roles', 'notebook_lead_created_users.user_id', '=', 'notebook_lead_user_sub_roles.usr_user_id')
+            ->leftJoin('master_sub_roles as notebook_lead_master_sub_roles', 'notebook_lead_user_sub_roles.usr_sub_role_id', '=', 'notebook_lead_master_sub_roles.msr_id')
+            ->where('notebooks.nb_is_online', false)
+            ->where(function (Builder $sourceQuery) use ($sourceFilter) {
+                if ($sourceFilter === 'sales') {
+                    $sourceQuery->where('notebook_lead_created_users.role', 'sale')
+                        ->orWhere('notebook_lead_master_sub_roles.msr_code', UserSubRoleHelper::SUPPORT_SALES);
+
+                    return;
+                }
+
+                if ($sourceFilter === 'telesales') {
+                    $sourceQuery->where('notebook_lead_created_users.role', 'telesale')
+                        ->orWhere('notebook_lead_master_sub_roles.msr_code', UserSubRoleHelper::TALESALES);
+
+                    return;
+                }
+
+                $sourceQuery->where('notebook_lead_created_users.role', 'office');
+            });
+    }
+
+    protected function resolveNotebookLeadSource(Notebook $notebook): string
+    {
+        if ($notebook->nb_is_online) {
+            return 'online';
+        }
+
+        $createdBy = $notebook->createdBy;
+        $subRoleCodes = UserSubRoleHelper::getSubRoleCodes($createdBy);
+
+        if (($createdBy?->role === 'sale') || in_array(UserSubRoleHelper::SUPPORT_SALES, $subRoleCodes, true)) {
+            return 'sales';
+        }
+
+        if (($createdBy?->role === 'telesale') || in_array(UserSubRoleHelper::TALESALES, $subRoleCodes, true)) {
+            return 'telesales';
+        }
+
+        if ($createdBy?->role === 'office') {
+            return 'office';
+        }
+
+        return 'unknown';
     }
 }

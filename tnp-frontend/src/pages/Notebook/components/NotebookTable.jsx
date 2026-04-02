@@ -80,7 +80,13 @@ const NotebookTableErrorState = ({ onRetry }) => (
   </Box>
 );
 
-const NotebookTableContextBar = ({ rowsCount, total, filterSummary, onClearFilters, effectiveViewMode }) => (
+const NotebookTableContextBar = ({
+  rowsCount,
+  total,
+  filterSummary,
+  onClearFilters,
+  effectiveViewMode,
+}) => (
   <Stack
     direction={{ xs: "column", md: "row" }}
     spacing={2}
@@ -125,6 +131,8 @@ const NotebookTable = ({
   userRole,
   filterSummary,
   viewMode,
+  scopeFilter,
+  canReserveQueue,
   onClearFilters,
   onRetry,
 }) => {
@@ -188,6 +196,8 @@ const NotebookTable = ({
                 pagination={pagination}
                 actions={actions}
                 userRole={userRole}
+                scopeFilter={scopeFilter}
+                canReserveQueue={canReserveQueue}
               />
             ) : (
               <NotebookTableEmptyState filterSummary={filterSummary} />
@@ -199,6 +209,8 @@ const NotebookTable = ({
               pagination={pagination}
               actions={actions}
               userRole={userRole}
+              scopeFilter={scopeFilter}
+              canReserveQueue={canReserveQueue}
               onNoRowsOverlay={() => <NotebookTableEmptyState filterSummary={filterSummary} />}
             />
           )}

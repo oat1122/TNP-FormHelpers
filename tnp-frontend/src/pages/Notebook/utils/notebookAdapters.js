@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
 
+import {
+  shouldNotebookCreateIntoMine,
+  shouldNotebookCreateIntoQueue,
+} from "../../../utils/userAccess";
+
 export const getStoredNotebookUser = () => {
   try {
     return JSON.parse(localStorage.getItem("userData") || "{}");
@@ -15,9 +20,18 @@ export const getDefaultNotebookPeriodFilter = () => ({
   endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
 });
 
+const normalizeNotebookDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
+};
+
 export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
-  nb_date: notebook?.nb_date || dayjs().format("YYYY-MM-DD"),
-  nb_time: notebook?.nb_time || dayjs().format("HH:mm"),
+  nb_date: notebook ? normalizeNotebookDate(notebook?.nb_date) : dayjs().format("YYYY-MM-DD"),
+  nb_time: notebook ? notebook?.nb_time || "" : dayjs().format("HH:mm"),
   nb_customer_name: notebook?.nb_customer_name || "",
   nb_is_online: Boolean(notebook?.nb_is_online),
   nb_additional_info: notebook?.nb_additional_info || "",
@@ -27,7 +41,21 @@ export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
   nb_action: notebook?.nb_action || "",
   nb_status: notebook?.nb_status || "",
   nb_remarks: notebook?.nb_remarks || "",
-  nb_manage_by: isAdmin ? (notebook?.nb_manage_by ?? "") : (currentUser?.user_id ?? null),
+  nb_manage_by: isAdmin
+    ? (notebook?.nb_manage_by ?? "")
+    : shouldNotebookCreateIntoQueue(currentUser)
+      ? null
+      : (notebook?.nb_manage_by ?? currentUser?.user_id ?? null),
+  nb_workflow:
+    notebook?.nb_workflow ||
+    (shouldNotebookCreateIntoQueue(currentUser) || shouldNotebookCreateIntoMine(currentUser)
+      ? "lead_queue"
+      : "standard"),
+  nb_entry_type: notebook?.nb_entry_type || "standard",
+  nb_source_type: notebook?.nb_source_type || "",
+  nb_source_customer_id: notebook?.nb_source_customer_id || null,
+  nb_source_notebook_id: notebook?.nb_source_notebook_id || null,
+  manage_by_user: notebook?.manage_by_user || null,
 });
 
 export const buildNotebookFilterSummary = ({
@@ -36,20 +64,34 @@ export const buildNotebookFilterSummary = ({
   dateFilterBy,
   statusFilter,
   actionFilter,
+  entryTypeFilter,
   salesFilter,
+  scopeFilter,
   salesOptions = [],
   defaults,
 }) => {
+  const scopeLabelMap = {
+    all: "All",
+    mine: "My Customers",
+    queue: "Central Queue",
+  };
+
   const dateTypeLabelMap = {
-    all: "สร้างหรืออัปเดต",
-    nb_date: "วันติดตาม",
-    created_at: "วันที่สร้าง",
-    updated_at: "วันที่อัปเดต",
+    all: "Created or Updated",
+    nb_date: "Follow-up Date",
+    created_at: "Created Date",
+    updated_at: "Updated Date",
+  };
+  const entryTypeLabelMap = {
+    all: "All entries",
+    standard: "จดบันทึก",
+    customer_care: "ดูแลลูกค้า",
   };
 
   const salesLabel =
-    salesOptions.find((option) => String(option.value) === String(salesFilter))?.label || salesFilter;
-  const dateLabel = `ช่วง ${periodFilter.startDate} ถึง ${periodFilter.endDate}`;
+    salesOptions.find((option) => String(option.value) === String(salesFilter))?.label ||
+    salesFilter;
+  const dateLabel = `${periodFilter.startDate} - ${periodFilter.endDate}`;
   const chips = [
     {
       key: "date",
@@ -57,21 +99,28 @@ export const buildNotebookFilterSummary = ({
     },
     {
       key: "date-type",
-      label: `วันที่: ${dateTypeLabelMap[dateFilterBy] || "ทั้งหมด"}`,
+      label: `Date: ${dateTypeLabelMap[dateFilterBy] || "All"}`,
     },
   ];
 
   if (keyword) {
     chips.unshift({
       key: "keyword",
-      label: `ค้นหา: "${keyword}"`,
+      label: `Search: "${keyword}"`,
+    });
+  }
+
+  if (scopeFilter && scopeFilter !== defaults.scopeFilter) {
+    chips.unshift({
+      key: "scope",
+      label: `View: ${scopeLabelMap[scopeFilter] || scopeFilter}`,
     });
   }
 
   if (statusFilter && statusFilter !== "all") {
     chips.push({
       key: "status",
-      label: `สถานะ: ${statusFilter}`,
+      label: `Status: ${statusFilter}`,
     });
   }
 
@@ -79,6 +128,13 @@ export const buildNotebookFilterSummary = ({
     chips.push({
       key: "action",
       label: `Next action: ${actionFilter}`,
+    });
+  }
+
+  if (entryTypeFilter && entryTypeFilter !== "all") {
+    chips.push({
+      key: "entry-type",
+      label: `Type: ${entryTypeLabelMap[entryTypeFilter] || entryTypeFilter}`,
     });
   }
 
@@ -91,9 +147,11 @@ export const buildNotebookFilterSummary = ({
 
   const hasCustomFilters =
     Boolean(keyword) ||
+    String(scopeFilter) !== String(defaults.scopeFilter) ||
     dateFilterBy !== defaults.dateFilterBy ||
     statusFilter !== defaults.statusFilter ||
     actionFilter !== defaults.actionFilter ||
+    entryTypeFilter !== defaults.entryTypeFilter ||
     String(salesFilter) !== String(defaults.salesFilter) ||
     periodFilter.startDate !== defaults.periodFilter.startDate ||
     periodFilter.endDate !== defaults.periodFilter.endDate ||
@@ -102,12 +160,16 @@ export const buildNotebookFilterSummary = ({
   return {
     chips,
     hasCustomFilters,
-    keywordLabel: keyword ? `ค้นหา: "${keyword}"` : "",
-    typeLabel: `วันที่: ${dateTypeLabelMap[dateFilterBy] || "ทั้งหมด"}`,
+    scopeLabel: `View: ${scopeLabelMap[scopeFilter] || scopeFilter || "All"}`,
+    keywordLabel: keyword ? `Search: "${keyword}"` : "",
+    typeLabel: `Date: ${dateTypeLabelMap[dateFilterBy] || "All"}`,
     dateLabel,
-    statusLabel: statusFilter && statusFilter !== "all" ? `สถานะ: ${statusFilter}` : "",
+    statusLabel: statusFilter && statusFilter !== "all" ? `Status: ${statusFilter}` : "",
     actionLabel: actionFilter && actionFilter !== "all" ? `Next action: ${actionFilter}` : "",
-    salesLabel:
-      salesFilter && salesFilter !== "all" && salesLabel ? `Sales: ${salesLabel}` : "",
+    entryTypeLabel:
+      entryTypeFilter && entryTypeFilter !== "all"
+        ? `Type: ${entryTypeLabelMap[entryTypeFilter] || entryTypeFilter}`
+        : "",
+    salesLabel: salesFilter && salesFilter !== "all" && salesLabel ? `Sales: ${salesLabel}` : "",
   };
 };

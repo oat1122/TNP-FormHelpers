@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 
+import { useDebouncedValue } from "./useDebouncedValue";
 import {
   setDialogFocusTarget,
   setDialogMode,
@@ -8,7 +9,12 @@ import {
   setSelectedNotebook,
 } from "../../../features/Notebook/notebookSlice";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
-import { useDebouncedValue } from "./useDebouncedValue";
+import {
+  canExportNotebookSelfReport,
+  canCreateCustomerCare,
+  canReserveNotebookQueue,
+  getDefaultNotebookScope,
+} from "../../../utils/userAccess";
 import {
   buildNotebookFilterSummary,
   getDefaultNotebookPeriodFilter,
@@ -19,30 +25,43 @@ export const useNotebookPageState = () => {
   const dispatch = useDispatch();
   const currentUser = useMemo(() => getStoredNotebookUser(), []);
   const canFilterBySales = currentUser?.role === "admin" || currentUser?.role === "manager";
+  const canUseQueueTabs = canReserveNotebookQueue(currentUser);
+  const canSelfReport = canExportNotebookSelfReport(currentUser);
+  const canOpenCustomerCare = canCreateCustomerCare(currentUser);
+  const defaultScopeFilter = useMemo(() => getDefaultNotebookScope(currentUser), [currentUser]);
   const defaultPeriodFilter = useMemo(() => getDefaultNotebookPeriodFilter(), []);
   const defaultFilters = useMemo(
     () => ({
+      scopeFilter: defaultScopeFilter,
       keyword: "",
       statusFilter: "all",
       actionFilter: "all",
+      entryTypeFilter: "all",
       salesFilter: "all",
       dateFilterBy: "all",
       periodFilter: defaultPeriodFilter,
       viewMode: "table",
     }),
-    [defaultPeriodFilter]
+    [defaultPeriodFilter, defaultScopeFilter]
   );
 
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 15 });
+  const [scopeFilter, setScopeFilter] = useState(defaultFilters.scopeFilter);
   const [searchInput, setSearchInput] = useState(defaultFilters.keyword);
   const [periodFilter, setPeriodFilter] = useState(defaultFilters.periodFilter);
   const [dateFilterBy, setDateFilterBy] = useState(defaultFilters.dateFilterBy);
   const [statusFilter, setStatusFilter] = useState(defaultFilters.statusFilter);
   const [actionFilter, setActionFilter] = useState(defaultFilters.actionFilter);
+  const [entryTypeFilter, setEntryTypeFilter] = useState(defaultFilters.entryTypeFilter);
   const [salesFilter, setSalesFilter] = useState(defaultFilters.salesFilter);
   const [viewMode, setViewMode] = useState(defaultFilters.viewMode);
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [customerCareDialogState, setCustomerCareDialogState] = useState({
+    open: false,
+    mode: "create",
+    selectedRecord: null,
+  });
   const debouncedSearch = useDebouncedValue(searchInput.trim(), 400);
 
   const { data: salesData } = useGetAllUserQuery(
@@ -67,12 +86,14 @@ export const useNotebookPageState = () => {
     setPaginationModel((previous) => (previous.page === 0 ? previous : { ...previous, page: 0 }));
   }, [
     debouncedSearch,
+    scopeFilter,
     periodFilter.startDate,
     periodFilter.endDate,
     periodFilter.mode,
     dateFilterBy,
     statusFilter,
     actionFilter,
+    entryTypeFilter,
     salesFilter,
   ]);
 
@@ -80,12 +101,14 @@ export const useNotebookPageState = () => {
     () => ({
       page: paginationModel.page,
       per_page: paginationModel.pageSize,
+      scope: scopeFilter !== "all" ? scopeFilter : undefined,
       search: debouncedSearch || undefined,
       start_date: periodFilter.startDate,
       end_date: periodFilter.endDate,
       date_filter_by: dateFilterBy,
       status: statusFilter !== "all" ? statusFilter : undefined,
       action: actionFilter !== "all" ? actionFilter : undefined,
+      entry_type: entryTypeFilter !== "all" ? entryTypeFilter : undefined,
       manage_by: salesFilter !== "all" ? Number(salesFilter) : undefined,
       include: "histories",
     }),
@@ -93,33 +116,39 @@ export const useNotebookPageState = () => {
       paginationModel.page,
       paginationModel.pageSize,
       debouncedSearch,
+      scopeFilter,
       periodFilter.startDate,
       periodFilter.endDate,
       dateFilterBy,
       statusFilter,
       actionFilter,
+      entryTypeFilter,
       salesFilter,
     ]
   );
 
   const exportFilters = useMemo(
     () => ({
+      scope: scopeFilter !== "all" ? scopeFilter : undefined,
       search: debouncedSearch || undefined,
       start_date: periodFilter.startDate,
       end_date: periodFilter.endDate,
       date_filter_by: dateFilterBy,
       status: statusFilter !== "all" ? statusFilter : undefined,
       action: actionFilter !== "all" ? actionFilter : undefined,
+      entry_type: entryTypeFilter !== "all" ? entryTypeFilter : undefined,
       manage_by: salesFilter !== "all" ? Number(salesFilter) : undefined,
       include: "histories",
     }),
     [
       debouncedSearch,
+      scopeFilter,
       periodFilter.startDate,
       periodFilter.endDate,
       dateFilterBy,
       statusFilter,
       actionFilter,
+      entryTypeFilter,
       salesFilter,
     ]
   );
@@ -128,20 +157,24 @@ export const useNotebookPageState = () => {
     () =>
       buildNotebookFilterSummary({
         keyword: debouncedSearch,
+        scopeFilter,
         periodFilter,
         dateFilterBy,
         statusFilter,
         actionFilter,
+        entryTypeFilter,
         salesFilter,
         salesOptions,
         defaults: defaultFilters,
       }),
     [
       debouncedSearch,
+      scopeFilter,
       periodFilter,
       dateFilterBy,
       statusFilter,
       actionFilter,
+      entryTypeFilter,
       salesFilter,
       salesOptions,
       defaultFilters,
@@ -159,6 +192,22 @@ export const useNotebookPageState = () => {
     openDialog("create", null, null);
   };
 
+  const openCustomerCareDialog = (mode, record = null) => {
+    setCustomerCareDialogState({
+      open: true,
+      mode,
+      selectedRecord: record,
+    });
+  };
+
+  const handleAddCustomerCare = () => {
+    if (!canOpenCustomerCare) {
+      return;
+    }
+
+    openCustomerCareDialog("create", null);
+  };
+
   const handleEdit = (notebook) => {
     openDialog("edit", notebook, null);
   };
@@ -171,12 +220,30 @@ export const useNotebookPageState = () => {
     openDialog("view", notebook, null);
   };
 
+  const handleCustomerCareEdit = (notebook) => {
+    openCustomerCareDialog("edit", notebook);
+  };
+
+  const handleCustomerCareView = (notebook) => {
+    openCustomerCareDialog("view", notebook);
+  };
+
+  const closeCustomerCareDialog = () => {
+    setCustomerCareDialogState({
+      open: false,
+      mode: "create",
+      selectedRecord: null,
+    });
+  };
+
   const handleClearFilters = () => {
     setSearchInput(defaultFilters.keyword);
+    setScopeFilter(defaultFilters.scopeFilter);
     setPeriodFilter(getDefaultNotebookPeriodFilter());
     setDateFilterBy(defaultFilters.dateFilterBy);
     setStatusFilter(defaultFilters.statusFilter);
     setActionFilter(defaultFilters.actionFilter);
+    setEntryTypeFilter(defaultFilters.entryTypeFilter);
     setSalesFilter(defaultFilters.salesFilter);
     setPaginationModel((previous) => ({ ...previous, page: 0 }));
   };
@@ -185,8 +252,13 @@ export const useNotebookPageState = () => {
     currentUser,
     userRole: currentUser?.role,
     canFilterBySales,
+    canUseQueueTabs,
+    canSelfReport,
+    canCreateCustomerCare: canOpenCustomerCare,
     paginationModel,
     setPaginationModel,
+    scopeFilter,
+    setScopeFilter,
     searchInput,
     setSearchInput,
     periodFilter,
@@ -197,6 +269,8 @@ export const useNotebookPageState = () => {
     setStatusFilter,
     actionFilter,
     setActionFilter,
+    entryTypeFilter,
+    setEntryTypeFilter,
     salesFilter,
     setSalesFilter,
     salesOptions,
@@ -206,13 +280,18 @@ export const useNotebookPageState = () => {
     setCustomerDialogOpen,
     exportDialogOpen,
     setExportDialogOpen,
+    customerCareDialogState,
     queryFilters,
     exportFilters,
     filterSummary,
     handleClearFilters,
     handleAdd,
+    handleAddCustomerCare,
     handleEdit,
     handleEditWorkflow,
     handleView,
+    handleCustomerCareEdit,
+    handleCustomerCareView,
+    closeCustomerCareDialog,
   };
 };

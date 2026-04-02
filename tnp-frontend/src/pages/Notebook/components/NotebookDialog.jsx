@@ -76,6 +76,12 @@ const createSyntheticEvent = (name, value) => ({
   },
 });
 
+const getUserDisplayName = (user) =>
+  user?.username ||
+  user?.user_nickname ||
+  [user?.user_firstname, user?.user_lastname].filter(Boolean).join(" ") ||
+  "";
+
 const NotebookDialog = ({ currentUser = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -121,10 +127,19 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const summaryTitle = draft.nb_customer_name?.trim() || "New sales note";
   const statusMeta = getNotebookStatusOption(draft.nb_status);
   const sourceMeta = getNotebookSourceMeta(Boolean(draft.nb_is_online));
-  const selectedSalesOwner = salesList.find((user) => user.user_id === draft.nb_manage_by);
+  const selectedSalesOwner = salesList.find(
+    (user) => String(user.user_id) === String(draft.nb_manage_by)
+  );
+  const linkedSalesOwner = draft.manage_by_user;
+  const resolvedSalesOwner = selectedSalesOwner || linkedSalesOwner;
+  const isCentralQueueItem = draft.nb_workflow === "lead_queue" && !draft.nb_manage_by;
   const salesOwnerLabel = isAdmin
-    ? selectedSalesOwner?.username || selectedSalesOwner?.user_nickname || "Sales owner not set"
-    : currentUser.username || currentUser.user_nickname || "Sales owner";
+    ? getUserDisplayName(resolvedSalesOwner) || "Sales owner not set"
+    : isCentralQueueItem
+      ? "Central Queue"
+      : getUserDisplayName(linkedSalesOwner) ||
+        getUserDisplayName(currentUser) ||
+        (draft.nb_manage_by ? `User ${draft.nb_manage_by}` : "Sales owner");
   const resetKey = `${recordKey}-${historyLoading ? "loading" : "ready"}`;
 
   useEffect(() => {
@@ -457,13 +472,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
                           </Select>
                         </FormControl>
                       ) : (
-                        <Chip
-                          color="default"
-                          variant="outlined"
-                          label={
-                            currentUser.username || currentUser.user_nickname || "Current user"
-                          }
-                        />
+                        <Chip color="default" variant="outlined" label={salesOwnerLabel} />
                       )}
                     </Box>
 

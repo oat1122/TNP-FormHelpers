@@ -1,26 +1,14 @@
 import { Button, Menu, MenuItem, Stack, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
-import { MdCall, MdDelete, MdEdit, MdMoreHoriz, MdPersonAdd, MdVisibility } from "react-icons/md";
-
-const getConvertLabel = (row) =>
-  row.nb_converted_at ? "แปลงเป็นลูกค้าแล้ว" : "แปลงเป็นลูกค้า";
-
-const getEditLabel = (row) => (row.nb_converted_at ? "แปลงเป็นลูกค้าแล้ว" : "แก้ไขรายการ");
-
-const getDeleteLabel = (row, userRole) => {
-  if (row.nb_converted_at) {
-    return "แปลงเป็นลูกค้าแล้วจึงลบไม่ได้";
-  }
-
-  if (userRole !== "admin") {
-    return "เฉพาะ Admin";
-  }
-
-  return "ลบรายการ";
-};
-
-const getCallLabel = (row) =>
-  row.nb_contact_number?.trim() ? `โทร ${row.nb_contact_number}` : "ไม่มีเบอร์โทรสำหรับติดต่อ";
+import {
+  MdAssignmentInd,
+  MdCall,
+  MdDelete,
+  MdEdit,
+  MdMoreHoriz,
+  MdPersonAdd,
+  MdVisibility,
+} from "react-icons/md";
 
 const getTelHref = (phoneNumber) => `tel:${String(phoneNumber || "").replace(/[^\d+]/g, "")}`;
 
@@ -36,8 +24,11 @@ const NotebookRowActions = ({
   onView,
   onEdit,
   onDelete,
+  onReserve,
   onConvert,
   variant = "table",
+  scopeFilter = "all",
+  canReserveQueue = false,
 }) => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const callHref = useMemo(
@@ -46,10 +37,16 @@ const NotebookRowActions = ({
   );
   const isCardVariant = variant === "card";
   const buttonSize = isCardVariant ? "medium" : "small";
-
-  const handleContainerClick = (event) => {
-    event.stopPropagation();
-  };
+  const isCustomerCare = row.nb_entry_type === "customer_care";
+  const isQueueRow =
+    !isCustomerCare &&
+    scopeFilter === "queue" &&
+    row.nb_workflow === "lead_queue" &&
+    !row.nb_manage_by &&
+    !row.nb_converted_at;
+  const canDelete = userRole === "admin" && !row.nb_converted_at && !isQueueRow;
+  const canConvert = !isCustomerCare && !row.nb_converted_at && !isQueueRow;
+  const canEdit = !row.nb_converted_at && !isQueueRow;
 
   const handleOpenMenu = (event) => {
     event.stopPropagation();
@@ -60,25 +57,9 @@ const NotebookRowActions = ({
     setMenuAnchor(null);
   };
 
-  const handleView = (event) => {
+  const handleAction = (callback, payload) => (event) => {
     event.stopPropagation();
-    onView(row);
-  };
-
-  const handleEdit = (event) => {
-    event.stopPropagation();
-    onEdit(row);
-  };
-
-  const handleConvert = (event) => {
-    event.stopPropagation();
-    onConvert(row);
-    handleCloseMenu();
-  };
-
-  const handleDelete = (event) => {
-    event.stopPropagation();
-    onDelete(row.id);
+    callback?.(payload);
     handleCloseMenu();
   };
 
@@ -88,7 +69,7 @@ const NotebookRowActions = ({
       spacing={1}
       flexWrap="wrap"
       useFlexGap
-      onClick={handleContainerClick}
+      onClick={(event) => event.stopPropagation()}
       sx={{ py: 0.5 }}
     >
       <ActionButton tooltip="ดูรายละเอียด">
@@ -97,28 +78,43 @@ const NotebookRowActions = ({
           color="info"
           size={buttonSize}
           startIcon={<MdVisibility />}
-          onClick={handleView}
+          onClick={handleAction(onView, row)}
           sx={{ borderRadius: 999, textTransform: "none" }}
         >
           ดู
         </Button>
       </ActionButton>
 
-      <ActionButton tooltip={getEditLabel(row)}>
-        <Button
-          variant="outlined"
-          color="primary"
-          size={buttonSize}
-          startIcon={<MdEdit />}
-          onClick={handleEdit}
-          disabled={Boolean(row.nb_converted_at)}
-          sx={{ borderRadius: 999, textTransform: "none" }}
-        >
-          แก้ไข
-        </Button>
-      </ActionButton>
+      {isQueueRow && canReserveQueue ? (
+        <ActionButton tooltip="รับลูกค้ารายนี้เข้าดูแล">
+          <Button
+            variant="contained"
+            color="warning"
+            size={buttonSize}
+            startIcon={<MdAssignmentInd />}
+            onClick={handleAction(onReserve, row)}
+            sx={{ borderRadius: 999, textTransform: "none" }}
+          >
+            รับดูแล
+          </Button>
+        </ActionButton>
+      ) : (
+        <ActionButton tooltip={canEdit ? "แก้ไขรายการ" : "รายการนี้แก้ไขไม่ได้"}>
+          <Button
+            variant="outlined"
+            color="primary"
+            size={buttonSize}
+            startIcon={<MdEdit />}
+            onClick={handleAction(onEdit, row)}
+            disabled={!canEdit}
+            sx={{ borderRadius: 999, textTransform: "none" }}
+          >
+            แก้ไข
+          </Button>
+        </ActionButton>
+      )}
 
-      <ActionButton tooltip={getCallLabel(row)}>
+      <ActionButton tooltip={callHref ? `โทร ${row.nb_contact_number}` : "ไม่มีเบอร์โทร"}>
         <Button
           component={callHref ? "a" : "button"}
           href={callHref || undefined}
@@ -134,30 +130,32 @@ const NotebookRowActions = ({
         </Button>
       </ActionButton>
 
-      {isCardVariant ? (
+      {isQueueRow ? null : isCardVariant ? (
         <>
-          <ActionButton tooltip={getConvertLabel(row)}>
-            <Button
-              variant="outlined"
-              color="secondary"
-              size={buttonSize}
-              startIcon={<MdPersonAdd />}
-              onClick={handleConvert}
-              disabled={Boolean(row.nb_converted_at)}
-              sx={{ borderRadius: 999, textTransform: "none" }}
-            >
-              แปลง
-            </Button>
-          </ActionButton>
+          {!isCustomerCare ? (
+            <ActionButton tooltip={canConvert ? "แปลงเป็นลูกค้า" : "แปลงไม่ได้"}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                size={buttonSize}
+                startIcon={<MdPersonAdd />}
+                onClick={handleAction(onConvert, row)}
+                disabled={!canConvert}
+                sx={{ borderRadius: 999, textTransform: "none" }}
+              >
+                แปลง
+              </Button>
+            </ActionButton>
+          ) : null}
 
-          <ActionButton tooltip={getDeleteLabel(row, userRole)}>
+          <ActionButton tooltip={canDelete ? "ลบรายการ" : "ลบไม่ได้"}>
             <Button
               variant="outlined"
               color="error"
               size={buttonSize}
               startIcon={<MdDelete />}
-              onClick={handleDelete}
-              disabled={Boolean(row.nb_converted_at) || userRole !== "admin"}
+              onClick={handleAction(onDelete, row.id)}
+              disabled={!canDelete}
               sx={{ borderRadius: 999, textTransform: "none" }}
             >
               ลบ
@@ -178,14 +176,13 @@ const NotebookRowActions = ({
           </Button>
 
           <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleCloseMenu}>
-            <MenuItem onClick={handleConvert} disabled={Boolean(row.nb_converted_at)}>
-              <MdPersonAdd style={{ marginRight: 8 }} />
-              แปลงเป็นลูกค้า
-            </MenuItem>
-            <MenuItem
-              onClick={handleDelete}
-              disabled={Boolean(row.nb_converted_at) || userRole !== "admin"}
-            >
+            {!isCustomerCare ? (
+              <MenuItem onClick={handleAction(onConvert, row)} disabled={!canConvert}>
+                <MdPersonAdd style={{ marginRight: 8 }} />
+                แปลงเป็นลูกค้า
+              </MenuItem>
+            ) : null}
+            <MenuItem onClick={handleAction(onDelete, row.id)} disabled={!canDelete}>
               <MdDelete style={{ marginRight: 8 }} />
               ลบรายการ
             </MenuItem>

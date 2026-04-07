@@ -87,7 +87,17 @@ const getChangedFields = (history) => {
   return [...keys].filter((fieldName) => oldValues[fieldName] !== newValues[fieldName]);
 };
 
-const shouldIncludeHistoryForReport = (notebook, history, rangeStart, rangeEnd, reportMode) => {
+const getHistoryActorId = (history) =>
+  history?.action_by?.user_id ?? history?.action_by?.id ?? history?.action_by ?? null;
+
+const shouldIncludeHistoryForReport = (
+  notebook,
+  history,
+  rangeStart,
+  rangeEnd,
+  reportMode,
+  reportActorId
+) => {
   const historyAt = new Date(history.created_at);
   const isInRange = historyAt >= rangeStart && historyAt <= rangeEnd;
 
@@ -95,7 +105,18 @@ const shouldIncludeHistoryForReport = (notebook, history, rangeStart, rangeEnd, 
     return false;
   }
 
-  if (reportMode === "self" && notebook.nb_entry_type === "customer_care") {
+  if (
+    reportMode === "self" &&
+    reportActorId &&
+    String(getHistoryActorId(history) ?? "") !== String(reportActorId)
+  ) {
+    return false;
+  }
+
+  if (
+    reportMode === "self" &&
+    ["customer_care", "personal_activity"].includes(notebook.nb_entry_type)
+  ) {
     return history.action === "created" || history.action === "updated";
   }
 
@@ -107,32 +128,90 @@ const shouldIncludeHistoryForReport = (notebook, history, rangeStart, rangeEnd, 
   return changedFields.some((field) => REPORT_VISIBLE_FIELDS.includes(field));
 };
 
-const resolveHistoryValue = (historyEntry, notebook, fieldName) => {
+const resolveHistoryValue = (historyEntry, fieldName) => {
+  const reportNewValues = parseHistoryPayload(historyEntry?.report_new_values);
+  const reportOldValues = parseHistoryPayload(historyEntry?.report_old_values);
   const newValues = parseHistoryPayload(historyEntry?.new_values);
   const oldValues = parseHistoryPayload(historyEntry?.old_values);
 
-  return newValues[fieldName] ?? oldValues[fieldName] ?? notebook?.[fieldName] ?? null;
+  return (
+    reportNewValues[fieldName] ??
+    reportOldValues[fieldName] ??
+    newValues[fieldName] ??
+    oldValues[fieldName] ??
+    null
+  );
 };
 
-const buildCustomerLabel = (notebook) => {
-  let customer = notebook.nb_customer_name || "-";
-  if (notebook.nb_is_online) {
+const resolveRowValue = (historyEntry, notebook, fieldName) => {
+  const historyValue = resolveHistoryValue(historyEntry, fieldName);
+
+  if (historyValue !== null && historyValue !== undefined) {
+    return historyValue;
+  }
+
+  if (!historyEntry) {
+    return notebook?.[fieldName] ?? null;
+  }
+
+  return null;
+};
+
+const buildCustomerLabel = ({ customerName, isOnline }) => {
+  let customer = customerName || "-";
+  if (isOnline) {
     customer += " / online";
   }
 
   return customer;
 };
 
-const buildActivityRow = ({ notebook, historyEntry, at, reportMode, index }) => {
-  const rawDate =
-    reportMode === "self" ? at : resolveHistoryValue(historyEntry, notebook, "nb_date") || at;
-  const itemDate = rawDate ? new Date(rawDate) : at;
+const buildDisplayDate = (value, fallback) => {
+  const itemDate = value ? new Date(value) : fallback;
   const dayMonth = format(itemDate, "dd/MM");
   const year = itemDate.getFullYear() + 543;
-  const displayDate = `${dayMonth}/${year}`;
+  return `${dayMonth}/${year}`;
+};
 
-  const rawTime =
-    reportMode === "self" ? null : resolveHistoryValue(historyEntry, notebook, "nb_time");
+const buildPersonalActivityRow = ({ notebook, historyEntry, at, index }) => {
+  const reportDate = resolveRowValue(historyEntry, notebook, "nb_date") || notebook?.nb_date || at;
+  const displayDate = buildDisplayDate(reportDate, at);
+  const activityText = resolveRowValue(historyEntry, notebook, "nb_additional_info") ?? "-";
+
+  return {
+    id: historyEntry?.id || `personal-${notebook.id}-${index}`,
+    notebookId: notebook?.id ?? null,
+    rowType: "personal_activity",
+    date: displayDate,
+    dateGroupValue: displayDate,
+    time: "",
+    customer: "",
+    additionalInfo: activityText,
+    contactNumber: "-",
+    email: "-",
+    contactPerson: "-",
+    action: "-",
+    status: "-",
+    remarks: "-",
+    historyAction: historyEntry?.action || null,
+    changedFields: historyEntry ? getChangedFields(historyEntry) : [],
+    activityAt: at.toISOString(),
+    personalText: `${displayDate} ${activityText}`.trim(),
+  };
+};
+
+const buildActivityRow = ({ notebook, historyEntry, at, reportMode, index }) => {
+  if (notebook?.nb_entry_type === "personal_activity") {
+    return buildPersonalActivityRow({ notebook, historyEntry, at, index });
+  }
+
+  const rawDate =
+    reportMode === "self"
+      ? resolveRowValue(historyEntry, notebook, "nb_date") || at
+      : resolveRowValue(historyEntry, notebook, "nb_date") || at;
+  const displayDate = buildDisplayDate(rawDate, at);
+
+  const rawTime = reportMode === "self" ? null : resolveRowValue(historyEntry, notebook, "nb_time");
   const displayTime = rawTime
     ? String(rawTime)
         .split(/[:.]/)
@@ -140,55 +219,44 @@ const buildActivityRow = ({ notebook, historyEntry, at, reportMode, index }) => 
         .map((part) => part.padStart(2, "0"))
         .join(".")
     : format(at, "HH.mm");
+  const customerName = resolveRowValue(historyEntry, notebook, "nb_customer_name");
+  const isOnline = resolveRowValue(historyEntry, notebook, "nb_is_online");
 
   return {
     id: historyEntry?.id || `notebook-${notebook.id}-${index}`,
+    notebookId: notebook?.id ?? null,
+    rowType: "standard",
     date: displayDate,
     dateGroupValue: displayDate,
     time: displayTime,
-    customer: buildCustomerLabel(notebook),
-    additionalInfo: resolveHistoryValue(historyEntry, notebook, "nb_additional_info") ?? "-",
-    contactNumber: notebook.nb_contact_number || "-",
-    email: notebook.nb_email || "-",
-    contactPerson: notebook.nb_contact_person || "-",
-    action: resolveHistoryValue(historyEntry, notebook, "nb_action") ?? "-",
-    status: resolveHistoryValue(historyEntry, notebook, "nb_status") ?? "-",
-    remarks: resolveHistoryValue(historyEntry, notebook, "nb_remarks") ?? "-",
+    customer: buildCustomerLabel({ customerName, isOnline }),
+    additionalInfo: resolveRowValue(historyEntry, notebook, "nb_additional_info") ?? "-",
+    contactNumber: resolveRowValue(historyEntry, notebook, "nb_contact_number") ?? "-",
+    email: resolveRowValue(historyEntry, notebook, "nb_email") ?? "-",
+    contactPerson: resolveRowValue(historyEntry, notebook, "nb_contact_person") ?? "-",
+    action: resolveRowValue(historyEntry, notebook, "nb_action") ?? "-",
+    status: resolveRowValue(historyEntry, notebook, "nb_status") ?? "-",
+    remarks: resolveRowValue(historyEntry, notebook, "nb_remarks") ?? "-",
     historyAction: historyEntry?.action || null,
     changedFields: historyEntry ? getChangedFields(historyEntry) : [],
     activityAt: at.toISOString(),
   };
 };
 
-const groupNotebookPdfRows = (rows = []) => {
-  let previousGroupKey = null;
-
-  return rows.map((row) => {
-    const currentGroupKey = `${row.customer}__${row.time}`;
-    const shouldGroup = currentGroupKey === previousGroupKey;
-    const pageRepeatValues = {
+const groupNotebookPdfRows = (rows = []) =>
+  rows.map((row) => ({
+    ...row,
+    pageRepeatValues: {
       date: row.date || row.dateGroupValue,
       time: row.time,
       customer: row.customer,
-    };
-    const groupedRow = {
-      ...row,
-      date: shouldGroup ? "" : row.date,
-      time: shouldGroup ? "" : row.time,
-      customer: shouldGroup ? "" : row.customer,
-      pageRepeatValues,
-      groupedFields: {
-        date: row.groupedFields?.date || shouldGroup,
-        time: shouldGroup,
-        customer: shouldGroup,
-      },
-    };
-
-    previousGroupKey = currentGroupKey;
-
-    return groupedRow;
-  });
-};
+    },
+    groupedFields: {
+      date: Boolean(row.groupedFields?.date),
+      time: Boolean(row.groupedFields?.time),
+      customer: Boolean(row.groupedFields?.customer),
+    },
+  }));
 
 export const filterNotebookExportData = (data = [], dateRange, dateFilterBy = "all") => {
   const dateTimeRange = buildRangeBoundaries(dateRange);
@@ -221,7 +289,7 @@ export const filterNotebookExportData = (data = [], dateRange, dateFilterBy = "a
 export const buildNotebookExportRows = (
   selectedData = [],
   dateRange,
-  { reportMode = "standard" } = {}
+  { reportMode = "standard", reportActorId = null } = {}
 ) => {
   const rangeStart = new Date(dateRange.start);
   const rangeEnd = new Date(dateRange.end);
@@ -245,7 +313,14 @@ export const buildNotebookExportRows = (
       (left, right) => new Date(left.created_at) - new Date(right.created_at)
     );
     const relevantHistories = sortedHistories.filter((history) =>
-      shouldIncludeHistoryForReport(notebook, history, rangeStart, rangeEnd, reportMode)
+      shouldIncludeHistoryForReport(
+        notebook,
+        history,
+        rangeStart,
+        rangeEnd,
+        reportMode,
+        reportActorId
+      )
     );
 
     if (relevantHistories.length === 0) {
@@ -271,18 +346,23 @@ export const buildNotebookExportRows = (
       reportMode,
       index,
     });
-    const displayDate = row.dateGroupValue === previousDateValue ? "" : row.dateGroupValue;
+    const shouldGroupDate =
+      row.rowType !== "personal_activity" && row.dateGroupValue === previousDateValue;
     previousDateValue = row.dateGroupValue;
 
     return {
       ...row,
-      date: displayDate,
+      date: shouldGroupDate ? "" : row.date,
     };
   });
 };
 
 export const buildNotebookPdfRows = (rows = []) => {
   const filteredRows = rows.filter((row) => {
+    if (row.rowType === "personal_activity") {
+      return true;
+    }
+
     if (row.historyAction !== "updated") {
       return true;
     }
@@ -290,9 +370,44 @@ export const buildNotebookPdfRows = (rows = []) => {
     return row.changedFields.some((field) => IMPORTANT_PDF_FIELDS.includes(field));
   });
 
-  const rowsWithDateGrouping = filteredRows.map((row, index) => {
-    const previousRow = filteredRows[index - 1];
-    const shouldHideDate = previousRow && previousRow.dateGroupValue === row.dateGroupValue;
+  const latestPersonalActivityRows = new Map();
+  const nonPersonalRows = [];
+
+  filteredRows.forEach((row) => {
+    if (row.rowType !== "personal_activity") {
+      nonPersonalRows.push(row);
+      return;
+    }
+
+    const personalKey = row.notebookId ?? row.id;
+    const existingRow = latestPersonalActivityRows.get(personalKey);
+
+    if (!existingRow || new Date(row.activityAt) >= new Date(existingRow.activityAt)) {
+      latestPersonalActivityRows.set(personalKey, row);
+    }
+  });
+
+  const rowsForPdf = [...nonPersonalRows, ...latestPersonalActivityRows.values()].sort(
+    (left, right) => new Date(left.activityAt) - new Date(right.activityAt)
+  );
+
+  const rowsWithDateGrouping = rowsForPdf.map((row, index) => {
+    if (row.rowType === "personal_activity") {
+      return {
+        ...row,
+        groupedFields: {
+          date: false,
+          time: false,
+          customer: false,
+        },
+      };
+    }
+
+    const previousRow = rowsForPdf[index - 1];
+    const shouldHideDate =
+      previousRow &&
+      previousRow.rowType !== "personal_activity" &&
+      previousRow.dateGroupValue === row.dateGroupValue;
 
     return {
       ...row,
@@ -343,16 +458,16 @@ export const buildNotebookCsvContent = ({ rows = [], exporterName = "", dateRang
   ];
 
   const csvRows = rows.map((row) => [
-    row.date,
-    row.time,
-    row.customer,
+    row.date || row.dateGroupValue,
+    row.rowType === "personal_activity" ? "" : row.time,
+    row.rowType === "personal_activity" ? "ธุระส่วนตัว" : row.customer,
     row.additionalInfo,
-    row.contactNumber !== "-" ? `="${row.contactNumber}"` : "-",
-    row.email,
-    row.contactPerson,
-    row.action,
-    row.status,
-    row.remarks,
+    row.rowType === "personal_activity" ? "-" : row.contactNumber !== "-" ? `="${row.contactNumber}"` : "-",
+    row.rowType === "personal_activity" ? "-" : row.email,
+    row.rowType === "personal_activity" ? "-" : row.contactPerson,
+    row.rowType === "personal_activity" ? "-" : row.action,
+    row.rowType === "personal_activity" ? "-" : row.status,
+    row.rowType === "personal_activity" ? row.personalText || row.additionalInfo : row.remarks,
   ]);
 
   return (

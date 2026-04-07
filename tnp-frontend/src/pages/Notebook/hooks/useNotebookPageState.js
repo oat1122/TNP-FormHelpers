@@ -66,6 +66,11 @@ export const useNotebookPageState = () => {
     mode: "create",
     selectedRecord: null,
   });
+  const [personalActivityDialogState, setPersonalActivityDialogState] = useState({
+    open: false,
+    mode: "create",
+    selectedRecord: null,
+  });
   const debouncedSearch = useDebouncedValue(searchInput.trim(), 400);
 
   const { data: salesData } = useGetAllUserQuery(
@@ -196,6 +201,18 @@ export const useNotebookPageState = () => {
     openDialog("create", null, null);
   };
 
+  const openPersonalActivityDialog = (mode, record = null) => {
+    setPersonalActivityDialogState({
+      open: true,
+      mode,
+      selectedRecord: record,
+    });
+  };
+
+  const handleAddPersonalActivity = () => {
+    openPersonalActivityDialog("create", null);
+  };
+
   const openCustomerCareDialog = (mode, record = null) => {
     setCustomerCareDialogState({
       open: true,
@@ -234,6 +251,14 @@ export const useNotebookPageState = () => {
 
   const closeCustomerCareDialog = () => {
     setCustomerCareDialogState({
+      open: false,
+      mode: "create",
+      selectedRecord: null,
+    });
+  };
+
+  const closePersonalActivityDialog = () => {
+    setPersonalActivityDialogState({
       open: false,
       mode: "create",
       selectedRecord: null,
@@ -287,11 +312,13 @@ export const useNotebookPageState = () => {
     exportDialogOpen,
     setExportDialogOpen,
     customerCareDialogState,
+    personalActivityDialogState,
     queryFilters,
     exportFilters,
     filterSummary,
     handleClearFilters,
     handleAdd,
+    handleAddPersonalActivity,
     handleAddCustomerCare,
     handleEdit,
     handleEditWorkflow,
@@ -299,5 +326,7 @@ export const useNotebookPageState = () => {
     handleCustomerCareEdit,
     handleCustomerCareView,
     closeCustomerCareDialog,
+    openPersonalActivityDialog,
+    closePersonalActivityDialog,
   };
 };

@@ -67,13 +67,18 @@ export const NOTEBOOK_ACTION_OPTIONS = [
 export const NOTEBOOK_ENTRY_TYPE_OPTIONS = [
   {
     value: "standard",
-    label: "จดบันทึก",
+    label: "\u0e08\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01",
     color: "default",
   },
   {
     value: "customer_care",
-    label: "ดูแลลูกค้า",
+    label: "\u0e14\u0e39\u0e41\u0e25\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32",
     color: "secondary",
+  },
+  {
+    value: "personal_activity",
+    label: "\u0e18\u0e38\u0e23\u0e30\u0e2a\u0e48\u0e27\u0e19\u0e15\u0e31\u0e27",
+    color: "warning",
   },
 ];
 
@@ -127,7 +132,7 @@ export const getNotebookStatusLabel = (value) =>
   getNotebookStatusOption(value)?.label || value || "Status not set";
 
 export const getNotebookEntryTypeLabel = (value) =>
-  getNotebookEntryTypeOption(value)?.label || value || "จดบันทึก";
+  getNotebookEntryTypeOption(value)?.label || value || "\u0e08\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01";
 
 export const getNotebookSourceTypeLabel = (value) =>
   getNotebookSourceTypeOption(value)?.label || value || "Source";

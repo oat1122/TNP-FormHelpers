@@ -62,17 +62,26 @@ const NotebookActionTable = ({
       sortable: false,
       renderCell: ({ row }) => {
         const contactLines = getNotebookContactLines(row);
+        const isPersonalActivity = row.nb_entry_type === "personal_activity";
 
         return (
           <Stack spacing={0.75} sx={{ width: "100%", py: 1 }}>
             <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {row.nb_customer_name || "-"}
+                {isPersonalActivity
+                  ? row.nb_additional_info || row.nb_customer_name || "-"
+                  : row.nb_customer_name || "-"}
               </Typography>
               <Chip
                 label={getNotebookEntryTypeLabel(row.nb_entry_type)}
                 size="small"
-                color={row.nb_entry_type === "customer_care" ? "secondary" : "default"}
+                color={
+                  row.nb_entry_type === "customer_care"
+                    ? "secondary"
+                    : row.nb_entry_type === "personal_activity"
+                      ? "warning"
+                      : "default"
+                }
                 variant="outlined"
               />
               {row.nb_is_online ? (
@@ -94,22 +103,32 @@ const NotebookActionTable = ({
       minWidth: 250,
       flex: 1.15,
       sortable: false,
-      renderCell: ({ row }) => (
-        <Box
-          onClick={(event) => {
-            event.stopPropagation();
-            actions.onEditWorkflow(row);
-          }}
-          sx={getNotebookActionHighlightSx()}
-        >
-          <Typography variant="caption" sx={{ color: "#9a3412", fontWeight: 700 }}>
-            Action
-          </Typography>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#7c2d12" }}>
-            {getNotebookActionLabel(row.nb_action)}
-          </Typography>
-        </Box>
-      ),
+      renderCell: ({ row }) =>
+        row.nb_entry_type === "personal_activity" ? (
+          <Box sx={{ width: "100%", py: 1 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+              Personal note
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {row.nb_additional_info || "-"}
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            onClick={(event) => {
+              event.stopPropagation();
+              actions.onEditWorkflow(row);
+            }}
+            sx={getNotebookActionHighlightSx()}
+          >
+            <Typography variant="caption" sx={{ color: "#9a3412", fontWeight: 700 }}>
+              Action
+            </Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#7c2d12" }}>
+              {getNotebookActionLabel(row.nb_action)}
+            </Typography>
+          </Box>
+        ),
     },
     {
       field: "status",
@@ -119,12 +138,22 @@ const NotebookActionTable = ({
       sortable: false,
       renderCell: ({ row }) => (
         <Stack spacing={0.85} sx={{ width: "100%", py: 1 }}>
-          <Chip
-            label={row.nb_status || "ยังไม่ระบุสถานะ"}
-            size="small"
-            color={getStatusColor(row.nb_status)}
-            sx={{ width: "fit-content", fontWeight: 600 }}
-          />
+          {row.nb_entry_type === "personal_activity" ? (
+            <Chip
+              label="Personal activity"
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ width: "fit-content", fontWeight: 600 }}
+            />
+          ) : (
+            <Chip
+              label={row.nb_status || "ยังไม่ได้ระบุสถานะ"}
+              size="small"
+              color={getStatusColor(row.nb_status)}
+              sx={{ width: "fit-content", fontWeight: 600 }}
+            />
+          )}
           <Typography
             variant="body2"
             color="text.secondary"
@@ -227,7 +256,7 @@ const NotebookActionTable = ({
           "& .MuiTablePagination-root, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
             {
               fontFamily: "Kanit, sans-serif",
-          },
+            },
         }}
       />
 

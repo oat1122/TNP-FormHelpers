@@ -1,8 +1,9 @@
 import { Box } from "@mui/material";
 
-import NotebookAssignDialog from "./components/NotebookAssignDialog";
 import CustomerCareDialog from "./components/CustomerCareDialog";
+import NotebookAssignDialog from "./components/NotebookAssignDialog";
 import NotebookDialog from "./components/NotebookDialog";
+import NotebookPersonalActivityDialog from "./components/NotebookPersonalActivityDialog";
 import NotebookTable from "./components/NotebookTable";
 import PrintPDFDialog from "./components/PrintPDFDialog";
 import { useNotebookList } from "./hooks/useNotebookList";
@@ -60,6 +61,7 @@ const NotebookList = () => {
     refetch,
     exportState,
     handleAdd,
+    handleAddPersonalActivity,
     handleAddCustomerCare,
     handleEdit,
     handleEditWorkflow,
@@ -76,6 +78,8 @@ const NotebookList = () => {
     handleConvert,
     handleAfterCustomerSave,
     handleClearFilters,
+    personalActivityDialogState,
+    handleClosePersonalActivityDialog,
   } = useNotebookList();
 
   return (
@@ -88,6 +92,7 @@ const NotebookList = () => {
           isRefreshing={isFetching}
           onOpenExport={() => setExportDialogOpen(true)}
           onAdd={handleAdd}
+          onAddPersonalActivity={handleAddPersonalActivity}
           onAddCustomerCare={handleAddCustomerCare}
           disableExport={isLoading}
           canCreateCustomerCare={canCreateCustomerCare}
@@ -173,6 +178,13 @@ const NotebookList = () => {
         selectedRecord={customerCareDialogState.selectedRecord}
         currentUser={currentUser}
         onClose={closeCustomerCareDialog}
+      />
+
+      <NotebookPersonalActivityDialog
+        open={personalActivityDialogState.open}
+        mode={personalActivityDialogState.mode}
+        selectedRecord={personalActivityDialogState.selectedRecord}
+        onClose={handleClosePersonalActivityDialog}
       />
 
       <PrintPDFDialog

@@ -13,8 +13,8 @@ import {
 import { setDialogOpen, setSelectedNotebook } from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
-import { mapNotebookToCustomer } from "../utils/notebookMapping";
 import { isNotebookQueueAssignableRow } from "../utils/notebookCommon";
+import { mapNotebookToCustomer } from "../utils/notebookMapping";
 
 export const useNotebookList = () => {
   const dispatch = useDispatch();
@@ -163,7 +163,8 @@ export const useNotebookList = () => {
 
   const handleAssignSuccess = ({ assignee, count }) => {
     const fullName = `${assignee?.user_firstname || ""} ${assignee?.user_lastname || ""}`.trim();
-    const assigneeName = fullName || assignee?.user_nickname || assignee?.username || "ผู้รับผิดชอบ";
+    const assigneeName =
+      fullName || assignee?.user_nickname || assignee?.username || "ผู้รับผิดชอบ";
 
     const assignedCount = count || 1;
     showSuccess(
@@ -248,17 +249,24 @@ export const useNotebookList = () => {
     handleReserve,
     handleConvert,
     handleEdit: (notebook) =>
-      notebook?.nb_entry_type === "customer_care"
-        ? pageState.handleCustomerCareEdit(notebook)
-        : pageState.handleEdit(notebook),
+      notebook?.nb_entry_type === "personal_activity"
+        ? pageState.openPersonalActivityDialog("edit", notebook)
+        : notebook?.nb_entry_type === "customer_care"
+          ? pageState.handleCustomerCareEdit(notebook)
+          : pageState.handleEdit(notebook),
     handleEditWorkflow: (notebook) =>
-      notebook?.nb_entry_type === "customer_care"
-        ? pageState.handleCustomerCareEdit(notebook)
-        : pageState.handleEditWorkflow(notebook),
+      notebook?.nb_entry_type === "personal_activity"
+        ? pageState.openPersonalActivityDialog("edit", notebook)
+        : notebook?.nb_entry_type === "customer_care"
+          ? pageState.handleCustomerCareEdit(notebook)
+          : pageState.handleEditWorkflow(notebook),
     handleView: (notebook) =>
-      notebook?.nb_entry_type === "customer_care"
-        ? pageState.handleCustomerCareView(notebook)
-        : pageState.handleView(notebook),
+      notebook?.nb_entry_type === "personal_activity"
+        ? pageState.openPersonalActivityDialog("view", notebook)
+        : notebook?.nb_entry_type === "customer_care"
+          ? pageState.handleCustomerCareView(notebook)
+          : pageState.handleView(notebook),
+    handleClosePersonalActivityDialog: pageState.closePersonalActivityDialog,
     handleAfterCustomerSave,
     handleCloseNotebookDialog,
   };

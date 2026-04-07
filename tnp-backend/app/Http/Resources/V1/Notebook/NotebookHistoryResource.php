@@ -10,18 +10,49 @@ class NotebookHistoryResource extends JsonResource
 {
     protected static array $userDisplayCache = [];
 
+    protected bool $hasReportValues = false;
+
+    protected ?array $reportOldValues = null;
+
+    protected ?array $reportNewValues = null;
+
+    public function withReportValues(?array $oldValues, ?array $newValues): self
+    {
+        $this->hasReportValues = true;
+        $this->reportOldValues = $oldValues;
+        $this->reportNewValues = $newValues;
+
+        return $this;
+    }
+
     public function toArray(Request $request): array
     {
         $data = parent::toArray($request);
 
-        $data['display_old_values'] = $this->buildDisplayValues($data['old_values'] ?? null);
-        $data['display_new_values'] = $this->buildDisplayValues($data['new_values'] ?? null);
+        $oldValues = $this->normalizeHistoryValues($data['old_values'] ?? null);
+        $newValues = $this->normalizeHistoryValues($data['new_values'] ?? null);
+        $reportOldValues = $this->hasReportValues ? $this->reportOldValues : $oldValues;
+        $reportNewValues = $this->hasReportValues ? $this->reportNewValues : $newValues;
+
+        $data['old_values'] = $oldValues;
+        $data['new_values'] = $newValues;
+        $data['display_old_values'] = $this->buildDisplayValues($oldValues);
+        $data['display_new_values'] = $this->buildDisplayValues($newValues);
+        $data['report_old_values'] = $reportOldValues;
+        $data['report_new_values'] = $reportNewValues;
+        $data['display_report_old_values'] = $this->buildDisplayValues($reportOldValues);
+        $data['display_report_new_values'] = $this->buildDisplayValues($reportNewValues);
 
         if ($this->relationLoaded('actionBy')) {
             $data['action_by'] = $this->actionBy?->toArray();
         }
 
         return $data;
+    }
+
+    protected function normalizeHistoryValues(mixed $values): ?array
+    {
+        return is_array($values) ? $values : null;
     }
 
     protected function buildDisplayValues(?array $values): ?array

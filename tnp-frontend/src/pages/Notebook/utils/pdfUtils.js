@@ -97,6 +97,19 @@ export const styles = StyleSheet.create({
     lineHeight: 1.45,
     color: "#999",
   },
+  personalActivityRow: {
+    backgroundColor: "#fff5f5",
+  },
+  personalActivityCell: {
+    width: "100%",
+    borderColor: "#f3c1c1",
+  },
+  personalActivityText: {
+    fontSize: 9,
+    fontWeight: 700,
+    lineHeight: 1.45,
+    color: "#c62828",
+  },
   actionHeaderText: {
     fontFamily: "Sarabun",
     fontWeight: 700,
@@ -205,11 +218,18 @@ export const FIELD_LABELS = {
 };
 
 export const formatValue = (key, value) => {
-  if (value === null || value === undefined || value === "" || value === "-")
+  if (value === null || value === undefined || value === "" || value === "-") {
     return "(ไม่มีข้อมูล)";
-  if (key.includes("date") || key.includes("at"))
+  }
+
+  if (key.includes("date") || key.includes("at")) {
     return formatDate(value, key.includes("time") || key.includes("at"));
-  if (key === "nb_is_online") return value ? "Yes" : "No";
+  }
+
+  if (key === "nb_is_online") {
+    return value ? "Yes" : "No";
+  }
+
   return String(value);
 };
 

@@ -112,8 +112,9 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     () =>
       buildNotebookExportRows(selfReportData.activity_items || [], dateRange, {
         reportMode: "self",
+        reportActorId: currentUser?.user_id,
       }),
-    [dateRange, selfReportData.activity_items]
+    [currentUser?.user_id, dateRange, selfReportData.activity_items]
   );
   const selfReportPdfRows = useMemo(() => buildNotebookPdfRows(selfReportRows), [selfReportRows]);
 

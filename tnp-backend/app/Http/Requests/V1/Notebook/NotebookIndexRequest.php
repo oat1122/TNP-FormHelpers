@@ -33,7 +33,7 @@ class NotebookIndexRequest extends NotebookRequest
             'date_filter_by' => ['nullable', 'in:nb_date,created_at,updated_at,all'],
             'status' => ['nullable', 'string', 'max:255'],
             'action' => ['nullable', 'string', 'max:255'],
-            'entry_type' => ['nullable', 'in:all,standard,customer_care'],
+            'entry_type' => ['nullable', 'in:all,standard,customer_care,personal_activity'],
             'manage_by' => ['nullable', 'integer', 'min:1'],
             'scope' => ['nullable', 'in:all,mine,queue'],
             'workflow' => ['nullable', 'in:standard,lead_queue'],

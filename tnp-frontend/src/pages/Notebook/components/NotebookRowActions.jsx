@@ -9,6 +9,7 @@ import {
   MdPersonAdd,
   MdVisibility,
 } from "react-icons/md";
+
 import { isNotebookQueueAssignableRow } from "../utils/notebookCommon";
 
 const getTelHref = (phoneNumber) => `tel:${String(phoneNumber || "").replace(/[^\d+]/g, "")}`;
@@ -41,11 +42,12 @@ const NotebookRowActions = ({
   const isCardVariant = variant === "card";
   const buttonSize = isCardVariant ? "medium" : "small";
   const isCustomerCare = row.nb_entry_type === "customer_care";
+  const isPersonalActivity = row.nb_entry_type === "personal_activity";
   const isQueueRow = isNotebookQueueAssignableRow(row, scopeFilter);
   const showAssignAction = isQueueRow && canReserveQueue && queueActionMode === "assign";
   const showReserveAction = isQueueRow && canReserveQueue && queueActionMode !== "assign";
   const canDelete = userRole === "admin" && !row.nb_converted_at && !isQueueRow;
-  const canConvert = !isCustomerCare && !row.nb_converted_at && !isQueueRow;
+  const canConvert = !isCustomerCare && !isPersonalActivity && !row.nb_converted_at && !isQueueRow;
   const canEdit = !row.nb_converted_at && !isQueueRow;
 
   const handleOpenMenu = (event) => {

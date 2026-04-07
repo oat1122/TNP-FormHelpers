@@ -110,16 +110,13 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
 
         return $this->newQuery()
             ->with([
-                'histories' => function ($historyQuery) use ($user, $startDate, $endDate) {
-                    $historyQuery->where('action_by', $user?->user_id)
+                'histories' => function ($historyQuery) use ($endDate) {
+                    $historyQuery
                         ->with('actionBy')
                         ->orderBy('created_at', 'asc');
 
-                    if ($startDate && $endDate) {
-                        $historyQuery->whereBetween('created_at', [
-                            $startDate.' 00:00:00',
-                            $endDate.' 23:59:59',
-                        ]);
+                    if ($endDate) {
+                        $historyQuery->where('created_at', '<=', $endDate.' 23:59:59');
                     }
                 },
             ])

@@ -22,6 +22,8 @@ class Notebook extends Model
 
     public const ENTRY_TYPE_CUSTOMER_CARE = 'customer_care';
 
+    public const ENTRY_TYPE_PERSONAL_ACTIVITY = 'personal_activity';
+
     public const SOURCE_TYPE_CUSTOMER = 'customer';
 
     public const SOURCE_TYPE_NOTEBOOK = 'notebook';
@@ -109,6 +111,11 @@ class Notebook extends Model
     public function isCustomerCare(): bool
     {
         return $this->nb_entry_type === self::ENTRY_TYPE_CUSTOMER_CARE;
+    }
+
+    public function isPersonalActivity(): bool
+    {
+        return $this->nb_entry_type === self::ENTRY_TYPE_PERSONAL_ACTIVITY;
     }
 
     public function setHistoryContext(?string $action = null, ?array $oldValues = null, ?array $newValues = null): self

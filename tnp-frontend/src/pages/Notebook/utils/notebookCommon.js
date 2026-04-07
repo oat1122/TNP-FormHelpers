@@ -31,6 +31,10 @@ export const getStatusStyle = () => ({});
 export const CLOSED_NOTEBOOK_STATUSES = ["ได้งาน", "หลุด", "ไม่ได้งาน"];
 
 export const getNotebookContactLines = (row) => {
+  if (row?.nb_entry_type === "personal_activity") {
+    return [row.nb_additional_info?.trim() || "ยังไม่มีข้อความ"];
+  }
+
   const lines = [];
 
   if (row.nb_contact_number?.trim()) {
@@ -69,6 +73,7 @@ export const getNotebookActionHighlightSx = () => ({
 
 export const isNotebookQueueAssignableRow = (row, scopeFilter = "all") =>
   row?.nb_entry_type !== "customer_care" &&
+  row?.nb_entry_type !== "personal_activity" &&
   scopeFilter === "queue" &&
   row?.nb_workflow === "lead_queue" &&
   !row?.nb_manage_by &&

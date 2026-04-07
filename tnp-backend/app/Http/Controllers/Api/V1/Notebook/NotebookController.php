@@ -12,6 +12,7 @@ use App\Http\Requests\V1\Notebook\AssignNotebookRequest;
 use App\Http\Requests\V1\Notebook\ReserveNotebookRequest;
 use App\Http\Requests\V1\Notebook\StoreNotebookLeadRequest;
 use App\Http\Requests\V1\Notebook\StoreNotebookRequest;
+use App\Http\Requests\V1\Notebook\StorePersonalActivityNotebookRequest;
 use App\Http\Requests\V1\Notebook\StoreCustomerCareNotebookRequest;
 use App\Http\Requests\V1\Notebook\UpdateNotebookRequest;
 use App\Http\Resources\V1\Notebook\NotebookResource;
@@ -67,6 +68,13 @@ class NotebookController extends Controller
                 'message' => $exception->getMessage(),
             ], 422);
         }
+    }
+
+    public function storePersonalActivity(StorePersonalActivityNotebookRequest $request): JsonResponse
+    {
+        $notebook = $this->notebookService->createPersonalActivity($request->validated(), $request->user());
+
+        return response()->json($this->transformItem($notebook, $request), 201);
     }
 
     public function storeLead(StoreNotebookLeadRequest $request): JsonResponse

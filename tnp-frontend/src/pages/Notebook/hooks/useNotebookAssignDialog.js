@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useGetSalesBySubRoleQuery } from "../../../features/Customer/customerApi";
 import { useAssignNotebooksMutation } from "../../../features/Notebook/notebookApi";
-import {
-  getNotebookAssignTargetSubRoleCodes,
-  hasAnySubRole,
-} from "../../../utils/userAccess";
+import { getNotebookAssignTargetSubRoleCodes, hasAnySubRole } from "../../../utils/userAccess";
 
 export const useNotebookAssignDialog = ({ open, notebooks, currentUser, onSuccess, onError }) => {
   const [selectedUser, setSelectedUser] = useState(null);

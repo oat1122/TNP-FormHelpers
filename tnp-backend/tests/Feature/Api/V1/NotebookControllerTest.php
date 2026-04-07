@@ -564,6 +564,88 @@ class NotebookControllerTest extends TestCase
         $response->assertJsonMissing(['nb_customer_name' => 'Customer Care Export Entry']);
     }
 
+    public function test_sales_can_create_personal_activity_entry(): void
+    {
+        $salesUser = User::factory()->sales()->create();
+
+        Sanctum::actingAs($salesUser);
+
+        $response = $this->postJson('/api/v1/notebooks/personal', [
+            'nb_date' => '2026-04-07',
+            'nb_additional_info' => 'ลาป่วย',
+        ])->assertCreated();
+
+        $notebookId = $response->json('id');
+
+        $response->assertJsonPath('nb_entry_type', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY);
+        $response->assertJsonPath('nb_customer_name', 'ธุระส่วนตัว');
+        $response->assertJsonPath('nb_additional_info', 'ลาป่วย');
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebookId,
+            'nb_entry_type' => Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY,
+            'nb_date' => '2026-04-07',
+            'nb_additional_info' => 'ลาป่วย',
+            'nb_manage_by' => $salesUser->user_id,
+        ]);
+    }
+
+    public function test_personal_activity_requires_date_and_message(): void
+    {
+        $salesUser = User::factory()->sales()->create();
+
+        Sanctum::actingAs($salesUser);
+
+        $this->postJson('/api/v1/notebooks/personal', [
+            'nb_date' => '',
+            'nb_additional_info' => '',
+        ])->assertUnprocessable();
+    }
+
+    public function test_index_can_filter_personal_activity_entry_type(): void
+    {
+        $salesUser = User::factory()->sales()->create();
+
+        $personalActivity = $this->createNotebook($salesUser, [
+            'nb_customer_name' => 'ธุระส่วนตัว',
+            'nb_entry_type' => Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY,
+            'nb_additional_info' => 'ลากิจ',
+        ]);
+        $this->createNotebook($salesUser, [
+            'nb_customer_name' => 'Standard Entry',
+            'nb_entry_type' => Notebook::ENTRY_TYPE_STANDARD,
+        ]);
+
+        Sanctum::actingAs($salesUser);
+
+        $response = $this->getJson('/api/v1/notebooks?entry_type=personal_activity')
+            ->assertOk();
+
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $personalActivity->id);
+        $response->assertJsonPath('data.0.nb_entry_type', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY);
+    }
+
+    public function test_sales_self_report_includes_personal_activity_items(): void
+    {
+        $salesUser = User::factory()->sales()->create();
+
+        Sanctum::actingAs($salesUser);
+
+        $this->postJson('/api/v1/notebooks/personal', [
+            'nb_date' => now()->toDateString(),
+            'nb_additional_info' => 'ลาป่วย',
+        ])->assertCreated();
+
+        $response = $this->getJson(
+            '/api/v1/notebooks/self-report?start_date='.now()->toDateString().'&end_date='.now()->toDateString()
+        )->assertOk();
+
+        $response->assertJsonCount(1, 'activity_items');
+        $response->assertJsonPath('activity_items.0.nb_entry_type', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY);
+        $response->assertJsonPath('activity_items.0.nb_additional_info', 'ลาป่วย');
+    }
+
     public function test_sales_self_report_includes_customer_care_activity_items(): void
     {
         $salesUser = User::factory()->sales()->create();
@@ -587,6 +669,65 @@ class NotebookControllerTest extends TestCase
         $response->assertJsonCount(0, 'lead_additions');
         $response->assertJsonCount(1, 'activity_items');
         $response->assertJsonPath('activity_items.0.nb_entry_type', Notebook::ENTRY_TYPE_CUSTOMER_CARE);
+    }
+
+    public function test_self_report_activity_items_include_prior_histories_for_report_snapshot_reconstruction(): void
+    {
+        $owner = User::factory()->sales()->create();
+        $manager = User::factory()->manager()->create();
+
+        Sanctum::actingAs($owner);
+
+        $createdResponse = $this->postJson('/api/v1/notebooks', [
+            'nb_customer_name' => 'Snapshot Export',
+            'nb_contact_number' => '0811111111',
+            'nb_email' => 'snapshot@example.com',
+            'nb_status' => 'Pending',
+        ])->assertCreated();
+
+        $notebookId = $createdResponse->json('id');
+        $createdHistoryId = NotebookHistory::query()
+            ->where('notebook_id', $notebookId)
+            ->latest('id')
+            ->value('id');
+        $this->setHistoryDates($createdHistoryId, '2026-04-01 09:00:00');
+
+        Sanctum::actingAs($manager);
+
+        $this->putJson("/api/v1/notebooks/{$notebookId}", [
+            'nb_contact_number' => '0822222222',
+        ])->assertOk();
+
+        $managerHistoryId = NotebookHistory::query()
+            ->where('notebook_id', $notebookId)
+            ->latest('id')
+            ->value('id');
+        $this->setHistoryDates($managerHistoryId, '2026-04-02 10:00:00');
+
+        Sanctum::actingAs($owner);
+
+        $this->putJson("/api/v1/notebooks/{$notebookId}", [
+            'nb_status' => 'Followed Up',
+        ])->assertOk();
+
+        $ownerHistoryId = NotebookHistory::query()
+            ->where('notebook_id', $notebookId)
+            ->latest('id')
+            ->value('id');
+        $this->setHistoryDates($ownerHistoryId, '2026-04-03 11:00:00');
+
+        $response = $this->getJson('/api/v1/notebooks/self-report?start_date=2026-04-03&end_date=2026-04-03')
+            ->assertOk();
+
+        $activityItem = $response->json('activity_items.0');
+        $histories = collect($activityItem['histories'] ?? []);
+        $ownerHistory = $histories->firstWhere('id', $ownerHistoryId);
+
+        $this->assertCount(3, $activityItem['histories']);
+        $this->assertNotNull($ownerHistory);
+        $this->assertSame('0822222222', $ownerHistory['report_old_values']['nb_contact_number']);
+        $this->assertSame('0822222222', $ownerHistory['report_new_values']['nb_contact_number']);
+        $this->assertSame('Followed Up', $ownerHistory['report_new_values']['nb_status']);
     }
 
     public function test_support_sales_subrole_can_store_lead_into_queue_and_export_self_report(): void
@@ -1015,6 +1156,56 @@ class NotebookControllerTest extends TestCase
         $response->assertJsonPath('histories.0.action_by.user_id', $owner->user_id);
     }
 
+    public function test_show_returns_report_snapshots_for_updated_histories(): void
+    {
+        $owner = User::factory()->sales()->create();
+
+        Sanctum::actingAs($owner);
+
+        $createdResponse = $this->postJson('/api/v1/notebooks', [
+            'nb_customer_name' => 'Customer One',
+            'nb_contact_number' => '0811111111',
+            'nb_email' => 'first@example.com',
+            'nb_contact_person' => 'Alpha',
+            'nb_additional_info' => 'Initial call',
+            'nb_action' => 'Call',
+            'nb_status' => 'Pending',
+        ])->assertCreated();
+
+        $notebookId = $createdResponse->json('id');
+
+        $this->putJson("/api/v1/notebooks/{$notebookId}", [
+            'nb_status' => 'Quoted',
+        ])->assertOk();
+
+        $this->putJson("/api/v1/notebooks/{$notebookId}", [
+            'nb_contact_number' => '0899999999',
+            'nb_email' => 'updated@example.com',
+        ])->assertOk();
+
+        $response = $this->getJson("/api/v1/notebooks/{$notebookId}")
+            ->assertOk();
+
+        $histories = collect($response->json('histories'));
+
+        $statusHistory = $histories->first(
+            fn ($history) => ($history['new_values']['nb_status'] ?? null) === 'Quoted'
+        );
+        $contactHistory = $histories->first(
+            fn ($history) => ($history['new_values']['nb_contact_number'] ?? null) === '0899999999'
+        );
+
+        $this->assertNotNull($statusHistory);
+        $this->assertNotNull($contactHistory);
+        $this->assertArrayNotHasKey('nb_contact_number', $statusHistory['new_values']);
+        $this->assertSame('Customer One', $statusHistory['report_new_values']['nb_customer_name']);
+        $this->assertSame('0811111111', $statusHistory['report_new_values']['nb_contact_number']);
+        $this->assertSame('first@example.com', $statusHistory['report_new_values']['nb_email']);
+        $this->assertSame('Quoted', $statusHistory['report_new_values']['nb_status']);
+        $this->assertSame('0899999999', $contactHistory['report_new_values']['nb_contact_number']);
+        $this->assertSame('updated@example.com', $contactHistory['report_new_values']['nb_email']);
+    }
+
     public function test_show_serializes_nb_date_as_plain_date_string(): void
     {
         $owner = User::factory()->sales()->create();
@@ -1216,6 +1407,16 @@ class NotebookControllerTest extends TestCase
                 'nb_date' => $nbDate,
                 'created_at' => $createdAt,
                 'updated_at' => $updatedAt,
+            ]);
+    }
+
+    private function setHistoryDates(int $historyId, string $createdAt, ?string $updatedAt = null): void
+    {
+        DB::table('notebook_histories')
+            ->where('id', $historyId)
+            ->update([
+                'created_at' => $createdAt,
+                'updated_at' => $updatedAt ?? $createdAt,
             ]);
     }
 

@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import {
   Alert,
   Autocomplete,
@@ -15,6 +14,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import PropTypes from "prop-types";
 
 import { useNotebookAssignDialog } from "../hooks/useNotebookAssignDialog";
 
@@ -48,9 +48,14 @@ const NotebookAssignDialog = ({ open, notebooks, currentUser, onClose, onSuccess
 
   return (
     <>
-      <Backdrop open={assignLoading} sx={{ color: "#fff", zIndex: 9999, flexDirection: "column", gap: 2 }}>
+      <Backdrop
+        open={assignLoading}
+        sx={{ color: "#fff", zIndex: 9999, flexDirection: "column", gap: 2 }}
+      >
         <CircularProgress color="inherit" />
-        <Typography>กำลังมอบหมาย Notebook {selectedCount > 1 ? `${selectedCount} รายการ` : ""}...</Typography>
+        <Typography>
+          กำลังมอบหมาย Notebook {selectedCount > 1 ? `${selectedCount} รายการ` : ""}...
+        </Typography>
       </Backdrop>
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>

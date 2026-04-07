@@ -79,6 +79,34 @@ class NotebookService
         });
     }
 
+    public function createPersonalActivity(array $validated, $user): Notebook
+    {
+        return DB::transaction(function () use ($validated, $user) {
+            $notebook = new Notebook([
+                'nb_date' => $validated['nb_date'],
+                'nb_time' => now()->format('H:i'),
+                'nb_customer_name' => 'ธุระส่วนตัว',
+                'nb_is_online' => false,
+                'nb_additional_info' => $validated['nb_additional_info'],
+                'nb_contact_number' => null,
+                'nb_email' => null,
+                'nb_contact_person' => null,
+                'nb_action' => null,
+                'nb_status' => null,
+                'nb_remarks' => null,
+                'nb_manage_by' => $user->user_id,
+                'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+                'nb_entry_type' => Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY,
+            ]);
+
+            $notebook->created_by = $user->user_id;
+            $notebook->updated_by = $user->user_id;
+            $notebook->save();
+
+            return $this->notebookRepository->findWithRelationsOrFail((string) $notebook->id);
+        });
+    }
+
     public function update(string $id, array $validated, $user): Notebook
     {
         return DB::transaction(function () use ($id, $validated, $user) {

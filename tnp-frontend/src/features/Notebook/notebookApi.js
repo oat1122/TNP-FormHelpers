@@ -108,6 +108,14 @@ export const notebookApi = createApi({
       }),
       invalidatesTags: ["Notebook"],
     }),
+    addPersonalActivity: builder.mutation({
+      query: (data) => ({
+        url: "/notebooks/personal",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: ["Notebook"],
+    }),
     addNotebookLead: builder.mutation({
       query: (data) => ({
         url: "/notebooks/leads",
@@ -173,6 +181,7 @@ export const {
   useGetCustomerCareSourcesQuery,
   useAddNotebookMutation,
   useAddCustomerCareMutation,
+  useAddPersonalActivityMutation,
   useAddNotebookLeadMutation,
   useUpdateNotebookMutation,
   useDeleteNotebookMutation,

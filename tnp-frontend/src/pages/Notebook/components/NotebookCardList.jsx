@@ -1,3 +1,4 @@
+import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
 import {
   Badge,
   Box,
@@ -12,7 +13,6 @@ import {
   TablePagination,
   Typography,
 } from "@mui/material";
-import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
 
 import NotebookRowActions from "./NotebookRowActions";
 import {
@@ -64,7 +64,12 @@ const NotebookCardList = ({
                   justifyContent="space-between"
                   alignItems={{ xs: "flex-start", sm: "center" }}
                 >
-                  <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="flex-start"
+                    sx={{ minWidth: 0, flex: 1 }}
+                  >
                     {isSelectionEnabled ? (
                       <Checkbox
                         checked={Boolean(isSelected)}
@@ -89,7 +94,9 @@ const NotebookCardList = ({
                         ติดตาม {formatDate(row.nb_date || row.created_at) || "-"}
                       </Typography>
                       <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                        {row.nb_customer_name || "-"}
+                        {row.nb_entry_type === "personal_activity"
+                          ? row.nb_additional_info || row.nb_customer_name || "-"
+                          : row.nb_customer_name || "-"}
                       </Typography>
                     </Box>
                   </Stack>
@@ -98,34 +105,59 @@ const NotebookCardList = ({
                     <Chip
                       label={getNotebookEntryTypeLabel(row.nb_entry_type)}
                       size="small"
-                      color={row.nb_entry_type === "customer_care" ? "secondary" : "default"}
+                      color={
+                        row.nb_entry_type === "customer_care"
+                          ? "secondary"
+                          : row.nb_entry_type === "personal_activity"
+                            ? "warning"
+                            : "default"
+                      }
                       variant="outlined"
                     />
                     {row.nb_is_online ? (
                       <Chip label="Online" size="small" color="info" variant="outlined" />
                     ) : null}
                     <Chip
-                      label={row.nb_status || "ยังไม่ระบุสถานะ"}
+                      label={
+                        row.nb_entry_type === "personal_activity"
+                          ? "Personal activity"
+                          : row.nb_status || "ยังไม่ได้ระบุสถานะ"
+                      }
                       size="small"
-                      color={getStatusColor(row.nb_status)}
+                      color={
+                        row.nb_entry_type === "personal_activity"
+                          ? "warning"
+                          : getStatusColor(row.nb_status)
+                      }
                     />
                   </Stack>
                 </Stack>
 
-                <Box
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    actions.onEditWorkflow(row);
-                  }}
-                  sx={getNotebookActionHighlightSx()}
-                >
-                  <Typography variant="caption" sx={{ color: "#9a3412", fontWeight: 700 }}>
-                    Action
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#7c2d12" }}>
-                    {getNotebookActionLabel(row.nb_action)}
-                  </Typography>
-                </Box>
+                {row.nb_entry_type === "personal_activity" ? (
+                  <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: "#fff8e1" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                      Personal note
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                      {row.nb_additional_info || "-"}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      actions.onEditWorkflow(row);
+                    }}
+                    sx={getNotebookActionHighlightSx()}
+                  >
+                    <Typography variant="caption" sx={{ color: "#9a3412", fontWeight: 700 }}>
+                      Action
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#7c2d12" }}>
+                      {getNotebookActionLabel(row.nb_action)}
+                    </Typography>
+                  </Box>
+                )}
 
                 <Stack spacing={0.5}>
                   {contactLines.map((line) => (

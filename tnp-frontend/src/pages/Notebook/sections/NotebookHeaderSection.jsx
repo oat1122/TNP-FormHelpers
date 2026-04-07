@@ -7,6 +7,7 @@ const NotebookHeaderSection = ({
   onOpenExport,
   onAdd,
   onAddCustomerCare,
+  onAddPersonalActivity,
   disableExport,
   canCreateCustomerCare = false,
   scopeFilter = "all",
@@ -67,6 +68,13 @@ const NotebookHeaderSection = ({
         sx={{ bgcolor: "#d32f2f", "&:hover": { bgcolor: "#b71c1c" } }}
       >
         จดบันทึก
+      </Button>
+      <Button
+        variant="contained"
+        onClick={onAddPersonalActivity}
+        sx={{ bgcolor: "#ed6c02", "&:hover": { bgcolor: "#c77700" } }}
+      >
+        ธุระส่วนตัว
       </Button>
       {canCreateCustomerCare ? (
         <Button

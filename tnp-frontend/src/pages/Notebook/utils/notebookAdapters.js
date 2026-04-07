@@ -84,8 +84,9 @@ export const buildNotebookFilterSummary = ({
   };
   const entryTypeLabelMap = {
     all: "All entries",
-    standard: "จดบันทึก",
-    customer_care: "ดูแลลูกค้า",
+    standard: "\u0e08\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01",
+    customer_care: "\u0e14\u0e39\u0e41\u0e25\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32",
+    personal_activity: "\u0e18\u0e38\u0e23\u0e30\u0e2a\u0e48\u0e27\u0e19\u0e15\u0e31\u0e27",
   };
 
   const salesLabel =

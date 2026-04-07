@@ -2,18 +2,17 @@ import { StyleSheet } from "@react-pdf/renderer";
 
 import { formatDate as commonFormatDate } from "./notebookCommon";
 
-// Styles
 export const styles = StyleSheet.create({
   page: {
     padding: 24,
     fontSize: 9,
     fontFamily: "Kanit",
-    lineHeight: 1.4,
+    lineHeight: 1.45,
   },
   header: {
     marginBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#d8dee4",
     paddingBottom: 10,
   },
   title: {
@@ -36,50 +35,116 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
   },
   tableHeader: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#eeeeee",
+  },
+  rowEven: {
+    backgroundColor: "#ffffff",
+  },
+  rowOdd: {
+    backgroundColor: "#fafafa",
   },
   tableCell: {
-    paddingVertical: 5,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
     borderWidth: 0.5,
     borderColor: "#ddd",
+    justifyContent: "center",
   },
-  // Column widths
-  colDate: { width: "7.5%" },
-  colTime: { width: "5.5%" },
-  colCustomer: { width: "13.5%" },
-  colAdditional: { width: "17%" },
-  colContact: { width: "8%" },
-  colEmail: { width: "12.5%" },
-  colPerson: { width: "11%" },
-  colAction: { width: "8%" },
-  colStatus: { width: "5.5%" },
-  colRemarks: { width: "11.5%" },
-  // Text styles
+  colDate: { width: "6%" },
+  colTime: { width: "5%" },
+  colCustomer: { width: "16%" },
+  colAdditional: { width: "18%" },
+  colContact: { width: "9%" },
+  colEmail: { width: "13%" },
+  colPerson: { width: "9%" },
+  colAction: { width: "11%" },
+  colStatus: { width: "7%" },
+  colRemarks: { width: "6%" },
   headerText: {
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: 8,
     lineHeight: 1.3,
+    color: "#111",
   },
   cellText: {
     fontSize: 8,
-    lineHeight: 1.35,
+    lineHeight: 1.6,
     maxWidth: "100%",
     flexShrink: 1,
   },
   cellTextCompact: {
     fontSize: 7,
-    lineHeight: 1.35,
+    lineHeight: 1.55,
     maxWidth: "100%",
     flexShrink: 1,
   },
   cellTextEmpty: {
     color: "#a0a7b4",
   },
-  statusSuccess: { color: "#2e7d32" },
-  statusInfo: { color: "#1976d2" },
-  statusWarning: { color: "#ed6c02" },
-  statusError: { color: "#d32f2f" },
+  primaryText: {
+    fontSize: 9,
+    fontWeight: 600,
+    lineHeight: 1.45,
+    color: "#111",
+  },
+  secondaryText: {
+    fontSize: 8,
+    lineHeight: 1.45,
+    color: "#333",
+  },
+  tertiaryText: {
+    fontSize: 7,
+    lineHeight: 1.45,
+    color: "#999",
+  },
+  actionHeaderText: {
+    fontFamily: "Sarabun",
+    fontWeight: 700,
+    fontSize: 8,
+    lineHeight: 1.25,
+    color: "#111",
+  },
+  actionText: {
+    fontFamily: "Sarabun",
+    fontSize: 6.6,
+    lineHeight: 1.2,
+    color: "#333",
+  },
+  statusBadge: {
+    maxWidth: "100%",
+    paddingHorizontal: 3,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+    alignSelf: "flex-start",
+  },
+  statusBadgeText: {
+    fontFamily: "Sarabun",
+    fontSize: 6,
+    lineHeight: 1.1,
+    fontWeight: 600,
+    color: "#111",
+    textAlign: "center",
+  },
+  statusSuccess: {
+    backgroundColor: "#e8f5e9",
+    borderColor: "#2e7d32",
+    borderWidth: 0.5,
+  },
+  statusInfo: {
+    backgroundColor: "#e3f2fd",
+    borderColor: "#1976d2",
+    borderWidth: 0.5,
+  },
+  statusWarning: {
+    backgroundColor: "#fff3e0",
+    borderColor: "#ed6c02",
+    borderWidth: 0.5,
+  },
+  statusError: {
+    backgroundColor: "#ffebee",
+    borderColor: "#d32f2f",
+    borderWidth: 0.5,
+  },
   footer: {
     position: "absolute",
     bottom: 20,
@@ -149,7 +214,6 @@ export const formatValue = (key, value) => {
 };
 
 export const getHistoryChanges = (history) => {
-  // 1. Only show if action is 'updated'
   if (history.action !== "updated") return [];
 
   try {
@@ -170,19 +234,16 @@ export const getHistoryChanges = (history) => {
         ? JSON.parse(history.display_new_values)
         : history.display_new_values || {};
 
-    // If it's not an update or no new values, just show action
     if (!newVals || Object.keys(newVals).length === 0) return [];
 
     const changes = [];
     Object.keys(newVals).forEach((key) => {
-      // Skip ignored fields
       if (key === "updated_at" || key === "nb_time") return;
 
       const label = FIELD_LABELS[key] || key;
       const oldVal = formatValue(key, displayOldVals[key] ?? oldVals[key]);
       const newVal = formatValue(key, displayNewVals[key] ?? newVals[key]);
 
-      // Only show if different
       if (oldVal !== newVal) {
         changes.push({ label, oldVal, newVal });
       }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useNotebookExport } from "./useNotebookExport";
@@ -14,11 +14,17 @@ import { setDialogOpen, setSelectedNotebook } from "../../../features/Notebook/n
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
 import { mapNotebookToCustomer } from "../utils/notebookMapping";
+import { isNotebookQueueAssignableRow } from "../utils/notebookCommon";
 
 export const useNotebookList = () => {
   const dispatch = useDispatch();
   const pageState = useNotebookPageState();
   const [convertingNotebookId, setConvertingNotebookId] = useState(null);
+  const [selectedQueueIds, setSelectedQueueIds] = useState([]);
+  const [assignDialogState, setAssignDialogState] = useState({
+    open: false,
+    notebooks: [],
+  });
 
   const {
     data,
@@ -31,6 +37,20 @@ export const useNotebookList = () => {
   const [deleteNotebook] = useDeleteNotebookMutation();
   const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
   const [reserveNotebook, { isLoading: isReserving }] = useReserveNotebookMutation();
+  const rows = data?.rows || [];
+  const isBulkAssignEnabled =
+    pageState.scopeFilter === "queue" && pageState.queueActionMode === "assign";
+  const selectableQueueIds = useMemo(
+    () =>
+      rows
+        .filter((row) => isNotebookQueueAssignableRow(row, pageState.scopeFilter))
+        .map((row) => row.id),
+    [pageState.scopeFilter, rows]
+  );
+  const selectedQueueNotebooks = useMemo(() => {
+    const selectedIdSet = new Set(selectedQueueIds);
+    return rows.filter((row) => selectedIdSet.has(row.id));
+  }, [rows, selectedQueueIds]);
 
   const exportState = useNotebookExport({
     open: pageState.exportDialogOpen,
@@ -38,6 +58,16 @@ export const useNotebookList = () => {
     currentUser: pageState.currentUser,
     canSelfReport: pageState.canSelfReport,
   });
+
+  useEffect(() => {
+    if (!isBulkAssignEnabled) {
+      setSelectedQueueIds([]);
+      return;
+    }
+
+    const allowedIds = new Set(selectableQueueIds);
+    setSelectedQueueIds((previous) => previous.filter((id) => allowedIds.has(id)));
+  }, [isBulkAssignEnabled, selectableQueueIds]);
 
   const handleDelete = async (id) => {
     const confirmed = await dialog_confirm_yes_no("ยืนยันการลบรายการนี้?");
@@ -75,6 +105,82 @@ export const useNotebookList = () => {
     } finally {
       dismissToast(loadingId);
     }
+  };
+
+  const handleAssign = (notebook) => {
+    if (!notebook) {
+      return;
+    }
+
+    setAssignDialogState({
+      open: true,
+      notebooks: [notebook],
+    });
+  };
+
+  const handleSelectedQueueIdsChange = (nextIds) => {
+    if (!isBulkAssignEnabled) {
+      setSelectedQueueIds([]);
+      return;
+    }
+
+    const allowedIds = new Set(selectableQueueIds);
+    setSelectedQueueIds((nextIds || []).filter((id) => allowedIds.has(id)));
+  };
+
+  const handleToggleSelectedQueueRow = (rowId, checked) => {
+    const allowedIds = new Set(selectableQueueIds);
+    if (!allowedIds.has(rowId)) {
+      return;
+    }
+
+    setSelectedQueueIds((previous) => {
+      if (checked) {
+        return previous.includes(rowId) ? previous : [...previous, rowId];
+      }
+
+      return previous.filter((id) => id !== rowId);
+    });
+  };
+
+  const handleOpenAssignSelected = () => {
+    if (!selectedQueueNotebooks.length) {
+      return;
+    }
+
+    setAssignDialogState({
+      open: true,
+      notebooks: selectedQueueNotebooks,
+    });
+  };
+
+  const handleCloseAssignDialog = () => {
+    setAssignDialogState({
+      open: false,
+      notebooks: [],
+    });
+  };
+
+  const handleAssignSuccess = ({ assignee, count }) => {
+    const fullName = `${assignee?.user_firstname || ""} ${assignee?.user_lastname || ""}`.trim();
+    const assigneeName = fullName || assignee?.user_nickname || assignee?.username || "ผู้รับผิดชอบ";
+
+    const assignedCount = count || 1;
+    showSuccess(
+      assignedCount > 1
+        ? `มอบหมาย Notebook ${assignedCount} รายการให้ ${assigneeName} สำเร็จ`
+        : `มอบหมาย Notebook ให้ ${assigneeName} สำเร็จ`
+    );
+    setSelectedQueueIds([]);
+    handleCloseAssignDialog();
+    refetch();
+  };
+
+  const handleAssignError = (message) => {
+    showError(message || "ไม่สามารถมอบหมาย Notebook ได้");
+    setSelectedQueueIds([]);
+    handleCloseAssignDialog();
+    refetch();
   };
 
   const handleConvert = (notebook) => {
@@ -117,7 +223,7 @@ export const useNotebookList = () => {
 
   return {
     ...pageState,
-    rows: data?.rows || [],
+    rows,
     total: data?.total || 0,
     listMeta: data?.meta,
     listError: fetchError,
@@ -126,9 +232,19 @@ export const useNotebookList = () => {
     isConverting,
     isReserving,
     convertingNotebookId,
+    isBulkAssignEnabled,
+    selectedQueueIds,
+    assignDialogState,
     exportState,
     refetch,
     handleDelete,
+    handleAssign,
+    handleSelectedQueueIdsChange,
+    handleToggleSelectedQueueRow,
+    handleOpenAssignSelected,
+    handleCloseAssignDialog,
+    handleAssignSuccess,
+    handleAssignError,
     handleReserve,
     handleConvert,
     handleEdit: (notebook) =>

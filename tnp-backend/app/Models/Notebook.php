@@ -153,17 +153,17 @@ class Notebook extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        $resolvedScope = $scope ?? (UserSubRoleHelper::canManageAllNotebooks($user) ? 'all' : 'mine');
+        $resolvedScope = $scope ?? (UserSubRoleHelper::canViewAllNotebookScope($user) ? 'all' : 'mine');
 
         if ($resolvedScope === 'queue') {
-            if (! UserSubRoleHelper::canReserveNotebookQueue($user)) {
+            if (! UserSubRoleHelper::canViewNotebookQueue($user)) {
                 return $query->whereRaw('1 = 0');
             }
 
             return $query->queueInbox();
         }
 
-        if (UserSubRoleHelper::canManageAllNotebooks($user) && $resolvedScope === 'all') {
+        if (UserSubRoleHelper::canViewAllNotebookScope($user) && $resolvedScope === 'all') {
             return $query;
         }
 

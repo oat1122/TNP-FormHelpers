@@ -1,4 +1,5 @@
-import { Box, Chip, Stack, Typography } from "@mui/material";
+import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
+import { Badge, Box, Chip, Fab, Stack, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
 import NotebookRowActions from "./NotebookRowActions";
@@ -8,11 +9,9 @@ import {
   getNotebookContactLines,
   getNotebookNotePreview,
   getStatusColor,
+  isNotebookQueueAssignableRow,
 } from "../utils/notebookCommon";
-import {
-  getNotebookActionLabel,
-  getNotebookEntryTypeLabel,
-} from "../utils/notebookDialogConfig";
+import { getNotebookActionLabel, getNotebookEntryTypeLabel } from "../utils/notebookDialogConfig";
 
 const THAI_LOCALE_TEXT = {
   noRowsLabel: "ไม่พบข้อมูล",
@@ -32,7 +31,11 @@ const NotebookActionTable = ({
   onNoRowsOverlay,
   scopeFilter,
   canReserveQueue,
+  queueActionMode,
+  selectionState,
 }) => {
+  const selectionEnabled = Boolean(selectionState?.enabled);
+
   const columns = [
     {
       field: "follow_up",
@@ -153,10 +156,12 @@ const NotebookActionTable = ({
           onView={actions.onView}
           onEdit={actions.onEdit}
           onDelete={actions.onDelete}
+          onAssign={actions.onAssign}
           onReserve={actions.onReserve}
           onConvert={actions.onConvert}
           scopeFilter={scopeFilter}
           canReserveQueue={canReserveQueue}
+          queueActionMode={queueActionMode}
         />
       ),
     },
@@ -172,8 +177,16 @@ const NotebookActionTable = ({
         paginationModel={pagination.model}
         onPaginationModelChange={pagination.onChange}
         pageSizeOptions={[15, 30, 50]}
+        checkboxSelection={selectionEnabled}
         disableRowSelectionOnClick
         hideFooterSelectedRowCount
+        rowSelectionModel={selectionState?.selectedIds || []}
+        onRowSelectionModelChange={(nextModel) =>
+          selectionState?.onSelectedIdsChange?.([...nextModel])
+        }
+        isRowSelectable={(params) =>
+          !selectionEnabled || isNotebookQueueAssignableRow(params.row, scopeFilter)
+        }
         localeText={THAI_LOCALE_TEXT}
         slots={{
           noRowsOverlay: onNoRowsOverlay,
@@ -214,9 +227,28 @@ const NotebookActionTable = ({
           "& .MuiTablePagination-root, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
             {
               fontFamily: "Kanit, sans-serif",
-            },
+          },
         }}
       />
+
+      {selectionEnabled ? (
+        <Fab
+          color="secondary"
+          sx={{
+            position: "fixed",
+            bottom: 16,
+            right: 16,
+            zIndex: 1000,
+          }}
+          disabled={!selectionState?.selectedIds?.length}
+          onClick={selectionState?.onOpenAssignSelected}
+          aria-label={`มอบหมาย Notebook ${selectionState?.selectedIds?.length || 0} รายการ`}
+        >
+          <Badge badgeContent={selectionState?.selectedIds?.length || 0} color="warning">
+            <AssignmentIndIcon />
+          </Badge>
+        </Fab>
+      ) : null}
     </Box>
   );
 };

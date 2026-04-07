@@ -1,7 +1,8 @@
 import { Box } from "@mui/material";
 
-import NotebookDialog from "./components/NotebookDialog";
+import NotebookAssignDialog from "./components/NotebookAssignDialog";
 import CustomerCareDialog from "./components/CustomerCareDialog";
+import NotebookDialog from "./components/NotebookDialog";
 import NotebookTable from "./components/NotebookTable";
 import PrintPDFDialog from "./components/PrintPDFDialog";
 import { useNotebookList } from "./hooks/useNotebookList";
@@ -34,7 +35,9 @@ const NotebookList = () => {
     setSalesFilter,
     salesOptions,
     canFilterBySales,
+    canViewAllScope,
     canUseQueueTabs,
+    queueActionMode,
     canSelfReport,
     canCreateCustomerCare,
     viewMode,
@@ -42,6 +45,7 @@ const NotebookList = () => {
     filterSummary,
     customerDialogOpen,
     setCustomerDialogOpen,
+    assignDialogState,
     exportDialogOpen,
     setExportDialogOpen,
     customerCareDialogState,
@@ -51,6 +55,8 @@ const NotebookList = () => {
     listError,
     isLoading,
     isFetching,
+    isBulkAssignEnabled,
+    selectedQueueIds,
     refetch,
     exportState,
     handleAdd,
@@ -59,6 +65,13 @@ const NotebookList = () => {
     handleEditWorkflow,
     handleView,
     handleDelete,
+    handleAssign,
+    handleSelectedQueueIdsChange,
+    handleToggleSelectedQueueRow,
+    handleOpenAssignSelected,
+    handleCloseAssignDialog,
+    handleAssignSuccess,
+    handleAssignError,
     handleReserve,
     handleConvert,
     handleAfterCustomerSave,
@@ -81,7 +94,7 @@ const NotebookList = () => {
           scopeFilter={scopeFilter}
           onScopeChange={setScopeFilter}
           showScopeTabs={canUseQueueTabs}
-          showAllScopeTab={userRole === "admin" || userRole === "manager"}
+          showAllScopeTab={canViewAllScope}
           canSelfReport={canSelfReport}
         />
 
@@ -121,6 +134,7 @@ const NotebookList = () => {
             onEdit: handleEdit,
             onEditWorkflow: handleEditWorkflow,
             onDelete: handleDelete,
+            onAssign: handleAssign,
             onReserve: handleReserve,
             onConvert: handleConvert,
           }}
@@ -129,12 +143,29 @@ const NotebookList = () => {
           viewMode={viewMode}
           scopeFilter={scopeFilter}
           canReserveQueue={canUseQueueTabs}
+          queueActionMode={queueActionMode}
+          selectionState={{
+            enabled: isBulkAssignEnabled,
+            selectedIds: selectedQueueIds,
+            onSelectedIdsChange: handleSelectedQueueIdsChange,
+            onToggleSelectedRow: handleToggleSelectedQueueRow,
+            onOpenAssignSelected: handleOpenAssignSelected,
+          }}
           onClearFilters={handleClearFilters}
           onRetry={refetch}
         />
       </Box>
 
       <NotebookDialog currentUser={currentUser} />
+
+      <NotebookAssignDialog
+        open={assignDialogState.open}
+        notebooks={assignDialogState.notebooks}
+        currentUser={currentUser}
+        onClose={handleCloseAssignDialog}
+        onSuccess={handleAssignSuccess}
+        onError={handleAssignError}
+      />
 
       <CustomerCareDialog
         open={customerCareDialogState.open}
@@ -150,6 +181,7 @@ const NotebookList = () => {
         items={exportState.exportItems}
         filteredItems={exportState.filteredItems}
         exportRows={exportState.exportRows}
+        csvRows={exportState.csvRows}
         pdfRows={exportState.pdfRows}
         leadSummaryRows={exportState.leadSummaryRows}
         selectedIds={exportState.selectedIds}

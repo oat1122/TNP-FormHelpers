@@ -4,7 +4,6 @@ import { RiAddLine } from "react-icons/ri";
 
 const NotebookHeaderSection = ({
   total,
-  isRefreshing,
   onOpenExport,
   onAdd,
   onAddCustomerCare,
@@ -32,14 +31,6 @@ const NotebookHeaderSection = ({
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
         <Chip label={`ทั้งหมด ${total || 0} รายการ`} color="default" variant="outlined" />
-        <Chip
-          label={isRefreshing ? "กำลังอัปเดตข้อมูล" : "ข้อมูลพร้อมใช้งาน"}
-          color={isRefreshing ? "info" : "success"}
-          variant="outlined"
-        />
-        {canSelfReport ? (
-          <Chip label="Self PDF report" color="secondary" variant="outlined" />
-        ) : null}
       </Stack>
 
       {showScopeTabs ? (

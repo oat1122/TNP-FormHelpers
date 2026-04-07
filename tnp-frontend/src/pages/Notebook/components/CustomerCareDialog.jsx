@@ -166,7 +166,8 @@ const CustomerCareDialog = ({
                       ข้อมูลลูกค้าที่ดูแล
                     </SectionHeading>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      เลือกข้อมูลจาก Customer หรือ Notebook แล้วระบบจะ snapshot มาเป็นข้อมูลอ่านอย่างเดียว
+                      เลือกข้อมูลจาก Customer หรือ Notebook แล้วระบบจะ snapshot
+                      มาเป็นข้อมูลอ่านอย่างเดียว
                     </Typography>
 
                     <Stack spacing={2}>
@@ -370,7 +371,11 @@ const CustomerCareDialog = ({
                         <Typography variant="caption" color="text.secondary">
                           Source type
                         </Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 1 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 1 }}
+                        >
                           <Chip
                             icon={<MdLink />}
                             label={getNotebookSourceTypeLabel(draft.nb_source_type)}
@@ -388,7 +393,8 @@ const CustomerCareDialog = ({
                           Snapshot
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          ระบบจะเก็บข้อมูลลูกค้าจากแหล่งที่เลือกไว้ในรายการนี้เพื่อใช้แสดงผลและ export รายงาน
+                          ระบบจะเก็บข้อมูลลูกค้าจากแหล่งที่เลือกไว้ในรายการนี้เพื่อใช้แสดงผลและ
+                          export รายงาน
                         </Typography>
                       </Box>
                     </Stack>

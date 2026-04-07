@@ -7,7 +7,11 @@ use Illuminate\Support\Facades\Schema;
 
 class UserSubRoleHelper
 {
+    public const HEAD_OFFLINE = 'HEAD_OFFLINE';
+
     public const SUPPORT_SALES = 'SUPPORT_SALES';
+
+    public const SALES_OFFLINE = 'SALES_OFFLINE';
 
     public const TALESALES = 'TALESALES';
 
@@ -16,6 +20,31 @@ class UserSubRoleHelper
         return [
             self::SUPPORT_SALES,
             self::TALESALES,
+        ];
+    }
+
+    public static function notebookQueueViewCodes(): array
+    {
+        return [
+            self::SUPPORT_SALES,
+            self::TALESALES,
+            self::HEAD_OFFLINE,
+        ];
+    }
+
+    public static function notebookQueueAssignCodes(): array
+    {
+        return [
+            self::SUPPORT_SALES,
+            self::HEAD_OFFLINE,
+        ];
+    }
+
+    public static function notebookAllScopeCodes(): array
+    {
+        return [
+            self::SUPPORT_SALES,
+            self::HEAD_OFFLINE,
         ];
     }
 
@@ -90,6 +119,19 @@ class UserSubRoleHelper
         return self::hasAnySubRole($user, self::notebookQueueCodes());
     }
 
+    public static function canViewNotebookQueue($user): bool
+    {
+        return self::canManageAllNotebooks($user)
+            || self::hasAnySubRole($user, self::notebookQueueViewCodes())
+            || ((bool) $user && $user->role === UserRole::SALE);
+    }
+
+    public static function canViewAllNotebookScope($user): bool
+    {
+        return self::canManageAllNotebooks($user)
+            || self::hasAnySubRole($user, self::notebookAllScopeCodes());
+    }
+
     public static function shouldCreateLeadIntoQueue($user): bool
     {
         return self::isNotebookQueueUser($user);
@@ -105,6 +147,11 @@ class UserSubRoleHelper
         return self::canManageAllNotebooks($user)
             || self::isNotebookQueueUser($user)
             || ((bool) $user && $user->role === UserRole::SALE);
+    }
+
+    public static function canAssignNotebookQueue($user): bool
+    {
+        return (bool) $user && self::hasAnySubRole($user, self::notebookQueueAssignCodes());
     }
 
     public static function canExportNotebookSelfReport($user): bool

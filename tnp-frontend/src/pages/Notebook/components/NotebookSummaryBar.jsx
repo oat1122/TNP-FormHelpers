@@ -49,17 +49,12 @@ const NotebookSummaryBar = ({
       </Stack>
 
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-        <Chip
-          color={statusMeta?.color || "default"}
-          variant={statusMeta ? "filled" : "outlined"}
-          label={statusMeta?.label || "Status not set"}
-        />
-        <Chip
-          color={actionLabel === "Next action not set" ? "default" : "primary"}
-          variant={actionLabel === "Next action not set" ? "outlined" : "filled"}
-          icon={<MdAssignment />}
-          label={actionLabel}
-        />
+        {statusMeta ? (
+          <Chip color={statusMeta.color || "default"} variant="filled" label={statusMeta.label} />
+        ) : null}
+        {actionLabel && actionLabel !== "Next action not set" ? (
+          <Chip color="primary" variant="filled" icon={<MdAssignment />} label={actionLabel} />
+        ) : null}
         <Chip
           color="default"
           variant="outlined"

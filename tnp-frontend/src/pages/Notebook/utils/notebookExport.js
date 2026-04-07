@@ -1,8 +1,25 @@
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
-const TEXT_FIELDS = ["nb_additional_info", "nb_remarks"];
+const REPORT_VISIBLE_FIELDS = ["nb_status", "nb_action", "nb_additional_info", "nb_remarks"];
+const IMPORTANT_PDF_FIELDS = ["nb_status", "nb_action", "nb_additional_info"];
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseHistoryPayload = (value) => {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof value === "object" ? value : {};
+};
 
 const parseDateOnly = (value) => {
   if (!value) {
@@ -62,6 +79,117 @@ const inDateRange = (value, rangeStart, rangeEnd, { dateOnly = false } = {}) => 
   return parsedDate >= rangeStart && parsedDate <= rangeEnd;
 };
 
+const getChangedFields = (history) => {
+  const oldValues = parseHistoryPayload(history?.old_values);
+  const newValues = parseHistoryPayload(history?.new_values);
+  const keys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);
+
+  return [...keys].filter((fieldName) => oldValues[fieldName] !== newValues[fieldName]);
+};
+
+const shouldIncludeHistoryForReport = (notebook, history, rangeStart, rangeEnd, reportMode) => {
+  const historyAt = new Date(history.created_at);
+  const isInRange = historyAt >= rangeStart && historyAt <= rangeEnd;
+
+  if (!isInRange || history.action === "deleted") {
+    return false;
+  }
+
+  if (reportMode === "self" && notebook.nb_entry_type === "customer_care") {
+    return history.action === "created" || history.action === "updated";
+  }
+
+  if (history.action === "created") {
+    return true;
+  }
+
+  const changedFields = getChangedFields(history);
+  return changedFields.some((field) => REPORT_VISIBLE_FIELDS.includes(field));
+};
+
+const resolveHistoryValue = (historyEntry, notebook, fieldName) => {
+  const newValues = parseHistoryPayload(historyEntry?.new_values);
+  const oldValues = parseHistoryPayload(historyEntry?.old_values);
+
+  return newValues[fieldName] ?? oldValues[fieldName] ?? notebook?.[fieldName] ?? null;
+};
+
+const buildCustomerLabel = (notebook) => {
+  let customer = notebook.nb_customer_name || "-";
+  if (notebook.nb_is_online) {
+    customer += " / online";
+  }
+
+  return customer;
+};
+
+const buildActivityRow = ({ notebook, historyEntry, at, reportMode, index }) => {
+  const rawDate =
+    reportMode === "self" ? at : resolveHistoryValue(historyEntry, notebook, "nb_date") || at;
+  const itemDate = rawDate ? new Date(rawDate) : at;
+  const dayMonth = format(itemDate, "dd/MM");
+  const year = itemDate.getFullYear() + 543;
+  const displayDate = `${dayMonth}/${year}`;
+
+  const rawTime =
+    reportMode === "self" ? null : resolveHistoryValue(historyEntry, notebook, "nb_time");
+  const displayTime = rawTime
+    ? String(rawTime)
+        .split(/[:.]/)
+        .slice(0, 2)
+        .map((part) => part.padStart(2, "0"))
+        .join(".")
+    : format(at, "HH.mm");
+
+  return {
+    id: historyEntry?.id || `notebook-${notebook.id}-${index}`,
+    date: displayDate,
+    dateGroupValue: displayDate,
+    time: displayTime,
+    customer: buildCustomerLabel(notebook),
+    additionalInfo: resolveHistoryValue(historyEntry, notebook, "nb_additional_info") ?? "-",
+    contactNumber: notebook.nb_contact_number || "-",
+    email: notebook.nb_email || "-",
+    contactPerson: notebook.nb_contact_person || "-",
+    action: resolveHistoryValue(historyEntry, notebook, "nb_action") ?? "-",
+    status: resolveHistoryValue(historyEntry, notebook, "nb_status") ?? "-",
+    remarks: resolveHistoryValue(historyEntry, notebook, "nb_remarks") ?? "-",
+    historyAction: historyEntry?.action || null,
+    changedFields: historyEntry ? getChangedFields(historyEntry) : [],
+    activityAt: at.toISOString(),
+  };
+};
+
+const groupNotebookPdfRows = (rows = []) => {
+  let previousGroupKey = null;
+
+  return rows.map((row) => {
+    const currentGroupKey = `${row.customer}__${row.time}`;
+    const shouldGroup = currentGroupKey === previousGroupKey;
+    const pageRepeatValues = {
+      date: row.date || row.dateGroupValue,
+      time: row.time,
+      customer: row.customer,
+    };
+    const groupedRow = {
+      ...row,
+      date: shouldGroup ? "" : row.date,
+      time: shouldGroup ? "" : row.time,
+      customer: shouldGroup ? "" : row.customer,
+      pageRepeatValues,
+      groupedFields: {
+        date: row.groupedFields?.date || shouldGroup,
+        time: shouldGroup,
+        customer: shouldGroup,
+      },
+    };
+
+    previousGroupKey = currentGroupKey;
+
+    return groupedRow;
+  });
+};
+
 export const filterNotebookExportData = (data = [], dateRange, dateFilterBy = "all") => {
   const dateTimeRange = buildRangeBoundaries(dateRange);
   const dateOnlyRange = buildRangeBoundaries(dateRange, { dateOnly: true });
@@ -90,27 +218,6 @@ export const filterNotebookExportData = (data = [], dateRange, dateFilterBy = "a
   });
 };
 
-const shouldIncludeHistoryForReport = (notebook, history, rangeStart, rangeEnd, reportMode) => {
-  const historyAt = new Date(history.created_at);
-  const isInRange = historyAt >= rangeStart && historyAt <= rangeEnd;
-
-  if (!isInRange || history.action === "deleted") {
-    return false;
-  }
-
-  if (reportMode === "self" && notebook.nb_entry_type === "customer_care") {
-    return history.action === "created" || history.action === "updated";
-  }
-
-  return TEXT_FIELDS.some((field) => history.new_values && field in history.new_values);
-};
-
-const resolveHistoryValue = (historyEntry, notebook, fieldName) =>
-  historyEntry?.new_values?.[fieldName] ??
-  historyEntry?.old_values?.[fieldName] ??
-  notebook?.[fieldName] ??
-  null;
-
 export const buildNotebookExportRows = (
   selectedData = [],
   dateRange,
@@ -135,7 +242,7 @@ export const buildNotebookExportRows = (
     }
 
     const sortedHistories = [...histories].sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      (left, right) => new Date(left.created_at) - new Date(right.created_at)
     );
     const relevantHistories = sortedHistories.filter((history) =>
       shouldIncludeHistoryForReport(notebook, history, rangeStart, rangeEnd, reportMode)
@@ -154,51 +261,54 @@ export const buildNotebookExportRows = (
     });
   });
 
-  flatRows.sort((a, b) => a.at - b.at);
+  flatRows.sort((left, right) => left.at - right.at);
 
-  let previousDateStr = null;
+  let previousDateValue = null;
 
-  return flatRows.map(({ notebook, historyEntry, at }, index) => {
-    const rawDate =
-      reportMode === "self"
-        ? at
-        : resolveHistoryValue(historyEntry, notebook, "nb_date") || at;
-    const itemDate = rawDate ? new Date(rawDate) : at;
-    const dayMonth = format(itemDate, "dd/MM");
-    const year = itemDate.getFullYear() + 543;
-    const currentDateStr = `${dayMonth}/${year}`;
-    const displayDate = currentDateStr === previousDateStr ? "" : currentDateStr;
-    previousDateStr = currentDateStr;
-
-    const rawTime =
-      reportMode === "self" ? null : resolveHistoryValue(historyEntry, notebook, "nb_time");
-    let time = "-";
-    if (rawTime) {
-      const timeParts = String(rawTime).split(/[:.]/).slice(0, 2);
-      time = timeParts.map((part) => part.padStart(2, "0")).join(".");
-    } else {
-      time = format(at, "HH.mm");
-    }
-
-    let customer = notebook.nb_customer_name || "-";
-    if (notebook.nb_is_online) {
-      customer += " / online";
-    }
+  return flatRows.map((item, index) => {
+    const row = buildActivityRow({
+      ...item,
+      reportMode,
+      index,
+    });
+    const displayDate = row.dateGroupValue === previousDateValue ? "" : row.dateGroupValue;
+    previousDateValue = row.dateGroupValue;
 
     return {
-      id: historyEntry?.id || `notebook-${notebook.id}-${index}`,
+      ...row,
       date: displayDate,
-      time,
-      customer,
-      additionalInfo: resolveHistoryValue(historyEntry, notebook, "nb_additional_info") ?? "-",
-      contactNumber: notebook.nb_contact_number || "-",
-      email: notebook.nb_email || "-",
-      contactPerson: notebook.nb_contact_person || "-",
-      action: resolveHistoryValue(historyEntry, notebook, "nb_action") ?? "-",
-      status: resolveHistoryValue(historyEntry, notebook, "nb_status") ?? "-",
-      remarks: resolveHistoryValue(historyEntry, notebook, "nb_remarks") ?? "-",
     };
   });
+};
+
+export const buildNotebookPdfRows = (rows = []) => {
+  const filteredRows = rows.filter((row) => {
+    if (row.historyAction !== "updated") {
+      return true;
+    }
+
+    return row.changedFields.some((field) => IMPORTANT_PDF_FIELDS.includes(field));
+  });
+
+  const rowsWithDateGrouping = filteredRows.map((row, index) => {
+    const previousRow = filteredRows[index - 1];
+    const shouldHideDate = previousRow && previousRow.dateGroupValue === row.dateGroupValue;
+
+    return {
+      ...row,
+      date: shouldHideDate ? "" : row.dateGroupValue,
+      groupedFields: {
+        date: shouldHideDate,
+        time: false,
+        customer: false,
+      },
+    };
+  });
+
+  return groupNotebookPdfRows(rowsWithDateGrouping).map((row, index) => ({
+    ...row,
+    zebraIndex: index,
+  }));
 };
 
 export const buildNotebookCsvContent = ({ rows = [], exporterName = "", dateRange }) => {

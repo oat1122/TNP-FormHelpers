@@ -6,12 +6,14 @@ use App\Constants\UserRole;
 use App\Helpers\UserSubRoleHelper;
 use App\Models\MasterCustomer;
 use App\Models\Notebook;
+use App\Models\User\User;
 use App\Repositories\NotebookRepositoryInterface;
 use App\Services\CustomerService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class NotebookService
@@ -158,6 +160,57 @@ class NotebookService
         });
     }
 
+    public function assign(string $id, int $salesUserId, $user): Notebook
+    {
+        /** @var Notebook $notebook */
+        $notebook = $this->assignMany([$id], $salesUserId, $user)->first();
+
+        return $notebook;
+    }
+
+    public function assignMany(array $notebookIds, int $salesUserId, $user): Collection
+    {
+        if (! $this->canAssignNotebookQueue($user)) {
+            throw new AuthorizationException('Unauthorized: You do not have permission to assign these notebooks.');
+        }
+
+        $normalizedIds = collect($notebookIds)
+            ->map(static fn ($id) => (int) $id)
+            ->filter(static fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($normalizedIds->isEmpty()) {
+            throw new \DomainException('Please select at least one notebook to assign.');
+        }
+
+        return DB::transaction(function () use ($normalizedIds, $salesUserId, $user) {
+            $assignee = $this->resolveAssignableAssignee($salesUserId, $user);
+
+            $notebooks = Notebook::query()
+                ->whereIn('id', $normalizedIds->all())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($notebooks->count() !== $normalizedIds->count()) {
+                throw new \DomainException('Some selected notebooks were not found.');
+            }
+
+            foreach ($normalizedIds as $notebookId) {
+                /** @var Notebook $notebook */
+                $notebook = $notebooks->get($notebookId);
+                $this->validateAssignableNotebook($notebook);
+                $this->assignLockedNotebook($notebook, $assignee->user_id, $user->user_id);
+            }
+
+            return $normalizedIds
+                ->map(fn ($notebookId) => $this->notebookRepository->findWithRelationsOrFail((string) $notebookId))
+                ->values();
+        });
+    }
+
     public function delete(string $id, $user): void
     {
         if (! $this->canDelete($user)) {
@@ -243,6 +296,11 @@ class NotebookService
         }
 
         return UserSubRoleHelper::canReserveNotebookQueue($user);
+    }
+
+    public function canAssignNotebookQueue($user): bool
+    {
+        return UserSubRoleHelper::canAssignNotebookQueue($user);
     }
 
     public function canManageAll($user): bool
@@ -555,7 +613,70 @@ class NotebookService
         return $notebook->isLeadQueue()
             && ! $notebook->nb_manage_by
             && ! $notebook->nb_converted_at
-            && UserSubRoleHelper::canReserveNotebookQueue($user);
+            && UserSubRoleHelper::canViewNotebookQueue($user);
+    }
+
+    protected function validateAssignableNotebook(Notebook $notebook): void
+    {
+        if (! $notebook->isLeadQueue()) {
+            throw new \DomainException('Only lead queue notebooks can be assigned.');
+        }
+
+        if ($notebook->nb_converted_at) {
+            throw new \DomainException('This notebook lead has already been converted.');
+        }
+
+        if ($notebook->nb_manage_by) {
+            throw new \DomainException('This notebook lead has already been assigned.');
+        }
+    }
+
+    protected function assignLockedNotebook(Notebook $notebook, int $assigneeUserId, int $actionUserId): void
+    {
+        $notebook->nb_manage_by = $assigneeUserId;
+        $notebook->nb_claimed_at = now();
+        $notebook->updated_by = $actionUserId;
+        $notebook->setHistoryContext('assigned');
+        $notebook->save();
+    }
+
+    protected function resolveAssignableAssignee(int $salesUserId, $actingUser): User
+    {
+        $assignee = User::query()
+            ->with('subRoles:msr_id,msr_code,msr_name')
+            ->where('user_id', $salesUserId)
+            ->where('user_is_enable', true)
+            ->where('user_is_deleted', false)
+            ->where(function (Builder $query) {
+                $query->whereNull('enable')
+                    ->orWhere('enable', 'Y');
+            })
+            ->first();
+
+        if (! $assignee) {
+            throw new \DomainException('Selected assignee is not available.');
+        }
+
+        if (UserSubRoleHelper::hasAnySubRole($assignee, [UserSubRoleHelper::SALES_OFFLINE])) {
+            return $assignee;
+        }
+
+        $canSupportSalesAssignToHeadOffline = UserSubRoleHelper::hasAnySubRole($actingUser, [UserSubRoleHelper::SUPPORT_SALES])
+            && UserSubRoleHelper::hasAnySubRole($assignee, [UserSubRoleHelper::HEAD_OFFLINE]);
+
+        if ($canSupportSalesAssignToHeadOffline) {
+            return $assignee;
+        }
+
+        $canAssignToSelfAsHeadOffline = UserSubRoleHelper::hasAnySubRole($actingUser, [UserSubRoleHelper::HEAD_OFFLINE])
+            && (int) $assignee->user_id === (int) ($actingUser->user_id ?? 0)
+            && UserSubRoleHelper::hasAnySubRole($assignee, [UserSubRoleHelper::HEAD_OFFLINE]);
+
+        if ($canAssignToSelfAsHeadOffline) {
+            return $assignee;
+        }
+
+        throw new \DomainException('Selected assignee must be an active SALES_OFFLINE user or an eligible HEAD_OFFLINE user.');
     }
 
     protected function buildCustomerPayloadFromLeadNotebook(Notebook $notebook): array

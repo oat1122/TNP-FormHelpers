@@ -146,6 +146,22 @@ export const notebookApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => ["Notebook", { type: "Notebook", id }],
     }),
+    assignNotebook: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/notebooks/${id}/assign`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, { id }) => ["Notebook", { type: "Notebook", id }],
+    }),
+    assignNotebooks: builder.mutation({
+      query: (data) => ({
+        url: "/notebooks/assign",
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: ["Notebook"],
+    }),
   }),
 });
 
@@ -162,4 +178,6 @@ export const {
   useDeleteNotebookMutation,
   useConvertNotebookMutation,
   useReserveNotebookMutation,
+  useAssignNotebookMutation,
+  useAssignNotebooksMutation,
 } = notebookApi;

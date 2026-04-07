@@ -127,7 +127,13 @@ const CustomerCareSourcePickerDialog = ({
                   >
                     <ListItemText
                       primary={
-                        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          useFlexGap
+                          flexWrap="wrap"
+                        >
                           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                             {item.label || "-"}
                           </Typography>

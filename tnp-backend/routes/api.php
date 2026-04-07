@@ -73,7 +73,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/notebooks/customer-care/sources', [NotebookController::class, 'customerCareSources']);
     Route::post('/notebooks/customer-care', [NotebookController::class, 'storeCustomerCare']);
     Route::post('/notebooks/leads', [NotebookController::class, 'storeLead']);
+    Route::post('/notebooks/assign', [NotebookController::class, 'assignMany']);
     Route::post('/notebooks/{id}/reserve', [NotebookController::class, 'reserve']);
+    Route::post('/notebooks/{id}/assign', [NotebookController::class, 'assign']);
     Route::post('/notebooks/{id}/convert', [NotebookController::class, 'convert']);
     Route::apiResource('notebooks', NotebookController::class);
 

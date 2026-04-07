@@ -80,13 +80,7 @@ const NotebookTableErrorState = ({ onRetry }) => (
   </Box>
 );
 
-const NotebookTableContextBar = ({
-  rowsCount,
-  total,
-  filterSummary,
-  onClearFilters,
-  effectiveViewMode,
-}) => (
+const NotebookTableContextBar = ({ rowsCount, total, filterSummary, onClearFilters }) => (
   <Stack
     direction={{ xs: "column", md: "row" }}
     spacing={2}
@@ -94,24 +88,10 @@ const NotebookTableContextBar = ({
     alignItems={{ xs: "flex-start", md: "center" }}
     sx={{ px: { xs: 2, md: 2.5 }, py: 2 }}
   >
-    <Stack spacing={1}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
-        แสดง {rowsCount} รายการ
-        {typeof total === "number" ? ` จากทั้งหมด ${total} รายการ` : ""}
-      </Typography>
-
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        <Chip
-          size="small"
-          color={effectiveViewMode === "card" ? "secondary" : "default"}
-          label={effectiveViewMode === "card" ? "มุมมองการ์ด" : "มุมมองตาราง"}
-          variant={effectiveViewMode === "card" ? "filled" : "outlined"}
-        />
-        {filterSummary.chips.map((chip) => (
-          <Chip key={chip.key} label={chip.label} size="small" variant="outlined" />
-        ))}
-      </Stack>
-    </Stack>
+    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
+      แสดง {rowsCount} รายการ
+      {typeof total === "number" ? ` จากทั้งหมด ${total} รายการ` : ""}
+    </Typography>
 
     {filterSummary.hasCustomFilters ? (
       <Button variant="text" onClick={onClearFilters} sx={{ textTransform: "none" }}>
@@ -133,6 +113,8 @@ const NotebookTable = ({
   viewMode,
   scopeFilter,
   canReserveQueue,
+  queueActionMode,
+  selectionState,
   onClearFilters,
   onRetry,
 }) => {
@@ -168,7 +150,6 @@ const NotebookTable = ({
             total={total}
             filterSummary={filterSummary}
             onClearFilters={onClearFilters}
-            effectiveViewMode={effectiveViewMode}
           />
 
           <Divider />
@@ -198,6 +179,8 @@ const NotebookTable = ({
                 userRole={userRole}
                 scopeFilter={scopeFilter}
                 canReserveQueue={canReserveQueue}
+                queueActionMode={queueActionMode}
+                selectionState={selectionState}
               />
             ) : (
               <NotebookTableEmptyState filterSummary={filterSummary} />
@@ -211,6 +194,8 @@ const NotebookTable = ({
               userRole={userRole}
               scopeFilter={scopeFilter}
               canReserveQueue={canReserveQueue}
+              queueActionMode={queueActionMode}
+              selectionState={selectionState}
               onNoRowsOverlay={() => <NotebookTableEmptyState filterSummary={filterSummary} />}
             />
           )}

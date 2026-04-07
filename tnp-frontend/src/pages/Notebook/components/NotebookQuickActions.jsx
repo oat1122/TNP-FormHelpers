@@ -13,12 +13,26 @@ const PRIMARY_ACTION_ICONS = {
   Meeting: MdToday,
 };
 
+const PRIMARY_ACTION_LABELS = {
+  Call: "โทร",
+  Email: "อีเมล",
+  Meeting: "เข้าพบ",
+};
+
 const secondaryDefault =
   NOTEBOOK_ACTION_OPTIONS.find((option) => option.kind === "secondary")?.value || "";
+
+const getQuickActionLabel = (option) =>
+  PRIMARY_ACTION_LABELS[option?.quickLabel] || option?.label || "";
 
 const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
   const currentOption = getNotebookActionOption(value);
   const isOtherSelected = Boolean(currentOption && currentOption.kind !== "primary");
+  const currentSelectionLabel = currentOption
+    ? currentOption.kind === "primary"
+      ? getQuickActionLabel(currentOption)
+      : currentOption.label
+    : "ยังไม่ได้ระบุการดำเนินการ";
 
   return (
     <Box
@@ -34,10 +48,10 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
       <Stack spacing={1.5}>
         <Box>
           <Typography variant="subtitle1" fontWeight={700}>
-            Next action
+            การติดตามครั้งถัดไป
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Choose the follow-up first, then capture the call notes while the context is fresh.
+            เลือกวิธีติดตามก่อน แล้วค่อยบันทึกรายละเอียดขณะที่ข้อมูลยังสดใหม่
           </Typography>
         </Box>
 
@@ -62,7 +76,7 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
                   boxShadow: selected ? 2 : 0,
                 }}
               >
-                {option.quickLabel}
+                {getQuickActionLabel(option)}
               </Button>
             );
           })}
@@ -81,7 +95,7 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
               minHeight: 44,
             }}
           >
-            Other
+            อื่น ๆ
           </Button>
         </Stack>
 
@@ -89,7 +103,7 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
           <TextField
             select
             size="small"
-            label="Other action"
+            label="การดำเนินการอื่น"
             value={value || secondaryDefault}
             onChange={(event) => onChange(event.target.value)}
             disabled={readOnly}
@@ -104,7 +118,7 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
         )}
 
         <Typography variant="caption" color="text.secondary">
-          Current selection: {currentOption?.label || "Next action not set"}
+          รายการที่เลือก: {currentSelectionLabel}
         </Typography>
       </Stack>
     </Box>

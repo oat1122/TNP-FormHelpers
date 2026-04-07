@@ -1,14 +1,18 @@
 import {
+  Badge,
   Box,
   Card,
   CardActionArea,
   CardContent,
+  Checkbox,
   Chip,
   Divider,
+  Fab,
   Stack,
   TablePagination,
   Typography,
 } from "@mui/material";
+import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
 
 import NotebookRowActions from "./NotebookRowActions";
 import {
@@ -17,11 +21,9 @@ import {
   getNotebookContactLines,
   getNotebookNotePreview,
   getStatusColor,
+  isNotebookQueueAssignableRow,
 } from "../utils/notebookCommon";
-import {
-  getNotebookActionLabel,
-  getNotebookEntryTypeLabel,
-} from "../utils/notebookDialogConfig";
+import { getNotebookActionLabel, getNotebookEntryTypeLabel } from "../utils/notebookDialogConfig";
 
 const NotebookCardList = ({
   rows,
@@ -31,11 +33,16 @@ const NotebookCardList = ({
   userRole,
   scopeFilter,
   canReserveQueue,
+  queueActionMode,
+  selectionState,
 }) => (
   <Stack spacing={1.5} sx={{ px: { xs: 1.25, md: 1.5 }, py: 1.5 }}>
     {rows.map((row) => {
       const contactLines = getNotebookContactLines(row);
       const notePreview = getNotebookNotePreview(row);
+      const isSelectionEnabled = Boolean(selectionState?.enabled);
+      const isSelectable = isNotebookQueueAssignableRow(row, scopeFilter);
+      const isSelected = selectionState?.selectedIds?.includes(row.id);
 
       return (
         <Card
@@ -57,18 +64,35 @@ const NotebookCardList = ({
                   justifyContent="space-between"
                   alignItems={{ xs: "flex-start", sm: "center" }}
                 >
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ letterSpacing: 0.3 }}
-                    >
-                      ติดตาม {formatDate(row.nb_date || row.created_at) || "-"}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                      {row.nb_customer_name || "-"}
-                    </Typography>
-                  </Box>
+                  <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ minWidth: 0, flex: 1 }}>
+                    {isSelectionEnabled ? (
+                      <Checkbox
+                        checked={Boolean(isSelected)}
+                        disabled={!isSelectable}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) =>
+                          selectionState?.onToggleSelectedRow?.(row.id, event.target.checked)
+                        }
+                        inputProps={{
+                          "aria-label": `เลือก Notebook ${row.nb_customer_name || row.id}`,
+                        }}
+                        sx={{ mt: -0.5, ml: -1 }}
+                      />
+                    ) : null}
+
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ letterSpacing: 0.3 }}
+                      >
+                        ติดตาม {formatDate(row.nb_date || row.created_at) || "-"}
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                        {row.nb_customer_name || "-"}
+                      </Typography>
+                    </Box>
+                  </Stack>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <Chip
@@ -142,11 +166,13 @@ const NotebookCardList = ({
               onView={actions.onView}
               onEdit={actions.onEdit}
               onDelete={actions.onDelete}
+              onAssign={actions.onAssign}
               onReserve={actions.onReserve}
               onConvert={actions.onConvert}
               variant="card"
               scopeFilter={scopeFilter}
               canReserveQueue={canReserveQueue}
+              queueActionMode={queueActionMode}
             />
           </Box>
         </Card>
@@ -184,6 +210,25 @@ const NotebookCardList = ({
         labelRowsPerPage="รายการต่อหน้า:"
       />
     </Box>
+
+    {selectionState?.enabled ? (
+      <Fab
+        color="secondary"
+        sx={{
+          position: "fixed",
+          bottom: 16,
+          right: 16,
+          zIndex: 1000,
+        }}
+        disabled={!selectionState?.selectedIds?.length}
+        onClick={selectionState?.onOpenAssignSelected}
+        aria-label={`มอบหมาย Notebook ${selectionState?.selectedIds?.length || 0} รายการ`}
+      >
+        <Badge badgeContent={selectionState?.selectedIds?.length || 0} color="warning">
+          <AssignmentIndIcon />
+        </Badge>
+      </Fab>
+    ) : null}
   </Stack>
 );
 

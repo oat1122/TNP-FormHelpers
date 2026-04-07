@@ -12,8 +12,10 @@ import { useGetAllUserQuery } from "../../../features/UserManagement/userManagem
 import {
   canExportNotebookSelfReport,
   canCreateCustomerCare,
-  canReserveNotebookQueue,
+  canViewAllNotebookScope,
+  canViewNotebookQueue,
   getDefaultNotebookScope,
+  getNotebookQueueActionMode,
 } from "../../../utils/userAccess";
 import {
   buildNotebookFilterSummary,
@@ -24,10 +26,12 @@ import {
 export const useNotebookPageState = () => {
   const dispatch = useDispatch();
   const currentUser = useMemo(() => getStoredNotebookUser(), []);
-  const canFilterBySales = currentUser?.role === "admin" || currentUser?.role === "manager";
-  const canUseQueueTabs = canReserveNotebookQueue(currentUser);
+  const canViewAllScope = canViewAllNotebookScope(currentUser);
+  const canFilterBySales = canViewAllScope;
+  const canUseQueueTabs = canViewNotebookQueue(currentUser);
   const canSelfReport = canExportNotebookSelfReport(currentUser);
   const canOpenCustomerCare = canCreateCustomerCare(currentUser);
+  const queueActionMode = getNotebookQueueActionMode(currentUser);
   const defaultScopeFilter = useMemo(() => getDefaultNotebookScope(currentUser), [currentUser]);
   const defaultPeriodFilter = useMemo(() => getDefaultNotebookPeriodFilter(), []);
   const defaultFilters = useMemo(
@@ -251,8 +255,10 @@ export const useNotebookPageState = () => {
   return {
     currentUser,
     userRole: currentUser?.role,
+    canViewAllScope,
     canFilterBySales,
     canUseQueueTabs,
+    queueActionMode,
     canSelfReport,
     canCreateCustomerCare: canOpenCustomerCare,
     paginationModel,

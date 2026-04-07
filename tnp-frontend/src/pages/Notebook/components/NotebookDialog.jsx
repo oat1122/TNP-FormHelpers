@@ -82,6 +82,18 @@ const getUserDisplayName = (user) =>
   [user?.user_firstname, user?.user_lastname].filter(Boolean).join(" ") ||
   "";
 
+const getThaiSourceLabel = (label) => {
+  if (label === "Online") {
+    return "ออนไลน์";
+  }
+
+  if (label === "On-site") {
+    return "ออนไซต์";
+  }
+
+  return label;
+};
+
 const NotebookDialog = ({ currentUser = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -124,7 +136,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const isViewMode = dialogMode === "view";
   const isCreateMode = dialogMode === "create";
   const historyLoading = !isCreateMode && isNotebookDetailFetching;
-  const summaryTitle = draft.nb_customer_name?.trim() || "New sales note";
+  const summaryTitle = draft.nb_customer_name?.trim() || "บันทึกการขายใหม่";
   const statusMeta = getNotebookStatusOption(draft.nb_status);
   const sourceMeta = getNotebookSourceMeta(Boolean(draft.nb_is_online));
   const selectedSalesOwner = salesList.find(
@@ -134,12 +146,12 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const resolvedSalesOwner = selectedSalesOwner || linkedSalesOwner;
   const isCentralQueueItem = draft.nb_workflow === "lead_queue" && !draft.nb_manage_by;
   const salesOwnerLabel = isAdmin
-    ? getUserDisplayName(resolvedSalesOwner) || "Sales owner not set"
+    ? getUserDisplayName(resolvedSalesOwner) || "ยังไม่ได้ระบุผู้ดูแล"
     : isCentralQueueItem
-      ? "Central Queue"
+      ? "คิวกลาง"
       : getUserDisplayName(linkedSalesOwner) ||
         getUserDisplayName(currentUser) ||
-        (draft.nb_manage_by ? `User ${draft.nb_manage_by}` : "Sales owner");
+        (draft.nb_manage_by ? `ผู้ใช้ ${draft.nb_manage_by}` : "ผู้ดูแลการขาย");
   const resetKey = `${recordKey}-${historyLoading ? "loading" : "ready"}`;
 
   useEffect(() => {
@@ -171,7 +183,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
         .filter(Boolean)
         .map((draftItem) => ({
           ...draftItem,
-          actor: currentUser?.username || currentUser?.user_nickname || "Current user",
+          actor: currentUser?.username || currentUser?.user_nickname || "ผู้ใช้ปัจจุบัน",
         })),
     [currentUser, pendingDraftMap]
   );
@@ -215,18 +227,14 @@ const NotebookDialog = ({ currentUser = {} }) => {
     });
   };
 
-  const modeLabel = isViewMode
-    ? "Notebook view"
-    : isEditMode
-      ? "Notebook update"
-      : "New sales note";
-  const closeButtonLabel = isViewMode ? "Close" : "Cancel";
+  const modeLabel = isViewMode ? "ดูบันทึก" : isEditMode ? "แก้ไขบันทึก" : "บันทึกการขายใหม่";
+  const closeButtonLabel = isViewMode ? "ปิด" : "ยกเลิก";
   const noteDescription = isEditMode
-    ? "Add the newest customer-facing update here. The last saved note stays visible in activity."
-    : "Capture the customer-facing details, objections, and the next commitment.";
+    ? "เพิ่มอัปเดตล่าสุดที่ใช้คุยกับลูกค้าที่นี่ โดยบันทึกเดิมจะยังแสดงอยู่ในประวัติกิจกรรม"
+    : "บันทึกรายละเอียดที่คุยกับลูกค้า ประเด็นสำคัญ และข้อตกลงสำหรับการติดตามครั้งถัดไป";
   const internalNoteDescription = isEditMode
-    ? "Add the newest internal update here without deleting the last saved note."
-    : "Keep reminders, pricing context, or internal-only coaching notes here.";
+    ? "เพิ่มอัปเดตภายในล่าสุดได้ที่นี่ โดยไม่ลบบันทึกก่อนหน้า"
+    : "ใช้สำหรับจดเตือน ข้อมูลราคา หรือหมายเหตุภายในทีม";
 
   return (
     <Dialog
@@ -276,10 +284,10 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 <SectionCard>
                   <SectionHeading>
                     <MdAssignment />
-                    Follow-up status
+                    สถานะการติดตาม
                   </SectionHeading>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    Confirm the latest status without opening another menu.
+                    อัปเดตสถานะล่าสุดได้ทันทีโดยไม่ต้องเปิดเมนูเพิ่ม
                   </Typography>
 
                   <ToggleButtonGroup
@@ -322,13 +330,13 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 </SectionCard>
 
                 <NotebookNoteField
-                  title="Interaction notes"
+                  title="บันทึกการพูดคุย"
                   description={noteDescription}
                   name="nb_additional_info"
                   value={draft.nb_additional_info}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Summarize the conversation, customer needs, and the next agreed step..."
+                  placeholder="สรุปสิ่งที่คุย ความต้องการของลูกค้า และขั้นตอนถัดไปที่ตกลงร่วมกัน..."
                   resetKey={resetKey}
                   onDraftChange={(draftItem) =>
                     handlePendingDraftChange("nb_additional_info", draftItem)
@@ -339,13 +347,13 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 />
 
                 <NotebookNoteField
-                  title="Internal notes"
+                  title="บันทึกภายใน"
                   description={internalNoteDescription}
                   name="nb_remarks"
                   value={draft.nb_remarks}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Add internal reminders, risks, or prep for the next follow-up..."
+                  placeholder="เพิ่มหมายเหตุภายใน ความเสี่ยง หรือสิ่งที่ต้องเตรียมสำหรับการติดตามครั้งถัดไป..."
                   resetKey={resetKey}
                   onDraftChange={(draftItem) => handlePendingDraftChange("nb_remarks", draftItem)}
                   minRows={4}
@@ -369,16 +377,16 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 <SectionCard>
                   <SectionHeading>
                     <MdBusiness />
-                    Customer info
+                    ข้อมูลลูกค้า
                   </SectionHeading>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    Keep contact details close by, but out of the primary action path.
+                    เก็บข้อมูลติดต่อให้พร้อมใช้งาน โดยไม่รบกวนขั้นตอนหลักของการทำงาน
                   </Typography>
 
                   <Stack spacing={1.5}>
                     <TextField
                       fullWidth
-                      label="Customer / lead"
+                      label="ลูกค้า / ลีด"
                       name="nb_customer_name"
                       value={draft.nb_customer_name || ""}
                       onChange={handleChange}
@@ -390,7 +398,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <TextField
                       fullWidth
-                      label="Contact person"
+                      label="ผู้ติดต่อ"
                       name="nb_contact_person"
                       value={draft.nb_contact_person || ""}
                       onChange={handleChange}
@@ -402,7 +410,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <TextField
                       fullWidth
-                      label="Phone"
+                      label="เบอร์โทร"
                       name="nb_contact_number"
                       value={draft.nb_contact_number || ""}
                       onChange={handleChange}
@@ -417,14 +425,13 @@ const NotebookDialog = ({ currentUser = {} }) => {
                       InputProps={{ readOnly: isViewMode }}
                       error={!!errors.nb_contact_number}
                       helperText={
-                        errors.nb_contact_number ||
-                        "Duplicate checking runs when you leave the field."
+                        errors.nb_contact_number || "ระบบจะตรวจสอบข้อมูลซ้ำหลังออกจากช่องนี้"
                       }
                     />
 
                     <TextField
                       fullWidth
-                      label="Email"
+                      label="อีเมล"
                       name="nb_email"
                       value={draft.nb_email || ""}
                       onChange={handleChange}
@@ -439,16 +446,16 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 <SectionCard>
                   <SectionHeading>
                     <MdSupervisorAccount />
-                    Ownership & source
+                    ผู้ดูแลและแหล่งที่มา
                   </SectionHeading>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    Supporting context stays visible without stealing focus from the next move.
+                    แสดงบริบทสำคัญให้เห็นชัด โดยไม่ดึงความสนใจจากงานถัดไป
                   </Typography>
 
                   <Stack spacing={2}>
                     <Box>
                       <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
-                        Sales owner
+                        ผู้ดูแลการขาย
                       </Typography>
 
                       {isAdmin ? (
@@ -462,11 +469,11 @@ const NotebookDialog = ({ currentUser = {} }) => {
                             disabled={isViewMode}
                           >
                             <MenuItem value="">
-                              <em>Select sales owner</em>
+                              <em>เลือกผู้ดูแลการขาย</em>
                             </MenuItem>
                             {salesList.map((user) => (
                               <MenuItem key={user.user_id} value={user.user_id}>
-                                {user.username || user.user_nickname || `User ${user.user_id}`}
+                                {user.username || user.user_nickname || `ผู้ใช้ ${user.user_id}`}
                               </MenuItem>
                             ))}
                           </Select>
@@ -478,7 +485,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <Box>
                       <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
-                        Source
+                        แหล่งที่มา
                       </Typography>
 
                       <ToggleButtonGroup
@@ -494,22 +501,26 @@ const NotebookDialog = ({ currentUser = {} }) => {
                         disabled={isViewMode}
                         sx={{ gap: 1 }}
                       >
-                        <SourceToggleButton value="online">Online</SourceToggleButton>
-                        <SourceToggleButton value="onsite">On-site</SourceToggleButton>
+                        <SourceToggleButton value="online">ออนไลน์</SourceToggleButton>
+                        <SourceToggleButton value="onsite">ออนไซต์</SourceToggleButton>
                       </ToggleButtonGroup>
                     </Box>
 
                     <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                      <Chip variant="outlined" label={sourceMeta.label} color={sourceMeta.color} />
+                      <Chip
+                        variant="outlined"
+                        label={getThaiSourceLabel(sourceMeta.label)}
+                        color={sourceMeta.color}
+                      />
                       <Chip
                         variant="outlined"
                         icon={
                           isViewMode ? <MdRemoveRedEye /> : isEditMode ? <MdEdit /> : <MdSave />
                         }
-                        label={isViewMode ? "View mode" : isEditMode ? "Edit mode" : "Create mode"}
+                        label={isViewMode ? "โหมดดู" : isEditMode ? "โหมดแก้ไข" : "โหมดสร้าง"}
                       />
                       {draft.nb_contact_number ? (
-                        <Chip variant="outlined" label="Phone ready for follow-up" />
+                        <Chip variant="outlined" label="พร้อมติดตามผ่านเบอร์โทร" />
                       ) : null}
                     </Stack>
                   </Stack>
@@ -518,16 +529,16 @@ const NotebookDialog = ({ currentUser = {} }) => {
                 <SectionCard>
                   <SectionHeading>
                     <MdNote />
-                    Workflow summary
+                    สรุปภาพรวมงาน
                   </SectionHeading>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    A compact recap keeps long notes from hiding the important decision points.
+                    สรุปสั้น ๆ เพื่อให้ประเด็นสำคัญไม่ถูกกลบด้วยบันทึกยาว
                   </Typography>
 
                   <Stack spacing={1.25}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">
-                        Action
+                        การดำเนินการ
                       </Typography>
                       <Typography variant="body1" fontWeight={600}>
                         {getNotebookActionLabel(draft.nb_action)}
@@ -536,7 +547,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <Box>
                       <Typography variant="caption" color="text.secondary">
-                        Status
+                        สถานะ
                       </Typography>
                       <Typography variant="body1" fontWeight={600}>
                         {getNotebookStatusLabel(draft.nb_status)}
@@ -545,10 +556,10 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <Box>
                       <Typography variant="caption" color="text.secondary">
-                        Save behavior
+                        การบันทึก
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Save stays visible at the bottom on desktop and as a floating CTA on mobile.
+                        ปุ่มบันทึกจะแสดงด้านล่างบนเดสก์ท็อป และเป็นปุ่มลอยบนมือถือ
                       </Typography>
                     </Box>
                   </Stack>
@@ -589,7 +600,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
               fontSize: "1rem",
             }}
           >
-            {isSubmitting ? "Saving..." : "Save note"}
+            {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
         </DialogActions>
       )}
@@ -630,7 +641,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
           }}
         >
           <MdSave style={{ marginRight: 8 }} />
-          {isSubmitting ? "Saving..." : "Save note"}
+          {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
         </Fab>
       )}
 

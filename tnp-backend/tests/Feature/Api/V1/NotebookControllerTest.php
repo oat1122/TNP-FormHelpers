@@ -27,6 +27,7 @@ class NotebookControllerTest extends TestCase
         $this->ensureNotebookHistoriesTable();
         Schema::enableForeignKeyConstraints();
 
+        DB::table('users')->delete();
         DB::table('notebook_histories')->delete();
         DB::table('notebooks')->delete();
         DB::table('master_customers')->delete();
@@ -647,6 +648,306 @@ class NotebookControllerTest extends TestCase
             'nb_manage_by' => $salesUser->user_id,
             'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
         ]);
+    }
+
+    public function test_support_sales_can_assign_queue_notebook_to_sales_offline_user(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $offlineSalesUser = User::factory()->sales()->create();
+        $this->attachSubRole($offlineSalesUser, 'SALES_OFFLINE');
+
+        $notebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Queue Assign Test',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson("/api/v1/notebooks/{$notebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $offlineSalesUser->user_id)
+            ->assertJsonPath('manage_by_user.user_id', $offlineSalesUser->user_id);
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebook->id,
+            'nb_manage_by' => $offlineSalesUser->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+        ]);
+
+        $this->assertDatabaseHas('notebook_histories', [
+            'notebook_id' => $notebook->id,
+            'action' => 'assigned',
+            'action_by' => $supportUser->user_id,
+        ]);
+    }
+
+    public function test_support_sales_can_bulk_assign_queue_notebooks_to_sales_offline_user(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $offlineSalesUser = User::factory()->sales()->create();
+        $this->attachSubRole($offlineSalesUser, 'SALES_OFFLINE');
+
+        $firstNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Bulk Queue 1',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+        $secondNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Bulk Queue 2',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson('/api/v1/notebooks/assign', [
+            'notebook_ids' => [$firstNotebook->id, $secondNotebook->id],
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('meta.assigned_count', 2)
+            ->assertJsonCount(2, 'data');
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $firstNotebook->id,
+            'nb_manage_by' => $offlineSalesUser->user_id,
+        ]);
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $secondNotebook->id,
+            'nb_manage_by' => $offlineSalesUser->user_id,
+        ]);
+    }
+
+    public function test_support_sales_can_assign_queue_notebook_to_head_offline_user(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $headOfflineUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($headOfflineUser, 'HEAD_OFFLINE');
+
+        $notebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Support To Head Offline',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson("/api/v1/notebooks/{$notebook->id}/assign", [
+            'sales_user_id' => $headOfflineUser->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $headOfflineUser->user_id)
+            ->assertJsonPath('manage_by_user.user_id', $headOfflineUser->user_id);
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebook->id,
+            'nb_manage_by' => $headOfflineUser->user_id,
+        ]);
+    }
+
+    public function test_head_offline_can_view_queue_scope_and_assign_queue_notebook(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $headOfflineUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($headOfflineUser, 'HEAD_OFFLINE');
+        $offlineSalesUser = User::factory()->sales()->create();
+        $this->attachSubRole($offlineSalesUser, 'SALES_OFFLINE');
+
+        $notebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Head Offline Queue',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($headOfflineUser);
+
+        $this->getJson('/api/v1/notebooks?scope=queue&paginate=false')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.id', $notebook->id);
+
+        $this->postJson("/api/v1/notebooks/{$notebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $offlineSalesUser->user_id);
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebook->id,
+            'nb_manage_by' => $offlineSalesUser->user_id,
+        ]);
+    }
+
+    public function test_support_sales_can_view_all_scope_notebooks_for_every_sales_owner(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $firstSalesUser = User::factory()->sales()->create();
+        $secondSalesUser = User::factory()->sales()->create();
+
+        $firstNotebook = $this->createNotebook($firstSalesUser, [
+            'nb_customer_name' => 'Support Scope All 1',
+            'nb_manage_by' => $firstSalesUser->user_id,
+        ]);
+        $secondNotebook = $this->createNotebook($secondSalesUser, [
+            'nb_customer_name' => 'Support Scope All 2',
+            'nb_manage_by' => $secondSalesUser->user_id,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $response = $this->getJson('/api/v1/notebooks?paginate=false')
+            ->assertOk()
+            ->assertJsonCount(2);
+
+        $this->assertEqualsCanonicalizing(
+            [$firstNotebook->id, $secondNotebook->id],
+            collect($response->json())->pluck('id')->all()
+        );
+    }
+
+    public function test_head_offline_can_view_all_scope_notebooks_for_every_sales_owner(): void
+    {
+        $headOfflineUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($headOfflineUser, 'HEAD_OFFLINE');
+        $firstSalesUser = User::factory()->sales()->create();
+        $secondSalesUser = User::factory()->sales()->create();
+
+        $firstNotebook = $this->createNotebook($firstSalesUser, [
+            'nb_customer_name' => 'Head Offline Scope All 1',
+            'nb_manage_by' => $firstSalesUser->user_id,
+        ]);
+        $secondNotebook = $this->createNotebook($secondSalesUser, [
+            'nb_customer_name' => 'Head Offline Scope All 2',
+            'nb_manage_by' => $secondSalesUser->user_id,
+        ]);
+
+        Sanctum::actingAs($headOfflineUser);
+
+        $response = $this->getJson('/api/v1/notebooks?paginate=false')
+            ->assertOk()
+            ->assertJsonCount(2);
+
+        $this->assertEqualsCanonicalizing(
+            [$firstNotebook->id, $secondNotebook->id],
+            collect($response->json())->pluck('id')->all()
+        );
+    }
+
+    public function test_head_offline_can_assign_queue_notebook_to_self(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $headOfflineUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($headOfflineUser, 'HEAD_OFFLINE');
+
+        $notebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Head Offline Self Assign',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($headOfflineUser);
+
+        $this->postJson("/api/v1/notebooks/{$notebook->id}/assign", [
+            'sales_user_id' => $headOfflineUser->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $headOfflineUser->user_id);
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebook->id,
+            'nb_manage_by' => $headOfflineUser->user_id,
+        ]);
+    }
+
+    public function test_assign_rejects_target_user_without_sales_offline_subrole(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $onlineSalesUser = User::factory()->sales()->create();
+        $this->attachSubRole($onlineSalesUser, 'SALES_ONLINE');
+
+        $notebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Invalid Assignee Queue',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => null,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson("/api/v1/notebooks/{$notebook->id}/assign", [
+            'sales_user_id' => $onlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Selected assignee must be an active SALES_OFFLINE user or an eligible HEAD_OFFLINE user.');
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebook->id,
+            'nb_manage_by' => null,
+        ]);
+    }
+
+    public function test_assign_rejects_notebook_that_is_not_queue_already_assigned_or_converted(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $offlineSalesUser = User::factory()->sales()->create();
+        $this->attachSubRole($offlineSalesUser, 'SALES_OFFLINE');
+
+        $standardNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Standard Notebook',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+        ]);
+        $assignedNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Assigned Queue Notebook',
+            'nb_manage_by' => $offlineSalesUser->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => now(),
+        ]);
+        $convertedNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Converted Queue Notebook',
+            'nb_manage_by' => null,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+        ]);
+        DB::table('notebooks')
+            ->where('id', $convertedNotebook->id)
+            ->update(['nb_converted_at' => now()]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson("/api/v1/notebooks/{$standardNotebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Only lead queue notebooks can be assigned.');
+
+        $this->postJson("/api/v1/notebooks/{$assignedNotebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This notebook lead has already been assigned.');
+
+        $this->postJson("/api/v1/notebooks/{$convertedNotebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This notebook lead has already been converted.');
     }
 
     public function test_manager_can_filter_index_by_action_and_manage_by(): void

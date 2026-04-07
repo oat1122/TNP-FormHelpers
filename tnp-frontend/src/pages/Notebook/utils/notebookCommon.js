@@ -67,6 +67,13 @@ export const getNotebookActionHighlightSx = () => ({
   },
 });
 
+export const isNotebookQueueAssignableRow = (row, scopeFilter = "all") =>
+  row?.nb_entry_type !== "customer_care" &&
+  scopeFilter === "queue" &&
+  row?.nb_workflow === "lead_queue" &&
+  !row?.nb_manage_by &&
+  !row?.nb_converted_at;
+
 export const getNotebookIntelligenceChips = (row) => {
   const dueDate = row.nb_date ? dayjs(row.nb_date).startOf("day") : null;
   const today = dayjs().startOf("day");

@@ -9,6 +9,7 @@ import {
   MdPersonAdd,
   MdVisibility,
 } from "react-icons/md";
+import { isNotebookQueueAssignableRow } from "../utils/notebookCommon";
 
 const getTelHref = (phoneNumber) => `tel:${String(phoneNumber || "").replace(/[^\d+]/g, "")}`;
 
@@ -24,11 +25,13 @@ const NotebookRowActions = ({
   onView,
   onEdit,
   onDelete,
+  onAssign,
   onReserve,
   onConvert,
   variant = "table",
   scopeFilter = "all",
   canReserveQueue = false,
+  queueActionMode = null,
 }) => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const callHref = useMemo(
@@ -38,12 +41,9 @@ const NotebookRowActions = ({
   const isCardVariant = variant === "card";
   const buttonSize = isCardVariant ? "medium" : "small";
   const isCustomerCare = row.nb_entry_type === "customer_care";
-  const isQueueRow =
-    !isCustomerCare &&
-    scopeFilter === "queue" &&
-    row.nb_workflow === "lead_queue" &&
-    !row.nb_manage_by &&
-    !row.nb_converted_at;
+  const isQueueRow = isNotebookQueueAssignableRow(row, scopeFilter);
+  const showAssignAction = isQueueRow && canReserveQueue && queueActionMode === "assign";
+  const showReserveAction = isQueueRow && canReserveQueue && queueActionMode !== "assign";
   const canDelete = userRole === "admin" && !row.nb_converted_at && !isQueueRow;
   const canConvert = !isCustomerCare && !row.nb_converted_at && !isQueueRow;
   const canEdit = !row.nb_converted_at && !isQueueRow;
@@ -85,7 +85,20 @@ const NotebookRowActions = ({
         </Button>
       </ActionButton>
 
-      {isQueueRow && canReserveQueue ? (
+      {showAssignAction ? (
+        <ActionButton tooltip="มอบหมายลูกค้ารายนี้ให้เซลส์ทีม Offline">
+          <Button
+            variant="contained"
+            color="secondary"
+            size={buttonSize}
+            startIcon={<MdAssignmentInd />}
+            onClick={handleAction(onAssign, row)}
+            sx={{ borderRadius: 999, textTransform: "none" }}
+          >
+            มอบหมาย
+          </Button>
+        </ActionButton>
+      ) : showReserveAction ? (
         <ActionButton tooltip="รับลูกค้ารายนี้เข้าดูแล">
           <Button
             variant="contained"

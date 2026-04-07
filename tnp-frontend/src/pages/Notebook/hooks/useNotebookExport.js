@@ -11,6 +11,7 @@ import {
   buildNotebookCsvContent,
   buildNotebookExportRows,
   buildNotebookLeadSummaryRows,
+  buildNotebookPdfRows,
   filterNotebookExportData,
 } from "../utils/notebookExport";
 
@@ -105,11 +106,16 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     () => buildNotebookExportRows(selectedItems, dateRange, { reportMode: "standard" }),
     [selectedItems, dateRange]
   );
+  const standardPdfRows = useMemo(() => buildNotebookPdfRows(exportRows), [exportRows]);
 
   const selfReportRows = useMemo(
-    () => buildNotebookExportRows(selfReportData.activity_items || [], dateRange, { reportMode: "self" }),
+    () =>
+      buildNotebookExportRows(selfReportData.activity_items || [], dateRange, {
+        reportMode: "self",
+      }),
     [dateRange, selfReportData.activity_items]
   );
+  const selfReportPdfRows = useMemo(() => buildNotebookPdfRows(selfReportRows), [selfReportRows]);
 
   const filteredLeadAdditions = useMemo(
     () => filterNotebookExportData(selfReportData.lead_additions || [], dateRange, "created_at"),
@@ -121,7 +127,8 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     [filteredLeadAdditions]
   );
 
-  const pdfRows = canSelfReport ? selfReportRows : exportRows;
+  const csvRows = canSelfReport ? selfReportRows : exportRows;
+  const pdfRows = canSelfReport ? selfReportPdfRows : standardPdfRows;
   const isAllSelected = filteredItems.length > 0 && selectedIds.length === filteredItems.length;
 
   const handlePresetClick = (presetLabel) => {
@@ -159,8 +166,7 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
   };
 
   const handleExportCsv = () => {
-    const rows = canSelfReport ? selfReportRows : exportRows;
-    if (rows.length === 0) {
+    if (csvRows.length === 0) {
       return;
     }
 
@@ -169,7 +175,7 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     const exporterName = `ผู้ส่งออก: ${`${firstName} ${lastName}`.trim()}`.trim();
 
     const csvContent = buildNotebookCsvContent({
-      rows,
+      rows: csvRows,
       exporterName,
       dateRange,
     });
@@ -188,6 +194,7 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     filteredItems,
     selectedItems,
     exportRows,
+    csvRows,
     pdfRows,
     leadSummaryRows,
     selectedIds,

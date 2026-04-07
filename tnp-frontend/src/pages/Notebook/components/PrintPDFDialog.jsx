@@ -33,6 +33,7 @@ const PrintPDFDialog = ({
   items,
   filteredItems,
   exportRows,
+  csvRows,
   pdfRows,
   leadSummaryRows,
   selectedIds,
@@ -58,6 +59,7 @@ const PrintPDFDialog = ({
       ? "ไม่มีรายการให้เลือก"
       : `เลือกแล้ว ${selectedIds.length} จาก ${filteredItems.length} รายการ`;
   const finalPdfRows = pdfRows || exportRows;
+  const finalCsvRows = csvRows || exportRows;
   const activitySummary =
     finalPdfRows.length === 0
       ? "ไม่มีกิจกรรมในช่วงวันที่เลือก"
@@ -284,10 +286,10 @@ const PrintPDFDialog = ({
           variant="outlined"
           startIcon={<MdFileDownload />}
           onClick={onExportCsv}
-          disabled={finalPdfRows.length === 0 || isLoading}
+          disabled={finalCsvRows.length === 0 || isLoading}
           sx={{ fontFamily: "Kanit", borderColor: "#388e3c", color: "#388e3c" }}
         >
-          ดาวน์โหลด CSV ({finalPdfRows.length})
+          ดาวน์โหลด CSV ({finalCsvRows.length})
         </Button>
         <PDFDownloadLink
           document={

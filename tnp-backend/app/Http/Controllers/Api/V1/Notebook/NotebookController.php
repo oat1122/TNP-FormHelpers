@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Notebook;
 
 use App\Helpers\UserSubRoleHelper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Notebook\BulkAssignNotebookRequest;
 use App\Http\Requests\V1\Notebook\CustomerCareSourceIndexRequest;
 use App\Http\Requests\V1\Notebook\ConvertNotebookRequest;
 use App\Http\Requests\V1\Notebook\NotebookIndexRequest;
+use App\Http\Requests\V1\Notebook\AssignNotebookRequest;
 use App\Http\Requests\V1\Notebook\ReserveNotebookRequest;
 use App\Http\Requests\V1\Notebook\StoreNotebookLeadRequest;
 use App\Http\Requests\V1\Notebook\StoreNotebookRequest;
@@ -133,6 +135,51 @@ class NotebookController extends Controller
             $notebook = $this->notebookService->reserve($id, $request->user());
 
             return response()->json($this->transformItem($notebook, $request));
+        } catch (\DomainException $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function assignMany(BulkAssignNotebookRequest $request): JsonResponse
+    {
+        try {
+            $notebooks = $this->notebookService->assignMany(
+                $request->validated('notebook_ids'),
+                (int) $request->validated('sales_user_id'),
+                $request->user()
+            );
+
+            return response()->json([
+                'data' => $this->transformCollection($notebooks, $request),
+                'meta' => [
+                    'assigned_count' => $notebooks->count(),
+                ],
+            ]);
+        } catch (AuthorizationException $exception) {
+            return $this->forbiddenResponse($exception->getMessage());
+        } catch (\DomainException $exception) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function assign(AssignNotebookRequest $request, string $id): JsonResponse
+    {
+        try {
+            $notebook = $this->notebookService->assign(
+                $id,
+                (int) $request->validated('sales_user_id'),
+                $request->user()
+            );
+
+            return response()->json($this->transformItem($notebook, $request));
+        } catch (AuthorizationException $exception) {
+            return $this->forbiddenResponse($exception->getMessage());
         } catch (\DomainException $exception) {
             return response()->json([
                 'status' => 'error',

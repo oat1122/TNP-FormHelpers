@@ -36,12 +36,7 @@ const buildCustomerCareDraft = (record = null) => ({
   source_notebook_id: record?.nb_source_notebook_id || null,
 });
 
-export const useCustomerCareForm = ({
-  open,
-  mode,
-  selectedRecord,
-  onClose,
-}) => {
+export const useCustomerCareForm = ({ open, mode, selectedRecord, onClose }) => {
   const [draft, setDraft] = useState(() => buildCustomerCareDraft());
   const [errors, setErrors] = useState({});
   const [hasUserEdited, setHasUserEdited] = useState(false);
@@ -156,7 +151,7 @@ export const useCustomerCareForm = ({
     }
 
     if (!draft.nb_date) {
-      nextErrors.nb_date = "เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธงเธฑเธเธ—เธตเน";
+      nextErrors.nb_date = "กรุณาเลือกวันที่";
     }
 
     return nextErrors;

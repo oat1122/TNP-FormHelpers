@@ -82,7 +82,7 @@ export const styles = StyleSheet.create({
     color: "#a0a7b4",
   },
   primaryText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 600,
     lineHeight: 1.45,
     color: "#111",
@@ -105,10 +105,17 @@ export const styles = StyleSheet.create({
     borderColor: "#f3c1c1",
   },
   personalActivityText: {
-    fontSize: 9,
-    fontWeight: 700,
-    lineHeight: 1.45,
     color: "#c62828",
+  },
+  recallActionRow: {
+    backgroundColor: "#fffde7",
+  },
+  recallActionCell: {
+    width: "100%",
+    borderColor: "#fff176",
+  },
+  recallActionText: {
+    color: "#f57f17",
   },
   actionHeaderText: {
     fontFamily: "Sarabun",

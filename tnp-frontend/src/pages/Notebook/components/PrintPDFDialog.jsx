@@ -48,6 +48,7 @@ const PrintPDFDialog = ({
   onExportCsv,
   isAllSelected,
   isSelfReportMode = false,
+  recallActions = [],
 }) => {
   const fullName = `${currentUser?.user_firstname || ""} ${
     currentUser?.user_lastname || ""
@@ -89,6 +90,11 @@ const PrintPDFDialog = ({
                     <Chip
                       label={`Lead additions ${leadSummaryRows.length} รายการ`}
                       color="secondary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`Recall ${recallActions.length} ครั้ง`}
+                      color="warning"
                       variant="outlined"
                     />
                     <Chip label={activitySummary} color="info" variant="outlined" />

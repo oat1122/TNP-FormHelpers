@@ -211,6 +211,7 @@ const NotebookList = () => {
         onExportCsv={exportState.handleExportCsv}
         isAllSelected={exportState.isAllSelected}
         isSelfReportMode={exportState.isSelfReportMode}
+        recallActions={exportState.recallActions}
       />
 
       <DialogForm

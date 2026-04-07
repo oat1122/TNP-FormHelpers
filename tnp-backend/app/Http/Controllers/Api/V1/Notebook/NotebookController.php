@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Notebook;
 
 use App\Helpers\UserSubRoleHelper;
 use App\Http\Controllers\Controller;
+use App\Models\RecallActionLog;
 use App\Http\Requests\V1\Notebook\BulkAssignNotebookRequest;
 use App\Http\Requests\V1\Notebook\CustomerCareSourceIndexRequest;
 use App\Http\Requests\V1\Notebook\ConvertNotebookRequest;
@@ -208,9 +209,28 @@ class NotebookController extends Controller
         $leadAdditions = $this->notebookRepository->getSelfReportLeadAdditions($filters, $request->user());
         $activityItems = $this->notebookRepository->getSelfReportActivityItems($filters, $request->user());
 
+        // Recall action logs with customer names for this user in the date range
+        $recallActions = RecallActionLog::with('customer:cus_id,cus_name,cus_company')
+            ->where('user_id', $request->user()->user_id)
+            ->whereBetween('created_at', [
+                ($filters['start_date'] ?? now()->startOfMonth()->toDateString()).' 00:00:00',
+                ($filters['end_date'] ?? now()->endOfMonth()->toDateString()).' 23:59:59',
+            ])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(fn (RecallActionLog $log) => [
+                'id'            => $log->id,
+                'customer_name' => $log->customer?->cus_company ?: $log->customer?->cus_name ?: '-',
+                'recall_note'   => $log->recall_note,
+                'was_overdue'   => $log->was_overdue,
+                'days_overdue'  => $log->days_overdue,
+                'created_at'    => $log->created_at?->toISOString(),
+            ]);
+
         return response()->json([
             'lead_additions' => $this->transformCollection($leadAdditions, $request),
             'activity_items' => $this->transformCollection($activityItems, $request),
+            'recall_actions' => $recallActions,
             'meta' => [
                 'start_date' => $filters['start_date'] ?? null,
                 'end_date' => $filters['end_date'] ?? null,

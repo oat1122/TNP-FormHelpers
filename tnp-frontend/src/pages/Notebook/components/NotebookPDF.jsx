@@ -136,60 +136,67 @@ const renderActivityTable = (rows = []) => (
         </View>
       </View>
     ) : (
-      rows.map((row) =>
-        row.rowType === "personal_activity" ? (
-          <View
-            key={row.id}
-            style={[
-              styles.tableRow,
-              row.zebraIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
-              styles.personalActivityRow,
-            ]}
-            wrap={false}
-          >
-            <View style={[styles.tableCell, styles.personalActivityCell]}>
-              <Text style={styles.personalActivityText}>
-                {row.personalText || `${row.date || row.dateGroupValue} ${row.additionalInfo || "-"}`}
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View
-            key={row.id}
-            style={[styles.tableRow, row.zebraIndex % 2 === 0 ? styles.rowEven : styles.rowOdd]}
-            wrap={false}
-          >
+      rows.map((row) => {
+        let rowStyle = row.zebraIndex % 2 === 0 ? styles.rowEven : styles.rowOdd;
+        if (row.rowType === "recall_action") {
+          rowStyle = [rowStyle, styles.recallActionRow];
+        } else if (row.rowType === "personal_activity") {
+          rowStyle = [rowStyle, styles.personalActivityRow];
+        }
+
+        const textColorOverride =
+          row.rowType === "recall_action"
+            ? styles.recallActionText
+            : row.rowType === "personal_activity"
+              ? styles.personalActivityText
+              : null;
+
+        const textStylePrimary = textColorOverride
+          ? [styles.primaryText, textColorOverride]
+          : styles.primaryText;
+        const textStyleSecondary = textColorOverride
+          ? [styles.secondaryText, textColorOverride]
+          : styles.secondaryText;
+        const textStyleTertiary = textColorOverride
+          ? [styles.tertiaryText, textColorOverride]
+          : styles.tertiaryText;
+        const textStyleAction = textColorOverride
+          ? [styles.actionText, textColorOverride]
+          : styles.actionText;
+
+        return (
+          <View key={row.id} style={[styles.tableRow, rowStyle]} wrap={false}>
             <View style={[styles.tableCell, styles.colDate]}>
-              {renderCellText(row.date, styles.tertiaryText)}
+              {renderCellText(row.date, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colTime]}>
-              {renderCellText(row.time, styles.tertiaryText)}
+              {renderCellText(row.time, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colCustomer]}>
-              {renderCellText(row.customer, styles.primaryText)}
+              {renderCellText(row.customer, textStylePrimary)}
             </View>
             <View style={[styles.tableCell, styles.colAdditional]}>
-              {renderCellText(row.additionalInfo, styles.secondaryText)}
+              {renderCellText(row.additionalInfo, textStyleSecondary)}
             </View>
             <View style={[styles.tableCell, styles.colContact]}>
-              {renderCellText(row.contactNumber, styles.tertiaryText)}
+              {renderCellText(row.contactNumber, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colEmail]}>
-              {renderCellText(row.email, styles.tertiaryText)}
+              {renderCellText(row.email, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colPerson]}>
-              {renderCellText(row.contactPerson, styles.tertiaryText)}
+              {renderCellText(row.contactPerson, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colAction]}>
-              {renderCellText(row.action, styles.actionText)}
+              {renderCellText(row.action, textStyleAction)}
             </View>
             <View style={[styles.tableCell, styles.colStatus]}>{renderStatusCell(row.status)}</View>
             <View style={[styles.tableCell, styles.colRemarks]}>
-              {renderCellText(row.remarks, styles.tertiaryText)}
+              {renderCellText(row.remarks, textStyleTertiary)}
             </View>
           </View>
-        )
-      )
+        );
+      })
     )}
   </View>
 );
@@ -260,6 +267,7 @@ const NotebookPDF = ({
 }) => {
   const printDate = format(new Date(), "dd MMMM yyyy HH:mm", { locale: th });
   const formattedRange = formatDateRange(dateRange);
+  const recallCount = rows.filter((r) => r.rowType === "recall_action").length;
   const standardActivityPages = chunkRows(rows, 18);
   const selfLeadSummaryPages = chunkRows(leadSummaryRows, 14);
   const selfActivityPages = chunkRows(rows, 18);
@@ -322,6 +330,10 @@ const NotebookPDF = ({
                   <Text style={sectionStyles.summaryValue}>{leadSummaryRows.length}</Text>
                 </View>
                 <View style={sectionStyles.summaryCard}>
+                  <Text style={sectionStyles.summaryLabel}>จำนวนครั้ง Recall</Text>
+                  <Text style={sectionStyles.summaryValue}>{recallCount}</Text>
+                </View>
+                <View style={sectionStyles.summaryCard}>
                   <Text style={sectionStyles.summaryLabel}>ช่วงวันที่</Text>
                   <Text style={sectionStyles.summaryValue}>{formattedRange || "-"}</Text>
                 </View>
@@ -344,7 +356,7 @@ const NotebookPDF = ({
             <View style={styles.header}>
               <Text style={sectionStyles.sectionTitle}>Daily Activity Report</Text>
               <Text style={sectionStyles.sectionSubtitle}>
-                ตารางกิจกรรมประจำวันจาก activity/history รวมธุระส่วนตัวแบบบรรทัดข้อความ
+                ตารางกิจกรรมประจำวันจาก activity/history รวมธุระส่วนตัวและ recall แบบบรรทัดข้อความ
               </Text>
             </View>
           ) : null}

@@ -28,7 +28,8 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
 
   const exportItems = useMemo(() => exportQueryState.data ?? [], [exportQueryState.data]);
   const selfReportData = useMemo(
-    () => selfReportQueryState.data ?? { lead_additions: [], activity_items: [] },
+    () =>
+      selfReportQueryState.data ?? { lead_additions: [], activity_items: [], recall_actions: [] },
     [selfReportQueryState.data]
   );
   const isLoading =
@@ -128,8 +129,71 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     [filteredLeadAdditions]
   );
 
+  const recallActions = useMemo(
+    () => selfReportData.recall_actions ?? [],
+    [selfReportData.recall_actions]
+  );
+
+  const mergedSelfReportPdfRows = useMemo(() => {
+    if (recallActions.length === 0) {
+      return selfReportPdfRows;
+    }
+
+    const recallRows = recallActions.map((action, index) => {
+      const createdAt = new Date(action.created_at || new Date());
+      const dayMonth = format(createdAt, "dd/MM");
+      const year = createdAt.getFullYear() + 543;
+      const dateText = `${dayMonth}/${year}`;
+      const statusText = action.was_overdue
+        ? `เกินกำหนด ${action.days_overdue} วัน`
+        : "อยู่ในเกณฑ์";
+
+
+      return {
+        id: action.id || `recall-${index}`,
+        rowType: "recall_action",
+        date: dateText,
+        dateGroupValue: dateText,
+        time: format(createdAt, "HH.mm"),
+        customer: action.customer_name || "-",
+        additionalInfo: "กด Recall",
+        contactNumber: "-",
+        email: "-",
+        contactPerson: "-",
+        action: "Recall",
+        status: statusText,
+        remarks: action.recall_note || "-",
+        activityAt: action.created_at || new Date().toISOString(),
+        zebraIndex: 0,
+      };
+    });
+
+    return [...selfReportPdfRows, ...recallRows]
+      .sort((left, right) => new Date(left.activityAt) - new Date(right.activityAt))
+      .map((row, index, array) => {
+        if (row.rowType === "personal_activity") {
+          return { ...row, date: row.dateGroupValue, zebraIndex: index };
+        }
+        
+        // Find previous non-personal row to compare date
+        let prevIndex = index - 1;
+        while (prevIndex >= 0 && array[prevIndex].rowType === "personal_activity") {
+          prevIndex--;
+        }
+        const previousRow = prevIndex >= 0 ? array[prevIndex] : null;
+
+        const shouldHideDate = previousRow && previousRow.dateGroupValue === row.dateGroupValue;
+
+        return {
+          ...row,
+          date: shouldHideDate ? "" : row.dateGroupValue || row.date,
+          zebraIndex: index,
+        };
+      });
+  }, [selfReportPdfRows, recallActions]);
+
   const csvRows = canSelfReport ? selfReportRows : exportRows;
-  const pdfRows = canSelfReport ? selfReportPdfRows : standardPdfRows;
+  const pdfRows = canSelfReport ? mergedSelfReportPdfRows : standardPdfRows;
   const isAllSelected = filteredItems.length > 0 && selectedIds.length === filteredItems.length;
 
   const handlePresetClick = (presetLabel) => {
@@ -210,5 +274,6 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     handleToggleSelection,
     handleSelectAll,
     handleExportCsv,
+    recallActions,
   };
 };

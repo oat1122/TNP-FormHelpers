@@ -44,13 +44,20 @@ class NotebookService
 
     public function createLead(array $validated, $user): Notebook
     {
-        if (! UserSubRoleHelper::shouldCreateLeadIntoQueue($user) && ! UserSubRoleHelper::shouldCreateLeadIntoMine($user)) {
+        $targetScope = $validated['target_scope'] ?? null;
+
+        if (
+            ! UserSubRoleHelper::shouldCreateLeadIntoQueue($user, $targetScope)
+            && ! UserSubRoleHelper::shouldCreateLeadIntoMine($user, $targetScope)
+        ) {
             throw new AuthorizationException('Unauthorized: You do not have permission to create notebook leads.');
         }
 
-        return DB::transaction(function () use ($validated, $user) {
-            $ownerId = $this->resolveLeadOwnerId($user);
+        return DB::transaction(function () use ($validated, $user, $targetScope) {
+            $ownerId = $this->resolveLeadOwnerId($user, $targetScope);
+            $workflow = $this->resolveLeadWorkflow($user, $targetScope);
             $contactPerson = trim(($validated['cus_firstname'] ?? '').' '.($validated['cus_lastname'] ?? ''));
+            $leadPayload = Arr::except($validated, ['target_scope']);
 
             $notebook = new Notebook([
                 'nb_date' => now()->toDateString(),
@@ -65,8 +72,8 @@ class NotebookService
                 'nb_status' => null,
                 'nb_remarks' => $validated['cd_remark'] ?? null,
                 'nb_manage_by' => $ownerId,
-                'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
-                'nb_lead_payload' => $validated,
+                'nb_workflow' => $workflow,
+                'nb_lead_payload' => $leadPayload,
                 'nb_claimed_at' => $ownerId ? now() : null,
             ]);
 
@@ -517,17 +524,24 @@ class NotebookService
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
-    protected function resolveLeadOwnerId($user): ?int
+    protected function resolveLeadOwnerId($user, ?string $targetScope = null): ?int
     {
-        if (UserSubRoleHelper::shouldCreateLeadIntoQueue($user)) {
+        if (UserSubRoleHelper::shouldCreateLeadIntoQueue($user, $targetScope)) {
             return null;
         }
 
-        if (UserSubRoleHelper::shouldCreateLeadIntoMine($user)) {
+        if (UserSubRoleHelper::shouldCreateLeadIntoMine($user, $targetScope)) {
             return $user->user_id;
         }
 
         return $this->canManageAll($user) ? $user->user_id : null;
+    }
+
+    protected function resolveLeadWorkflow($user, ?string $targetScope = null): string
+    {
+        return UserSubRoleHelper::shouldCreateLeadIntoMine($user, $targetScope)
+            ? Notebook::WORKFLOW_STANDARD
+            : Notebook::WORKFLOW_LEAD_QUEUE;
     }
 
     protected function resolveCreateHistoryAction(Notebook $notebook): string

@@ -19,6 +19,8 @@ export const hasAnySubRole = (user, codes = []) => {
   return codes.some((code) => subRoleCodes.includes(code));
 };
 
+export const isSupportSalesUser = (user) => hasAnySubRole(user, ["SUPPORT_SALES"]);
+
 export const isNotebookQueueUser = (user) => hasAnySubRole(user, NOTEBOOK_QUEUE_SUBROLE_CODES);
 
 export const canViewNotebookQueue = (user) =>
@@ -49,13 +51,35 @@ export const getNotebookAssignTargetSubRoleCodes = (user) =>
     ? NOTEBOOK_ASSIGN_TARGET_SUPPORT_SUBROLE_CODES
     : NOTEBOOK_ASSIGN_TARGET_SUBROLE_CODES;
 
-export const shouldNotebookCreateIntoQueue = (user) => isNotebookQueueUser(user);
+export const shouldNotebookCreateIntoQueue = (user, targetScope = null) => {
+  if (targetScope === "queue") {
+    return isNotebookQueueUser(user);
+  }
 
-export const shouldNotebookCreateIntoMine = (user) =>
-  !isNotebookQueueUser(user) && user?.role === "sale";
+  if (targetScope === "mine") {
+    return false;
+  }
 
-export const shouldCreateNotebookLead = (user) =>
-  shouldNotebookCreateIntoQueue(user) || shouldNotebookCreateIntoMine(user);
+  return isNotebookQueueUser(user);
+};
+
+export const shouldNotebookCreateIntoMine = (user, targetScope = null) => {
+  if (targetScope === "mine") {
+    return Boolean(user) && (user?.role === "sale" || isSupportSalesUser(user));
+  }
+
+  if (targetScope === "queue") {
+    return false;
+  }
+
+  return !isNotebookQueueUser(user) && user?.role === "sale";
+};
+
+export const shouldCreateNotebookLead = (user, targetScope = null) =>
+  shouldNotebookCreateIntoQueue(user, targetScope) || shouldNotebookCreateIntoMine(user, targetScope);
+
+export const canCreateNotebookIntoMine = (user) =>
+  shouldNotebookCreateIntoMine(user, "mine");
 
 export const canCreateCustomerCare = (user) => Boolean(user) && user?.role === "sale";
 

@@ -10,7 +10,11 @@ import {
   useGetNotebooksQuery,
   useReserveNotebookMutation,
 } from "../../../features/Notebook/notebookApi";
-import { setDialogOpen, setSelectedNotebook } from "../../../features/Notebook/notebookSlice";
+import {
+  setDialogMode,
+  setDialogOpen,
+  setSelectedNotebook,
+} from "../../../features/Notebook/notebookSlice";
 import { dialog_confirm_yes_no } from "../../../utils/dialog_swal2/dialog_confirm_yes_no";
 import { dismissToast, showError, showLoading, showSuccess } from "../../../utils/toast";
 import { isNotebookQueueAssignableRow } from "../utils/notebookCommon";
@@ -195,6 +199,27 @@ export const useNotebookList = () => {
     pageState.setCustomerDialogOpen(true);
   };
 
+  const handleAddIntoMine = () => {
+    pageState.setScopeFilter("mine");
+    dispatch(
+      setSelectedNotebook({
+        nb_customer_name: "",
+        nb_contact_person: "",
+        nb_contact_number: "",
+        nb_email: "",
+        nb_additional_info: "",
+        nb_remarks: "",
+        nb_is_online: false,
+        nb_manage_by: pageState.currentUser?.user_id || null,
+        nb_workflow: "standard",
+        nb_entry_type: "standard",
+        manage_by_user: pageState.currentUser || null,
+      })
+    );
+    dispatch(setDialogMode("create"));
+    dispatch(setDialogOpen(true));
+  };
+
   const handleCloseNotebookDialog = () => {
     dispatch(setDialogOpen(false));
     dispatch(setSelectedNotebook(null));
@@ -248,6 +273,7 @@ export const useNotebookList = () => {
     handleAssignError,
     handleReserve,
     handleConvert,
+    handleAddIntoMine,
     handleEdit: (notebook) =>
       notebook?.nb_entry_type === "personal_activity"
         ? pageState.openPersonalActivityDialog("edit", notebook)

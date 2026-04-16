@@ -120,7 +120,10 @@ export const notebookApi = createApi({
       query: (data) => ({
         url: "/notebooks/leads",
         method: "POST",
-        data,
+        data: {
+          ...data,
+          ...(data?.target_scope ? { target_scope: data.target_scope } : {}),
+        },
       }),
       invalidatesTags: ["Notebook"],
     }),

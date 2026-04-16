@@ -22,8 +22,8 @@ import { validationSchema } from "../utils/validationSchema";
 export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const dispatch = useDispatch();
   const isAdmin = currentUser?.role === "admin";
-  const shouldCreateIntoQueue = shouldNotebookCreateIntoQueue(currentUser);
-  const shouldCreateIntoMine = shouldNotebookCreateIntoMine(currentUser);
+  const defaultCreateIntoQueue = shouldNotebookCreateIntoQueue(currentUser);
+  const defaultCreateIntoMine = shouldNotebookCreateIntoMine(currentUser);
   const { dialogOpen, selectedNotebook, dialogMode, dialogFocusTarget } = useSelector(
     (state) => state.notebook
   );
@@ -92,17 +92,10 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
       return;
     }
 
-    setDraft(buildDialogDraft(dialogMode === "create" ? null : selectedNotebook));
+    setDraft(buildDialogDraft(selectedNotebook));
     setErrors({});
     setHasUserEdited(false);
-  }, [
-    buildDialogDraft,
-    defaultDraft,
-    dialogMode,
-    dialogOpen,
-    resetDuplicateChecks,
-    selectedNotebook,
-  ]);
+  }, [buildDialogDraft, defaultDraft, dialogOpen, resetDuplicateChecks, selectedNotebook]);
 
   useEffect(() => {
     if (!dialogOpen || dialogMode === "create" || !notebookDetail || hasUserEdited) {
@@ -123,13 +116,13 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     (event) => {
       const { name, value, checked, type } = event.target;
       setHasUserEdited(true);
-      setDraft((prev) => ({
-        ...prev,
+      setDraft((previous) => ({
+        ...previous,
         [name]: type === "checkbox" ? checked : value,
       }));
 
       if (errors[name]) {
-        setErrors((prev) => ({ ...prev, [name]: null }));
+        setErrors((previous) => ({ ...previous, [name]: null }));
       }
     },
     [errors]
@@ -142,10 +135,10 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
       try {
         await validationSchema.validateAt(name, draft);
         if (errors[name]) {
-          setErrors((prev) => ({ ...prev, [name]: null }));
+          setErrors((previous) => ({ ...previous, [name]: null }));
         }
       } catch (error) {
-        setErrors((prev) => ({ ...prev, [name]: error.message }));
+        setErrors((previous) => ({ ...previous, [name]: error.message }));
       }
     },
     [draft, errors]
@@ -153,20 +146,28 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
 
   const handleOnlineToggle = useCallback((value) => {
     setHasUserEdited(true);
-    setDraft((prev) => ({ ...prev, nb_is_online: value }));
+    setDraft((previous) => ({ ...previous, nb_is_online: value }));
   }, []);
 
   const getCreateSuccessMessage = useCallback(() => {
-    if (shouldCreateIntoQueue) {
+    if (draft.nb_workflow === "lead_queue") {
       return "เพิ่ม lead เข้า Notebook queue สำเร็จ";
     }
 
-    if (shouldCreateIntoMine) {
+    if (draft.nb_manage_by) {
+      return "สร้าง lead ในลูกค้าของฉันสำเร็จ";
+    }
+
+    if (defaultCreateIntoQueue) {
+      return "เพิ่ม lead เข้า Notebook queue สำเร็จ";
+    }
+
+    if (defaultCreateIntoMine) {
       return "สร้าง lead ในลูกค้าของฉันสำเร็จ";
     }
 
     return "บันทึกข้อมูลสำเร็จ";
-  }, [shouldCreateIntoMine, shouldCreateIntoQueue]);
+  }, [defaultCreateIntoMine, defaultCreateIntoQueue, draft.nb_manage_by, draft.nb_workflow]);
 
   const handleSubmit = useCallback(async () => {
     try {
@@ -187,7 +188,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
           : format(now, "yyyy-MM-dd");
         submitData.nb_time = submitData.nb_time || format(now, "HH:mm");
 
-        if (shouldCreateIntoQueue || shouldCreateIntoMine) {
+        if (!submitData.nb_workflow && (defaultCreateIntoQueue || defaultCreateIntoMine)) {
           submitData.nb_workflow = "lead_queue";
         }
       }
@@ -256,16 +257,16 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
   }, [
     addNotebook,
     currentUser.user_id,
+    defaultCreateIntoMine,
+    defaultCreateIntoQueue,
     dialogMode,
     draft,
+    getCreateSuccessMessage,
     handleClose,
     isAdmin,
     notebookDetail,
     selectedNotebook,
-    shouldCreateIntoMine,
-    shouldCreateIntoQueue,
     updateNotebook,
-    getCreateSuccessMessage,
   ]);
 
   return {

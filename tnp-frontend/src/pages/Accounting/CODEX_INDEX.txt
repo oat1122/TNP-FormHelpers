@@ -1,0 +1,174 @@
+# Accounting Frontend Codex Index
+
+Updated: 2026-04-16
+
+Use this file as the first read before editing the Accounting frontend. It is a compact map for `tnp-frontend/src/pages/Accounting` plus the shared RTK state under `tnp-frontend/src/features/Accounting`.
+
+## Quick Start
+
+- Router entry: `tnp-frontend/src/App.jsx`
+- Layout shell and left navigation: `tnp-frontend/src/pages/Accounting/AccountingLayout.jsx`
+- Accounting exports: `tnp-frontend/src/pages/Accounting/index.js`
+- RTK Query API contracts: `tnp-frontend/src/features/Accounting/accountingApi.js`
+- Accounting UI slice: `tnp-frontend/src/features/Accounting/accountingSlice.js`
+- Store registration: `tnp-frontend/src/store.js`
+- Backend companion index: `tnp-backend/app/Http/Controllers/Api/V1/Accounting/CODEX_INDEX.txt`
+
+When adding or debugging frontend behavior, read `accountingApi.js` first, then the specific page folder. Only open backend files if the endpoint contract or DB flow is unclear.
+
+## App Routes
+
+All routes are nested under `/accounting` with `AccountingLayout` as the shell:
+
+- `/accounting` -> `PricingIntegration/PricingIntegration.jsx`
+- `/accounting/pricing-integration` -> `PricingIntegration/PricingIntegration.jsx`
+- `/accounting/quotations` -> `Quotations/Quotations.jsx`
+- `/accounting/quotations/report` -> `Quotations/report/QuotationReport.jsx`
+- `/accounting/invoices` -> `Invoices/Invoices.jsx`
+- `/accounting/delivery-notes` -> `DeliveryNotes/DeliveryNotes.jsx`
+
+There is no dedicated top-level Receipts page in the current frontend. Receipt APIs are used by delivery-note source selection and invoice/payment flows.
+
+## Domain Flow
+
+The UI follows this document chain:
+
+1. Completed Pricing Request
+2. Quotation
+3. Invoice
+4. Receipt or tax/receipt PDF generated from invoice
+5. Delivery Note
+
+Pricing requests come from the Pricing subsystem, then Accounting creates quotations. Quotations can be approved, sent, completed, duplicated, converted to invoices, and synced to related invoices. Invoices support before/after deposit modes, evidence upload, approval, PDF output, and delivery-note source data. Delivery notes are created manually or from invoice/receipt sources and move through shipping/delivery/completion states.
+
+## Folder Map
+
+- `AccountingLayout.jsx`: MUI theme wrapper, mobile drawer, nav ids, route highlighting, `Outlet`.
+- `PricingIntegration/`: import completed pricing requests, filter/search/paginate, group requests by customer, create quotation from one or multiple PRs.
+- `Quotations/`: list, table/card views, approval actions, detail dialog, duplicate dialog, standalone quotation creation, company manager, sync dialogs, report screen.
+- `Invoices/`: invoice list, create from quotation, detail/edit dialog, before/after deposit approval helpers, evidence upload, invoice PDF generation.
+- `DeliveryNotes/`: delivery note list, source selection from invoices/receipts, create/edit/detail dialogs, status transitions, PDF bundle generation.
+- `shared/`: reusable Accounting form/dialog pieces, sanitizers, financial sections, image grid, advanced filter.
+- `components/`: shared loaders and permission error dialog.
+- `hooks/`: domain-level performance, cache, and optimistic update hooks.
+- `config/`: performance constants.
+- `theme/`: `accountingTheme`.
+- `utils/`: toast and performance helpers.
+- `docs/`: older implementation docs; useful for history, but prefer this index for navigation.
+
+## RTK Query Map
+
+Main API file: `tnp-frontend/src/features/Accounting/accountingApi.js`
+
+Base behavior:
+
+- `reducerPath`: `accountingApi`
+- `baseUrl`: `apiConfig.baseUrl`
+- `credentials`: `apiConfig.credentials`
+- `refetchOnFocus`: false
+- `refetchOnReconnect`: true
+- `keepUnusedDataFor`: 1800 seconds globally
+- Tags: `PricingRequest`, `Quotation`, `Invoice`, `Receipt`, `DeliveryNote`, `Dashboard`, `Company`, `Customer`, `SyncJob`
+
+Endpoint groups:
+
+- Companies: `getCompanies`, `getCompany`, `createCompany`, `updateCompany`, `deleteCompany`
+- Customers: `getCustomers`, `getCustomerDetails`, `searchCustomers`
+- Pricing requests: `getCompletedPricingRequests`, `getPricingRequestAutofill`, `getBulkPricingRequestAutofill`
+- Quotations: `getQuotations`, `getQuotation`, `getQuotationDuplicateData`, `createQuotation`, `createQuotationFromPricing`, `createQuotationFromMultiplePricing`, `createStandaloneQuotation`, `updateQuotation`, `deleteQuotation`, `submitQuotation`, `approveQuotation`, `rejectQuotation`, `sendBackQuotation`, `revokeApprovalQuotation`, `markQuotationSent`, `markQuotationCompleted`, `sendQuotationEmail`
+- Quotation media/PDF: `uploadQuotationEvidence`, `uploadQuotationSignatures`, `uploadQuotationSampleImages`, `uploadQuotationSampleImagesTemp`, `deleteQuotationSignatureImage`, `generateQuotationPDF`
+- Quotation sync/report: `getQuotationRelatedInvoices`, `getSyncJobStatus`, `getQuotationReport`
+- Invoices: `getQuotationsAwaitingInvoice`, `getInvoices`, `getInvoice`, `createInvoiceFromQuotation`, `updateInvoice`, `deleteInvoice`, `submitInvoice`, `approveInvoice`, `submitInvoiceAfterDeposit`, `approveInvoiceAfterDeposit`, `revertInvoiceToDraft`, `updateInvoiceDepositDisplayOrder`, `uploadInvoiceEvidence`, `generateInvoicePDF`
+- Receipts: `getReceipts`, `getReceipt`, `createReceiptFromPayment`, `updateReceipt`, `approveReceipt`, `calculateVAT`, `uploadPaymentEvidence`, `generateReceiptPDF`
+- Delivery notes: `getDeliveryNotes`, `getDeliveryNote`, `getDeliveryNoteInvoiceItems`, `getDeliveryNoteInvoices`, `createDeliveryNote`, `updateDeliveryNote`, `deleteDeliveryNote`, `createDeliveryNoteFromReceipt`, `startShipping`, `updateTracking`, `markDelivered`, `markCompleted`, `markFailed`, `getDeliveryTimeline`, `getCourierCompanies`, `getDeliveryMethods`, `generateDeliveryNotePDF`, `generateDeliveryNotePDFBundle`
+- Utilities: `getStatuses`, `getDashboardStats`
+
+Important cache notes:
+
+- Pricing request autofill is cached long and bulk autofill serializes sorted PR ids to avoid duplicate fetches.
+- Updating quotations invalidates quotation, invoice, dashboard, and sync tags because quotations can sync into related invoices.
+- Invoice and delivery note mutations generally invalidate the entity tag plus list/dashboard tags.
+- File uploads use `FormData` and often set `X-Skip-Json`.
+
+## UI State Slice
+
+File: `tnp-frontend/src/features/Accounting/accountingSlice.js`
+
+State shape:
+
+- `activeStep`: `pricing | quotation | invoice | receipt | delivery`
+- `selectedItems`
+- `filters`: `dateRange`, `status`, `customer`, `searchQuery`
+- `modals`: create/view/approve/upload states
+- `forms`: quotation/invoice/receipt/delivery submit and error state
+- `currentDocument`, `currentDocumentType`
+- `autofillData`
+- `dashboardStats`
+- `notifications`
+- `viewMode`, `sortBy`, `sortOrder`
+
+Use RTK Query for server state. Use this slice for page UI state only.
+
+## Page Hot Spots
+
+Pricing Integration:
+
+- `PricingIntegration/PricingIntegration.jsx`: fetches completed pricing requests and creates quotation from multiple pricing requests.
+- `PricingIntegration/components/quotation/CreateQuotationForm/CreateQuotationForm.jsx`: quotation form pieces and temp sample-image upload.
+- `PricingIntegration/utils/quotationAdapter.js`: payload adaptation.
+
+Quotations:
+
+- `Quotations/Quotations.jsx`: main list, filters, actions, create/duplicate dialogs.
+- `Quotations/components/QuotationCard/hooks/useQuotationCardLogic.js`: card actions such as approve, submit, delete, update company.
+- `Quotations/components/QuotationDetailDialog/`: main detail/edit logic, financials, PR grouping, images, related invoices.
+- `Quotations/components/QuotationDuplicateDialog/`: duplicate flow reusing similar detail helpers.
+- `Quotations/components/QuotationStandaloneCreateDialog/`: standalone quotation creation and customer/company selection.
+- `Quotations/components/SyncConfirmationDialog.jsx` and `SyncProgressDialog.jsx`: quotation-to-invoice sync UX.
+- `Quotations/report/QuotationReport.jsx`: report filters/export view.
+
+Invoices:
+
+- `Invoices/Invoices.jsx`: main invoice list and selected invoice handling.
+- `Invoices/components/InvoiceCreateDialog.jsx`: creates invoice from quotation.
+- `Invoices/components/InvoiceDetailDialog.jsx`: details, update, PDF generation.
+- `Invoices/components/hooks/useInvoiceApproval.js`: before/after deposit approve/submit/deposit order.
+- `Invoices/components/hooks/useInvoiceEvidence.js`: evidence upload.
+- `Invoices/components/hooks/useInvoiceStatusReversal.js`: revert-to-draft.
+- `tnp-frontend/src/hooks/Accounting/useInvoiceActions.js`: direct binary PDF fetch helpers for preview/download; this bypasses RTK Query for blob handling.
+
+Delivery Notes:
+
+- `DeliveryNotes/DeliveryNotes.jsx`: list, filters, PDF and PDF bundle actions.
+- `DeliveryNotes/components/DeliveryNoteSourceSelectionDialog.jsx`: invoice source selector.
+- `DeliveryNotes/components/ReceiptSelectionDialog.jsx`: receipt source selector.
+- `DeliveryNotes/components/DeliveryNoteCreateDialog.jsx`: create from invoice/source payload.
+- `DeliveryNotes/components/DeliveryNoteEditDialog.jsx`: edit note payload.
+- `DeliveryNotes/components/DeliveryNoteDetailDialog.jsx`: status transitions, timeline-ish detail, PDF.
+- `DeliveryNotes/hooks/useDeliveryNoteForm.js`, `useDeliveryNoteItems.js`, `useSubmitDeliveryNote.js`, `useSubmitUpdateDeliveryNote.js`: form orchestration.
+- `DeliveryNotes/utils/deliveryNotePayload.js`, `deliveryNoteUpdatePayload.js`, `downloadUtils.js`: payload and download helpers.
+
+## Backend Endpoint Pairing
+
+All URLs below are relative to `apiConfig.baseUrl`.
+
+- `/pricing-requests*` -> `AutofillController`
+- `/customers/search`, `/customers/{id}/details` -> `AutofillController`
+- `/quotations*` -> `QuotationController`
+- `/quotations/report*` -> `QuotationReportController`
+- `/invoices*` -> `InvoiceController`
+- `/receipts*` -> `ReceiptController`
+- `/delivery-notes*` -> `DeliveryNoteController`
+- `/companies*` -> backend Company controller, not under Accounting controller folder
+
+Static backend routes must stay before wildcard routes, especially report routes before `/quotations/{id}` and invoice utility routes before `/invoices/{id}`.
+
+## Change Rules
+
+- Add new Accounting server endpoints in `accountingApi.js`; export the generated hook at the bottom.
+- Keep page files as composition shells; put orchestration in local hooks and pure transforms in local `utils`.
+- Reuse `shared/components`, `components/SkeletonLoaders.jsx`, `utils/accountingToast.js`, and existing MUI patterns.
+- For list mutations, confirm tag invalidation so list/detail/dashboard state refreshes without manual full-page reloads.
+- For binary PDF downloads/previews, prefer the existing direct `fetch` pattern in `useInvoiceActions.js` or a targeted helper; RTK Query JSON assumptions can be awkward for blobs.
+- Do not add a new global Redux field for server data already owned by RTK Query.
+- When changing payload fields, update frontend adapter/form, `accountingApi.js`, backend Form Request, service method, model fillable/casts, and migrations/index docs together.

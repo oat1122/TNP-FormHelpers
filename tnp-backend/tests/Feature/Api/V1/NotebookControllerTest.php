@@ -765,6 +765,60 @@ class NotebookControllerTest extends TestCase
         $reportResponse->assertJsonCount(1, 'activity_items');
     }
 
+    public function test_support_sales_subrole_can_store_lead_into_their_own_scope(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+
+        Sanctum::actingAs($supportUser);
+
+        $response = $this->postJson('/api/v1/notebooks/leads', [
+            'target_scope' => 'mine',
+            'cus_name' => 'Mine Lead',
+            'cus_firstname' => 'Mine',
+            'cus_lastname' => 'Lead',
+            'cus_tel_1' => '0823456789',
+            'cus_company' => 'Mine Co',
+        ])->assertCreated();
+
+        $notebookId = $response->json('id');
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebookId,
+            'nb_customer_name' => 'Mine Co',
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+            'nb_entry_type' => Notebook::ENTRY_TYPE_STANDARD,
+            'nb_manage_by' => $supportUser->user_id,
+            'created_by' => $supportUser->user_id,
+        ]);
+    }
+
+    public function test_sales_can_store_lead_into_their_own_scope(): void
+    {
+        $salesUser = User::factory()->sales()->create();
+
+        Sanctum::actingAs($salesUser);
+
+        $response = $this->postJson('/api/v1/notebooks/leads', [
+            'cus_name' => 'Sales Lead',
+            'cus_firstname' => 'Sales',
+            'cus_lastname' => 'Lead',
+            'cus_tel_1' => '0899999999',
+            'cus_company' => 'Sales Co',
+        ])->assertCreated();
+
+        $notebookId = $response->json('id');
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $notebookId,
+            'nb_customer_name' => 'Sales Co',
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+            'nb_entry_type' => Notebook::ENTRY_TYPE_STANDARD,
+            'nb_manage_by' => $salesUser->user_id,
+            'created_by' => $salesUser->user_id,
+        ]);
+    }
+
     public function test_sales_can_reserve_queue_notebook_created_by_support_sales_subrole(): void
     {
         $supportUser = User::factory()->create(['role' => 'production']);

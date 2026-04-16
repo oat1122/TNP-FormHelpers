@@ -257,10 +257,31 @@ class NotebookServiceTest extends TestCase
             'cus_company' => 'Mine Co',
         ], $salesUser);
 
-        $this->assertSame(Notebook::WORKFLOW_LEAD_QUEUE, $notebook->nb_workflow);
+        $this->assertSame(Notebook::WORKFLOW_STANDARD, $notebook->nb_workflow);
         $this->assertSame(Notebook::ENTRY_TYPE_STANDARD, $notebook->nb_entry_type);
         $this->assertSame($salesUser->user_id, $notebook->nb_manage_by);
         $this->assertSame($salesUser->user_id, $notebook->created_by);
+    }
+
+    public function test_support_sales_subrole_can_create_lead_into_their_own_notebook_list(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+
+        $notebook = app(NotebookService::class)->createLead([
+            'target_scope' => 'mine',
+            'cus_name' => 'Support Lead',
+            'cus_firstname' => 'Support',
+            'cus_lastname' => 'Lead',
+            'cus_tel_1' => '0822222222',
+            'cus_company' => 'Support Mine Co',
+        ], $supportUser);
+
+        $this->assertSame(Notebook::WORKFLOW_STANDARD, $notebook->nb_workflow);
+        $this->assertSame(Notebook::ENTRY_TYPE_STANDARD, $notebook->nb_entry_type);
+        $this->assertSame($supportUser->user_id, $notebook->nb_manage_by);
+        $this->assertSame($supportUser->user_id, $notebook->created_by);
+        $this->assertNotNull($notebook->nb_claimed_at);
     }
 
     public function test_sales_can_reserve_queue_lead(): void

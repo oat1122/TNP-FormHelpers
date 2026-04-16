@@ -6,9 +6,11 @@ const NotebookHeaderSection = ({
   total,
   onOpenExport,
   onAdd,
+  onAddIntoMine,
   onAddCustomerCare,
   onAddPersonalActivity,
   disableExport,
+  canAddIntoMine = false,
   canCreateCustomerCare = false,
   scopeFilter = "all",
   onScopeChange,
@@ -69,6 +71,16 @@ const NotebookHeaderSection = ({
       >
         จดบันทึก
       </Button>
+      {canAddIntoMine && scopeFilter === "mine" ? (
+        <Button
+          variant="contained"
+          startIcon={<RiAddLine />}
+          onClick={onAddIntoMine}
+          sx={{ bgcolor: "#2e7d32", "&:hover": { bgcolor: "#1b5e20" } }}
+        >
+          เพิ่มลูกค้าเข้าตัวเอง
+        </Button>
+      ) : null}
       <Button
         variant="contained"
         onClick={onAddPersonalActivity}

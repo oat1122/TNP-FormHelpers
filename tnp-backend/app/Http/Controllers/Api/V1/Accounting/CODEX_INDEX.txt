@@ -1,0 +1,345 @@
+# Accounting Backend And Database Codex Index
+
+Updated: 2026-04-16
+
+Use this file as the first read before editing the Accounting backend or DB. It maps controllers in `app/Http/Controllers/Api/V1/Accounting`, services/models/requests, routes, PDF views, and migrations. Frontend companion index: `tnp-frontend/src/pages/Accounting/CODEX_INDEX.txt`.
+
+## Quick Start
+
+- Routes: `tnp-backend/routes/api.php`, Accounting block around `//---------- Accounting System ----------`
+- Controllers: `tnp-backend/app/Http/Controllers/Api/V1/Accounting`
+- Requests: `tnp-backend/app/Http/Requests/V1/Accounting`
+- Services: `tnp-backend/app/Services/Accounting`
+- Quotation subservices: `tnp-backend/app/Services/Accounting/Quotation`
+- Models: `tnp-backend/app/Models/Accounting`
+- PDF services: `tnp-backend/app/Services/Accounting/Pdf`
+- PDF Blade/CSS: `tnp-backend/resources/views/accounting/pdf`
+- Core migrations: `tnp-backend/database/migrations`
+- API docs: `tnp-backend/docs/api/accounting-api.md`
+
+For most backend changes, start with `routes/api.php`, then the controller method, then the service method, then model/schema. Controllers are route adapters; services own most business rules and transactions.
+
+## Document Flow
+
+Accounting works as a document chain:
+
+1. Pricing Request from the Pricing subsystem
+2. Quotation
+3. Invoice
+4. Receipt or tax/receipt PDF
+5. Delivery Note
+
+The chain is intentionally not pure accounting ledger logic. It is document workflow logic for quotations, invoices, payment evidence, PDF output, and delivery tracking.
+
+## Route Map
+
+All routes below are inside the existing API V1 route group.
+
+Autofill and pricing requests:
+
+- `GET /pricing-requests` -> `AutofillController@getCompletedPricingRequests`
+- `GET /pricing-requests/{id}/autofill` -> `AutofillController@getPricingRequestAutofill`
+- `POST /pricing-requests/bulk-autofill` -> `AutofillController@getBulkPricingRequestAutofill`
+- `GET /pricing-requests/{id}/notes` -> `AutofillController@getPricingRequestNotes`
+- `GET /customers/search` -> `AutofillController@searchCustomers`
+- `GET /customers/{id}/details` -> `AutofillController@getCustomerDetails`
+
+Quotation report:
+
+- `GET /quotations/report` -> `QuotationReportController@index`
+- `GET /quotations/report/export` -> `QuotationReportController@export`
+
+Quotations:
+
+- `GET /quotations` -> `QuotationController@index`
+- `POST /quotations` -> `QuotationController@store`
+- `GET /quotations/{id}` -> `QuotationController@show`
+- `GET /quotations/{id}/duplicate-data` -> `QuotationController@getDuplicateData`
+- `PUT /quotations/{id}` -> `QuotationController@update`
+- `DELETE /quotations/{id}` -> `QuotationController@destroy`
+- `POST /quotations/{id}/submit` -> `QuotationController@submit`
+- `POST /quotations/{id}/approve` -> `QuotationController@approve`
+- `POST /quotations/{id}/reject` -> `QuotationController@reject`
+- `POST /quotations/{id}/send-back` -> `QuotationController@sendBack`
+- `POST /quotations/{id}/revoke-approval` -> `QuotationController@revokeApproval`
+- `GET|POST /quotations/{id}/generate-pdf` -> `QuotationController@generatePdf`
+- `POST /quotations/{id}/send-email` -> `QuotationController@sendEmail`
+- `POST /quotations/{id}/upload-evidence` -> `QuotationController@uploadEvidence`
+- `POST /quotations/{id}/upload-sample-images` -> `QuotationController@uploadSampleImages`
+- `POST /quotations/upload-sample-images` -> `QuotationController@uploadSampleImagesTemp`
+- `POST /quotations/{id}/upload-signatures` -> `QuotationController@uploadSignatures`
+- `DELETE /quotations/{id}/signatures/{identifier}` -> `QuotationController@deleteSignatureImage`
+- `POST /quotations/{id}/mark-completed` -> `QuotationController@markCompleted`
+- `POST /quotations/{id}/mark-sent` -> `QuotationController@markSent`
+- `GET /quotations/{id}/related-invoices` -> `QuotationController@getRelatedInvoices`
+- `GET /quotations/sync-jobs/{jobId}` -> `QuotationController@getSyncJobStatus`
+- `POST /quotations/create-from-pricing` -> `QuotationController@createFromPricingRequest`
+- `POST /quotations/create-from-multiple-pricing` -> `QuotationController@createFromMultiplePricingRequests`
+- `POST /quotations/create-standalone` -> `QuotationController@createStandalone`
+
+Invoices:
+
+- `GET /invoices` -> `InvoiceController@index`
+- `GET /invoices/quotations-awaiting` -> `InvoiceController@quotationsAwaiting`
+- `GET /invoices/{id}` -> `InvoiceController@show`
+- `PUT /invoices/{id}` -> `InvoiceController@update`
+- `POST /invoices/{id}/submit` -> `InvoiceController@submitBefore`
+- `POST /invoices/{id}/approve` -> `InvoiceController@approveBefore`
+- `POST /invoices/{id}/submit-after-deposit` -> `InvoiceController@submitAfter`
+- `POST /invoices/{id}/approve-after-deposit` -> `InvoiceController@approveAfter`
+- `POST /invoices/{id}/revert-to-draft` -> `InvoiceController@revertToDraft`
+- `PATCH /invoices/{id}/deposit-display-order` -> `InvoiceController@setDepositMode`
+- `POST /invoices/{id}/evidence/{mode}` -> `InvoiceController@uploadEvidenceByMode`
+- `GET|POST /invoices/{id}/generate-pdf` -> `InvoiceController@generatePdf`
+- `GET /invoices/{id}/pdf/preview` -> `InvoiceController@streamPdf`
+- `GET /invoices/{id}/pdf/download` -> `InvoiceController@downloadPdf`
+- `GET /invoices/{id}/pdf/tax/preview` -> `InvoiceController@streamTaxPdf`
+- `POST /invoices/{id}/pdf/tax/download` -> `InvoiceController@downloadTaxPdf`
+- `GET /invoices/{id}/pdf/receipt/preview` -> `InvoiceController@streamReceiptPdf`
+- `POST /invoices/{id}/pdf/receipt/download` -> `InvoiceController@downloadReceiptPdf`
+- `POST /invoices/{id}/pdf/tax/full/download` -> `InvoiceController@downloadTaxInvoiceFullPdf`
+- `POST /invoices/{id}/pdf/receipt/full/download` -> `InvoiceController@downloadReceiptFullPdf`
+- `POST /invoices/create-from-quotation` -> `InvoiceController@createFromQuotation`
+
+Receipts:
+
+- `GET /receipts` -> `ReceiptController@index`
+- `GET /receipts/{id}` -> `ReceiptController@show`
+- `PUT /receipts/{id}` -> `ReceiptController@update`
+- `POST /receipts/{id}/approve` -> `ReceiptController@approve`
+- `POST /receipts/create-from-payment` -> `ReceiptController@createFromPayment`
+- `POST /receipts/{receiptId}/upload-evidence` -> `ReceiptController@uploadEvidence`
+- `GET /receipts/{id}/generate-pdf` -> `ReceiptController@generatePdf`
+- `GET /receipts/calculate-vat` -> `ReceiptController@calculateVat`
+
+Delivery notes:
+
+- `GET /delivery-notes` -> `DeliveryNoteController@index`
+- `GET /delivery-notes/invoice-items` -> `DeliveryNoteController@getInvoiceItems`
+- `GET /delivery-notes/invoices` -> `DeliveryNoteController@getInvoices`
+- `GET /delivery-notes/{id}` -> `DeliveryNoteController@show`
+- `POST /delivery-notes` -> `DeliveryNoteController@store`
+- `PUT /delivery-notes/{id}` -> `DeliveryNoteController@update`
+- `DELETE /delivery-notes/{id}` -> `DeliveryNoteController@destroy`
+- `POST /delivery-notes/create-from-receipt` -> `DeliveryNoteController@createFromReceipt`
+- `POST /delivery-notes/{id}/start-shipping` -> `DeliveryNoteController@startShipping`
+- `POST /delivery-notes/{id}/update-tracking` -> `DeliveryNoteController@updateTracking`
+- `POST /delivery-notes/{id}/mark-delivered` -> `DeliveryNoteController@markDelivered`
+- `POST /delivery-notes/{id}/mark-completed` -> `DeliveryNoteController@markCompleted`
+- `POST /delivery-notes/{id}/mark-failed` -> `DeliveryNoteController@markFailed`
+- `GET|POST /delivery-notes/{id}/generate-pdf` -> `DeliveryNoteController@generatePdf`
+- `POST /delivery-notes/{id}/pdf/bundle` -> `DeliveryNoteController@generatePdfBundle`
+- `GET /delivery-notes/{id}/pdf/stream` -> `DeliveryNoteController@streamPdf`
+- `GET /delivery-notes/{id}/timeline` -> `DeliveryNoteController@getTimeline`
+- `GET /delivery-notes/courier-companies` -> `DeliveryNoteController@getCourierCompanies`
+- `GET /delivery-notes/delivery-methods` -> `DeliveryNoteController@getDeliveryMethods`
+
+Route ordering matters: report/static utility routes must stay before wildcard `{id}` routes.
+
+Known route-order watchouts in the current file:
+
+- `GET /receipts/calculate-vat` is registered after `GET /receipts/{id}`. If the utility route is used or changed, move it before the wildcard route.
+- `GET /delivery-notes/courier-companies` and `GET /delivery-notes/delivery-methods` are registered after `GET /delivery-notes/{id}`. If these utilities are used or changed, move them before the wildcard route.
+
+## Controller To Service Map
+
+- `AutofillController` -> `AutofillService`
+- `QuotationController` -> `QuotationService`, which delegates many operations to `Services/Accounting/Quotation/*`
+- `QuotationReportController` -> `QuotationReportService`
+- `InvoiceController` -> `InvoiceService`
+- `ReceiptController` -> `ReceiptService`
+- `DeliveryNoteController` -> `DeliveryNoteService`
+
+Controllers return `JsonResponse` or streamed/downloaded PDF responses. Keep new business rules and multi-model writes in services, not controllers.
+
+## Service Map
+
+Top-level services:
+
+- `AutofillService`: pricing request autofill, customer details/search, cascade autofill, pricing notes, mark-used helper.
+- `QuotationService`: list/show/create/update/delete, approvals, special creation, PDF/media, sync orchestration.
+- `InvoiceService`: create from quotation, update invoice/items, before/after deposit status flow, evidence, PDF bundle/stream/download, tax/receipt PDF variants, revert-to-draft.
+- `ReceiptService`: receipt list/show/create/update, create from payment, approve/reject, evidence, VAT calc, PDF.
+- `DeliveryNoteService`: invoice item/source queries, create/update, create from receipt, shipping/tracking/delivery/completion/failure states, timeline, PDF bundle/stream.
+- `QuotationReportService`: quotation report query, summary, CSV export.
+- `PdfCacheService`: document PDF cache metadata stored on `document_attachments`.
+
+Quotation subservices:
+
+- `Quotation/Calculator.php`: quotation financial calculations.
+- `Quotation/CreationService.php`: creation flows, including pricing request sources and standalone data.
+- `Quotation/ManagementService.php`: update/delete/list support.
+- `Quotation/MediaService.php`: evidence, signatures, sample images.
+- `Quotation/PdfService.php`: quotation PDF entry.
+- `Quotation/StatusService.php`: submit/approve/reject/send-back/revoke/mark states.
+- `Quotation/SyncService.php`: sync quotation changes to related invoices.
+
+PDF services:
+
+- `Pdf/BasePdfMasterService.php`: mPDF setup, Thai font checks, CSS writing, signature rendering, save/public URL helpers.
+- `Pdf/QuotationPdfMasterService.php`: quotation template data, grouping, financial summary.
+- `Pdf/InvoicePdfMasterService.php`: invoice/deposit template data and item grouping.
+- `Pdf/DeliveryNotePdfMasterService.php`: delivery note template data and bundles.
+- `Pdf/ReceiptPdfMasterService.php`, `ReceiptFullPdfMasterService.php`: receipt PDFs from invoice data.
+- `Pdf/TaxInvoicePdfMasterService.php`, `TaxInvoiceFullPdfMasterService.php`: tax invoice PDFs from invoice data.
+- `Pdf/CustomerInfoExtractor.php`: shared customer data extraction from quotation/invoice/delivery note.
+
+## Model And Table Map
+
+Core document models:
+
+- `Quotation` -> `quotations`
+  - Relations: `company`, `pricingRequest`, `customer`, `creator`, `approver`, `items`, `quotationPricingRequests`, `pricingRequests`, `primaryPricingRequest`, `invoices`, `orderItemsTracking`, `documentHistory`, `attachments`
+  - Helpers: number generation, financial accessors, edit permission, related invoice summary.
+- `QuotationItem` -> `quotation_items`
+  - Relations: `quotation`, `pricingRequest`
+  - Item pricing fields mirror invoice items.
+- `QuotationPricingRequest` -> `quotation_pricing_requests`
+  - Pivot/link between quotation and pricing request, with sequence/primary metadata.
+- `Invoice` -> `invoices`
+  - Relations: `quotation`, `items`, `primaryPricingRequest`, `customer`, `company`, `referenceInvoice`, `afterDepositInvoices`, user role relations, `receipts`, `documentHistory`, `attachments`
+  - Helpers: number generation by deposit mode, status by side, UI status, payment and receipt conversion.
+- `InvoiceItem` -> `invoice_items`
+  - Relations: `invoice`, `quotationItem`, `pricingRequest`, `creator`, `updater`
+- `Receipt` -> `receipts`
+  - Relations: `invoice`, `customer`, `issuer`, `approver`, `deliveryNotes`, `documentHistory`, `attachments`
+- `DeliveryNote` -> `delivery_notes`
+  - Relations: `receipt`, `invoice`, `invoiceItem`, `items`, `customer`, `company`, `senderCompany`, `creator`, `deliveryPerson`, `manager`, `documentHistory`, `attachments`
+- `DeliveryNoteItem` -> `delivery_note_items`
+  - Relations: `deliveryNote`, `invoice`, `invoiceItem`
+
+Shared/audit models:
+
+- `DocumentHistory` -> `document_history`
+  - Polymorphic-ish via `document_type` and `document_id`; logs status/action history.
+- `DocumentAttachment` -> `document_attachments`
+  - Polymorphic-ish via `document_type` and `document_id`; stores uploaded files and PDF cache metadata.
+- `OrderItemsTracking` -> `order_items_tracking`
+  - Tracks ordered, delivered, remaining quantity/value by quotation/pricing request.
+- `QuotationInvoiceSyncJob` -> `quotation_invoice_sync_jobs`
+  - Async-ish sync tracking with snapshots, status, progress, error, started_by timestamps.
+- `AdjustmentNote` exists as a model but is not part of the active route flow found in `routes/api.php`.
+
+Legacy and external tables referenced:
+
+- `pricing_requests` with key `pr_id`
+- `master_customers` with key `cus_id`
+- `users` with key `user_uuid`
+- `companies` and `document_sequences` from company/document numbering migrations
+
+Several early migrations intentionally comment out foreign keys to legacy tables. Do not add FK constraints blindly without checking existing data shape.
+
+## Database Migration Map
+
+Core create migrations:
+
+- `2025_08_05_000001_create_quotations_table.php`
+- `2025_08_05_000002_create_invoices_table.php`
+- `2025_08_05_000003_create_receipts_table.php`
+- `2025_08_05_000004_create_delivery_notes_table.php`
+- `2025_08_05_000005_create_document_history_table.php`
+- `2025_08_05_000006_create_order_items_tracking_table.php`
+- `2025_08_05_000007_create_document_attachments_table.php`
+- `2025_08_08_000001_create_quotation_pricing_requests_table.php`
+- `2025_08_11_120912_create_quotation_items_table.php`
+- `2025_09_03_163015_create_invoice_items_table.php`
+- `2025_10_01_165055_create_delivery_note_items_table.php`
+- `2025_11_20_170306_create_quotation_invoice_sync_jobs_table.php`
+
+Important follow-up migrations:
+
+- Quotation pricing relationship cleanup/migration: `2025_08_08_000002`, `000003`, `000004`, `2025_08_08_131803`
+- Quotation item reset/structure: `2025_08_11_121015`, `2025_08_11_130500`
+- Companies and document sequences: `2025_08_18_085931`, `2025_08_18_085955`, `2025_08_18_085957`
+- Quotation money/options/media: `2025_08_21_123021`, `2025_08_22_111025`, `2025_08_23_174215`, `2025_08_26_120435`, `2025_09_02_130703`, `2025_11_14_111056`
+- Invoice deposit/VAT/items/evidence/status: `2025_08_05_000008`, `2025_09_02_130630`, `2025_09_02_164910`, `2025_09_03_162945`, `2025_09_03_163929`, `2025_09_05_*`, `2025_09_06_000120`, `2025_09_10_000001`, `2025_09_15_*`, `2025_09_16_100015`, `2025_09_20_000001`, `2025_11_15_122125`
+- Delivery note enhancements: `2025_10_01_163645`, `2025_10_02_111952`, `2025_10_02_115134`
+- PDF cache: `2025_11_18_163612`
+
+Primary key convention: newer accounting tables mostly use `char(36)` UUID primary keys with DB UUID defaults.
+
+Common indexes:
+
+- Status, customer, date, due date, created_at on document lists.
+- Parent ids such as `quotation_id`, `invoice_id`, `receipt_id`, `delivery_note_id`.
+- Sequence/order indexes on item tables.
+- Sync jobs indexed by quotation, status, started_by, created_at.
+
+## Status And Numbering Notes
+
+Quotation status values include `draft`, `pending_review`, `approved`, `rejected`, `sent`, `completed`.
+
+Invoice status is more complex because before/after deposit sides were added later. Check `Invoice` model and `InvoiceService` before changing status transitions. Important concepts:
+
+- `deposit_display_order`
+- before/after deposit status columns
+- `getStatusForSide`, `setStatusForSide`, `deriveOverallStatus`
+- PDF document number helpers for invoice/tax/receipt modes
+
+Receipt status/type is simpler: receipt/tax invoice/full tax invoice flow is currently represented through receipt model plus invoice PDF variants.
+
+Delivery note status flow is managed by `DeliveryNoteService`: create, start shipping, update tracking, mark delivered, mark completed, mark failed.
+
+Document numbers are generated in models/services and connected to `companies`/`document_sequences`. Check company id before changing numbering.
+
+## PDF Flow
+
+Main path:
+
+1. Controller PDF route receives options.
+2. Service loads document and relations.
+3. Specific PDF master service builds view data.
+4. mPDF renders Blade/CSS from `resources/views/accounting/pdf`.
+5. File is saved under storage and public URL/path metadata is returned.
+6. Some endpoints stream/download binary responses; others return JSON with `pdf_url` or zip metadata.
+
+Relevant views:
+
+- Quotation: `resources/views/accounting/pdf/quotation`
+- Invoice: `resources/views/accounting/pdf/invoice`
+- Delivery note: `resources/views/accounting/pdf/delivery-note`
+- Receipt header: `resources/views/accounting/pdf/receipt/partials`
+- Tax header: `resources/views/accounting/pdf/tax-invoice/partials`
+- Shared PDF CSS: `resources/views/accounting/pdf/shared/pdf-shared-base.css`
+
+When changing PDF layout, update service view data and Blade/CSS together. Also verify frontend download code because some routes return JSON while some return binary files.
+
+## Validation Requests
+
+Requests live in `app/Http/Requests/V1/Accounting`. There is also an older `_Accounting` request folder with duplicates; active controllers import the V1 request namespace. Prefer V1 for new changes.
+
+Common request files:
+
+- Quotation: `StoreQuotationRequest`, `UpdateQuotationRequest`, `CreateFromPricingRequestRequest`, `CreateFromMultiplePricingRequestsRequest`, `CreateStandaloneQuotationRequest`, `RejectRequest`, `MarkSentRequest`, `SendEmailRequest`
+- Invoice: `StoreInvoiceRequest`, `UpdateInvoiceRequest`, `CreateFromQuotationRequest`, `ApproveInvoiceRequest`, `RejectInvoiceRequest`, `SubmitAfterDepositRequest`, `RevertToDraftRequest`, `UpdateDepositModeRequest`, `UploadEvidenceRequest`, `UploadEvidenceByModeRequest`
+- Autofill: `BulkAutofillRequest`
+- Legacy/less-used invoice workflow: `RecordPaymentRequest`, `SendReminderRequest`, `SendToCustomerRequest`
+
+DeliveryNoteController and ReceiptController currently use generic `Request` validation in several methods. If expanding them, consider adding Form Requests when validation grows.
+
+## Frontend Pairing
+
+Frontend API contracts are centralized in `tnp-frontend/src/features/Accounting/accountingApi.js`.
+
+Important frontend behavior:
+
+- RTK Query owns server cache and tags.
+- FormData upload endpoints may send `X-Skip-Json`.
+- Binary invoice PDF preview/download uses direct `fetch` in `tnp-frontend/src/hooks/Accounting/useInvoiceActions.js`.
+- Quotation update invalidates invoice/sync tags because related invoices can be affected.
+- Bulk pricing request autofill relies on sorted ids for cache reuse.
+
+If a backend response shape changes, update the relevant RTK endpoint transform, page/dialog consumers, and this index.
+
+## Change Rules
+
+- Put route definitions in `routes/api.php`, static routes before wildcard `{id}` routes.
+- Keep controllers thin: validate, call service, return response.
+- Put transactions, status transitions, PDF generation, file upload, and multi-table writes in services.
+- Update model `fillable`, `casts`, relations, and scopes when schema fields change.
+- Add migrations for schema changes; prefer additive migrations and dedicated backfills for risky legacy data.
+- Preserve legacy key names when touching external tables: `pr_id`, `cus_id`, `user_uuid`.
+- Do not force foreign keys onto legacy references until data is verified.
+- For list/report filters, add indexes intentionally on real query patterns.
+- Update frontend `accountingApi.js` and tag invalidation with any API contract change.
+- Update tests around service rules when changing approval, sync, status, PDF, or item-copy behavior.

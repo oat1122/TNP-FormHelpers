@@ -16,6 +16,7 @@ import {
   canViewNotebookQueue,
   getDefaultNotebookScope,
   getNotebookQueueActionMode,
+  isSupportSalesUser,
 } from "../../../utils/userAccess";
 import {
   buildNotebookFilterSummary,
@@ -31,6 +32,7 @@ export const useNotebookPageState = () => {
   const canUseQueueTabs = canViewNotebookQueue(currentUser);
   const canSelfReport = canExportNotebookSelfReport(currentUser);
   const canOpenCustomerCare = canCreateCustomerCare(currentUser);
+  const canCreateMineCustomer = isSupportSalesUser(currentUser);
   const queueActionMode = getNotebookQueueActionMode(currentUser);
   const defaultScopeFilter = useMemo(() => getDefaultNotebookScope(currentUser), [currentUser]);
   const defaultPeriodFilter = useMemo(() => getDefaultNotebookPeriodFilter(), []);
@@ -285,6 +287,7 @@ export const useNotebookPageState = () => {
     canUseQueueTabs,
     queueActionMode,
     canSelfReport,
+    canCreateMineCustomer,
     canCreateCustomerCare: canOpenCustomerCare,
     paginationModel,
     setPaginationModel,

@@ -22,6 +22,7 @@ class StoreNotebookLeadRequest extends NotebookRequest
     {
         return [
             'cus_channel' => ['required', 'integer', 'in:1,2,3'],
+            'target_scope' => ['nullable', 'string', 'in:queue,mine'],
             'cus_company' => ['nullable', 'string', 'max:255'],
             'cus_name' => ['required', 'string', 'max:255'],
             'cus_firstname' => ['required', 'string', 'max:255'],

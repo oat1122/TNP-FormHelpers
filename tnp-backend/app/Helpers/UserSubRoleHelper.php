@@ -119,6 +119,11 @@ class UserSubRoleHelper
         return self::hasAnySubRole($user, self::notebookQueueCodes());
     }
 
+    public static function isSupportSales($user): bool
+    {
+        return self::hasAnySubRole($user, [self::SUPPORT_SALES]);
+    }
+
     public static function canViewNotebookQueue($user): bool
     {
         return self::canManageAllNotebooks($user)
@@ -132,13 +137,29 @@ class UserSubRoleHelper
             || self::hasAnySubRole($user, self::notebookAllScopeCodes());
     }
 
-    public static function shouldCreateLeadIntoQueue($user): bool
+    public static function shouldCreateLeadIntoQueue($user, ?string $targetScope = null): bool
     {
+        if ($targetScope === 'queue') {
+            return self::isNotebookQueueUser($user);
+        }
+
+        if ($targetScope === 'mine') {
+            return false;
+        }
+
         return self::isNotebookQueueUser($user);
     }
 
-    public static function shouldCreateLeadIntoMine($user): bool
+    public static function shouldCreateLeadIntoMine($user, ?string $targetScope = null): bool
     {
+        if ($targetScope === 'mine') {
+            return (bool) $user && ($user->role === UserRole::SALE || self::isSupportSales($user));
+        }
+
+        if ($targetScope === 'queue') {
+            return false;
+        }
+
         return ! self::isNotebookQueueUser($user) && (bool) $user && $user->role === UserRole::SALE;
     }
 

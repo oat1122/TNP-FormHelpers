@@ -40,6 +40,7 @@ const NotebookList = () => {
     canUseQueueTabs,
     queueActionMode,
     canSelfReport,
+    canCreateMineCustomer,
     canCreateCustomerCare,
     viewMode,
     setViewMode,
@@ -63,6 +64,7 @@ const NotebookList = () => {
     handleAdd,
     handleAddPersonalActivity,
     handleAddCustomerCare,
+    handleAddIntoMine,
     handleEdit,
     handleEditWorkflow,
     handleView,
@@ -92,9 +94,11 @@ const NotebookList = () => {
           isRefreshing={isFetching}
           onOpenExport={() => setExportDialogOpen(true)}
           onAdd={handleAdd}
+          onAddIntoMine={handleAddIntoMine}
           onAddPersonalActivity={handleAddPersonalActivity}
           onAddCustomerCare={handleAddCustomerCare}
           disableExport={isLoading}
+          canAddIntoMine={canCreateMineCustomer}
           canCreateCustomerCare={canCreateCustomerCare}
           scopeFilter={scopeFilter}
           onScopeChange={setScopeFilter}

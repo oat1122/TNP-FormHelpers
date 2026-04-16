@@ -1,7 +1,6 @@
 import {
   Edit as EditIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
   Business as BusinessIcon,
   Person as PersonIcon,
   Phone as PhoneIcon,
@@ -47,13 +46,8 @@ import {
   getDefaultManagerAssignment,
   validateManagerAssignment,
   prepareManagerForApi,
-  mergeManagerData,
 } from "./managerUtils";
 import { useGetUserByRoleQuery } from "../../../../features/globalApi";
-import {
-  useGetCustomerQuery,
-  useUpdateCustomerMutation,
-} from "../../../../features/Customer/customerApi";
 import {
   useGetAllBusinessTypesQuery,
   useGetAllLocationQuery,
@@ -63,7 +57,7 @@ import { AddressService } from "../../../../services/AddressService";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 
 // Styled Components
-const CustomerCard = styled(Card)(({ theme }) => ({
+const CustomerCard = styled(Card)(() => ({
   background: "linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%)",
   border: "2px solid #E36264",
   borderRadius: "16px",
@@ -81,7 +75,7 @@ const CustomerCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const CustomerHeader = styled(Box)(({ theme }) => ({
+const CustomerHeader = styled(Box)(() => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -89,7 +83,7 @@ const CustomerHeader = styled(Box)(({ theme }) => ({
   padding: "8px 0",
 }));
 
-const EditButton = styled(IconButton)(({ theme }) => ({
+const EditButton = styled(IconButton)(() => ({
   background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
   color: "#FFFFFF",
   width: "48px",
@@ -102,7 +96,7 @@ const EditButton = styled(IconButton)(({ theme }) => ({
   transition: "all 0.3s ease-in-out",
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
+const SaveButton = styled(Button)(() => ({
   background: "linear-gradient(135deg, #4CAF50 0%, #45A049 100%)",
   color: "#FFFFFF",
   borderRadius: "12px",
@@ -121,7 +115,7 @@ const SaveButton = styled(Button)(({ theme }) => ({
   transition: "all 0.3s ease-in-out",
 }));
 
-const CancelButton = styled(Button)(({ theme }) => ({
+const CancelButton = styled(Button)(() => ({
   border: "2px solid #FF6B6B",
   color: "#FF6B6B",
   borderRadius: "12px",
@@ -136,7 +130,7 @@ const CancelButton = styled(Button)(({ theme }) => ({
   transition: "all 0.3s ease-in-out",
 }));
 
-const StyledTextField = styled(TextField)(({ theme }) => ({
+const StyledTextField = styled(TextField)(() => ({
   "& .MuiOutlinedInput-root": {
     borderRadius: "12px",
     backgroundColor: "#FFFFFF",
@@ -222,8 +216,6 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
   const { data: locationsData } = useGetAllLocationQuery({});
   const [fetchDistricts, { data: districtsData }] = useLazyGetAllLocationQuery();
   const [fetchSubdistricts, { data: subdistrictsData }] = useLazyGetAllLocationQuery();
-  const [updateCustomer, { isLoading: isUpdating }] = useUpdateCustomerMutation();
-
   // Sales list for assigning manager (cus_manage_by)
   const salesList = (userRoleData?.sale_role || [])
     .filter((u) => u && u.user_id != null)
@@ -734,7 +726,7 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       });
     }
     if (onCancel) onCancel();
-  }, [customer, displayCustomer, onCancel, isAdmin, currentUser]);
+  }, [customer, displayCustomer, onCancel, isAdmin, currentUser, normalizeChannelValue]);
 
   const validateForm = useCallback(() => {
     const validation = validateCustomerData(editData);
@@ -867,7 +859,6 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
       updateData.cus_tax_id = updateData.cus_tax_id?.replace(/[^0-9]/g, "");
 
       // Use RTK mutation
-      const result = await updateCustomer({ cus_id: customer.cus_id, ...updateData }).unwrap();
 
       // Show success message briefly
       dismissToast(loadingId);
@@ -905,7 +896,6 @@ const CustomerEditCard = ({ customer, onUpdate, onCancel, startInEdit = false })
     buildDisplayAddress,
     isAdmin,
     currentUser,
-    updateCustomer,
   ]);
 
   if (!customer) {

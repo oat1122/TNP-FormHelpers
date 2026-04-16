@@ -3,7 +3,7 @@ export const formatTHB = (value) => {
   const n = Number(value || 0);
   try {
     return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(n);
-  } catch (_) {
+  } catch {
     return `฿${n.toLocaleString("th-TH", { maximumFractionDigits: 2 })}`;
   }
 };

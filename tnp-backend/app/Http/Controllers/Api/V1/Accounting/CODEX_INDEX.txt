@@ -104,19 +104,21 @@ Invoices:
 Receipts:
 
 - `GET /receipts` -> `ReceiptController@index`
+- `GET /receipts/calculate-vat` -> `ReceiptController@calculateVat`
 - `GET /receipts/{id}` -> `ReceiptController@show`
 - `PUT /receipts/{id}` -> `ReceiptController@update`
 - `POST /receipts/{id}/approve` -> `ReceiptController@approve`
 - `POST /receipts/create-from-payment` -> `ReceiptController@createFromPayment`
 - `POST /receipts/{receiptId}/upload-evidence` -> `ReceiptController@uploadEvidence`
 - `GET /receipts/{id}/generate-pdf` -> `ReceiptController@generatePdf`
-- `GET /receipts/calculate-vat` -> `ReceiptController@calculateVat`
 
 Delivery notes:
 
 - `GET /delivery-notes` -> `DeliveryNoteController@index`
 - `GET /delivery-notes/invoice-items` -> `DeliveryNoteController@getInvoiceItems`
 - `GET /delivery-notes/invoices` -> `DeliveryNoteController@getInvoices`
+- `GET /delivery-notes/courier-companies` -> `DeliveryNoteController@getCourierCompanies`
+- `GET /delivery-notes/delivery-methods` -> `DeliveryNoteController@getDeliveryMethods`
 - `GET /delivery-notes/{id}` -> `DeliveryNoteController@show`
 - `POST /delivery-notes` -> `DeliveryNoteController@store`
 - `PUT /delivery-notes/{id}` -> `DeliveryNoteController@update`
@@ -131,15 +133,14 @@ Delivery notes:
 - `POST /delivery-notes/{id}/pdf/bundle` -> `DeliveryNoteController@generatePdfBundle`
 - `GET /delivery-notes/{id}/pdf/stream` -> `DeliveryNoteController@streamPdf`
 - `GET /delivery-notes/{id}/timeline` -> `DeliveryNoteController@getTimeline`
-- `GET /delivery-notes/courier-companies` -> `DeliveryNoteController@getCourierCompanies`
-- `GET /delivery-notes/delivery-methods` -> `DeliveryNoteController@getDeliveryMethods`
 
 Route ordering matters: report/static utility routes must stay before wildcard `{id}` routes.
 
-Known route-order watchouts in the current file:
+Current fixed route-order invariants:
 
-- `GET /receipts/calculate-vat` is registered after `GET /receipts/{id}`. If the utility route is used or changed, move it before the wildcard route.
-- `GET /delivery-notes/courier-companies` and `GET /delivery-notes/delivery-methods` are registered after `GET /delivery-notes/{id}`. If these utilities are used or changed, move them before the wildcard route.
+- `GET /receipts/calculate-vat` must stay before `GET /receipts/{id}`.
+- `GET /delivery-notes/courier-companies` and `GET /delivery-notes/delivery-methods` must stay before `GET /delivery-notes/{id}`.
+- Regression coverage: `tnp-backend/tests/Feature/Api/V1/AccountingRouteOrderTest.php`.
 
 ## Controller To Service Map
 
@@ -159,7 +160,7 @@ Top-level services:
 - `AutofillService`: pricing request autofill, customer details/search, cascade autofill, pricing notes, mark-used helper.
 - `QuotationService`: list/show/create/update/delete, approvals, special creation, PDF/media, sync orchestration.
 - `InvoiceService`: create from quotation, update invoice/items, before/after deposit status flow, evidence, PDF bundle/stream/download, tax/receipt PDF variants, revert-to-draft.
-- `ReceiptService`: receipt list/show/create/update, create from payment, approve/reject, evidence, VAT calc, PDF.
+- `ReceiptService`: receipt list/show/create/update, create from payment, approve, evidence, VAT calc, PDF. It is intentionally aligned to the legacy `receipts` schema and does not write non-existent receipt workflow columns.
 - `DeliveryNoteService`: invoice item/source queries, create/update, create from receipt, shipping/tracking/delivery/completion/failure states, timeline, PDF bundle/stream.
 - `QuotationReportService`: quotation report query, summary, CSV export.
 - `PdfCacheService`: document PDF cache metadata stored on `document_attachments`.
@@ -203,6 +204,9 @@ Core document models:
   - Relations: `invoice`, `quotationItem`, `pricingRequest`, `creator`, `updater`
 - `Receipt` -> `receipts`
   - Relations: `invoice`, `customer`, `issuer`, `approver`, `deliveryNotes`, `documentHistory`, `attachments`
+  - Canonical DB columns for current receipt flow: `type`, `tax_amount`, `total_amount`, `payment_method`, `payment_reference`, `issued_by`, `approved_by`, `approved_at`, `created_at`.
+  - Compatibility accessors/appends: `receipt_type` from `type`, `vat_amount` from `tax_amount`, `payment_amount` from `total_amount`, `payment_date` from `created_at`, and runtime `vat_rate`.
+  - Do not persist `receipt_type`, `payment_date`, `payment_amount`, `bank_name`, `vat_rate`, `vat_amount`, `created_by`, `updated_by`, `submitted_by`, `submitted_at`, `rejected_by`, or `rejected_at` unless an additive migration is created first.
 - `DeliveryNote` -> `delivery_notes`
   - Relations: `receipt`, `invoice`, `invoiceItem`, `items`, `customer`, `company`, `senderCompany`, `creator`, `deliveryPerson`, `manager`, `documentHistory`, `attachments`
 - `DeliveryNoteItem` -> `delivery_note_items`
@@ -276,7 +280,13 @@ Invoice status is more complex because before/after deposit sides were added lat
 - `getStatusForSide`, `setStatusForSide`, `deriveOverallStatus`
 - PDF document number helpers for invoice/tax/receipt modes
 
-Receipt status/type is simpler: receipt/tax invoice/full tax invoice flow is currently represented through receipt model plus invoice PDF variants.
+Receipt status/type is intentionally legacy-schema based:
+
+- Type source of truth is `receipts.type` with `receipt`, `tax_invoice`, `full_tax_invoice`.
+- VAT amount source of truth is `receipts.tax_amount`; API compatibility may expose `vat_amount`.
+- Amount source of truth is `receipts.total_amount`; API compatibility may expose `payment_amount`.
+- Active status values are `draft`, `approved`, `sent`. `pending_review` and `rejected` are not supported by the current receipt table.
+- `ReceiptService@approve` approves from `draft`; `submit` and `reject` intentionally fail with a domain error under the legacy schema.
 
 Delivery note status flow is managed by `DeliveryNoteService`: create, start shipping, update tracking, mark delivered, mark completed, mark failed.
 
@@ -325,6 +335,9 @@ Important frontend behavior:
 
 - RTK Query owns server cache and tags.
 - FormData upload endpoints may send `X-Skip-Json`.
+- Receipt frontend payloads should normalize legacy aliases before hitting the API: `receipt_type -> type`, `vat_amount -> tax_amount`, `payment_amount -> total_amount`.
+- Receipt VAT helper uses query params `amount` and `type`; backend still accepts `receipt_type` as a deprecated alias.
+- Receipt evidence upload uses multipart `files[]` plus optional `description`.
 - Binary invoice PDF preview/download uses direct `fetch` in `tnp-frontend/src/hooks/Accounting/useInvoiceActions.js`.
 - Quotation update invalidates invoice/sync tags because related invoices can be affected.
 - Bulk pricing request autofill relies on sorted ids for cache reuse.
@@ -343,3 +356,8 @@ If a backend response shape changes, update the relevant RTK endpoint transform,
 - For list/report filters, add indexes intentionally on real query patterns.
 - Update frontend `accountingApi.js` and tag invalidation with any API contract change.
 - Update tests around service rules when changing approval, sync, status, PDF, or item-copy behavior.
+
+## Regression Tests
+
+- `tests/Feature/Api/V1/AccountingRouteOrderTest.php`: ensures static receipt and delivery-note utility routes are not shadowed by wildcard `{id}` routes.
+- `tests/Unit/Accounting/ReceiptLegacySchemaCompatibilityTest.php`: ensures `Receipt` does not mass-assign columns absent from the current migration and still exposes compatibility aliases.

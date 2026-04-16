@@ -1,15 +1,10 @@
-import {
-  Delete as DeleteIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  Add as AddIcon,
-} from "@mui/icons-material";
+import { DeleteOutline as DeleteOutlineIcon, Add as AddIcon } from "@mui/icons-material";
 import {
   Box,
   Grid,
   Typography,
   Chip,
   Card,
-  CardContent,
   TextField,
   Button,
   Select,
@@ -61,8 +56,6 @@ const InvoiceSummaryCard = React.memo(function InvoiceSummaryCard({
   item,
   index,
   isEditing = false,
-  expanded = false,
-  onToggleExpanded,
   onAddRow,
   onChangeRow,
   onRemoveRow,

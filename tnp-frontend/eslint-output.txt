@@ -1,0 +1,537 @@
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\AccountingLayout.jsx
+    2:11  error  'MenuIcon' is defined but never used                   no-unused-vars
+    6:15  error  'SettingsIcon' is defined but never used               no-unused-vars
+    7:13  error  'LogoutIcon' is defined but never used                 no-unused-vars
+    8:11  error  'HomeIcon' is defined but never used                   no-unused-vars
+   24:8   error  'React' is defined but never used                      no-unused-vars
+   31:3   error  'selectUnreadNotifications' is defined but never used  no-unused-vars
+  151:9   error  'activeStep' is assigned a value but never used        no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\DeliveryNotes.jsx
+    5:8  error  'React' is defined but never used                           no-unused-vars
+    9:3  error  'FilterSection' is defined but never used                   no-unused-vars
+   65:9  error  'handleRefresh' is assigned a value but never used          no-unused-vars
+  138:9  error  'handleDownloadPDF_OLD' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\DeliveryNoteCard.jsx
+    4:8   error  'PictureAsPdfIcon' is defined but never used                                                                                                                                                      no-unused-vars
+   13:3   error  'Divider' is defined but never used                                                                                                                                                               no-unused-vars
+   14:3   error  'Tooltip' is defined but never used                                                                                                                                                               no-unused-vars
+   39:12  error  'e' is defined but never used                                                                                                                                                                     no-unused-vars
+   62:14  error  React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+   75:27  error  React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+   81:24  error  React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  122:66  error  React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  193:35  error  React Hook "React.useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\DeliveryNoteCreateDialog.jsx
+  112:6   warning  React Hook useEffect has a missing dependency: 'onUpdateItems'. Either include it or remove the dependency array. If 'onUpdateItems' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  119:28  error    'groupIndex' is defined but never used                                                                                                                                                                                                     no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\DeliveryNoteDetailDialog.jsx
+  3:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\DeliveryNotePDFMenu.jsx
+  18:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\DeliveryNoteSourceSelectionDialog.jsx
+    4:8   error    'Inventory2Icon' is defined but never used                                                                                                                                           no-unused-vars
+   13:3   error    'Paper' is defined but never used                                                                                                                                                    no-unused-vars
+   58:12  error    'e' is defined but never used                                                                                                                                                        no-unused-vars
+  194:9   warning  The 'items' conditional could make the dependencies of useMemo Hook (at line 245) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\components\ReceiptSelectionDialog.jsx
+  14:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\DeliveryNotes\hooks\useDeliveryNoteForm.js
+  3:60  error  'customer' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\Invoices.jsx
+   2:54  error  'Chip' is defined but never used                                no-unused-vars
+   4:8   error  'React' is defined but never used                               no-unused-vars
+  44:5   error  'handleApprove' is assigned a value but never used              no-unused-vars
+  49:5   error  'handleDownloadMultiHeader' is assigned a value but never used  no-unused-vars
+  67:29  error  'setInvoiceTypeFilter' is assigned a value but never used       no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\InvoiceCard.jsx
+   35:1   warning  There should be no empty line within import group                import/order
+   40:20  error    'useEffect' is defined but never used                            no-unused-vars
+   50:1   warning  There should be no empty line within import group                import/order
+   60:3   error    'formatInvoiceNumber' is defined but never used                  no-unused-vars
+   68:1   warning  There should be no empty line within import group                import/order
+   91:3   error    'onApprove' is defined but never used                            no-unused-vars
+   92:3   error    'onSubmit' is defined but never used                             no-unused-vars
+  161:5   error    'handlePreviewClick' is assigned a value but never used          no-unused-vars
+  169:9   error    'canDownloadForMode' is assigned a value but never used          no-unused-vars
+  195:14  error    'error' is defined but never used                                no-unused-vars
+  326:9   error    'handleTaxDownloadClick' is assigned a value but never used      no-unused-vars
+  327:9   error    'handleReceiptDownloadClick' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\InvoiceCreateDialog.jsx
+    5:10  error    'AddIcon' is defined but never used                                                                                                                                                                                                                                                           no-unused-vars
+    6:20  error    'DeleteOutlineIcon' is defined but never used                                                                                                                                                                                                                                                 no-unused-vars
+   22:3   error    'Divider' is defined but never used                                                                                                                                                                                                                                                           no-unused-vars
+   44:3   error    'Section' is defined but never used                                                                                                                                                                                                                                                           no-unused-vars
+   45:3   error    'SectionHeader' is defined but never used                                                                                                                                                                                                                                                     no-unused-vars
+   46:3   error    'SecondaryButton' is defined but never used                                                                                                                                                                                                                                                   no-unused-vars
+   47:3   error    'InfoCard' is defined but never used                                                                                                                                                                                                                                                          no-unused-vars
+   50:10  error    'formatDateTH' is defined but never used                                                                                                                                                                                                                                                      no-unused-vars
+   61:8   error    'ImageUploadGrid' is defined but never used                                                                                                                                                                                                                                                   no-unused-vars
+   77:69  warning  React Hook React.useMemo has a missing dependency: 'q'. Either include it or remove the dependency array                                                                                                                                                                                      react-hooks/exhaustive-deps
+   88:6   warning  React Hook React.useMemo has missing dependencies: 'prIdsAll' and 'q'. Either include them or remove the dependency array                                                                                                                                                                     react-hooks/exhaustive-deps
+   93:5   error    'setGroups' is assigned a value but never used                                                                                                                                                                                                                                                no-unused-vars
+   94:5   error    'isEditing' is assigned a value but never used                                                                                                                                                                                                                                                no-unused-vars
+   95:5   error    'setIsEditing' is assigned a value but never used                                                                                                                                                                                                                                             no-unused-vars
+   96:5   error    'onAddRow' is assigned a value but never used                                                                                                                                                                                                                                                 no-unused-vars
+   98:5   error    'onRemoveRow' is assigned a value but never used                                                                                                                                                                                                                                              no-unused-vars
+   99:5   error    'onDeleteGroup' is assigned a value but never used                                                                                                                                                                                                                                            no-unused-vars
+  129:6   warning  React Hook React.useEffect has missing dependencies: 'q?.has_vat', 'q?.has_withholding_tax', 'q?.pricing_mode', 'q?.special_discount_amount', 'q?.special_discount_percentage', 'q?.vat_percentage', and 'q?.withholding_tax_percentage'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  156:6   warning  React Hook React.useEffect has missing dependencies: 'knownTerms', 'q?.deposit_amount', 'q?.deposit_mode', 'q?.deposit_percentage', 'q.due_date', and 'q?.payment_terms'. Either include them or remove the dependency array                                                                  react-hooks/exhaustive-deps
+  159:23  error    'setAttachments' is assigned a value but never used                                                                                                                                                                                                                                           no-unused-vars
+  221:23  error    'setInvoiceType' is assigned a value but never used                                                                                                                                                                                                                                           no-unused-vars
+  222:25  error    'setPartialAmount' is assigned a value but never used                                                                                                                                                                                                                                         no-unused-vars
+  237:41  error    'idx' is defined but never used                                                                                                                                                                                                                                                               no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\InvoiceDetailDialog.jsx
+    6:15  error    'BusinessIcon' is defined but never used                                                                                                                                                          no-unused-vars
+   78:7   error    'toMoney' is assigned a value but never used                                                                                                                                                      no-unused-vars
+   79:7   error    'sanitizeZipDup' is assigned a value but never used                                                                                                                                               no-unused-vars
+  178:18  error    'setPdfUrl' is assigned a value but never used                                                                                                                                                    no-unused-vars
+  184:10  error    'expandedItems' is assigned a value but never used                                                                                                                                                no-unused-vars
+  219:9   warning  The 'invoice' logical expression could make the dependencies of useEffect Hook (at line 307) change on every render. To fix this, wrap the initialization of 'invoice' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  325:6   warning  React Hook React.useEffect has a missing dependency: 'invoice'. Either include it or remove the dependency array                                                                                  react-hooks/exhaustive-deps
+  355:9   error    'subtotal' is assigned a value but never used                                                                                                                                                     no-unused-vars
+  356:9   error    'vat' is assigned a value but never used                                                                                                                                                          no-unused-vars
+  362:9   error    'isOverdue' is assigned a value but never used                                                                                                                                                    no-unused-vars
+  514:9   error    'handleToggleItemExpanded' is assigned a value but never used                                                                                                                                     no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\QuotationSelectionDialog.jsx
+  11:3  error  'CircularProgress' is defined but never used  no-unused-vars
+  13:8  error  'React' is defined but never used             no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\calculation\InvoiceFinancialCalcBox.jsx
+  89:5  error  'depositAmountBeforeVat' is assigned a value but never used  no-unused-vars
+  91:5  error  'toMoney' is assigned a value but never used                 no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\calculation\InvoiceSizeRowsEditor.jsx
+  37:44  error  'theme' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\calculation\InvoiceSummaryCard.jsx
+   2:13  error  'DeleteIcon' is defined but never used         no-unused-vars
+  12:3   error  'CardContent' is defined but never used        no-unused-vars
+  64:3   error  'expanded' is assigned a value but never used  no-unused-vars
+  65:3   error  'onToggleExpanded' is defined but never used   no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\calculation\InvoiceWarningsBanner.jsx
+  20:7  error  'tokens' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\hooks\useInvoiceEvidence.js
+    6:20  error  'useEffect' is defined but never used  no-unused-vars
+   20:14  error  'e' is defined but never used          no-unused-vars
+   52:40  error  'key' is defined but never used        no-unused-vars
+  109:14  error  'e' is defined but never used          no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\subcomponents\CustomerInfoSection.jsx
+   8:8   error  'React' is defined but never used                          no-unused-vars
+  22:14  error  'error' is defined but never used                          no-unused-vars
+  68:9   error  'truncatedCompanyName' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\subcomponents\DepositCard.jsx
+   6:8  error  'React' is defined but never used        no-unused-vars
+  17:3  error  'hasEvidence' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\subcomponents\FinancialSummaryCard.jsx
+  7:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\subcomponents\StatusReversalDialog.jsx
+  19:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\subcomponents\WorkDetailsSection.jsx
+  7:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\components\utils\invoiceLogic.js
+  6:1  warning  There should be no empty line within import group  import/order
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Invoices\utils\format.js
+  6:12  error  '_' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\PricingIntegration.jsx
+   16:8  error  'React' is defined but never used                           no-unused-vars
+   56:9  error  'filters' is assigned a value but never used                no-unused-vars
+  250:9  error  'handleViewDetails' is assigned a value but never used      no-unused-vars
+  262:9  error  'handleSubmitQuotation' is assigned a value but never used  no-unused-vars
+  594:9  error  'handleResetFilters' is assigned a value but never used     no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\CustomerEditCard.jsx
+    4:13  error    'CancelIcon' is defined but never used                                                                                      no-unused-vars
+   50:3   error    'mergeManagerData' is defined but never used                                                                                no-unused-vars
+   53:3   error    'useGetCustomerQuery' is defined but never used                                                                             no-unused-vars
+   66:38  error    'theme' is defined but never used                                                                                           no-unused-vars
+   84:39  error    'theme' is defined but never used                                                                                           no-unused-vars
+   92:42  error    'theme' is defined but never used                                                                                           no-unused-vars
+  105:38  error    'theme' is defined but never used                                                                                           no-unused-vars
+  124:40  error    'theme' is defined but never used                                                                                           no-unused-vars
+  139:46  error    'theme' is defined but never used                                                                                           no-unused-vars
+  225:39  error    'isUpdating' is assigned a value but never used                                                                             no-unused-vars
+  737:6   warning  React Hook useCallback has a missing dependency: 'normalizeChannelValue'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  870:13  error    'result' is assigned a value but never used                                                                                 no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\CustomerEditDialog.jsx
+  3:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\EmptyState.jsx
+  3:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\ErrorState.jsx
+   3:8   error  'React' is defined but never used  no-unused-vars
+  15:10  error  'process' is not defined           no-undef
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\FilterSection.jsx
+  11:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\FloatingActionButton.jsx
+  3:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\Header.jsx
+  3:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\LoadingState.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\PaginationSection.jsx
+  2:8  error  'React' is defined but never used        no-unused-vars
+  6:3  error  'currentPage' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\PricingRequestCard.jsx
+  8:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\PricingRequestNotesButton.jsx
+   2:44  error  'Box' is defined but never used    no-unused-vars
+   4:8   error  'React' is defined but never used  no-unused-vars
+   9:48  error  'theme' is defined but never used  no-unused-vars
+  23:35  error  'theme' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\PricingRequestNotesModal.jsx
+  78:10  error  'groupNotes' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\PricingTableView.jsx
+  16:3   error  'Stack' is defined but never used                    no-unused-vars
+  18:8   error  'React' is defined but never used                    no-unused-vars
+  18:23  error  'useMemo' is defined but never used                  no-unused-vars
+  21:7   error  'statusColorMap' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\dev\ComponentTest.jsx
+   2:18  error  'CheckCircleIcon' is defined but never used  no-unused-vars
+   3:12  error  'ErrorIcon' is defined but never used        no-unused-vars
+  21:8   error  'React' is defined but never used            no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\dev\TestMultipleJobs.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\CreateQuotationForm.jsx
+    3:17  error    'VisibilityIcon' is defined but never used                no-unused-vars
+   45:1   warning  There should be no empty line within import group         import/order
+   58:10  error    'formatDateTH' is defined but never used                  no-unused-vars
+   72:27  error    'prId' is defined but never used                          no-unused-vars
+   72:33  error    'currentName' is defined but never used                   no-unused-vars
+   72:46  error    'onResolved' is defined but never used                    no-unused-vars
+  107:23  error    'setShowPreview' is assigned a value but never used       no-unused-vars
+  108:10  error    'editCustomerOpen' is assigned a value but never used     no-unused-vars
+  108:28  error    'setEditCustomerOpen' is assigned a value but never used  no-unused-vars
+  109:25  error    'setIsCalcEditing' is assigned a value but never used     no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\CalculationSummary.jsx
+   6:8  error  'React' is defined but never used                  no-unused-vars
+  18:3  error  'finalTotal' is assigned a value but never used    no-unused-vars
+  19:3  error  'showDetailed' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\ComponentsDemo.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\SpecialDiscountField.jsx
+  20:8   error  'React' is defined but never used            no-unused-vars
+  22:10  error  'sanitizeDecimal' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\SpecialDiscountTest.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\VatField.jsx
+  23:8   error  'React' is defined but never used               no-unused-vars
+  25:10  error  'sanitizeDecimal' is defined but never used     no-unused-vars
+  32:3   error  'vatAmount' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationForm\components\WithholdingTaxField.jsx
+   3:11  error  'InfoIcon' is defined but never used         no-unused-vars
+  23:8   error  'React' is defined but never used            no-unused-vars
+  25:10  error  'sanitizeDecimal' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\CreateQuotationModal\CreateQuotationModal.jsx
+  27:3  error  'Badge' is defined but never used            no-unused-vars
+  30:8  error  'React' is defined but never used            no-unused-vars
+  34:3  error  'Section' is defined but never used          no-unused-vars
+  35:3  error  'SectionHeader' is defined but never used    no-unused-vars
+  37:3  error  'SecondaryButton' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\quotation\styles\quotationTheme.js
+   8:41  error  'theme' is defined but never used  no-unused-vars
+  15:45  error  'theme' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\PricingIntegration\components\styles\StyledComponents.jsx
+   27:50  error  'theme' is defined but never used                 no-unused-vars
+   32:49  error  'theme' is defined but never used                 no-unused-vars
+   37:50  error  'theme' is defined but never used                 no-unused-vars
+   44:53  error  'statuscolor' is assigned a value but never used  no-unused-vars
+  158:54  error  'theme' is defined but never used                 no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\Quotations.jsx
+    9:3   error    'Stack' is defined but never used                                                                                                      no-unused-vars
+   14:3   error    'Paper' is defined but never used                                                                                                      no-unused-vars
+   22:8   error    'React' is defined but never used                                                                                                      no-unused-vars
+   40:3   error    'FilterSection' is defined but never used                                                                                              no-unused-vars
+  121:5   error    'total' is assigned a value but never used                                                                                             no-unused-vars
+  133:48  error    'isLoadingDuplicateData' is assigned a value but never used                                                                            no-unused-vars
+  146:9   error    'handleApprove' is assigned a value but never used                                                                                     no-unused-vars
+  150:9   error    'handleReject' is assigned a value but never used                                                                                      no-unused-vars
+  154:9   error    'handleSendBack' is assigned a value but never used                                                                                    no-unused-vars
+  158:9   error    'handleMarkSent' is assigned a value but never used                                                                                    no-unused-vars
+  179:9   error    'handleUploadEvidence' is assigned a value but never used                                                                              no-unused-vars
+  183:9   error    'handleSubmitForReview' is assigned a value but never used                                                                             no-unused-vars
+  244:9   error    'handleResetFilters' is assigned a value but never used                                                                                no-unused-vars
+  266:6   warning  React Hook useEffect has missing dependencies: 'currentPage' and 'paginationInfo'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\ApprovalPanel.jsx
+  18:8   error  'React' is defined but never used                 no-unused-vars
+  18:17  error  'useMemo' is defined but never used               no-unused-vars
+  20:10  error  'useGetQuotationQuery' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\CompanyManagerDialog.jsx
+  46:32  error  'isFetching' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\JobTitle.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\LinkedPricingDialog.jsx
+  11:3   error  'ListItemText' is defined but never used  no-unused-vars
+  17:8   error  'React' is defined but never used         no-unused-vars
+  46:12  error  'e' is defined but never used             no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationCard\QuotationCard.jsx
+  25:8  error  'React' is defined but never used               no-unused-vars
+  39:3  error  'TNPPrimaryButton' is defined but never used    no-unused-vars
+  40:3  error  'TNPSecondaryButton' is defined but never used  no-unused-vars
+  47:3  error  'onViewLinked' is defined but never used        no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationCard\hooks\useQuotationCardLogic.js
+  23:19  error  'setDeleted' is assigned a value but never used       no-unused-vars
+  25:10  error  'deleteQuotation' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationCard\subcomponents\StatusReversalDialog.jsx
+   1:53  error  'InfoIcon' is defined but never used  no-unused-vars
+  17:3   error  'Chip' is defined but never used      no-unused-vars
+  19:8   error  'React' is defined but never used     no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationCard\utils\urls.js
+  14:12  error  '_' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\QuotationDetailDialog.jsx
+   33:1   warning  There should be no empty line within import group                                                                                               import/order
+   37:10  error    'formatTHB' is defined but never used                                                                                                           no-unused-vars
+   47:1   warning  There should be no empty line within import group                                                                                               import/order
+   53:3   error    'computeTotals' is defined but never used                                                                                                       no-unused-vars
+   55:1   warning  There should be no empty line within import group                                                                                               import/order
+  123:5   error    'setEditCustomerOpen' is assigned a value but never used                                                                                        no-unused-vars
+  194:6   warning  React Hook React.useEffect has missing dependencies: 'imageManager' and 'sampleImages'. Either include them or remove the dependency array      react-hooks/exhaustive-deps
+  194:14  warning  React Hook React.useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+  198:6   warning  React Hook React.useEffect has a missing dependency: 'imageManager'. Either include it or remove the dependency array                           react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\hooks\useQuotationDialogLogic.js
+  112:6   warning  React Hook React.useEffect has a missing dependency: 'q'. Either include it or remove the dependency array                                                                                                                                             react-hooks/exhaustive-deps
+  130:6   warning  React Hook React.useEffect has missing dependencies: 'q?.credit_days', 'q?.deposit_amount', 'q?.deposit_mode', 'q?.deposit_percentage', 'q.due_date', 'q?.payment_method', and 'q?.payment_terms'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  184:28  error    'index' is defined but never used                                                                                                                                                                                                                      no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\hooks\useQuotationGroups.js
+  19:6  warning  React Hook React.useEffect has a missing dependency: 'initialItems'. Either include it or remove the dependency array                           react-hooks/exhaustive-deps
+  19:7  warning  React Hook React.useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\hooks\useQuotationImageManager.js
+  136:18  error  'err' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\subcomponents\PRGroupSummaryCard.jsx
+  6:10  error  'formatTHB' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDetailDialog\utils\quotationUtils.js
+  67:51  error  'prIds' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\QuotationDuplicateDialog.jsx
+   30:1   warning  There should be no empty line within import group                          import/order
+   34:10  error    'formatTHB' is defined but never used                                      no-unused-vars
+   37:1   warning  There should be no empty line within import group                          import/order
+   40:1   warning  There should be no empty line within import group                          import/order
+   43:3   error    'computeTotals' is defined but never used                                  no-unused-vars
+   75:5   error    'isLoading' is assigned a value but never used                             no-unused-vars
+   81:5   error    'setEditCustomerOpen' is assigned a value but never used                   no-unused-vars
+  115:16  error    '_isEditing' is assigned a value but never used                            no-unused-vars
+  590:14  error    Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+  611:31  error    'imageManager' is not defined                                              no-undef
+  612:31  error    'imageManager' is not defined                                              no-undef
+  624:27  error    'imageManager' is not defined                                              no-undef
+  625:31  error    'imageManager' is not defined                                              no-undef
+  650:35  error    'imageManager' is not defined                                              no-undef
+  651:35  error    'imageManager' is not defined                                              no-undef
+  657:33  error    'imageManager' is not defined                                              no-undef
+  658:33  error    'imageManager' is not defined                                              no-undef
+  684:14  error    Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+  684:14  error    Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+  750:35  error    'imageManager' is not defined                                              no-undef
+  796:37  error    'imageManager' is not defined                                              no-undef
+  798:28  error    'imageManager' is not defined                                              no-undef
+  806:39  error    'imageManager' is not defined                                              no-undef
+  853:8   error    Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+  869:8   error    Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\hooks\useQuotationDialogLogic.js
+   82:6  warning  React Hook React.useEffect has a missing dependency: 'q'. Either include it or remove the dependency array                                                                                                                                             react-hooks/exhaustive-deps
+  100:6  warning  React Hook React.useEffect has missing dependencies: 'q?.credit_days', 'q?.deposit_amount', 'q?.deposit_mode', 'q?.deposit_percentage', 'q.due_date', 'q?.payment_method', and 'q?.payment_terms'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\hooks\useQuotationGroups.js
+  19:6  warning  React Hook React.useEffect has a missing dependency: 'initialItems'. Either include it or remove the dependency array                           react-hooks/exhaustive-deps
+  19:7  warning  React Hook React.useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\hooks\useQuotationImageManager.js
+  129:18  error  'err' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\subcomponents\PRGroupSummaryCard.jsx
+  6:10  error  'formatTHB' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationDuplicateDialog\utils\quotationUtils.js
+  67:51  error  'prIds' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\CustomerCreateDialog.jsx
+   19:3   error    'Box' is defined but never used                                                                                            no-unused-vars
+   21:3   error    'Divider' is defined but never used                                                                                        no-unused-vars
+   33:8   error    'React' is defined but never used                                                                                          no-unused-vars
+   46:3   error    'normalizeManagerData' is defined but never used                                                                           no-unused-vars
+   55:46  error    'theme' is defined but never used                                                                                          no-unused-vars
+   72:38  error    'theme' is defined but never used                                                                                          no-unused-vars
+   91:40  error    'theme' is defined but never used                                                                                          no-unused-vars
+  118:10  error    'isLoadingDistricts' is assigned a value but never used                                                                    no-unused-vars
+  119:10  error    'isLoadingSubdistricts' is assigned a value but never used                                                                 no-unused-vars
+  129:36  error    'isCreating' is assigned a value but never used                                                                            no-unused-vars
+  184:6   warning  React Hook useEffect has a missing dependency: 'editData.cus_manage_by'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\CustomerSelector.jsx
+  11:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\FinancialSummaryPanel.jsx
+  14:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\QuotationJobManager.jsx
+  10:3  error  'Divider' is defined but never used   no-unused-vars
+  12:3  error  'MenuItem' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\QuotationStandaloneCreateDialog.jsx
+   30:8  error    'React' is defined but never used                  no-unused-vars
+   36:1  warning  There should be no empty line within import group  import/order
+  319:9  error    Unexpected lexical declaration in case block       no-case-declarations
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationStandaloneCreateDialog\hooks\useQuotationStandaloneForm.js
+  230:56  error  'jobIndex' is defined but never used  no-unused-vars
+  231:32  error  'rowIndex' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\QuotationTableView.jsx
+  22:8   error  'React' is defined but never used     no-unused-vars
+  22:26  error  'useState' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\SyncConfirmationDialog.jsx
+  15:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\components\SyncProgressDialog.jsx
+  12:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\hooks\useQuotationGroups.js
+  18:6  warning  React Hook React.useEffect has a missing dependency: 'initialItems'. Either include it or remove the dependency array                           react-hooks/exhaustive-deps
+  18:7  warning  React Hook React.useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\report\QuotationReport.jsx
+   52:8  error    'React' is defined but never used                                                                                                                                                                           no-unused-vars
+  212:9  warning  The 'allReportData' logical expression could make the dependencies of useMemo Hook (at line 223) change on every render. To fix this, wrap the initialization of 'allReportData' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  212:9  warning  The 'allReportData' logical expression could make the dependencies of useMemo Hook (at line 229) change on every render. To fix this, wrap the initialization of 'allReportData' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  213:9  error    'summary' is assigned a value but never used                                                                                                                                                                no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\report\components\ReportStatusTabs.jsx
+  4:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\report\components\ReportSummaryCards.jsx
+  5:53  error  'Divider' is defined but never used  no-unused-vars
+  6:8   error  'React' is defined but never used    no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\report\components\ReportTableView.jsx
+  14:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\utils\format.js
+  6:12  error  '_' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\Quotations\utils\quotationUtils.js
+  68:14  error  'e' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\components\SkeletonLoaders.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\config\performanceConfig.js
+   23:31  error  'process' is not defined  no-undef
+  106:27  error  'process' is not defined  no-undef
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\hooks\useAccountingOptimization.js
+   41:9   error    'process' is not defined                                                                                                                                              no-undef
+   56:11  error    'process' is not defined                                                                                                                                              no-undef
+  235:24  warning  React Hook useCallback received a function whose dependencies are unknown. Pass an inline function instead                                                            react-hooks/exhaustive-deps
+  384:6   warning  React Hook useEffect was passed a dependency list that is not an array literal. This means we can't statically verify whether you've passed the correct dependencies  react-hooks/exhaustive-deps
+  384:6   warning  React Hook useEffect has a missing dependency: 'dependencies'. Either include it or remove the dependency array                                                       react-hooks/exhaustive-deps
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\hooks\useAutofillCache.js
+  13:43  error  'useRef' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\ActionsSection.jsx
+  2:35  error  'Button' is defined but never used  no-unused-vars
+  3:8   error  'React' is defined but never used   no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\AdvancedFilter\AdvancedFilter.jsx
+  22:8  error  'React' is defined but never used                        no-unused-vars
+  34:3  error  'onRefresh' is defined but never used                    no-unused-vars
+  42:9  error  'hasStatusDropdowns' is assigned a value but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\Calculation.jsx
+  1:10  error  'Box' is defined but never used    no-unused-vars
+  2:8   error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\CustomerSection.jsx
+   2:15  error  'BusinessIcon' is defined but never used  no-unused-vars
+   3:13  error  'PersonIcon' is defined but never used    no-unused-vars
+   4:12  error  'PhoneIcon' is defined but never used     no-unused-vars
+   5:12  error  'EmailIcon' is defined but never used     no-unused-vars
+  10:8   error  'React' is defined but never used         no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\DetailDialog.jsx
+   9:3  error  'Avatar' is defined but never used  no-unused-vars
+  11:8  error  'React' is defined but never used   no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\FinancialSummarySection.jsx
+  4:14  error  'PercentIcon' is defined but never used  no-unused-vars
+  8:8   error  'React' is defined but never used        no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\LabeledSwitch.jsx
+  2:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\shared\components\PaymentTerms.jsx
+  11:8  error  'React' is defined but never used  no-unused-vars
+
+E:\TNP-FormHelpers\tnp-frontend\src\pages\Accounting\utils\performanceUtils.js
+   14:9   error  'process' is not defined                          no-undef
+  125:40  error  'placeholder' is assigned a value but never used  no-unused-vars
+  140:25  error  'separator' is assigned a value but never used    no-unused-vars
+  292:11  error  'process' is not defined                          no-undef
+  315:7   error  'process' is not defined                          no-undef
+
+✖ 330 problems (289 errors, 41 warnings)
+

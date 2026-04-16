@@ -6,16 +6,20 @@ import { sanitizeInt, sanitizeDecimal } from "../../shared/inputSanitizers";
 export function useQuotationGroups(initialItems) {
   const [groups, setGroups] = React.useState([]);
   const [isEditing, setIsEditing] = React.useState(false);
+  const editableInitialGroups = React.useMemo(
+    () =>
+      (initialItems || []).map((g) => ({
+        ...g,
+        sizeRows: (g.sizeRows || []).map((r) => ({ ...r })),
+      })),
+    [initialItems]
+  );
 
   React.useEffect(() => {
     // Initialize editable groups on open or when quotation changes
-    const editable = (initialItems || []).map((g) => ({
-      ...g,
-      sizeRows: (g.sizeRows || []).map((r) => ({ ...r })),
-    }));
-    setGroups(editable);
+    setGroups(editableInitialGroups);
     setIsEditing(false);
-  }, [JSON.stringify(initialItems)]); // shallow-safe since items are small
+  }, [editableInitialGroups]);
 
   const onAddRow = React.useCallback((groupId) => {
     setGroups((prev) =>

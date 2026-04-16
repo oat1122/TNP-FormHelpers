@@ -11,7 +11,7 @@ export const measureExecutionTime = (fn, label = "Function") => {
     const result = fn(...args);
     const end = performance.now();
 
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.log(`[Performance] ${label} execution time: ${(end - start).toFixed(2)}ms`);
     }
 
@@ -122,7 +122,7 @@ export const batchUpdates = (() => {
 /**
  * Image lazy loading utility
  */
-export const createImageLoader = (src, placeholder = null) => {
+export const createImageLoader = (src) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
 
@@ -137,7 +137,7 @@ export const createImageLoader = (src, placeholder = null) => {
  * Format numbers ให้แสดงผลดี
  */
 export const formatNumber = (num, options = {}) => {
-  const { decimals = 2, separator = ",", currency = false, currencySymbol = "฿" } = options;
+  const { decimals = 2, currency = false, currencySymbol = "฿" } = options;
 
   if (isNaN(num)) return "0";
 
@@ -289,7 +289,7 @@ export const performanceMonitor = {
       const duration = performance.now() - performanceMonitor.startTime;
       console.timeEnd(label);
 
-      if (process.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
       }
 
@@ -312,7 +312,7 @@ export const handleError = (error, context = "Unknown") => {
   console.error(`[Error in ${context}]:`, error);
 
   // Send to error reporting service in production
-  if (process.env.NODE_ENV === "production") {
+  if (import.meta.env.PROD) {
     // Example: Sentry.captureException(error, { tags: { context } });
   }
 

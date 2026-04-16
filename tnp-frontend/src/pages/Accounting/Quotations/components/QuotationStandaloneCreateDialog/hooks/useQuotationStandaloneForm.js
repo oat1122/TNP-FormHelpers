@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useDispatch } from "react-redux";
+
 import {
   useCreateStandaloneQuotationMutation,
   useGetCompaniesQuery,
@@ -226,8 +227,8 @@ export const useQuotationStandaloneForm = ({ open, onClose, onSuccess, companyId
 
     try {
       // Flatten jobs back to items for the API
-      const itemsPayload = formData.jobs.flatMap((job, jobIndex) =>
-        job.sizeRows.map((row, rowIndex) => ({
+      const itemsPayload = formData.jobs.flatMap((job) =>
+        job.sizeRows.map((row) => ({
           item_name: job.work_name,
           item_description: "",
           pattern: job.pattern,

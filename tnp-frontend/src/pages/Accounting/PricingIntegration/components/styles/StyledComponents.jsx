@@ -24,24 +24,24 @@ export const TNPSubheading = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(spacing.xs),
 }));
 
-export const TNPBodyText = styled(Typography)(({ theme }) => ({
+export const TNPBodyText = styled(Typography)(() => ({
   ...typography.body,
   fontSize: "0.875rem",
 }));
 
-export const TNPCaption = styled(Typography)(({ theme }) => ({
+export const TNPCaption = styled(Typography)(() => ({
   ...typography.caption,
   fontSize: "0.75rem",
 }));
 
-export const TNPPRNumber = styled(Typography)(({ theme }) => ({
+export const TNPPRNumber = styled(Typography)(() => ({
   ...typography.prNumber,
   display: "inline-flex",
   alignItems: "center",
 }));
 
 // 🏷️ Chip Components ที่สวยงาม
-export const TNPStatusChip = styled(Chip)(({ theme, statuscolor = "primary" }) => ({
+export const TNPStatusChip = styled(Chip)(({ theme }) => ({
   ...typography.statusChip,
   height: 24,
   "& .MuiChip-label": {
@@ -155,7 +155,7 @@ export const TNPListItem = styled("div")(({ theme }) => ({
 }));
 
 // 🎨 Utility Components
-export const TNPGradientText = styled(Typography)(({ theme }) => ({
+export const TNPGradientText = styled(Typography)(() => ({
   background: "linear-gradient(45deg, #900F0F 30%, #B20000 90%)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",

@@ -1,9 +1,10 @@
+// Single relative import in this utility file; import/order reports the file header as a group split.
+// eslint-disable-next-line import/order
+import { statusColor } from "./invoiceFormatters";
 /**
  * Invoice business logic utilities
  * ฟังก์ชันสำหรับ business logic ของใบแจ้งหนี้
  */
-
-import { statusColor } from "./invoiceFormatters";
 
 /**
  * ฟังก์ชันเลือกเลขที่เอกสารที่เหมาะสมตาม deposit mode

@@ -467,6 +467,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\ReceiptController::class)->group(function () {
         // Receipt CRUD
         Route::get('/receipts', 'index');
+        // Receipt Utilities
+        Route::get('/receipts/calculate-vat', 'calculateVat');
+        // Route::get('/receipts/types', 'getReceiptTypes'); // UNUSED
+        // Route::get('/receipts/payment-methods', 'getPaymentMethods'); // UNUSED
         Route::get('/receipts/{id}', 'show');
         // Route::post('/receipts', 'store'); // UNUSED
         Route::put('/receipts/{id}', 'update');
@@ -481,11 +485,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::post('/receipts/create-from-payment', 'createFromPayment');
         Route::post('/receipts/{receiptId}/upload-evidence', 'uploadEvidence');
         Route::get('/receipts/{id}/generate-pdf', 'generatePdf');
-        
-        // Receipt Utilities
-        Route::get('/receipts/calculate-vat', 'calculateVat');
-        // Route::get('/receipts/types', 'getReceiptTypes'); // UNUSED
-        // Route::get('/receipts/payment-methods', 'getPaymentMethods'); // UNUSED
     });
 
 
@@ -496,6 +495,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::get('/delivery-notes', 'index')->name('delivery-notes.index');
         Route::get('/delivery-notes/invoice-items', 'getInvoiceItems')->name('delivery-notes.invoice-items');
         Route::get('/delivery-notes/invoices', 'getInvoices')->name('delivery-notes.invoices');
+        // DeliveryNote Utilities
+        Route::get('/delivery-notes/courier-companies', 'getCourierCompanies')->name('delivery-notes.courier-companies');
+        Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods')->name('delivery-notes.delivery-methods');
+        // Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses'); // UNUSED
         Route::get('/delivery-notes/{id}', 'show')->name('delivery-notes.show');
         Route::post('/delivery-notes', 'store')->name('delivery-notes.store');
         Route::put('/delivery-notes/{id}', 'update')->name('delivery-notes.update');
@@ -518,11 +521,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::post('/delivery-notes/{id}/pdf/bundle', 'generatePdfBundle')->name('delivery-notes.pdf.bundle');
         Route::get('/delivery-notes/{id}/pdf/stream', 'streamPdf')->name('delivery-notes.pdf.stream');
         Route::get('/delivery-notes/{id}/timeline', 'getTimeline')->name('delivery-notes.timeline');
-        
-        // DeliveryNote Utilities
-        Route::get('/delivery-notes/courier-companies', 'getCourierCompanies')->name('delivery-notes.courier-companies');
-        Route::get('/delivery-notes/delivery-methods', 'getDeliveryMethods')->name('delivery-notes.delivery-methods');
-        // Route::get('/delivery-notes/statuses', 'getDeliveryStatuses')->name('delivery-notes.statuses'); // UNUSED
     });
 });
 

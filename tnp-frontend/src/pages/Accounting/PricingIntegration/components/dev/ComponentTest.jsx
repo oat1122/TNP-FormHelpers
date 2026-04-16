@@ -1,6 +1,4 @@
 import {
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
   Print as PrintIcon,
   Assignment as AssignmentIcon,
   Upgrade as UpgradeIcon,
@@ -18,7 +16,7 @@ import {
   ListItemText,
   Chip,
 } from "@mui/material";
-import React from "react";
+import "react";
 
 const ComponentTest = () => {
   return (

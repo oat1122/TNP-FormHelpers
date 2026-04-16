@@ -1,6 +1,5 @@
 import {
   AccountBalance as TaxIcon,
-  Info as InfoIcon,
   Calculate as CalculateIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
@@ -20,9 +19,9 @@ import {
   useTheme,
   Collapse,
 } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 
-import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
+import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 

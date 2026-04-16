@@ -1,17 +1,28 @@
 // 📁hooks/useQuotationDialogLogic.js
 import React from "react";
+
 import {
   useGetQuotationQuery,
   useUpdateQuotationMutation,
 } from "../../../../../../features/Accounting/accountingApi";
-import { pickQuotation, normalizeCustomer, toISODate, computeTotals } from "../utils/quotationUtils";
-import { showSuccess, showError, showLoading, dismissToast } from "../../../../utils/accountingToast";
+import {
+  showSuccess,
+  showError,
+  showLoading,
+  dismissToast,
+} from "../../../../utils/accountingToast";
+import {
+  pickQuotation,
+  normalizeCustomer,
+  toISODate,
+  computeTotals,
+} from "../utils/quotationUtils";
 
 export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
     skip: !open || !quotationId,
   });
-  const q = pickQuotation(data);
+  const q = React.useMemo(() => pickQuotation(data), [data]);
 
   const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
 
@@ -24,14 +35,14 @@ export function useQuotationDialogLogic(quotationId, open) {
   const [selectedDueDate, setSelectedDueDate] = React.useState(
     q?.due_date ? new Date(q.due_date) : null
   );
-  
+
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
     (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
   const isKnownTerms = ["cash", "credit_30", "credit_60"].includes(initialRawTerms);
-  
+
   const [paymentTermsType, setPaymentTermsType] = React.useState(
     isKnownTerms ? initialRawTerms : "other"
   );
@@ -40,10 +51,8 @@ export function useQuotationDialogLogic(quotationId, open) {
   );
 
   // Deposit state (supports percentage | amount)
-  const inferredDepositPct =
-    q?.deposit_percentage ??
-    (initialRawTerms === "cash" ? 0 : 50);
-    
+  const inferredDepositPct = q?.deposit_percentage ?? (initialRawTerms === "cash" ? 0 : 50);
+
   const [depositMode, setDepositMode] = React.useState(q?.deposit_mode || "percentage");
   const [depositPct, setDepositPct] = React.useState(inferredDepositPct);
   const [depositAmountInput, setDepositAmountInput] = React.useState(
@@ -70,12 +79,12 @@ export function useQuotationDialogLogic(quotationId, open) {
   // Effect to sync state when quotation data is loaded or changed
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
-  }, [q?.id, q?.customer_name, q?.customer]);
+  }, [q]);
 
   React.useEffect(() => {
     // Sync notes from server when quotation changes/opened
     setQuotationNotes(q?.notes || "");
-    
+
     const raw =
       q?.payment_terms ||
       q?.payment_method ||
@@ -83,15 +92,23 @@ export function useQuotationDialogLogic(quotationId, open) {
     const known = ["cash", "credit_30", "credit_60"].includes(raw);
     setPaymentTermsType(known ? raw : "other");
     setPaymentTermsCustom(known ? "" : raw || "");
-    
-    setDepositPct(
-      q?.deposit_percentage ??
-      (raw === "cash" ? 0 : 50)
-    );
+
+    setDepositPct(q?.deposit_percentage ?? (raw === "cash" ? 0 : 50));
     setDepositMode(q?.deposit_mode || "percentage");
     setDepositAmountInput(q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : "");
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
-  }, [open, q?.id, q?.notes]);
+  }, [
+    open,
+    q?.credit_days,
+    q?.deposit_amount,
+    q?.deposit_mode,
+    q?.deposit_percentage,
+    q?.due_date,
+    q?.id,
+    q?.notes,
+    q?.payment_method,
+    q?.payment_terms,
+  ]);
 
   // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
   const [hasInitializedFinancials, setHasInitializedFinancials] = React.useState(false);
@@ -114,7 +131,7 @@ export function useQuotationDialogLogic(quotationId, open) {
     // Withholding tax
     setHasWithholdingTax(!!q.has_withholding_tax);
     setWithholdingTaxPercentage(Number(q.withholding_tax_percentage || 0));
-    
+
     setHasInitializedFinancials(true);
   }, [
     q?.id,
@@ -159,9 +176,9 @@ export function useQuotationDialogLogic(quotationId, open) {
     const totals = computeTotals(groups, depositPct);
     const isCredit = paymentTermsType === "credit_30" || paymentTermsType === "credit_60";
     const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
-    
+
     const loadingId = showLoading("กำลังบันทึกใบเสนอราคา…");
-    
+
     try {
       await updateQuotation({
         id: q.id,

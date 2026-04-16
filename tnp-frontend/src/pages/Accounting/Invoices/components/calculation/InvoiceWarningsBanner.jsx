@@ -17,12 +17,6 @@ import {
 import { styled } from "@mui/material/styles";
 import React from "react";
 
-const tokens = {
-  primary: "#900F0F",
-  white: "#FFFFFF",
-  bg: "#F5F5F5",
-};
-
 const InvoiceAlert = styled(Alert)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   "&.MuiAlert-standardWarning": {

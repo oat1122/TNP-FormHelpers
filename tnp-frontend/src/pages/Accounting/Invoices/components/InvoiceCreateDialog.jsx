@@ -2,8 +2,6 @@ import {
   Assignment as AssignmentIcon,
   Calculate as CalculateIcon,
   Payment as PaymentIcon,
-  Add as AddIcon,
-  DeleteOutline as DeleteOutlineIcon,
   ExpandMore as ExpandMoreIcon,
   Badge as BadgeIcon,
 } from "@mui/icons-material";
@@ -19,7 +17,6 @@ import {
   Chip,
   TextField,
   CircularProgress,
-  Divider,
   Button,
   Accordion,
   AccordionSummary,
@@ -36,18 +33,11 @@ import {
   useGetQuotationQuery,
   useCreateInvoiceFromQuotationMutation,
 } from "../../../../features/Accounting/accountingApi";
+import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import VatField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
 import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
-import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
-import {
-  Section,
-  SectionHeader,
-  SecondaryButton,
-  InfoCard,
-  tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { formatDateTH } from "../../PricingIntegration/components/quotation/utils/date";
+import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 import { useQuotationGroups } from "../../Quotations/hooks/useQuotationGroups";
 import { formatTHB } from "../../Quotations/utils/format";
 import {
@@ -58,7 +48,7 @@ import {
   toISODate,
 } from "../../Quotations/utils/quotationUtils";
 import Calculation from "../../shared/components/Calculation";
-import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
+import "../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../shared/components/PaymentTerms";
 import { useQuotationFinancials } from "../../shared/hooks/useQuotationFinancials";
 import { sanitizeInt } from "../../shared/inputSanitizers";
@@ -73,8 +63,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   const { data, isLoading, isFetching } = useGetQuotationQuery(quotationId, { skip: !quotationId });
   const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceFromQuotationMutation();
 
-  const q = pickQuotation(data);
-  const prIdsAll = React.useMemo(() => getAllPrIdsFromQuotation(q), [q?.id]);
+  const q = React.useMemo(() => pickQuotation(data), [data]);
+  const prIdsAll = React.useMemo(() => getAllPrIdsFromQuotation(q), [q]);
   const customer = React.useMemo(() => normalizeCustomer(q), [q]);
   const items = React.useMemo(() => {
     const allItems = normalizeAndGroupItems(q, prIdsAll);
@@ -85,20 +75,10 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         item.sizeRows.length > 0 &&
         item.sizeRows.some((row) => row.quantity > 0 || row.unitPrice > 0 || row.size)
     );
-  }, [q?.id]);
+  }, [q, prIdsAll]);
 
   // Groups editor state (size/qty/unit price rows)
-  const {
-    groups,
-    setGroups,
-    isEditing,
-    setIsEditing,
-    onAddRow,
-    onChangeRow,
-    onRemoveRow,
-    onDeleteGroup,
-    onChangeGroup,
-  } = useQuotationGroups(items);
+  const { groups, onChangeRow, onChangeGroup } = useQuotationGroups(items);
 
   // Discount and withholding state (preload from quotation where possible)
   // Discount / withholding states, kept editable but synced with quotation on load/change
@@ -126,11 +106,20 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     setHasVat(q?.has_vat !== false); // Default to true if not specified
     setVatPercentage(Number(q?.vat_percentage || 7));
     setPricingMode(q?.pricing_mode || "net");
-  }, [q?.id]);
+  }, [
+    q?.id,
+    q?.has_vat,
+    q?.has_withholding_tax,
+    q?.pricing_mode,
+    q?.special_discount_amount,
+    q?.special_discount_percentage,
+    q?.vat_percentage,
+    q?.withholding_tax_percentage,
+  ]);
 
   // Payment terms state
   const rawTerms = q?.payment_terms || "cash";
-  const knownTerms = new Set(["cash", "credit_30", "credit_60", "other"]);
+  const knownTerms = React.useMemo(() => new Set(["cash", "credit_30", "credit_60", "other"]), []);
   const isKnown = knownTerms.has(rawTerms);
   const [paymentTermsType, setPaymentTermsType] = React.useState(isKnown ? rawTerms : "other");
   const [paymentTermsCustom, setPaymentTermsCustom] = React.useState(isKnown ? "" : rawTerms || "");
@@ -153,10 +142,18 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
     setDepositPct(Number(q?.deposit_percentage || 0));
     setDepositAmountInput(Number(q?.deposit_amount || 0));
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
-  }, [q?.id]);
+  }, [
+    knownTerms,
+    q?.deposit_amount,
+    q?.deposit_mode,
+    q?.deposit_percentage,
+    q?.due_date,
+    q?.id,
+    q?.payment_terms,
+  ]);
 
   // Attachments (local only for now)
-  const [attachments, setAttachments] = React.useState([]); // File[]
+  const [attachments] = React.useState([]); // File[]
 
   // Signature images preview state
   const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
@@ -218,8 +215,8 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
   const isCredit = paymentTermsType === "credit_30" || paymentTermsType === "credit_60";
 
   // Invoice type selection (full, deposit, partial)
-  const [invoiceType, setInvoiceType] = React.useState("deposit");
-  const [partialAmount, setPartialAmount] = React.useState("");
+  const [invoiceType] = React.useState("deposit");
+  const [partialAmount] = React.useState("");
 
   // Map groups → invoice items-like structure (kept for potential backend expansion)
   const mapGroupsToItems = React.useCallback(() => {
@@ -234,7 +231,7 @@ const InvoiceCreateDialog = ({ open, onClose, quotationId, onCreated, onCancel }
         color: g.color || "",
         unit,
       };
-      return (g.sizeRows || []).map((r, idx) => {
+      return (g.sizeRows || []).map((r) => {
         globalSequence++; // Increment global sequence for each item
         const qty =
           typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);

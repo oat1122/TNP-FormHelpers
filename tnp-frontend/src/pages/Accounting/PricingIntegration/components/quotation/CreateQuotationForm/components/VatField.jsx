@@ -20,16 +20,15 @@ import {
   useTheme,
   Collapse,
 } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 
-import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
+import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 
 const VatField = ({
   hasVat = true,
   vatPercentage = 7,
-  vatAmount = 0,
   subtotalAmount = 0,
   onToggleVat,
   onVatPercentageChange,

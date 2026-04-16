@@ -1,2 +1,2 @@
 // 📁index.js
-export { default } from './QuotationDetailDialog';
+export { default } from "./QuotationDetailDialog";

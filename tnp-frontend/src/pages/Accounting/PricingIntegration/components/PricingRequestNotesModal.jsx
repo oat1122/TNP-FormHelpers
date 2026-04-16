@@ -75,15 +75,6 @@ const Pill = styled(Chip)(() => ({
 }));
 
 // แบ่งกลุ่มจาก prn_type เป็น sale / price (ตัด manager ออก)
-function groupNotes(list) {
-  const g = { sale: [], price: [] };
-  (list || []).forEach((n) => {
-    const t = (n?.prn_type || "sale").toLowerCase();
-    if (t === "price") g.price.push(n);
-    else if (t === "sale") g.sale.push(n);
-  });
-  return g;
-}
 
 // พยายามอ่านวันที่จากหลายฟิลด์ แล้วเรียงใหม่→เก่า
 function getTime(note) {

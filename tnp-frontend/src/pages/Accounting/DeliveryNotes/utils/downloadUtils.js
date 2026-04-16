@@ -8,12 +8,12 @@
  * @param {string} filename - ชื่อไฟล์ที่ต้องการบันทึก
  */
 export const downloadFile = (url, filename) => {
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
-  link.download = filename || 'download';
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  
+  link.download = filename || "download";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+
   // Append to body, click, and remove
   document.body.appendChild(link);
   link.click();
@@ -30,19 +30,19 @@ export const downloadFileWithFetch = async (url, filename) => {
     const response = await fetch(url);
     const blob = await response.blob();
     const blobUrl = window.URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
+
+    const link = document.createElement("a");
     link.href = blobUrl;
-    link.download = filename || 'download';
-    
+    link.download = filename || "download";
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Clean up blob URL
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {
-    console.error('Download failed:', error);
+    console.error("Download failed:", error);
     // Fallback to simple link
     downloadFile(url, filename);
   }
@@ -53,7 +53,7 @@ export const downloadFileWithFetch = async (url, filename) => {
  * @param {string} url - URL ของไฟล์
  */
 export const openFileInNewTab = (url) => {
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(url, "_blank", "noopener,noreferrer");
 };
 
 /**
@@ -62,6 +62,6 @@ export const openFileInNewTab = (url) => {
  * @returns {string} Normalized path
  */
 export const normalizePath = (path) => {
-  if (!path) return '';
-  return path.replace(/\\/g, '/');
+  if (!path) return "";
+  return path.replace(/\\/g, "/");
 };

@@ -1,4 +1,9 @@
-import React, { useState } from "react";
+import {
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  FilterList as FilterListIcon,
+  CalendarMonth as CalendarIcon,
+} from "@mui/icons-material";
 import {
   Box,
   TextField,
@@ -10,16 +15,11 @@ import {
   Tooltip,
   Stack,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  FilterList as FilterListIcon,
-  CalendarMonth as CalendarIcon,
-} from "@mui/icons-material";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { th } from "date-fns/locale";
+import { useState } from "react";
 
 /**
  * Compact, single-strip advanced filter bar.
@@ -31,7 +31,6 @@ import { th } from "date-fns/locale";
 const AdvancedFilter = ({
   filters,
   handlers,
-  onRefresh,
   statusOptions = [],
   statusBeforeOptions = [],
   statusAfterOptions = [],
@@ -39,7 +38,6 @@ const AdvancedFilter = ({
 }) => {
   const showStatusBefore = statusBeforeOptions.length > 0;
   const showStatusAfter = statusAfterOptions.length > 0;
-  const hasStatusDropdowns = statusOptions.length > 0 || showStatusBefore || showStatusAfter;
 
   const [open, setOpen] = useState(false);
 

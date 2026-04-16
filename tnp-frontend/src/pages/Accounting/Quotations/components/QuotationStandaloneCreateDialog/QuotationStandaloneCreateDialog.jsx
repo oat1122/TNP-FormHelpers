@@ -1,4 +1,13 @@
-import React, { useState } from "react";
+import {
+  Close as CloseIcon,
+  Save as SaveIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Person as PersonIcon,
+  Business as BusinessIcon,
+  LocationOn as LocationOnIcon,
+  AddCircleOutline as AddCircleOutlineIcon,
+} from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -18,25 +27,13 @@ import {
   Grid,
   InputAdornment,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
-  LocationOn as LocationOnIcon,
-  AddCircleOutline as AddCircleOutlineIcon,
-} from "@mui/icons-material";
+import { useState } from "react";
 
-// ⭐️ นำเข้า Hook หลัก
-import { useQuotationStandaloneForm } from "./hooks/useQuotationStandaloneForm";
-
-// Import new/modified components
-import CustomerSelector from "./CustomerSelector";
-import QuotationJobManager from "./QuotationJobManager";
-import FinancialSummaryPanel from "./FinancialSummaryPanel";
 import CustomerCreateDialog from "./CustomerCreateDialog";
+import CustomerSelector from "./CustomerSelector";
+import FinancialSummaryPanel from "./FinancialSummaryPanel";
+import { useQuotationStandaloneForm } from "./hooks/useQuotationStandaloneForm";
+import QuotationJobManager from "./QuotationJobManager";
 
 const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบเสนอราคา", "การคำนวณทางการเงิน(สรุปรวม)"];
 
@@ -315,7 +312,8 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
           </Box>
         );
 
-      case 1: // ข้อมูลใบเสนอราคา
+      case 1: {
+        // ข้อมูลใบเสนอราคา
         const isCredit =
           formData.payment_terms === "credit_30" || formData.payment_terms === "credit_60";
 
@@ -396,6 +394,7 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
             />
           </Box>
         );
+      }
 
       case 2: // การคำนวณทางการเงิน(สรุปรวม)
         return (

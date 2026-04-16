@@ -6,9 +6,8 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Avatar,
 } from "@mui/material";
-import React from "react";
+import "react";
 
 import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 

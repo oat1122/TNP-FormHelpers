@@ -1,5 +1,6 @@
 // 📁hooks/useQuotationImageManager.js
 import React from "react";
+
 import {
   useGenerateQuotationPDFMutation,
   useUploadQuotationSignaturesMutation,
@@ -125,7 +126,7 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
           }));
           await updateQuotation({ id: quotationId, sample_images: updated }).unwrap();
           lastSyncedSelRef.current = value;
-        } catch (err) {
+        } catch {
           // keep local state; server will eventually refresh
         }
       }, 250);

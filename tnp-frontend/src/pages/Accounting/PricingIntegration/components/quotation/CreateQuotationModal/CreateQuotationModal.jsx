@@ -24,20 +24,12 @@ import {
   Avatar,
   Tooltip,
   IconButton,
-  Badge,
   LinearProgress,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import useCustomerPricingRequests from "../hooks/useCustomerPricingRequests";
-import {
-  Section,
-  SectionHeader,
-  PrimaryButton,
-  SecondaryButton,
-  InfoCard,
-  tokens,
-} from "../styles/quotationTheme";
+import { PrimaryButton, InfoCard, tokens } from "../styles/quotationTheme";
 
 const CreateQuotationModal = ({ open, onClose, pricingRequest, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

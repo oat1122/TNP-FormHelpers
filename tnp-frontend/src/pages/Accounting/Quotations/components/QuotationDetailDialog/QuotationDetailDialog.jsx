@@ -1,5 +1,4 @@
 // QuotationDetailDialog.jsx (Refactored)
-import React from "react";
 import {
   Assignment as AssignmentIcon,
   Calculate as CalculateIcon,
@@ -23,34 +22,30 @@ import {
 } from "@mui/material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import React from "react";
 
-// Import Hooks
-import { useQuotationDialogLogic } from "./hooks/useQuotationDialogLogic";
-import { useQuotationGroups } from "./hooks/useQuotationGroups";
-import { useQuotationFinancials } from "./hooks/useQuotationFinancials";
-import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
-
-// Import Subcomponents
-import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
-import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
-
-// Import utils
-import {
-  getAllPrIdsFromQuotation,
-  normalizeAndGroupItems,
-  computeTotals,
-} from "./utils/quotationUtils";
-import { formatTHB, formatDateTH } from "./utils/formatters";
-import { sanitizeInt } from "./utils/sanitizers";
-
-// Import existing shared components
-import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
-import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
-import VatField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
-import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import SyncConfirmationDialog from "../SyncConfirmationDialog";
 import SyncProgressDialog from "../SyncProgressDialog";
+import { useQuotationDialogLogic } from "./hooks/useQuotationDialogLogic";
+import { useQuotationFinancials } from "./hooks/useQuotationFinancials";
+import { useQuotationGroups } from "./hooks/useQuotationGroups";
+import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
+import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
+import { formatDateTH } from "./utils/formatters";
+import { apiConfig } from "../../../../../api/apiConfig";
+import {
+  useGetBulkPricingRequestAutofillQuery,
+  useGetQuotationRelatedInvoicesQuery,
+} from "../../../../../features/Accounting/accountingApi";
+import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
+import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
+import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
+import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
+import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
+import { getAllPrIdsFromQuotation, normalizeAndGroupItems } from "./utils/quotationUtils";
+import { sanitizeInt } from "./utils/sanitizers";
+import VatField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
+import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import {
   Section,
   SectionHeader,
@@ -61,12 +56,6 @@ import {
 import Calculation from "../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../shared/components/PaymentTerms";
-import { apiConfig } from "../../../../../api/apiConfig";
-import {
-  useGetBulkPricingRequestAutofillQuery,
-  useGetQuotationRelatedInvoicesQuery,
-} from "../../../../../features/Accounting/accountingApi";
-import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
 
 // ✅ รับ onSaveSuccess เพิ่ม
 const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
@@ -112,16 +101,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
 
   // 1. Main logic hook for data, state, and save handlers
   const dialogLogic = useQuotationDialogLogic(quotationId, open);
-  const {
-    q,
-    isLoading,
-    isSaving,
-    error,
-    customer,
-    setCustomer,
-    editCustomerOpen,
-    setEditCustomerOpen,
-  } = dialogLogic;
+  const { q, isLoading, isSaving, error, customer, setCustomer, editCustomerOpen } = dialogLogic;
 
   // Parse quotation items
   const prIdsAll = getAllPrIdsFromQuotation(q);
@@ -186,16 +166,23 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
   );
 
   // Initialize sample image selection
-  const signatureImages = Array.isArray(q?.signature_images) ? q.signature_images : [];
-  const sampleImages = Array.isArray(q?.sample_images) ? q.sample_images : [];
+  const signatureImages = React.useMemo(
+    () => (Array.isArray(q?.signature_images) ? q.signature_images : []),
+    [q?.signature_images]
+  );
+  const sampleImages = React.useMemo(
+    () => (Array.isArray(q?.sample_images) ? q.sample_images : []),
+    [q?.sample_images]
+  );
+  const { initializeSampleSelection, updateSampleSelection } = imageManager;
 
   React.useEffect(() => {
-    imageManager.initializeSampleSelection(sampleImages);
-  }, [q?.id, JSON.stringify(sampleImages), imageManager.initializeSampleSelection]);
+    initializeSampleSelection(sampleImages);
+  }, [q?.id, sampleImages, initializeSampleSelection]);
 
   React.useEffect(() => {
-    imageManager.updateSampleSelection(sampleImages);
-  }, [sampleImages, imageManager.updateSampleSelection]);
+    updateSampleSelection(sampleImages);
+  }, [sampleImages, updateSampleSelection]);
 
   // Main save handler with UI feedback and sync support
   const handleSave = async () => {

@@ -4,7 +4,7 @@
  */
 
 import { Card, Grid, Typography, Divider, Alert } from "@mui/material";
-import React from "react";
+import "react";
 
 import { formatTHB } from "../utils/invoiceFormatters";
 

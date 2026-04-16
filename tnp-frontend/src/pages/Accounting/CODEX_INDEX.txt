@@ -29,6 +29,8 @@ All routes are nested under `/accounting` with `AccountingLayout` as the shell:
 
 There is no dedicated top-level Receipts page in the current frontend. Receipt APIs are used by delivery-note source selection and invoice/payment flows.
 
+Invoice deep links support `/accounting/invoices?selected=<invoiceId>`. `Invoices/Invoices.jsx` consumes `selected`, opens `InvoiceDetailDialog`, and removes the query param when the dialog closes.
+
 ## Domain Flow
 
 The UI follows this document chain:
@@ -89,6 +91,13 @@ Important cache notes:
 - Updating quotations invalidates quotation, invoice, dashboard, and sync tags because quotations can sync into related invoices.
 - Invoice and delivery note mutations generally invalidate the entity tag plus list/dashboard tags.
 - File uploads use `FormData` and often set `X-Skip-Json`.
+- Receipt payloads are normalized in `accountingApi.js` before create/update/create-from-payment:
+  - `receipt_type` becomes `type`
+  - `vat_amount` becomes `tax_amount`
+  - `payment_amount` becomes `total_amount`
+  - `vat_type` is not sent to the backend
+- Receipt VAT helper sends `amount` and `type`. It accepts `type`, `receiptType`, or a legacy `vatType` only if that value is already a valid receipt type.
+- Receipt evidence upload sends multipart `files[]` plus optional `description`, and invalidates both receipt detail and list tags.
 
 ## UI State Slice
 
@@ -129,7 +138,7 @@ Quotations:
 
 Invoices:
 
-- `Invoices/Invoices.jsx`: main invoice list and selected invoice handling.
+- `Invoices/Invoices.jsx`: main invoice list and selected invoice handling. It also consumes `?selected=<invoiceId>` deep links and opens `InvoiceDetailDialog` without requiring the invoice to be on the current list page.
 - `Invoices/components/InvoiceCreateDialog.jsx`: creates invoice from quotation.
 - `Invoices/components/InvoiceDetailDialog.jsx`: details, update, PDF generation.
 - `Invoices/components/hooks/useInvoiceApproval.js`: before/after deposit approve/submit/deposit order.
@@ -161,7 +170,15 @@ All URLs below are relative to `apiConfig.baseUrl`.
 - `/delivery-notes*` -> `DeliveryNoteController`
 - `/companies*` -> backend Company controller, not under Accounting controller folder
 
-Static backend routes must stay before wildcard routes, especially report routes before `/quotations/{id}` and invoice utility routes before `/invoices/{id}`.
+Static backend routes must stay before wildcard routes, especially report routes before `/quotations/{id}`, invoice utility routes before `/invoices/{id}`, `/receipts/calculate-vat` before `/receipts/{id}`, and delivery utility routes before `/delivery-notes/{id}`.
+
+Receipt backend contract notes:
+
+- Current source of truth follows the legacy `receipts` table: `type`, `tax_amount`, `total_amount`, `payment_method`, `payment_reference`, `issued_by`, `approved_by`, `approved_at`, `created_at`.
+- Backend still exposes compatibility aliases such as `receipt_type`, `vat_amount`, `payment_amount`, and `payment_date`.
+- The current receipt table does not persist `payment_date`, `payment_amount`, `bank_name`, `vat_rate`, `vat_amount`, `created_by`, `updated_by`, `submitted_by`, or rejection/submission audit fields.
+- Receipt evidence upload contract is `files[]`; do not send `evidence_file`.
+- VAT contract is `amount` + `type`; do not send `vat_type`.
 
 ## Change Rules
 
@@ -172,3 +189,4 @@ Static backend routes must stay before wildcard routes, especially report routes
 - For binary PDF downloads/previews, prefer the existing direct `fetch` pattern in `useInvoiceActions.js` or a targeted helper; RTK Query JSON assumptions can be awkward for blobs.
 - Do not add a new global Redux field for server data already owned by RTK Query.
 - When changing payload fields, update frontend adapter/form, `accountingApi.js`, backend Form Request, service method, model fillable/casts, and migrations/index docs together.
+- When adding another invoice deep-link action, keep URL state and dialog close cleanup in `Invoices/Invoices.jsx` so browser navigation remains predictable.

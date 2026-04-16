@@ -11,7 +11,7 @@
       const cleanedHost = u.host.replace(/^api\./, "tnp.");
       return `${u.protocol}//${cleanedHost}/pricing/view/${encodedId}`;
     }
-  } catch (_) {
+  } catch {
     // ignore malformed URL
   }
 

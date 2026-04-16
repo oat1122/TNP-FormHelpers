@@ -8,7 +8,7 @@ import {
   Checkbox,
   Typography,
 } from "@mui/material";
-import React from "react";
+import "react";
 
 const FilterSection = ({ searchQuery, onSearchChange, showOnlyMine, onOnlyMineChange }) => {
   return (

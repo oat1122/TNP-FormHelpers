@@ -8,7 +8,7 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import React from "react";
+import "react";
 
 import {
   InfoCard,

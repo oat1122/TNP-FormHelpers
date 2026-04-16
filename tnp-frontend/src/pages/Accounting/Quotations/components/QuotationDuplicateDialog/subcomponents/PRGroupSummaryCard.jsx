@@ -1,8 +1,8 @@
 // 📁subcomponents/PRGroupSummaryCard.jsx
-import React from "react";
 import { Box, Typography, Grid, Chip } from "@mui/material";
+import React from "react";
+
 // ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
-import { formatTHB } from "../utils/formatters";
 
 // Import styles - need to check what's available
 // import { InfoCard, tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";

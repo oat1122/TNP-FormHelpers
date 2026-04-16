@@ -1,4 +1,14 @@
-import React, { useState, useMemo, useCallback } from "react";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import DateRangeIcon from "@mui/icons-material/DateRange";
+import EventIcon from "@mui/icons-material/Event";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import MenuIcon from "@mui/icons-material/Menu";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
+import TodayIcon from "@mui/icons-material/Today";
 import {
   Box,
   Container,
@@ -21,9 +31,8 @@ import {
   Menu,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { th } from "date-fns/locale";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import {
   format,
   startOfDay,
@@ -39,29 +48,19 @@ import {
   addMonths,
   subMonths,
 } from "date-fns";
-import SearchIcon from "@mui/icons-material/Search";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import TodayIcon from "@mui/icons-material/Today";
-import DateRangeIcon from "@mui/icons-material/DateRange";
-import EventIcon from "@mui/icons-material/Event";
-import EventNoteIcon from "@mui/icons-material/EventNote";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import MenuIcon from "@mui/icons-material/Menu";
+import { th } from "date-fns/locale";
+import { useState, useMemo, useCallback } from "react";
+import { useOutletContext } from "react-router-dom";
 
-import accountingTheme from "../../theme/accountingTheme";
+import ReportExportButton from "./components/ReportExportButton";
+import ReportStatusTabs from "./components/ReportStatusTabs";
+import ReportSummaryCards from "./components/ReportSummaryCards";
+import ReportTableView from "./components/ReportTableView";
 import {
   useGetQuotationReportQuery,
   useGetCompaniesQuery,
 } from "../../../../features/Accounting/accountingApi";
-import ReportStatusTabs from "./components/ReportStatusTabs";
-import ReportSummaryCards from "./components/ReportSummaryCards";
-import ReportTableView from "./components/ReportTableView";
-import ReportExportButton from "./components/ReportExportButton";
-
-import { useOutletContext } from "react-router-dom";
+import accountingTheme from "../../theme/accountingTheme";
 
 const QuotationReport = () => {
   // Navigation context to open drawer
@@ -210,8 +209,8 @@ const QuotationReport = () => {
   const { data: companiesData } = useGetCompaniesQuery();
 
   // Full data from API (all statuses)
-  const allReportData = data?.data?.data ?? data?.data ?? [];
-  const summary = data?.data?.summary ?? data?.summary ?? {};
+  const allReportData = useMemo(() => data?.data?.data ?? data?.data ?? [], [data]);
+
   const companies = Array.isArray(companiesData?.data) ? companiesData.data : (companiesData ?? []);
 
   // Counts always from FULL data — never affected by active tab

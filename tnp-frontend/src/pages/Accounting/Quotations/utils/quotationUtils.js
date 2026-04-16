@@ -65,7 +65,7 @@ export const getAllPrIdsFromQuotation = (q = {}) => {
   ) {
     try {
       arr = JSON.parse(q.primary_pricing_request_ids);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -75,7 +75,7 @@ export const getAllPrIdsFromQuotation = (q = {}) => {
     if (it?.pricing_request_id) set.add(parseInt(it.pricing_request_id, 10));
   });
   // ✅ แปลงเป็น array และกรอง NaN ออก
-  return Array.from(set).filter(id => !isNaN(id));
+  return Array.from(set).filter((id) => !isNaN(id));
 };
 
 // Build normalized quotation_items then group them by pricing_request_id

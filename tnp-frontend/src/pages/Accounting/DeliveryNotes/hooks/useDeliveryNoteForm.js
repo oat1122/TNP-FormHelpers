@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export function useDeliveryNoteForm(open, source, invoice, customer) {
+export function useDeliveryNoteForm(open, source, invoice) {
   const defaultNotesText = `สินค้าทุกชิ้นตรวจสอบก่อนส่งเรียบร้อยแล้ว  
 กรุณาตรวจสอบสินค้าทันทีเมื่อได้รับ หากพบปัญหาโปรดแจ้งภายใน 7 วันนับจากวันรับสินค้า  
 ไม่รับคืนหรือเปลี่ยนสินค้าหลังจาก 7 วัน หรือกรณีสินค้ามีการใช้งาน / ซัก / ดัดแปลงแล้ว  

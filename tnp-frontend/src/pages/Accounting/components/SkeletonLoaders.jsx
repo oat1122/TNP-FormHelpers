@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Card, CardContent, Skeleton, Grid, Stack } from "@mui/material";
+import "react";
 
 /**
  * Dashboard Stats Card Skeleton

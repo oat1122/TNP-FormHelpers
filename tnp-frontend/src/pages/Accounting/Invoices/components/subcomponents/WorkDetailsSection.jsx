@@ -4,7 +4,7 @@
 
 import WorkIcon from "@mui/icons-material/Work";
 import { Box, Stack, Typography } from "@mui/material";
-import React from "react";
+import "react";
 
 import { formatItemsList } from "../utils/invoiceLogic";
 

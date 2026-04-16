@@ -3,7 +3,7 @@ import {
   TrendingDown as TrendingDownIcon,
 } from "@mui/icons-material";
 import { Box, Grid, Typography, Divider, Card, CardContent, useTheme } from "@mui/material";
-import React from "react";
+import "react";
 
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
@@ -15,8 +15,6 @@ const CalculationSummary = ({
   vat = 0,
   total = 0, // discountedSubtotal + VAT
   withholdingTaxAmount = 0,
-  finalTotal = 0,
-  showDetailed = true,
 }) => {
   const theme = useTheme();
 

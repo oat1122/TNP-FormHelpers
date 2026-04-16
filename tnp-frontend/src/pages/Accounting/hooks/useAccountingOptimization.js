@@ -38,7 +38,7 @@ export const usePerformanceMonitor = (componentName) => {
   useEffect(() => {
     renderCountRef.current += 1;
 
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       const renderTime = performance.now() - startTimeRef.current;
 
       console.log(`[Performance] ${componentName}:`, {
@@ -53,7 +53,7 @@ export const usePerformanceMonitor = (componentName) => {
 
   const logCustomMetric = useCallback(
     (metricName, value) => {
-      if (process.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         console.log(`[Performance] ${componentName} - ${metricName}:`, value);
       }
     },
@@ -232,10 +232,11 @@ export const useVirtualScroll = (items = [], itemHeight = 80, containerHeight = 
     };
   }, [items, itemHeight, containerHeight, scrollTop]);
 
-  const handleScroll = useCallback(
-    throttle((e) => {
-      setScrollTop(e.target.scrollTop);
-    }, 16), // 60fps
+  const handleScroll = useMemo(
+    () =>
+      throttle((e) => {
+        setScrollTop(e.target.scrollTop);
+      }, 16), // 60fps
     []
   );
 
@@ -372,6 +373,8 @@ export const useOptimizedRerender = (dependencies = []) => {
   const previousDeps = useRef();
   const [renderKey, setRenderKey] = useState(0);
 
+  // This hook intentionally accepts a dynamic dependency list and compares it manually.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const depsChanged =
       !previousDeps.current ||
@@ -381,7 +384,7 @@ export const useOptimizedRerender = (dependencies = []) => {
       previousDeps.current = dependencies;
       setRenderKey((prev) => prev + 1);
     }
-  }, dependencies);
+  });
 
   return renderKey;
 };

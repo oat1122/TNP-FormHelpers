@@ -1,6 +1,6 @@
 ﻿import React from "react";
+
 import {
-  useDeleteQuotationMutation,
   useGetCompaniesQuery,
   useUpdateQuotationMutation,
   useApproveQuotationMutation,
@@ -19,9 +19,8 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
   );
 
   const [showAll, setShowAll] = React.useState(false);
-  const [deleted, setDeleted] = React.useState(false);
+  const [deleted] = React.useState(false);
 
-  const [deleteQuotation] = useDeleteQuotationMutation();
   const { data: companiesResp, isLoading: companiesLoading } = useGetCompaniesQuery(undefined, {
     refetchOnMountOrArgChange: false,
   });

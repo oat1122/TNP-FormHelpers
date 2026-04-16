@@ -1,6 +1,6 @@
 import CloseIcon from "@mui/icons-material/Close";
 import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
-import React from "react";
+import "react";
 
 import CustomerEditCard from "./CustomerEditCard";
 

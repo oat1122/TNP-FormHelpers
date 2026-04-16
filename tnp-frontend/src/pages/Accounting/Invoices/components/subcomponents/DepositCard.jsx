@@ -3,7 +3,7 @@
  */
 
 import { Box, Card, Typography, Stack } from "@mui/material";
-import React from "react";
+import "react";
 
 import LabeledSwitch from "../../../shared/components/LabeledSwitch";
 import { formatTHB } from "../utils/invoiceFormatters";
@@ -14,7 +14,6 @@ const DepositCard = ({
   paidAmount,
   remaining,
   activeSideStatus,
-  hasEvidence,
   onModeChange,
   invoice,
   hasEvidenceForMode,

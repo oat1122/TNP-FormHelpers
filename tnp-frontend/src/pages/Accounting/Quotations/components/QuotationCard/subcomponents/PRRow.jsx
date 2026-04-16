@@ -1,5 +1,6 @@
-﻿import React from "react";
-import { Box, Button, Chip, Collapse, Stack, Typography } from "@mui/material";
+﻿import { Box, Button, Chip, Collapse, Stack, Typography } from "@mui/material";
+import React from "react";
+
 import PricingRequestNotesButton from "../../../../PricingIntegration/components/PricingRequestNotesButton";
 import usePRRowLogic from "../hooks/usePRRowLogic";
 import { getPricingViewUrl } from "../utils/urls";
@@ -27,7 +28,13 @@ export default function PRRow({ prId, items }) {
       }}
     >
       <Box
-        sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, minWidth: 0 }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+          minWidth: 0,
+        }}
       >
         <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <Typography variant="body1" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -53,7 +60,13 @@ export default function PRRow({ prId, items }) {
             href={getPricingViewUrl(prId)}
             target="_blank"
             rel="noopener"
-            sx={{ textTransform: "none", px: 1.25, py: 0.25, borderRadius: 1.5, alignSelf: "center" }}
+            sx={{
+              textTransform: "none",
+              px: 1.25,
+              py: 0.25,
+              borderRadius: 1.5,
+              alignSelf: "center",
+            }}
           >
             ดูใบงานต้นฉบับ
           </Button>
@@ -100,9 +113,19 @@ export default function PRRow({ prId, items }) {
                       {group.name}
                     </Typography>
                     <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
-                      {group.pattern && <Chip size="small" label={`แพทเทิร์น: ${group.pattern}`} variant="outlined" />}
-                      {group.fabric && <Chip size="small" label={`ผ้า: ${group.fabric}`} variant="outlined" />}
-                      {group.color && <Chip size="small" label={`สี: ${group.color}`} variant="outlined" />}
+                      {group.pattern && (
+                        <Chip
+                          size="small"
+                          label={`แพทเทิร์น: ${group.pattern}`}
+                          variant="outlined"
+                        />
+                      )}
+                      {group.fabric && (
+                        <Chip size="small" label={`ผ้า: ${group.fabric}`} variant="outlined" />
+                      )}
+                      {group.color && (
+                        <Chip size="small" label={`สี: ${group.color}`} variant="outlined" />
+                      )}
                     </Stack>
                   </Box>
                   <Box sx={{ textAlign: "right" }}>
@@ -132,13 +155,25 @@ export default function PRRow({ prId, items }) {
                     <Typography variant="caption" color="text.secondary">
                       ไซส์
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ textAlign: "right" }}
+                    >
                       ราคา/หน่วย
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ textAlign: "right" }}
+                    >
                       จำนวน
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ textAlign: "right" }}
+                    >
                       รวม
                     </Typography>
                   </Box>

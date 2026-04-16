@@ -3,7 +3,6 @@ import {
   Payment as PaymentIcon,
   Assignment as AssignmentIcon,
   Edit as EditIcon,
-  Business as BusinessIcon,
 } from "@mui/icons-material";
 import {
   Box,
@@ -38,6 +37,9 @@ import {
   useUpdateInvoiceMutation,
   useGenerateInvoicePDFMutation,
 } from "../../../../features/Accounting/accountingApi";
+import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
+import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
+import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import {
   Section,
   SectionHeader,
@@ -45,13 +47,10 @@ import {
   InfoCard,
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { Calculation, PaymentTerms } from "../../shared/components";
 import { PRGroupSummaryCard } from "../../Quotations/components/QuotationDetailDialog/subcomponents/PRGroupSummaryCard";
-import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
-import PricingModeSelector from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
+import { Calculation, PaymentTerms } from "../../shared/components";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
-import { formatTHB, formatDateTH } from "../utils/format";
+import { formatDateTH } from "../utils/format";
 
 // Format invoice type labels
 const typeLabels = {
@@ -75,12 +74,6 @@ const statusColors = {
 };
 
 // Local helpers
-const toMoney = (n) => formatTHB(n || 0);
-const sanitizeZipDup = (text) => {
-  if (!text) return "";
-  // collapse duplicated 5-digit zip e.g., "10240 10240" -> "10240"
-  return String(text).replace(/(\b\d{5}\b)\s+\1/g, "$1");
-};
 
 // Normalize customer data from master_customers relationship
 const normalizeCustomer = (invoice) => {
@@ -175,13 +168,12 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState("");
   const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfUrl] = useState("");
   const [customerDataSource, setCustomerDataSource] = useState("master"); // 'master' or 'invoice'
   const customerSourceManuallySet = useRef(false);
   const prevInvoiceIdRef = useRef(null);
 
   // New state for the enhanced calculation section
-  const [expandedItems, setExpandedItems] = useState({});
   const [editableItems, setEditableItems] = useState([]);
   const [discountTypeState, setDiscountTypeState] = useState("percentage"); // 👈 เพิ่ม State
 
@@ -216,7 +208,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   });
 
   // Get invoice data
-  const invoice = data?.data || data || {};
+  const invoice = React.useMemo(() => data?.data || data || {}, [data]);
   const customer = normalizeCustomer(invoice);
   const items = normalizeItems(invoice);
 
@@ -322,7 +314,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
       }));
       setEditableItems(processedItems);
     }
-  }, [invoice?.items]);
+  }, [invoice]);
 
   // Use Invoice calculation hook
   const calculation = useInvoiceCalculation({
@@ -350,16 +342,6 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
     originalInvoice: invoice,
     formData,
   });
-
-  // Derived summary numbers for dialog summary bar and sections
-  const subtotal = calculation.subtotal || Number(invoice.subtotal || 0);
-  const vat = calculation.vatAmount || Number(invoice.vat_amount || invoice.tax_amount || 0);
-  const total = calculation.finalTotalAmount ?? (Number(invoice.final_total_amount || 0) || 0);
-  const paid = Number(invoice.paid_amount || 0);
-  const deposit = Number(invoice.deposit_amount || 0);
-  const remaining = Math.max((total || 0) - paid - deposit, 0);
-  const due = invoice?.due_date ? new Date(invoice.due_date) : null;
-  const isOverdue = !!(due && remaining > 0 && due < new Date());
 
   const handleSave = async () => {
     try {
@@ -511,12 +493,6 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   };
 
   // Enhanced calculation handlers
-  const handleToggleItemExpanded = (itemIndex) => {
-    setExpandedItems((prev) => ({
-      ...prev,
-      [itemIndex]: !prev[itemIndex],
-    }));
-  };
 
   const handleAddSizeRow = (itemIndex, newRow = { size: "", quantity: 0, unitPrice: 0 }) => {
     setEditableItems((prev) =>

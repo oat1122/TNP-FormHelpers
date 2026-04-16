@@ -1,12 +1,11 @@
-﻿import React from "react";
-import BusinessIcon from "@mui/icons-material/Business";
-import DescriptionIcon from "@mui/icons-material/Description";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import DownloadIcon from "@mui/icons-material/Download";
+﻿import BusinessIcon from "@mui/icons-material/Business";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ReceiptIcon from "@mui/icons-material/Receipt";
+import DescriptionIcon from "@mui/icons-material/Description";
+import DownloadIcon from "@mui/icons-material/Download";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
+import ReceiptIcon from "@mui/icons-material/Receipt";
 import UndoIcon from "@mui/icons-material/Undo";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Avatar,
   Box,
@@ -23,6 +22,13 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import "react";
+
+import useQuotationCardLogic from "./hooks/useQuotationCardLogic";
+import { useQuotationStatusReversal } from "./hooks/useQuotationStatusReversal";
+import PRRow from "./subcomponents/PRRow";
+import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
+import statusColor from "./utils/statusMap";
 import {
   TNPBodyText,
   TNPCard,
@@ -30,20 +36,12 @@ import {
   TNPCountChip,
   TNPDivider,
   TNPHeading,
-  TNPPrimaryButton,
-  TNPSecondaryButton,
   TNPStatusChip,
 } from "../../../PricingIntegration/components/styles/StyledComponents";
-import PRRow from "./subcomponents/PRRow";
-import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
-import statusColor from "./utils/statusMap";
-import useQuotationCardLogic from "./hooks/useQuotationCardLogic";
-import { useQuotationStatusReversal } from "./hooks/useQuotationStatusReversal";
 
 export default function QuotationCard({
   data,
-  onDownloadPDF,
-  onViewLinked, // kept for backward compatibility
+  onDownloadPDF, // kept for backward compatibility
   onViewDetail,
   onCreateInvoice,
   onDuplicate, // ✅ เพิ่ม prop ใหม่

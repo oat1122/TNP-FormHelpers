@@ -8,13 +8,12 @@ import {
   Typography,
   List,
   ListItem,
-  ListItemText,
   Chip,
   CircularProgress,
   Stack,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 import {
   useGetQuotationQuery,
@@ -43,7 +42,7 @@ const getPricingViewUrl = (prId) => {
       const cleanedHost = u.host.replace(/^api\./, "").replace(/-api(?=\.|:)/, "");
       return `${u.protocol}//${cleanedHost}/pricing/view/${encodeURIComponent(prId)}`;
     }
-  } catch (e) {
+  } catch {
     // fall back to relative path
   }
   return `/pricing/view/${encodeURIComponent(prId)}`;

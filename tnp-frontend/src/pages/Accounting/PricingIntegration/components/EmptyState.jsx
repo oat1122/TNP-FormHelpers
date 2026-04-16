@@ -1,6 +1,6 @@
 import { Assignment as AssignmentIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { Typography, Button, Paper } from "@mui/material";
-import React from "react";
+import "react";
 
 const EmptyState = ({ onRefresh }) => {
   return (

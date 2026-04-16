@@ -1,4 +1,5 @@
-import React, { memo, useMemo } from "react";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import EditIcon from "@mui/icons-material/Edit";
 import {
   Box,
   Chip,
@@ -12,22 +13,10 @@ import {
   TableRow,
   Tooltip,
   Typography,
-  Stack,
 } from "@mui/material";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import EditIcon from "@mui/icons-material/Edit";
+import { memo } from "react";
 
 /* ── Status helpers ── */
-const statusColorMap = {
-  complete: "success",
-  ได้ราคาแล้ว: "success",
-  pending: "warning",
-  รอทำราคา: "warning",
-  in_progress: "info",
-  กำลังทำราคา: "info",
-  submitted: "primary",
-  ส่งคำขอสร้างใบเสนอราคาแล้ว: "primary",
-};
 
 /* ── shared styles ── */
 const headCellSx = {

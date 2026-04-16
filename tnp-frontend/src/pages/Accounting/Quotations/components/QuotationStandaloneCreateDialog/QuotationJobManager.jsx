@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import { Add as AddIcon, DeleteOutline as DeleteIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -7,13 +7,12 @@ import {
   TextField,
   Typography,
   Grid,
-  Divider,
   Chip,
-  MenuItem,
   Tooltip,
   Autocomplete,
 } from "@mui/material";
-import { Add as AddIcon, DeleteOutline as DeleteIcon } from "@mui/icons-material";
+import React, { useCallback } from "react";
+
 import { formatTHB, sanitizeDecimal, sanitizeInt } from "./utils/formatting";
 
 /**

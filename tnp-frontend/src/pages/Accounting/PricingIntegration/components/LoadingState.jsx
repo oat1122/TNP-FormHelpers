@@ -1,5 +1,5 @@
 import { Grid, Card, CardContent, Skeleton } from "@mui/material";
-import React from "react";
+import "react";
 
 const LoadingState = ({ itemCount = 6 }) => {
   return (

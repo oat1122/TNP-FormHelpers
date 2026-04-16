@@ -1,15 +1,15 @@
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   Box,
   Container,
   Grid,
   Alert,
   Button,
-  Stack,
   ToggleButtonGroup,
   ToggleButton,
   FormControlLabel,
   Checkbox,
-  Paper,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -17,25 +17,17 @@ import { ThemeProvider } from "@mui/material/styles";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { th } from "date-fns/locale";
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 
 import {
   useGetQuotationsQuery,
-  useApproveQuotationMutation,
-  useRejectQuotationMutation,
-  useSendBackQuotationMutation,
   useGenerateQuotationPDFMutation,
-  useMarkQuotationSentMutation,
-  useUploadQuotationEvidenceMutation,
-  useSubmitQuotationMutation,
   useLazyGetQuotationDuplicateDataQuery,
 } from "../../../features/Accounting/accountingApi";
 import { addNotification } from "../../../features/Accounting/accountingSlice";
-import { useQuotationOptimisticUpdates } from "../hooks/useOptimisticUpdates";
 import {
   Header,
-  FilterSection,
   PaginationSection,
   LoadingState,
   ErrorState,
@@ -44,16 +36,14 @@ import {
 } from "../PricingIntegration/components";
 import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import CompanyManagerDialog from "./components/CompanyManagerDialog";
 import LinkedPricingDialog from "./components/LinkedPricingDialog";
 import QuotationCard from "./components/QuotationCard";
-import QuotationTableView from "./components/QuotationTableView";
-// ApprovalPanel removed along with Drawer UI
 import QuotationDetailDialog from "./components/QuotationDetailDialog";
 import QuotationDuplicateDialog from "./components/QuotationDuplicateDialog";
 import QuotationStandaloneCreateDialog from "./components/QuotationStandaloneCreateDialog";
+import QuotationTableView from "./components/QuotationTableView";
+// ApprovalPanel removed along with Drawer UI
 import usePagination from "./hooks/usePagination";
 import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
 
@@ -115,49 +105,16 @@ const Quotations = () => {
   // const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
   const validQuotations = useMemo(() => quotations, [quotations]); // ✅ แสดงทั้งหมด
 
-  const {
-    pageData: paginated,
-    info: paginationInfo,
-    total,
-  } = usePagination(validQuotations, currentPage, itemsPerPage);
+  const { pageData: paginated, info: paginationInfo } = usePagination(
+    validQuotations,
+    currentPage,
+    itemsPerPage
+  );
 
-  const [approveQuotation] = useApproveQuotationMutation();
-  const [rejectQuotation] = useRejectQuotationMutation();
-  const [sendBackQuotation] = useSendBackQuotationMutation();
-  const [markSent] = useMarkQuotationSentMutation();
   const [generatePDF] = useGenerateQuotationPDFMutation();
-  const [uploadEvidence] = useUploadQuotationEvidenceMutation();
-  const [submitQuotation] = useSubmitQuotationMutation();
 
   // ✅ Duplicate hook
-  const [triggerGetDuplicateData, { isLoading: isLoadingDuplicateData }] =
-    useLazyGetQuotationDuplicateDataQuery();
-
-  // ใช้ optimistic updates hooks
-  const {
-    approveQuotation: handleApproveOptimistic,
-    rejectQuotation: handleRejectOptimistic,
-    sendBackQuotation: handleSendBackOptimistic,
-    submitQuotation: handleSubmitOptimistic,
-    uploadEvidence: handleUploadOptimistic,
-    markQuotationSent: handleMarkSentOptimistic,
-  } = useQuotationOptimisticUpdates();
-
-  const handleApprove = async (id, notes) => {
-    await handleApproveOptimistic(approveQuotation, id, notes);
-  };
-
-  const handleReject = async (id, reason) => {
-    await handleRejectOptimistic(rejectQuotation, id, reason);
-  };
-
-  const handleSendBack = async (id, reason) => {
-    await handleSendBackOptimistic(sendBackQuotation, id, reason);
-  };
-
-  const handleMarkSent = async (id, payload) => {
-    await handleMarkSentOptimistic(markSent, id, payload);
-  };
+  const [triggerGetDuplicateData] = useLazyGetQuotationDuplicateDataQuery();
 
   const handleDownloadPDF = async (id) => {
     try {
@@ -174,14 +131,6 @@ const Quotations = () => {
         })
       );
     }
-  };
-
-  const handleUploadEvidence = async (id, files, description) => {
-    await handleUploadOptimistic(uploadEvidence, id, files, description);
-  };
-
-  const handleSubmitForReview = async (id) => {
-    await handleSubmitOptimistic(submitQuotation, id);
   };
 
   // ✅ Handler สำหรับทำสำเนา
@@ -241,11 +190,6 @@ const Quotations = () => {
     refetch();
   }, [refetch]);
 
-  const handleResetFilters = () => {
-    setSignatureOnly(false);
-    setShowOnlyMine(false);
-  };
-
   const handlePageChange = useCallback((e, p) => {
     setCurrentPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -263,7 +207,7 @@ const Quotations = () => {
     if (paginationInfo && currentPage > paginationInfo.last_page) {
       setCurrentPage(paginationInfo.last_page || 1);
     }
-  }, [paginationInfo?.last_page]);
+  }, [currentPage, paginationInfo]);
 
   return (
     <ThemeProvider theme={accountingTheme}>

@@ -43,18 +43,11 @@ use App\Models\Company;
  * @property \Carbon\Carbon|null $approved_at
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
- * @property string|null $payment_date
- * @property float|null $payment_amount
- * @property string|null $bank_name
- * @property string|null $receipt_type
- * @property float|null $vat_rate
- * @property float|null $vat_amount
- * @property string|null $created_by
- * @property string|null $updated_by
- * @property string|null $submitted_by
- * @property \Carbon\Carbon|null $submitted_at
- * @property string|null $rejected_by
- * @property \Carbon\Carbon|null $rejected_at
+ * @property-read string $receipt_type
+ * @property-read string|null $payment_date
+ * @property-read float $payment_amount
+ * @property-read float $vat_rate
+ * @property-read float $vat_amount
  */
 class Receipt extends Model
 {
@@ -89,33 +82,24 @@ class Receipt extends Model
         'notes',
         'issued_by',
         'approved_by',
-        'approved_at',
-        'payment_date',
-        'payment_amount',
-        'bank_name',
-        'receipt_type',
-        'vat_rate',
-        'vat_amount',
-        'created_by',
-        'updated_by',
-        'submitted_by',
-        'submitted_at',
-        'rejected_by',
-        'rejected_at'
+        'approved_at'
     ];
 
     protected $casts = [
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'payment_amount' => 'decimal:2',
-        'vat_rate' => 'decimal:2',
-        'vat_amount' => 'decimal:2',
         'approved_at' => 'datetime',
-        'submitted_at' => 'datetime',
-        'rejected_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
+    ];
+
+    protected $appends = [
+        'receipt_type',
+        'payment_date',
+        'payment_amount',
+        'vat_rate',
+        'vat_amount',
     ];
 
     // Generate UUID when creating + PDF cache invalidation
@@ -278,6 +262,46 @@ class Receipt extends Model
     public function getCustomerFullNameAttribute(): string
     {
         return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+    }
+
+    /**
+     * Legacy API alias for the canonical type column.
+     */
+    public function getReceiptTypeAttribute(): string
+    {
+        return $this->type;
+    }
+
+    /**
+     * Legacy API alias for the receipt creation date.
+     */
+    public function getPaymentDateAttribute(): ?string
+    {
+        return $this->created_at?->toDateString();
+    }
+
+    /**
+     * Legacy API alias for the canonical total_amount column.
+     */
+    public function getPaymentAmountAttribute(): float
+    {
+        return (float) $this->total_amount;
+    }
+
+    /**
+     * Runtime VAT rate derived from receipt type.
+     */
+    public function getVatRateAttribute(): float
+    {
+        return in_array($this->type, ['tax_invoice', 'full_tax_invoice'], true) ? 0.07 : 0.0;
+    }
+
+    /**
+     * Legacy API alias for the canonical tax_amount column.
+     */
+    public function getVatAmountAttribute(): float
+    {
+        return (float) $this->tax_amount;
     }
 
     /**

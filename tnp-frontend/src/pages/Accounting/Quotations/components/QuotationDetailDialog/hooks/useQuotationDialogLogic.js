@@ -1,21 +1,22 @@
 // 📁hooks/useQuotationDialogLogic.js
 import React from "react";
+
 import {
   useGetQuotationQuery,
   useUpdateQuotationMutation,
 } from "../../../../../../features/Accounting/accountingApi";
-import {
-  pickQuotation,
-  normalizeCustomer,
-  toISODate,
-  computeTotals,
-} from "../utils/quotationUtils";
 import {
   showSuccess,
   showError,
   showLoading,
   dismissToast,
 } from "../../../../utils/accountingToast";
+import {
+  pickQuotation,
+  normalizeCustomer,
+  toISODate,
+  computeTotals,
+} from "../utils/quotationUtils";
 
 // Validation helper for manual jobs
 function validateManualJob(group) {
@@ -46,7 +47,7 @@ export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
     skip: !open || !quotationId,
   });
-  const q = pickQuotation(data);
+  const q = React.useMemo(() => pickQuotation(data), [data]);
 
   const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
 
@@ -108,7 +109,7 @@ export function useQuotationDialogLogic(quotationId, open) {
   // Effect to sync state when quotation data is loaded or changed
   React.useEffect(() => {
     setCustomer(normalizeCustomer(q));
-  }, [q?.id, q?.customer_name, q?.customer]);
+  }, [q]);
 
   React.useEffect(() => {
     // Sync notes from server when quotation changes/opened
@@ -126,7 +127,18 @@ export function useQuotationDialogLogic(quotationId, open) {
     setDepositMode(q?.deposit_mode || "percentage");
     setDepositAmountInput(q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : "");
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
-  }, [open, q?.id, q?.notes]);
+  }, [
+    open,
+    q?.credit_days,
+    q?.deposit_amount,
+    q?.deposit_mode,
+    q?.deposit_percentage,
+    q?.due_date,
+    q?.id,
+    q?.notes,
+    q?.payment_method,
+    q?.payment_terms,
+  ]);
 
   // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
   const [hasInitializedFinancials, setHasInitializedFinancials] = React.useState(false);
@@ -180,7 +192,7 @@ export function useQuotationDialogLogic(quotationId, open) {
     const manualJobErrors = {};
     let hasValidationErrors = false;
 
-    groups.forEach((group, index) => {
+    groups.forEach((group) => {
       if (group.isManual) {
         const errors = validateManualJob(group);
         if (errors.length > 0) {

@@ -20,7 +20,7 @@ export const PERFORMANCE_CONFIG = {
   LOCAL_STORAGE_TTL: 24 * 60 * 60 * 1000, // 24 hours
 
   // Performance Monitoring
-  ENABLE_PERFORMANCE_LOGGING: process.env.NODE_ENV === "development",
+  ENABLE_PERFORMANCE_LOGGING: import.meta.env.DEV,
   PERFORMANCE_THRESHOLD_MS: 100, // Log operations taking longer than 100ms
 
   // Virtual Scrolling
@@ -103,7 +103,7 @@ export const PERFORMANCE_THRESHOLDS = {
  * Error boundaries configuration
  */
 export const ERROR_BOUNDARY_CONFIG = {
-  ENABLE_ERROR_REPORTING: process.env.NODE_ENV === "production",
+  ENABLE_ERROR_REPORTING: import.meta.env.PROD,
   FALLBACK_COMPONENT: "ErrorFallback",
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,

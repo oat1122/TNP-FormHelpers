@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import { Business, Phone, Email, LocationOn } from "@mui/icons-material";
 import {
   Autocomplete,
   TextField,
@@ -8,7 +8,8 @@ import {
   Paper,
   Chip,
 } from "@mui/material";
-import { Business, Phone, Email, LocationOn } from "@mui/icons-material";
+import { useState, useCallback, useMemo } from "react";
+
 import { useGetCustomersQuery } from "../../../../../features/Accounting/accountingApi";
 
 /**

@@ -1,7 +1,8 @@
 import AddIcon from "@mui/icons-material/Add";
-import { Box, Container, Grid, Alert, Stack, Button, Chip, Typography, Fab } from "@mui/material";
+import { Box, Container, Grid, Alert, Stack, Button, Typography, Fab } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   Header,
@@ -15,11 +16,14 @@ import InvoiceCard from "./components/InvoiceCard";
 import InvoiceCreateDialog from "./components/InvoiceCreateDialog";
 import InvoiceDetailDialog from "./components/InvoiceDetailDialog";
 import QuotationSelectionDialog from "./components/QuotationSelectionDialog";
-import { useInvoiceActions } from "../../../hooks/Accounting/useInvoiceActions";
 import { useGetInvoicesQuery } from "../../../features/Accounting/accountingApi";
+import { useInvoiceActions } from "../../../hooks/Accounting/useInvoiceActions";
 import CompanyManagerDialog from "../Quotations/components/CompanyManagerDialog";
 
 const Invoices = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedInvoiceFromUrl = searchParams.get("selected");
+
   // Define status options for invoices
   // Define options for status before/after deposit
   const statusBeforeOptions = [
@@ -36,14 +40,8 @@ const Invoices = () => {
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
 
   // Use Invoice Actions hook
-  const {
-    handleApprove,
-    handleSubmit,
-    handleSubmitAndApprove,
-    handleDownloadPDF,
-    handlePreviewPDF,
-    handleDownloadMultiHeader,
-  } = useInvoiceActions();
+  const { handleSubmit, handleSubmitAndApprove, handleDownloadPDF, handlePreviewPDF } =
+    useInvoiceActions();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -60,7 +58,7 @@ const Invoices = () => {
   const canManageInvoices = isAdmin || isAccount;
 
   // Invoices: filter + pagination
-  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState("");
+  const [invoiceTypeFilter] = useState("");
   const [invoicePage, setInvoicePage] = useState(1);
   const [invoicePerPage, setInvoicePerPage] = useState(20);
 
@@ -110,6 +108,26 @@ const Invoices = () => {
     setSelectedInvoiceId(invoice.id);
     setDetailDialogOpen(true);
   };
+
+  const handleCloseInvoiceDetail = () => {
+    setDetailDialogOpen(false);
+    setSelectedInvoiceId(null);
+
+    if (searchParams.has("selected")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("selected");
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedInvoiceFromUrl || selectedInvoiceFromUrl === selectedInvoiceId) {
+      return;
+    }
+
+    setSelectedInvoiceId(selectedInvoiceFromUrl);
+    setDetailDialogOpen(true);
+  }, [selectedInvoiceFromUrl, selectedInvoiceId]);
 
   return (
     <ThemeProvider theme={accountingTheme}>
@@ -235,10 +253,7 @@ const Invoices = () => {
       {/* Invoice Detail Dialog */}
       <InvoiceDetailDialog
         open={detailDialogOpen}
-        onClose={() => {
-          setDetailDialogOpen(false);
-          setSelectedInvoiceId(null);
-        }}
+        onClose={handleCloseInvoiceDetail}
         invoiceId={selectedInvoiceId}
       />
 

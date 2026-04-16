@@ -34,7 +34,7 @@ const InvoiceTable = styled(Table)(({ theme }) => ({
   },
 }));
 
-const InvoiceAddButton = styled(Button)(({ theme }) => ({
+const InvoiceAddButton = styled(Button)(() => ({
   color: tokens.primary,
   borderColor: tokens.primary,
   "&:hover": {

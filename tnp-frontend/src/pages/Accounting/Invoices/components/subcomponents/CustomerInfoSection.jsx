@@ -5,7 +5,7 @@
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import PersonIcon from "@mui/icons-material/Person";
 import { Box, Stack, Typography } from "@mui/material";
-import React from "react";
+import "react";
 
 import { truncateText } from "../utils/invoiceFormatters";
 
@@ -19,22 +19,12 @@ const CustomerInfoSection = ({ invoice }) => {
       } else if (typeof invoice.customer_snapshot === "object") {
         customerSnapshot = invoice.customer_snapshot;
       }
-    } catch (error) {
+    } catch {
       customerSnapshot = null;
     }
   }
 
   // Priority: invoice overrides -> master customer relation -> snapshot (fallback only)
-  const displayCompanyName =
-    invoice?.customer_company ||
-    invoice?.customer?.cus_company ||
-    customerSnapshot?.customer_company ||
-    "บริษัท/ลูกค้า";
-  const displayAddress =
-    invoice?.customer_address ||
-    invoice?.customer?.cus_address ||
-    customerSnapshot?.customer_address ||
-    invoice?.customer_address;
   const displayTaxId =
     invoice?.customer_tax_id ||
     invoice?.customer?.cus_tax_id ||
@@ -61,11 +51,6 @@ const CustomerInfoSection = ({ invoice }) => {
     customerSnapshot?.customer_lastname ||
     invoice?.customer_lastname;
   const displayContactName = [displayFirstName, displayLastName].filter(Boolean).join(" ") || "-";
-
-  // ชื่อบริษัทแบบตัดข้อความ - แก้ไขที่อยู่ซ้ำ
-  const rawCompanyName = displayCompanyName || displayAddress || "บริษัท/ลูกค้า";
-  const cleanCompanyName = rawCompanyName.replace(/(\d+)\s+\1/g, "$1"); // แก้ "10240 10240" เป็น "10240"
-  const truncatedCompanyName = truncateText(cleanCompanyName, 35);
 
   // ข้อมูลผู้ขาย/ผู้ดูแล
   const managerUsername = invoice?.manager?.username || "ไม่ระบุ";

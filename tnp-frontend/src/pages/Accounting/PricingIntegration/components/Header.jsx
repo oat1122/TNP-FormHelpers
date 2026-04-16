@@ -1,6 +1,6 @@
-import { Box, Container, Typography, IconButton, Stack } from "@mui/material";
 import { Menu as MenuIcon } from "@mui/icons-material";
-import React from "react";
+import { Box, Container, Typography, IconButton, Stack } from "@mui/material";
+import "react";
 import { useOutletContext } from "react-router-dom";
 
 const Header = ({

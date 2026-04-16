@@ -6,7 +6,9 @@ export function formatTHB(amount) {
     style: "currency",
     currency: "THB",
     minimumFractionDigits: 2,
-  }).format(amount || 0).replace('฿', ''); // Often, we just want the number
+  })
+    .format(amount || 0)
+    .replace("฿", ""); // Often, we just want the number
 }
 
 // Format date in Thai format

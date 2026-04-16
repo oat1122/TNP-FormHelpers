@@ -1,5 +1,4 @@
-import React, { useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
+import { CheckCircle, Error as ErrorIcon, Sync } from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -10,13 +9,15 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { CheckCircle, Error as ErrorIcon, Sync } from "@mui/icons-material";
+import { useEffect, useRef } from "react";
+import { useDispatch } from "react-redux";
+
 import {
   useGetSyncJobStatusQuery,
   accountingApi,
 } from "../../../../features/Accounting/accountingApi";
-import { showSuccess, showError } from "../../utils/accountingToast";
 import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { showSuccess, showError } from "../../utils/accountingToast";
 
 /**
  * SyncProgressDialog Component

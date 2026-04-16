@@ -3,7 +3,8 @@
  * PDF download menu with header type selection (based on Invoice pattern)
  */
 
-import React from "react";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Menu,
   MenuItem,
@@ -14,8 +15,8 @@ import {
   Button,
   Tooltip,
 } from "@mui/material";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import "react";
+
 import { useDeliveryNotePDFDownload } from "../hooks/useDeliveryNotePDFDownload";
 
 const DeliveryNotePDFMenu = ({ deliveryNote, onDownloadPDF, onPreviewPDF }) => {
@@ -55,27 +56,15 @@ const DeliveryNotePDFMenu = ({ deliveryNote, onDownloadPDF, onPreviewPDF }) => {
         </Button>
       </Tooltip>
 
-      <Menu
-        anchorEl={downloadAnchorEl}
-        open={Boolean(downloadAnchorEl)}
-        onClose={handleCloseMenu}
-      >
-        <Typography
-          variant="body1"
-          sx={{ px: 2, py: 1, fontWeight: 500 }}
-          tabIndex={0}
-        >
+      <Menu anchorEl={downloadAnchorEl} open={Boolean(downloadAnchorEl)} onClose={handleCloseMenu}>
+        <Typography variant="body1" sx={{ px: 2, py: 1, fontWeight: 500 }} tabIndex={0}>
           เลือกประเภทหัวกระดาษ
         </Typography>
         <Divider />
 
         {headerOptions.map((header) => (
           <MenuItem key={header} dense onClick={() => toggleHeader(header)}>
-            <Checkbox
-              size="small"
-              checked={selectedHeaders.includes(header)}
-              color="primary"
-            />
+            <Checkbox size="small" checked={selectedHeaders.includes(header)} color="primary" />
             <ListItemText primary={header} />
           </MenuItem>
         ))}

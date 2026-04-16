@@ -1,4 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  Close as CloseIcon,
+  Save as SaveIcon,
+  Business as BusinessIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon,
+} from "@mui/icons-material";
 import {
   Dialog,
   DialogTitle,
@@ -8,9 +16,7 @@ import {
   Grid,
   TextField,
   Button,
-  Box,
   CircularProgress,
-  Divider,
   Autocomplete,
   FormControl,
   FormLabel,
@@ -21,38 +27,29 @@ import {
   Alert,
   Typography,
 } from "@mui/material";
-import {
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  LocationOn as LocationIcon,
-} from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // นำเข้า Utils และ Hooks
-import { validateCustomerData } from "../../../PricingIntegration/components/customerApiUtils";
-import {
-  normalizeManagerData,
-  hydrateManagerUsername,
-  getDefaultManagerAssignment,
-  validateManagerAssignment,
-  prepareManagerForApi,
-} from "../../../PricingIntegration/components/managerUtils";
-import { useGetUserByRoleQuery } from "../../../../../features/globalApi";
 import { useAddCustomerMutation } from "../../../../../features/Customer/customerApi";
+import { useGetUserByRoleQuery } from "../../../../../features/globalApi";
 import {
   useGetAllBusinessTypesQuery,
   useGetAllLocationQuery,
   useLazyGetAllLocationQuery,
 } from "../../../../../features/globalApi";
 import { AddressService } from "../../../../../services/AddressService";
+import { validateCustomerData } from "../../../PricingIntegration/components/customerApiUtils";
+import {
+  hydrateManagerUsername,
+  getDefaultManagerAssignment,
+  validateManagerAssignment,
+  prepareManagerForApi,
+} from "../../../PricingIntegration/components/managerUtils";
 import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/accountingToast";
 
 // Styled Components
-const StyledTextField = styled(TextField)(({ theme }) => ({
+const StyledTextField = styled(TextField)(() => ({
   "& .MuiOutlinedInput-root": {
     borderRadius: "12px",
     backgroundColor: "#FFFFFF",
@@ -69,7 +66,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
+const SaveButton = styled(Button)(() => ({
   background: "linear-gradient(135deg, #4CAF50 0%, #45A049 100%)",
   color: "#FFFFFF",
   borderRadius: "12px",
@@ -88,7 +85,7 @@ const SaveButton = styled(Button)(({ theme }) => ({
   transition: "all 0.3s ease-in-out",
 }));
 
-const CancelButton = styled(Button)(({ theme }) => ({
+const CancelButton = styled(Button)(() => ({
   border: "2px solid #FF6B6B",
   color: "#FF6B6B",
   borderRadius: "12px",
@@ -115,8 +112,8 @@ const CustomerCreateDialog = ({ open, onClose, onSuccess }) => {
   const [errors, setErrors] = useState({});
 
   // Loading states
-  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
-  const [isLoadingSubdistricts, setIsLoadingSubdistricts] = useState(false);
+  const [, setIsLoadingDistricts] = useState(false);
+  const [, setIsLoadingSubdistricts] = useState(false);
 
   // RTK Query hooks
   const { data: userRoleData } = useGetUserByRoleQuery("sale");
@@ -126,7 +123,7 @@ const CustomerCreateDialog = ({ open, onClose, onSuccess }) => {
   const [fetchSubdistricts, { data: subdistrictsData }] = useLazyGetAllLocationQuery();
 
   // ใช้ useAddCustomerMutation
-  const [addCustomer, { isLoading: isCreating }] = useAddCustomerMutation();
+  const [addCustomer] = useAddCustomerMutation();
 
   // Current user & role
   const currentUser = useMemo(() => {
@@ -181,7 +178,7 @@ const CustomerCreateDialog = ({ open, onClose, onSuccess }) => {
         cus_manage_by: hydratedManager,
       }));
     }
-  }, [userRoleData, editData?.cus_manage_by?.user_id, salesList]);
+  }, [userRoleData, editData.cus_manage_by, salesList]);
 
   // Load master data - Provinces
   useEffect(() => {

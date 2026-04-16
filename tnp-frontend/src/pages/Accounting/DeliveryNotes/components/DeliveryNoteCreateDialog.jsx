@@ -1,4 +1,13 @@
 import {
+  Assignment as AssignmentIcon,
+  Business as BusinessIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
+} from "@mui/icons-material";
+import {
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,15 +33,6 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import {
-  Assignment as AssignmentIcon,
-  Business as BusinessIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-} from "@mui/icons-material";
 import React, { useState, useEffect } from "react";
 
 import {
@@ -41,6 +41,7 @@ import {
   useGetCompaniesQuery,
 } from "../../../../features/Accounting/accountingApi";
 // toasts are handled inside useSubmitDeliveryNote hook
+import { formatTHB } from "../../Invoices/utils/format";
 import LoadingState from "../../PricingIntegration/components/LoadingState";
 import {
   Section,
@@ -48,7 +49,6 @@ import {
   InfoCard,
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { formatTHB } from "../../Invoices/utils/format";
 // payload builders are handled inside useSubmitDeliveryNote hook
 import { useDeliveryNoteForm } from "../hooks/useDeliveryNoteForm";
 import { useDeliveryNoteItems } from "../hooks/useDeliveryNoteItems";
@@ -109,14 +109,14 @@ const InvoiceItemsTable = ({ invoice, onUpdateItems }) => {
     setEditableGroups(grouped);
     // Propagate initial groups to parent so submit has items even if user doesn't edit
     onUpdateItems?.(grouped);
-  }, [invoice?.items]);
+  }, [invoice?.items, onUpdateItems]);
 
   // Group header editing handlers
   const handleEditGroup = (groupIndex) => {
     setEditingGroup(groupIndex);
   };
 
-  const handleSaveGroup = (groupIndex) => {
+  const handleSaveGroup = () => {
     setEditingGroup(null);
     // Recalculate totals and propagate latest state
     setEditableGroups((prev) => {

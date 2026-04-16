@@ -3,7 +3,7 @@
  * จัดการอัพโหลดและแสดงหลักฐานการชำระเงิน
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import { useUploadInvoiceEvidenceMutation } from "../../../../../features/Accounting/accountingApi";
 
@@ -17,7 +17,7 @@ const normalizeEvidenceStructure = (evidenceData) => {
   if (typeof evidenceData === "string") {
     try {
       evidenceData = JSON.parse(evidenceData);
-    } catch (e) {
+    } catch {
       return normalized;
     }
   }
@@ -49,7 +49,7 @@ const normalizeEvidenceStructure = (evidenceData) => {
           }
         });
       } else if (typeof data === "object" && data !== null) {
-        Object.entries(data).forEach(([key, value]) => {
+        Object.entries(data).forEach(([, value]) => {
           if (
             typeof value === "string" &&
             value.includes("inv_") &&
@@ -106,7 +106,7 @@ export const useInvoiceEvidence = (invoice) => {
     try {
       const apiBase = import.meta.env.VITE_END_POINT_URL || "";
       return new URL(apiBase).origin; // เช่น http://localhost:8000
-    } catch (e) {
+    } catch {
       return window.location.origin; // fallback
     }
   };

@@ -34,6 +34,7 @@ class ReceiptController extends Controller
             $filters = [
                 'search' => $request->query('search'),
                 'status' => $request->query('status'),
+                'type' => $request->query('type'),
                 'receipt_type' => $request->query('receipt_type'),
                 'customer_id' => $request->query('customer_id'),
                 'payment_method' => $request->query('payment_method'),
@@ -61,7 +62,7 @@ class ReceiptController extends Controller
             $receipt = \App\Models\Accounting\Receipt::with([
                 'invoice',
                 'documentHistory',
-                'documentAttachments'
+                'attachments'
             ])->findOrFail($id);
 
             return $this->successResponse($receipt, 'Receipt details retrieved successfully');
@@ -83,13 +84,15 @@ class ReceiptController extends Controller
                 'customer_company' => 'required|string|max:255',
                 'customer_address' => 'required|string|max:500',
                 'work_name' => 'required|string|max:255',
-                'payment_amount' => 'required|numeric|min:0.01',
-                'payment_date' => 'required|date',
+                'total_amount' => 'required_without:payment_amount|numeric|min:0.01',
+                'payment_amount' => 'required_without:total_amount|numeric|min:0.01',
+                'payment_date' => 'nullable|date',
                 'payment_method' => 'required|in:cash,transfer,check,credit_card',
-                'receipt_type' => 'required|in:receipt,tax_invoice,full_tax_invoice',
-                'subtotal' => 'required|numeric|min:0',
-                'vat_amount' => 'required|numeric|min:0',
-                'total_amount' => 'required|numeric|min:0.01'
+                'type' => 'required_without:receipt_type|in:receipt,tax_invoice,full_tax_invoice',
+                'receipt_type' => 'required_without:type|in:receipt,tax_invoice,full_tax_invoice',
+                'subtotal' => 'nullable|numeric|min:0',
+                'tax_amount' => 'nullable|numeric|min:0',
+                'vat_amount' => 'nullable|numeric|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -118,12 +121,16 @@ class ReceiptController extends Controller
                 'customer_address' => 'sometimes|string|max:500',
                 'work_name' => 'sometimes|string|max:255',
                 'payment_amount' => 'sometimes|numeric|min:0.01',
+                'total_amount' => 'sometimes|numeric|min:0.01',
                 'payment_date' => 'sometimes|date',
                 'payment_method' => 'sometimes|in:cash,transfer,check,credit_card',
+                'type' => 'sometimes|in:receipt,tax_invoice,full_tax_invoice',
                 'receipt_type' => 'sometimes|in:receipt,tax_invoice,full_tax_invoice',
                 'subtotal' => 'sometimes|numeric|min:0',
+                'tax_amount' => 'sometimes|numeric|min:0',
                 'vat_amount' => 'sometimes|numeric|min:0',
-                'total_amount' => 'sometimes|numeric|min:0.01'
+                'payment_reference' => 'sometimes|nullable|string|max:100',
+                'reference_number' => 'sometimes|nullable|string|max:100'
             ]);
 
             if ($validator->fails()) {
@@ -170,11 +177,15 @@ class ReceiptController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'invoice_id' => 'required|string|exists:invoices,id',
-                'amount' => 'required|numeric|min:0.01',
-                'payment_date' => 'required|date',
+                'amount' => 'required_without_all:total_amount,payment_amount|numeric|min:0.01',
+                'total_amount' => 'required_without_all:amount,payment_amount|numeric|min:0.01',
+                'payment_amount' => 'required_without_all:amount,total_amount|numeric|min:0.01',
+                'payment_date' => 'nullable|date',
                 'payment_method' => 'required|in:cash,transfer,check,credit_card',
+                'type' => 'nullable|in:receipt,tax_invoice,full_tax_invoice',
                 'receipt_type' => 'nullable|in:receipt,tax_invoice,full_tax_invoice',
                 'reference_number' => 'nullable|string|max:100',
+                'payment_reference' => 'nullable|string|max:100',
                 'bank_name' => 'nullable|string|max:100',
                 'notes' => 'nullable|string|max:1000'
             ]);
@@ -319,7 +330,8 @@ class ReceiptController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:0.01',
-                'receipt_type' => 'required|in:receipt,tax_invoice,full_tax_invoice'
+                'type' => 'required_without:receipt_type|in:receipt,tax_invoice,full_tax_invoice',
+                'receipt_type' => 'required_without:type|in:receipt,tax_invoice,full_tax_invoice'
             ]);
 
             if ($validator->fails()) {
@@ -331,7 +343,7 @@ class ReceiptController extends Controller
             }
 
             $amount = $request->amount;
-            $receiptType = $request->receipt_type;
+            $receiptType = $request->query('type') ?? $request->query('receipt_type');
 
             if (in_array($receiptType, ['tax_invoice', 'full_tax_invoice'])) {
                 // คำนวณ VAT 7% (ราคารวม VAT แล้ว)

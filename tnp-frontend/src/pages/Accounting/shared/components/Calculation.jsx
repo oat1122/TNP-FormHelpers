@@ -1,5 +1,5 @@
-import { Box, Grid, Typography, Divider, Alert } from "@mui/material";
-import React from "react";
+import { Grid, Typography, Divider, Alert } from "@mui/material";
+import "react";
 
 import {
   InfoCard,

@@ -1,6 +1,6 @@
 import { Refresh as RefreshIcon } from "@mui/icons-material";
 import { Box, Typography, Button, Alert, Paper } from "@mui/material";
-import React from "react";
+import "react";
 
 const ErrorState = ({ error, onRetry }) => {
   return (
@@ -12,7 +12,7 @@ const ErrorState = ({ error, onRetry }) => {
         <Typography variant="body2">
           {error?.data?.message || error?.message || "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้"}
         </Typography>
-        {process.env.NODE_ENV === "development" && (
+        {import.meta.env.DEV && (
           <Box sx={{ mt: 2, p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
             <Typography variant="caption" component="pre">
               {JSON.stringify(error, null, 2)}

@@ -1,13 +1,6 @@
-import {
-  Business as BusinessIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Assignment as AssignmentIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
+import { Assignment as AssignmentIcon, Edit as EditIcon } from "@mui/icons-material";
 import { Box, Typography, Avatar, Grid, Chip } from "@mui/material";
-import React from "react";
+import "react";
 
 import {
   Section,

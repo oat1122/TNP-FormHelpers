@@ -32,13 +32,7 @@ import {
   InputLabel,
   IconButton,
 } from "@mui/material";
-import React from "react";
-import { apiConfig } from "../../../../api/apiConfig";
-
-// Styled Components
-
-// Custom Components
-import { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 
 import { useInvoiceApproval } from "./hooks/useInvoiceApproval";
 import { useInvoiceEvidence } from "./hooks/useInvoiceEvidence";
@@ -49,27 +43,14 @@ import DepositCard from "./subcomponents/DepositCard";
 import FinancialSummaryCard from "./subcomponents/FinancialSummaryCard";
 import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
 import WorkDetailsSection from "./subcomponents/WorkDetailsSection";
-
-// Custom Hooks
-
-// Utilities
-import {
-  formatTHB,
-  formatDate,
-  typeLabels,
-  truncateText,
-  formatInvoiceNumber,
-} from "./utils/invoiceFormatters";
+import { formatTHB, formatDate, typeLabels, truncateText } from "./utils/invoiceFormatters";
 import {
   getInvoiceStatus,
   calculateInvoiceFinancials,
   formatDepositInfo,
   getDisplayInvoiceNumber,
 } from "./utils/invoiceLogic";
-
-// Hooks
-
-// API
+import { apiConfig } from "../../../../api/apiConfig";
 import {
   useGetCompaniesQuery,
   useUpdateInvoiceMutation,
@@ -83,15 +64,7 @@ import {
 } from "../../PricingIntegration/components/styles/StyledComponents";
 import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
 
-const InvoiceCard = ({
-  invoice,
-  onView,
-  onDownloadPDF,
-  onPreviewPDF,
-  onApprove,
-  onSubmit,
-  onUpdateCompany,
-}) => {
+const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCompany }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewPdfUrl, setPreviewPdfUrl] = useState("");
@@ -104,18 +77,6 @@ const InvoiceCard = ({
   // Track mode for each download type
   const [taxDownloadMode, setTaxDownloadMode] = useState("before");
   const [receiptDownloadMode, setReceiptDownloadMode] = useState("before");
-
-  // Get user data for permission checks
-  const userData = React.useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("userData") || "{}");
-    } catch {
-      return {};
-    }
-  }, []);
-  const isAdmin = userData.user_id === 1;
-  const isAccount = userData.role === "account";
-  const canDownloadWithoutEvidence = isAdmin || isAccount;
 
   // Custom Hooks
   const approvalHook = useInvoiceApproval(invoice);
@@ -158,7 +119,6 @@ const InvoiceCard = ({
     extendedHeaderOptions,
     toggleHeader,
     handleDownloadClick,
-    handlePreviewClick,
     handleCloseMenu,
     handleConfirmDownload,
   } = pdfHook;
@@ -166,16 +126,6 @@ const InvoiceCard = ({
   // Check if user can download PDFs for current mode
   // Admin/Account: always can download
   // Others (e.g., Sale): need evidence uploaded first
-  const canDownloadForMode = React.useCallback(
-    (mode) => {
-      if (canDownloadWithoutEvidence) {
-        return true; // Admin/Account can always download
-      }
-      // For others, check if evidence exists for this mode
-      return hasEvidenceForMode(mode);
-    },
-    [canDownloadWithoutEvidence, hasEvidenceForMode]
-  );
 
   // Calculate financial data
   const financials = calculateInvoiceFinancials(invoice);
@@ -192,7 +142,7 @@ const InvoiceCard = ({
       } else if (typeof invoice.customer_snapshot === "object") {
         customerSnapshot = invoice.customer_snapshot;
       }
-    } catch (error) {
+    } catch {
       customerSnapshot = null;
     }
   }
@@ -323,8 +273,6 @@ const InvoiceCard = ({
     return authToken || token;
   };
 
-  const handleTaxDownloadClick = (e) => setTaxDownloadAnchorEl(e.currentTarget);
-  const handleReceiptDownloadClick = (e) => setReceiptDownloadAnchorEl(e.currentTarget);
   const handleCloseTaxMenu = () => setTaxDownloadAnchorEl(null);
   const handleCloseReceiptMenu = () => setReceiptDownloadAnchorEl(null);
 

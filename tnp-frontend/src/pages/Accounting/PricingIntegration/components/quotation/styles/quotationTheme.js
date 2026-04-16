@@ -5,14 +5,14 @@ import tokens from "./tokens";
 
 export { tokens };
 
-export const Section = styled(Paper)(({ theme }) => ({
+export const Section = styled(Paper)(() => ({
   backgroundColor: tokens.white,
   border: `1px solid ${tokens.border}`,
   borderRadius: 12,
   overflow: "hidden",
 }));
 
-export const SectionHeader = styled(Box)(({ theme }) => ({
+export const SectionHeader = styled(Box)(() => ({
   display: "flex",
   alignItems: "center",
   gap: 12,

@@ -8,6 +8,33 @@ const baseQuery = fetchBaseQuery({
   credentials: apiConfig.credentials,
 });
 
+const normalizeReceiptPayload = (data = {}) => {
+  const payload = { ...data };
+
+  if (payload.receipt_type && !payload.type) {
+    payload.type = payload.receipt_type;
+  }
+
+  if (payload.vat_amount != null && payload.tax_amount == null) {
+    payload.tax_amount = payload.vat_amount;
+  }
+
+  if (payload.payment_amount != null && payload.total_amount == null) {
+    payload.total_amount = payload.payment_amount;
+  }
+
+  if (payload.amount != null && payload.total_amount == null) {
+    payload.total_amount = payload.amount;
+  }
+
+  delete payload.receipt_type;
+  delete payload.vat_amount;
+  delete payload.payment_amount;
+  delete payload.vat_type;
+
+  return payload;
+};
+
 export const accountingApi = createApi({
   reducerPath: "accountingApi",
   baseQuery,
@@ -563,12 +590,16 @@ export const accountingApi = createApi({
       query: ({ invoiceId, ...paymentData }) => ({
         url: "/receipts/create-from-payment",
         method: "POST",
-        body: { invoice_id: invoiceId, ...paymentData },
+        body: { invoice_id: invoiceId, ...normalizeReceiptPayload(paymentData) },
       }),
       invalidatesTags: ["Receipt", "Invoice", "Dashboard"],
     }),
     updateReceipt: builder.mutation({
-      query: ({ id, ...data }) => ({ url: `/receipts/${id}`, method: "PUT", body: data }),
+      query: ({ id, ...data }) => ({
+        url: `/receipts/${id}`,
+        method: "PUT",
+        body: normalizeReceiptPayload(data),
+      }),
       invalidatesTags: (r, e, { id }) => [{ type: "Receipt", id }, "Receipt", "Dashboard"],
     }),
     approveReceipt: builder.mutation({
@@ -580,23 +611,32 @@ export const accountingApi = createApi({
       invalidatesTags: (r, e, { id }) => [{ type: "Receipt", id }, "Receipt", "Dashboard"],
     }),
     calculateVAT: builder.query({
-      query: ({ amount, vatType = "exclude" }) => ({
-        url: "/receipts/calculate-vat",
-        params: { amount, vat_type: vatType },
-      }),
+      query: ({ amount, type, receiptType, vatType }) => {
+        const legacyVatType = ["receipt", "tax_invoice", "full_tax_invoice"].includes(vatType)
+          ? vatType
+          : undefined;
+        return {
+          url: "/receipts/calculate-vat",
+          params: { amount, type: type || receiptType || legacyVatType || "receipt" },
+        };
+      },
     }),
     uploadPaymentEvidence: builder.mutation({
-      query: ({ receiptId, fileData }) => {
+      query: ({ receiptId, files, fileData, description }) => {
         const formData = new FormData();
-        formData.append("evidence_file", fileData);
+        const uploadFiles = files ?? fileData;
+        if (Array.isArray(uploadFiles)) uploadFiles.forEach((file) => formData.append("files[]", file));
+        else if (uploadFiles) formData.append("files[]", uploadFiles);
+        if (description) formData.append("description", description);
         return {
           url: `/receipts/${receiptId}/upload-evidence`,
           method: "POST",
           body: formData,
+          headers: { "X-Skip-Json": "1" },
           formData: true,
         };
       },
-      invalidatesTags: (r, e, { receiptId }) => [{ type: "Receipt", id: receiptId }],
+      invalidatesTags: (r, e, { receiptId }) => [{ type: "Receipt", id: receiptId }, "Receipt"],
     }),
     generateReceiptPDF: builder.mutation({
       query: (id) => ({ url: `/receipts/${id}/generate-pdf`, method: "GET" }),

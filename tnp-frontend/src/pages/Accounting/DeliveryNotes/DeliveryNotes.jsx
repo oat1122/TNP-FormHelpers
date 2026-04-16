@@ -2,11 +2,10 @@ import AddIcon from "@mui/icons-material/Add";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import { Box, Container, Grid, Stack, Typography, Button, Chip, Alert, Fab } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Header,
-  FilterSection,
   PaginationSection,
   LoadingState,
   EmptyState,
@@ -17,12 +16,12 @@ import DeliveryNoteCreateDialog from "./components/DeliveryNoteCreateDialog";
 import DeliveryNoteDetailDialog from "./components/DeliveryNoteDetailDialog";
 import DeliveryNoteEditDialog from "./components/DeliveryNoteEditDialog";
 import DeliveryNoteSourceSelectionDialog from "./components/DeliveryNoteSourceSelectionDialog";
+import { apiConfig } from "../../../api/apiConfig";
 import {
   useGetDeliveryNotesQuery,
   useGenerateDeliveryNotePDFMutation,
   useGenerateDeliveryNotePDFBundleMutation,
 } from "../../../features/Accounting/accountingApi";
-import { apiConfig } from "../../../api/apiConfig";
 import { showError, showSuccess } from "../utils/accountingToast";
 import { downloadFile, normalizePath } from "./utils/downloadUtils";
 
@@ -44,7 +43,7 @@ const DeliveryNotes = () => {
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedDeliveryNoteId, setSelectedDeliveryNoteId] = useState(null);
 
-  const { data, error, isLoading, isFetching, refetch } = useGetDeliveryNotesQuery(
+  const { data, error, isLoading, isFetching } = useGetDeliveryNotesQuery(
     {
       page,
       per_page: perPage,
@@ -61,11 +60,6 @@ const DeliveryNotes = () => {
 
   const [generatePDF] = useGenerateDeliveryNotePDFMutation();
   const [generatePDFBundle] = useGenerateDeliveryNotePDFBundleMutation();
-
-  const handleRefresh = () => {
-    // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
-    refetch();
-  };
 
   const handleDownloadPDF = async ({ deliveryNoteId, headerTypes }) => {
     if (!deliveryNoteId) return;
@@ -133,27 +127,6 @@ const DeliveryNotes = () => {
     const headerParam = headerType ? `?document_header_type=${encodeURIComponent(headerType)}` : "";
     const previewUrl = `${apiConfig.baseUrl}/delivery-notes/${deliveryNoteId}/pdf/stream${headerParam}`;
     window.open(previewUrl, "_blank", "noopener");
-  };
-
-  const handleDownloadPDF_OLD = async (note) => {
-    if (!note?.id) return;
-    try {
-      const response = await generatePDF(note.id).unwrap();
-      const pdfUrl =
-        response?.url || response?.data?.url || response?.pdf_url || response?.data?.pdf_url;
-      if (pdfUrl) {
-        const normalized = (pdfUrl || "").replace(/\\/g, "/");
-        window.open(normalized, "_blank", "noopener");
-        return;
-      }
-      window.open(
-        `${apiConfig.baseUrl}/delivery-notes/${note.id}/generate-pdf`,
-        "_blank",
-        "noopener"
-      );
-    } catch (err) {
-      showError(err?.data?.message || "Unable to download delivery note PDF");
-    }
   };
 
   const handleOpenCreate = () => {

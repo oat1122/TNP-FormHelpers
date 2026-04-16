@@ -86,9 +86,7 @@ const InvoiceFinancialCalcBox = React.memo(function InvoiceFinancialCalcBox({
     withholdingTaxAmount = 0,
     finalTotalAmount = 0,
     depositAmount = 0,
-    depositAmountBeforeVat = 0,
     remainingAmount = 0,
-    toMoney = (n) => Number(n).toFixed(2),
   } = calculation;
 
   const formatTHB = (amount) => {

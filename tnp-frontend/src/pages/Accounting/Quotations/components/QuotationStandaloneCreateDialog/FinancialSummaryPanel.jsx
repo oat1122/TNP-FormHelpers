@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Paper,
@@ -12,6 +11,8 @@ import {
   InputAdornment,
   Chip,
 } from "@mui/material";
+import "react";
+
 import { useFinancialCalculations } from "./hooks/useFinancialCalculations";
 import { formatTHB } from "./utils/formatting";
 import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";

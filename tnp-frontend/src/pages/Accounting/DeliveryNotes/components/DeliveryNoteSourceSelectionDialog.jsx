@@ -1,7 +1,6 @@
+import BusinessIcon from "@mui/icons-material/Business";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import Inventory2Icon from "@mui/icons-material/Inventory2";
-import BusinessIcon from "@mui/icons-material/Business";
 import {
   Dialog,
   DialogTitle,
@@ -10,7 +9,6 @@ import {
   Button,
   Typography,
   Grid,
-  Paper,
   Stack,
   Alert,
   Chip,
@@ -18,16 +16,16 @@ import {
   Collapse,
   IconButton,
 } from "@mui/material";
+import { format } from "date-fns";
 import React, { useMemo, useState } from "react";
 
+import { useGetDeliveryNoteInvoicesQuery } from "../../../../features/Accounting/accountingApi";
 import {
   FilterSection,
   PaginationSection,
   LoadingState,
   EmptyState,
 } from "../../PricingIntegration/components";
-import { useGetDeliveryNoteInvoicesQuery } from "../../../../features/Accounting/accountingApi";
-import { format } from "date-fns";
 import {
   TNPCard,
   TNPCardContent,
@@ -55,7 +53,7 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(
       Number(value)
     );
-  } catch (e) {
+  } catch {
     return value;
   }
 };
@@ -191,7 +189,10 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
   const [expanded, setExpanded] = useState(false);
   const invoiceNumber = invoice.number || `DRAFT-${invoice.id?.slice(-6)}`;
   const createdAt = invoice.created_at ? format(new Date(invoice.created_at), "dd MMM yyyy") : "-";
-  const items = Array.isArray(invoice.items) ? invoice.items : [];
+  const items = React.useMemo(
+    () => (Array.isArray(invoice.items) ? invoice.items : []),
+    [invoice.items]
+  );
   const amountText = formatCurrency(invoice.total_amount || 0);
 
   // Group items by common attributes (รายการ/แพทเทิร์น/ผ้า/สี/งาน)

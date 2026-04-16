@@ -1,3 +1,5 @@
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   Box,
   Container,
@@ -7,14 +9,12 @@ import {
   ToggleButton,
   Tooltip,
 } from "@mui/material";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { ThemeProvider } from "@mui/material/styles";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { th } from "date-fns/locale";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useDispatch } from "react-redux";
 
 import {
   PricingRequestCard,
@@ -34,12 +34,7 @@ import {
   useGetCompletedPricingRequestsQuery,
   useCreateQuotationFromMultiplePricingMutation,
 } from "../../../features/Accounting/accountingApi";
-import {
-  selectFilters,
-  setFilters,
-  resetFilters,
-  addNotification,
-} from "../../../features/Accounting/accountingSlice";
+import { setFilters, addNotification } from "../../../features/Accounting/accountingSlice";
 import accountingTheme from "../theme/accountingTheme";
 // Import performance optimization hooks - commented out temporarily
 // import {
@@ -53,7 +48,6 @@ import accountingTheme from "../theme/accountingTheme";
 // Main Component
 const PricingIntegration = () => {
   const dispatch = useDispatch();
-  const filters = useSelector(selectFilters);
 
   // Performance monitoring - temporarily disabled
   // const { logCustomMetric } = usePerformanceMonitor("PricingIntegration");
@@ -63,8 +57,8 @@ const PricingIntegration = () => {
   const [viewMode, setViewMode] = useState("table");
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
-  const [dateRange, setDateRange] = useState({ start: null, end: null });
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [dateRange] = useState({ start: null, end: null });
+  const [selectedCustomer] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPricingRequest, setSelectedPricingRequest] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -245,45 +239,6 @@ const PricingIntegration = () => {
     // ตั้งค่า state ด้วย object ใหม่นี้
     setSelectedPricingRequest(dataForModal);
     setShowCreateModal(true);
-  };
-
-  const handleViewDetails = (group) => {
-    const target = group.requests[0];
-    dispatch(
-      addNotification({
-        type: "info",
-        title: "ดูรายละเอียด",
-        message: `กำลังแสดงรายละเอียด ${target.pr_number}`,
-      })
-    );
-    // TODO: Implement view details modal or navigation
-  };
-
-  const handleSubmitQuotation = async (data) => {
-    try {
-      const result = await createQuotationFromMultiplePricing(data).unwrap();
-
-      dispatch(
-        addNotification({
-          type: "success",
-          title: "สร้างใบเสนอราคาสำเร็จ",
-          message: `สร้างใบเสนอราคา ${result.quotation_number || "ใหม่"} เรียบร้อยแล้ว`,
-        })
-      );
-
-      setShowCreateModal(false);
-      setSelectedPricingRequest(null);
-
-      // RTK Query จะ invalidate cache อัตโนมัติแล้ว ไม่ต้อง refetch
-    } catch (error) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "เกิดข้อผิดพลาด",
-          message: error.data?.message || error.message || "ไม่สามารถสร้างใบเสนอราคาได้",
-        })
-      );
-    }
   };
 
   const handleQuotationFromModal = async (data) => {
@@ -590,14 +545,6 @@ const PricingIntegration = () => {
       [String(updated.cus_id)]: updated,
     }));
   }, []);
-
-  const handleResetFilters = () => {
-    setSearchTerm("");
-    setDateRange({ start: null, end: null });
-    setSelectedCustomer(null);
-    setShowOnlyMine(false);
-    dispatch(resetFilters());
-  };
 
   return (
     <ThemeProvider theme={accountingTheme}>

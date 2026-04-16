@@ -17,9 +17,9 @@ import {
   Fade,
   useTheme,
 } from "@mui/material";
-import React from "react";
+import "react";
 
-import { sanitizeDecimal, createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
+import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
 import { tokens } from "../../styles/quotationTheme";
 import { formatTHB } from "../../utils/currency";
 

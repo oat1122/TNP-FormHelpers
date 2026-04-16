@@ -1,7 +1,6 @@
-import DescriptionIcon from "@mui/icons-material/Description";
 import BusinessIcon from "@mui/icons-material/Business";
+import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import {
   Card,
   CardContent,
@@ -10,16 +9,15 @@ import {
   Chip,
   Button,
   Stack,
-  Divider,
-  Tooltip,
   Box,
   IconButton,
   Collapse,
 } from "@mui/material";
 import { format } from "date-fns";
 import React from "react";
-import { formatTHB } from "../../Invoices/utils/format";
+
 import DeliveryNotePDFMenu from "./DeliveryNotePDFMenu";
+import { formatTHB } from "../../Invoices/utils/format";
 
 const statusConfig = {
   preparing: { color: "default", label: "preparing" },
@@ -35,12 +33,12 @@ const formatDate = (date) => {
   if (!date) return "-";
   try {
     return format(new Date(date), "dd MMM yyyy");
-  } catch (e) {
+  } catch {
     return date;
   }
 };
 
-const DeliveryNoteCard = ({
+const DeliveryNoteCardContent = ({
   note,
   onView,
   onDownloadPDF,
@@ -50,8 +48,6 @@ const DeliveryNoteCard = ({
   onMarkCompleted,
   onMarkFailed,
 }) => {
-  if (!note) return null;
-
   const status = statusConfig[note.status] || { color: "default", label: note.status };
   const invoice = note.invoice || {};
   const invoiceNumber = note.invoice_number || invoice.number || "-";
@@ -370,6 +366,12 @@ const DeliveryNoteCard = ({
       </CardActions>
     </Card>
   );
+};
+
+const DeliveryNoteCard = (props) => {
+  if (!props.note) return null;
+
+  return <DeliveryNoteCardContent {...props} />;
 };
 
 export default DeliveryNoteCard;

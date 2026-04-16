@@ -1,26 +1,30 @@
 // 📁subcomponents/PRGroupSummaryCard.jsx
-import React from "react";
 import { Box, Typography, Grid, Chip } from "@mui/material";
+import React from "react";
+
 // ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
-import { formatTHB } from "../utils/formatters";
 
 // Import styles - need to check what's available
 // import { InfoCard, tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 
 // Temporary fallback styles - replace with actual import
 const InfoCard = ({ children, sx, ...props }) => (
-  <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, ...sx }} {...props}>
+  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 1, ...sx }} {...props}>
     {children}
   </Box>
 );
 
 const tokens = {
-  primary: '#1976d2',
-  border: '#e0e0e0',
+  primary: "#1976d2",
+  border: "#e0e0e0",
 };
 
 // Child: Summary card per PR group (use prAutofillData from props)
-export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group, index, prAutofillData }) {
+export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({
+  group,
+  index,
+  prAutofillData,
+}) {
   // ✅ ใช้ข้อมูลจาก props แทน
   const pr = prAutofillData || {};
   const name =
@@ -31,7 +35,7 @@ export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({ group
   const size = group.size || pr.pr_sizes || "";
   const totalQty = (group.sizeRows || []).reduce((s, r) => s + Number(r.quantity || 0), 0);
   const unit = group.unit || "ชิ้น";
-  
+
   return (
     <InfoCard sx={{ p: 2, mb: 1.5 }}>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>

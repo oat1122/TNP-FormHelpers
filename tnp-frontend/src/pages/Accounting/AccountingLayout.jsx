@@ -1,11 +1,7 @@
 import {
-  Menu as MenuIcon,
   Assignment as AssignmentIcon,
   LocalShipping as DeliveryIcon,
   AccountBalance as InvoiceIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  Home as HomeIcon,
   GetApp as ImportIcon,
   BarChart as ReportIcon,
 } from "@mui/icons-material";
@@ -21,16 +17,12 @@ import {
   CssBaseline,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
 import accountingTheme from "./theme/accountingTheme";
-import {
-  selectActiveStep,
-  selectUnreadNotifications,
-  setActiveStep,
-} from "../../features/Accounting/accountingSlice";
+import { setActiveStep } from "../../features/Accounting/accountingSlice";
 
 const drawerWidth = 280;
 
@@ -148,7 +140,6 @@ const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
 const AccountingLayout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
-  const activeStep = useSelector(selectActiveStep);
 
   const [mobileOpen, setMobileOpen] = useState(false);
 

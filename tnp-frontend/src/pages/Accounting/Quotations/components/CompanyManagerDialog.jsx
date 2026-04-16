@@ -43,7 +43,7 @@ const emptyForm = {
 };
 
 const CompanyManagerDialog = ({ open, onClose }) => {
-  const { data: companiesResp, isFetching, refetch } = useGetCompaniesQuery();
+  const { data: companiesResp, refetch } = useGetCompaniesQuery();
   const [createCompany, { isLoading: creating }] = useCreateCompanyMutation();
   const [updateCompany, { isLoading: updating }] = useUpdateCompanyMutation();
 

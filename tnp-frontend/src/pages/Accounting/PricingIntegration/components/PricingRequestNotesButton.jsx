@@ -1,12 +1,12 @@
 import { StickyNote2 as NotesIcon, Visibility as ViewIcon } from "@mui/icons-material";
-import { IconButton, Tooltip, Badge, Chip, Box } from "@mui/material";
+import { IconButton, Tooltip, Badge, Chip } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import React, { useState } from "react";
+import { useState } from "react";
 
 import PricingRequestNotesModal from "./PricingRequestNotesModal";
 
 // Styled Components
-const StyledIconButton = styled(IconButton)(({ theme }) => ({
+const StyledIconButton = styled(IconButton)(() => ({
   backgroundColor: "#FFFFFF",
   border: "2px solid #FF9800",
   color: "#FF9800",
@@ -20,7 +20,7 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-const NotesChip = styled(Chip)(({ theme }) => ({
+const NotesChip = styled(Chip)(() => ({
   backgroundColor: "#FF9800",
   color: "#FFFFFF",
   fontSize: "0.75rem",

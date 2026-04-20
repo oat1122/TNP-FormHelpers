@@ -1,5 +1,5 @@
 // 📁hooks/useQuotationDialogLogic.js
-import React from "react";
+import { useState, useMemo, useEffect } from "react";
 
 import {
   useGetQuotationQuery,
@@ -16,7 +16,7 @@ import {
   normalizeCustomer,
   toISODate,
   computeTotals,
-} from "../utils/quotationUtils";
+} from "../../shared/utils/quotationUtils";
 
 // Validation helper for manual jobs
 function validateManualJob(group) {
@@ -47,19 +47,17 @@ export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
     skip: !open || !quotationId,
   });
-  const q = React.useMemo(() => pickQuotation(data), [data]);
+  const q = useMemo(() => pickQuotation(data), [data]);
 
   const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
 
   // State for Customer
-  const [customer, setCustomer] = React.useState(() => normalizeCustomer(q));
-  const [editCustomerOpen, setEditCustomerOpen] = React.useState(false);
+  const [customer, setCustomer] = useState(() => normalizeCustomer(q));
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
 
   // State for Payment Terms & Notes
-  const [quotationNotes, setQuotationNotes] = React.useState(q?.notes || "");
-  const [selectedDueDate, setSelectedDueDate] = React.useState(
-    q?.due_date ? new Date(q.due_date) : null
-  );
+  const [quotationNotes, setQuotationNotes] = useState(q?.notes || "");
+  const [selectedDueDate, setSelectedDueDate] = useState(q?.due_date ? new Date(q.due_date) : null);
 
   // Payment terms: support predefined codes and a custom (อื่นๆ) value
   const initialRawTerms =
@@ -68,50 +66,50 @@ export function useQuotationDialogLogic(quotationId, open) {
     (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
   const isKnownTerms = ["cash", "credit_30", "credit_60"].includes(initialRawTerms);
 
-  const [paymentTermsType, setPaymentTermsType] = React.useState(
+  const [paymentTermsType, setPaymentTermsType] = useState(
     isKnownTerms ? initialRawTerms : "other"
   );
-  const [paymentTermsCustom, setPaymentTermsCustom] = React.useState(
+  const [paymentTermsCustom, setPaymentTermsCustom] = useState(
     isKnownTerms ? "" : initialRawTerms || ""
   );
 
   // Deposit state (supports percentage | amount)
   const inferredDepositPct = q?.deposit_percentage ?? (initialRawTerms === "cash" ? 0 : 50);
 
-  const [depositMode, setDepositMode] = React.useState(q?.deposit_mode || "percentage");
-  const [depositPct, setDepositPct] = React.useState(inferredDepositPct);
-  const [depositAmountInput, setDepositAmountInput] = React.useState(
+  const [depositMode, setDepositMode] = useState(q?.deposit_mode || "percentage");
+  const [depositPct, setDepositPct] = useState(inferredDepositPct);
+  const [depositAmountInput, setDepositAmountInput] = useState(
     q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : ""
   );
 
   // Financial states (editable)
-  const [specialDiscountType, setSpecialDiscountType] = React.useState(() => {
+  const [specialDiscountType, setSpecialDiscountType] = useState(() => {
     // infer type from existing data
     if ((q.special_discount_percentage ?? 0) > 0) return "percentage";
     if ((q.special_discount_amount ?? 0) > 0) return "amount";
     return "percentage";
   });
-  const [specialDiscountValue, setSpecialDiscountValue] = React.useState(() => {
+  const [specialDiscountValue, setSpecialDiscountValue] = useState(() => {
     if ((q.special_discount_percentage ?? 0) > 0) return Number(q.special_discount_percentage);
     if ((q.special_discount_amount ?? 0) > 0) return Number(q.special_discount_amount);
     return 0;
   });
-  const [hasWithholdingTax, setHasWithholdingTax] = React.useState(() => !!q.has_withholding_tax);
-  const [withholdingTaxPercentage, setWithholdingTaxPercentage] = React.useState(() =>
+  const [hasWithholdingTax, setHasWithholdingTax] = useState(() => !!q.has_withholding_tax);
+  const [withholdingTaxPercentage, setWithholdingTaxPercentage] = useState(() =>
     Number(q.withholding_tax_percentage || 0)
   );
 
   // VAT states (NEW)
-  const [hasVat, setHasVat] = React.useState(() => q?.has_vat ?? true);
-  const [vatPercentage, setVatPercentage] = React.useState(() => Number(q?.vat_percentage || 7));
-  const [pricingMode, setPricingMode] = React.useState(() => q?.pricing_mode || "net");
+  const [hasVat, setHasVat] = useState(() => q?.has_vat ?? true);
+  const [vatPercentage, setVatPercentage] = useState(() => Number(q?.vat_percentage || 7));
+  const [pricingMode, setPricingMode] = useState(() => q?.pricing_mode || "net");
 
   // Effect to sync state when quotation data is loaded or changed
-  React.useEffect(() => {
+  useEffect(() => {
     setCustomer(normalizeCustomer(q));
   }, [q]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Sync notes from server when quotation changes/opened
     setQuotationNotes(q?.notes || "");
 
@@ -141,14 +139,14 @@ export function useQuotationDialogLogic(quotationId, open) {
   ]);
 
   // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
-  const [hasInitializedFinancials, setHasInitializedFinancials] = React.useState(false);
+  const [hasInitializedFinancials, setHasInitializedFinancials] = useState(false);
 
   // Reset initialization flag when quotation ID changes
-  React.useEffect(() => {
+  useEffect(() => {
     setHasInitializedFinancials(false);
   }, [q?.id]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!q?.id) return; // nothing yet
     if (hasInitializedFinancials) return; // don't override after initial setup
 

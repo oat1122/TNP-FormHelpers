@@ -27,11 +27,7 @@ import React from "react";
 import SyncConfirmationDialog from "../SyncConfirmationDialog";
 import SyncProgressDialog from "../SyncProgressDialog";
 import { useQuotationDialogLogic } from "./hooks/useQuotationDialogLogic";
-import { useQuotationFinancials } from "./hooks/useQuotationFinancials";
-import { useQuotationGroups } from "./hooks/useQuotationGroups";
 import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
-import { PRGroupSummaryCard } from "./subcomponents/PRGroupSummaryCard";
-import { formatDateTH } from "./utils/formatters";
 import { apiConfig } from "../../../../../api/apiConfig";
 import {
   useGetBulkPricingRequestAutofillQuery,
@@ -41,9 +37,6 @@ import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
 import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
 import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
-import { getAllPrIdsFromQuotation, normalizeAndGroupItems } from "./utils/quotationUtils";
-import { sanitizeInt } from "./utils/sanitizers";
 import VatField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
 import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
 import {
@@ -56,8 +49,15 @@ import {
 import Calculation from "../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../shared/components/PaymentTerms";
+import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
+import { sanitizeInt } from "../../../shared/inputSanitizers";
+import { useQuotationGroups } from "../shared/hooks/useQuotationGroups";
+import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
+import { PRGroupSummaryCard } from "../shared/PRGroupSummaryCard";
+import { formatDateTH } from "../shared/utils/quotationFormatters";
+import { getAllPrIdsFromQuotation, normalizeAndGroupItems } from "../shared/utils/quotationUtils";
 
-// ✅ รับ onSaveSuccess เพิ่ม
+// รับ onSaveSuccess เพิ่ม
 const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
   // Sync-related state
   const [syncConfirmOpen, setSyncConfirmOpen] = React.useState(false);

@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import React from "react";
 
-import { formatTHB } from "../QuotationDetailDialog/utils/formatters";
+import { formatTHB } from "./utils/quotationFormatters";
 
 // ... (Temporary fallback styles: InfoCard, SecondaryButton, tokens ...
 // ... (เหมือนเดิม)

@@ -1,5 +1,5 @@
 // 📁hooks/useQuotationImageManager.js
-import React from "react";
+import { useState, useCallback, useRef } from "react";
 
 import {
   useGenerateQuotationPDFMutation,
@@ -16,9 +16,9 @@ import {
 
 export function useQuotationImageManager(quotationId, isEditing, handleSave) {
   // State for PDF Generation
-  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
-  const [pdfUrl, setPdfUrl] = React.useState("");
-  const [showPdfViewer, setShowPdfViewer] = React.useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [generateQuotationPDF] = useGenerateQuotationPDFMutation();
 
   // Mutations for image handling
@@ -29,13 +29,13 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
   const [updateQuotation] = useUpdateQuotationMutation();
 
   // State for image preview
-  const [previewImage, setPreviewImage] = React.useState(null); // {url, filename, idx}
+  const [previewImage, setPreviewImage] = useState(null); // {url, filename, idx}
 
   // Sample image selection for PDF
-  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = React.useState(new Set());
-  const selDebounceRef = React.useRef(null);
-  const lastSyncedSelRef = React.useRef("");
-  const sampleImagesRef = React.useRef([]);
+  const [selectedSampleForPdfLocal, setSelectedSampleForPdfLocal] = useState(new Set());
+  const selDebounceRef = useRef(null);
+  const lastSyncedSelRef = useRef("");
+  const sampleImagesRef = useRef([]);
 
   const handlePreviewPdf = async (quotationStatus) => {
     if (!quotationId) return;
@@ -110,7 +110,7 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     }
   };
 
-  const scheduleSyncSelectedForPdf = React.useCallback(
+  const scheduleSyncSelectedForPdf = useCallback(
     (newSelectedSet) => {
       if (selDebounceRef.current) {
         clearTimeout(selDebounceRef.current);
@@ -141,7 +141,7 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     [updateQuotation, quotationId]
   );
 
-  const initializeSampleSelection = React.useCallback((sampleImages) => {
+  const initializeSampleSelection = useCallback((sampleImages) => {
     sampleImagesRef.current = sampleImages;
     // Filter all selected images and put their filenames into the Set
     const initialSet = new Set(
@@ -155,7 +155,7 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     lastSyncedSelRef.current = JSON.stringify(Array.from(initialSet).sort());
   }, []);
 
-  const updateSampleSelection = React.useCallback((sampleImages) => {
+  const updateSampleSelection = useCallback((sampleImages) => {
     sampleImagesRef.current = sampleImages;
   }, []);
 

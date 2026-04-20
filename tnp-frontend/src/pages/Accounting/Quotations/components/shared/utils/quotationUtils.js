@@ -1,11 +1,9 @@
-// 📁utils/quotationUtils.js
+// 📁shared/utils/quotationUtils.js
 
-// Pick quotation data from response
 export function pickQuotation(data) {
   return data?.data || data || {};
 }
 
-// Normalize customer data
 export function normalizeCustomer(q) {
   return (
     q?.customer || {
@@ -25,7 +23,6 @@ export function normalizeCustomer(q) {
   );
 }
 
-// Calculate totals from groups
 export function computeTotals(groups = [], depositPercentage = 0) {
   const subtotal = groups.reduce((total, group) => {
     const groupTotal = (group.sizeRows || []).reduce((sum, row) => {
@@ -43,16 +40,13 @@ export function computeTotals(groups = [], depositPercentage = 0) {
   return { subtotal, vat, total, deposit };
 }
 
-// Convert date to ISO format
 export function toISODate(date) {
   if (!date) return null;
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 }
 
-// Get all PR IDs from quotation
 export function getAllPrIdsFromQuotation(quotation) {
   if (!quotation?.items) return [];
-  // ✅ แปลงเป็น integer เพื่อป้องกัน validation error
   return [
     ...new Set(
       quotation.items
@@ -63,11 +57,9 @@ export function getAllPrIdsFromQuotation(quotation) {
   ];
 }
 
-// Normalize and group items
 export function normalizeAndGroupItems(quotation) {
   const items = quotation?.items || [];
 
-  // Group items by pricing_request_id and item_name
   const grouped = items.reduce((acc, item) => {
     const key = `${item.pricing_request_id || "no-pr"}_${item.item_name || "no-name"}`;
     if (!acc[key]) {

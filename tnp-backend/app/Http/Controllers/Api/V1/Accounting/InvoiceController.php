@@ -6,12 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Services\Accounting\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Services\Accounting\Pdf\TaxInvoicePdfMasterService;
 use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
 use App\Services\Accounting\Pdf\TaxInvoiceFullPdfMasterService;
 use App\Services\Accounting\Pdf\ReceiptFullPdfMasterService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Traits\ApiResponseHelper;
@@ -51,11 +51,15 @@ class InvoiceController extends Controller
      */
     public function uploadEvidence(UploadEvidenceRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $uploadedBy = AccountingHelper::getCurrentUserId();
-        $result = $this->invoiceService->uploadEvidence($id, $request->file('files'), $data['description'] ?? null, $uploadedBy);
+        try {
+            $data = $request->validated();
+            $uploadedBy = AccountingHelper::getCurrentUserId();
+            $result = $this->invoiceService->uploadEvidence($id, $request->file('files'), $data['description'] ?? null, $uploadedBy);
 
-        return $this->successResponse($result, 'Evidence uploaded successfully');
+            return $this->successResponse($result, 'Evidence uploaded successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::uploadEvidence', $e);
+        }
     }
 
     /**
@@ -64,11 +68,15 @@ class InvoiceController extends Controller
      */
     public function quotationsAwaiting(Request $request): JsonResponse
     {
-        $filters = ['search' => $request->query('search')];
-        $perPage = min($request->query('per_page', 20), 50);
-        $data = $this->invoiceService->getQuotationsAwaiting($filters, $perPage);
+        try {
+            $filters = ['search' => $request->query('search')];
+            $perPage = min($request->query('per_page', 20), 50);
+            $data = $this->invoiceService->getQuotationsAwaiting($filters, $perPage);
 
-        return $this->successResponse($data, 'Quotations awaiting invoice retrieved successfully');
+            return $this->successResponse($data, 'Quotations awaiting invoice retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::quotationsAwaiting', $e);
+        }
     }
 
     /**
@@ -77,31 +85,35 @@ class InvoiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = [
-            'search' => $request->query('search'),
-            'type' => $request->query('type'),
-            'customer_id' => $request->query('customer_id'),
-            'date_from' => $request->query('date_from'),
-            'date_to' => $request->query('date_to'),
-            'due_date_from' => $request->query('due_date_from'),
-            'due_date_to' => $request->query('due_date_to'),
-            'overdue' => $request->query('overdue'),
-            'status' => $request->query('status') 
-                ? ['invoices.status', '=', $request->query('status')] 
-                : null,
-            'status_before' => $request->query('status_before') 
-                ? ['invoices.status_before', '=', $request->query('status_before')] 
-                : null,
-            'status_after' => $request->query('status_after') 
-                ? ['invoices.status_after', '=', $request->query('status_after')] 
-                : null,
-        ];
+        try {
+            $filters = [
+                'search' => $request->query('search'),
+                'type' => $request->query('type'),
+                'customer_id' => $request->query('customer_id'),
+                'date_from' => $request->query('date_from'),
+                'date_to' => $request->query('date_to'),
+                'due_date_from' => $request->query('due_date_from'),
+                'due_date_to' => $request->query('due_date_to'),
+                'overdue' => $request->query('overdue'),
+                'status' => $request->query('status')
+                    ? ['invoices.status', '=', $request->query('status')]
+                    : null,
+                'status_before' => $request->query('status_before')
+                    ? ['invoices.status_before', '=', $request->query('status_before')]
+                    : null,
+                'status_after' => $request->query('status_after')
+                    ? ['invoices.status_after', '=', $request->query('status_after')]
+                    : null,
+            ];
 
-        $filters = array_filter($filters, fn($value) => !is_null($value));
-        $perPage = min($request->query('per_page', 20), 100);
-        
-        $invoices = $this->invoiceService->getList($filters, $perPage);
-        return $this->successResponse($invoices, 'Invoices retrieved successfully');
+            $filters = array_filter($filters, fn($value) => !is_null($value));
+            $perPage = min($request->query('per_page', 20), 100);
+
+            $invoices = $this->invoiceService->getList($filters, $perPage);
+            return $this->successResponse($invoices, 'Invoices retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::index', $e);
+        }
     }
 
     /**
@@ -110,12 +122,18 @@ class InvoiceController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $invoice = \App\Models\Accounting\Invoice::with([
-            'quotation', 'documentHistory', 'attachments', 'items',
-            'customer', 'manager', 'company', 'referenceInvoice', 'afterDepositInvoices'
-        ])->findOrFail($id);
+        try {
+            $invoice = \App\Models\Accounting\Invoice::with([
+                'quotation', 'documentHistory', 'attachments', 'items',
+                'customer', 'manager', 'company', 'referenceInvoice', 'afterDepositInvoices'
+            ])->findOrFail($id);
 
-        return $this->successResponse($invoice, 'Invoice details retrieved successfully');
+            return $this->successResponse($invoice, 'Invoice details retrieved successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Invoice');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::show', $e);
+        }
     }
 
     /**
@@ -124,11 +142,15 @@ class InvoiceController extends Controller
      */
     public function store(StoreInvoiceRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $createdBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->create($data, $createdBy);
+        try {
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->create($data, $createdBy);
 
-        return $this->createdResponse($invoice, 'Invoice created successfully');
+            return $this->createdResponse($invoice, 'Invoice created successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::store', $e);
+        }
     }
 
     /**
@@ -137,11 +159,15 @@ class InvoiceController extends Controller
      */
     public function update(UpdateInvoiceRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $updatedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->update($id, $data, $updatedBy);
+        try {
+            $data = $request->validated();
+            $updatedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->update($id, $data, $updatedBy);
 
-        return $this->successResponse($invoice, 'Invoice updated successfully');
+            return $this->successResponse($invoice, 'Invoice updated successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::update', $e);
+        }
     }
 
     /**
@@ -150,14 +176,24 @@ class InvoiceController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+        try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can delete invoices');
+            }
 
-        if ($invoice->status !== 'draft') {
-            return $this->errorResponse('Only draft invoices can be deleted', 400);
+            $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
+
+            if ($invoice->status !== 'draft') {
+                return $this->errorResponse('Only draft invoices can be deleted', 400);
+            }
+
+            $invoice->delete();
+            return $this->successResponse(null, 'Invoice deleted successfully');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Invoice');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::destroy', $e);
         }
-
-        $invoice->delete();
-        return $this->successResponse(null, 'Invoice deleted successfully');
     }
 
     /**
@@ -166,11 +202,15 @@ class InvoiceController extends Controller
      */
     public function createFromQuotation(CreateFromQuotationRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $createdBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->createFromQuotation($data['quotation_id'], $data, $createdBy);
+        try {
+            $data = $request->validated();
+            $createdBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->createFromQuotation($data['quotation_id'], $data, $createdBy);
 
-        return $this->createdResponse($invoice, 'Invoice created from quotation successfully');
+            return $this->createdResponse($invoice, 'Invoice created from quotation successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::createFromQuotation', $e);
+        }
     }
 
     /**
@@ -179,11 +219,15 @@ class InvoiceController extends Controller
      */
     public function submitBefore($id): JsonResponse
     {
-        $submittedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->submitBefore($id, $submittedBy);
-        $data = $this->invoiceService->getInvoiceWithUiStatus($invoice);
+        try {
+            $submittedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->submitBefore($id, $submittedBy);
+            $data = $this->invoiceService->getInvoiceWithUiStatus($invoice);
 
-        return $this->successResponse($data, 'Invoice submitted for approval (before deposit) successfully');
+            return $this->successResponse($data, 'Invoice submitted for approval (before deposit) successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::submitBefore', $e);
+        }
     }
 
     /**
@@ -192,16 +236,20 @@ class InvoiceController extends Controller
      */
     public function approveBefore(ApproveInvoiceRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can approve invoices');
+        try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can approve invoices');
+            }
+
+            $data = $request->validated();
+            $approvedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->approveBefore($id, $approvedBy, $data['notes'] ?? null);
+            $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
+
+            return $this->successResponse($result, 'Invoice approved (before deposit) successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::approveBefore', $e);
         }
-
-        $data = $request->validated();
-        $approvedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->approveBefore($id, $approvedBy, $data['notes'] ?? null);
-        $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
-
-        return $this->successResponse($result, 'Invoice approved (before deposit) successfully');
     }
 
     /**
@@ -210,11 +258,15 @@ class InvoiceController extends Controller
      */
     public function reject(RejectInvoiceRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $rejectedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->reject($id, $data['reason'], $rejectedBy);
+        try {
+            $data = $request->validated();
+            $rejectedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->reject($id, $data['reason'], $rejectedBy);
 
-        return $this->successResponse($invoice, 'Invoice rejected successfully');
+            return $this->successResponse($invoice, 'Invoice rejected successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::reject', $e);
+        }
     }
 
     /**
@@ -223,16 +275,20 @@ class InvoiceController extends Controller
      */
     public function submitAfter(SubmitAfterDepositRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can submit after-deposit');
+        try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can submit after-deposit');
+            }
+
+            $data = $request->validated();
+            $submittedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->submitAfter($id, $submittedBy);
+            $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
+
+            return $this->successResponse($result, 'Invoice submitted for after-deposit approval successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::submitAfter', $e);
         }
-
-        $data = $request->validated();
-        $submittedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->submitAfter($id, $submittedBy);
-        $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
-
-        return $this->successResponse($result, 'Invoice submitted for after-deposit approval successfully');
     }
 
     /**
@@ -241,16 +297,20 @@ class InvoiceController extends Controller
      */
     public function approveAfter(ApproveInvoiceRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can approve after-deposit');
+        try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can approve after-deposit');
+            }
+
+            $data = $request->validated();
+            $approvedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->approveAfter($id, $approvedBy, $data['notes'] ?? null);
+            $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
+
+            return $this->successResponse($result, 'Invoice after-deposit approved successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::approveAfter', $e);
         }
-
-        $data = $request->validated();
-        $approvedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->approveAfter($id, $approvedBy, $data['notes'] ?? null);
-        $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
-
-        return $this->successResponse($result, 'Invoice after-deposit approved successfully');
     }
 
     /**
@@ -259,11 +319,15 @@ class InvoiceController extends Controller
      */
     public function sendBack(RejectInvoiceRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $actionBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->sendBack($id, $data['reason'], $actionBy);
+        try {
+            $data = $request->validated();
+            $actionBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->sendBack($id, $data['reason'], $actionBy);
 
-        return $this->successResponse($invoice, 'Invoice sent back for editing successfully');
+            return $this->successResponse($invoice, 'Invoice sent back for editing successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::sendBack', $e);
+        }
     }
 
     /**
@@ -272,16 +336,20 @@ class InvoiceController extends Controller
      */
     public function revertToDraft(RevertToDraftRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can revert invoice status');
+        try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can revert invoice status');
+            }
+
+            $data = $request->validated();
+            $revertedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->revertToDraft($id, $data['side'] ?? null, $revertedBy, $data['reason'] ?? null);
+            $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
+
+            return $this->successResponse($result, 'Invoice status reverted to draft successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::revertToDraft', $e);
         }
-
-        $data = $request->validated();
-        $revertedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->revertToDraft($id, $data['side'] ?? null, $revertedBy, $data['reason'] ?? null);
-        $result = $this->invoiceService->getInvoiceWithUiStatus($invoice);
-
-        return $this->successResponse($result, 'Invoice status reverted to draft successfully');
     }
 
     /**
@@ -290,11 +358,15 @@ class InvoiceController extends Controller
      */
     public function sendToCustomer(SendToCustomerRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $sentBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->sendToCustomer($id, $data, $sentBy);
+        try {
+            $data = $request->validated();
+            $sentBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->sendToCustomer($id, $data, $sentBy);
 
-        return $this->successResponse($invoice, 'Invoice sent to customer successfully');
+            return $this->successResponse($invoice, 'Invoice sent to customer successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::sendToCustomer', $e);
+        }
     }
 
     /**
@@ -303,11 +375,15 @@ class InvoiceController extends Controller
      */
     public function recordPayment(RecordPaymentRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $recordedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->recordPayment($id, $data, $recordedBy);
+        try {
+            $data = $request->validated();
+            $recordedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->recordPayment($id, $data, $recordedBy);
 
-        return $this->successResponse($invoice, 'Payment recorded successfully');
+            return $this->successResponse($invoice, 'Payment recorded successfully');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::recordPayment', $e);
+        }
     }
 
     /**
@@ -316,11 +392,15 @@ class InvoiceController extends Controller
      */
     public function updateDepositDisplayOrder(UpdateDepositModeRequest $request, $id): JsonResponse
     {
-        $data = $request->validated();
-        $updatedBy = AccountingHelper::getCurrentUserId();
-        $invoice = $this->invoiceService->updateDepositDisplayOrder($id, $data['deposit_display_order'], $updatedBy);
+        try {
+            $data = $request->validated();
+            $updatedBy = AccountingHelper::getCurrentUserId();
+            $invoice = $this->invoiceService->updateDepositDisplayOrder($id, $data['deposit_display_order'], $updatedBy);
 
-        return $this->successResponse($invoice, 'Deposit display order updated');
+            return $this->successResponse($invoice, 'Deposit display order updated');
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::updateDepositDisplayOrder', $e);
+        }
     }
 
     /**
@@ -329,11 +409,15 @@ class InvoiceController extends Controller
      */
     public function uploadEvidenceByMode(UploadEvidenceByModeRequest $request, $id, $mode): JsonResponse
     {
-        $data = $request->validated();
-        $uploadedBy = AccountingHelper::getCurrentUserId();
-        $result = $this->invoiceService->uploadEvidenceByMode($id, $request->file('files'), $mode, $data['description'] ?? null, $uploadedBy);
+        try {
+            $data = $request->validated();
+            $uploadedBy = AccountingHelper::getCurrentUserId();
+            $result = $this->invoiceService->uploadEvidenceByMode($id, $request->file('files'), $mode, $data['description'] ?? null, $uploadedBy);
 
-        return $this->successResponse($result, "Evidence uploaded successfully for {$mode} mode");
+            return $this->successResponse($result, "Evidence uploaded successfully for {$mode} mode");
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::uploadEvidenceByMode', $e);
+        }
     }
 
     /**
@@ -342,20 +426,24 @@ class InvoiceController extends Controller
      */
     public function generatePdf(Request $request, $id): JsonResponse
     {
-        $options = $this->extractPdfOptions($request);
-        $headerTypes = $request->input('headerTypes');
-        
-        $result = $this->invoiceService->generatePdfBundle(
-            $id,
-            is_array($headerTypes) ? $headerTypes : [],
-            $options
-        );
+        try {
+            $options = $this->extractPdfOptions($request);
+            $headerTypes = $request->input('headerTypes');
 
-        $message = ($result['mode'] ?? 'single') === 'zip' 
-            ? "สร้าง ZIP รวม {$result['count']} ไฟล์ PDF สำเร็จ"
-            : 'PDF สร้างด้วย mPDF สำเร็จ';
+            $result = $this->invoiceService->generatePdfBundle(
+                $id,
+                is_array($headerTypes) ? $headerTypes : [],
+                $options
+            );
 
-        return $this->successResponse($result, $message);
+            $message = ($result['mode'] ?? 'single') === 'zip'
+                ? "สร้าง ZIP รวม {$result['count']} ไฟล์ PDF สำเร็จ"
+                : 'PDF สร้างด้วย mPDF สำเร็จ';
+
+            return $this->successResponse($result, $message);
+        } catch (\Exception $e) {
+            return $this->serverErrorResponse('InvoiceController::generatePdf', $e);
+        }
     }
 
     /**
@@ -529,18 +617,7 @@ class InvoiceController extends Controller
             return $this->errorResponse('Reminder can only be sent for invoices that are sent or partially paid', 400);
         }
 
-        // TODO: Implement actual reminder sending logic
-
-        $actionBy = AccountingHelper::getCurrentUserId();
-        \App\Models\Accounting\DocumentHistory::logAction(
-            'invoice',
-            $id,
-            'send_reminder',
-            $actionBy,
-            "ส่งการแจ้งเตือน: " . ($data['notes'] ?? '')
-        );
-
-        return $this->successResponse(null, 'Payment reminder sent successfully');
+        return $this->errorResponse('ฟีเจอร์ส่งการแจ้งเตือนยังไม่พร้อมใช้งาน', 501);
     }
 
     /**

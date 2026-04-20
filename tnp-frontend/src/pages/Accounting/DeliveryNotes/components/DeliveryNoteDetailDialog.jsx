@@ -14,23 +14,7 @@ import {
 } from "../../../../features/Accounting/accountingApi";
 import DetailDialog from "../../shared/components/DetailDialog";
 import { showError } from "../../utils/accountingToast";
-
-const statusColor = (status) => {
-  switch (status) {
-    case "preparing":
-      return "default";
-    case "shipping":
-    case "in_transit":
-      return "info";
-    case "delivered":
-    case "completed":
-      return "success";
-    case "failed":
-      return "error";
-    default:
-      return "default";
-  }
-};
+import { getDeliveryStatusColor as statusColor } from "../utils/deliveryNoteFormatters";
 
 const DeliveryNoteDetailDialog = ({ open, onClose, deliveryNoteId, onUpdated }) => {
   const { data, isLoading, error, refetch } = useGetDeliveryNoteQuery(deliveryNoteId, {

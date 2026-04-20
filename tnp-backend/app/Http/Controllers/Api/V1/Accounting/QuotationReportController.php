@@ -7,7 +7,6 @@ use App\Services\Accounting\QuotationReportService;
 use App\Traits\ApiResponseHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class QuotationReportController extends Controller
 {
@@ -42,8 +41,7 @@ class QuotationReportController extends Controller
             return $this->successResponse($result, 'Report data retrieved successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationReportController::index error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve report data: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationReportController::index', $e);
         }
     }
 
@@ -74,11 +72,7 @@ class QuotationReportController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('QuotationReportController::export error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Export failed: ' . $e->getMessage(),
-            ], 500);
+            return $this->serverErrorResponse('QuotationReportController::export', $e);
         }
     }
 }

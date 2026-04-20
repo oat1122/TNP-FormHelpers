@@ -47,6 +47,7 @@ import {
   tokens,
 } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
 import { useSubmitUpdateDeliveryNote } from "../hooks/useSubmitUpdateDeliveryNote";
+import { groupDeliveryNoteItemsByProduct } from "../utils/deliveryNoteGrouping";
 
 // Group existing delivery note items for display/editing
 function useGroupedNoteItems(note) {
@@ -58,50 +59,10 @@ function useGroupedNoteItems(note) {
       : Array.isArray(note?.delivery_note_items)
         ? note.delivery_note_items
         : [];
-    const map = new Map();
-    items.forEach((it, idx) => {
-      const name = it.item_name || "-";
-      const pattern = it.pattern || "";
-      const fabric = it.fabric_type || "";
-      const color = it.color || "";
-      const workName = name;
-      const key = [name, pattern, fabric, color, workName].join("||");
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          name,
-          pattern,
-          fabric,
-          color,
-          workName,
-          description: it.item_description || "-",
-          rows: [],
-        });
-      }
-      const qty =
-        Number(
-          typeof it.delivered_quantity === "string"
-            ? parseFloat(it.delivered_quantity || "0")
-            : it.delivered_quantity || 0
-        ) || 0;
-      map.get(key).rows.push({
-        id: it.id || `${idx}`,
-        size: it.size || "",
-        quantity: qty,
-        unit: it.unit || "ชิ้น",
-      });
-    });
-    const grouped = Array.from(map.values()).map((g) => ({
-      ...g,
-      totalQty: (g.rows || []).reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-    }));
-    setGroups(grouped);
+    setGroups(groupDeliveryNoteItemsByProduct(items));
   }, [note?.items, note?.delivery_note_items]);
 
-  return {
-    groups,
-    setGroups,
-  };
+  return { groups, setGroups };
 }
 
 // Editable table similar to create dialog (local-only edit for now)

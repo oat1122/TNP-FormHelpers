@@ -37,6 +37,7 @@ import {
   TNPSecondaryButton,
   TNPDivider,
 } from "../../PricingIntegration/components/styles/StyledComponents";
+import { formatTHB } from "../utils/deliveryNoteFormatters";
 
 const statusColor = {
   draft: "default",
@@ -47,23 +48,7 @@ const statusColor = {
   completed: "success",
 };
 
-const formatCurrency = (value) => {
-  if (value === undefined || value === null) return "-";
-  try {
-    return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(
-      Number(value)
-    );
-  } catch {
-    return value;
-  }
-};
-
 const InvoiceItemGroupRow = ({ group, invoice, onSelectItem }) => {
-  const formatTHB = React.useMemo(
-    () => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }),
-    []
-  );
-
   return (
     <Box
       sx={{
@@ -108,7 +93,7 @@ const InvoiceItemGroupRow = ({ group, invoice, onSelectItem }) => {
             ยอดรวมของงานนี้
           </Typography>
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {formatTHB.format(group.total)}
+            {formatTHB(group.total)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             รวมจำนวน {Number(group.totalQty || 0)} ชิ้น
@@ -161,13 +146,13 @@ const InvoiceItemGroupRow = ({ group, invoice, onSelectItem }) => {
           >
             <Typography variant="body2">{r.size || "-"}</Typography>
             <Typography variant="body2" sx={{ textAlign: "right" }}>
-              {formatTHB.format(Number(r.unit_price || 0))}
+              {formatTHB(Number(r.unit_price || 0))}
             </Typography>
             <Typography variant="body2" sx={{ textAlign: "right" }}>
               {Number(r.quantity || 0)}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "right" }}>
-              {formatTHB.format(Number(r.subtotal || 0))}
+              {formatTHB(Number(r.subtotal || 0))}
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center" }}>
               <TNPSecondaryButton
@@ -193,7 +178,7 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
     () => (Array.isArray(invoice.items) ? invoice.items : []),
     [invoice.items]
   );
-  const amountText = formatCurrency(invoice.total_amount || 0);
+  const amountText = formatTHB(invoice.total_amount || 0);
 
   // Group items by common attributes (รายการ/แพทเทิร์น/ผ้า/สี/งาน)
   const grouped = React.useMemo(() => {

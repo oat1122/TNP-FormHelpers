@@ -1,13 +1,13 @@
-// 📁hooks/useQuotationGroups.js
-import React from "react";
+// 📁shared/hooks/useQuotationGroups.js
+import { useState, useMemo, useEffect, useCallback } from "react";
 
-import { sanitizeInt, sanitizeDecimal } from "../utils/sanitizers";
+import { sanitizeInt, sanitizeDecimal } from "../../../../shared/inputSanitizers";
 
-// Hook to manage groups editing state and helpers used in QuotationDetailDialog
+// Hook to manage groups editing state and helpers used in QuotationDetailDialog / QuotationDuplicateDialog
 export function useQuotationGroups(initialItems) {
-  const [groups, setGroups] = React.useState([]);
-  const [isEditing, setIsEditing] = React.useState(false);
-  const editableInitialGroups = React.useMemo(
+  const [groups, setGroups] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const editableInitialGroups = useMemo(
     () =>
       (initialItems || []).map((g) => ({
         ...g,
@@ -16,13 +16,13 @@ export function useQuotationGroups(initialItems) {
     [initialItems]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Initialize editable groups on open or when quotation changes
     setGroups(editableInitialGroups);
     setIsEditing(false);
   }, [editableInitialGroups]);
 
-  const onAddRow = React.useCallback((groupId) => {
+  const onAddRow = useCallback((groupId) => {
     setGroups((prev) =>
       prev.map((g) => {
         if (g.id !== groupId) return g;
@@ -38,7 +38,7 @@ export function useQuotationGroups(initialItems) {
     );
   }, []);
 
-  const onChangeRow = React.useCallback((groupId, rowUuid, field, value) => {
+  const onChangeRow = useCallback((groupId, rowUuid, field, value) => {
     setGroups((prev) =>
       prev.map((g) => {
         if (g.id !== groupId) return g;
@@ -54,7 +54,7 @@ export function useQuotationGroups(initialItems) {
     );
   }, []);
 
-  const onRemoveRow = React.useCallback((groupId, rowUuid) => {
+  const onRemoveRow = useCallback((groupId, rowUuid) => {
     setGroups((prev) =>
       prev.map((g) => {
         if (g.id !== groupId) return g;
@@ -64,15 +64,15 @@ export function useQuotationGroups(initialItems) {
     );
   }, []);
 
-  const onDeleteGroup = React.useCallback((groupId) => {
+  const onDeleteGroup = useCallback((groupId) => {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
   }, []);
 
-  const onChangeGroup = React.useCallback((groupId, field, value) => {
+  const onChangeGroup = useCallback((groupId, field, value) => {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, [field]: value } : g)));
   }, []);
 
-  const onAddNewGroup = React.useCallback(() => {
+  const onAddNewGroup = useCallback(() => {
     const newGroup = {
       id: `manual_${Date.now()}`,
       isManual: true,

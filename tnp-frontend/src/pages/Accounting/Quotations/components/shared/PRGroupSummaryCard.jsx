@@ -1,13 +1,7 @@
-// 📁subcomponents/PRGroupSummaryCard.jsx
+// 📁shared/PRGroupSummaryCard.jsx
 import { Box, Typography, Grid, Chip } from "@mui/material";
 import React from "react";
 
-// ❌ ลบการ import useGetPricingRequestAutofillQuery ออก
-
-// Import styles - need to check what's available
-// import { InfoCard, tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-
-// Temporary fallback styles - replace with actual import
 const InfoCard = ({ children, sx, ...props }) => (
   <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 1, ...sx }} {...props}>
     {children}
@@ -19,13 +13,11 @@ const tokens = {
   border: "#e0e0e0",
 };
 
-// Child: Summary card per PR group (use prAutofillData from props)
 export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({
   group,
   index,
   prAutofillData,
 }) {
-  // ✅ ใช้ข้อมูลจาก props แทน
   const pr = prAutofillData || {};
   const name =
     group.name && group.name !== "-" ? group.name : pr.pr_work_name || pr.work_name || "-";

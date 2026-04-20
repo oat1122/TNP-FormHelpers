@@ -1,2 +1,4 @@
 .vscode/
 *.md
+.agents/
+.claude/

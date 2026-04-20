@@ -17,17 +17,8 @@ import { format } from "date-fns";
 import React from "react";
 
 import DeliveryNotePDFMenu from "./DeliveryNotePDFMenu";
-import { formatTHB } from "../../Invoices/utils/format";
-
-const statusConfig = {
-  preparing: { color: "default", label: "preparing" },
-  shipping: { color: "primary", label: "shipping" },
-  in_transit: { color: "warning", label: "in_transit" },
-  delivered: { color: "success", label: "delivered" },
-  completed: { color: "info", label: "completed" },
-  approved: { color: "success", label: "approved" },
-  failed: { color: "error", label: "failed" },
-};
+import { formatTHB, deliveryStatusConfig as statusConfig } from "../utils/deliveryNoteFormatters";
+import { groupDeliveryNoteItemsByProduct } from "../utils/deliveryNoteGrouping";
 
 const formatDate = (date) => {
   if (!date) return "-";
@@ -120,66 +111,12 @@ const DeliveryNoteCardContent = ({
       : Array.isArray(note.delivery_note_items)
         ? note.delivery_note_items
         : [];
-    const map = new Map();
-    items.forEach((it, idx) => {
-      const name = it.item_name || "-";
-      const pattern = it.pattern || "";
-      const fabric = it.fabric_type || "";
-      const color = it.color || "";
-      const workName = name;
-      const key = [name, pattern, fabric, color, workName].join("||");
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          name,
-          workName,
-          pattern,
-          fabric,
-          color,
-          rows: [],
-        });
-      }
-      // unit price from snapshot if available
-      let snap = {};
-      try {
-        snap =
-          typeof it.item_snapshot === "string"
-            ? JSON.parse(it.item_snapshot)
-            : it.item_snapshot || {};
-      } catch {
-        snap = {};
-      }
-      const unitPrice =
-        Number(snap?.unit_price ?? snap?.price_per_unit ?? snap?.price_unit ?? snap?.price ?? 0) ||
-        0;
-      const quantity =
-        Number(
-          typeof it.delivered_quantity === "string"
-            ? parseFloat(it.delivered_quantity || "0")
-            : it.delivered_quantity || 0
-        ) || 0;
-      map.get(key).rows.push({
-        id: it.id || `${idx}`,
-        size: it.size || "",
-        unitPrice,
-        quantity,
-        unit: it.unit || "ชิ้น",
-        total: unitPrice * quantity,
-      });
-    });
-    const grouped = Array.from(map.values()).map((g) => ({
-      ...g,
-      totalQty: g.rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0),
-      totalAmount: g.rows.reduce((s, r) => s + (Number(r.total) || 0), 0),
-    }));
-    const rowsCount = grouped.reduce((s, g) => s + g.rows.length, 0);
-    const totalAmountAll = grouped.reduce((s, g) => s + g.totalAmount, 0);
-    const totalQtyAll = grouped.reduce((s, g) => s + g.totalQty, 0);
+    const grouped = groupDeliveryNoteItemsByProduct(items);
     return {
       groups: grouped,
-      totalRows: rowsCount,
-      grandTotalAmount: totalAmountAll,
-      grandTotalQty: totalQtyAll,
+      totalRows: grouped.reduce((s, g) => s + g.rows.length, 0),
+      grandTotalAmount: grouped.reduce((s, g) => s + g.totalAmount, 0),
+      grandTotalQty: grouped.reduce((s, g) => s + g.totalQty, 0),
     };
   }, [note.items, note.delivery_note_items]);
 

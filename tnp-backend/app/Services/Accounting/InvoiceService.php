@@ -526,11 +526,13 @@ class InvoiceService
         try {
             DB::beginTransaction();
 
-            $quotation = Quotation::with(['items', 'customer'])->findOrFail($quotationId);
+            $quotation = Quotation::with(['items', 'customer'])
+                ->lockForUpdate()
+                ->findOrFail($quotationId);
 
-            // ตรวจสอบสถานะ Quotation
-            if ($quotation->status !== 'approved') {
-                throw new \Exception('Quotation must be approved before converting to invoice');
+            // ตรวจสอบสถานะ Quotation (ยอมรับทั้ง 'approved' และ 'sent')
+            if (!$quotation->canConvertToInvoice()) {
+                throw new \Exception("Quotation must be approved or sent before converting to invoice (current status: {$quotation->status})");
             }
 
             // ดึงข้อมูล Auto-fill จาก Quotation
@@ -600,7 +602,21 @@ class InvoiceService
             $invoice->has_vat = $invoiceData['has_vat'] ?? $quotation->has_vat ?? true;
             $invoice->vat_percentage = $invoiceData['vat_percentage'] ?? $quotation->vat_percentage ?? 7;
             $invoice->pricing_mode = $invoiceData['pricing_mode'] ?? $quotation->pricing_mode ?? 'net';
-            $invoice->vat_amount = $invoiceData['vat_amount'] ?? 0;
+
+            // Recalculate VAT server-side — never trust frontend-provided vat_amount
+            $vatRate = $invoice->has_vat ? floatval($invoice->vat_percentage) : 0;
+            $subtotalForVat = floatval($invoice->subtotal);
+            if ($invoice->has_vat && $vatRate > 0) {
+                if ($invoice->pricing_mode === 'vat_included') {
+                    // Reverse: extract VAT from VAT-inclusive subtotal
+                    $invoice->vat_amount = round($subtotalForVat - ($subtotalForVat / (1 + $vatRate / 100)), 2);
+                } else {
+                    // Net: add VAT on top of subtotal
+                    $invoice->vat_amount = round($subtotalForVat * ($vatRate / 100), 2);
+                }
+            } else {
+                $invoice->vat_amount = 0;
+            }
             
             // Withholding Tax configuration
             $invoice->has_withholding_tax = $invoiceData['has_withholding_tax'] ?? false;

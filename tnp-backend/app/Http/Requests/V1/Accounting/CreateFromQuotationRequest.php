@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\V1\Accounting;
 
+use App\Models\Accounting\Quotation;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class CreateFromQuotationRequest extends FormRequest
 {
@@ -12,6 +14,59 @@ class CreateFromQuotationRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Cross-field validation after standard rules pass.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $data = $this->validated();
+
+            // Check quotation status allows conversion
+            $quotationId = $data['quotation_id'] ?? null;
+            if ($quotationId) {
+                $quotation = Quotation::find($quotationId);
+                if ($quotation && !$quotation->canConvertToInvoice()) {
+                    $v->errors()->add(
+                        'quotation_id',
+                        "ใบเสนอราคาต้องมีสถานะ 'อนุมัติแล้ว' หรือ 'ส่งแล้ว' จึงจะแปลงเป็นใบแจ้งหนี้ได้ (สถานะปัจจุบัน: {$quotation->status})"
+                    );
+                }
+            }
+
+            // Cross-validate discount amount vs percentage (±0.01 tolerance)
+            $subtotal = floatval($data['subtotal'] ?? 0);
+            $discountPct = floatval($data['special_discount_percentage'] ?? 0);
+            $discountAmt = floatval($data['special_discount_amount'] ?? 0);
+
+            if ($discountPct > 0 && $discountAmt > 0 && $subtotal > 0) {
+                $expectedDiscount = round($subtotal * ($discountPct / 100), 2);
+                if (abs($discountAmt - $expectedDiscount) > 0.01) {
+                    $v->errors()->add(
+                        'special_discount_amount',
+                        "ยอดส่วนลด ({$discountAmt}) ไม่ตรงกับที่คำนวณจากเปอร์เซ็นต์ {$discountPct}% (ที่คาดหวัง: {$expectedDiscount})"
+                    );
+                }
+            }
+
+            // Cross-validate withholding tax amount vs percentage (±0.01 tolerance)
+            $hasWht = $data['has_withholding_tax'] ?? false;
+            $whtPct = floatval($data['withholding_tax_percentage'] ?? 0);
+            $whtAmt = floatval($data['withholding_tax_amount'] ?? 0);
+            $totalAmount = floatval($data['total_amount'] ?? 0);
+
+            if ($hasWht && $whtPct > 0 && $whtAmt > 0 && $totalAmount > 0) {
+                $expectedWht = round($totalAmount * ($whtPct / 100), 2);
+                if (abs($whtAmt - $expectedWht) > 0.01) {
+                    $v->errors()->add(
+                        'withholding_tax_amount',
+                        "ยอดภาษีหัก ณ ที่จ่าย ({$whtAmt}) ไม่ตรงกับที่คำนวณจากเปอร์เซ็นต์ {$whtPct}% (ที่คาดหวัง: {$expectedWht})"
+                    );
+                }
+            }
+        });
     }
 
     /**

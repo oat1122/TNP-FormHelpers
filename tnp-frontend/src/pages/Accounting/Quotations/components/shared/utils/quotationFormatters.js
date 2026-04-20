@@ -1,6 +1,5 @@
-// 📁utils/formatters.js
+// 📁shared/utils/quotationFormatters.js
 
-// Format Thai Baht currency
 export function formatTHB(amount) {
   return new Intl.NumberFormat("th-TH", {
     style: "currency",
@@ -8,10 +7,9 @@ export function formatTHB(amount) {
     minimumFractionDigits: 2,
   })
     .format(amount || 0)
-    .replace("฿", ""); // Often, we just want the number
+    .replace("฿", "");
 }
 
-// Format date in Thai format
 export function formatDateTH(dateString) {
   if (!dateString) return "-";
   const date = new Date(dateString);

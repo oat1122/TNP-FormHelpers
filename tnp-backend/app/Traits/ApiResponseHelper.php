@@ -3,10 +3,11 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Trait ApiResponseHelper
- * 
+ *
  * Standardize JSON API responses across all controllers
  * Provides consistent response format with success/error states
  */
@@ -148,11 +149,30 @@ trait ApiResponseHelper
 
     /**
      * Return a no content response
-     * 
+     *
      * @return JsonResponse
      */
     protected function noContentResponse(): JsonResponse
     {
         return response()->json(null, 204);
+    }
+
+    /**
+     * Log an exception and return a safe error response.
+     * Hides internal details from the client in production.
+     */
+    protected function serverErrorResponse(string $context, \Throwable $e, int $code = 500): JsonResponse
+    {
+        Log::error("{$context}: " . $e->getMessage(), [
+            'exception' => $e->getMessage(),
+            'file'      => $e->getFile(),
+            'line'      => $e->getLine(),
+        ]);
+
+        $message = config('app.debug')
+            ? $e->getMessage()
+            : 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+
+        return $this->errorResponse($message, $code);
     }
 }

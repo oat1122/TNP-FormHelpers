@@ -9,7 +9,6 @@ use App\Helpers\AccountingHelper;
 use App\Http\Requests\V1\Accounting\BulkAutofillRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 
 class AutofillController extends Controller
 {
@@ -34,8 +33,7 @@ class AutofillController extends Controller
             $autofillData = $this->autofillService->getAutofillDataFromPricingRequest($pricingRequestId);
             return $this->successResponse($autofillData, 'Auto-fill data retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getPricingRequestAutofill error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getPricingRequestAutofill', $e);
         }
     }
 
@@ -57,8 +55,8 @@ class AutofillController extends Controller
                 try {
                     $autofillData = $this->autofillService->getAutofillDataFromPricingRequest($prId);
                     $results[] = array_merge(['pr_id' => $prId], $autofillData);
-                } catch (\Exception $e) {
-                    Log::warning("Failed to get autofill for PR {$prId}: " . $e->getMessage());
+                } catch (\Exception $innerE) {
+                    // Skip individual PR failures in bulk mode — partial results are still useful
                 }
             }
             
@@ -68,8 +66,7 @@ class AutofillController extends Controller
                 'Bulk auto-fill data retrieved successfully'
             );
         } catch (\Exception $e) {
-            Log::error('AutofillController::getBulkPricingRequestAutofill error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve bulk auto-fill data: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getBulkPricingRequestAutofill', $e);
         }
     }
 
@@ -84,8 +81,7 @@ class AutofillController extends Controller
             $customerData = $this->autofillService->getCustomerAutofillData($customerId, $userInfo);
             return $this->successResponse($customerData, 'Customer details retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getCustomerDetails error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve customer details: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getCustomerDetails', $e);
         }
     }
 
@@ -108,8 +104,7 @@ class AutofillController extends Controller
             
             return $this->successResponse($customers, 'Customers retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::searchCustomers error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to search customers: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::searchCustomers', $e);
         }
     }
 
@@ -120,8 +115,6 @@ class AutofillController extends Controller
     public function getCompletedPricingRequests(Request $request): JsonResponse
     {
         try {
-            Log::info('AutofillController::getCompletedPricingRequests called', ['params' => $request->all()]);
-
             $userInfo = AccountingHelper::getUserInfoFromRequest($request);
 
             $filters = [
@@ -134,15 +127,9 @@ class AutofillController extends Controller
 
             $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 200);
             $page = AccountingHelper::sanitizePage($request->query('page', 1));
-            
+
             $completedRequests = $this->autofillService->getCompletedPricingRequests($filters, $perPage, $page, $userInfo);
-            
-            Log::info('AutofillController::getCompletedPricingRequests success', [
-                'total_records' => $completedRequests->total(),
-                'user_id' => $userInfo['user_id'] ?? 'guest',
-                'access_control_applied' => $userInfo && $userInfo['user_id'] != 1
-            ]);
-            
+
             $pagination = AccountingHelper::getPaginationMetadata($completedRequests);
             return $this->successResponseWithPagination(
                 $completedRequests->items(),
@@ -150,10 +137,7 @@ class AutofillController extends Controller
                 'Completed pricing requests retrieved successfully'
             );
         } catch (\Exception $e) {
-            Log::error('AutofillController::getCompletedPricingRequests error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return $this->errorResponse('Failed to retrieve completed pricing requests: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getCompletedPricingRequests', $e);
         }
     }
 
@@ -167,8 +151,7 @@ class AutofillController extends Controller
             $autofillData = $this->autofillService->getCascadeAutofillForInvoice($quotationId);
             return $this->successResponse($autofillData, 'Auto-fill data for invoice retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getQuotationAutofillForInvoice error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getQuotationAutofillForInvoice', $e);
         }
     }
 
@@ -182,8 +165,7 @@ class AutofillController extends Controller
             $autofillData = $this->autofillService->getCascadeAutofillForReceipt($invoiceId);
             return $this->successResponse($autofillData, 'Auto-fill data for receipt retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getInvoiceAutofillForReceipt error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getInvoiceAutofillForReceipt', $e);
         }
     }
 
@@ -197,8 +179,7 @@ class AutofillController extends Controller
             $autofillData = $this->autofillService->getCascadeAutofillForDeliveryNote($receiptId);
             return $this->successResponse($autofillData, 'Auto-fill data for delivery note retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getReceiptAutofillForDeliveryNote error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve auto-fill data: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getReceiptAutofillForDeliveryNote', $e);
         }
     }
 
@@ -212,8 +193,7 @@ class AutofillController extends Controller
             $notes = $this->autofillService->getPricingRequestNotes($pricingRequestId);
             return $this->successResponse($notes, 'Pricing request notes retrieved successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::getPricingRequestNotes error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve pricing request notes: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::getPricingRequestNotes', $e);
         }
     }
 
@@ -228,8 +208,7 @@ class AutofillController extends Controller
             $result = $this->autofillService->markPricingRequestAsUsed($pricingRequestId, $userId);
             return $this->successResponse($result, 'Pricing request marked as used successfully');
         } catch (\Exception $e) {
-            Log::error('AutofillController::markPricingRequestAsUsed error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to mark pricing request as used: ' . $e->getMessage());
+            return $this->serverErrorResponse('AutofillController::markPricingRequestAsUsed', $e);
         }
     }
 }

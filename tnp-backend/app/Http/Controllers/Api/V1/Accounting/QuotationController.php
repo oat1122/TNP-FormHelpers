@@ -7,7 +7,6 @@ use App\Services\Accounting\QuotationService;
 use App\Models\Accounting\Quotation;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponseHelper;
 use App\Traits\HandlesPdfGeneration;
@@ -58,8 +57,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotations, 'Quotations retrieved successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::index error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve quotations: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::index', $e);
         }
     }
 
@@ -87,8 +85,7 @@ class QuotationController extends Controller
             return $this->createdResponse($quotation, 'Quotation created successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::store error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to create quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::store', $e);
         }
     }
 
@@ -113,9 +110,10 @@ class QuotationController extends Controller
             
             return $this->successResponse($quotation, 'Quotation retrieved successfully');
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Quotation');
         } catch (\Exception $e) {
-            Log::error('QuotationController::show error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve quotation: ' . $e->getMessage(), 404);
+            return $this->serverErrorResponse('QuotationController::show', $e);
         }
     }
 
@@ -192,12 +190,7 @@ class QuotationController extends Controller
             return response()->json($response, 200);
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::update error: ' . $e->getMessage(), [
-                'quotation_id' => $id,
-                'user_id' => AccountingHelper::getCurrentUserId(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return $this->errorResponse('Failed to update quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::update', $e);
         }
     }
 
@@ -216,8 +209,7 @@ class QuotationController extends Controller
             return $this->successResponse(null, 'Quotation deleted successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::destroy error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to delete quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::destroy', $e);
         }
     }
 
@@ -231,9 +223,10 @@ class QuotationController extends Controller
             $duplicateData = $this->quotationService->getDataForDuplication($id);
             return $this->successResponse($duplicateData, 'Quotation data for duplication retrieved successfully');
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Quotation');
         } catch (\Exception $e) {
-            Log::error('QuotationController::getDuplicateData error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to retrieve quotation data for duplication: ' . $e->getMessage(), 404);
+            return $this->serverErrorResponse('QuotationController::getDuplicateData', $e);
         }
     }
 
@@ -250,8 +243,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation submitted for review successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::submit error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to submit quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::submit', $e);
         }
     }
 
@@ -262,6 +254,10 @@ class QuotationController extends Controller
     public function approve(Request $request, $id): JsonResponse
     {
         try {
+            if (!AccountingHelper::hasRole(['admin', 'account'])) {
+                return $this->forbiddenResponse('Only admin/account can approve quotations');
+            }
+
             $notes = $request->input('notes');
             $approvedBy = AccountingHelper::getCurrentUserId();
             
@@ -270,8 +266,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation approved successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::approve error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to approve quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::approve', $e);
         }
     }
 
@@ -290,8 +285,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation rejected successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::reject error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to reject quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::reject', $e);
         }
     }
 
@@ -320,8 +314,7 @@ class QuotationController extends Controller
             return $this->successResponse($invoice, 'Quotation converted to invoice successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::convertToInvoice error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to convert quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::convertToInvoice', $e);
         }
     }
 
@@ -347,8 +340,7 @@ class QuotationController extends Controller
             return $this->createdResponse($quotation, 'Quotation created from pricing request successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::createFromPricingRequest error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to create quotation from pricing request: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::createFromPricingRequest', $e);
         }
     }
 
@@ -372,8 +364,7 @@ class QuotationController extends Controller
             return $this->createdResponse($quotation, 'Quotation created from multiple pricing requests successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::createFromMultiplePricingRequests error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to create quotation from multiple pricing requests: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::createFromMultiplePricingRequests', $e);
         }
     }
 
@@ -395,8 +386,7 @@ class QuotationController extends Controller
             );
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::createStandalone error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to create standalone quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::createStandalone', $e);
         }
     }
 
@@ -415,8 +405,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation sent back for editing successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::sendBack error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to send back quotation: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::sendBack', $e);
         }
     }
 
@@ -435,8 +424,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation approval revoked successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::revokeApproval error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to revoke approval: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::revokeApproval', $e);
         }
     }
 
@@ -477,51 +465,6 @@ class QuotationController extends Controller
     }
 
     /**
-     * ทดสอบการสร้าง PDF ด้วย mPDF
-     */
-    public function testMpdf(Request $request, $id)
-    {
-        try {
-            $quotation = Quotation::with(['customer', 'company', 'items'])->findOrFail($id);
-            $masterService = app(\App\Services\Accounting\Pdf\QuotationPdfMasterService::class);
-            
-            // ทดสอบสถานะระบบ
-            $systemStatus = $masterService->checkSystemStatus();
-            
-            if (empty($systemStatus['all_ready']) || !$systemStatus['all_ready']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ระบบ mPDF ไม่พร้อมใช้งาน',
-                    'system_status' => $systemStatus,
-                    'action' => 'fix_system_first'
-                ], 422);
-            }
-            
-            // ทดสอบสร้าง PDF
-            $result = $masterService->generatePdf($quotation, [
-                'showWatermark' => true,
-                'format' => 'A4'
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'ทดสอบ mPDF สำเร็จ!',
-                'pdf_url' => $result['url'] ?? null,
-                'filename' => $result['filename'] ?? null,
-                'size' => $result['size'] ?? null,
-                'system_status' => $systemStatus
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ทดสอบ mPDF ไม่สำเร็จ: ' . $e->getMessage(),
-                'error_trace' => $e->getTraceAsString()
-            ], 500);
-        }
-    }
-
-    /**
      * ส่งอีเมลใบเสนอราคา
      * POST /api/v1/quotations/{id}/send-email
      */
@@ -536,8 +479,7 @@ class QuotationController extends Controller
             return $this->successResponse($result, 'Email sent successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::sendEmail error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to send email: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::sendEmail', $e);
         }
     }
 
@@ -565,8 +507,7 @@ class QuotationController extends Controller
             return $this->successResponse($result, 'Evidence uploaded successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::uploadEvidence error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to upload evidence: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::uploadEvidence', $e);
         }
     }
 
@@ -608,8 +549,7 @@ class QuotationController extends Controller
             return $this->successResponse($result, 'อัปโหลดรูปหลักฐานการเซ็นเรียบร้อย');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::uploadSignatures error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to upload signatures: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::uploadSignatures', $e);
         }
     }
 
@@ -640,8 +580,7 @@ class QuotationController extends Controller
             return $this->successResponse($result, 'Sample images uploaded successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::uploadSampleImages error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to upload sample images: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::uploadSampleImages', $e);
         }
     }
 
@@ -675,11 +614,7 @@ class QuotationController extends Controller
                 'message' => 'Sample images uploaded successfully'
             ]);
         } catch (\Exception $e) {
-            Log::error('QuotationController::uploadSampleImagesTemp error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload sample images: ' . $e->getMessage()
-            ], 500);
+            return $this->serverErrorResponse('QuotationController::uploadSampleImagesTemp', $e);
         }
     }
 
@@ -700,8 +635,7 @@ class QuotationController extends Controller
             $result = $this->quotationService->deleteSignatureImage($id, $identifier, $user->user_uuid ?? null);
             return $this->successResponse($result, 'ลบรูปหลักฐานการเซ็นเรียบร้อย');
         } catch (\Exception $e) {
-            Log::error('QuotationController::deleteSignatureImage error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to delete signature image: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::deleteSignatureImage', $e);
         }
     }
 
@@ -729,8 +663,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation marked as completed successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::markCompleted error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to mark quotation as completed: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::markCompleted', $e);
         }
     }
 
@@ -749,8 +682,7 @@ class QuotationController extends Controller
             return $this->successResponse($quotation, 'Quotation marked as sent successfully');
 
         } catch (\Exception $e) {
-            Log::error('QuotationController::markSent error: ' . $e->getMessage());
-            return $this->errorResponse('Failed to mark quotation as sent: ' . $e->getMessage());
+            return $this->serverErrorResponse('QuotationController::markSent', $e);
         }
     }
 
@@ -776,11 +708,10 @@ class QuotationController extends Controller
                 })
             ], 200);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Quotation');
         } catch (\Exception $e) {
-            Log::error('QuotationController::getRelatedInvoices error: ' . $e->getMessage(), [
-                'quotation_id' => $id
-            ]);
-            return $this->errorResponse('Failed to retrieve related invoices: ' . $e->getMessage(), 404);
+            return $this->serverErrorResponse('QuotationController::getRelatedInvoices', $e);
         }
     }
 
@@ -821,11 +752,10 @@ class QuotationController extends Controller
                 ]
             ], 200);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFoundResponse('Sync job');
         } catch (\Exception $e) {
-            Log::error('QuotationController::getSyncJobStatus error: ' . $e->getMessage(), [
-                'job_id' => $jobId
-            ]);
-            return $this->errorResponse('Failed to retrieve sync job status: ' . $e->getMessage(), 404);
+            return $this->serverErrorResponse('QuotationController::getSyncJobStatus', $e);
         }
     }
 }

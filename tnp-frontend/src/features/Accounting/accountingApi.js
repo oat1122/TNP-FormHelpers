@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
 import { apiConfig } from "../../api/apiConfig";
 
 // Base query ที่ใช้ config ร่วมกัน
@@ -43,6 +44,7 @@ export const accountingApi = createApi({
   keepUnusedDataFor: 1800, // 🔄 ตั้งค่า global cache 30 นาที
   tagTypes: [
     "PricingRequest",
+    "PricingRequestNote",
     "Quotation",
     "Invoice",
     "Receipt",
@@ -117,6 +119,41 @@ export const accountingApi = createApi({
         // We just need the data array
         return { data: response?.data || [] };
       },
+    }),
+    getCustomerById: builder.query({
+      query: (customerId) => `/customers/${customerId}`,
+      providesTags: (_r, _e, id) => [{ type: "Customer", id }],
+      transformResponse: (response) => {
+        const data = response?.data || response;
+        if (data?.cus_manage_by) {
+          if (
+            typeof data.cus_manage_by === "object" &&
+            !data.cus_manage_by.username &&
+            data.sales_name
+          ) {
+            data.cus_manage_by.username = data.sales_name;
+          } else if (typeof data.cus_manage_by !== "object" && !isNaN(data.cus_manage_by)) {
+            data.cus_manage_by = {
+              user_id: String(data.cus_manage_by),
+              username: data.sales_name || "",
+            };
+          }
+        }
+        return { ...response, data };
+      },
+      keepUnusedDataFor: 60,
+    }),
+    updateCustomerById: builder.mutation({
+      query: ({ customerId, ...customerData }) => ({
+        url: `/customers/${customerId}`,
+        method: "PUT",
+        body: customerData,
+      }),
+      invalidatesTags: (_r, _e, { customerId }) => [
+        { type: "Customer", id: customerId },
+        { type: "Customer", id: "LIST" },
+        { type: "PricingRequest", id: `customer-${customerId}` },
+      ],
     }),
 
     // ===================== PRICING REQUESTS =====================
@@ -199,7 +236,7 @@ export const accountingApi = createApi({
           body: { ids: validIds },
         };
       },
-      providesTags: (result, error, prIds) =>
+      providesTags: (result) =>
         (result?.data || []).map(({ pr_id }) => ({ type: "PricingRequest", id: pr_id })),
       keepUnusedDataFor: 3600, //  Cache autofill data นาน 1 ชั่วโมง
 
@@ -229,6 +266,27 @@ export const accountingApi = createApi({
         // Return new items (replace cache completely)
         return newItems;
       },
+    }),
+    getPricingRequestNotes: builder.query({
+      query: (pricingRequestId) => `/pricing-requests/${pricingRequestId}/notes`,
+      providesTags: (_r, _e, id) => [{ type: "PricingRequestNote", id }],
+      keepUnusedDataFor: 300,
+    }),
+    getPricingRequestsByCustomer: builder.query({
+      query: (customerId) => {
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        return {
+          url: "/pricing-requests",
+          params: {
+            customer_id: customerId,
+            user: userData.user_uuid || "",
+          },
+        };
+      },
+      providesTags: (_r, _e, customerId) => [
+        { type: "PricingRequest", id: `customer-${customerId}` },
+      ],
+      keepUnusedDataFor: 300,
     }),
 
     // ===================== QUOTATIONS =====================
@@ -318,7 +376,7 @@ export const accountingApi = createApi({
         url: `quotations/${id}/duplicate-data`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: "Quotation", id: "DUPLICATE_DATA" }],
+      providesTags: () => [{ type: "Quotation", id: "DUPLICATE_DATA" }],
     }),
     approveQuotation: builder.mutation({
       query: ({ id, ...approvalData }) => ({
@@ -625,7 +683,8 @@ export const accountingApi = createApi({
       query: ({ receiptId, files, fileData, description }) => {
         const formData = new FormData();
         const uploadFiles = files ?? fileData;
-        if (Array.isArray(uploadFiles)) uploadFiles.forEach((file) => formData.append("files[]", file));
+        if (Array.isArray(uploadFiles))
+          uploadFiles.forEach((file) => formData.append("files[]", file));
         else if (uploadFiles) formData.append("files[]", uploadFiles);
         if (description) formData.append("description", description);
         return {
@@ -798,10 +857,16 @@ export const {
   useDeleteCompanyMutation,
   // Customers
   useGetCustomersQuery,
+  useGetCustomerByIdQuery,
+  useLazyGetCustomerByIdQuery,
+  useUpdateCustomerByIdMutation,
   // Pricing
   useGetCompletedPricingRequestsQuery,
   useGetPricingRequestAutofillQuery,
   useGetBulkPricingRequestAutofillQuery,
+  useGetPricingRequestNotesQuery,
+  useGetPricingRequestsByCustomerQuery,
+  useLazyGetPricingRequestsByCustomerQuery,
   // Quotations
   useGetQuotationsQuery,
   useGetQuotationQuery,

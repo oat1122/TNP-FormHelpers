@@ -42,7 +42,9 @@ const PhoneLogDialog = ({ open, onClose, logs, loading, sellerName }) => (
           <CircularProgress size={24} />
         </Box>
       ) : logs.length === 0 ? (
-        <Typography sx={{ fontFamily: "Kanit", textAlign: "center", py: 3, color: "text.secondary" }}>
+        <Typography
+          sx={{ fontFamily: "Kanit", textAlign: "center", py: 3, color: "text.secondary" }}
+        >
           ไม่มีประวัติ
         </Typography>
       ) : (
@@ -142,7 +144,13 @@ const SellerDialog = ({ open, onClose }) => {
 
   return (
     <>
-      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth PaperProps={{ sx: { fontFamily: "Kanit" } }}>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ sx: { fontFamily: "Kanit" } }}
+      >
         <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
           จัดการผู้ขาย (Seller)
           <IconButton onClick={handleClose} sx={{ position: "absolute", right: 8, top: 8 }}>
@@ -165,8 +173,14 @@ const SellerDialog = ({ open, onClose }) => {
               </Button>
             </Box>
           ) : (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: "#fafafa", borderColor: PRIMARY_RED }}>
-              <Typography variant="subtitle2" sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 1.5 }}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, mb: 2, bgcolor: "#fafafa", borderColor: PRIMARY_RED }}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 1.5 }}
+              >
                 เพิ่ม Seller ใหม่
               </Typography>
               <Grid container spacing={1.5}>
@@ -175,7 +189,9 @@ const SellerDialog = ({ open, onClose }) => {
                     size="small"
                     label="ชื่อบริษัท *"
                     value={newSeller.ss_company_name}
-                    onChange={(e) => setNewSeller({ ...newSeller, ss_company_name: e.target.value })}
+                    onChange={(e) =>
+                      setNewSeller({ ...newSeller, ss_company_name: e.target.value })
+                    }
                     fullWidth
                     InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                     InputLabelProps={{ style: { fontFamily: "Kanit" } }}
@@ -219,7 +235,9 @@ const SellerDialog = ({ open, onClose }) => {
                     size="small"
                     label="ผู้ติดต่อ"
                     value={newSeller.ss_contact_person}
-                    onChange={(e) => setNewSeller({ ...newSeller, ss_contact_person: e.target.value })}
+                    onChange={(e) =>
+                      setNewSeller({ ...newSeller, ss_contact_person: e.target.value })
+                    }
                     fullWidth
                     InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                     InputLabelProps={{ style: { fontFamily: "Kanit" } }}
@@ -284,7 +302,10 @@ const SellerDialog = ({ open, onClose }) => {
                 <TableBody>
                   {sellers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ fontFamily: "Kanit", textAlign: "center", py: 3 }}>
+                      <TableCell
+                        colSpan={6}
+                        sx={{ fontFamily: "Kanit", textAlign: "center", py: 3 }}
+                      >
                         ยังไม่มี Seller
                       </TableCell>
                     </TableRow>
@@ -297,7 +318,9 @@ const SellerDialog = ({ open, onClose }) => {
                           <TextField
                             size="small"
                             value={editForm.ss_company_name}
-                            onChange={(e) => setEditForm({ ...editForm, ss_company_name: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, ss_company_name: e.target.value })
+                            }
                             fullWidth
                             InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                           />
@@ -306,12 +329,16 @@ const SellerDialog = ({ open, onClose }) => {
                         )}
                       </TableCell>
                       {/* Tax ID */}
-                      <TableCell sx={{ fontFamily: "Kanit", fontSize: 12, color: "text.secondary" }}>
+                      <TableCell
+                        sx={{ fontFamily: "Kanit", fontSize: 12, color: "text.secondary" }}
+                      >
                         {editingId === seller.ss_id ? (
                           <TextField
                             size="small"
                             value={editForm.ss_tax_id}
-                            onChange={(e) => setEditForm({ ...editForm, ss_tax_id: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, ss_tax_id: e.target.value })
+                            }
                             sx={{ width: 140 }}
                             InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                           />
@@ -339,7 +366,9 @@ const SellerDialog = ({ open, onClose }) => {
                           <TextField
                             size="small"
                             value={editForm.ss_country}
-                            onChange={(e) => setEditForm({ ...editForm, ss_country: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, ss_country: e.target.value })
+                            }
                             sx={{ width: 100 }}
                             InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                           />
@@ -353,7 +382,9 @@ const SellerDialog = ({ open, onClose }) => {
                           <TextField
                             size="small"
                             value={editForm.ss_contact_person}
-                            onChange={(e) => setEditForm({ ...editForm, ss_contact_person: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, ss_contact_person: e.target.value })
+                            }
                             sx={{ width: 120 }}
                             InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                           />
@@ -366,7 +397,11 @@ const SellerDialog = ({ open, onClose }) => {
                         {editingId === seller.ss_id ? (
                           <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
                             <Tooltip title="บันทึก">
-                              <IconButton size="small" onClick={handleSaveEdit} sx={{ color: "success.main" }}>
+                              <IconButton
+                                size="small"
+                                onClick={handleSaveEdit}
+                                sx={{ color: "success.main" }}
+                              >
                                 {updating ? <CircularProgress size={16} /> : <MdSave />}
                               </IconButton>
                             </Tooltip>
@@ -395,7 +430,11 @@ const SellerDialog = ({ open, onClose }) => {
                               </Tooltip>
                             )}
                             <Tooltip title="ลบ">
-                              <IconButton size="small" onClick={() => handleDelete(seller)} sx={{ color: PRIMARY_RED }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDelete(seller)}
+                                sx={{ color: PRIMARY_RED }}
+                              >
                                 <MdDelete />
                               </IconButton>
                             </Tooltip>
@@ -410,7 +449,10 @@ const SellerDialog = ({ open, onClose }) => {
           )}
 
           {/* Updated info */}
-          <Typography variant="caption" sx={{ fontFamily: "Kanit", mt: 1, display: "block", color: "text.secondary" }}>
+          <Typography
+            variant="caption"
+            sx={{ fontFamily: "Kanit", mt: 1, display: "block", color: "text.secondary" }}
+          >
             ทั้งหมด {sellers.length} Seller
           </Typography>
         </DialogContent>

@@ -1,6 +1,6 @@
 // Export all components from a single file for easier imports
 export { default as PricingRequestCard } from "./PricingRequestCard";
-export { default as CreateQuotationModal } from "./quotation/CreateQuotationModal";
+export { default as CreateQuotationDialog } from "./quotation/CreateQuotationDialog";
 export { default as CreateQuotationForm } from "./quotation/CreateQuotationForm";
 
 export { default as FilterSection } from "./FilterSection";
@@ -14,5 +14,3 @@ export { default as CustomerEditDialog } from "./CustomerEditDialog";
 
 // 🎨 Export Design System & Styled Components
 export * from "./styles";
-export * from "./styles/StyledComponents";
-export * from "./quotation/styles/quotationTheme";

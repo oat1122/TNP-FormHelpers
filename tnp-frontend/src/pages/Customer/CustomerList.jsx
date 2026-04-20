@@ -536,7 +536,10 @@ function CustomerList() {
         <TelesalesQuickCreateForm open={quickFormOpen} onClose={() => setQuickFormOpen(false)} />
 
         {/* Duplicate Check Form */}
-        <DuplicateCheckForm open={duplicateCheckOpen} onClose={() => setDuplicateCheckOpen(false)} />
+        <DuplicateCheckForm
+          open={duplicateCheckOpen}
+          onClose={() => setDuplicateCheckOpen(false)}
+        />
       </div>
     </ScrollContext.Provider>
   );

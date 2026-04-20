@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import "react";
 
-import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
 
 /**
  * DetailDialog (Shared Base Component)

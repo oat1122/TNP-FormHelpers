@@ -22,7 +22,16 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { MdAdd, MdEdit, MdDelete, MdSave, MdClose, MdSearch, MdHistory, MdArrowBack } from "react-icons/md";
+import {
+  MdAdd,
+  MdEdit,
+  MdDelete,
+  MdSave,
+  MdClose,
+  MdSearch,
+  MdHistory,
+  MdArrowBack,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 
 import { useSellerManagement } from "./hooks";
@@ -45,7 +54,9 @@ const PhoneLogDialog = ({ open, onClose, logs, loading, sellerName }) => (
           <CircularProgress size={24} />
         </Box>
       ) : logs.length === 0 ? (
-        <Typography sx={{ fontFamily: "Kanit", textAlign: "center", py: 3, color: "text.secondary" }}>
+        <Typography
+          sx={{ fontFamily: "Kanit", textAlign: "center", py: 3, color: "text.secondary" }}
+        >
           ไม่มีประวัติ
         </Typography>
       ) : (
@@ -151,7 +162,10 @@ const SellerList = () => {
           <IconButton onClick={() => navigate("/")} sx={{ color: PRIMARY_RED }}>
             <MdArrowBack />
           </IconButton>
-          <Typography variant="h5" sx={{ fontFamily: "Kanit", fontWeight: 600, color: PRIMARY_RED }}>
+          <Typography
+            variant="h5"
+            sx={{ fontFamily: "Kanit", fontWeight: 600, color: PRIMARY_RED }}
+          >
             Seller List (ผู้ขาย)
           </Typography>
           <Chip
@@ -173,7 +187,10 @@ const SellerList = () => {
 
       {/* Add Form */}
       {showAddForm && (
-        <Paper variant="outlined" sx={{ p: 2.5, mb: 3, bgcolor: "#fafafa", borderColor: PRIMARY_RED }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2.5, mb: 3, bgcolor: "#fafafa", borderColor: PRIMARY_RED }}
+        >
           <Typography variant="subtitle1" sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 2 }}>
             เพิ่ม Seller ใหม่
           </Typography>
@@ -323,7 +340,9 @@ const SellerList = () => {
               {filteredSellers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} sx={{ fontFamily: "Kanit", textAlign: "center", py: 4 }}>
-                    {searchText ? "ไม่พบ Seller ที่ตรงกับคำค้นหา" : "ยังไม่มี Seller — กดปุ่ม \"เพิ่ม Seller\" เพื่อเริ่มต้น"}
+                    {searchText
+                      ? "ไม่พบ Seller ที่ตรงกับคำค้นหา"
+                      : 'ยังไม่มี Seller — กดปุ่ม "เพิ่ม Seller" เพื่อเริ่มต้น'}
                   </TableCell>
                 </TableRow>
               )}
@@ -335,7 +354,9 @@ const SellerList = () => {
                       <TextField
                         size="small"
                         value={editForm.ss_company_name}
-                        onChange={(e) => setEditForm({ ...editForm, ss_company_name: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, ss_company_name: e.target.value })
+                        }
                         fullWidth
                         InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                       />
@@ -391,7 +412,9 @@ const SellerList = () => {
                       <TextField
                         size="small"
                         value={editForm.ss_contact_person}
-                        onChange={(e) => setEditForm({ ...editForm, ss_contact_person: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, ss_contact_person: e.target.value })
+                        }
                         sx={{ width: 130 }}
                         InputProps={{ style: { fontFamily: "Kanit", fontSize: 13 } }}
                       />
@@ -400,7 +423,14 @@ const SellerList = () => {
                     )}
                   </TableCell>
                   {/* Address */}
-                  <TableCell sx={{ fontFamily: "Kanit", fontSize: 12, color: "text.secondary", maxWidth: 200 }}>
+                  <TableCell
+                    sx={{
+                      fontFamily: "Kanit",
+                      fontSize: 12,
+                      color: "text.secondary",
+                      maxWidth: 200,
+                    }}
+                  >
                     {editingId === seller.ss_id ? (
                       <TextField
                         size="small"
@@ -411,14 +441,29 @@ const SellerList = () => {
                       />
                     ) : (
                       <Tooltip title={seller.ss_address || ""} arrow>
-                        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            maxWidth: 200,
+                          }}
+                        >
                           {seller.ss_address || "-"}
                         </span>
                       </Tooltip>
                     )}
                   </TableCell>
                   {/* Remark */}
-                  <TableCell sx={{ fontFamily: "Kanit", fontSize: 12, color: "text.secondary", maxWidth: 150 }}>
+                  <TableCell
+                    sx={{
+                      fontFamily: "Kanit",
+                      fontSize: 12,
+                      color: "text.secondary",
+                      maxWidth: 150,
+                    }}
+                  >
                     {editingId === seller.ss_id ? (
                       <TextField
                         size="small"
@@ -429,7 +474,15 @@ const SellerList = () => {
                       />
                     ) : (
                       <Tooltip title={seller.ss_remark || ""} arrow>
-                        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            maxWidth: 150,
+                          }}
+                        >
                           {seller.ss_remark || "-"}
                         </span>
                       </Tooltip>
@@ -440,7 +493,11 @@ const SellerList = () => {
                     {editingId === seller.ss_id ? (
                       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
                         <Tooltip title="บันทึก">
-                          <IconButton size="small" onClick={handleSaveEdit} sx={{ color: "success.main" }}>
+                          <IconButton
+                            size="small"
+                            onClick={handleSaveEdit}
+                            sx={{ color: "success.main" }}
+                          >
                             {updating ? <CircularProgress size={16} /> : <MdSave />}
                           </IconButton>
                         </Tooltip>
@@ -469,7 +526,11 @@ const SellerList = () => {
                           </Tooltip>
                         )}
                         <Tooltip title="ลบ">
-                          <IconButton size="small" onClick={() => handleDelete(seller)} sx={{ color: PRIMARY_RED }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDelete(seller)}
+                            sx={{ color: PRIMARY_RED }}
+                          >
                             <MdDelete />
                           </IconButton>
                         </Tooltip>

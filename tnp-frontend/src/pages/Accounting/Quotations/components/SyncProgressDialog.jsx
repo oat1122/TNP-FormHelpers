@@ -16,7 +16,7 @@ import {
   useGetSyncJobStatusQuery,
   accountingApi,
 } from "../../../../features/Accounting/accountingApi";
-import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
 import { showSuccess, showError } from "../../utils/accountingToast";
 
 /**

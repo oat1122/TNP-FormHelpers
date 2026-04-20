@@ -33,7 +33,8 @@ const CUSTOM_MODE = "custom";
 const QUARTER_MONTH_COUNT = 3;
 
 const getQuarterRange = (baseDate) => {
-  const quarterStartMonth = Math.floor(baseDate.month() / QUARTER_MONTH_COUNT) * QUARTER_MONTH_COUNT;
+  const quarterStartMonth =
+    Math.floor(baseDate.month() / QUARTER_MONTH_COUNT) * QUARTER_MONTH_COUNT;
   const start = baseDate.month(quarterStartMonth).startOf("month");
 
   return {
@@ -284,11 +285,7 @@ const PeriodTabs = ({ periodFilter, onPeriodChange, filters = [], isLoading = fa
                   sx={{ fontFamily: "Kanit" }}
                 >
                   {filter.options.map((option) => (
-                    <MenuItem
-                      key={option.value}
-                      value={option.value}
-                      sx={{ fontFamily: "Kanit" }}
-                    >
+                    <MenuItem key={option.value} value={option.value} sx={{ fontFamily: "Kanit" }}>
                       {option.label}
                     </MenuItem>
                   ))}

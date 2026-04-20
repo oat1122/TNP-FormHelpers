@@ -46,8 +46,8 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
-import { PRGroupSummaryCard } from "../../Quotations/components/QuotationDetailDialog/subcomponents/PRGroupSummaryCard";
+} from "../../PricingIntegration/components/styles/quotationFormStyles";
+import { PRGroupSummaryCard } from "../../Quotations/components/shared/PRGroupSummaryCard";
 import { Calculation, PaymentTerms } from "../../shared/components";
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/accountingToast";
 import { formatDateTH } from "../utils/format";

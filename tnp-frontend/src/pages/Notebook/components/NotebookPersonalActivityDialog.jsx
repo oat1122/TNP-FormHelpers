@@ -1,4 +1,12 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  TextField,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -73,7 +81,9 @@ const NotebookPersonalActivityDialog = ({
       return;
     }
 
-    const loadingId = showLoading(isEditMode ? "กำลังอัปเดตธุระส่วนตัว..." : "กำลังบันทึกธุระส่วนตัว...");
+    const loadingId = showLoading(
+      isEditMode ? "กำลังอัปเดตธุระส่วนตัว..." : "กำลังบันทึกธุระส่วนตัว..."
+    );
 
     try {
       if (isEditMode && selectedRecord?.id) {

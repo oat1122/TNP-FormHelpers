@@ -55,14 +55,14 @@ import {
   useGetCompaniesQuery,
   useUpdateInvoiceMutation,
 } from "../../../../features/Accounting/accountingApi";
-import {
-  TNPCard,
-  TNPCardContent,
-  TNPStatusChip,
-  TNPCountChip,
-  TNPDivider,
-} from "../../PricingIntegration/components/styles/StyledComponents";
 import ImageUploadGrid from "../../shared/components/ImageUploadGrid";
+import {
+  accountingCardDividerSx,
+  AccountingCard,
+  AccountingCardContent,
+  AccountingCountChip,
+  AccountingStatusChip,
+} from "../../shared/styles";
 
 const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCompany }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -474,7 +474,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
   // ReasonDialog Component
 
   return (
-    <TNPCard sx={{ position: "relative" }}>
+    <AccountingCard sx={{ position: "relative" }}>
       {(localStatus === "approved" || hasEvidence) && (
         <Tooltip title={hasEvidence ? "มีหลักฐานการชำระเงินแล้ว" : "อนุมัติแล้ว"} placement="left">
           <Box
@@ -493,7 +493,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
           />
         </Tooltip>
       )}
-      <TNPCardContent sx={{ p: 2.5 }}>
+      <AccountingCardContent sx={{ p: 2.5 }}>
         {/* Header Section - ปรับปรุง layout และ visual hierarchy */}
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box flex={1}>
@@ -525,7 +525,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
                   const displayNumber = getDisplayInvoiceNumber(invoice, depositMode);
 
                   return displayNumber ? (
-                    <TNPCountChip
+                    <AccountingCountChip
                       icon={<DescriptionIcon sx={{ fontSize: "0.9rem" }} aria-hidden="true" />}
                       label={displayNumber}
                       size="small"
@@ -534,7 +534,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
                     />
                   ) : null;
                 })()}
-                <TNPStatusChip
+                <AccountingStatusChip
                   label={invoiceStatus.status}
                   size="small"
                   statuscolor={invoiceStatus.color}
@@ -1292,8 +1292,8 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
             </MenuItem>
           </Menu>
         </Stack>
-      </TNPCardContent>
-      <TNPDivider />
+      </AccountingCardContent>
+      <Box component="hr" sx={accountingCardDividerSx} />
 
       {/* PDF Preview Dialog */}
       <Dialog
@@ -1376,7 +1376,7 @@ const InvoiceCard = ({ invoice, onView, onDownloadPDF, onPreviewPDF, onUpdateCom
         pendingRevertSide={statusReversalHook.pendingRevertSide}
         isLoading={statusReversalHook.isReverting}
       />
-    </TNPCard>
+    </AccountingCard>
   );
 };
 

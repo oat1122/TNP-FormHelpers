@@ -124,7 +124,6 @@ Pricing Integration:
 
 - `PricingIntegration/PricingIntegration.jsx`: fetches completed pricing requests and creates quotation from multiple pricing requests.
 - `PricingIntegration/components/quotation/CreateQuotationForm/CreateQuotationForm.jsx`: quotation form pieces and temp sample-image upload.
-- `PricingIntegration/utils/quotationAdapter.js`: payload adaptation.
 
 Quotations:
 

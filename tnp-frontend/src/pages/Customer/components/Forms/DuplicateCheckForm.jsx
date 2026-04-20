@@ -128,11 +128,7 @@ const ResultSection = ({ title, icon, results, isLoading }) => {
           ))}
         </Box>
       ) : (
-        <Alert
-          severity="success"
-          icon={<MdCheckCircle size={20} />}
-          sx={{ fontFamily: "Kanit" }}
-        >
+        <Alert severity="success" icon={<MdCheckCircle size={20} />} sx={{ fontFamily: "Kanit" }}>
           ไม่พบข้อมูลซ้ำในระบบ
         </Alert>
       )}
@@ -210,10 +206,7 @@ const DuplicateCheckForm = ({ open, onClose }) => {
 
       <DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#fafafa" }}>
         {/* Description */}
-        <Typography
-          variant="body2"
-          sx={{ fontFamily: "Kanit", color: "text.secondary", mb: 2.5 }}
-        >
+        <Typography variant="body2" sx={{ fontFamily: "Kanit", color: "text.secondary", mb: 2.5 }}>
           กรอกเบอร์โทรและ/หรือชื่อบริษัทเพื่อตรวจสอบว่ามีข้อมูลซ้ำในระบบหรือไม่
         </Typography>
 
@@ -306,7 +299,9 @@ const DuplicateCheckForm = ({ open, onClose }) => {
           fullWidth
           onClick={handleCheckBoth}
           disabled={isSearching || (!phoneInput.trim() && !companyInput.trim())}
-          startIcon={isSearching ? <CircularProgress size={18} color="inherit" /> : <MdSearch size={18} />}
+          startIcon={
+            isSearching ? <CircularProgress size={18} color="inherit" /> : <MdSearch size={18} />
+          }
           sx={{
             fontFamily: "Kanit",
             fontWeight: 600,
@@ -323,10 +318,7 @@ const DuplicateCheckForm = ({ open, onClose }) => {
           <>
             <Divider sx={{ mb: 2 }} />
 
-            <Typography
-              variant="subtitle1"
-              sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 2 }}
-            >
+            <Typography variant="subtitle1" sx={{ fontFamily: "Kanit", fontWeight: 600, mb: 2 }}>
               ผลการตรวจสอบ
             </Typography>
 
@@ -352,20 +344,11 @@ const DuplicateCheckForm = ({ open, onClose }) => {
       {/* Actions */}
       <DialogActions sx={{ p: 2, borderTop: "1px solid #e0e0e0" }}>
         {hasResults && (
-          <Button
-            variant="outlined"
-            onClick={resetForm}
-            sx={{ fontFamily: "Kanit", mr: "auto" }}
-          >
+          <Button variant="outlined" onClick={resetForm} sx={{ fontFamily: "Kanit", mr: "auto" }}>
             ล้างผลลัพธ์
           </Button>
         )}
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={handleClose}
-          sx={{ fontFamily: "Kanit" }}
-        >
+        <Button variant="outlined" color="error" onClick={handleClose} sx={{ fontFamily: "Kanit" }}>
           ปิด
         </Button>
       </DialogActions>

@@ -132,7 +132,9 @@ export const getNotebookStatusLabel = (value) =>
   getNotebookStatusOption(value)?.label || value || "Status not set";
 
 export const getNotebookEntryTypeLabel = (value) =>
-  getNotebookEntryTypeOption(value)?.label || value || "\u0e08\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01";
+  getNotebookEntryTypeOption(value)?.label ||
+  value ||
+  "\u0e08\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01";
 
 export const getNotebookSourceTypeLabel = (value) =>
   getNotebookSourceTypeOption(value)?.label || value || "Source";

@@ -7,7 +7,7 @@ import {
   SectionHeader,
   SecondaryButton,
   tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+} from "../../PricingIntegration/components/styles/quotationFormStyles";
 
 /**
  * ActionsSection (Shared Component)

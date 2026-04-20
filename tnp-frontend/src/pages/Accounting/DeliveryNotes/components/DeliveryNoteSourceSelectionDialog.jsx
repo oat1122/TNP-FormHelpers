@@ -27,16 +27,14 @@ import {
   EmptyState,
 } from "../../PricingIntegration/components";
 import {
-  TNPCard,
-  TNPCardContent,
-  TNPHeading,
-  TNPBodyText,
-  TNPStatusChip,
-  TNPCountChip,
-  TNPPrimaryButton,
-  TNPSecondaryButton,
-  TNPDivider,
-} from "../../PricingIntegration/components/styles/StyledComponents";
+  accountingCardDividerSx,
+  AccountingCard,
+  AccountingCardContent,
+  AccountingCountChip,
+  AccountingPrimaryButton,
+  AccountingSecondaryButton,
+  AccountingStatusChip,
+} from "../../shared/styles";
 import { formatTHB } from "../utils/deliveryNoteFormatters";
 
 const statusColor = {
@@ -155,13 +153,13 @@ const InvoiceItemGroupRow = ({ group, invoice, onSelectItem }) => {
               {formatTHB(Number(r.subtotal || 0))}
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "center" }}>
-              <TNPSecondaryButton
+              <AccountingSecondaryButton
                 size="small"
                 variant="outlined"
                 onClick={() => onSelectItem?.(r.originalItem, invoice)}
               >
                 เลือก
-              </TNPSecondaryButton>
+              </AccountingSecondaryButton>
             </Box>
           </Box>
         ))}
@@ -245,27 +243,41 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
   };
 
   return (
-    <TNPCard>
-      <TNPCardContent>
+    <AccountingCard>
+      <AccountingCardContent>
         {/* Header: Invoice info with icon and status */}
         <Box display="flex" alignItems="center" mb={2}>
           <DescriptionIcon color="primary" sx={{ mr: 1.5, fontSize: "1.75rem" }} />
           <Box flex={1} minWidth={0}>
-            <TNPHeading variant="h6">Invoice {invoiceNumber}</TNPHeading>
-            <TNPBodyText variant="body2" color="text.secondary">
+            <Typography
+              variant="h6"
+              sx={{
+                fontFamily: "'Kanit', sans-serif",
+                fontWeight: 600,
+                color: "primary.main",
+                lineHeight: 1.3,
+              }}
+            >
+              Invoice {invoiceNumber}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontFamily: "'Kanit', sans-serif", lineHeight: 1.5 }}
+            >
               สร้างเมื่อ {createdAt}
-            </TNPBodyText>
+            </Typography>
           </Box>
         </Box>
 
         {/* Status and amount chips */}
         <Stack direction="row" spacing={1} flexWrap="wrap" mb={2}>
-          <TNPStatusChip
+          <AccountingStatusChip
             label={invoice.status || "draft"}
             size="small"
             statuscolor={statusColor[invoice.status] || "default"}
           />
-          <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
+          <AccountingCountChip label={`ยอดรวม: ${amountText}`} size="small" />
         </Stack>
 
         {/* Customer info */}
@@ -332,17 +344,17 @@ const InvoiceCard = ({ invoice, onSelectInvoice, onSelectItem }) => {
             </Stack>
           </Collapse>
         </Box>
-      </TNPCardContent>
+      </AccountingCardContent>
 
-      <TNPDivider />
+      <Box component="hr" sx={accountingCardDividerSx} />
 
       {/* Action buttons */}
       <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-        <TNPPrimaryButton variant="contained" size="medium" onClick={handleSelectInvoice}>
+        <AccountingPrimaryButton variant="contained" size="medium" onClick={handleSelectInvoice}>
           Select invoice
-        </TNPPrimaryButton>
+        </AccountingPrimaryButton>
       </Box>
-    </TNPCard>
+    </AccountingCard>
   );
 };
 

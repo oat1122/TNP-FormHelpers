@@ -220,9 +220,12 @@ function CustomerSectDialog({ open, close, setValue }) {
 
   const visibleRows = useMemo(() => {
     // กรองตาม cus_manage_by สำหรับ non-admin (SUPPORT_SALES เห็นลูกค้าทั้งหมด)
-    const baseList = isAdmin || isSupportSales
-      ? customerList
-      : customerList.filter((customer) => String(customer.cus_manage_by) === String(user?.user_id));
+    const baseList =
+      isAdmin || isSupportSales
+        ? customerList
+        : customerList.filter(
+            (customer) => String(customer.cus_manage_by) === String(user?.user_id)
+          );
 
     const filteredList = baseList.filter((customer) => {
       return Object.values(customer).some((value) =>
@@ -234,7 +237,17 @@ function CustomerSectDialog({ open, close, setValue }) {
     return filteredList
       .sort(getComparator(order, orderBy))
       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [customerList, order, orderBy, page, rowsPerPage, searchQuery, isAdmin, isSupportSales, user?.user_id]);
+  }, [
+    customerList,
+    order,
+    orderBy,
+    page,
+    rowsPerPage,
+    searchQuery,
+    isAdmin,
+    isSupportSales,
+    user?.user_id,
+  ]);
 
   useEffect(() => {
     if (data) {

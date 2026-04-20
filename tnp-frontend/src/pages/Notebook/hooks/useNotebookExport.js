@@ -148,7 +148,6 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
         ? `เกินกำหนด ${action.days_overdue} วัน`
         : "อยู่ในเกณฑ์";
 
-
       return {
         id: action.id || `recall-${index}`,
         rowType: "recall_action",
@@ -174,7 +173,7 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
         if (row.rowType === "personal_activity") {
           return { ...row, date: row.dateGroupValue, zebraIndex: index };
         }
-        
+
         // Find previous non-personal row to compare date
         let prevIndex = index - 1;
         while (prevIndex >= 0 && array[prevIndex].rowType === "personal_activity") {

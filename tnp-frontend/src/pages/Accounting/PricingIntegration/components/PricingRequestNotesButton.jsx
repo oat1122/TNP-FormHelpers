@@ -3,13 +3,13 @@ import { IconButton, Tooltip, Badge, Chip } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useState } from "react";
 
-import PricingRequestNotesModal from "./PricingRequestNotesModal";
+import PricingRequestNotesDialog from "./PricingRequestNotesDialog";
+import { tokens } from "../../shared/styles/tokens";
 
-// Styled Components
 const StyledIconButton = styled(IconButton)(() => ({
-  backgroundColor: "#FFFFFF",
-  border: "2px solid #FF9800",
-  color: "#FF9800",
+  backgroundColor: tokens.white,
+  border: `2px solid ${tokens.warning}`,
+  color: tokens.warning,
   borderRadius: "12px",
   padding: "8px",
   transition: "all 0.3s ease-in-out",
@@ -21,13 +21,13 @@ const StyledIconButton = styled(IconButton)(() => ({
 }));
 
 const NotesChip = styled(Chip)(() => ({
-  backgroundColor: "#FF9800",
-  color: "#FFFFFF",
+  backgroundColor: tokens.warning,
+  color: tokens.white,
   fontSize: "0.75rem",
   fontWeight: 600,
   height: "24px",
   "& .MuiChip-icon": {
-    color: "#FFFFFF",
+    color: tokens.white,
     fontSize: "16px",
   },
 }));
@@ -68,7 +68,7 @@ const PricingRequestNotesButton = ({
             size={size}
           />
         </Tooltip>
-        <PricingRequestNotesModal
+        <PricingRequestNotesDialog
           open={modalOpen}
           onClose={handleClose}
           pricingRequestId={pricingRequestId}
@@ -92,8 +92,8 @@ const PricingRequestNotesButton = ({
           }}
           sx={{
             "& .MuiBadge-badge": {
-              backgroundColor: "#4CAF50",
-              color: "#FFFFFF",
+              backgroundColor: tokens.successBright,
+              color: tokens.white,
               fontWeight: 600,
             },
           }}
@@ -103,7 +103,7 @@ const PricingRequestNotesButton = ({
           </StyledIconButton>
         </Badge>
       </Tooltip>
-      <PricingRequestNotesModal
+      <PricingRequestNotesDialog
         open={modalOpen}
         onClose={handleClose}
         pricingRequestId={pricingRequestId}

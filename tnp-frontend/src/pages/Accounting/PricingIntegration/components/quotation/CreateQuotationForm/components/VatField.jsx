@@ -23,7 +23,7 @@ import {
 import { useState } from "react";
 
 import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
-import { tokens } from "../../styles/quotationTheme";
+import { tokens } from "../../../../../shared/styles/tokens";
 import { formatTHB } from "../../utils/currency";
 
 const VatField = ({
@@ -64,11 +64,11 @@ const VatField = ({
         border: `1px solid ${theme.palette.divider}`,
         borderRadius: 2,
         background: hasVat
-          ? `linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)`
+          ? `linear-gradient(135deg, ${tokens.successSoft} 0%, ${tokens.successLighter} 100%)`
           : `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
         transition: "all 0.3s ease",
         "&:hover": {
-          borderColor: hasVat ? "#4caf50" : tokens.primary,
+          borderColor: hasVat ? tokens.successBright : tokens.primary,
           boxShadow: hasVat
             ? "0 4px 20px rgba(76, 175, 80, 0.2)"
             : `0 4px 20px ${tokens.primary}20`,
@@ -82,7 +82,7 @@ const VatField = ({
             sx={{
               p: 1,
               borderRadius: "50%",
-              bgcolor: hasVat ? "#4caf50" : theme.palette.grey[300],
+              bgcolor: hasVat ? tokens.successBright : theme.palette.grey[300],
               color: hasVat ? "white" : theme.palette.grey[600],
               transition: "all 0.3s ease",
             }}
@@ -165,15 +165,16 @@ const VatField = ({
                         sx={{
                           p: 1,
                           borderRadius: 1,
-                          border: `1px solid ${vatPercentage === rate.value ? "#4caf50" : theme.palette.divider}`,
-                          bgcolor: vatPercentage === rate.value ? "#e8f5e8" : "transparent",
+                          border: `1px solid ${vatPercentage === rate.value ? tokens.successBright : theme.palette.divider}`,
+                          bgcolor:
+                            vatPercentage === rate.value ? tokens.successSoft : "transparent",
                           cursor: disabled ? "not-allowed" : "pointer",
                           transition: "all 0.2s ease",
                           opacity: disabled ? 0.6 : 1,
                           "&:hover": !disabled
                             ? {
-                                borderColor: "#4caf50",
-                                bgcolor: "#f1f8e9",
+                                borderColor: tokens.successBright,
+                                bgcolor: tokens.successLighter,
                               }
                             : {},
                         }}
@@ -181,7 +182,7 @@ const VatField = ({
                         <Typography
                           variant="body2"
                           fontWeight={vatPercentage === rate.value ? 700 : 500}
-                          color={vatPercentage === rate.value ? "#2e7d32" : "text.primary"}
+                          color={vatPercentage === rate.value ? tokens.success : "text.primary"}
                           textAlign="center"
                         >
                           {rate.label}
@@ -226,13 +227,13 @@ const VatField = ({
                     bgcolor: theme.palette.background.paper,
                     "&.Mui-focused": {
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#4caf50",
+                        borderColor: tokens.successBright,
                         borderWidth: 2,
                       },
                     },
                   },
                   "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#4caf50",
+                    color: tokens.successBright,
                   },
                 }}
               />
@@ -257,7 +258,7 @@ const VatField = ({
             <Fade in={hasVat}>
               <Box
                 sx={{
-                  bgcolor: "#f9fdf9",
+                  bgcolor: tokens.successFaint,
                   borderRadius: 1,
                   p: 1.5,
                   border: `1px solid ${theme.palette.success.light}`,

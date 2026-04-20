@@ -16,11 +16,10 @@ import {
 } from "@mui/material";
 import { memo } from "react";
 
-/* ── Status helpers ── */
+import { tokens } from "../../shared/styles/tokens";
 
-/* ── shared styles ── */
 const headCellSx = {
-  color: "#fff",
+  color: tokens.white,
   fontWeight: 700,
   fontSize: "0.8rem",
   letterSpacing: "0.02em",

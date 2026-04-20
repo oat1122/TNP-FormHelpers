@@ -37,7 +37,7 @@ import PricingModeSelector from "../../PricingIntegration/components/quotation/C
 import SpecialDiscountField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
 import VatField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
 import WithholdingTaxField from "../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
-import { tokens } from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
 import { useQuotationGroups } from "../../Quotations/hooks/useQuotationGroups";
 import { formatTHB } from "../../Quotations/utils/format";
 import {

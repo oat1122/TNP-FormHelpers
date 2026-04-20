@@ -462,7 +462,11 @@ export const buildNotebookCsvContent = ({ rows = [], exporterName = "", dateRang
     row.rowType === "personal_activity" ? "" : row.time,
     row.rowType === "personal_activity" ? "ธุระส่วนตัว" : row.customer,
     row.additionalInfo,
-    row.rowType === "personal_activity" ? "-" : row.contactNumber !== "-" ? `="${row.contactNumber}"` : "-",
+    row.rowType === "personal_activity"
+      ? "-"
+      : row.contactNumber !== "-"
+        ? `="${row.contactNumber}"`
+        : "-",
     row.rowType === "personal_activity" ? "-" : row.email,
     row.rowType === "personal_activity" ? "-" : row.contactPerson,
     row.rowType === "personal_activity" ? "-" : row.action,

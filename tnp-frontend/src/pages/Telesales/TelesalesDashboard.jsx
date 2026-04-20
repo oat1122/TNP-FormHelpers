@@ -189,23 +189,22 @@ const TelesalesDashboard = () => {
             borderColor: "divider",
           }}
         >
-
-        {/* Period Tabs */}
-        <PeriodTabs
-          periodFilter={periodFilter}
-          onPeriodChange={setPeriodFilter}
-          filters={[
-            {
-              label: "แหล่งที่มา",
-              value: sourceFilter,
-              onChange: setSourceFilter,
-              options: SOURCE_OPTIONS,
-            },
-          ]}
-          periodLabel={periodLabel}
-          comparison={comparison}
-          isLoading={isLoading || isFetching}
-        />
+          {/* Period Tabs */}
+          <PeriodTabs
+            periodFilter={periodFilter}
+            onPeriodChange={setPeriodFilter}
+            filters={[
+              {
+                label: "แหล่งที่มา",
+                value: sourceFilter,
+                onChange: setSourceFilter,
+                options: SOURCE_OPTIONS,
+              },
+            ]}
+            periodLabel={periodLabel}
+            comparison={comparison}
+            isLoading={isLoading || isFetching}
+          />
         </Box>
 
         {/* Error State */}

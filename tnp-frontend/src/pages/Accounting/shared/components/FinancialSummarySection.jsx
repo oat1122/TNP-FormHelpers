@@ -11,7 +11,7 @@ import {
   SectionHeader,
   InfoCard,
   tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+} from "../../PricingIntegration/components/styles/quotationFormStyles";
 
 // Format number to Thai currency format
 const formatCurrency = (amount) => {

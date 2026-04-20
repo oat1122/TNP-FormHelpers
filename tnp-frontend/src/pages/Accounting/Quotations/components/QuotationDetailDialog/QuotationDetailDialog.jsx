@@ -45,7 +45,7 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from "../../../PricingIntegration/components/quotation/styles/quotationTheme";
+} from "../../../PricingIntegration/components/styles/quotationFormStyles";
 import Calculation from "../../../shared/components/Calculation";
 import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
 import PaymentTerms from "../../../shared/components/PaymentTerms";

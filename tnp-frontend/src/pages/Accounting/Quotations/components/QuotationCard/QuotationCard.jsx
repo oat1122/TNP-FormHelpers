@@ -30,14 +30,12 @@ import PRRow from "./subcomponents/PRRow";
 import StatusReversalDialog from "./subcomponents/StatusReversalDialog";
 import statusColor from "./utils/statusMap";
 import {
-  TNPBodyText,
-  TNPCard,
-  TNPCardContent,
-  TNPCountChip,
-  TNPDivider,
-  TNPHeading,
-  TNPStatusChip,
-} from "../../../PricingIntegration/components/styles/StyledComponents";
+  accountingCardDividerSx,
+  AccountingCard,
+  AccountingCardContent,
+  AccountingCountChip,
+  AccountingStatusChip,
+} from "../../../shared/styles";
 
 export default function QuotationCard({
   data,
@@ -87,12 +85,12 @@ export default function QuotationCard({
 
   return (
     <>
-      <TNPCard>
-        <TNPCardContent>
+      <AccountingCard>
+        <AccountingCardContent>
           {/* Quotation Number - แสดงบนสุดเพื่อความง่ายในการมองเห็น */}
           {data?.number && !String(data.number).startsWith("DRAFT-") && (
             <Box sx={{ mb: 2 }}>
-              <TNPCountChip
+              <AccountingCountChip
                 icon={<DescriptionIcon sx={{ fontSize: "1rem" }} />}
                 label={data.number}
                 size="small"
@@ -113,9 +111,17 @@ export default function QuotationCard({
               <BusinessIcon sx={{ fontSize: "1.5rem" }} />
             </Avatar>
             <Box flex={1} minWidth={0}>
-              <TNPHeading variant="h6">
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: "'Kanit', sans-serif",
+                  fontWeight: 600,
+                  color: "primary.main",
+                  lineHeight: 1.3,
+                }}
+              >
                 {data?.customer?.cus_company || data?.customer_name || "-"}
-              </TNPHeading>
+              </Typography>
               <Box sx={{ mt: 0.5, display: "flex", alignItems: "center", gap: 1, minHeight: 36 }}>
                 {canChangeCompany ? (
                   <FormControl
@@ -167,15 +173,21 @@ export default function QuotationCard({
           </Box>
 
           <Stack direction="row" spacing={1} flexWrap="wrap" mb={2.5}>
-            <TNPStatusChip
+            <AccountingStatusChip
               label={data?.status || "draft"}
               size="small"
               statuscolor={statusColor[data?.status] || "default"}
             />
-            <TNPCountChip label={`ยอดรวม: ${amountText}`} size="small" />
+            <AccountingCountChip label={`ยอดรวม: ${amountText}`} size="small" />
           </Stack>
 
-          <TNPBodyText color="text.secondary">ผู้สร้าง: {creatorText}</TNPBodyText>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontFamily: "'Kanit', sans-serif", lineHeight: 1.5 }}
+          >
+            ผู้สร้าง: {creatorText}
+          </Typography>
 
           {prIds.length > 0 ? (
             <Box sx={{ mt: 1.5 }}>
@@ -207,14 +219,22 @@ export default function QuotationCard({
             </Box>
           ) : (
             <Box sx={{ mt: 1.5 }}>
-              <TNPBodyText color="text.secondary" sx={{ fontStyle: "italic" }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontFamily: "'Kanit', sans-serif",
+                  lineHeight: 1.5,
+                  fontStyle: "italic",
+                }}
+              >
                 ไม่มี Pricing อ้างอิง
-              </TNPBodyText>
+              </Typography>
             </Box>
           )}
-        </TNPCardContent>
+        </AccountingCardContent>
 
-        <TNPDivider />
+        <Box component="hr" sx={accountingCardDividerSx} />
 
         <Box
           sx={{
@@ -297,7 +317,7 @@ export default function QuotationCard({
             </Tooltip>
           </Box>
         </Box>
-      </TNPCard>
+      </AccountingCard>
 
       {/* Dialog ยืนยันการย้อนสถานะ */}
       <StatusReversalDialog

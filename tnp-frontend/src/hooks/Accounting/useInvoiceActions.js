@@ -9,7 +9,7 @@ import {
 /**
  * Custom Hook สำหรับจัดการ Actions ต่างๆ ของ Invoice
  * แยก Business Logic ออกจาก UI Components
- * 
+ *
  * @returns {Object} Object ที่มี handler functions สำหรับ Invoice actions
  */
 export const useInvoiceActions = () => {

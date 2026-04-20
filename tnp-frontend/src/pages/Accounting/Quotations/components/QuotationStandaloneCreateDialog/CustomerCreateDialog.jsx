@@ -39,13 +39,13 @@ import {
   useLazyGetAllLocationQuery,
 } from "../../../../../features/globalApi";
 import { AddressService } from "../../../../../services/AddressService";
-import { validateCustomerData } from "../../../PricingIntegration/components/customerApiUtils";
+import { validateCustomerData } from "../../../PricingIntegration/components/customerFormatters";
 import {
   hydrateManagerUsername,
   getDefaultManagerAssignment,
   validateManagerAssignment,
   prepareManagerForApi,
-} from "../../../PricingIntegration/components/managerUtils";
+} from "../../../PricingIntegration/components/managerLogic";
 import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/accountingToast";
 
 // Styled Components

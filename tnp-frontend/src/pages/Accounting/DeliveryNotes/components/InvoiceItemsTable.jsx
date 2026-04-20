@@ -23,10 +23,7 @@ import {
 } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 
-import {
-  InfoCard,
-  tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { InfoCard, tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
 import { groupInvoiceItemsByProduct } from "../utils/deliveryNoteGrouping";
 
 // Component สำหรับแสดงตาราง Invoice Items แบบจัดกลุ่ม (Editable)

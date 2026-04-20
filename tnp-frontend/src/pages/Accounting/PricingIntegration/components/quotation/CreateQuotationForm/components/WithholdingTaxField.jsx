@@ -22,7 +22,7 @@ import {
 import { useState } from "react";
 
 import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
-import { tokens } from "../../styles/quotationTheme";
+import { tokens } from "../../../../../shared/styles/tokens";
 import { formatTHB } from "../../utils/currency";
 
 const WithholdingTaxField = ({
@@ -38,10 +38,10 @@ const WithholdingTaxField = ({
   const [showDetails, setShowDetails] = useState(false);
 
   const commonTaxRates = [
-    { value: 1, label: "1%" },
-    { value: 3, label: "3%" },
-    { value: 5, label: "5%" },
-    { value: 10, label: "10%" },
+    { value: 1, label: "1%", desc: "ขนส่ง/โฆษณา" },
+    { value: 3, label: "3%", desc: "บริการ/รับจ้าง" },
+    { value: 5, label: "5%", desc: "ค่าเช่า" },
+    { value: 10, label: "10%", desc: "วิชาชีพอิสระ" },
   ];
 
   const handleTaxRateSelect = (rate) => {
@@ -64,11 +64,11 @@ const WithholdingTaxField = ({
         border: `1px solid ${theme.palette.divider}`,
         borderRadius: 2,
         background: hasWithholdingTax
-          ? `linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%)`
+          ? `linear-gradient(135deg, ${tokens.warningLighter} 0%, ${tokens.warningSoft} 100%)`
           : `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
         transition: "all 0.3s ease",
         "&:hover": {
-          borderColor: hasWithholdingTax ? "#ff9800" : tokens.primary,
+          borderColor: hasWithholdingTax ? tokens.warning : tokens.primary,
           boxShadow: hasWithholdingTax
             ? "0 4px 20px rgba(255, 152, 0, 0.2)"
             : `0 4px 20px ${tokens.primary}20`,
@@ -82,8 +82,8 @@ const WithholdingTaxField = ({
             sx={{
               p: 1,
               borderRadius: "50%",
-              bgcolor: hasWithholdingTax ? "#fff3e0" : `${tokens.primary}15`,
-              color: hasWithholdingTax ? "#ff9800" : tokens.primary,
+              bgcolor: hasWithholdingTax ? tokens.warningSoft : `${tokens.primary}15`,
+              color: hasWithholdingTax ? tokens.warning : tokens.primary,
             }}
           >
             <TaxIcon fontSize="small" />
@@ -92,7 +92,7 @@ const WithholdingTaxField = ({
             <Typography
               variant="subtitle2"
               fontWeight={700}
-              color={hasWithholdingTax ? "#f57c00" : tokens.primary}
+              color={hasWithholdingTax ? tokens.warningDark : tokens.primary}
             >
               ภาษีหัก ณ ที่จ่าย
             </Typography>
@@ -105,8 +105,8 @@ const WithholdingTaxField = ({
               label={`-${formatTHB(taxAmount)}`}
               size="small"
               sx={{
-                bgcolor: "#fff3e0",
-                color: "#f57c00",
+                bgcolor: tokens.warningSoft,
+                color: tokens.warningDark,
                 fontWeight: 700,
                 "& .MuiChip-label": {
                   fontSize: "0.75rem",
@@ -131,10 +131,10 @@ const WithholdingTaxField = ({
                 disabled={disabled}
                 sx={{
                   "& .MuiSwitch-switchBase.Mui-checked": {
-                    color: "#ff9800",
+                    color: tokens.warning,
                   },
                   "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                    backgroundColor: "#ff9800",
+                    backgroundColor: tokens.warning,
                   },
                 }}
               />
@@ -143,7 +143,7 @@ const WithholdingTaxField = ({
               <Typography
                 variant="body2"
                 fontWeight={600}
-                color={hasWithholdingTax ? "#f57c00" : "text.secondary"}
+                color={hasWithholdingTax ? tokens.warningDark : "text.secondary"}
               >
                 {hasWithholdingTax ? "มีการหักภาษี ณ ที่จ่าย" : "ไม่มีการหักภาษี ณ ที่จ่าย"}
               </Typography>
@@ -156,7 +156,7 @@ const WithholdingTaxField = ({
                 size="small"
                 onClick={() => setShowDetails(!showDetails)}
                 sx={{
-                  color: "#f57c00",
+                  color: tokens.warningDark,
                   transform: showDetails ? "rotate(180deg)" : "rotate(0deg)",
                   transition: "transform 0.2s ease",
                 }}
@@ -184,15 +184,16 @@ const WithholdingTaxField = ({
                         sx={{
                           p: 1,
                           borderRadius: 1,
-                          border: `1px solid ${taxPercentage === rate.value ? "#ff9800" : theme.palette.divider}`,
-                          bgcolor: taxPercentage === rate.value ? "#fff3e0" : "transparent",
+                          border: `1px solid ${taxPercentage === rate.value ? tokens.warning : theme.palette.divider}`,
+                          bgcolor:
+                            taxPercentage === rate.value ? tokens.warningSoft : "transparent",
                           cursor: disabled ? "not-allowed" : "pointer",
                           transition: "all 0.2s ease",
                           opacity: disabled ? 0.6 : 1,
                           "&:hover": !disabled
                             ? {
-                                borderColor: "#ff9800",
-                                bgcolor: "#fff8e1",
+                                borderColor: tokens.warning,
+                                bgcolor: tokens.warningLighter,
                               }
                             : {},
                         }}
@@ -200,7 +201,7 @@ const WithholdingTaxField = ({
                         <Typography
                           variant="body2"
                           fontWeight={taxPercentage === rate.value ? 700 : 500}
-                          color={taxPercentage === rate.value ? "#f57c00" : "text.primary"}
+                          color={taxPercentage === rate.value ? tokens.warningDark : "text.primary"}
                           textAlign="center"
                         >
                           {rate.label}
@@ -245,23 +246,23 @@ const WithholdingTaxField = ({
                     bgcolor: theme.palette.background.paper,
                     "&.Mui-focused": {
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#ff9800",
+                        borderColor: tokens.warning,
                         borderWidth: 2,
                       },
                     },
                   },
                   "& .MuiInputLabel-root.Mui-focused": {
-                    color: "#ff9800",
+                    color: tokens.warning,
                   },
                 }}
                 InputProps={{
                   startAdornment: (
-                    <Box sx={{ color: "#ff9800", mr: 1 }}>
+                    <Box sx={{ color: tokens.warning, mr: 1 }}>
                       <CalculateIcon fontSize="small" />
                     </Box>
                   ),
                   endAdornment: (
-                    <Typography variant="body2" color="#ff9800" fontWeight={600}>
+                    <Typography variant="body2" color={tokens.warning} fontWeight={600}>
                       %
                     </Typography>
                   ),
@@ -288,22 +289,22 @@ const WithholdingTaxField = ({
                   sx={{
                     p: 2,
                     borderRadius: 1.5,
-                    bgcolor: "#fff8e1",
-                    border: "1px solid #ffcc02",
+                    bgcolor: tokens.warningLighter,
+                    border: `1px solid ${tokens.warningAccent}`,
                   }}
                 >
                   <Grid container spacing={1}>
                     <Grid item xs={12}>
                       <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <CalculateIcon fontSize="small" sx={{ color: "#f57c00" }} />
-                        <Typography variant="subtitle2" color="#f57c00" fontWeight={700}>
+                        <CalculateIcon fontSize="small" sx={{ color: tokens.warningDark }} />
+                        <Typography variant="subtitle2" color={tokens.warningDark} fontWeight={700}>
                           การคำนวณ
                         </Typography>
                       </Box>
                     </Grid>
 
                     <Grid item xs={8}>
-                      <Typography variant="caption" color="#f57c00">
+                      <Typography variant="caption" color={tokens.warningDark}>
                         ยอดก่อนภาษี × {taxPercentage}%
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -315,7 +316,7 @@ const WithholdingTaxField = ({
                       <Typography
                         variant="body1"
                         fontWeight={700}
-                        color="#d84315"
+                        color={tokens.warningDeep}
                         textAlign="right"
                       >
                         -{formatTHB(calculatedTaxAmount)}
@@ -324,8 +325,8 @@ const WithholdingTaxField = ({
                   </Grid>
 
                   {Math.abs(calculatedTaxAmount - taxAmount) > 0.01 && (
-                    <Box mt={1} pt={1} borderTop="1px solid #ffcc02">
-                      <Typography variant="caption" color="#f57c00">
+                    <Box mt={1} pt={1} borderTop={`1px solid ${tokens.warningAccent}`}>
+                      <Typography variant="caption" color={tokens.warningDark}>
                         💡 ยอดที่แสดงอาจแตกต่างเล็กน้อยจากการปัดเศษ
                       </Typography>
                     </Box>

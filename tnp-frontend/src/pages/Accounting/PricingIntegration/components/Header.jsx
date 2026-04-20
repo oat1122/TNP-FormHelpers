@@ -3,6 +3,8 @@ import { Box, Container, Typography, IconButton, Stack } from "@mui/material";
 import "react";
 import { useOutletContext } from "react-router-dom";
 
+import { tokens } from "../../shared/styles/tokens";
+
 const Header = ({
   title = "งานใหม่จากระบบ Pricing",
   subtitle = "เลือกงานที่เสร็จสมบูรณ์แล้วเพื่อสร้างใบเสนอราคา",
@@ -14,7 +16,7 @@ const Header = ({
         bgcolor: "primary.main",
         color: "white",
         py: 3,
-        background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
+        background: `linear-gradient(135deg, ${tokens.primary} 0%, ${tokens.primaryDark} 100%)`,
       }}
     >
       <Container maxWidth="xl">

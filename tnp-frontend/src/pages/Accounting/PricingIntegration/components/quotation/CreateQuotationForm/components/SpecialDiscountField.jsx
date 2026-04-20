@@ -20,7 +20,7 @@ import {
 import "react";
 
 import { createDecimalInputHandler } from "../../../../../shared/inputSanitizers";
-import { tokens } from "../../styles/quotationTheme";
+import { tokens } from "../../../../../shared/styles/tokens";
 import { formatTHB } from "../../utils/currency";
 
 const SpecialDiscountField = ({
@@ -44,7 +44,7 @@ const SpecialDiscountField = ({
       value: "percentage",
       label: "เปอร์เซ็นต์",
       icon: <PercentIcon fontSize="small" />,
-      color: "#2196F3",
+      color: tokens.info,
       placeholder: "0.00 %",
       maxValue: 100,
       helperText: "สูงสุด 100%",
@@ -53,7 +53,7 @@ const SpecialDiscountField = ({
       value: "amount",
       label: "จำนวนเงิน",
       icon: <MoneyIcon fontSize="small" />,
-      color: "#4CAF50",
+      color: tokens.successBright,
       placeholder: "0.00 บาท",
       maxValue: safeTotalAmount,
       helperText: `สูงสุด ${formatTHB(safeTotalAmount)}`,
@@ -121,8 +121,8 @@ const SpecialDiscountField = ({
               label={`-${formatTHB(discountAmount)}`}
               size="small"
               sx={{
-                bgcolor: "#ffebee",
-                color: "#d32f2f",
+                bgcolor: tokens.errorSoft,
+                color: tokens.errorMain,
                 fontWeight: 700,
                 "& .MuiChip-label": {
                   fontSize: "0.75rem",
@@ -241,19 +241,24 @@ const SpecialDiscountField = ({
                 mt: 2,
                 p: 1.5,
                 borderRadius: 1.5,
-                bgcolor: "#fff3e0",
-                border: "1px solid #ffb74d",
+                bgcolor: tokens.warningSoft,
+                border: `1px solid ${tokens.warningLight}`,
               }}
             >
               <Grid container spacing={1} alignItems="center">
                 <Grid item xs={8}>
-                  <Typography variant="caption" color="#f57c00" fontWeight={600}>
+                  <Typography variant="caption" color={tokens.warningDark} fontWeight={600}>
                     ส่วนลด {Number(discountPercentage || 0).toFixed(2)}%
                     {discountType === "amount" && ` (${formatTHB(safeDiscountValue)})`}
                   </Typography>
                 </Grid>
                 <Grid item xs={4}>
-                  <Typography variant="body2" fontWeight={700} color="#d84315" textAlign="right">
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    color={tokens.warningDeep}
+                    textAlign="right"
+                  >
                     -{formatTHB(safeDiscountAmount)}
                   </Typography>
                 </Grid>

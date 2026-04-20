@@ -10,10 +10,7 @@ import {
 } from "@mui/material";
 import "react";
 
-import {
-  InfoCard,
-  tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+import { InfoCard, tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
 import { formatTHB } from "../../Quotations/utils/format";
 
 /**

@@ -5,7 +5,7 @@ import {
 import { Box, Grid, Typography, Divider, Card, CardContent, useTheme } from "@mui/material";
 import "react";
 
-import { tokens } from "../../styles/quotationTheme";
+import { tokens } from "../../../../../shared/styles/tokens";
 import { formatTHB } from "../../utils/currency";
 
 const CalculationSummary = ({
@@ -32,14 +32,14 @@ const CalculationSummary = ({
           {isDeduction && (
             <TrendingDownIcon
               fontSize="small"
-              sx={{ color: isDeduction ? "#d32f2f" : "#388e3c" }}
+              sx={{ color: isDeduction ? tokens.errorMain : tokens.successDark }}
             />
           )}
           <Box>
             <Typography
               variant={isFinal ? "h6" : isSubtotal ? "subtitle1" : "body2"}
               fontWeight={isFinal ? 800 : isSubtotal ? 700 : 500}
-              color={isFinal ? tokens.primary : isDeduction ? "#d32f2f" : "text.primary"}
+              color={isFinal ? tokens.primary : isDeduction ? tokens.errorMain : "text.primary"}
             >
               {label}
             </Typography>
@@ -60,7 +60,7 @@ const CalculationSummary = ({
             isFinal
               ? tokens.primary
               : isDeduction
-                ? "#d32f2f"
+                ? tokens.errorMain
                 : isSubtotal
                   ? "text.primary"
                   : "text.secondary"
@@ -91,7 +91,7 @@ const CalculationSummary = ({
       sx={{
         border: `2px solid ${tokens.primary}`,
         borderRadius: 2,
-        background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, #f8f9ff 100%)`,
+        background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${tokens.bgAlt} 100%)`,
         position: "relative",
         overflow: "visible",
       }}

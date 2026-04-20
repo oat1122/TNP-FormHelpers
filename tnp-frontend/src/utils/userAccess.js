@@ -1,15 +1,9 @@
 export const NOTEBOOK_QUEUE_SUBROLE_CODES = ["SUPPORT_SALES", "TALESALES"];
-export const NOTEBOOK_QUEUE_VIEW_SUBROLE_CODES = [
-  ...NOTEBOOK_QUEUE_SUBROLE_CODES,
-  "HEAD_OFFLINE",
-];
+export const NOTEBOOK_QUEUE_VIEW_SUBROLE_CODES = [...NOTEBOOK_QUEUE_SUBROLE_CODES, "HEAD_OFFLINE"];
 export const NOTEBOOK_QUEUE_ASSIGN_SUBROLE_CODES = ["SUPPORT_SALES", "HEAD_OFFLINE"];
 export const NOTEBOOK_ALL_SCOPE_SUBROLE_CODES = ["SUPPORT_SALES", "HEAD_OFFLINE"];
 export const NOTEBOOK_ASSIGN_TARGET_SUBROLE_CODES = ["SALES_OFFLINE"];
-export const NOTEBOOK_ASSIGN_TARGET_SUPPORT_SUBROLE_CODES = [
-  "SALES_OFFLINE",
-  "HEAD_OFFLINE",
-];
+export const NOTEBOOK_ASSIGN_TARGET_SUPPORT_SUBROLE_CODES = ["SALES_OFFLINE", "HEAD_OFFLINE"];
 
 export const getSubRoleCodes = (user) =>
   (user?.sub_roles || []).map((subRole) => subRole?.msr_code).filter(Boolean);
@@ -76,10 +70,10 @@ export const shouldNotebookCreateIntoMine = (user, targetScope = null) => {
 };
 
 export const shouldCreateNotebookLead = (user, targetScope = null) =>
-  shouldNotebookCreateIntoQueue(user, targetScope) || shouldNotebookCreateIntoMine(user, targetScope);
+  shouldNotebookCreateIntoQueue(user, targetScope) ||
+  shouldNotebookCreateIntoMine(user, targetScope);
 
-export const canCreateNotebookIntoMine = (user) =>
-  shouldNotebookCreateIntoMine(user, "mine");
+export const canCreateNotebookIntoMine = (user) => shouldNotebookCreateIntoMine(user, "mine");
 
 export const canCreateCustomerCare = (user) => Boolean(user) && user?.role === "sale";
 

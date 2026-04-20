@@ -255,7 +255,11 @@ const renderLeadSummaryTable = (leadSummaryRows = []) => (
 );
 
 const renderFooter = () => (
-  <Text style={styles.footer} render={({ pageNumber, totalPages }) => `หน้า ${pageNumber} / ${totalPages}`} fixed />
+  <Text
+    style={styles.footer}
+    render={({ pageNumber, totalPages }) => `หน้า ${pageNumber} / ${totalPages}`}
+    fixed
+  />
 );
 
 const NotebookPDF = ({
@@ -276,11 +280,18 @@ const NotebookPDF = ({
     return (
       <Document title="Notebook Report">
         {standardActivityPages.map((pageRows, pageIndex) => (
-          <Page key={`notebook-report-${pageIndex}`} size="A4" orientation="landscape" style={styles.page}>
+          <Page
+            key={`notebook-report-${pageIndex}`}
+            size="A4"
+            orientation="landscape"
+            style={styles.page}
+          >
             {pageIndex === 0 ? (
               <View style={styles.header}>
                 <Text style={styles.title}>รายงานสมุดจดบันทึก (Notebook Report)</Text>
-                {formattedRange ? <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text> : null}
+                {formattedRange ? (
+                  <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text>
+                ) : null}
                 <Text style={styles.subtitle}>
                   พิมพ์เมื่อ: {printDate}
                   {userName ? ` | โดย: ${userName}` : ""}
@@ -308,7 +319,9 @@ const NotebookPDF = ({
             <>
               <View style={styles.header}>
                 <Text style={styles.title}>Notebook Self Report</Text>
-                {formattedRange ? <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text> : null}
+                {formattedRange ? (
+                  <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text>
+                ) : null}
                 <Text style={styles.subtitle}>
                   พิมพ์เมื่อ: {printDate}
                   {userName ? ` | โดย: ${userName}` : ""}
@@ -317,7 +330,8 @@ const NotebookPDF = ({
 
               <Text style={sectionStyles.sectionTitle}>Lead Intake Summary</Text>
               <Text style={sectionStyles.sectionSubtitle}>
-                สรุปรายการที่เพิ่มลูกค้าเข้า Notebook queue ในช่วงวันที่ที่เลือก โดยอิงวันที่เพิ่ม lead เข้า queue
+                สรุปรายการที่เพิ่มลูกค้าเข้า Notebook queue ในช่วงวันที่ที่เลือก โดยอิงวันที่เพิ่ม
+                lead เข้า queue
               </Text>
 
               <View style={sectionStyles.summaryCardRow}>

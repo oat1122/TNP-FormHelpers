@@ -1,40 +1,32 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
-export default function useCustomerPricingRequests() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [list, setList] = useState([]);
+import { useLazyGetPricingRequestsByCustomerQuery } from "../../../../../../features/Accounting/accountingApi";
+
+export const useCustomerPricingRequests = () => {
+  const [trigger, { data, isLoading }] = useLazyGetPricingRequestsByCustomerQuery();
 
   const fetchForCustomer = useCallback(
-    async (customerId, currentPrId, canSelectCurrent, endpoint) => {
-      setIsLoading(true);
+    async (customerId, currentPrId, canSelectCurrent) => {
       try {
-        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-        const userUuid = userData.user_uuid || "";
-        const url = `${endpoint}/pricing-requests?customer_id=${customerId}&user=${userUuid}`;
-        const res = await fetch(url, {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken") || localStorage.getItem("token")}`,
-          },
-        });
-        const data = await res.json();
-        const requests = data?.success ? data?.data || [] : [];
-        setList(requests);
+        const response = await trigger(customerId).unwrap();
+        const requests = response?.success ? response?.data || [] : [];
         const current = requests.find((pr) => pr.pr_id === currentPrId);
         const defaultSelected =
           current && !current.is_quoted && canSelectCurrent ? [currentPrId] : [];
         return { requests, defaultSelected };
       } catch (e) {
-        console.error(e);
-        setList([]);
+        if (import.meta.env.DEV) {
+          console.error(e);
+        }
         return { requests: [], defaultSelected: [] };
-      } finally {
-        setIsLoading(false);
       }
     },
-    []
+    [trigger]
   );
 
-  return { list, isLoading, fetchForCustomer };
-}
+  return {
+    list: data?.success ? data?.data || [] : [],
+    isLoading,
+    fetchForCustomer,
+  };
+};

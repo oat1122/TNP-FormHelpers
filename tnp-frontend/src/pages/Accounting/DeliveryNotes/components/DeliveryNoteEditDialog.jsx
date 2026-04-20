@@ -45,7 +45,7 @@ import {
   SectionHeader,
   InfoCard,
   tokens,
-} from "../../PricingIntegration/components/quotation/styles/quotationTheme";
+} from "../../PricingIntegration/components/styles/quotationFormStyles";
 import { useSubmitUpdateDeliveryNote } from "../hooks/useSubmitUpdateDeliveryNote";
 import { groupDeliveryNoteItemsByProduct } from "../utils/deliveryNoteGrouping";
 

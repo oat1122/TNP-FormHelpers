@@ -1,4 +1,5 @@
 // 📁shared/utils/quotationUtils.js
+import { VAT_PERCENTAGE } from "../../../../shared/constants/financialDefaults";
 
 export function pickQuotation(data) {
   return data?.data || data || {};
@@ -33,7 +34,7 @@ export function computeTotals(groups = [], depositPercentage = 0) {
     return total + groupTotal;
   }, 0);
 
-  const vat = subtotal * 0.07;
+  const vat = subtotal * VAT_PERCENTAGE;
   const total = subtotal + vat;
   const deposit = total * (Number(depositPercentage || 0) / 100);
 

@@ -73,7 +73,7 @@ const CompanyManagerDialog = ({ open, onClose }) => {
       setEditingId(null);
       refetch();
     } catch (e) {
-      console.error("Save company failed", e);
+      if (import.meta.env.DEV) console.error("Save company failed", e);
     }
   };
 

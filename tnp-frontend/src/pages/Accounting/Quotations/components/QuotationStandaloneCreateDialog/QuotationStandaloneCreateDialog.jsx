@@ -34,6 +34,7 @@ import CustomerSelector from "./CustomerSelector";
 import FinancialSummaryPanel from "./FinancialSummaryPanel";
 import { useQuotationStandaloneForm } from "./hooks/useQuotationStandaloneForm";
 import QuotationJobManager from "./QuotationJobManager";
+import { PAYMENT_TERMS } from "../../../shared/constants/paymentTerms";
 
 const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบเสนอราคา", "การคำนวณทางการเงิน(สรุปรวม)"];
 
@@ -315,7 +316,8 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
       case 1: {
         // ข้อมูลใบเสนอราคา
         const isCredit =
-          formData.payment_terms === "credit_30" || formData.payment_terms === "credit_60";
+          formData.payment_terms === PAYMENT_TERMS.CREDIT_30 ||
+          formData.payment_terms === PAYMENT_TERMS.CREDIT_60;
 
         return (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -338,10 +340,10 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
                 select
                 SelectProps={{ native: true }}
               >
-                <option value="credit_30">เครดิต 30 วัน</option>
-                <option value="credit_60">เครดิต 60 วัน</option>
-                <option value="cash">เงินสด</option>
-                <option value="other">อื่นๆ (กำหนดเอง)</option>
+                <option value={PAYMENT_TERMS.CREDIT_30}>เครดิต 30 วัน</option>
+                <option value={PAYMENT_TERMS.CREDIT_60}>เครดิต 60 วัน</option>
+                <option value={PAYMENT_TERMS.CASH}>เงินสด</option>
+                <option value={PAYMENT_TERMS.OTHER}>อื่นๆ (กำหนดเอง)</option>
               </TextField>
 
               {isCredit && (
@@ -357,7 +359,7 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
               )}
             </Box>
 
-            {formData.payment_terms === "other" && (
+            {formData.payment_terms === PAYMENT_TERMS.OTHER && (
               <TextField
                 label="เงื่อนไขการชำระเงิน (กำหนดเอง)"
                 value={formData.payment_terms_custom}

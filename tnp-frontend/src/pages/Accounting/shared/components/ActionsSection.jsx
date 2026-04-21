@@ -2,12 +2,7 @@ import { PictureAsPdf as PdfIcon, Visibility as VisibilityIcon } from "@mui/icon
 import { Box, Typography, Avatar, CircularProgress } from "@mui/material";
 import "react";
 
-import {
-  Section,
-  SectionHeader,
-  SecondaryButton,
-  tokens,
-} from "../../PricingIntegration/components/styles/quotationFormStyles";
+import { Section, SectionHeader, SecondaryButton, tokens } from "../styles/quotationFormStyles";
 
 /**
  * ActionsSection (Shared Component)

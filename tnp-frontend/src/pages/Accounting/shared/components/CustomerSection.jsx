@@ -8,7 +8,7 @@ import {
   SecondaryButton,
   InfoCard,
   tokens,
-} from "../../PricingIntegration/components/styles/quotationFormStyles";
+} from "../styles/quotationFormStyles";
 
 /**
  * CustomerSection (Shared Component)

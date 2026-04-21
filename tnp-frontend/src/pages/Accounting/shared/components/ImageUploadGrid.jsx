@@ -10,10 +10,7 @@ import {
 } from "@mui/material";
 import React from "react";
 
-import {
-  SecondaryButton,
-  tokens,
-} from "../../PricingIntegration/components/styles/quotationFormStyles";
+import { SecondaryButton, tokens } from "../styles/quotationFormStyles";
 
 /**
  * ImageUploadGrid

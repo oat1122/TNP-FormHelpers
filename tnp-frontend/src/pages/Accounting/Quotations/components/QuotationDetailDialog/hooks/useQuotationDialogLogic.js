@@ -5,6 +5,7 @@ import {
   useGetQuotationQuery,
   useUpdateQuotationMutation,
 } from "../../../../../../features/Accounting/accountingApi";
+import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
 import {
   showSuccess,
   showError,
@@ -63,18 +64,27 @@ export function useQuotationDialogLogic(quotationId, open) {
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
-    (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
-  const isKnownTerms = ["cash", "credit_30", "credit_60"].includes(initialRawTerms);
+    (q?.credit_days === 30
+      ? PAYMENT_TERMS.CREDIT_30
+      : q?.credit_days === 60
+        ? PAYMENT_TERMS.CREDIT_60
+        : PAYMENT_TERMS.CASH);
+  const isKnownTerms = [
+    PAYMENT_TERMS.CASH,
+    PAYMENT_TERMS.CREDIT_30,
+    PAYMENT_TERMS.CREDIT_60,
+  ].includes(initialRawTerms);
 
   const [paymentTermsType, setPaymentTermsType] = useState(
-    isKnownTerms ? initialRawTerms : "other"
+    isKnownTerms ? initialRawTerms : PAYMENT_TERMS.OTHER
   );
   const [paymentTermsCustom, setPaymentTermsCustom] = useState(
     isKnownTerms ? "" : initialRawTerms || ""
   );
 
   // Deposit state (supports percentage | amount)
-  const inferredDepositPct = q?.deposit_percentage ?? (initialRawTerms === "cash" ? 0 : 50);
+  const inferredDepositPct =
+    q?.deposit_percentage ?? (initialRawTerms === PAYMENT_TERMS.CASH ? 0 : 50);
 
   const [depositMode, setDepositMode] = useState(q?.deposit_mode || "percentage");
   const [depositPct, setDepositPct] = useState(inferredDepositPct);
@@ -116,12 +126,18 @@ export function useQuotationDialogLogic(quotationId, open) {
     const raw =
       q?.payment_terms ||
       q?.payment_method ||
-      (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
-    const known = ["cash", "credit_30", "credit_60"].includes(raw);
-    setPaymentTermsType(known ? raw : "other");
+      (q?.credit_days === 30
+        ? PAYMENT_TERMS.CREDIT_30
+        : q?.credit_days === 60
+          ? PAYMENT_TERMS.CREDIT_60
+          : PAYMENT_TERMS.CASH);
+    const known = [PAYMENT_TERMS.CASH, PAYMENT_TERMS.CREDIT_30, PAYMENT_TERMS.CREDIT_60].includes(
+      raw
+    );
+    setPaymentTermsType(known ? raw : PAYMENT_TERMS.OTHER);
     setPaymentTermsCustom(known ? "" : raw || "");
 
-    setDepositPct(q?.deposit_percentage ?? (raw === "cash" ? 0 : 50));
+    setDepositPct(q?.deposit_percentage ?? (raw === PAYMENT_TERMS.CASH ? 0 : 50));
     setDepositMode(q?.deposit_mode || "percentage");
     setDepositAmountInput(q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : "");
     setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
@@ -249,7 +265,8 @@ export function useQuotationDialogLogic(quotationId, open) {
     });
 
     const totals = computeTotals(groups, depositPct);
-    const isCredit = paymentTermsType === "credit_30" || paymentTermsType === "credit_60";
+    const isCredit =
+      paymentTermsType === PAYMENT_TERMS.CREDIT_30 || paymentTermsType === PAYMENT_TERMS.CREDIT_60;
     const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
 
     const loadingId = showLoading("กำลังบันทึกใบเสนอราคา…");
@@ -283,7 +300,8 @@ export function useQuotationDialogLogic(quotationId, open) {
             : Number(financials.depositPercentage || 0),
         deposit_amount: financials.depositAmount,
         deposit_mode: depositMode,
-        payment_terms: paymentTermsType === "other" ? paymentTermsCustom || "" : paymentTermsType,
+        payment_terms:
+          paymentTermsType === PAYMENT_TERMS.OTHER ? paymentTermsCustom || "" : paymentTermsType,
         due_date: dueDateForSave,
         notes: quotationNotes || "",
         // Sync confirmation flag
@@ -313,21 +331,12 @@ export function useQuotationDialogLogic(quotationId, open) {
     } catch (e) {
       dismissToast(loadingId);
 
-      // Debug: Log error structure to understand RTK Query error format
-      console.log("Save Error Details:", {
-        status: e?.status,
-        originalStatus: e?.originalStatus,
-        data: e?.data,
-        fullError: e,
-      });
-
       // Handle 422 - needs confirmation
       // RTK Query can return status in e.status or e.originalStatus
       const statusCode = e?.status || e?.originalStatus;
       const errorData = e?.data;
 
       if (statusCode === 422 && errorData?.requires_confirmation) {
-        console.log("Detected sync confirmation needed", errorData);
         return {
           success: false,
           needsConfirmation: true,

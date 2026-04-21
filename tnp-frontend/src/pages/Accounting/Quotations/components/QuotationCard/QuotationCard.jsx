@@ -24,7 +24,7 @@ import {
 } from "@mui/material";
 import "react";
 
-import useQuotationCardLogic from "./hooks/useQuotationCardLogic";
+import { useQuotationCardLogic } from "./hooks/useQuotationCardLogic";
 import { useQuotationStatusReversal } from "./hooks/useQuotationStatusReversal";
 import PRRow from "./subcomponents/PRRow";
 import StatusReversalDialog from "./subcomponents/StatusReversalDialog";

@@ -1,213 +1,47 @@
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import {
-  Box,
-  Container,
-  Grid,
-  Alert,
-  Button,
-  ToggleButtonGroup,
-  ToggleButton,
-  FormControlLabel,
-  Checkbox,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Container, Grid } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { th } from "date-fns/locale";
-import { useMemo, useState, useCallback, useEffect } from "react";
-import { useDispatch } from "react-redux";
 
 import {
-  useGetQuotationsQuery,
-  useGenerateQuotationPDFMutation,
-  useLazyGetQuotationDuplicateDataQuery,
-} from "../../../features/Accounting/accountingApi";
-import { addNotification } from "../../../features/Accounting/accountingSlice";
+  CompanyManagerDialog,
+  LinkedPricingDialog,
+  QuotationCard,
+  QuotationControlsBar,
+  QuotationDetailDialog,
+  QuotationDuplicateDialog,
+  QuotationStandaloneCreateDialog,
+  QuotationTableView,
+} from "./components";
+import { QuotationListSkeleton, QuotationTableSkeleton } from "../components/SkeletonLoaders";
+import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
 import {
+  EmptyState,
+  ErrorState,
+  FloatingActionButton,
   Header,
   PaginationSection,
-  LoadingState,
-  ErrorState,
-  EmptyState,
-  FloatingActionButton,
 } from "../PricingIntegration/components";
-import { AdvancedFilter, useAdvancedFilter } from "../shared/components";
+import { AdvancedFilter } from "../shared/components";
 import accountingTheme from "../theme/accountingTheme";
-import CompanyManagerDialog from "./components/CompanyManagerDialog";
-import LinkedPricingDialog from "./components/LinkedPricingDialog";
-import QuotationCard from "./components/QuotationCard";
-import QuotationDetailDialog from "./components/QuotationDetailDialog";
-import QuotationDuplicateDialog from "./components/QuotationDuplicateDialog";
-import QuotationStandaloneCreateDialog from "./components/QuotationStandaloneCreateDialog";
-import QuotationTableView from "./components/QuotationTableView";
-// ApprovalPanel removed along with Drawer UI
-import usePagination from "./hooks/usePagination";
-import InvoiceCreateDialog from "../Invoices/components/InvoiceCreateDialog";
-
-const statusOrder = ["draft", "pending_review", "approved", "sent", "completed", "rejected"];
+import { useQuotationsPage } from "./hooks/useQuotationsPage";
 
 const Quotations = () => {
-  const dispatch = useDispatch();
+  const page = useQuotationsPage();
 
-  // Define status options for this page
-  const quotationStatusOptions = [
-    { value: "draft", label: "แบบร่าง" },
-    { value: "approved", label: "อนุมัติแล้ว" },
-  ];
-
-  // Use the new filter hook
-  const { filters, handlers, getQueryArgs } = useAdvancedFilter();
-
-  const [viewMode, setViewMode] = useState("table");
-  const [signatureOnly, setSignatureOnly] = useState(false);
-  const [showOnlyMine, setShowOnlyMine] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
-  const [selectedQuotation, setSelectedQuotation] = useState(null); // used only for LinkedPricingDialog
-  const [linkedOpen, setLinkedOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [createInvoiceOpen, setCreateInvoiceOpen] = useState(false);
-  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
-  const [standaloneCreateOpen, setStandaloneCreateOpen] = useState(false);
-
-  // ✅ Duplicate Dialog State
-  const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [duplicateData, setDuplicateData] = useState(null);
-
-  // ✅ เพิ่ม state เพื่อติดตามการบันทึก
-  const [lastSavedId, setLastSavedId] = useState(null);
-
-  // Pass filter arguments to the query
-  const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
-    ...getQueryArgs(),
-    signature_uploaded: signatureOnly ? 1 : undefined,
-    only_mine: showOnlyMine ? 1 : undefined,
-    page: 1, // Fetch all for client-side pagination, can be adjusted
-    per_page: 1000,
-  });
-
-  const quotations = useMemo(() => {
-    const arr = data?.data?.data || data?.data || [];
-    // sort by status then created_at desc if available
-    return [...arr].sort((a, b) => {
-      const si = statusOrder.indexOf(a.status);
-      const sj = statusOrder.indexOf(b.status);
-      if (si !== sj) return si - sj;
-      const aT = new Date(a.created_at || 0).getTime();
-      const bT = new Date(b.created_at || 0).getTime();
-      return bT - aT;
-    });
-  }, [data]);
-
-  // const validQuotations = useMemo(() => quotations.filter(hasPR), [quotations, hasPR]);
-  const validQuotations = useMemo(() => quotations, [quotations]); // ✅ แสดงทั้งหมด
-
-  const { pageData: paginated, info: paginationInfo } = usePagination(
-    validQuotations,
-    currentPage,
-    itemsPerPage
-  );
-
-  const [generatePDF] = useGenerateQuotationPDFMutation();
-
-  // ✅ Duplicate hook
-  const [triggerGetDuplicateData] = useLazyGetQuotationDuplicateDataQuery();
-
-  const handleDownloadPDF = async (id) => {
-    try {
-      const res = await generatePDF({ id, format: "A4", orientation: "P" }).unwrap();
-      const url = res?.data?.pdf_url || res?.pdf_url;
-      if (url) window.open(url, "_blank");
-      else throw new Error("ไม่พบไฟล์ PDF");
-    } catch (e) {
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ดาวน์โหลดไม่ได้",
-          message: e?.data?.message || e.message,
-        })
-      );
-    }
+  const openDetail = (q) => {
+    page.setSelectedQuotation(q);
+    page.setDetailOpen(true);
   };
-
-  // ✅ Handler สำหรับทำสำเนา
-  const handleDuplicate = async (quotationId) => {
-    try {
-      // 1. เรียก API เพื่อดึงข้อมูล
-      const result = await triggerGetDuplicateData(quotationId).unwrap();
-
-      // 2. เก็บข้อมูล
-      setDuplicateData(result.data);
-
-      // 3. เปิด Dialog
-      setDuplicateOpen(true);
-    } catch (err) {
-      console.error("Failed to get duplicate data", err);
-      dispatch(
-        addNotification({
-          type: "error",
-          title: "ไม่สามารถทำสำเนาได้",
-          message: err?.data?.message || err.message || "เกิดข้อผิดพลาด",
-        })
-      );
-    }
+  const openLinked = (q) => {
+    page.setSelectedQuotation(q);
+    page.setLinkedOpen(true);
   };
-
-  const handleCloseDuplicateDialog = () => {
-    setDuplicateOpen(false);
-    setDuplicateData(null);
+  const openCreateInvoice = (q) => {
+    page.setSelectedQuotation(q);
+    page.setCreateInvoiceOpen(true);
   };
-
-  const handleSaveDuplicateSuccess = () => {
-    // Refresh list เมื่อสร้างสำเร็จ
-    refetch();
-    dispatch(
-      addNotification({
-        type: "success",
-        title: "สร้างสำเร็จ",
-        message: "สร้างใบเสนอราคา (สำเนา) เรียบร้อยแล้ว",
-      })
-    );
-  };
-
-  const handleRefresh = useCallback(() => {
-    // ใช้ refetch() เฉพาะเมื่อผู้ใช้กดปุ่ม Refresh เท่านั้น
-    refetch();
-    dispatch(
-      addNotification({
-        type: "success",
-        title: "รีเฟรชข้อมูล",
-        message: "ข้อมูลถูกอัปเดตแล้ว",
-      })
-    );
-  }, [refetch, dispatch]);
-
-  // สร้าง handler ที่จะส่งให้ Card
-  const handleCardActionSuccess = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const handlePageChange = useCallback((e, p) => {
-    setCurrentPage(p);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  const handleItemsPerPageChange = useCallback((val) => {
-    setItemsPerPage(val);
-    setCurrentPage(1);
-  }, []);
-
-  // Removed auto-selection effect since Drawer has been removed
-
-  // Ensure current page stays within bounds after filtering or per-page changes
-  useEffect(() => {
-    if (paginationInfo && currentPage > paginationInfo.last_page) {
-      setCurrentPage(paginationInfo.last_page || 1);
-    }
-  }, [currentPage, paginationInfo]);
 
   return (
     <ThemeProvider theme={accountingTheme}>
@@ -216,260 +50,136 @@ const Quotations = () => {
           <Header title="ใบเสนอราคา" subtitle="ตรวจสอบ อนุมัติ และจัดการเอกสาร" />
 
           <Container
-            maxWidth={viewMode === "table" ? false : "xl"}
-            sx={{ py: 4, px: viewMode === "table" ? { xs: 2, md: 3, lg: 4 } : undefined }}
+            maxWidth={page.viewMode === "table" ? false : "xl"}
+            sx={{ py: 4, px: page.viewMode === "table" ? { xs: 2, md: 3, lg: 4 } : undefined }}
           >
-            {/* Render the AdvancedFilter component */}
             <AdvancedFilter
-              filters={filters}
-              handlers={handlers}
-              onRefresh={handleRefresh}
-              statusOptions={quotationStatusOptions}
+              filters={page.filters}
+              handlers={page.handlers}
+              onRefresh={page.handleRefresh}
+              statusOptions={page.statusOptions}
             />
 
-            {/* Controls Bar: Actions + View Mode + Extra Filters */}
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-                mb: 2,
-                p: 1.5,
-                bgcolor: "background.paper",
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              {/* Left side: Extra filter & View Toggle */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={showOnlyMine}
-                      onChange={(e) => setShowOnlyMine(e.target.checked)}
-                      color="primary"
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      แสดงเฉพาะฉัน
-                    </Typography>
-                  }
-                  sx={{ m: 0 }}
-                />
+            <QuotationControlsBar
+              showOnlyMine={page.showOnlyMine}
+              onShowOnlyMineChange={page.setShowOnlyMine}
+              signatureOnly={page.signatureOnly}
+              onSignatureOnlyChange={page.setSignatureOnly}
+              viewMode={page.viewMode}
+              onViewModeChange={page.setViewMode}
+              onOpenCompanyDialog={() => page.setCompanyDialogOpen(true)}
+              onOpenStandaloneCreate={() => page.setStandaloneCreateOpen(true)}
+            />
 
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={signatureOnly}
-                      onChange={(e) => setSignatureOnly(e.target.checked)}
-                      color="primary"
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      แสดงเฉพาะใบที่มีหลักฐานการเซ็น
-                    </Typography>
-                  }
-                  sx={{ m: 0 }}
-                />
-
-                <ToggleButtonGroup
-                  value={viewMode}
-                  exclusive
-                  onChange={(e, v) => v && setViewMode(v)}
-                  size="small"
-                  sx={{ height: 32 }}
-                >
-                  <ToggleButton value="table" sx={{ px: 1.5 }}>
-                    <Tooltip title="มุมมองตาราง">
-                      <ViewListIcon fontSize="small" />
-                    </Tooltip>
-                  </ToggleButton>
-                  <ToggleButton value="card" sx={{ px: 1.5 }}>
-                    <Tooltip title="มุมมองการ์ด">
-                      <ViewModuleIcon fontSize="small" />
-                    </Tooltip>
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-
-              {/* Right side: Action Buttons */}
-              {(() => {
-                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-                const canManageCompanies = userData.role === "admin" || userData.role === "account";
-                if (!canManageCompanies) return null;
-
-                return (
-                  <Box sx={{ display: "flex", gap: 1.5 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => setCompanyDialogOpen(true)}
-                      sx={{ height: 32 }}
-                    >
-                      จัดการบริษัท
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={() => setStandaloneCreateOpen(true)}
-                      sx={{ height: 32 }}
-                    >
-                      + สร้างใบเสนอราคา
-                    </Button>
-                  </Box>
-                );
-              })()}
-            </Box>
-
-            {error && (
+            {page.error && (
               <Alert severity="error" sx={{ mb: 2 }}>
-                โหลดข้อมูลไม่สำเร็จ: {error.message}
+                โหลดข้อมูลไม่สำเร็จ: {page.error.message}
               </Alert>
             )}
 
-            {/* Pagination Section (Top) */}
             <PaginationSection
               title="ใบเสนอราคาทั้งหมด"
-              pagination={paginationInfo}
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              isFetching={isFetching}
-              onPageChange={handlePageChange}
-              onItemsPerPageChange={handleItemsPerPageChange}
+              pagination={page.paginationInfo}
+              currentPage={page.currentPage}
+              itemsPerPage={page.itemsPerPage}
+              isFetching={page.isFetching}
+              onPageChange={page.handlePageChange}
+              onItemsPerPageChange={page.handleItemsPerPageChange}
             />
 
-            {isLoading ? (
-              <LoadingState itemCount={6} />
-            ) : error ? (
-              <ErrorState error={error} onRetry={handleRefresh} />
-            ) : validQuotations.length > 0 ? (
+            {page.isLoading ? (
+              page.viewMode === "table" ? (
+                <QuotationTableSkeleton />
+              ) : (
+                <QuotationListSkeleton />
+              )
+            ) : page.error ? (
+              <ErrorState error={page.error} onRetry={page.handleRefresh} />
+            ) : page.quotationsCount > 0 ? (
               <>
-                {viewMode === "table" ? (
+                {page.viewMode === "table" ? (
                   <QuotationTableView
-                    data={paginated || []}
-                    onViewDetail={(q) => {
-                      setSelectedQuotation(q);
-                      setDetailOpen(true);
-                    }}
-                    onDownloadPDF={(id) => handleDownloadPDF(id)}
-                    onDuplicate={(id) => handleDuplicate(id)}
-                    onCreateInvoice={(q) => {
-                      setSelectedQuotation(q);
-                      setCreateInvoiceOpen(true);
-                    }}
-                    onActionSuccess={handleCardActionSuccess}
+                    data={page.paginated || []}
+                    onViewDetail={openDetail}
+                    onDownloadPDF={page.handleDownloadPDF}
+                    onDuplicate={page.handleDuplicate}
+                    onCreateInvoice={openCreateInvoice}
+                    onActionSuccess={page.handleCardActionSuccess}
                   />
                 ) : (
                   <Grid container spacing={3}>
-                    {(paginated || []).map((q) => (
+                    {(page.paginated || []).map((q) => (
                       <Grid item xs={12} sm={6} lg={4} key={q.id}>
                         <QuotationCard
                           data={q}
-                          onDownloadPDF={() => handleDownloadPDF(q.id)}
-                          onViewLinked={() => {
-                            setSelectedQuotation(q);
-                            setLinkedOpen(true);
-                          }}
-                          onViewDetail={() => {
-                            setSelectedQuotation(q);
-                            setDetailOpen(true);
-                          }}
-                          onCreateInvoice={() => {
-                            setSelectedQuotation(q);
-                            setCreateInvoiceOpen(true);
-                          }}
-                          onDuplicate={() => handleDuplicate(q.id)}
-                          onActionSuccess={handleCardActionSuccess}
+                          onDownloadPDF={() => page.handleDownloadPDF(q.id)}
+                          onViewLinked={() => openLinked(q)}
+                          onViewDetail={() => openDetail(q)}
+                          onCreateInvoice={() => openCreateInvoice(q)}
+                          onDuplicate={() => page.handleDuplicate(q.id)}
+                          onActionSuccess={page.handleCardActionSuccess}
                         />
                       </Grid>
                     ))}
                   </Grid>
                 )}
 
-                {paginationInfo.last_page > 1 && (
+                {page.paginationInfo.last_page > 1 && (
                   <Box sx={{ mt: 2 }}>
                     <PaginationSection
                       title="ใบเสนอราคาทั้งหมด"
-                      pagination={paginationInfo}
-                      currentPage={currentPage}
-                      itemsPerPage={itemsPerPage}
-                      isFetching={isFetching}
-                      onPageChange={handlePageChange}
-                      onItemsPerPageChange={handleItemsPerPageChange}
+                      pagination={page.paginationInfo}
+                      currentPage={page.currentPage}
+                      itemsPerPage={page.itemsPerPage}
+                      isFetching={page.isFetching}
+                      onPageChange={page.handlePageChange}
+                      onItemsPerPageChange={page.handleItemsPerPageChange}
                       showHeader={false}
                     />
                   </Box>
                 )}
               </>
             ) : (
-              <EmptyState onRefresh={handleRefresh} />
+              <EmptyState onRefresh={page.handleRefresh} />
             )}
           </Container>
+
           <LinkedPricingDialog
-            open={linkedOpen}
-            onClose={() => setLinkedOpen(false)}
-            quotationId={selectedQuotation?.id}
+            open={page.linkedOpen}
+            onClose={() => page.setLinkedOpen(false)}
+            quotationId={page.selectedQuotation?.id}
           />
-          {/* ✅ แก้ไขการเรียก QuotationDetailDialog */}
           <QuotationDetailDialog
-            open={detailOpen}
-            onClose={() => {
-              setDetailOpen(false);
-              // ถ้ามีการบันทึก (lastSavedId ถูก set) ให้ refetch ทันที
-              if (lastSavedId) {
-                refetch();
-                setLastSavedId(null); // Reset flag
-              }
-            }}
-            quotationId={selectedQuotation?.id}
-            // ส่ง prop นี้เข้าไปเพื่อให้ Dialog เรียกกลับเมื่อบันทึกสำเร็จ
-            onSaveSuccess={() => {
-              setLastSavedId(selectedQuotation?.id);
-            }}
+            open={page.detailOpen}
+            onClose={page.handleCloseDetailDialog}
+            quotationId={page.selectedQuotation?.id}
+            onSaveSuccess={page.handleDetailSaveSuccess}
           />
           <CompanyManagerDialog
-            open={companyDialogOpen}
-            onClose={() => setCompanyDialogOpen(false)}
+            open={page.companyDialogOpen}
+            onClose={() => page.setCompanyDialogOpen(false)}
           />
           <InvoiceCreateDialog
-            open={createInvoiceOpen}
-            onClose={() => setCreateInvoiceOpen(false)}
-            quotationId={selectedQuotation?.id}
+            open={page.createInvoiceOpen}
+            onClose={() => page.setCreateInvoiceOpen(false)}
+            quotationId={page.selectedQuotation?.id}
           />
           <QuotationStandaloneCreateDialog
-            open={standaloneCreateOpen}
-            onClose={() => setStandaloneCreateOpen(false)}
-            onSuccess={(quotation) => {
-              setLastSavedId(quotation.id);
-              refetch();
-              dispatch(
-                addNotification({
-                  type: "success",
-                  message: `สร้างใบเสนอราคา ${quotation.number} สำเร็จ`,
-                })
-              );
-            }}
-            companyId={filters.company}
+            open={page.standaloneCreateOpen}
+            onClose={() => page.setStandaloneCreateOpen(false)}
+            onSuccess={page.handleStandaloneCreateSuccess}
+            companyId={page.companyId}
           />
-          {/* ✅ Duplicate Dialog */}
-          {duplicateOpen && duplicateData && (
+          {page.duplicateOpen && page.duplicateData && (
             <QuotationDuplicateDialog
-              open={duplicateOpen}
-              onClose={handleCloseDuplicateDialog}
-              initialData={duplicateData}
-              onSaveSuccess={handleSaveDuplicateSuccess}
+              open={page.duplicateOpen}
+              onClose={page.handleCloseDuplicateDialog}
+              initialData={page.duplicateData}
+              onSaveSuccess={page.handleSaveDuplicateSuccess}
             />
           )}
-          {/* Floating Action Button */}
-          <FloatingActionButton onRefresh={handleRefresh} />
+
+          <FloatingActionButton onRefresh={page.handleRefresh} />
         </Box>
       </LocalizationProvider>
     </ThemeProvider>

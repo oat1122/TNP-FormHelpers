@@ -3,6 +3,7 @@ import { Button, CircularProgress, Tooltip } from "@mui/material";
 import React from "react";
 
 import { apiConfig } from "../../../../../api/apiConfig";
+import { showError } from "../../../utils/accountingToast";
 
 const ReportExportButton = ({ filters = {}, disabled = false }) => {
   const [loading, setLoading] = React.useState(false);
@@ -40,8 +41,8 @@ const ReportExportButton = ({ filters = {}, disabled = false }) => {
       a.click();
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error("Export error:", err);
-      alert("Export ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      if (import.meta.env.DEV) console.error("Export error:", err);
+      showError("Export ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setLoading(false);
     }

@@ -1,8 +1,8 @@
 import { Grid, Typography, Divider, Alert } from "@mui/material";
 import "react";
 
-import { InfoCard, tokens } from "../../PricingIntegration/components/styles/quotationFormStyles";
-import { formatTHB } from "../../Quotations/utils/format";
+import { InfoCard, tokens } from "../styles/quotationFormStyles";
+import { formatTHB } from "../utils/format";
 
 /**
  * Calculation (Shared)

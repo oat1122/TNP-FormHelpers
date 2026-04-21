@@ -8,7 +8,7 @@ import {
 } from "../../../../../../features/Accounting/accountingApi";
 import { formatUserDisplay } from "../../../../../../utils/formatUser";
 
-export default function useQuotationCardLogic(data, onActionSuccess) {
+export function useQuotationCardLogic(data, onActionSuccess) {
   // ✅ รับ argument ใหม่
   const amountText = React.useMemo(
     () =>
@@ -37,7 +37,7 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
     try {
       return JSON.parse(localStorage.getItem("userData") || "{}");
     } catch (error) {
-      console.error("Parse userData failed", error);
+      if (import.meta.env.DEV) console.error("Parse userData failed", error);
       return {};
     }
   }, []);
@@ -99,7 +99,7 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
       try {
         await updateQuotation({ id: data?.id, company_id: newCompanyId }).unwrap();
       } catch (error) {
-        console.error("Update company failed", error);
+        if (import.meta.env.DEV) console.error("Update company failed", error);
       }
     },
     [data?.id, updateQuotation]
@@ -111,13 +111,13 @@ export default function useQuotationCardLogic(data, onActionSuccess) {
         try {
           await submitQuotation(data.id).unwrap();
         } catch (error) {
-          console.warn("Submit quotation skipped", error);
+          if (import.meta.env.DEV) console.warn("Submit quotation skipped", error);
         }
       }
       await approveQuotation({ id: data?.id }).unwrap();
       onActionSuccess?.(); // ✅ เรียก callback เมื่ออนุมัติสำเร็จ
     } catch (error) {
-      console.error("Approve failed", error);
+      if (import.meta.env.DEV) console.error("Approve failed", error);
     }
   }, [approveQuotation, data?.id, data?.status, submitQuotation, onActionSuccess]); // ✅ เพิ่ม dependency
 

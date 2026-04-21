@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import { useMemo, useCallback } from "react";
 
-import useQuotationCardLogic from "./QuotationCard/hooks/useQuotationCardLogic";
+import { useQuotationCardLogic } from "./QuotationCard/hooks/useQuotationCardLogic";
 import { useQuotationStatusReversal } from "./QuotationCard/hooks/useQuotationStatusReversal";
 import StatusReversalDialog from "./QuotationCard/subcomponents/StatusReversalDialog";
 import statusColor from "./QuotationCard/utils/statusMap";

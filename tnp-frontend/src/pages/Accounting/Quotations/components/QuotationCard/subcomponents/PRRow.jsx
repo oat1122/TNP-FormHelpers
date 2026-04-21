@@ -2,7 +2,7 @@
 import React from "react";
 
 import PricingRequestNotesButton from "../../../../PricingIntegration/components/PricingRequestNotesButton";
-import usePRRowLogic from "../hooks/usePRRowLogic";
+import { usePRRowLogic } from "../hooks/usePRRowLogic";
 import { getPricingViewUrl } from "../utils/urls";
 
 export default function PRRow({ prId, items }) {

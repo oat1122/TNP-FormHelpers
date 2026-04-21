@@ -15,7 +15,7 @@ import "react";
 
 import { useFinancialCalculations } from "./hooks/useFinancialCalculations";
 import { formatTHB } from "./utils/formatting";
-import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
+import PricingModeSelector from "../../../shared/components/financial/PricingModeSelector";
 
 /**
  * FinancialSummaryPanel Component (Dumb UI)

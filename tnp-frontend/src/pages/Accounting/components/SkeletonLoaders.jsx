@@ -275,3 +275,15 @@ export const PageLoadingSkeleton = () => (
     </Grid>
   </Box>
 );
+
+/**
+ * Quotation List Skeleton — card grid view
+ */
+export const QuotationListSkeleton = ({ count = 6 }) => (
+  <PricingRequestListSkeleton count={count} />
+);
+
+/**
+ * Quotation Table Skeleton — table view (number / customer / total / status / date / actions)
+ */
+export const QuotationTableSkeleton = ({ rows = 6 }) => <TableSkeleton rows={rows} columns={6} />;

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-export default function usePagination(items, currentPage, perPage) {
+export function usePagination(items, currentPage, perPage) {
   const total = items.length;
   const pageData = useMemo(() => {
     const start = (currentPage - 1) * perPage;

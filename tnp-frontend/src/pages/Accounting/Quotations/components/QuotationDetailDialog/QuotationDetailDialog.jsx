@@ -35,22 +35,24 @@ import {
 } from "../../../../../features/Accounting/accountingApi";
 import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
-import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
-import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import VatField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/VatField";
-import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import Calculation from "../../../shared/components/Calculation";
+import PricingModeSelector from "../../../shared/components/financial/PricingModeSelector";
+import SpecialDiscountField from "../../../shared/components/financial/SpecialDiscountField";
+import VatField from "../../../shared/components/financial/VatField";
+import WithholdingTaxField from "../../../shared/components/financial/WithholdingTaxField";
+import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
+import PaymentTerms from "../../../shared/components/PaymentTerms";
+import { PAYMENT_TERMS } from "../../../shared/constants/paymentTerms";
+import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
+import { sanitizeInt } from "../../../shared/inputSanitizers";
 import {
   Section,
   SectionHeader,
   SecondaryButton,
   InfoCard,
   tokens,
-} from "../../../PricingIntegration/components/styles/quotationFormStyles";
-import Calculation from "../../../shared/components/Calculation";
-import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
-import PaymentTerms from "../../../shared/components/PaymentTerms";
-import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
-import { sanitizeInt } from "../../../shared/inputSanitizers";
+} from "../../../shared/styles/quotationFormStyles";
+import { showError } from "../../../utils/accountingToast";
 import { useQuotationGroups } from "../shared/hooks/useQuotationGroups";
 import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
 import { PRGroupSummaryCard } from "../shared/PRGroupSummaryCard";
@@ -284,12 +286,16 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
   const workName = q.work_name || q.workname || q.title || "";
   const quotationNumber = q.number || "";
   const paymentMethod = isEditing
-    ? dialogLogic.paymentTermsType === "other"
+    ? dialogLogic.paymentTermsType === PAYMENT_TERMS.OTHER
       ? dialogLogic.paymentTermsCustom || ""
       : dialogLogic.paymentTermsType
     : q.payment_terms ||
       q.payment_method ||
-      (q.credit_days === 30 ? "credit_30" : q.credit_days === 60 ? "credit_60" : "cash");
+      (q.credit_days === 30
+        ? PAYMENT_TERMS.CREDIT_30
+        : q.credit_days === 60
+          ? PAYMENT_TERMS.CREDIT_60
+          : PAYMENT_TERMS.CASH);
 
   return (
     <>
@@ -634,16 +640,16 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                       }
                       isCredit={
                         isEditing
-                          ? dialogLogic.paymentTermsType === "credit_30" ||
-                            dialogLogic.paymentTermsType === "credit_60"
-                          : paymentMethod !== "cash"
+                          ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                            dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
+                          : paymentMethod !== PAYMENT_TERMS.CASH
                       }
                       dueDateNode={
                         (
                           isEditing
-                            ? dialogLogic.paymentTermsType === "credit_30" ||
-                              dialogLogic.paymentTermsType === "credit_60"
-                            : paymentMethod !== "cash"
+                            ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                              dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
+                            : paymentMethod !== PAYMENT_TERMS.CASH
                         ) ? (
                           <>
                             <Grid item xs={6}>
@@ -651,8 +657,8 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                             </Grid>
                             <Grid item xs={6}>
                               {isEditing &&
-                              (dialogLogic.paymentTermsType === "credit_30" ||
-                                dialogLogic.paymentTermsType === "credit_60") ? (
+                              (dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                                dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60) ? (
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                                   <DatePicker
                                     value={dialogLogic.selectedDueDate}
@@ -765,7 +771,7 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
                                 // It's not checked, so add it.
                                 // Enforce limit of 3.
                                 if (newSet.size >= 3) {
-                                  alert("คุณสามารถเลือกรูปภาพได้สูงสุด 3 รูปเท่านั้น");
+                                  showError("คุณสามารถเลือกรูปภาพได้สูงสุด 3 รูปเท่านั้น");
                                   return; // Don't add
                                 }
                                 newSet.add(newValue);

@@ -39,13 +39,13 @@ import {
   useLazyGetAllLocationQuery,
 } from "../../../../../features/globalApi";
 import { AddressService } from "../../../../../services/AddressService";
-import { validateCustomerData } from "../../../PricingIntegration/components/customerFormatters";
+import { validateCustomerData } from "../../../shared/utils/customerFormatters";
 import {
   hydrateManagerUsername,
   getDefaultManagerAssignment,
   validateManagerAssignment,
   prepareManagerForApi,
-} from "../../../PricingIntegration/components/managerLogic";
+} from "../../../shared/utils/managerLogic";
 import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/accountingToast";
 
 // Styled Components
@@ -437,7 +437,7 @@ const CustomerCreateDialog = ({ open, onClose, onSuccess }) => {
       dismissToast(loadingId);
       const errorMessage =
         error?.data?.message || error?.message || "เกิดข้อผิดพลาดในการสร้างลูกค้า";
-      console.error("Failed to create customer:", error);
+      if (import.meta.env.DEV) console.error("Failed to create customer:", error);
       setErrors({ general: `เกิดข้อผิดพลาด: ${errorMessage}` });
       showError(errorMessage);
     } finally {

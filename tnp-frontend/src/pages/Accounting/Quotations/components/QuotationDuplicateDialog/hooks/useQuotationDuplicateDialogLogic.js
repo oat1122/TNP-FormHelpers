@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 
 import { useCreateStandaloneQuotationMutation } from "../../../../../../features/Accounting/accountingApi";
+import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
 import {
   showSuccess,
   showError,
@@ -34,18 +35,27 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
-    (q?.credit_days === 30 ? "credit_30" : q?.credit_days === 60 ? "credit_60" : "cash");
-  const isKnownTerms = ["cash", "credit_30", "credit_60"].includes(initialRawTerms);
+    (q?.credit_days === 30
+      ? PAYMENT_TERMS.CREDIT_30
+      : q?.credit_days === 60
+        ? PAYMENT_TERMS.CREDIT_60
+        : PAYMENT_TERMS.CASH);
+  const isKnownTerms = [
+    PAYMENT_TERMS.CASH,
+    PAYMENT_TERMS.CREDIT_30,
+    PAYMENT_TERMS.CREDIT_60,
+  ].includes(initialRawTerms);
 
   const [paymentTermsType, setPaymentTermsType] = useState(
-    isKnownTerms ? initialRawTerms : "other"
+    isKnownTerms ? initialRawTerms : PAYMENT_TERMS.OTHER
   );
   const [paymentTermsCustom, setPaymentTermsCustom] = useState(
     isKnownTerms ? "" : initialRawTerms || ""
   );
 
   // Deposit state (supports percentage | amount)
-  const inferredDepositPct = q?.deposit_percentage ?? (initialRawTerms === "cash" ? 0 : 50);
+  const inferredDepositPct =
+    q?.deposit_percentage ?? (initialRawTerms === PAYMENT_TERMS.CASH ? 0 : 50);
 
   const [depositMode, setDepositMode] = useState(q?.deposit_mode || "percentage");
   const [depositPct, setDepositPct] = useState(inferredDepositPct);
@@ -86,15 +96,17 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
       freshQ?.payment_terms ||
       freshQ?.payment_method ||
       (freshQ?.credit_days === 30
-        ? "credit_30"
+        ? PAYMENT_TERMS.CREDIT_30
         : freshQ?.credit_days === 60
-          ? "credit_60"
-          : "cash");
-    const known = ["cash", "credit_30", "credit_60"].includes(raw);
-    setPaymentTermsType(known ? raw : "other");
+          ? PAYMENT_TERMS.CREDIT_60
+          : PAYMENT_TERMS.CASH);
+    const known = [PAYMENT_TERMS.CASH, PAYMENT_TERMS.CREDIT_30, PAYMENT_TERMS.CREDIT_60].includes(
+      raw
+    );
+    setPaymentTermsType(known ? raw : PAYMENT_TERMS.OTHER);
     setPaymentTermsCustom(known ? "" : raw || "");
 
-    setDepositPct(freshQ?.deposit_percentage ?? (raw === "cash" ? 0 : 50));
+    setDepositPct(freshQ?.deposit_percentage ?? (raw === PAYMENT_TERMS.CASH ? 0 : 50));
     setDepositMode(freshQ?.deposit_mode || "percentage");
     setDepositAmountInput(freshQ?.deposit_mode === "amount" ? (freshQ?.deposit_amount ?? "") : "");
     setSelectedDueDate(freshQ?.due_date ? new Date(freshQ.due_date) : null);
@@ -156,7 +168,8 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
       });
     });
 
-    const isCredit = paymentTermsType === "credit_30" || paymentTermsType === "credit_60";
+    const isCredit =
+      paymentTermsType === PAYMENT_TERMS.CREDIT_30 || paymentTermsType === PAYMENT_TERMS.CREDIT_60;
     const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
 
     const loadingId = showLoading("กำลังสร้างใบเสนอราคา (สำเนา)…");
@@ -198,7 +211,8 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
             : Number(financials.depositPercentage || 0),
         deposit_amount: financials.depositAmount,
         deposit_mode: depositMode,
-        payment_terms: paymentTermsType === "other" ? paymentTermsCustom || "" : paymentTermsType,
+        payment_terms:
+          paymentTermsType === PAYMENT_TERMS.OTHER ? paymentTermsCustom || "" : paymentTermsType,
         due_date: dueDateForSave,
         notes: quotationNotes || "",
 

@@ -1,12 +1,7 @@
 import { Box, Typography, Avatar, Grid, Chip } from "@mui/material";
 import React from "react";
 
-import {
-  Section,
-  SectionHeader,
-  InfoCard,
-  tokens,
-} from "../../PricingIntegration/components/styles/quotationFormStyles";
+import { Section, SectionHeader, InfoCard, tokens } from "../styles/quotationFormStyles";
 
 /**
  * WorkItemsSection (Shared Component)

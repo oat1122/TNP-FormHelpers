@@ -3,7 +3,7 @@
 import { useGetPricingRequestAutofillQuery } from "../../../../../../features/Accounting/accountingApi";
 import { thb } from "../utils/currency";
 
-export default function usePRRowLogic(prId, items) {
+export function usePRRowLogic(prId, items) {
   const { data, isLoading } = useGetPricingRequestAutofillQuery(prId, { skip: !prId });
   const pr = data?.data || data || {};
   const prNo = pr.pr_no || pr.pr_number || `#${String(prId).slice(-6)}`;

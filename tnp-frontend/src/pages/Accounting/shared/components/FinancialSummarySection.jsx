@@ -6,12 +6,7 @@ import {
 import { Box, Typography, Avatar, Grid, Divider, Chip } from "@mui/material";
 import "react";
 
-import {
-  Section,
-  SectionHeader,
-  InfoCard,
-  tokens,
-} from "../../PricingIntegration/components/styles/quotationFormStyles";
+import { Section, SectionHeader, InfoCard, tokens } from "../styles/quotationFormStyles";
 
 // Format number to Thai currency format
 const formatCurrency = (amount) => {

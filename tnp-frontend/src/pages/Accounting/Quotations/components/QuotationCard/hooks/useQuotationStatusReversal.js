@@ -37,7 +37,7 @@ export const useQuotationStatusReversal = (quotationId, onSuccess) => {
         onSuccess?.(); // Trigger refetch or local update
       } catch (error) {
         dismissToast(loadingId);
-        console.error("Failed to reverse quotation status:", error);
+        if (import.meta.env.DEV) console.error("Failed to reverse quotation status:", error);
         const errorMessage = error?.data?.message || "เกิดข้อผิดพลาดในการย้อนสถานะ";
         showError(errorMessage);
       }

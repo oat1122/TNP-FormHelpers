@@ -26,20 +26,21 @@ import React from "react";
 import { useQuotationDuplicateDialogLogic } from "./hooks/useQuotationDuplicateDialogLogic";
 import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
-import PricingModeSelector from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/PricingModeSelector";
-import SpecialDiscountField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/SpecialDiscountField";
-import WithholdingTaxField from "../../../PricingIntegration/components/quotation/CreateQuotationForm/components/WithholdingTaxField";
+import Calculation from "../../../shared/components/Calculation";
+import PricingModeSelector from "../../../shared/components/financial/PricingModeSelector";
+import SpecialDiscountField from "../../../shared/components/financial/SpecialDiscountField";
+import WithholdingTaxField from "../../../shared/components/financial/WithholdingTaxField";
+import PaymentTerms from "../../../shared/components/PaymentTerms";
+import { PAYMENT_TERMS } from "../../../shared/constants/paymentTerms";
+import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
+import { sanitizeInt } from "../../../shared/inputSanitizers";
 import {
   Section,
   SectionHeader,
   SecondaryButton,
   InfoCard,
   tokens,
-} from "../../../PricingIntegration/components/styles/quotationFormStyles";
-import Calculation from "../../../shared/components/Calculation";
-import PaymentTerms from "../../../shared/components/PaymentTerms";
-import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
-import { sanitizeInt } from "../../../shared/inputSanitizers";
+} from "../../../shared/styles/quotationFormStyles";
 import { useQuotationGroups } from "../shared/hooks/useQuotationGroups";
 import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
 import { PRGroupSummaryCard } from "../shared/PRGroupSummaryCard";
@@ -159,12 +160,16 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
   const workName = q.work_name || q.workname || q.title || "";
   const quotationNumber = q.number || "";
   const paymentMethod = isEditing
-    ? dialogLogic.paymentTermsType === "other"
+    ? dialogLogic.paymentTermsType === PAYMENT_TERMS.OTHER
       ? dialogLogic.paymentTermsCustom || ""
       : dialogLogic.paymentTermsType
     : q.payment_terms ||
       q.payment_method ||
-      (q.credit_days === 30 ? "credit_30" : q.credit_days === 60 ? "credit_60" : "cash");
+      (q.credit_days === 30
+        ? PAYMENT_TERMS.CREDIT_30
+        : q.credit_days === 60
+          ? PAYMENT_TERMS.CREDIT_60
+          : PAYMENT_TERMS.CASH);
 
   return (
     <>
@@ -483,16 +488,16 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
                       }
                       isCredit={
                         isEditing
-                          ? dialogLogic.paymentTermsType === "credit_30" ||
-                            dialogLogic.paymentTermsType === "credit_60"
-                          : paymentMethod !== "cash"
+                          ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                            dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
+                          : paymentMethod !== PAYMENT_TERMS.CASH
                       }
                       dueDateNode={
                         (
                           isEditing
-                            ? dialogLogic.paymentTermsType === "credit_30" ||
-                              dialogLogic.paymentTermsType === "credit_60"
-                            : paymentMethod !== "cash"
+                            ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                              dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
+                            : paymentMethod !== PAYMENT_TERMS.CASH
                         ) ? (
                           <>
                             <Grid item xs={6}>
@@ -500,8 +505,8 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
                             </Grid>
                             <Grid item xs={6}>
                               {isEditing &&
-                              (dialogLogic.paymentTermsType === "credit_30" ||
-                                dialogLogic.paymentTermsType === "credit_60") ? (
+                              (dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
+                                dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60) ? (
                                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                                   <DatePicker
                                     value={dialogLogic.selectedDueDate}

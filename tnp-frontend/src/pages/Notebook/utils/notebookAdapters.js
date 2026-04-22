@@ -41,6 +41,9 @@ export const buildNotebookDraft = ({ notebook, currentUser, isAdmin }) => ({
   nb_action: notebook?.nb_action || "",
   nb_status: notebook?.nb_status || "",
   nb_remarks: notebook?.nb_remarks || "",
+  nb_next_followup_date: normalizeNotebookDate(notebook?.nb_next_followup_date),
+  nb_next_followup_note: notebook?.nb_next_followup_note || "",
+  nb_is_favorite: Boolean(notebook?.nb_is_favorite),
   nb_manage_by: isAdmin
     ? (notebook?.nb_manage_by ?? "")
     : shouldNotebookCreateIntoQueue(currentUser)

@@ -6,6 +6,7 @@ use App\Helpers\UserSubRoleHelper;
 use App\Http\Controllers\Controller;
 use App\Models\RecallActionLog;
 use App\Http\Requests\V1\Notebook\BulkAssignNotebookRequest;
+use App\Http\Requests\V1\Notebook\CheckNotebookDuplicateRequest;
 use App\Http\Requests\V1\Notebook\CustomerCareSourceIndexRequest;
 use App\Http\Requests\V1\Notebook\ConvertNotebookRequest;
 use App\Http\Requests\V1\Notebook\NotebookIndexRequest;
@@ -120,6 +121,11 @@ class NotebookController extends Controller
                 'message' => $exception->getMessage(),
             ], 422);
         }
+    }
+
+    public function checkDuplicate(CheckNotebookDuplicateRequest $request): JsonResponse
+    {
+        return response()->json($this->notebookService->checkDuplicate($request->validated()));
     }
 
     public function customerCareSources(CustomerCareSourceIndexRequest $request): JsonResponse

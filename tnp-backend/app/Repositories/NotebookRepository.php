@@ -2,7 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Helpers\PhoneNormalizer;
 use App\Helpers\UserSubRoleHelper;
+use App\Models\MasterCustomer;
 use App\Models\Notebook;
 use App\Models\NotebookHistory;
 use Illuminate\Database\Eloquent\Builder;
@@ -152,6 +154,7 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             ->filterEntryType($filters['entry_type'] ?? null)
             ->filterWorkflow($filters['workflow'] ?? null)
             ->filterManageBy(isset($filters['manage_by']) ? (int) $filters['manage_by'] : null)
+            ->orderByDesc('nb_is_favorite')
             ->orderByDesc('created_at');
     }
 
@@ -167,6 +170,219 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
         );
 
         return array_values(array_unique(array_intersect($normalized, ['histories'])));
+    }
+
+    public function findDuplicateMatches(string $type, string $value, ?int $excludeNotebookId = null): array
+    {
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return ['customers' => [], 'notebooks' => []];
+        }
+
+        return match ($type) {
+            'phone' => $this->findPhoneMatches($trimmed, $excludeNotebookId),
+            'email' => $this->findEmailMatches($trimmed, $excludeNotebookId),
+            'customer_name' => $this->findCustomerNameMatches($trimmed, $excludeNotebookId),
+            'contact_person' => $this->findContactPersonMatches($trimmed, $excludeNotebookId),
+            default => ['customers' => [], 'notebooks' => []],
+        };
+    }
+
+    protected function findPhoneMatches(string $value, ?int $excludeNotebookId): array
+    {
+        $digits = PhoneNormalizer::digitsOnly($value);
+
+        if ($digits === '' || strlen($digits) < 8) {
+            return ['customers' => [], 'notebooks' => []];
+        }
+
+        $customers = MasterCustomer::query()
+            ->active()
+            ->with('cusManageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where(function (Builder $query) use ($digits) {
+                $query
+                    ->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(cus_tel_1,'-',''),' ',''),'(',''),')','') = ?", [$digits])
+                    ->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(cus_tel_2,'-',''),' ',''),'(',''),')','') = ?", [$digits]);
+            })
+            ->limit(5)
+            ->get();
+
+        $notebooksQuery = Notebook::query()
+            ->with('manageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where('nb_entry_type', '!=', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY)
+            ->whereNull('nb_converted_at')
+            ->whereRaw("REPLACE(REPLACE(REPLACE(REPLACE(nb_contact_number,'-',''),' ',''),'(',''),')','') = ?", [$digits]);
+
+        if ($excludeNotebookId) {
+            $notebooksQuery->where('id', '!=', $excludeNotebookId);
+        }
+
+        $notebooks = $notebooksQuery->orderByDesc('updated_at')->limit(5)->get();
+
+        return [
+            'customers' => $this->transformCustomerMatches($customers),
+            'notebooks' => $this->transformNotebookMatches($notebooks),
+        ];
+    }
+
+    protected function findEmailMatches(string $value, ?int $excludeNotebookId): array
+    {
+        $email = strtolower($value);
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['customers' => [], 'notebooks' => []];
+        }
+
+        $customers = MasterCustomer::query()
+            ->active()
+            ->with('cusManageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->whereRaw('LOWER(TRIM(cus_email)) = ?', [$email])
+            ->limit(5)
+            ->get();
+
+        $notebooksQuery = Notebook::query()
+            ->with('manageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where('nb_entry_type', '!=', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY)
+            ->whereNull('nb_converted_at')
+            ->whereRaw('LOWER(TRIM(nb_email)) = ?', [$email]);
+
+        if ($excludeNotebookId) {
+            $notebooksQuery->where('id', '!=', $excludeNotebookId);
+        }
+
+        $notebooks = $notebooksQuery->orderByDesc('updated_at')->limit(5)->get();
+
+        return [
+            'customers' => $this->transformCustomerMatches($customers),
+            'notebooks' => $this->transformNotebookMatches($notebooks),
+        ];
+    }
+
+    protected function findCustomerNameMatches(string $value, ?int $excludeNotebookId): array
+    {
+        if (mb_strlen($value) < 3) {
+            return ['customers' => [], 'notebooks' => []];
+        }
+
+        $like = '%'.$value.'%';
+
+        $customers = MasterCustomer::query()
+            ->active()
+            ->with('cusManageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where(function (Builder $query) use ($like) {
+                $query->where('cus_name', 'like', $like)
+                    ->orWhere('cus_company', 'like', $like);
+            })
+            ->limit(5)
+            ->get();
+
+        $notebooksQuery = Notebook::query()
+            ->with('manageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where('nb_entry_type', '!=', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY)
+            ->whereNull('nb_converted_at')
+            ->where('nb_customer_name', 'like', $like);
+
+        if ($excludeNotebookId) {
+            $notebooksQuery->where('id', '!=', $excludeNotebookId);
+        }
+
+        $notebooks = $notebooksQuery->orderByDesc('updated_at')->limit(5)->get();
+
+        return [
+            'customers' => $this->transformCustomerMatches($customers),
+            'notebooks' => $this->transformNotebookMatches($notebooks),
+        ];
+    }
+
+    protected function findContactPersonMatches(string $value, ?int $excludeNotebookId): array
+    {
+        if (mb_strlen($value) < 3) {
+            return ['customers' => [], 'notebooks' => []];
+        }
+
+        $like = '%'.$value.'%';
+
+        $customers = MasterCustomer::query()
+            ->active()
+            ->with('cusManageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where(function (Builder $query) use ($like) {
+                $query
+                    ->whereRaw("CONCAT_WS(' ', cus_firstname, cus_lastname) LIKE ?", [$like])
+                    ->orWhere('cus_firstname', 'like', $like)
+                    ->orWhere('cus_lastname', 'like', $like);
+            })
+            ->limit(5)
+            ->get();
+
+        $notebooksQuery = Notebook::query()
+            ->with('manageBy:user_id,username,user_nickname,user_firstname,user_lastname')
+            ->where('nb_entry_type', '!=', Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY)
+            ->whereNull('nb_converted_at')
+            ->where('nb_contact_person', 'like', $like);
+
+        if ($excludeNotebookId) {
+            $notebooksQuery->where('id', '!=', $excludeNotebookId);
+        }
+
+        $notebooks = $notebooksQuery->orderByDesc('updated_at')->limit(5)->get();
+
+        return [
+            'customers' => $this->transformCustomerMatches($customers),
+            'notebooks' => $this->transformNotebookMatches($notebooks),
+        ];
+    }
+
+    protected function transformCustomerMatches(iterable $customers): array
+    {
+        return collect($customers)
+            ->map(fn (MasterCustomer $customer) => [
+                'cus_id' => $customer->cus_id,
+                'cus_name' => $customer->cus_name,
+                'cus_company' => $customer->cus_company,
+                'cus_firstname' => $customer->cus_firstname,
+                'cus_lastname' => $customer->cus_lastname,
+                'cus_tel_1' => $customer->cus_tel_1,
+                'cus_tel_2' => $customer->cus_tel_2,
+                'cus_email' => $customer->cus_email,
+                'sales_name' => $this->resolveUserDisplayName($customer->cusManageBy ?? null),
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function transformNotebookMatches(iterable $notebooks): array
+    {
+        return collect($notebooks)
+            ->map(fn (Notebook $notebook) => [
+                'id' => $notebook->id,
+                'nb_customer_name' => $notebook->nb_customer_name,
+                'nb_contact_person' => $notebook->nb_contact_person,
+                'nb_contact_number' => $notebook->nb_contact_number,
+                'nb_email' => $notebook->nb_email,
+                'nb_workflow' => $notebook->nb_workflow,
+                'nb_entry_type' => $notebook->nb_entry_type,
+                'nb_manage_by' => $notebook->nb_manage_by,
+                'nb_manage_by_name' => $this->resolveUserDisplayName($notebook->manageBy ?? null),
+                'updated_at' => $notebook->updated_at?->toISOString(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function resolveUserDisplayName(mixed $user): ?string
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $first = trim((string) ($user->user_firstname ?? ''));
+        $last = trim((string) ($user->user_lastname ?? ''));
+        $fullName = trim($first.' '.$last);
+
+        return $user->username
+            ?? $user->user_nickname
+            ?? ($fullName !== '' ? $fullName : null);
     }
 
     protected function applyNotebookSourceFilter(Builder $query, string $sourceFilter): void

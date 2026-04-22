@@ -19,6 +19,15 @@ const normalizeNotebookDate = (value) => {
   return parsed.isValid() ? parsed.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
 };
 
+const normalizeOptionalDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
+};
+
 const buildCustomerCareDraft = (record = null) => ({
   nb_date: normalizeNotebookDate(record?.nb_date),
   nb_customer_name: record?.nb_customer_name || "",
@@ -30,6 +39,8 @@ const buildCustomerCareDraft = (record = null) => ({
   nb_action: record?.nb_action || "",
   nb_status: record?.nb_status || "",
   nb_remarks: record?.nb_remarks || "",
+  nb_next_followup_date: normalizeOptionalDate(record?.nb_next_followup_date),
+  nb_next_followup_note: record?.nb_next_followup_note || "",
   nb_entry_type: record?.nb_entry_type || "customer_care",
   nb_source_type: record?.nb_source_type || "customer",
   source_customer_id: record?.nb_source_customer_id || null,
@@ -94,6 +105,10 @@ export const useCustomerCareForm = ({ open, mode, selectedRecord, onClose }) => 
   const handleBlur = useCallback(
     async (event) => {
       const { name } = event.target;
+
+      if (!validationSchema.fields?.[name]) {
+        return;
+      }
 
       try {
         await validationSchema.validateAt(name, draft);
@@ -179,6 +194,8 @@ export const useCustomerCareForm = ({ open, mode, selectedRecord, onClose }) => 
       nb_action: draft.nb_action || null,
       nb_status: draft.nb_status || null,
       nb_remarks: draft.nb_remarks || null,
+      nb_next_followup_date: draft.nb_next_followup_date || null,
+      nb_next_followup_note: draft.nb_next_followup_note || null,
     };
 
     const loadingId = showLoading(isCreateMode ? "กำลังบันทึกข้อมูล..." : "กำลังอัปเดตข้อมูล...");

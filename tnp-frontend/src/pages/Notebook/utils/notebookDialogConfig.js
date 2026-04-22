@@ -105,6 +105,8 @@ export const NOTEBOOK_HISTORY_FIELD_LABELS = {
   nb_action: "Next action",
   nb_additional_info: "Interaction notes",
   nb_remarks: "Internal notes",
+  nb_next_followup_date: "Next follow-up date",
+  nb_next_followup_note: "Next follow-up note",
   nb_customer_name: "Customer / lead",
   nb_contact_person: "Contact person",
   nb_contact_number: "Phone",

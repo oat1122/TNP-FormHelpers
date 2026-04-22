@@ -37,6 +37,9 @@ class UpdateNotebookRequest extends NotebookRequest
             'nb_action' => ['nullable', 'string', 'max:255'],
             'nb_status' => ['nullable', 'string', 'max:255'],
             'nb_remarks' => ['nullable', 'string'],
+            'nb_next_followup_date' => ['nullable', 'date'],
+            'nb_next_followup_note' => ['nullable', 'string'],
+            'nb_is_favorite' => ['sometimes', 'boolean'],
         ];
 
         if (app(NotebookService::class)->canManageAll($this->user())) {

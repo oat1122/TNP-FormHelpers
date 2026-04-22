@@ -87,7 +87,28 @@ export const useNotebookPageState = () => {
       return [];
     }
 
-    return (salesData?.data || []).map((user) => ({
+    const SALES_SUBROLES = new Set([
+      "SALES_OFFLINE",
+      "SALES_ONLINE",
+      "SUPPORT_SALES",
+      "HEAD_OFFLINE",
+      "HEAD_ONLINE",
+      "TALESALES",
+    ]);
+
+    const isSalesUser = (user) => {
+      if (user?.role === "sale") {
+        return true;
+      }
+
+      const subRoleCodes = (user?.sub_roles || [])
+        .map((subRole) => subRole?.msr_code)
+        .filter(Boolean);
+
+      return subRoleCodes.some((code) => SALES_SUBROLES.has(code));
+    };
+
+    return (salesData?.data || []).filter(isSalesUser).map((user) => ({
       value: String(user.user_id),
       label: user.username || user.user_nickname || `User ${user.user_id}`,
     }));
@@ -112,7 +133,7 @@ export const useNotebookPageState = () => {
     () => ({
       page: paginationModel.page,
       per_page: paginationModel.pageSize,
-      scope: scopeFilter !== "all" ? scopeFilter : undefined,
+      scope: scopeFilter,
       search: debouncedSearch || undefined,
       start_date: periodFilter.startDate,
       end_date: periodFilter.endDate,
@@ -140,7 +161,7 @@ export const useNotebookPageState = () => {
 
   const exportFilters = useMemo(
     () => ({
-      scope: scopeFilter !== "all" ? scopeFilter : undefined,
+      scope: scopeFilter,
       search: debouncedSearch || undefined,
       start_date: periodFilter.startDate,
       end_date: periodFilter.endDate,
@@ -279,6 +300,18 @@ export const useNotebookPageState = () => {
     setPaginationModel((previous) => ({ ...previous, page: 0 }));
   };
 
+  const handleScopeChange = (nextScope) => {
+    setScopeFilter(nextScope);
+    setSearchInput(defaultFilters.keyword);
+    setPeriodFilter(getDefaultNotebookPeriodFilter());
+    setDateFilterBy(defaultFilters.dateFilterBy);
+    setStatusFilter(defaultFilters.statusFilter);
+    setActionFilter(defaultFilters.actionFilter);
+    setEntryTypeFilter(defaultFilters.entryTypeFilter);
+    setSalesFilter(defaultFilters.salesFilter);
+    setPaginationModel((previous) => ({ ...previous, page: 0 }));
+  };
+
   return {
     currentUser,
     userRole: currentUser?.role,
@@ -293,6 +326,7 @@ export const useNotebookPageState = () => {
     setPaginationModel,
     scopeFilter,
     setScopeFilter,
+    handleScopeChange,
     searchInput,
     setSearchInput,
     periodFilter,

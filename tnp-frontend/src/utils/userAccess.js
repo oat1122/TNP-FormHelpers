@@ -15,6 +15,11 @@ export const hasAnySubRole = (user, codes = []) => {
 
 export const isSupportSalesUser = (user) => hasAnySubRole(user, ["SUPPORT_SALES"]);
 
+export const isSalesOnlineUser = (user) => hasAnySubRole(user, ["SALES_ONLINE"]);
+
+export const shouldHideNotebookStatusSection = (user) =>
+  hasAnySubRole(user, ["SALES_ONLINE", "SUPPORT_SALES"]);
+
 export const isNotebookQueueUser = (user) => hasAnySubRole(user, NOTEBOOK_QUEUE_SUBROLE_CODES);
 
 export const canViewNotebookQueue = (user) =>
@@ -32,13 +37,11 @@ export const canViewAllNotebookScope = (user) =>
 
 export const canReserveNotebookQueue = (user) =>
   Boolean(user) &&
-  (isNotebookQueueUser(user) ||
-    user?.role === "sale" ||
-    user?.role === "admin" ||
-    user?.role === "manager");
+  (user?.role === "admin" || hasAnySubRole(user, NOTEBOOK_QUEUE_ASSIGN_SUBROLE_CODES));
 
 export const canAssignNotebookQueue = (user) =>
-  Boolean(user) && hasAnySubRole(user, NOTEBOOK_QUEUE_ASSIGN_SUBROLE_CODES);
+  Boolean(user) &&
+  (user?.role === "admin" || hasAnySubRole(user, NOTEBOOK_QUEUE_ASSIGN_SUBROLE_CODES));
 
 export const getNotebookAssignTargetSubRoleCodes = (user) =>
   hasAnySubRole(user, ["SUPPORT_SALES"])

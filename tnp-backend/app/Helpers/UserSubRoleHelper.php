@@ -165,14 +165,28 @@ class UserSubRoleHelper
 
     public static function canReserveNotebookQueue($user): bool
     {
-        return self::canManageAllNotebooks($user)
-            || self::isNotebookQueueUser($user)
-            || ((bool) $user && $user->role === UserRole::SALE);
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->role === UserRole::ADMIN) {
+            return true;
+        }
+
+        return self::hasAnySubRole($user, self::notebookQueueAssignCodes());
     }
 
     public static function canAssignNotebookQueue($user): bool
     {
-        return (bool) $user && self::hasAnySubRole($user, self::notebookQueueAssignCodes());
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->role === UserRole::ADMIN) {
+            return true;
+        }
+
+        return self::hasAnySubRole($user, self::notebookQueueAssignCodes());
     }
 
     public static function canExportNotebookSelfReport($user): bool

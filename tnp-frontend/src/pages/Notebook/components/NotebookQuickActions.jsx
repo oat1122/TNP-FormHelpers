@@ -28,34 +28,31 @@ const getQuickActionLabel = (option) =>
 const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
   const currentOption = getNotebookActionOption(value);
   const isOtherSelected = Boolean(currentOption && currentOption.kind !== "primary");
-  const currentSelectionLabel = currentOption
-    ? currentOption.kind === "primary"
-      ? getQuickActionLabel(currentOption)
-      : currentOption.label
-    : "ยังไม่ได้ระบุการดำเนินการ";
 
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 2.25 },
-        borderRadius: 3,
+        p: 2,
+        borderRadius: 1.5,
         border: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
-        boxShadow: "0 10px 26px rgba(15, 23, 42, 0.06)",
       }}
     >
-      <Stack spacing={1.5}>
-        <Box>
-          <Typography variant="subtitle1" fontWeight={700}>
-            การติดตามครั้งถัดไป
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            เลือกวิธีติดตามก่อน แล้วค่อยบันทึกรายละเอียดขณะที่ข้อมูลยังสดใหม่
-          </Typography>
-        </Box>
+      <Stack spacing={1.25}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            color: "text.secondary",
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          การดำเนินการ
+        </Typography>
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap">
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.75 }}>
           {NOTEBOOK_PRIMARY_ACTIONS.map((option) => {
             const Icon = PRIMARY_ACTION_ICONS[option.quickLabel];
             const selected = value === option.value;
@@ -63,17 +60,16 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
             return (
               <Button
                 key={option.value}
+                size="small"
                 variant={selected ? "contained" : "outlined"}
                 onClick={() => onChange(option.value)}
                 disabled={readOnly}
                 startIcon={Icon ? <Icon /> : null}
                 sx={{
                   borderRadius: 999,
-                  px: 2,
-                  justifyContent: "flex-start",
+                  px: 1.75,
                   textTransform: "none",
-                  minHeight: 44,
-                  boxShadow: selected ? 2 : 0,
+                  boxShadow: "none",
                 }}
               >
                 {getQuickActionLabel(option)}
@@ -82,6 +78,7 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
           })}
 
           <Button
+            size="small"
             variant={isOtherSelected ? "contained" : "outlined"}
             color={isOtherSelected ? "secondary" : "inherit"}
             onClick={() => onChange(value && isOtherSelected ? value : secondaryDefault)}
@@ -89,10 +86,9 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
             startIcon={<MdMoreHoriz />}
             sx={{
               borderRadius: 999,
-              px: 2,
-              justifyContent: "flex-start",
+              px: 1.75,
               textTransform: "none",
-              minHeight: 44,
+              boxShadow: "none",
             }}
           >
             อื่น ๆ
@@ -116,10 +112,6 @@ const NotebookQuickActions = ({ value, onChange, readOnly = false }) => {
             ))}
           </TextField>
         )}
-
-        <Typography variant="caption" color="text.secondary">
-          รายการที่เลือก: {currentSelectionLabel}
-        </Typography>
       </Stack>
     </Box>
   );

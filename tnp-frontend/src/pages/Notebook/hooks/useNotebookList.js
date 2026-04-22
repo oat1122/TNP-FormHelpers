@@ -9,6 +9,7 @@ import {
   useDeleteNotebookMutation,
   useGetNotebooksQuery,
   useReserveNotebookMutation,
+  useUpdateNotebookMutation,
 } from "../../../features/Notebook/notebookApi";
 import {
   setDialogMode,
@@ -41,6 +42,7 @@ export const useNotebookList = () => {
   const [deleteNotebook] = useDeleteNotebookMutation();
   const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
   const [reserveNotebook, { isLoading: isReserving }] = useReserveNotebookMutation();
+  const [updateNotebook] = useUpdateNotebookMutation();
   const rows = data?.rows || [];
   const isBulkAssignEnabled =
     pageState.scopeFilter === "queue" && pageState.queueActionMode === "assign";
@@ -91,6 +93,21 @@ export const useNotebookList = () => {
       }
     } finally {
       dismissToast(loadingId);
+    }
+  };
+
+  const handleToggleFavorite = async (notebook) => {
+    if (!notebook?.id) {
+      return;
+    }
+
+    try {
+      await updateNotebook({
+        id: notebook.id,
+        nb_is_favorite: !notebook.nb_is_favorite,
+      }).unwrap();
+    } catch (error) {
+      showError(error?.data?.message || "ไม่สามารถอัปเดตรายการโปรดได้");
     }
   };
 
@@ -273,6 +290,7 @@ export const useNotebookList = () => {
     handleAssignError,
     handleReserve,
     handleConvert,
+    handleToggleFavorite,
     handleAddIntoMine,
     handleEdit: (notebook) =>
       notebook?.nb_entry_type === "personal_activity"

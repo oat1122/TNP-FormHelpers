@@ -20,6 +20,8 @@ class StoreCustomerCareNotebookRequest extends NotebookRequest
             'nb_action' => ['nullable', 'string', 'max:255'],
             'nb_status' => ['nullable', 'string', 'max:255'],
             'nb_remarks' => ['nullable', 'string'],
+            'nb_next_followup_date' => ['nullable', 'date'],
+            'nb_next_followup_note' => ['nullable', 'string'],
             'source_type' => ['required', Rule::in(['customer', 'notebook'])],
             'source_customer_id' => ['nullable', 'string', 'max:36', Rule::exists('master_customers', 'cus_id')],
             'source_notebook_id' => ['nullable', 'integer', Rule::exists('notebooks', 'id')],

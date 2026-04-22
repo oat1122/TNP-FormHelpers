@@ -1,7 +1,12 @@
 import { Box, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { MdDelete, MdEdit, MdPersonAdd, MdVisibility } from "react-icons/md";
 
-import { formatDate, getStatusColor } from "./notebookCommon";
+import {
+  formatDate,
+  getNotebookFollowupChip,
+  getStatusColor,
+  isUntouchedQueueClaim,
+} from "./notebookCommon";
 
 const textClampSx = (lines = 2) => ({
   overflow: "hidden",
@@ -72,24 +77,57 @@ export const buildNotebookTableColumns = ({
     headerName: "วันที่ติดตาม",
     flex: isCompact ? 1 : 1.05,
     minWidth: isCompact ? 132 : 150,
-    renderCell: ({ row }) => (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          minWidth: 0,
-          py: 0.5,
-        }}
-      >
-        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.25 }}>
-          {formatDate(row.nb_date || row.created_at) || "-"}
-        </Typography>
-        <Typography variant="caption" sx={{ lineHeight: 1.3, color: "text.secondary" }}>
-          อัปเดตล่าสุด {formatDate(row.updated_at) || "-"}
-        </Typography>
-      </Box>
-    ),
+    renderCell: ({ row }) => {
+      const followupInfo = getNotebookFollowupChip(row);
+      const followupNote = row?.nb_next_followup_note?.trim();
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 0.25,
+            minWidth: 0,
+            py: 0.5,
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+            {formatDate(row.nb_date || row.created_at) || "-"}
+          </Typography>
+          <Typography variant="caption" sx={{ lineHeight: 1.35, color: "text.secondary" }}>
+            อัปเดต {formatDate(row.updated_at, "dd/MM/yyyy HH:mm") || "-"}
+          </Typography>
+          {followupInfo ? (
+            <Typography
+              variant="caption"
+              sx={{
+                color: followupInfo.textColor,
+                fontWeight: followupInfo.severity === "scheduled" ? 400 : 600,
+                lineHeight: 1.35,
+              }}
+            >
+              {followupInfo.label}
+            </Typography>
+          ) : null}
+          {followupNote ? (
+            <Typography
+              variant="caption"
+              title={followupNote}
+              sx={{
+                color: "text.secondary",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                lineHeight: 1.35,
+              }}
+            >
+              {followupNote}
+            </Typography>
+          ) : null}
+        </Box>
+      );
+    },
   };
 
   const customerColumn = {
@@ -104,6 +142,19 @@ export const buildNotebookTableColumns = ({
           <Typography variant="body2" sx={{ fontWeight: 600, ...textClampSx(2) }}>
             {value || "-"}
           </Typography>
+          {isUntouchedQueueClaim(row) ? (
+            <Chip
+              label="🆕 ใหม่จากคิวกลาง"
+              size="small"
+              color="error"
+              sx={{
+                height: 20,
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                "& .MuiChip-label": { px: 0.85 },
+              }}
+            />
+          ) : null}
           {row.nb_is_online ? (
             <Chip
               label="Online"

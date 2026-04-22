@@ -48,6 +48,9 @@ class Notebook extends Model
         'nb_action',
         'nb_status',
         'nb_remarks',
+        'nb_next_followup_date',
+        'nb_next_followup_note',
+        'nb_is_favorite',
         'nb_manage_by',
         'nb_workflow',
         'nb_entry_type',
@@ -66,7 +69,9 @@ class Notebook extends Model
 
     protected $casts = [
         'nb_is_online' => 'boolean',
+        'nb_is_favorite' => 'boolean',
         'nb_date' => 'date',
+        'nb_next_followup_date' => 'date',
         'nb_converted_at' => 'datetime',
         'nb_claimed_at' => 'datetime',
         'nb_source_notebook_id' => 'integer',
@@ -158,6 +163,10 @@ class Notebook extends Model
     {
         if (! $user) {
             return $query->whereRaw('1 = 0');
+        }
+
+        if (method_exists($user, 'loadMissing') && ! $user->relationLoaded('subRoles')) {
+            $user->loadMissing('subRoles');
         }
 
         $resolvedScope = $scope ?? (UserSubRoleHelper::canViewAllNotebookScope($user) ? 'all' : 'mine');

@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
+import { useNotebookDuplicateCheck } from "./useNotebookDuplicateCheck";
 import {
   useAddNotebookMutation,
   useGetNotebookQuery,
@@ -15,7 +16,6 @@ import {
   shouldNotebookCreateIntoMine,
   shouldNotebookCreateIntoQueue,
 } from "../../../utils/userAccess";
-import { useDuplicateCheck } from "../../Customer/hooks/useDuplicateCheck";
 import { buildNotebookDraft } from "../utils/notebookAdapters";
 import { validationSchema } from "../utils/validationSchema";
 
@@ -50,15 +50,8 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
 
   const notebookHistories = notebookDetail?.histories || [];
 
-  const {
-    duplicatePhoneDialogOpen,
-    duplicatePhoneData,
-    checkPhoneDuplicate,
-    closeDuplicatePhoneDialog,
-    resetDuplicateChecks,
-  } = useDuplicateCheck({
-    mode: dialogMode,
-    currentCustomerId: null,
+  const duplicateCheck = useNotebookDuplicateCheck({
+    excludeNotebookId: dialogMode === "edit" ? selectedNotebook?.id || null : null,
   });
 
   const defaultDraft = useMemo(
@@ -88,14 +81,15 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
       setDraft(defaultDraft);
       setErrors({});
       setHasUserEdited(false);
-      resetDuplicateChecks();
+      duplicateCheck.resetAll();
       return;
     }
 
     setDraft(buildDialogDraft(selectedNotebook));
     setErrors({});
     setHasUserEdited(false);
-  }, [buildDialogDraft, defaultDraft, dialogOpen, resetDuplicateChecks, selectedNotebook]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildDialogDraft, defaultDraft, dialogOpen, selectedNotebook]);
 
   useEffect(() => {
     if (!dialogOpen || dialogMode === "create" || !notebookDetail || hasUserEdited) {
@@ -108,9 +102,10 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const handleClose = useCallback(() => {
     setErrors({});
     setHasUserEdited(false);
-    resetDuplicateChecks();
+    duplicateCheck.resetAll();
     dispatch(resetNotebookDialog());
-  }, [dispatch, resetDuplicateChecks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   const handleChange = useCallback(
     (event) => {
@@ -131,6 +126,10 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const handleBlur = useCallback(
     async (event) => {
       const { name } = event.target;
+
+      if (!validationSchema.fields?.[name]) {
+        return;
+      }
 
       try {
         await validationSchema.validateAt(name, draft);
@@ -208,6 +207,11 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
         submitData.nb_manage_by = currentUser.user_id;
       }
 
+      const proceedPastDuplicates = await duplicateCheck.runSaveCheck(submitData);
+      if (!proceedPastDuplicates) {
+        return;
+      }
+
       const confirmed = await dialog_confirm_yes_no(
         dialogMode === "create" ? "ยืนยันการบันทึกข้อมูล?" : "ยืนยันการแก้ไขข้อมูล?"
       );
@@ -261,6 +265,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     defaultCreateIntoQueue,
     dialogMode,
     draft,
+    duplicateCheck,
     getCreateSuccessMessage,
     handleClose,
     isAdmin,
@@ -276,8 +281,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     recordKey: `${dialogMode}-${selectedNotebook?.id || "create"}`,
     draft,
     errors,
-    duplicatePhoneDialogOpen,
-    duplicatePhoneData,
+    duplicateCheck,
     isSubmitting: isAdding || isUpdating,
     isNotebookDetailFetching,
     currentUser,
@@ -288,8 +292,6 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     handleBlur,
     handleOnlineToggle,
     handleSubmit,
-    closeDuplicatePhoneDialog,
-    checkPhoneDuplicate,
     setDraft,
   };
 };

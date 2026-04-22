@@ -366,6 +366,24 @@ class NotebookService
             : $this->searchCustomerCareCustomerSources($filters, $user);
     }
 
+    public function checkDuplicate(array $validated): array
+    {
+        $type = $validated['type'];
+        $value = (string) ($validated['value'] ?? '');
+        $excludeNotebookId = isset($validated['exclude_notebook_id'])
+            ? (int) $validated['exclude_notebook_id']
+            : null;
+
+        $matches = $this->notebookRepository->findDuplicateMatches($type, $value, $excludeNotebookId);
+
+        return [
+            'type' => $type,
+            'value' => $value,
+            'customers' => $matches['customers'] ?? [],
+            'notebooks' => $matches['notebooks'] ?? [],
+        ];
+    }
+
     public function createCustomerCare(array $validated, $user): Notebook
     {
         if (! $this->canCreateCustomerCare($user)) {
@@ -388,6 +406,8 @@ class NotebookService
                 'nb_action' => $validated['nb_action'] ?? null,
                 'nb_status' => $validated['nb_status'] ?? null,
                 'nb_remarks' => $validated['nb_remarks'] ?? null,
+                'nb_next_followup_date' => $validated['nb_next_followup_date'] ?? null,
+                'nb_next_followup_note' => $validated['nb_next_followup_note'] ?? null,
                 'nb_manage_by' => $user->user_id,
                 'nb_workflow' => Notebook::WORKFLOW_STANDARD,
                 'nb_entry_type' => Notebook::ENTRY_TYPE_CUSTOMER_CARE,
@@ -422,6 +442,9 @@ class NotebookService
             'nb_action',
             'nb_status',
             'nb_remarks',
+            'nb_next_followup_date',
+            'nb_next_followup_note',
+            'nb_is_favorite',
             'nb_manage_by',
             'nb_workflow',
         ]);

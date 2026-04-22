@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -18,47 +17,47 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MdAssignment,
   MdBusiness,
-  MdEdit,
-  MdNote,
-  MdRemoveRedEye,
+  MdEventAvailable,
   MdSave,
   MdSupervisorAccount,
 } from "react-icons/md";
 
+import NotebookDuplicateWarningDialog from "./NotebookDuplicateWarningDialog";
 import NotebookHistoryTimeline from "./NotebookHistoryTimeline";
 import NotebookNoteField from "./NotebookNoteField";
 import NotebookQuickActions from "./NotebookQuickActions";
 import NotebookSummaryBar from "./NotebookSummaryBar";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
-import DuplicatePhoneDialog from "../../Customer/components/Forms/DuplicatePhoneDialog";
+import { shouldHideNotebookStatusSection } from "../../../utils/userAccess";
 import { useNotebookForm } from "../hooks/useNotebookForm";
-import {
-  NOTEBOOK_STATUS_OPTIONS,
-  getNotebookActionLabel,
-  getNotebookSourceMeta,
-  getNotebookStatusLabel,
-  getNotebookStatusOption,
-} from "../utils/notebookDialogConfig";
+import { NOTEBOOK_STATUS_OPTIONS, getNotebookStatusOption } from "../utils/notebookDialogConfig";
 
 const SectionCard = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2.25),
+  padding: theme.spacing(2),
   borderRadius: theme.spacing(1.5),
   border: `1px solid ${theme.palette.divider}`,
   backgroundColor: theme.palette.background.paper,
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
 }));
 
 const SectionHeading = styled(Typography)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  gap: theme.spacing(1),
-  fontSize: "1rem",
+  gap: theme.spacing(0.75),
+  fontSize: "0.875rem",
   fontWeight: 700,
-  marginBottom: theme.spacing(0.5),
+  color: theme.palette.text.secondary,
+  textTransform: "uppercase",
+  letterSpacing: 0.4,
+  marginBottom: theme.spacing(1.25),
 }));
 
 const SourceToggleButton = styled(ToggleButton)(({ theme }) => ({
@@ -82,18 +81,6 @@ const getUserDisplayName = (user) =>
   [user?.user_firstname, user?.user_lastname].filter(Boolean).join(" ") ||
   "";
 
-const getThaiSourceLabel = (label) => {
-  if (label === "Online") {
-    return "ออนไลน์";
-  }
-
-  if (label === "On-site") {
-    return "ออนไซต์";
-  }
-
-  return label;
-};
-
 const NotebookDialog = ({ currentUser = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -109,8 +96,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
     recordKey,
     draft,
     errors,
-    duplicatePhoneDialogOpen,
-    duplicatePhoneData,
+    duplicateCheck,
     isSubmitting,
     isAdmin,
     notebookHistories,
@@ -120,8 +106,6 @@ const NotebookDialog = ({ currentUser = {} }) => {
     handleBlur,
     handleOnlineToggle,
     handleSubmit,
-    closeDuplicatePhoneDialog,
-    checkPhoneDuplicate,
   } = useNotebookForm({ currentUser });
 
   const { data: userData } = useGetAllUserQuery(
@@ -138,7 +122,10 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const historyLoading = !isCreateMode && isNotebookDetailFetching;
   const summaryTitle = draft.nb_customer_name?.trim() || "บันทึกการขายใหม่";
   const statusMeta = getNotebookStatusOption(draft.nb_status);
-  const sourceMeta = getNotebookSourceMeta(Boolean(draft.nb_is_online));
+  const hideStatusSection =
+    isCreateMode &&
+    shouldHideNotebookStatusSection(currentUser) &&
+    draft.nb_workflow !== "standard";
   const selectedSalesOwner = salesList.find(
     (user) => String(user.user_id) === String(draft.nb_manage_by)
   );
@@ -230,11 +217,11 @@ const NotebookDialog = ({ currentUser = {} }) => {
   const modeLabel = isViewMode ? "ดูบันทึก" : isEditMode ? "แก้ไขบันทึก" : "บันทึกการขายใหม่";
   const closeButtonLabel = isViewMode ? "ปิด" : "ยกเลิก";
   const noteDescription = isEditMode
-    ? "เพิ่มอัปเดตล่าสุดที่ใช้คุยกับลูกค้าที่นี่ โดยบันทึกเดิมจะยังแสดงอยู่ในประวัติกิจกรรม"
-    : "บันทึกรายละเอียดที่คุยกับลูกค้า ประเด็นสำคัญ และข้อตกลงสำหรับการติดตามครั้งถัดไป";
+    ? "เพิ่มอัปเดตการพูดคุย บันทึกเดิมจะยังอยู่ในประวัติ"
+    : "สรุปสิ่งที่คุยกับลูกค้าและขั้นตอนถัดไป";
   const internalNoteDescription = isEditMode
-    ? "เพิ่มอัปเดตภายในล่าสุดได้ที่นี่ โดยไม่ลบบันทึกก่อนหน้า"
-    : "ใช้สำหรับจดเตือน ข้อมูลราคา หรือหมายเหตุภายในทีม";
+    ? "เพิ่มหมายเหตุภายในล่าสุด"
+    : "สำหรับทีมภายใน เช่น ข้อควรระวัง หรือราคา";
 
   return (
     <Dialog
@@ -264,9 +251,6 @@ const NotebookDialog = ({ currentUser = {} }) => {
             title={summaryTitle}
             modeLabel={modeLabel}
             statusMeta={statusMeta}
-            actionLabel={getNotebookActionLabel(draft.nb_action)}
-            salesOwnerLabel={salesOwnerLabel}
-            sourceMeta={sourceMeta}
             onClose={handleClose}
           />
 
@@ -278,56 +262,42 @@ const NotebookDialog = ({ currentUser = {} }) => {
             />
           </Box>
 
-          <Grid container spacing={2.25}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={7}>
-              <Stack spacing={2.25}>
-                <SectionCard>
-                  <SectionHeading>
-                    <MdAssignment />
-                    สถานะการติดตาม
-                  </SectionHeading>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    อัปเดตสถานะล่าสุดได้ทันทีโดยไม่ต้องเปิดเมนูเพิ่ม
-                  </Typography>
+              <Stack spacing={2}>
+                {hideStatusSection ? null : (
+                  <SectionCard>
+                    <SectionHeading>
+                      <MdAssignment size={16} />
+                      สถานะการติดตาม
+                    </SectionHeading>
 
-                  <ToggleButtonGroup
-                    exclusive
-                    value={draft.nb_status || null}
-                    onChange={handleStatusChange}
-                    disabled={isViewMode}
-                    sx={{ flexWrap: "wrap", gap: 1 }}
-                  >
-                    {NOTEBOOK_STATUS_OPTIONS.map((option) => (
-                      <ToggleButton
-                        key={option.value}
-                        value={option.value}
-                        sx={{
-                          borderRadius: 999,
-                          border: "1px solid",
-                          borderColor: "divider",
-                          textTransform: "none",
-                          px: 1.5,
-                          py: 0.75,
-                        }}
-                      >
-                        {option.label}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
-
-                  <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
-                    <Chip
-                      color={statusMeta?.color || "default"}
-                      variant={statusMeta ? "filled" : "outlined"}
-                      label={getNotebookStatusLabel(draft.nb_status)}
-                    />
-                    <Chip
-                      color="primary"
-                      variant={draft.nb_action ? "filled" : "outlined"}
-                      label={getNotebookActionLabel(draft.nb_action)}
-                    />
-                  </Stack>
-                </SectionCard>
+                    <ToggleButtonGroup
+                      exclusive
+                      value={draft.nb_status || null}
+                      onChange={handleStatusChange}
+                      disabled={isViewMode}
+                      sx={{ flexWrap: "wrap", gap: 0.75 }}
+                    >
+                      {NOTEBOOK_STATUS_OPTIONS.map((option) => (
+                        <ToggleButton
+                          key={option.value}
+                          value={option.value}
+                          sx={{
+                            borderRadius: 999,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            textTransform: "none",
+                            px: 1.5,
+                            py: 0.5,
+                          }}
+                        >
+                          {option.label}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  </SectionCard>
+                )}
 
                 <NotebookNoteField
                   title="บันทึกการพูดคุย"
@@ -360,6 +330,61 @@ const NotebookDialog = ({ currentUser = {} }) => {
                   readOnly={isViewMode}
                 />
 
+                <SectionCard>
+                  <SectionHeading>
+                    <MdEventAvailable size={16} />
+                    การติดตามครั้งถัดไป
+                  </SectionHeading>
+                  <Stack spacing={1.5}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
+                      <DatePicker
+                        value={
+                          draft.nb_next_followup_date ? new Date(draft.nb_next_followup_date) : null
+                        }
+                        onChange={(newValue) =>
+                          handleChange({
+                            target: {
+                              name: "nb_next_followup_date",
+                              value: newValue ? format(newValue, "yyyy-MM-dd") : "",
+                            },
+                          })
+                        }
+                        format="dd MMMM yyyy"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
+                        slotProps={{
+                          textField: {
+                            size: "small",
+                            fullWidth: true,
+                            helperText: "เว้นว่างหากยังไม่กำหนด · ระบบจะเตือนในรายการเมื่อถึงกำหนด",
+                          },
+                          field: { clearable: !isViewMode },
+                        }}
+                      />
+                    </LocalizationProvider>
+
+                    <TextField
+                      fullWidth
+                      size="small"
+                      multiline
+                      minRows={2}
+                      maxRows={5}
+                      label="สิ่งที่ต้องทำครั้งหน้า"
+                      placeholder="เช่น โทรสอบถามเรื่องใบเสนอราคา, ส่ง catalog เพิ่ม..."
+                      name="nb_next_followup_note"
+                      value={draft.nb_next_followup_note || ""}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      InputProps={{ readOnly: isViewMode }}
+                      disabled={isViewMode}
+                    />
+                  </Stack>
+                </SectionCard>
+              </Stack>
+            </Grid>
+
+            <Grid item xs={12} md={5}>
+              <Stack spacing={2.25}>
                 {historyLoading || visibleHistories.length > 0 || pendingDrafts.length > 0 ? (
                   <NotebookHistoryTimeline
                     histories={visibleHistories}
@@ -369,28 +394,27 @@ const NotebookDialog = ({ currentUser = {} }) => {
                     pendingDrafts={pendingDrafts}
                   />
                 ) : null}
-              </Stack>
-            </Grid>
 
-            <Grid item xs={12} md={5}>
-              <Stack spacing={2.25}>
                 <SectionCard>
                   <SectionHeading>
-                    <MdBusiness />
+                    <MdBusiness size={16} />
                     ข้อมูลลูกค้า
                   </SectionHeading>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    เก็บข้อมูลติดต่อให้พร้อมใช้งาน โดยไม่รบกวนขั้นตอนหลักของการทำงาน
-                  </Typography>
 
-                  <Stack spacing={1.5}>
+                  <Stack spacing={1.25}>
                     <TextField
                       fullWidth
+                      size="small"
                       label="ลูกค้า / ลีด"
                       name="nb_customer_name"
                       value={draft.nb_customer_name || ""}
                       onChange={handleChange}
-                      onBlur={handleBlur}
+                      onBlur={(event) => {
+                        handleBlur(event);
+                        if (!isViewMode) {
+                          duplicateCheck.checkField("nb_customer_name", event.target.value);
+                        }
+                      }}
                       InputProps={{ readOnly: isViewMode }}
                       error={!!errors.nb_customer_name}
                       helperText={errors.nb_customer_name}
@@ -398,11 +422,17 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <TextField
                       fullWidth
+                      size="small"
                       label="ผู้ติดต่อ"
                       name="nb_contact_person"
                       value={draft.nb_contact_person || ""}
                       onChange={handleChange}
-                      onBlur={handleBlur}
+                      onBlur={(event) => {
+                        handleBlur(event);
+                        if (!isViewMode) {
+                          duplicateCheck.checkField("nb_contact_person", event.target.value);
+                        }
+                      }}
                       InputProps={{ readOnly: isViewMode }}
                       error={!!errors.nb_contact_person}
                       helperText={errors.nb_contact_person}
@@ -410,6 +440,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                     <TextField
                       fullWidth
+                      size="small"
                       label="เบอร์โทร"
                       name="nb_contact_number"
                       value={draft.nb_contact_number || ""}
@@ -420,22 +451,26 @@ const NotebookDialog = ({ currentUser = {} }) => {
                         }
 
                         handleBlur(event);
-                        checkPhoneDuplicate(event.target.value);
+                        duplicateCheck.checkField("nb_contact_number", event.target.value);
                       }}
                       InputProps={{ readOnly: isViewMode }}
                       error={!!errors.nb_contact_number}
-                      helperText={
-                        errors.nb_contact_number || "ระบบจะตรวจสอบข้อมูลซ้ำหลังออกจากช่องนี้"
-                      }
+                      helperText={errors.nb_contact_number}
                     />
 
                     <TextField
                       fullWidth
+                      size="small"
                       label="อีเมล"
                       name="nb_email"
                       value={draft.nb_email || ""}
                       onChange={handleChange}
-                      onBlur={handleBlur}
+                      onBlur={(event) => {
+                        handleBlur(event);
+                        if (!isViewMode) {
+                          duplicateCheck.checkField("nb_email", event.target.value);
+                        }
+                      }}
                       InputProps={{ readOnly: isViewMode }}
                       error={!!errors.nb_email}
                       helperText={errors.nb_email}
@@ -445,16 +480,17 @@ const NotebookDialog = ({ currentUser = {} }) => {
 
                 <SectionCard>
                   <SectionHeading>
-                    <MdSupervisorAccount />
+                    <MdSupervisorAccount size={16} />
                     ผู้ดูแลและแหล่งที่มา
                   </SectionHeading>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    แสดงบริบทสำคัญให้เห็นชัด โดยไม่ดึงความสนใจจากงานถัดไป
-                  </Typography>
 
-                  <Stack spacing={2}>
+                  <Stack spacing={1.75}>
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mb: 0.5 }}
+                      >
                         ผู้ดูแลการขาย
                       </Typography>
 
@@ -479,12 +515,18 @@ const NotebookDialog = ({ currentUser = {} }) => {
                           </Select>
                         </FormControl>
                       ) : (
-                        <Chip color="default" variant="outlined" label={salesOwnerLabel} />
+                        <Typography variant="body2" fontWeight={600}>
+                          {salesOwnerLabel}
+                        </Typography>
                       )}
                     </Box>
 
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mb: 0.5 }}
+                      >
                         แหล่งที่มา
                       </Typography>
 
@@ -499,68 +541,12 @@ const NotebookDialog = ({ currentUser = {} }) => {
                           handleOnlineToggle(value === "online");
                         }}
                         disabled={isViewMode}
-                        sx={{ gap: 1 }}
+                        size="small"
+                        sx={{ gap: 0.75 }}
                       >
                         <SourceToggleButton value="online">ออนไลน์</SourceToggleButton>
                         <SourceToggleButton value="onsite">ออนไซต์</SourceToggleButton>
                       </ToggleButtonGroup>
-                    </Box>
-
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                      <Chip
-                        variant="outlined"
-                        label={getThaiSourceLabel(sourceMeta.label)}
-                        color={sourceMeta.color}
-                      />
-                      <Chip
-                        variant="outlined"
-                        icon={
-                          isViewMode ? <MdRemoveRedEye /> : isEditMode ? <MdEdit /> : <MdSave />
-                        }
-                        label={isViewMode ? "โหมดดู" : isEditMode ? "โหมดแก้ไข" : "โหมดสร้าง"}
-                      />
-                      {draft.nb_contact_number ? (
-                        <Chip variant="outlined" label="พร้อมติดตามผ่านเบอร์โทร" />
-                      ) : null}
-                    </Stack>
-                  </Stack>
-                </SectionCard>
-
-                <SectionCard>
-                  <SectionHeading>
-                    <MdNote />
-                    สรุปภาพรวมงาน
-                  </SectionHeading>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                    สรุปสั้น ๆ เพื่อให้ประเด็นสำคัญไม่ถูกกลบด้วยบันทึกยาว
-                  </Typography>
-
-                  <Stack spacing={1.25}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        การดำเนินการ
-                      </Typography>
-                      <Typography variant="body1" fontWeight={600}>
-                        {getNotebookActionLabel(draft.nb_action)}
-                      </Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        สถานะ
-                      </Typography>
-                      <Typography variant="body1" fontWeight={600}>
-                        {getNotebookStatusLabel(draft.nb_status)}
-                      </Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        การบันทึก
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        ปุ่มบันทึกจะแสดงด้านล่างบนเดสก์ท็อป และเป็นปุ่มลอยบนมือถือ
-                      </Typography>
                     </Box>
                   </Stack>
                 </SectionCard>
@@ -645,10 +631,14 @@ const NotebookDialog = ({ currentUser = {} }) => {
         </Fab>
       )}
 
-      <DuplicatePhoneDialog
-        open={duplicatePhoneDialogOpen}
-        onClose={closeDuplicatePhoneDialog}
-        duplicateData={duplicatePhoneData}
+      <NotebookDuplicateWarningDialog
+        open={duplicateCheck.dialogOpen}
+        matches={duplicateCheck.duplicates}
+        mode={duplicateCheck.dialogMode}
+        activeType={duplicateCheck.activeType}
+        onClose={duplicateCheck.closeDialog}
+        onContinue={duplicateCheck.acknowledgeAndContinue}
+        onCancel={duplicateCheck.cancelSave}
       />
     </Dialog>
   );

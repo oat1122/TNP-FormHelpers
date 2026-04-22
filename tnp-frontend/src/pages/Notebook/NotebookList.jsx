@@ -20,6 +20,7 @@ const NotebookList = () => {
     setPaginationModel,
     scopeFilter,
     setScopeFilter,
+    handleScopeChange,
     searchInput,
     setSearchInput,
     periodFilter,
@@ -78,6 +79,7 @@ const NotebookList = () => {
     handleAssignError,
     handleReserve,
     handleConvert,
+    handleToggleFavorite,
     handleAfterCustomerSave,
     handleClearFilters,
     personalActivityDialogState,
@@ -101,7 +103,7 @@ const NotebookList = () => {
           canAddIntoMine={canCreateMineCustomer}
           canCreateCustomerCare={canCreateCustomerCare}
           scopeFilter={scopeFilter}
-          onScopeChange={setScopeFilter}
+          onScopeChange={handleScopeChange}
           showScopeTabs={canUseQueueTabs}
           showAllScopeTab={canViewAllScope}
           canSelfReport={canSelfReport}
@@ -146,6 +148,7 @@ const NotebookList = () => {
             onAssign: handleAssign,
             onReserve: handleReserve,
             onConvert: handleConvert,
+            onToggleFavorite: handleToggleFavorite,
           }}
           userRole={userRole}
           filterSummary={filterSummary}

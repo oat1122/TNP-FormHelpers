@@ -9,19 +9,24 @@ import {
   Chip,
   Divider,
   Fab,
+  IconButton,
   Stack,
   TablePagination,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import { MdStar, MdStarBorder } from "react-icons/md";
 
 import NotebookRowActions from "./NotebookRowActions";
 import {
   formatDate,
   getNotebookActionHighlightSx,
   getNotebookContactLines,
+  getNotebookFollowupChip,
   getNotebookNotePreview,
   getStatusColor,
   isNotebookQueueAssignableRow,
+  isUntouchedQueueClaim,
 } from "../utils/notebookCommon";
 import { getNotebookActionLabel, getNotebookEntryTypeLabel } from "../utils/notebookDialogConfig";
 
@@ -40,6 +45,8 @@ const NotebookCardList = ({
     {rows.map((row) => {
       const contactLines = getNotebookContactLines(row);
       const notePreview = getNotebookNotePreview(row);
+      const followupChip = getNotebookFollowupChip(row);
+      const isFreshQueueClaim = isUntouchedQueueClaim(row);
       const isSelectionEnabled = Boolean(selectionState?.enabled);
       const isSelectable = isNotebookQueueAssignableRow(row, scopeFilter);
       const isSelected = selectionState?.selectedIds?.includes(row.id);
@@ -50,9 +57,12 @@ const NotebookCardList = ({
           sx={{
             borderRadius: 3,
             border: "1px solid",
-            borderColor: "rgba(15, 23, 42, 0.08)",
+            borderColor: isFreshQueueClaim ? "error.light" : "rgba(15, 23, 42, 0.08)",
+            borderLeft: isFreshQueueClaim ? "4px solid" : "1px solid",
+            borderLeftColor: isFreshQueueClaim ? "error.main" : "rgba(15, 23, 42, 0.08)",
             boxShadow: "0 14px 28px rgba(15, 23, 42, 0.06)",
             overflow: "hidden",
+            bgcolor: isFreshQueueClaim ? "rgba(239, 68, 68, 0.12)" : "background.paper",
           }}
         >
           <CardActionArea onClick={() => actions.onView(row)}>
@@ -93,15 +103,53 @@ const NotebookCardList = ({
                       >
                         ติดตาม {formatDate(row.nb_date || row.created_at) || "-"}
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                        {row.nb_entry_type === "personal_activity"
-                          ? row.nb_additional_info || row.nb_customer_name || "-"
-                          : row.nb_customer_name || "-"}
-                      </Typography>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        {scopeFilter === "mine" &&
+                        row.nb_entry_type !== "personal_activity" &&
+                        actions?.onToggleFavorite ? (
+                          <Tooltip
+                            title={
+                              row.nb_is_favorite ? "เอาออกจากรายการโปรด" : "เพิ่มเป็นรายการโปรด"
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                actions.onToggleFavorite(row);
+                              }}
+                              sx={{
+                                p: 0.25,
+                                color: row.nb_is_favorite ? "warning.main" : "action.disabled",
+                                "&:hover": { color: "warning.dark" },
+                              }}
+                            >
+                              {row.nb_is_favorite ? (
+                                <MdStar size={22} />
+                              ) : (
+                                <MdStarBorder size={22} />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        ) : null}
+                        <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                          {row.nb_entry_type === "personal_activity"
+                            ? row.nb_additional_info || row.nb_customer_name || "-"
+                            : row.nb_customer_name || "-"}
+                        </Typography>
+                      </Stack>
                     </Box>
                   </Stack>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {isFreshQueueClaim ? (
+                      <Chip
+                        label="🆕 ใหม่จากคิวกลาง"
+                        size="small"
+                        color="error"
+                        sx={{ fontWeight: 700 }}
+                      />
+                    ) : null}
                     <Chip
                       label={getNotebookEntryTypeLabel(row.nb_entry_type)}
                       size="small"
@@ -132,6 +180,35 @@ const NotebookCardList = ({
                     />
                   </Stack>
                 </Stack>
+
+                {followupChip ? (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: followupChip.textColor,
+                      fontWeight: followupChip.severity === "scheduled" ? 400 : 600,
+                    }}
+                  >
+                    {followupChip.label}
+                  </Typography>
+                ) : null}
+
+                {row.nb_next_followup_note?.trim() ? (
+                  <Typography
+                    variant="caption"
+                    title={row.nb_next_followup_note.trim()}
+                    sx={{
+                      color: "text.secondary",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {row.nb_next_followup_note.trim()}
+                  </Typography>
+                ) : null}
 
                 {row.nb_entry_type === "personal_activity" ? (
                   <Box sx={{ p: 1.25, borderRadius: 2.5, bgcolor: "#fff8e1" }}>

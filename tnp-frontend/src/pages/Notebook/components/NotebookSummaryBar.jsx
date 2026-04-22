@@ -1,76 +1,77 @@
 import { Box, Chip, IconButton, Stack, Typography } from "@mui/material";
-import { MdAssignment, MdClose, MdSupervisorAccount } from "react-icons/md";
+import { MdClose } from "react-icons/md";
 
-const NotebookSummaryBar = ({
-  title,
-  modeLabel,
-  statusMeta,
-  actionLabel,
-  salesOwnerLabel,
-  sourceMeta,
-  extraChips = [],
-  onClose,
-}) => (
+const NotebookSummaryBar = ({ title, modeLabel, statusMeta, extraChips = [], onClose }) => (
   <Box
     sx={{
-      p: { xs: 2, md: 2.5 },
-      borderRadius: 3,
+      px: { xs: 2, md: 2.5 },
+      py: { xs: 1.5, md: 1.75 },
+      borderRadius: 1.5,
       border: "1px solid",
       borderColor: "divider",
-      background:
-        "linear-gradient(135deg, rgba(211,47,47,0.08) 0%, rgba(255,255,255,0.96) 46%, rgba(25,118,210,0.05) 100%)",
-      boxShadow: "0 14px 32px rgba(15, 23, 42, 0.08)",
+      bgcolor: "background.paper",
     }}
   >
-    <Stack spacing={1.5}>
-      <Stack direction="row" spacing={2} alignItems="flex-start" justifyContent="space-between">
-        <Box sx={{ minWidth: 0 }}>
+    <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            textTransform: "uppercase",
+            letterSpacing: 0.6,
+            color: "text.secondary",
+            fontWeight: 600,
+          }}
+        >
+          {modeLabel}
+        </Typography>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ mt: 0.25, flexWrap: "wrap", rowGap: 0.5 }}
+        >
           <Typography
-            variant="caption"
-            sx={{ textTransform: "uppercase", letterSpacing: 1, color: "text.secondary" }}
-          >
-            {modeLabel}
-          </Typography>
-          <Typography
-            variant="h5"
-            sx={{ mt: 0.5, fontWeight: 700, color: "text.primary", lineHeight: 1.15 }}
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary",
+              lineHeight: 1.2,
+              mr: 0.5,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
           >
             {title}
           </Typography>
-        </Box>
+          {statusMeta ? (
+            <Chip
+              size="small"
+              color={statusMeta.color || "default"}
+              variant="filled"
+              label={statusMeta.label}
+            />
+          ) : null}
+          {extraChips.map((chip) => (
+            <Chip
+              key={`${chip.label}-${chip.color || "default"}`}
+              size="small"
+              color={chip.color || "default"}
+              variant={chip.variant || "outlined"}
+              label={chip.label}
+            />
+          ))}
+        </Stack>
+      </Box>
 
-        <IconButton
-          onClick={onClose}
-          aria-label="Close notebook dialog"
-          sx={{ bgcolor: "rgba(255,255,255,0.72)", border: "1px solid", borderColor: "divider" }}
-        >
-          <MdClose />
-        </IconButton>
-      </Stack>
-
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-        {statusMeta ? (
-          <Chip color={statusMeta.color || "default"} variant="filled" label={statusMeta.label} />
-        ) : null}
-        {actionLabel && actionLabel !== "Next action not set" ? (
-          <Chip color="primary" variant="filled" icon={<MdAssignment />} label={actionLabel} />
-        ) : null}
-        <Chip
-          color="default"
-          variant="outlined"
-          icon={<MdSupervisorAccount />}
-          label={salesOwnerLabel || "Sales owner not set"}
-        />
-        <Chip color={sourceMeta.color} variant="outlined" label={sourceMeta.label} />
-        {extraChips.map((chip) => (
-          <Chip
-            key={`${chip.label}-${chip.color || "default"}`}
-            color={chip.color || "default"}
-            variant={chip.variant || "outlined"}
-            label={chip.label}
-          />
-        ))}
-      </Stack>
+      <IconButton
+        onClick={onClose}
+        aria-label="Close notebook dialog"
+        size="small"
+        sx={{ border: "1px solid", borderColor: "divider" }}
+      >
+        <MdClose />
+      </IconButton>
     </Stack>
   </Box>
 );

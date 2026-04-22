@@ -205,10 +205,8 @@ const buildActivityRow = ({ notebook, historyEntry, at, reportMode, index }) => 
     return buildPersonalActivityRow({ notebook, historyEntry, at, index });
   }
 
-  const rawDate =
-    reportMode === "self"
-      ? resolveRowValue(historyEntry, notebook, "nb_date") || at
-      : resolveRowValue(historyEntry, notebook, "nb_date") || at;
+  const isUpdateEntry = historyEntry?.action === "updated";
+  const rawDate = isUpdateEntry ? at : resolveRowValue(historyEntry, notebook, "nb_date") || at;
   const displayDate = buildDisplayDate(rawDate, at);
 
   const rawTime = reportMode === "self" ? null : resolveRowValue(historyEntry, notebook, "nb_time");

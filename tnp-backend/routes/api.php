@@ -70,6 +70,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     //---------- Telesales & Allocation (Protected Routes) ----------
     Route::get('/notebooks/self-report', [NotebookController::class, 'selfReport']);
+    Route::post('/notebooks/check-duplicate', [NotebookController::class, 'checkDuplicate']);
     Route::get('/notebooks/customer-care/sources', [NotebookController::class, 'customerCareSources']);
     Route::post('/notebooks/customer-care', [NotebookController::class, 'storeCustomerCare']);
     Route::post('/notebooks/personal', [NotebookController::class, 'storePersonalActivity']);

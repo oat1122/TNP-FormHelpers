@@ -1,15 +1,17 @@
 import { AssignmentInd as AssignmentIndIcon } from "@mui/icons-material";
-import { Badge, Box, Chip, Fab, Stack, Typography } from "@mui/material";
+import { Badge, Box, Chip, Fab, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { MdStar, MdStarBorder } from "react-icons/md";
 
 import NotebookRowActions from "./NotebookRowActions";
 import {
   formatDate,
-  getNotebookActionHighlightSx,
   getNotebookContactLines,
+  getNotebookFollowupChip,
   getNotebookNotePreview,
   getStatusColor,
   isNotebookQueueAssignableRow,
+  isUntouchedQueueClaim,
 } from "../utils/notebookCommon";
 import { getNotebookActionLabel, getNotebookEntryTypeLabel } from "../utils/notebookDialogConfig";
 
@@ -43,53 +45,147 @@ const NotebookActionTable = ({
       minWidth: 210,
       flex: 1.05,
       sortable: false,
-      renderCell: ({ row }) => (
-        <Stack spacing={0.75} sx={{ width: "100%", py: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {formatDate(row.nb_date || row.created_at) || "-"}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            อัปเดตล่าสุด {formatDate(row.updated_at) || "-"}
-          </Typography>
-        </Stack>
-      ),
+      renderCell: ({ row }) => {
+        const followupInfo = getNotebookFollowupChip(row);
+        const followupNote = row?.nb_next_followup_note?.trim();
+        return (
+          <Stack spacing={0.25} sx={{ width: "100%", py: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {formatDate(row.nb_date || row.created_at) || "-"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              อัปเดต {formatDate(row.updated_at, "dd/MM/yyyy HH:mm") || "-"}
+            </Typography>
+            {followupInfo ? (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: followupInfo.textColor,
+                  fontWeight: followupInfo.severity === "scheduled" ? 400 : 600,
+                }}
+              >
+                {followupInfo.label}
+              </Typography>
+            ) : null}
+            {followupNote ? (
+              <Typography
+                variant="caption"
+                title={followupNote}
+                sx={{
+                  color: "text.secondary",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  lineHeight: 1.35,
+                }}
+              >
+                {followupNote}
+              </Typography>
+            ) : null}
+          </Stack>
+        );
+      },
     },
     {
       field: "customer",
       headerName: "ลูกค้า",
-      minWidth: 280,
+      minWidth: 260,
       flex: 1.35,
       sortable: false,
       renderCell: ({ row }) => {
         const contactLines = getNotebookContactLines(row);
         const isPersonalActivity = row.nb_entry_type === "personal_activity";
+        const isCustomerCare = row.nb_entry_type === "customer_care";
+        const showEntryTypeChip = isCustomerCare || isPersonalActivity;
+        const isFreshQueueClaim = isUntouchedQueueClaim(row);
+
+        const canFavorite =
+          scopeFilter === "mine" && !isPersonalActivity && actions?.onToggleFavorite;
+        const isFavorite = Boolean(row.nb_is_favorite);
 
         return (
-          <Stack spacing={0.75} sx={{ width: "100%", py: 1 }}>
-            <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+          <Stack spacing={0.5} sx={{ width: "100%", py: 1, minWidth: 0 }}>
+            <Stack direction="row" spacing={0.5} alignItems="center" useFlexGap flexWrap="wrap">
+              {canFavorite ? (
+                <Tooltip title={isFavorite ? "เอาออกจากรายการโปรด" : "เพิ่มเป็นรายการโปรด"}>
+                  <IconButton
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      actions.onToggleFavorite(row);
+                    }}
+                    sx={{
+                      p: 0.25,
+                      color: isFavorite ? "warning.main" : "action.disabled",
+                      "&:hover": { color: "warning.dark" },
+                    }}
+                  >
+                    {isFavorite ? <MdStar size={18} /> : <MdStarBorder size={18} />}
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "100%",
+                }}
+              >
                 {isPersonalActivity
                   ? row.nb_additional_info || row.nb_customer_name || "-"
                   : row.nb_customer_name || "-"}
               </Typography>
-              <Chip
-                label={getNotebookEntryTypeLabel(row.nb_entry_type)}
-                size="small"
-                color={
-                  row.nb_entry_type === "customer_care"
-                    ? "secondary"
-                    : row.nb_entry_type === "personal_activity"
-                      ? "warning"
-                      : "default"
-                }
-                variant="outlined"
-              />
+              {isFreshQueueClaim ? (
+                <Chip
+                  label="🆕 ใหม่จากคิวกลาง"
+                  size="small"
+                  color="error"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    "& .MuiChip-label": { px: 0.85 },
+                  }}
+                />
+              ) : null}
+              {showEntryTypeChip ? (
+                <Chip
+                  label={getNotebookEntryTypeLabel(row.nb_entry_type)}
+                  size="small"
+                  color={isCustomerCare ? "secondary" : "warning"}
+                  variant="outlined"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.68rem",
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
+              ) : null}
               {row.nb_is_online ? (
-                <Chip label="Online" size="small" color="info" variant="outlined" />
+                <Chip
+                  label="Online"
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.68rem",
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
               ) : null}
             </Stack>
             {contactLines.map((line) => (
-              <Typography key={line} variant="caption" color="text.secondary">
+              <Typography
+                key={line}
+                variant="caption"
+                color="text.secondary"
+                sx={{ lineHeight: 1.35 }}
+              >
                 {line}
               </Typography>
             ))}
@@ -99,63 +195,75 @@ const NotebookActionTable = ({
     },
     {
       field: "next_action",
-      headerName: "Action",
-      minWidth: 250,
-      flex: 1.15,
+      headerName: "การดำเนินการ",
+      minWidth: 180,
+      flex: 0.9,
       sortable: false,
-      renderCell: ({ row }) =>
-        row.nb_entry_type === "personal_activity" ? (
-          <Box sx={{ width: "100%", py: 1 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-              Personal note
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {row.nb_additional_info || "-"}
-            </Typography>
-          </Box>
-        ) : (
+      renderCell: ({ row }) => {
+        if (row.nb_entry_type === "personal_activity") {
+          return (
+            <Box sx={{ width: "100%", py: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Personal note
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {row.nb_additional_info || "-"}
+              </Typography>
+            </Box>
+          );
+        }
+
+        const actionLabel = getNotebookActionLabel(row.nb_action);
+        const hasAction = row.nb_action;
+
+        return (
           <Box
             onClick={(event) => {
               event.stopPropagation();
               actions.onEditWorkflow(row);
             }}
-            sx={getNotebookActionHighlightSx()}
+            sx={{ width: "100%", py: 1, cursor: "pointer" }}
           >
-            <Typography variant="caption" sx={{ color: "#9a3412", fontWeight: 700 }}>
-              Action
-            </Typography>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#7c2d12" }}>
-              {getNotebookActionLabel(row.nb_action)}
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: hasAction ? 600 : 400,
+                fontStyle: hasAction ? "normal" : "italic",
+                color: hasAction ? "text.primary" : "text.secondary",
+              }}
+            >
+              {hasAction ? actionLabel : "ยังไม่ระบุ"}
             </Typography>
           </Box>
-        ),
+        );
+      },
     },
     {
       field: "status",
       headerName: "สถานะและบันทึก",
-      minWidth: 260,
+      minWidth: 240,
       flex: 1.2,
       sortable: false,
       renderCell: ({ row }) => (
-        <Stack spacing={0.85} sx={{ width: "100%", py: 1 }}>
+        <Stack spacing={0.5} sx={{ width: "100%", py: 1 }}>
           {row.nb_entry_type === "personal_activity" ? (
             <Chip
               label="Personal activity"
               size="small"
               color="warning"
               variant="outlined"
-              sx={{ width: "fit-content", fontWeight: 600 }}
+              sx={{ width: "fit-content", fontWeight: 600, height: 22 }}
             />
           ) : (
             <Chip
               label={row.nb_status || "ยังไม่ได้ระบุสถานะ"}
               size="small"
               color={getStatusColor(row.nb_status)}
-              sx={{ width: "fit-content", fontWeight: 600 }}
+              sx={{ width: "fit-content", fontWeight: 600, height: 22 }}
             />
           )}
           <Typography
-            variant="body2"
+            variant="caption"
             color="text.secondary"
             title={getNotebookNotePreview(row)}
             sx={{
@@ -163,6 +271,7 @@ const NotebookActionTable = ({
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
+              lineHeight: 1.4,
             }}
           >
             {getNotebookNotePreview(row)}
@@ -173,8 +282,8 @@ const NotebookActionTable = ({
     {
       field: "actions",
       headerName: "จัดการ",
-      minWidth: 310,
-      flex: 1.25,
+      minWidth: 180,
+      flex: 0.75,
       sortable: false,
       filterable: false,
       disableColumnMenu: true,
@@ -223,6 +332,9 @@ const NotebookActionTable = ({
         getRowHeight={() => "auto"}
         getEstimatedRowHeight={() => 128}
         onRowClick={(params) => actions.onView(params.row)}
+        getRowClassName={(params) =>
+          isUntouchedQueueClaim(params.row) ? "notebook-row--fresh-queue" : ""
+        }
         sx={{
           border: "none",
           "& .MuiDataGrid-main": {
@@ -246,6 +358,17 @@ const NotebookActionTable = ({
           },
           "& .MuiDataGrid-row:hover": {
             bgcolor: "#fff8f1",
+          },
+          "& .MuiDataGrid-row.notebook-row--fresh-queue": {
+            bgcolor: "rgba(239, 68, 68, 0.12)",
+            borderLeft: "4px solid",
+            borderLeftColor: "error.main",
+            "&:hover": {
+              bgcolor: "rgba(239, 68, 68, 0.18)",
+            },
+            "& .MuiDataGrid-cell": {
+              borderBottomColor: "rgba(239, 68, 68, 0.2)",
+            },
           },
           "& .MuiDataGrid-footerContainer": {
             minHeight: 58,

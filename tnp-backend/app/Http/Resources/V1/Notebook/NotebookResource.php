@@ -15,6 +15,7 @@ class NotebookResource extends JsonResource
         unset($data['manage_by']);
 
         $data['nb_date'] = $this->nb_date?->toDateString();
+        $data['nb_next_followup_date'] = $this->nb_next_followup_date?->toDateString();
         $data['manage_by_user'] = $this->relationLoaded('manageBy')
             ? $this->transformUserSummary($this->manageBy)
             : null;

@@ -22,4 +22,6 @@ interface NotebookRepositoryInterface extends BaseRepositoryInterface
     public function getSelfReportLeadAdditions(array $filters, $user): Collection;
 
     public function getSelfReportActivityItems(array $filters, $user): Collection;
+
+    public function findDuplicateMatches(string $type, string $value, ?int $excludeNotebookId = null): array;
 }

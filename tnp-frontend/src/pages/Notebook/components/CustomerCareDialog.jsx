@@ -15,9 +15,15 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import {
   MdCalendarToday,
+  MdEventAvailable,
   MdLink,
   MdManageAccounts,
   MdSave,
@@ -32,29 +38,28 @@ import NotebookSummaryBar from "./NotebookSummaryBar";
 import { useCustomerCareForm } from "../hooks/useCustomerCareForm";
 import {
   NOTEBOOK_STATUS_OPTIONS,
-  getNotebookActionLabel,
   getNotebookEntryTypeLabel,
-  getNotebookSourceMeta,
   getNotebookSourceTypeLabel,
-  getNotebookStatusLabel,
   getNotebookStatusOption,
 } from "../utils/notebookDialogConfig";
 
 const SectionCard = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2.25),
+  padding: theme.spacing(2),
   borderRadius: theme.spacing(1.5),
   border: `1px solid ${theme.palette.divider}`,
   backgroundColor: theme.palette.background.paper,
-  boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
 }));
 
 const SectionHeading = styled(Typography)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  gap: theme.spacing(1),
-  fontSize: "1rem",
+  gap: theme.spacing(0.75),
+  fontSize: "0.875rem",
   fontWeight: 700,
-  marginBottom: theme.spacing(0.5),
+  color: theme.palette.text.secondary,
+  textTransform: "uppercase",
+  letterSpacing: 0.4,
+  marginBottom: theme.spacing(1.25),
 }));
 
 const getUserDisplayName = (user) =>
@@ -97,7 +102,6 @@ const CustomerCareDialog = ({
   const isEditMode = mode === "edit";
   const isViewMode = mode === "view";
   const statusMeta = getNotebookStatusOption(draft.nb_status);
-  const sourceMeta = getNotebookSourceMeta(Boolean(draft.nb_is_online));
   const salesOwnerLabel = getUserDisplayName(currentUser) || "Sales owner";
   const summaryTitle = draft.nb_customer_name?.trim() || "New customer care";
 
@@ -106,20 +110,17 @@ const CustomerCareDialog = ({
       {
         label: getNotebookEntryTypeLabel("customer_care"),
         color: "secondary",
-        variant: "filled",
-      },
-      {
-        label: `Source: ${getNotebookSourceTypeLabel(draft.nb_source_type)}`,
+        variant: "outlined",
       },
     ],
-    [draft.nb_source_type]
+    []
   );
 
   const modeLabel = isViewMode
-    ? "Customer care view"
+    ? "ดูข้อมูลดูแลลูกค้า"
     : isEditMode
-      ? "Customer care update"
-      : "New customer care";
+      ? "แก้ไขดูแลลูกค้า"
+      : "ดูแลลูกค้าใหม่";
 
   return (
     <>
@@ -150,28 +151,21 @@ const CustomerCareDialog = ({
               title={summaryTitle}
               modeLabel={modeLabel}
               statusMeta={statusMeta}
-              actionLabel={getNotebookActionLabel(draft.nb_action)}
-              salesOwnerLabel={salesOwnerLabel}
-              sourceMeta={sourceMeta}
               extraChips={extraChips}
               onClose={onClose}
             />
 
-            <Grid container spacing={2.25}>
+            <Grid container spacing={2}>
               <Grid item xs={12} md={7}>
-                <Stack spacing={2.25}>
+                <Stack spacing={2}>
                   <SectionCard>
                     <SectionHeading>
-                      <MdManageAccounts />
+                      <MdManageAccounts size={16} />
                       ข้อมูลลูกค้าที่ดูแล
                     </SectionHeading>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      เลือกข้อมูลจาก Customer หรือ Notebook แล้วระบบจะ snapshot
-                      มาเป็นข้อมูลอ่านอย่างเดียว
-                    </Typography>
 
-                    <Stack spacing={2}>
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                    <Stack spacing={1.5}>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
                         <TextField
                           fullWidth
                           size="small"
@@ -190,15 +184,15 @@ const CustomerCareDialog = ({
                           variant="outlined"
                           onClick={() => setPickerOpen(true)}
                           disabled={!isCreateMode || isViewMode}
-                          sx={{ minWidth: { sm: 180 } }}
+                          sx={{ minWidth: { sm: 160 }, textTransform: "none" }}
                         >
                           เลือกจากระบบ
                         </Button>
                       </Stack>
 
                       {!isCreateMode ? (
-                        <Alert severity="info" sx={{ borderRadius: 2 }}>
-                          หลังบันทึกแล้วจะล็อก source ไว้ ถ้าต้องการเปลี่ยนลูกค้าให้สร้างรายการใหม่
+                        <Alert severity="info" variant="outlined" sx={{ borderRadius: 2, py: 0.5 }}>
+                          หลังบันทึกแล้ว source จะล็อก — สร้างรายการใหม่ถ้าต้องการเปลี่ยนลูกค้า
                         </Alert>
                       ) : null}
 
@@ -219,7 +213,7 @@ const CustomerCareDialog = ({
                         helperText={errors.nb_customer_name}
                       />
 
-                      <Grid container spacing={1.5}>
+                      <Grid container spacing={1.25}>
                         <Grid item xs={12} sm={6}>
                           <TextField
                             fullWidth
@@ -269,61 +263,43 @@ const CustomerCareDialog = ({
 
                   <SectionCard>
                     <SectionHeading>
-                      <MdCalendarToday />
-                      Status
+                      <MdCalendarToday size={16} />
+                      สถานะ
                     </SectionHeading>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      อัปเดตสถานะและมุมมองของงานที่กำลังดูแลให้เห็นตรงกัน
-                    </Typography>
 
-                    <Stack spacing={1.5}>
-                      <ToggleButtonGroup
-                        exclusive
-                        value={draft.nb_status || null}
-                        onChange={(_, value) => {
-                          if (!value || isViewMode) {
-                            return;
-                          }
+                    <ToggleButtonGroup
+                      exclusive
+                      value={draft.nb_status || null}
+                      onChange={(_, value) => {
+                        if (!value || isViewMode) {
+                          return;
+                        }
 
-                          handleChange({
-                            target: {
-                              name: "nb_status",
-                              value,
-                            },
-                          });
-                        }}
-                        disabled={isViewMode}
-                        sx={{ flexWrap: "wrap", gap: 1 }}
-                      >
-                        {NOTEBOOK_STATUS_OPTIONS.map((option) => (
-                          <ToggleButton
-                            key={option.value}
-                            value={option.value}
-                            sx={{ borderRadius: 999, px: 2, textTransform: "none" }}
-                          >
-                            {option.label}
-                          </ToggleButton>
-                        ))}
-                      </ToggleButtonGroup>
-
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                        <Chip
-                          color={statusMeta?.color || "default"}
-                          variant={statusMeta ? "filled" : "outlined"}
-                          label={getNotebookStatusLabel(draft.nb_status)}
-                        />
-                        <Chip
-                          color="primary"
-                          variant={draft.nb_action ? "filled" : "outlined"}
-                          label={getNotebookActionLabel(draft.nb_action)}
-                        />
-                      </Stack>
-                    </Stack>
+                        handleChange({
+                          target: {
+                            name: "nb_status",
+                            value,
+                          },
+                        });
+                      }}
+                      disabled={isViewMode}
+                      sx={{ flexWrap: "wrap", gap: 0.75 }}
+                    >
+                      {NOTEBOOK_STATUS_OPTIONS.map((option) => (
+                        <ToggleButton
+                          key={option.value}
+                          value={option.value}
+                          sx={{ borderRadius: 999, px: 1.75, py: 0.5, textTransform: "none" }}
+                        >
+                          {option.label}
+                        </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
                   </SectionCard>
 
                   <NotebookNoteField
-                    title="Interaction notes"
-                    description="บันทึกสิ่งที่คุยกับลูกค้า ความต้องการ หรือ next step ที่ตกลงกัน"
+                    title="บันทึกการพูดคุย"
+                    description="สรุปสิ่งที่คุยกับลูกค้าและขั้นตอนถัดไป"
                     name="nb_additional_info"
                     value={draft.nb_additional_info}
                     onChange={handleChange}
@@ -334,8 +310,8 @@ const CustomerCareDialog = ({
                   />
 
                   <NotebookNoteField
-                    title="Internal notes"
-                    description="บันทึกภายในสำหรับทีมขาย เช่น ความเสี่ยง ราคา หรือข้อควรระวัง"
+                    title="บันทึกภายใน"
+                    description="สำหรับทีมภายใน เช่น ข้อควรระวัง หรือราคา"
                     name="nb_remarks"
                     value={draft.nb_remarks}
                     onChange={handleChange}
@@ -344,68 +320,120 @@ const CustomerCareDialog = ({
                     resetKey={recordKey}
                     readOnly={isViewMode}
                   />
+
+                  <SectionCard>
+                    <SectionHeading>
+                      <MdEventAvailable size={16} />
+                      การติดตามครั้งถัดไป
+                    </SectionHeading>
+                    <Stack spacing={1.5}>
+                      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
+                        <DatePicker
+                          value={
+                            draft.nb_next_followup_date
+                              ? new Date(draft.nb_next_followup_date)
+                              : null
+                          }
+                          onChange={(newValue) =>
+                            handleChange({
+                              target: {
+                                name: "nb_next_followup_date",
+                                value: newValue ? format(newValue, "yyyy-MM-dd") : "",
+                              },
+                            })
+                          }
+                          format="dd MMMM yyyy"
+                          readOnly={isViewMode}
+                          disabled={isViewMode}
+                          slotProps={{
+                            textField: {
+                              size: "small",
+                              fullWidth: true,
+                              helperText:
+                                "เว้นว่างหากยังไม่กำหนด · ระบบจะเตือนในรายการเมื่อถึงกำหนด",
+                            },
+                            field: { clearable: !isViewMode },
+                          }}
+                        />
+                      </LocalizationProvider>
+
+                      <TextField
+                        fullWidth
+                        size="small"
+                        multiline
+                        minRows={2}
+                        maxRows={5}
+                        label="สิ่งที่ต้องทำครั้งหน้า"
+                        placeholder="เช่น โทรสอบถามเรื่องใบเสนอราคา, ส่ง catalog เพิ่ม..."
+                        name="nb_next_followup_note"
+                        value={draft.nb_next_followup_note || ""}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        InputProps={{ readOnly: isViewMode }}
+                        disabled={isViewMode}
+                      />
+                    </Stack>
+                  </SectionCard>
                 </Stack>
               </Grid>
 
               <Grid item xs={12} md={5}>
-                <Stack spacing={2.25}>
-                  <SectionCard>
-                    <SectionHeading>
-                      <MdSupervisorAccount />
-                      Source summary
-                    </SectionHeading>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      ตรวจสอบ owner, source และข้อมูล snapshot ที่ใช้สร้างรายการนี้
-                    </Typography>
-
-                    <Stack spacing={1.25}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Sales owner
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600}>
-                          {salesOwnerLabel}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Source type
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 1 }}
-                        >
-                          <Chip
-                            icon={<MdLink />}
-                            label={getNotebookSourceTypeLabel(draft.nb_source_type)}
-                            variant="outlined"
-                          />
-                          <Chip
-                            label={draft.nb_is_online ? "Online" : "On-site"}
-                            color={draft.nb_is_online ? "success" : "warning"}
-                            variant="outlined"
-                          />
-                        </Stack>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Snapshot
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          ระบบจะเก็บข้อมูลลูกค้าจากแหล่งที่เลือกไว้ในรายการนี้เพื่อใช้แสดงผลและ
-                          export รายงาน
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </SectionCard>
-
+                <Stack spacing={2}>
                   <NotebookHistoryTimeline
                     histories={notebookHistories}
                     isLoading={isNotebookDetailFetching}
                     showAll={showHistory}
                     onToggle={() => setShowHistory((previous) => !previous)}
                   />
+
+                  <SectionCard>
+                    <SectionHeading>
+                      <MdSupervisorAccount size={16} />
+                      ผู้ดูแลและแหล่งที่มา
+                    </SectionHeading>
+
+                    <Stack spacing={1.5}>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.25 }}
+                        >
+                          ผู้ดูแลการขาย
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {salesOwnerLabel}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          แหล่งที่มา
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          sx={{ flexWrap: "wrap", rowGap: 0.75 }}
+                        >
+                          <Chip
+                            size="small"
+                            icon={<MdLink />}
+                            label={getNotebookSourceTypeLabel(draft.nb_source_type)}
+                            variant="outlined"
+                          />
+                          <Chip
+                            size="small"
+                            label={draft.nb_is_online ? "Online" : "On-site"}
+                            color={draft.nb_is_online ? "success" : "warning"}
+                            variant="outlined"
+                          />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </SectionCard>
                 </Stack>
               </Grid>
             </Grid>

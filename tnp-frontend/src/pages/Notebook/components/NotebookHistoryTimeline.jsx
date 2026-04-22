@@ -1,11 +1,21 @@
-import { Alert, Box, Button, Chip, Collapse, Skeleton, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Collapse,
+  Divider,
+  Skeleton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useMemo, useState } from "react";
 import { MdExpandLess, MdExpandMore, MdHistory, MdSchedule } from "react-icons/md";
 
-import {
-  NOTEBOOK_HISTORY_FIELD_LABELS,
-  formatNotebookHistoryValue,
-} from "../utils/notebookDialogConfig";
+const TIMELINE_FIELDS = [
+  { name: "nb_additional_info", label: "บันทึกการพูดคุย", color: "primary.main" },
+  { name: "nb_remarks", label: "บันทึกภายใน", color: "secondary.main" },
+];
 
 const formatTimestamp = (value) => {
   if (!value) {
@@ -33,141 +43,115 @@ const sortHistories = (histories) =>
     return rightDate - leftDate;
   });
 
-const normalizeFields = (history) =>
-  Object.entries(history?.new_values || {})
-    .filter(([fieldName]) => NOTEBOOK_HISTORY_FIELD_LABELS[fieldName])
-    .map(([fieldName, value]) => ({
-      fieldName,
-      label: NOTEBOOK_HISTORY_FIELD_LABELS[fieldName],
-      oldValue: formatNotebookHistoryValue(
-        fieldName,
-        history?.display_old_values?.[fieldName] ?? history?.old_values?.[fieldName]
-      ),
-      value: formatNotebookHistoryValue(
-        fieldName,
-        history?.display_new_values?.[fieldName] ?? value
-      ),
-    }));
+const extractNoteEntries = (history) => {
+  const values = history?.new_values || {};
+  return TIMELINE_FIELDS.filter(({ name }) => {
+    const value = values[name];
+    return value !== undefined && value !== null && String(value).trim() !== "";
+  }).map(({ name, label, color }) => ({
+    fieldName: name,
+    label,
+    color,
+    value: String(values[name]).trim(),
+  }));
+};
 
-const hasValueChanged = (field) =>
-  field.oldValue && field.oldValue !== "-" && field.oldValue !== field.value;
-
-const renderFieldBlock = (item, field) => (
-  <Box key={`${item.id}-${field.fieldName}-preview`}>
-    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-      {field.label}
-    </Typography>
-    {hasValueChanged(field) ? (
-      <Stack spacing={0.25} sx={{ mt: 0.25 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-          Before: {field.oldValue}
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.primary"
-          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-        >
-          Now: {field.value}
+const TimelineEntry = ({ item, highlight = false }) => (
+  <Box
+    sx={{
+      position: "relative",
+      pl: 3,
+      pb: 0.5,
+      "&:before": {
+        content: '""',
+        position: "absolute",
+        left: 6,
+        top: 8,
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        bgcolor: highlight ? "primary.main" : "grey.400",
+        boxShadow: highlight ? "0 0 0 3px rgba(25, 118, 210, 0.18)" : "none",
+      },
+      "&:after": {
+        content: '""',
+        position: "absolute",
+        left: 10,
+        top: 18,
+        bottom: 0,
+        width: 2,
+        bgcolor: "divider",
+      },
+      "&:last-of-type:after": {
+        display: "none",
+      },
+    }}
+  >
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      spacing={0.5}
+      alignItems={{ xs: "flex-start", sm: "center" }}
+      sx={{ mb: 0.75 }}
+    >
+      <Stack direction="row" spacing={0.75} alignItems="center">
+        <MdSchedule size={14} />
+        <Typography variant="caption" color="text.secondary">
+          {formatTimestamp(item.createdAt)}
         </Typography>
       </Stack>
-    ) : (
-      <Typography
-        variant="body2"
-        color="text.primary"
-        sx={{ mt: 0.25, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-      >
-        {field.value}
-      </Typography>
-    )}
+      {item.actor ? (
+        <>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: { xs: "none", sm: "inline" } }}
+          >
+            ·
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            โดย {item.actor}
+          </Typography>
+        </>
+      ) : null}
+      {highlight ? (
+        <Chip
+          label="ล่าสุด"
+          size="small"
+          color="primary"
+          sx={{ height: 20, fontSize: "0.7rem", ml: { sm: 0.5 } }}
+        />
+      ) : null}
+    </Stack>
+
+    <Stack spacing={1}>
+      {item.entries.map((entry) => (
+        <Box
+          key={`${item.id}-${entry.fieldName}`}
+          sx={{
+            p: 1.25,
+            borderRadius: 2,
+            bgcolor: highlight ? "primary.50" : "background.paper",
+            border: "1px solid",
+            borderColor: highlight ? "primary.light" : "divider",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, color: entry.color, display: "block", mb: 0.25 }}
+          >
+            {entry.label}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.55 }}
+          >
+            {entry.value}
+          </Typography>
+        </Box>
+      ))}
+    </Stack>
   </Box>
 );
-
-const HistoryCard = ({ item, index, highlight = false }) => {
-  const fieldCount = item.fields.length;
-  const [showMoreFields, setShowMoreFields] = useState(false);
-  const previewFields = item.fields.slice(0, 2);
-  const extraFields = item.fields.slice(2);
-
-  return (
-    <Box
-      key={item.id || `${item.type}-${index}`}
-      sx={{
-        p: 1.5,
-        borderRadius: 2.5,
-        border: "1px solid",
-        borderColor: highlight
-          ? item.type === "draft"
-            ? "warning.light"
-            : "primary.light"
-          : "divider",
-        bgcolor:
-          item.type === "draft" ? "warning.50" : highlight ? "primary.50" : "background.paper",
-      }}
-    >
-      <Stack spacing={1}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          justifyContent="space-between"
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Chip
-              size="small"
-              color={item.type === "draft" ? "warning" : "info"}
-              label={item.type === "draft" ? "Draft update" : "Saved activity"}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {item.actor || "Unknown user"}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <MdSchedule size={14} />
-            <Typography variant="caption" color="text.secondary">
-              {formatTimestamp(item.createdAt)}
-            </Typography>
-          </Stack>
-        </Stack>
-
-        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.75 }}>
-          {item.fields.map((field) => (
-            <Chip
-              key={`${item.id}-${field.fieldName}`}
-              size="small"
-              variant="outlined"
-              label={field.label}
-            />
-          ))}
-        </Stack>
-
-        <Stack spacing={1}>{previewFields.map((field) => renderFieldBlock(item, field))}</Stack>
-
-        {fieldCount > 2 && (
-          <>
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => setShowMoreFields((previous) => !previous)}
-              endIcon={showMoreFields ? <MdExpandLess /> : <MdExpandMore />}
-              sx={{ alignSelf: "flex-start", px: 0, textTransform: "none" }}
-            >
-              {showMoreFields
-                ? "Hide extra field updates"
-                : `Show ${fieldCount - 2} more field updates`}
-            </Button>
-
-            <Collapse in={showMoreFields}>
-              <Stack spacing={1} sx={{ pt: 0.5 }}>
-                {extraFields.map((field) => renderFieldBlock(item, field))}
-              </Stack>
-            </Collapse>
-          </>
-        )}
-      </Stack>
-    </Box>
-  );
-};
 
 const NotebookHistoryTimeline = ({
   histories,
@@ -176,41 +160,59 @@ const NotebookHistoryTimeline = ({
   onToggle,
   pendingDrafts = [],
 }) => {
-  const historyItems = useMemo(
+  const timelineItems = useMemo(
     () =>
-      sortHistories(histories).map((history, index) => ({
-        id: history.id || `history-${index}`,
-        type: "saved",
-        actor: history.action_by?.username || history.action_by?.user_nickname || null,
-        createdAt: history.created_at,
-        fields: normalizeFields(history),
-      })),
+      sortHistories(histories)
+        .map((history, index) => {
+          const entries = extractNoteEntries(history);
+          if (entries.length === 0) {
+            return null;
+          }
+
+          return {
+            id: history.id || `history-${index}`,
+            actor: history.action_by?.username || history.action_by?.user_nickname || null,
+            createdAt: history.created_at,
+            entries,
+          };
+        })
+        .filter(Boolean),
     [histories]
   );
 
   const draftItems = useMemo(
     () =>
       [...pendingDrafts]
+        .filter(
+          (draft) =>
+            TIMELINE_FIELDS.some((field) => field.name === draft.fieldName) &&
+            draft.value &&
+            String(draft.value).trim() !== ""
+        )
         .sort((left, right) => right.createdAt - left.createdAt)
-        .map((draft, index) => ({
-          id: `draft-${draft.fieldName}-${index}`,
-          type: "draft",
-          actor: draft.actor,
-          createdAt: draft.createdAt,
-          fields: [
-            {
-              fieldName: draft.fieldName,
-              label: draft.label,
-              value: draft.value,
-            },
-          ],
-        })),
+        .map((draft, index) => {
+          const fieldMeta = TIMELINE_FIELDS.find((field) => field.name === draft.fieldName);
+          return {
+            id: `draft-${draft.fieldName}-${index}`,
+            actor: draft.actor,
+            createdAt: draft.createdAt,
+            isDraft: true,
+            entries: [
+              {
+                fieldName: draft.fieldName,
+                label: fieldMeta?.label || draft.label,
+                color: fieldMeta?.color || "warning.main",
+                value: String(draft.value).trim(),
+              },
+            ],
+          };
+        }),
     [pendingDrafts]
   );
 
-  const latestSavedItem = historyItems[0];
-  const remainingHistoryItems = latestSavedItem ? historyItems.slice(1) : historyItems;
-  const hasContent = Boolean(latestSavedItem || draftItems.length);
+  const latestItem = timelineItems[0];
+  const remainingItems = latestItem ? timelineItems.slice(1) : [];
+  const hasContent = Boolean(latestItem || draftItems.length);
 
   if (isLoading) {
     return (
@@ -225,7 +227,7 @@ const NotebookHistoryTimeline = ({
       >
         <Stack spacing={1.5}>
           <Skeleton variant="text" width={140} height={28} />
-          <Skeleton variant="rounded" height={100} />
+          <Skeleton variant="rounded" height={92} />
           <Skeleton variant="rounded" height={72} />
         </Stack>
       </Box>
@@ -235,74 +237,119 @@ const NotebookHistoryTimeline = ({
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 2.25 },
-        borderRadius: 3,
+        p: 2,
+        borderRadius: 1.5,
         border: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
-        boxShadow: "0 10px 26px rgba(15, 23, 42, 0.05)",
       }}
     >
       <Stack spacing={1.5}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          justifyContent="space-between"
-        >
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700}>
-              Activity
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Keep the latest follow-up visible and expand the timeline only when needed.
-            </Typography>
-          </Box>
-
-          <Button
-            size="small"
-            onClick={onToggle}
-            startIcon={<MdHistory />}
-            endIcon={showAll ? <MdExpandLess /> : <MdExpandMore />}
-            disabled={!historyItems.length}
-            sx={{ textTransform: "none" }}
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+            }}
           >
-            {showAll ? "Hide full history" : "Show full history"}
-          </Button>
+            <MdHistory size={16} />
+            ประวัติการบันทึก
+          </Typography>
+
+          {remainingItems.length > 0 ? (
+            <Button
+              size="small"
+              onClick={onToggle}
+              startIcon={<MdHistory />}
+              endIcon={showAll ? <MdExpandLess /> : <MdExpandMore />}
+              sx={{ textTransform: "none" }}
+            >
+              {showAll ? "ซ่อนประวัติทั้งหมด" : `แสดงประวัติย้อนหลัง (${remainingItems.length})`}
+            </Button>
+          ) : null}
         </Stack>
-
-        {draftItems.length > 0 && (
-          <Stack spacing={1}>
-            {draftItems.map((draft, index) => (
-              <HistoryCard
-                key={draft.id || `draft-${index}`}
-                item={draft}
-                index={index}
-                highlight
-              />
-            ))}
-          </Stack>
-        )}
-
-        {latestSavedItem ? (
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-              Latest saved activity
-            </Typography>
-            <HistoryCard item={latestSavedItem} index={0} highlight />
-          </Box>
-        ) : null}
 
         {!hasContent && (
           <Alert severity="info" sx={{ borderRadius: 2 }}>
-            No activity has been recorded for this note yet.
+            ยังไม่มีบันทึกสำหรับรายการนี้
           </Alert>
         )}
 
+        {draftItems.length > 0 && (
+          <Stack spacing={0.5}>
+            {draftItems.map((draft) => (
+              <Box
+                key={draft.id}
+                sx={{
+                  position: "relative",
+                  pl: 3,
+                  "&:before": {
+                    content: '""',
+                    position: "absolute",
+                    left: 6,
+                    top: 8,
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    bgcolor: "warning.main",
+                  },
+                }}
+              >
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.75 }}>
+                  <Chip
+                    label="ยังไม่บันทึก"
+                    size="small"
+                    color="warning"
+                    sx={{ height: 20, fontSize: "0.7rem" }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    {draft.actor || "คุณ"}
+                  </Typography>
+                </Stack>
+                {draft.entries.map((entry) => (
+                  <Box
+                    key={`${draft.id}-${entry.fieldName}`}
+                    sx={{
+                      p: 1.25,
+                      borderRadius: 2,
+                      bgcolor: "warning.50",
+                      border: "1px solid",
+                      borderColor: "warning.light",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, color: entry.color, display: "block", mb: 0.25 }}
+                    >
+                      {entry.label}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.55 }}
+                    >
+                      {entry.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ))}
+            {latestItem ? <Divider sx={{ my: 0.5 }} /> : null}
+          </Stack>
+        )}
+
+        {latestItem ? <TimelineEntry item={latestItem} highlight /> : null}
+
         <Collapse in={showAll}>
-          <Stack spacing={1.25} sx={{ pt: 1 }}>
-            {remainingHistoryItems.map((item, index) => (
-              <HistoryCard key={item.id || `history-${index}`} item={item} index={index} />
+          <Stack spacing={0.5} sx={{ pt: 0.5 }}>
+            {remainingItems.map((item) => (
+              <TimelineEntry key={item.id} item={item} />
             ))}
           </Stack>
         </Collapse>

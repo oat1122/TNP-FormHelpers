@@ -173,6 +173,13 @@ export const notebookApi = createApi({
       }),
       invalidatesTags: ["Notebook"],
     }),
+    checkNotebookDuplicate: builder.mutation({
+      query: (data) => ({
+        url: "/notebooks/check-duplicate",
+        method: "POST",
+        data,
+      }),
+    }),
   }),
 });
 
@@ -192,4 +199,5 @@ export const {
   useReserveNotebookMutation,
   useAssignNotebookMutation,
   useAssignNotebooksMutation,
+  useCheckNotebookDuplicateMutation,
 } = notebookApi;

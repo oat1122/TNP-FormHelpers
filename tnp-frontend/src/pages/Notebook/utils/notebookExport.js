@@ -1,5 +1,4 @@
 import { format } from "date-fns";
-import { th } from "date-fns/locale";
 
 const REPORT_VISIBLE_FIELDS = ["nb_status", "nb_action", "nb_additional_info", "nb_remarks"];
 const IMPORTANT_PDF_FIELDS = ["nb_status", "nb_action", "nb_additional_info"];
@@ -102,6 +101,10 @@ const shouldIncludeHistoryForReport = (
   const isInRange = historyAt >= rangeStart && historyAt <= rangeEnd;
 
   if (!isInRange || history.action === "deleted") {
+    return false;
+  }
+
+  if (history.action === "customer_info_updated") {
     return false;
   }
 
@@ -420,69 +423,6 @@ export const buildNotebookPdfRows = (rows = []) => {
     ...row,
     zebraIndex: index,
   }));
-};
-
-export const buildNotebookCsvContent = ({ rows = [], exporterName = "", dateRange }) => {
-  const exportMonth = format(new Date(dateRange.start), "MMMM", { locale: th });
-  const exportYear = new Date(dateRange.start).getFullYear();
-  const monthHeader = `ประจำเดือน ${exportMonth} ${exportYear}`;
-
-  const row1 = [exporterName, "", "", "", "", "", "", "", "", monthHeader];
-  const row2 = [
-    "",
-    "เวลา",
-    "ชื่อลูกค้า / บริษัท\n(ถ้าเป็นออนไลน์ใส่ / online)",
-    "เพิ่มเติม",
-    "",
-    "",
-    "",
-    "ขั้นตอน",
-    "",
-    "",
-  ];
-  const row3 = [
-    "",
-    "",
-    "",
-    "",
-    "เบอร์ติดต่อ",
-    "E-mail",
-    "ชื่อผู้ติดต่อ",
-    "การกระทำ",
-    "สถานะ",
-    "หมายเหตุ",
-  ];
-
-  const csvRows = rows.map((row) => [
-    row.date || row.dateGroupValue,
-    row.rowType === "personal_activity" ? "" : row.time,
-    row.rowType === "personal_activity" ? "ธุระส่วนตัว" : row.customer,
-    row.additionalInfo,
-    row.rowType === "personal_activity"
-      ? "-"
-      : row.contactNumber !== "-"
-        ? `="${row.contactNumber}"`
-        : "-",
-    row.rowType === "personal_activity" ? "-" : row.email,
-    row.rowType === "personal_activity" ? "-" : row.contactPerson,
-    row.rowType === "personal_activity" ? "-" : row.action,
-    row.rowType === "personal_activity" ? "-" : row.status,
-    row.rowType === "personal_activity" ? row.personalText || row.additionalInfo : row.remarks,
-  ]);
-
-  return (
-    "\uFEFF" +
-    [row1, row2, row3, ...csvRows]
-      .map((row) =>
-        row
-          .map((cell) => {
-            const cellString = String(cell).replace(/"/g, '""');
-            return `"${cellString}"`;
-          })
-          .join(",")
-      )
-      .join("\n")
-  );
 };
 
 export const buildNotebookLeadSummaryRows = (leadAdditions = []) =>

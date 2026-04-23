@@ -67,6 +67,7 @@ const NotebookList = () => {
     handleAddCustomerCare,
     handleAddIntoMine,
     handleEdit,
+    handleEditCustomer,
     handleEditWorkflow,
     handleView,
     handleDelete,
@@ -143,6 +144,7 @@ const NotebookList = () => {
           actions={{
             onView: handleView,
             onEdit: handleEdit,
+            onEditCustomer: handleEditCustomer,
             onEditWorkflow: handleEditWorkflow,
             onDelete: handleDelete,
             onAssign: handleAssign,
@@ -201,7 +203,6 @@ const NotebookList = () => {
         items={exportState.exportItems}
         filteredItems={exportState.filteredItems}
         exportRows={exportState.exportRows}
-        csvRows={exportState.csvRows}
         pdfRows={exportState.pdfRows}
         leadSummaryRows={exportState.leadSummaryRows}
         selectedIds={exportState.selectedIds}
@@ -216,7 +217,6 @@ const NotebookList = () => {
         onDateChange={exportState.handleDateChange}
         onToggleSelection={exportState.handleToggleSelection}
         onSelectAll={exportState.handleSelectAll}
-        onExportCsv={exportState.handleExportCsv}
         isAllSelected={exportState.isAllSelected}
         isSelfReportMode={exportState.isSelfReportMode}
         recallActions={exportState.recallActions}

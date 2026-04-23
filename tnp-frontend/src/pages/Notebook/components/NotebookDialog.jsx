@@ -93,6 +93,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
     dialogOpen,
     dialogMode,
     dialogFocusTarget,
+    isCustomerInfoEdit,
     recordKey,
     draft,
     errors,
@@ -214,7 +215,13 @@ const NotebookDialog = ({ currentUser = {} }) => {
     });
   };
 
-  const modeLabel = isViewMode ? "ดูบันทึก" : isEditMode ? "แก้ไขบันทึก" : "บันทึกการขายใหม่";
+  const modeLabel = isViewMode
+    ? "ดูบันทึก"
+    : isCustomerInfoEdit
+      ? "แก้ไขข้อมูลลูกค้า"
+      : isEditMode
+        ? "อัพเดทหลังโทร"
+        : "บันทึกการขายใหม่";
   const closeButtonLabel = isViewMode ? "ปิด" : "ยกเลิก";
   const noteDescription = isEditMode
     ? "เพิ่มอัปเดตการพูดคุย บันทึกเดิมจะยังอยู่ในประวัติ"
@@ -254,13 +261,15 @@ const NotebookDialog = ({ currentUser = {} }) => {
             onClose={handleClose}
           />
 
-          <Box ref={workflowSectionRef} tabIndex={-1} sx={{ outline: "none" }}>
-            <NotebookQuickActions
-              value={draft.nb_action}
-              onChange={handleActionChange}
-              readOnly={isViewMode}
-            />
-          </Box>
+          {isCustomerInfoEdit ? null : (
+            <Box ref={workflowSectionRef} tabIndex={-1} sx={{ outline: "none" }}>
+              <NotebookQuickActions
+                value={draft.nb_action}
+                onChange={handleActionChange}
+                readOnly={isViewMode}
+              />
+            </Box>
+          )}
 
           <Grid container spacing={2}>
             <Grid item xs={12} md={7}>
@@ -478,78 +487,80 @@ const NotebookDialog = ({ currentUser = {} }) => {
                   </Stack>
                 </SectionCard>
 
-                <SectionCard>
-                  <SectionHeading>
-                    <MdSupervisorAccount size={16} />
-                    ผู้ดูแลและแหล่งที่มา
-                  </SectionHeading>
+                {isCustomerInfoEdit ? null : (
+                  <SectionCard>
+                    <SectionHeading>
+                      <MdSupervisorAccount size={16} />
+                      ผู้ดูแลและแหล่งที่มา
+                    </SectionHeading>
 
-                  <Stack spacing={1.75}>
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mb: 0.5 }}
-                      >
-                        ผู้ดูแลการขาย
-                      </Typography>
-
-                      {isAdmin ? (
-                        <FormControl fullWidth size="small">
-                          <Select
-                            name="nb_manage_by"
-                            value={draft.nb_manage_by || ""}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            displayEmpty
-                            disabled={isViewMode}
-                          >
-                            <MenuItem value="">
-                              <em>เลือกผู้ดูแลการขาย</em>
-                            </MenuItem>
-                            {salesList.map((user) => (
-                              <MenuItem key={user.user_id} value={user.user_id}>
-                                {user.username || user.user_nickname || `ผู้ใช้ ${user.user_id}`}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      ) : (
-                        <Typography variant="body2" fontWeight={600}>
-                          {salesOwnerLabel}
+                    <Stack spacing={1.75}>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          ผู้ดูแลการขาย
                         </Typography>
-                      )}
-                    </Box>
 
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mb: 0.5 }}
-                      >
-                        แหล่งที่มา
-                      </Typography>
+                        {isAdmin ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              name="nb_manage_by"
+                              value={draft.nb_manage_by || ""}
+                              onChange={handleChange}
+                              onBlur={handleBlur}
+                              displayEmpty
+                              disabled={isViewMode}
+                            >
+                              <MenuItem value="">
+                                <em>เลือกผู้ดูแลการขาย</em>
+                              </MenuItem>
+                              {salesList.map((user) => (
+                                <MenuItem key={user.user_id} value={user.user_id}>
+                                  {user.username || user.user_nickname || `ผู้ใช้ ${user.user_id}`}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Typography variant="body2" fontWeight={600}>
+                            {salesOwnerLabel}
+                          </Typography>
+                        )}
+                      </Box>
 
-                      <ToggleButtonGroup
-                        exclusive
-                        value={draft.nb_is_online ? "online" : "onsite"}
-                        onChange={(_, value) => {
-                          if (!value) {
-                            return;
-                          }
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mb: 0.5 }}
+                        >
+                          แหล่งที่มา
+                        </Typography>
 
-                          handleOnlineToggle(value === "online");
-                        }}
-                        disabled={isViewMode}
-                        size="small"
-                        sx={{ gap: 0.75 }}
-                      >
-                        <SourceToggleButton value="online">ออนไลน์</SourceToggleButton>
-                        <SourceToggleButton value="onsite">ออนไซต์</SourceToggleButton>
-                      </ToggleButtonGroup>
-                    </Box>
-                  </Stack>
-                </SectionCard>
+                        <ToggleButtonGroup
+                          exclusive
+                          value={draft.nb_is_online ? "online" : "onsite"}
+                          onChange={(_, value) => {
+                            if (!value) {
+                              return;
+                            }
+
+                            handleOnlineToggle(value === "online");
+                          }}
+                          disabled={isViewMode}
+                          size="small"
+                          sx={{ gap: 0.75 }}
+                        >
+                          <SourceToggleButton value="online">ออนไลน์</SourceToggleButton>
+                          <SourceToggleButton value="onsite">ออนไซต์</SourceToggleButton>
+                        </ToggleButtonGroup>
+                      </Box>
+                    </Stack>
+                  </SectionCard>
+                )}
               </Stack>
             </Grid>
           </Grid>
@@ -586,7 +597,7 @@ const NotebookDialog = ({ currentUser = {} }) => {
               fontSize: "1rem",
             }}
           >
-            {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
+            {isSubmitting ? "กำลังบันทึก..." : isCustomerInfoEdit ? "บันทึกข้อมูลลูกค้า" : "บันทึก"}
           </Button>
         </DialogActions>
       )}

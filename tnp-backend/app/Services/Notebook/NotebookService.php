@@ -121,8 +121,15 @@ class NotebookService
             $notebook = $this->notebookRepository->findOrFail($id);
             $this->authorizeAccess($user, $notebook, 'edit');
 
+            $historyAction = Arr::pull($validated, '_history_action');
+
             $notebook->fill($this->preparePayload($validated, $user, true));
             $notebook->updated_by = $user->user_id;
+
+            if ($historyAction === 'customer_info_updated') {
+                $notebook->setHistoryContext('customer_info_updated');
+            }
+
             $notebook->save();
 
             return $this->notebookRepository->findWithRelationsOrFail($id);

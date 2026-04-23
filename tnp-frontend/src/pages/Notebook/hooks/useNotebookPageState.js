@@ -6,6 +6,7 @@ import {
   setDialogFocusTarget,
   setDialogMode,
   setDialogOpen,
+  setDialogScope,
   setSelectedNotebook,
 } from "../../../features/Notebook/notebookSlice";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
@@ -218,10 +219,11 @@ export const useNotebookPageState = () => {
     ]
   );
 
-  const openDialog = (mode, notebook = null, focusTarget = null) => {
+  const openDialog = (mode, notebook = null, focusTarget = null, scope = "full") => {
     dispatch(setDialogMode(mode));
     dispatch(setSelectedNotebook(notebook));
     dispatch(setDialogFocusTarget(focusTarget));
+    dispatch(setDialogScope(scope));
     dispatch(setDialogOpen(true));
   };
 
@@ -258,11 +260,15 @@ export const useNotebookPageState = () => {
   };
 
   const handleEdit = (notebook) => {
-    openDialog("edit", notebook, null);
+    openDialog("edit", notebook, null, "full");
+  };
+
+  const handleEditCustomer = (notebook) => {
+    openDialog("edit", notebook, null, "customer_info");
   };
 
   const handleEditWorkflow = (notebook) => {
-    openDialog("edit", notebook, "workflow");
+    openDialog("edit", notebook, "workflow", "full");
   };
 
   const handleView = (notebook) => {
@@ -364,6 +370,7 @@ export const useNotebookPageState = () => {
     handleAddPersonalActivity,
     handleAddCustomerCare,
     handleEdit,
+    handleEditCustomer,
     handleEditWorkflow,
     handleView,
     handleCustomerCareEdit,

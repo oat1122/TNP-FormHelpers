@@ -17,6 +17,7 @@ import {
   ListItemText,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -29,7 +30,6 @@ import {
   MdCheckCircleOutline,
   MdClose,
   MdEventNote,
-  MdFileDownload,
   MdInfoOutline,
   MdPictureAsPdf,
   MdSelectAll,
@@ -57,7 +57,7 @@ const SectionTitle = ({ children }) => (
   </Typography>
 );
 
-const StatCard = ({ label, value, accent }) => (
+const StatCard = ({ label, value, accent, description }) => (
   <Paper
     variant="outlined"
     sx={{
@@ -70,12 +70,29 @@ const StatCard = ({ label, value, accent }) => (
       bgcolor: "background.paper",
     }}
   >
-    <Typography
-      variant="caption"
-      sx={{ ...DIALOG_FONT, color: "text.secondary", display: "block", lineHeight: 1.2 }}
-    >
-      {label}
-    </Typography>
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <Typography
+        variant="caption"
+        sx={{ ...DIALOG_FONT, color: "text.secondary", lineHeight: 1.2, flex: 1 }}
+      >
+        {label}
+      </Typography>
+      {description ? (
+        <Tooltip
+          title={
+            <Typography variant="caption" sx={{ ...DIALOG_FONT, whiteSpace: "pre-line" }}>
+              {description}
+            </Typography>
+          }
+          placement="top"
+          arrow
+        >
+          <Box sx={{ display: "flex", color: "text.secondary", cursor: "help" }}>
+            <MdInfoOutline size={14} />
+          </Box>
+        </Tooltip>
+      ) : null}
+    </Stack>
     <Typography variant="h6" sx={{ ...DIALOG_FONT, fontWeight: 700, mt: 0.25, lineHeight: 1.3 }}>
       {value}
     </Typography>
@@ -109,7 +126,6 @@ const PrintPDFDialog = ({
   items,
   filteredItems,
   exportRows,
-  csvRows,
   pdfRows,
   leadSummaryRows,
   selectedIds,
@@ -121,7 +137,6 @@ const PrintPDFDialog = ({
   onDateChange,
   onToggleSelection,
   onSelectAll,
-  onExportCsv,
   isAllSelected,
   isSelfReportMode = false,
   recallActions = [],
@@ -132,7 +147,6 @@ const PrintPDFDialog = ({
   const userName = fullName || currentUser?.user_nickname || currentUser?.username || "Unknown";
   const isLoading = loadingState.isLoading || loadingState.isFetching;
   const finalPdfRows = pdfRows || exportRows;
-  const finalCsvRows = csvRows || exportRows;
   const canDownloadPdf = finalPdfRows.length > 0 || leadSummaryRows.length > 0;
   const rangeLabel = formatRangeLabel(dateRange);
 
@@ -207,16 +221,30 @@ const PrintPDFDialog = ({
                     label="Lead additions"
                     value={`${leadSummaryRows.length} รายการ`}
                     accent="#7b1fa2"
+                    description={
+                      "ลูกค้า/ลีดใหม่ที่คุณเพิ่มเข้าระบบในช่วงวันที่ที่เลือก\n" +
+                      "นับตามวันที่สร้าง (created_at) ของรายการ Notebook\n" +
+                      "ไม่นับลูกค้าเก่าหรือลีดที่คนอื่นเพิ่มให้"
+                    }
                   />
                   <StatCard
                     label="Recall"
                     value={`${recallActions.length} ครั้ง`}
                     accent="#ed6c02"
+                    description={
+                      "จำนวนครั้งที่คุณกลับไปติดตาม (Recall) ลูกค้าในช่วงวันที่\n" +
+                      'นับจากรายการที่ตั้ง "การติดตามครั้งถัดไป" ไว้ แล้วถึงกำหนด\n' +
+                      "รวมทั้งที่ทำตามกำหนดและที่เกินกำหนด"
+                    }
                   />
                   <StatCard
                     label="กิจกรรมในช่วงวันที่"
                     value={`${finalPdfRows.length} รายการ`}
                     accent="#0288d1"
+                    description={
+                      "จำนวนแถวทั้งหมดที่จะปรากฏในไฟล์ PDF\n" +
+                      "= กิจกรรม (อัพเดทหลังโทร/บันทึกการพูดคุย) + Recall ในช่วงวันที่"
+                    }
                   />
                 </Stack>
               ) : (
@@ -437,16 +465,6 @@ const PrintPDFDialog = ({
           ยกเลิก
         </Button>
         <Box sx={{ flex: 1 }} />
-        <Button
-          variant="outlined"
-          startIcon={<MdFileDownload />}
-          onClick={onExportCsv}
-          disabled={finalCsvRows.length === 0 || isLoading}
-          color="success"
-          sx={DIALOG_FONT}
-        >
-          ดาวน์โหลด CSV ({finalCsvRows.length})
-        </Button>
         <PDFDownloadLink
           document={
             <NotebookPDF

@@ -24,9 +24,10 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
   const isAdmin = currentUser?.role === "admin";
   const defaultCreateIntoQueue = shouldNotebookCreateIntoQueue(currentUser);
   const defaultCreateIntoMine = shouldNotebookCreateIntoMine(currentUser);
-  const { dialogOpen, selectedNotebook, dialogMode, dialogFocusTarget } = useSelector(
+  const { dialogOpen, selectedNotebook, dialogMode, dialogFocusTarget, dialogScope } = useSelector(
     (state) => state.notebook
   );
+  const isCustomerInfoEdit = dialogMode === "edit" && dialogScope === "customer_info";
 
   const [draft, setDraft] = useState(() =>
     buildNotebookDraft({ notebook: null, currentUser, isAdmin })
@@ -201,6 +202,29 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
             submitData[fieldName] = sourceNotebook[fieldName] ?? submitData[fieldName];
           }
         });
+
+        if (isCustomerInfoEdit) {
+          const customerInfoFields = [
+            "nb_status",
+            "nb_customer_name",
+            "nb_contact_person",
+            "nb_contact_number",
+            "nb_email",
+            "nb_next_followup_date",
+            "nb_next_followup_note",
+            "nb_additional_info",
+            "nb_remarks",
+          ];
+          const scopedPayload = {};
+          customerInfoFields.forEach((fieldName) => {
+            if (fieldName in submitData) {
+              scopedPayload[fieldName] = submitData[fieldName];
+            }
+          });
+          scopedPayload._history_action = "customer_info_updated";
+          Object.keys(submitData).forEach((key) => delete submitData[key]);
+          Object.assign(submitData, scopedPayload);
+        }
       }
 
       if (!isAdmin && dialogMode === "create" && !submitData.nb_workflow) {
@@ -269,6 +293,7 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     getCreateSuccessMessage,
     handleClose,
     isAdmin,
+    isCustomerInfoEdit,
     notebookDetail,
     selectedNotebook,
     updateNotebook,
@@ -278,7 +303,9 @@ export const useNotebookForm = ({ currentUser = {} } = {}) => {
     dialogOpen,
     dialogMode,
     dialogFocusTarget,
-    recordKey: `${dialogMode}-${selectedNotebook?.id || "create"}`,
+    dialogScope,
+    isCustomerInfoEdit,
+    recordKey: `${dialogMode}-${dialogScope}-${selectedNotebook?.id || "create"}`,
     draft,
     errors,
     duplicateCheck,

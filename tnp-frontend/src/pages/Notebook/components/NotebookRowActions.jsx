@@ -4,9 +4,10 @@ import {
   MdAssignmentInd,
   MdCall,
   MdDelete,
-  MdEdit,
+  MdManageAccounts,
   MdMoreHoriz,
   MdPersonAdd,
+  MdPhoneCallback,
   MdSwapHoriz,
   MdVisibility,
 } from "react-icons/md";
@@ -20,6 +21,7 @@ const NotebookRowActions = ({
   userRole,
   onView,
   onEdit,
+  onEditCustomer,
   onDelete,
   onAssign,
   onReserve,
@@ -126,21 +128,39 @@ const NotebookRowActions = ({
             </span>
           </Tooltip>
         ) : (
-          <Tooltip title={canEdit ? "แก้ไขรายการ" : "รายการนี้แก้ไขไม่ได้"}>
-            <span>
-              <Button
-                variant="outlined"
-                color="primary"
-                size="medium"
-                startIcon={<MdEdit />}
-                onClick={handleAction(onEdit, row)}
-                disabled={!canEdit}
-                sx={{ borderRadius: 999, textTransform: "none" }}
-              >
-                แก้ไข
-              </Button>
-            </span>
-          </Tooltip>
+          <>
+            <Tooltip title={canEdit ? "อัพเดทหลังจากโทรหาลูกค้า" : "อัพเดทไม่ได้"}>
+              <span>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  size="medium"
+                  startIcon={<MdPhoneCallback />}
+                  onClick={handleAction(onEdit, row)}
+                  disabled={!canEdit}
+                  sx={{ borderRadius: 999, textTransform: "none" }}
+                >
+                  อัพเดทหลังโทร
+                </Button>
+              </span>
+            </Tooltip>
+
+            <Tooltip title={canEdit ? "แก้ไขข้อมูลลูกค้า" : "แก้ไขไม่ได้"}>
+              <span>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  size="medium"
+                  startIcon={<MdManageAccounts />}
+                  onClick={handleAction(onEditCustomer, row)}
+                  disabled={!canEdit}
+                  sx={{ borderRadius: 999, textTransform: "none" }}
+                >
+                  แก้ข้อมูลลูกค้า
+                </Button>
+              </span>
+            </Tooltip>
+          </>
         )}
 
         <Tooltip title={callHref ? `โทร ${row.nb_contact_number}` : "ไม่มีเบอร์โทร"}>
@@ -276,19 +296,35 @@ const NotebookRowActions = ({
           </IconButton>
         </Tooltip>
       ) : (
-        <Tooltip title={canEdit ? "แก้ไข" : "แก้ไขไม่ได้"}>
-          <span>
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={handleAction(onEdit, row)}
-              disabled={!canEdit}
-              sx={iconBtnSx}
-            >
-              <MdEdit size={16} />
-            </IconButton>
-          </span>
-        </Tooltip>
+        <>
+          <Tooltip title={canEdit ? "อัพเดทหลังโทร" : "อัพเดทไม่ได้"}>
+            <span>
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={handleAction(onEdit, row)}
+                disabled={!canEdit}
+                sx={iconBtnSx}
+              >
+                <MdPhoneCallback size={16} />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title={canEdit ? "แก้ไขข้อมูลลูกค้า" : "แก้ไขไม่ได้"}>
+            <span>
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={handleAction(onEditCustomer, row)}
+                disabled={!canEdit}
+                sx={iconBtnSx}
+              >
+                <MdManageAccounts size={16} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </>
       )}
 
       <Tooltip title={callHref ? `โทร ${row.nb_contact_number}` : "ไม่มีเบอร์โทร"}>

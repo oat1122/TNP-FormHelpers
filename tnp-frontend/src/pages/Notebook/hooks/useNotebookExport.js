@@ -8,7 +8,6 @@ import {
 import { showError } from "../../../utils/toast";
 import { DATE_PRESETS } from "../utils/datePresets";
 import {
-  buildNotebookCsvContent,
   buildNotebookExportRows,
   buildNotebookLeadSummaryRows,
   buildNotebookPdfRows,
@@ -189,7 +188,6 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
       });
   }, [selfReportPdfRows, recallActions]);
 
-  const csvRows = canSelfReport ? selfReportRows : exportRows;
   const pdfRows = canSelfReport ? mergedSelfReportPdfRows : standardPdfRows;
   const isAllSelected = filteredItems.length > 0 && selectedIds.length === filteredItems.length;
 
@@ -227,36 +225,11 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     setSelectedIds(filteredItems.map((item) => item.id));
   };
 
-  const handleExportCsv = () => {
-    if (csvRows.length === 0) {
-      return;
-    }
-
-    const firstName = currentUser?.user_firstname || "";
-    const lastName = currentUser?.user_lastname || "";
-    const exporterName = `ผู้ส่งออก: ${`${firstName} ${lastName}`.trim()}`.trim();
-
-    const csvContent = buildNotebookCsvContent({
-      rows: csvRows,
-      exporterName,
-      dateRange,
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `notebook_export_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   return {
     exportItems,
     filteredItems,
     selectedItems,
     exportRows,
-    csvRows,
     pdfRows,
     leadSummaryRows,
     selectedIds,
@@ -270,7 +243,6 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
     handleDateChange,
     handleToggleSelection,
     handleSelectAll,
-    handleExportCsv,
     recallActions,
   };
 };

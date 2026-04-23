@@ -274,6 +274,7 @@ const NotebookCardList = ({
               userRole={userRole}
               onView={actions.onView}
               onEdit={actions.onEdit}
+              onEditCustomer={actions.onEditCustomer}
               onDelete={actions.onDelete}
               onAssign={actions.onAssign}
               onReserve={actions.onReserve}

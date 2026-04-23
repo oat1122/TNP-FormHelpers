@@ -282,6 +282,7 @@ const NotebookCardList = ({
               scopeFilter={scopeFilter}
               canReserveQueue={canReserveQueue}
               queueActionMode={queueActionMode}
+              canTransferMineToSales={actions.canTransferMineToSales}
             />
           </Box>
         </Card>

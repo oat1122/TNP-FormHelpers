@@ -300,6 +300,7 @@ const NotebookActionTable = ({
           scopeFilter={scopeFilter}
           canReserveQueue={canReserveQueue}
           queueActionMode={queueActionMode}
+          canTransferMineToSales={actions.canTransferMineToSales}
         />
       ),
     },

@@ -8,11 +8,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Paper,
   Stack,
   Typography,
 } from "@mui/material";
@@ -22,10 +25,83 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { MdFileDownload, MdPictureAsPdf, MdSelectAll } from "react-icons/md";
+import {
+  MdCheckCircleOutline,
+  MdClose,
+  MdEventNote,
+  MdFileDownload,
+  MdInfoOutline,
+  MdPictureAsPdf,
+  MdSelectAll,
+} from "react-icons/md";
 
 import NotebookPDF from "./NotebookPDF";
 import { DATE_PRESETS } from "../utils/datePresets";
+
+// Dialog-level font so we don't need to repeat fontFamily on every Typography.
+const DIALOG_FONT = { fontFamily: "Kanit" };
+
+const SectionTitle = ({ children }) => (
+  <Typography
+    variant="overline"
+    sx={{
+      ...DIALOG_FONT,
+      fontWeight: 600,
+      letterSpacing: 0.6,
+      color: "text.secondary",
+      display: "block",
+      mb: 1,
+    }}
+  >
+    {children}
+  </Typography>
+);
+
+const StatCard = ({ label, value, accent }) => (
+  <Paper
+    variant="outlined"
+    sx={{
+      flex: 1,
+      minWidth: 0,
+      px: 2,
+      py: 1.5,
+      borderLeft: `3px solid ${accent}`,
+      borderRadius: 1.5,
+      bgcolor: "background.paper",
+    }}
+  >
+    <Typography
+      variant="caption"
+      sx={{ ...DIALOG_FONT, color: "text.secondary", display: "block", lineHeight: 1.2 }}
+    >
+      {label}
+    </Typography>
+    <Typography variant="h6" sx={{ ...DIALOG_FONT, fontWeight: 700, mt: 0.25, lineHeight: 1.3 }}>
+      {value}
+    </Typography>
+  </Paper>
+);
+
+const ConditionItem = ({ children }) => (
+  <Stack direction="row" spacing={1} alignItems="flex-start">
+    <Box sx={{ color: "primary.main", mt: "2px", display: "flex" }}>
+      <MdCheckCircleOutline size={16} />
+    </Box>
+    <Typography variant="body2" sx={{ ...DIALOG_FONT, color: "text.secondary", flex: 1 }}>
+      {children}
+    </Typography>
+  </Stack>
+);
+
+const formatRangeLabel = (dateRange) => {
+  try {
+    const start = format(new Date(dateRange.start), "d MMM yyyy", { locale: th });
+    const end = format(new Date(dateRange.end), "d MMM yyyy", { locale: th });
+    return `${start} – ${end}`;
+  } catch {
+    return `${dateRange.start} – ${dateRange.end}`;
+  }
+};
 
 const PrintPDFDialog = ({
   open,
@@ -55,91 +131,142 @@ const PrintPDFDialog = ({
   }`.trim();
   const userName = fullName || currentUser?.user_nickname || currentUser?.username || "Unknown";
   const isLoading = loadingState.isLoading || loadingState.isFetching;
-  const selectionSummary =
-    filteredItems.length === 0
-      ? "ไม่มีรายการให้เลือก"
-      : `เลือกแล้ว ${selectedIds.length} จาก ${filteredItems.length} รายการ`;
   const finalPdfRows = pdfRows || exportRows;
   const finalCsvRows = csvRows || exportRows;
-  const activitySummary =
-    finalPdfRows.length === 0
-      ? "ไม่มีกิจกรรมในช่วงวันที่เลือก"
-      : `กิจกรรมในช่วงวันที่ ${finalPdfRows.length} รายการ`;
   const canDownloadPdf = finalPdfRows.length > 0 || leadSummaryRows.length > 0;
+  const rangeLabel = formatRangeLabel(dateRange);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontFamily: "Kanit", fontWeight: 600 }}>
-        {isSelfReportMode ? "Export PDF Report" : "Export ข้อมูล"}
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        sx={{
+          ...DIALOG_FONT,
+          fontWeight: 700,
+          pr: 7,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.25,
+        }}
+      >
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: 1.5,
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <MdPictureAsPdf size={20} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h6" sx={{ ...DIALOG_FONT, fontWeight: 700, lineHeight: 1.2 }}>
+            {isSelfReportMode ? "Export PDF Report" : "Export ข้อมูล"}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ ...DIALOG_FONT, color: "text.secondary", display: "block" }}
+          >
+            {isSelfReportMode
+              ? "รายงาน self-report สำหรับช่วงวันที่ที่เลือก"
+              : "เลือกรายการที่ต้องการ export เป็น PDF หรือ CSV"}
+          </Typography>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          size="small"
+          aria-label="ปิด"
+          sx={{ position: "absolute", right: 12, top: 12 }}
+        >
+          <MdClose />
+        </IconButton>
       </DialogTitle>
 
       <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-        <DialogContent dividers>
-          <Stack spacing={2.5}>
+        <DialogContent dividers sx={{ py: 3 }}>
+          <Stack spacing={3}>
+            {/* === SUMMARY === */}
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
-                สรุปการ export
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
-                {isSelfReportMode ? (
-                  <>
-                    <Chip
-                      label={`ช่วงวันที่ ${dateRange.start} ถึง ${dateRange.end}`}
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={`Lead additions ${leadSummaryRows.length} รายการ`}
-                      color="secondary"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={`Recall ${recallActions.length} ครั้ง`}
-                      color="warning"
-                      variant="outlined"
-                    />
-                    <Chip label={activitySummary} color="info" variant="outlined" />
-                  </>
-                ) : (
-                  <>
-                    <Chip label={`ทั้งหมด ${items.length} รายการ`} variant="outlined" />
-                    <Chip
-                      label={`ตรงตามช่วงเวลา ${filteredItems.length} รายการ`}
-                      color="primary"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={selectionSummary}
-                      color={selectedIds.length > 0 ? "success" : "default"}
-                      variant="outlined"
-                    />
-                  </>
-                )}
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "Kanit" }}>
-                {isSelfReportMode
-                  ? "รายงานนี้ใช้ช่วงวันที่เดียวกันทั้ง 2 ส่วน โดย Lead Intake Summary จะอิงวันที่เพิ่ม lead เข้า queue และ Daily Activity Report จะอิงวันที่ทำรายการในประวัติ"
-                  : "PDF และ CSV จะใช้ข้อมูลตามตัวกรองและรายการที่เลือก"}
-              </Typography>
+              <SectionTitle>สรุปการ export</SectionTitle>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+                <Chip
+                  icon={<MdEventNote />}
+                  label={rangeLabel}
+                  variant="outlined"
+                  sx={{ ...DIALOG_FONT, fontWeight: 500 }}
+                />
+              </Stack>
+
+              {isSelfReportMode ? (
+                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                  <StatCard
+                    label="Lead additions"
+                    value={`${leadSummaryRows.length} รายการ`}
+                    accent="#7b1fa2"
+                  />
+                  <StatCard
+                    label="Recall"
+                    value={`${recallActions.length} ครั้ง`}
+                    accent="#ed6c02"
+                  />
+                  <StatCard
+                    label="กิจกรรมในช่วงวันที่"
+                    value={`${finalPdfRows.length} รายการ`}
+                    accent="#0288d1"
+                  />
+                </Stack>
+              ) : (
+                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                  <StatCard label="ทั้งหมด" value={`${items.length} รายการ`} accent="#9e9e9e" />
+                  <StatCard
+                    label="ตรงตามช่วงเวลา"
+                    value={`${filteredItems.length} รายการ`}
+                    accent="#1976d2"
+                  />
+                  <StatCard
+                    label="เลือกแล้ว"
+                    value={
+                      filteredItems.length === 0
+                        ? "—"
+                        : `${selectedIds.length} / ${filteredItems.length}`
+                    }
+                    accent={selectedIds.length > 0 ? "#2e7d32" : "#9e9e9e"}
+                  />
+                </Stack>
+              )}
             </Box>
 
+            <Divider />
+
+            {/* === DATE RANGE === */}
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontFamily: "Kanit" }}>
-                ช่วงเวลา
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
-                {DATE_PRESETS.map((preset) => (
-                  <Chip
-                    key={preset.label}
-                    label={preset.label}
-                    onClick={() => onPresetClick(preset.label)}
-                    color={activePreset === preset.label ? "primary" : "default"}
-                    variant={activePreset === preset.label ? "filled" : "outlined"}
-                    size="small"
-                    sx={{ fontFamily: "Kanit" }}
-                  />
-                ))}
-              </Box>
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <SectionTitle>ช่วงเวลา</SectionTitle>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+                {DATE_PRESETS.map((preset) => {
+                  const selected = activePreset === preset.label;
+                  return (
+                    <Chip
+                      key={preset.label}
+                      label={preset.label}
+                      onClick={() => onPresetClick(preset.label)}
+                      color={selected ? "primary" : "default"}
+                      variant={selected ? "filled" : "outlined"}
+                      sx={{
+                        ...DIALOG_FONT,
+                        fontWeight: selected ? 600 : 500,
+                        px: 0.5,
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
+
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <DatePicker
                   label="จากวันที่"
                   value={new Date(dateRange.start)}
@@ -168,33 +295,47 @@ const PrintPDFDialog = ({
                     },
                   }}
                 />
-              </Box>
+              </Stack>
             </Box>
 
+            <Divider />
+
+            {/* === CONDITIONS OR SELECTION LIST === */}
             {isSelfReportMode ? (
               <Box
                 sx={{
                   p: 2,
-                  border: "1px solid #e0e0e0",
+                  border: "1px solid",
+                  borderColor: "primary.light",
                   borderRadius: 1.5,
-                  backgroundColor: "#fafafa",
+                  bgcolor: "rgba(25, 118, 210, 0.04)",
                 }}
               >
-                <Typography variant="subtitle2" sx={{ fontFamily: "Kanit", mb: 1 }}>
-                  เงื่อนไขรายงาน self-report
-                </Typography>
-                <Stack spacing={0.75}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "Kanit" }}>
-                    Lead Intake Summary จะนับตามวันที่เพิ่มลูกค้าเข้า queue ในช่วงวันที่ที่เลือก
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
+                  <Box sx={{ color: "primary.main", display: "flex" }}>
+                    <MdInfoOutline size={18} />
+                  </Box>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ ...DIALOG_FONT, fontWeight: 600, color: "primary.main" }}
+                  >
+                    เงื่อนไขรายงาน self-report
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "Kanit" }}>
-                    Daily Activity Report จะนับตามวันที่ทำรายการจาก activity/history
-                    จริงในช่วงวันที่ที่เลือก
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "Kanit" }}>
+                </Stack>
+
+                <Stack spacing={1}>
+                  <ConditionItem>
+                    <strong>Lead Intake Summary</strong> นับตามวันที่เพิ่มลูกค้าเข้า queue
+                    ในช่วงวันที่ที่เลือก
+                  </ConditionItem>
+                  <ConditionItem>
+                    <strong>Daily Activity Report</strong> นับตามวันที่ทำรายการจริงใน
+                    activity/history
+                  </ConditionItem>
+                  <ConditionItem>
                     รายงาน self-report จะ export ทั้งช่วงวันที่ที่เลือก
                     ไม่ได้อิงการติ๊กรายการทีละแถว
-                  </Typography>
+                  </ConditionItem>
                 </Stack>
               </Box>
             ) : (
@@ -207,15 +348,15 @@ const PrintPDFDialog = ({
                     mb: 1,
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ fontFamily: "Kanit" }}>
+                  <SectionTitle>
                     เลือกรายการ ({selectedIds.length}/{filteredItems.length})
-                  </Typography>
+                  </SectionTitle>
                   <Button
                     size="small"
                     startIcon={<MdSelectAll />}
                     onClick={onSelectAll}
                     disabled={isLoading || filteredItems.length === 0}
-                    sx={{ fontFamily: "Kanit" }}
+                    sx={DIALOG_FONT}
                   >
                     {isAllSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
                   </Button>
@@ -226,15 +367,21 @@ const PrintPDFDialog = ({
                   sx={{
                     maxHeight: 320,
                     overflow: "auto",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1.5,
+                    p: 0,
                   }}
                 >
                   {isLoading ? (
                     <ListItem sx={{ justifyContent: "center", py: 4 }}>
                       <Box sx={{ textAlign: "center" }}>
                         <CircularProgress size={28} />
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ ...DIALOG_FONT, mt: 1 }}
+                        >
                           กำลังโหลดข้อมูล export...
                         </Typography>
                       </Box>
@@ -244,8 +391,8 @@ const PrintPDFDialog = ({
                       <ListItemText
                         primary="ไม่มีข้อมูลในช่วงเวลาที่เลือก"
                         secondary="ลองขยายช่วงเวลาแล้ว export ใหม่"
-                        primaryTypographyProps={{ textAlign: "center" }}
-                        secondaryTypographyProps={{ textAlign: "center" }}
+                        primaryTypographyProps={{ textAlign: "center", sx: DIALOG_FONT }}
+                        secondaryTypographyProps={{ textAlign: "center", sx: DIALOG_FONT }}
                       />
                     </ListItem>
                   ) : (
@@ -272,7 +419,8 @@ const PrintPDFDialog = ({
                                 })}`
                               : "-"
                           }
-                          primaryTypographyProps={{ sx: { fontFamily: "Kanit", fontSize: 14 } }}
+                          primaryTypographyProps={{ sx: { ...DIALOG_FONT, fontSize: 14 } }}
+                          secondaryTypographyProps={{ sx: DIALOG_FONT }}
                         />
                       </ListItemButton>
                     ))
@@ -284,16 +432,18 @@ const PrintPDFDialog = ({
         </DialogContent>
       </LocalizationProvider>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ fontFamily: "Kanit" }}>
+      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+        <Button onClick={onClose} sx={DIALOG_FONT} color="inherit">
           ยกเลิก
         </Button>
+        <Box sx={{ flex: 1 }} />
         <Button
           variant="outlined"
           startIcon={<MdFileDownload />}
           onClick={onExportCsv}
           disabled={finalCsvRows.length === 0 || isLoading}
-          sx={{ fontFamily: "Kanit", borderColor: "#388e3c", color: "#388e3c" }}
+          color="success"
+          sx={DIALOG_FONT}
         >
           ดาวน์โหลด CSV ({finalCsvRows.length})
         </Button>
@@ -315,7 +465,7 @@ const PrintPDFDialog = ({
               variant="contained"
               startIcon={<MdPictureAsPdf />}
               disabled={loading || !canDownloadPdf || isLoading}
-              sx={{ fontFamily: "Kanit" }}
+              sx={DIALOG_FONT}
             >
               {loading ? "กำลังสร้าง PDF..." : `ดาวน์โหลด PDF (${finalPdfRows.length})`}
             </Button>

@@ -141,9 +141,7 @@ export const useNotebookExport = ({ open, filters, currentUser, canSelfReport = 
 
     const recallRows = recallActions.map((action, index) => {
       const createdAt = new Date(action.created_at || new Date());
-      const dayMonth = format(createdAt, "dd/MM");
-      const year = createdAt.getFullYear() + 543;
-      const dateText = `${dayMonth}/${year}`;
+      const dateText = format(createdAt, "dd/MM/yyyy");
       const statusText = action.was_overdue
         ? `เกินกำหนด ${action.days_overdue} วัน`
         : "อยู่ในเกณฑ์";

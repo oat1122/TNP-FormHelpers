@@ -27,4 +27,18 @@ Font.register({
   ],
 });
 
+// Hyphenation callback — Thai text has no spaces, so let @react-pdf/renderer
+// break Thai "words" at every character. Keep Latin/digit tokens intact so
+// English words don't split in the middle.
+const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+Font.registerHyphenationCallback((word) => {
+  if (!word || word.length <= 1) {
+    return [word];
+  }
+  if (THAI_CHAR_REGEX.test(word)) {
+    return Array.from(word);
+  }
+  return [word];
+});
+
 export default Font;

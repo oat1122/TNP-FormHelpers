@@ -19,7 +19,6 @@ const NotebookList = () => {
     paginationModel,
     setPaginationModel,
     scopeFilter,
-    setScopeFilter,
     handleScopeChange,
     searchInput,
     setSearchInput,
@@ -42,6 +41,7 @@ const NotebookList = () => {
     queueActionMode,
     canSelfReport,
     canCreateMineCustomer,
+    canTransferMineToSales,
     canCreateCustomerCare,
     viewMode,
     setViewMode,
@@ -149,6 +149,7 @@ const NotebookList = () => {
             onReserve: handleReserve,
             onConvert: handleConvert,
             onToggleFavorite: handleToggleFavorite,
+            canTransferMineToSales,
           }}
           userRole={userRole}
           filterSummary={filterSummary}

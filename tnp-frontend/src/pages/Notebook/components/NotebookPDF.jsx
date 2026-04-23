@@ -47,19 +47,6 @@ const sectionStyles = {
   queueColStatus: { width: "18%" },
 };
 
-const chunkRows = (rows = [], size = 18) => {
-  if (rows.length === 0) {
-    return [[]];
-  }
-
-  const chunks = [];
-  for (let index = 0; index < rows.length; index += size) {
-    chunks.push(rows.slice(index, index + size));
-  }
-
-  return chunks;
-};
-
 const formatDateRange = (dateRange) => {
   if (!dateRange?.start || !dateRange?.end) return "";
 
@@ -73,6 +60,129 @@ const formatDateRange = (dateRange) => {
 };
 
 const wrapText = (value) => String(value ?? "").trim();
+
+// Max characters per visual line, tuned against column widths at fontSize 8pt
+// in Kanit. Thai text has no spaces so @react-pdf/renderer can't break it on
+// its own; we hard-wrap long runs into new lines so content stays inside the
+// column without losing any data.
+const COLUMN_MAX_CHARS = {
+  customer: 22,
+  additionalInfo: 22,
+  contactPerson: 12,
+  email: 18,
+  remarks: 8,
+  action: 20,
+};
+
+const LEAD_SUMMARY_MAX_CHARS = {
+  customer: 36,
+  contactPerson: 26,
+  contactNumber: 20,
+  ownerStatus: 24,
+};
+
+// Thai combining marks that visually attach to the previous base consonant.
+// Splitting such a mark onto the next line orphans it (e.g. "ไม่" → "ไม" / "่").
+// Ranges: mai han-akat, vowels above/below, tone marks, thanthakhat, etc.
+const THAI_COMBINING_MARK_REGEX = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
+// Lead vowels render before their base consonant, so a line must not end with one.
+const THAI_LEAD_VOWEL_REGEX = /[\u0E40-\u0E44]/;
+
+// Use ICU's Thai word dictionary when available (Chromium/Edge 87+, Safari 14.1+
+// all ship it). Falls back to whitespace splits when Intl.Segmenter is missing.
+const wordSegmenter = (() => {
+  try {
+    if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+      return new Intl.Segmenter(["th"], { granularity: "word" });
+    }
+  } catch {
+    /* ignore and fall through to whitespace fallback */
+  }
+  return null;
+})();
+
+const getSegments = (text) => {
+  if (wordSegmenter) {
+    return Array.from(wordSegmenter.segment(text), (entry) => entry.segment);
+  }
+  // Fallback: keep whitespace groups as their own segments
+  return text.split(/(\s+)/).filter((part) => part !== "");
+};
+
+// Break a single "word" (segment) into chunks of up to `limit` characters
+// while refusing to orphan a Thai combining mark or end a chunk with a lead
+// vowel. Only used when the segment itself exceeds the per-line budget.
+const splitOverlongWord = (word, limit) => {
+  const chunks = [];
+  let start = 0;
+  while (start < word.length) {
+    let end = Math.min(start + limit, word.length);
+    if (end < word.length) {
+      // Don't start the next chunk with a combining mark — pull it back to us.
+      while (end > start + 1 && THAI_COMBINING_MARK_REGEX.test(word[end])) {
+        end -= 1;
+      }
+      // Don't end this chunk with a lead vowel — its base consonant is next.
+      while (end > start + 1 && THAI_LEAD_VOWEL_REGEX.test(word[end - 1])) {
+        end -= 1;
+      }
+    }
+    chunks.push(word.slice(start, end));
+    start = end;
+  }
+  return chunks;
+};
+
+// Greedy wrap: fill the current visual line with segments until the next one
+// would push it past `maxCharsPerLine`, then start a fresh line.
+const wrapSingleLine = (line, maxCharsPerLine) => {
+  if (!maxCharsPerLine || line.length <= maxCharsPerLine) {
+    return line;
+  }
+
+  const segments = getSegments(line);
+  const output = [];
+  let current = "";
+
+  const commit = () => {
+    const trimmed = current.replace(/\s+$/u, "");
+    if (trimmed !== "") {
+      output.push(trimmed);
+    }
+    current = "";
+  };
+
+  for (const segment of segments) {
+    if (segment.length > maxCharsPerLine) {
+      commit();
+      const pieces = splitOverlongWord(segment, maxCharsPerLine);
+      for (let index = 0; index < pieces.length - 1; index += 1) {
+        output.push(pieces[index]);
+      }
+      current = pieces[pieces.length - 1] ?? "";
+    } else if (current.length + segment.length > maxCharsPerLine) {
+      commit();
+      // Drop leading whitespace on the new line
+      current = /^\s+$/u.test(segment) ? "" : segment;
+    } else {
+      current += segment;
+    }
+  }
+  commit();
+
+  return output.length > 0 ? output.join("\n") : line;
+};
+
+const wrapLongText = (value, maxCharsPerLine) => {
+  const str = wrapText(value);
+  if (!str || !maxCharsPerLine) {
+    return str;
+  }
+  return str
+    .split("\n")
+    .map((line) => wrapSingleLine(line, maxCharsPerLine))
+    .join("\n");
+};
 
 const renderStatusCell = (value) => {
   if (!value || value === "-") {
@@ -91,7 +201,7 @@ const renderCellText = (value, style = styles.cellText) => (
 );
 
 const renderActivityTableHeader = () => (
-  <View style={[styles.tableRow, styles.tableHeader]}>
+  <View style={[styles.tableRow, styles.tableHeader]} fixed>
     <View style={[styles.tableCell, styles.colDate]}>
       <Text style={styles.headerText}>วันที่</Text>
     </View>
@@ -173,26 +283,38 @@ const renderActivityTable = (rows = []) => (
               {renderCellText(row.time, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colCustomer]}>
-              {renderCellText(row.customer, textStylePrimary)}
+              {renderCellText(
+                wrapLongText(row.customer, COLUMN_MAX_CHARS.customer),
+                textStylePrimary
+              )}
             </View>
             <View style={[styles.tableCell, styles.colAdditional]}>
-              {renderCellText(row.additionalInfo, textStyleSecondary)}
+              {renderCellText(
+                wrapLongText(row.additionalInfo, COLUMN_MAX_CHARS.additionalInfo),
+                textStyleSecondary
+              )}
             </View>
             <View style={[styles.tableCell, styles.colContact]}>
               {renderCellText(row.contactNumber, textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colEmail]}>
-              {renderCellText(row.email, textStyleTertiary)}
+              {renderCellText(wrapLongText(row.email, COLUMN_MAX_CHARS.email), textStyleTertiary)}
             </View>
             <View style={[styles.tableCell, styles.colPerson]}>
-              {renderCellText(row.contactPerson, textStyleTertiary)}
+              {renderCellText(
+                wrapLongText(row.contactPerson, COLUMN_MAX_CHARS.contactPerson),
+                textStyleTertiary
+              )}
             </View>
             <View style={[styles.tableCell, styles.colAction]}>
-              {renderCellText(row.action, textStyleAction)}
+              {renderCellText(wrapLongText(row.action, COLUMN_MAX_CHARS.action), textStyleAction)}
             </View>
             <View style={[styles.tableCell, styles.colStatus]}>{renderStatusCell(row.status)}</View>
             <View style={[styles.tableCell, styles.colRemarks]}>
-              {renderCellText(row.remarks, textStyleTertiary)}
+              {renderCellText(
+                wrapLongText(row.remarks, COLUMN_MAX_CHARS.remarks),
+                textStyleTertiary
+              )}
             </View>
           </View>
         );
@@ -202,7 +324,7 @@ const renderActivityTable = (rows = []) => (
 );
 
 const renderLeadSummaryTableHeader = () => (
-  <View style={[styles.tableRow, sectionStyles.queueTableHeader]}>
+  <View style={[styles.tableRow, sectionStyles.queueTableHeader]} fixed>
     <View style={[styles.tableCell, sectionStyles.queueColDate]}>
       <Text style={styles.headerText}>วันที่เพิ่มเข้า queue</Text>
     </View>
@@ -237,16 +359,28 @@ const renderLeadSummaryTable = (leadSummaryRows = []) => (
             {renderCellText(row.date, styles.secondaryText)}
           </View>
           <View style={[styles.tableCell, sectionStyles.queueColCustomer]}>
-            {renderCellText(row.customer, styles.primaryText)}
+            {renderCellText(
+              wrapLongText(row.customer, LEAD_SUMMARY_MAX_CHARS.customer),
+              styles.primaryText
+            )}
           </View>
           <View style={[styles.tableCell, sectionStyles.queueColPerson]}>
-            {renderCellText(row.contactPerson, styles.secondaryText)}
+            {renderCellText(
+              wrapLongText(row.contactPerson, LEAD_SUMMARY_MAX_CHARS.contactPerson),
+              styles.secondaryText
+            )}
           </View>
           <View style={[styles.tableCell, sectionStyles.queueColPhone]}>
-            {renderCellText(row.contactNumber, styles.secondaryText)}
+            {renderCellText(
+              wrapLongText(row.contactNumber, LEAD_SUMMARY_MAX_CHARS.contactNumber),
+              styles.secondaryText
+            )}
           </View>
           <View style={[styles.tableCell, sectionStyles.queueColStatus]}>
-            {renderCellText(row.ownerStatus, styles.secondaryText)}
+            {renderCellText(
+              wrapLongText(row.ownerStatus, LEAD_SUMMARY_MAX_CHARS.ownerStatus),
+              styles.secondaryText
+            )}
           </View>
         </View>
       ))
@@ -272,112 +406,81 @@ const NotebookPDF = ({
   const printDate = format(new Date(), "dd MMMM yyyy HH:mm", { locale: th });
   const formattedRange = formatDateRange(dateRange);
   const recallCount = rows.filter((r) => r.rowType === "recall_action").length;
-  const standardActivityPages = chunkRows(rows, 18);
-  const selfLeadSummaryPages = chunkRows(leadSummaryRows, 14);
-  const selfActivityPages = chunkRows(rows, 18);
 
   if (reportMode !== "self") {
     return (
       <Document title="Notebook Report">
-        {standardActivityPages.map((pageRows, pageIndex) => (
-          <Page
-            key={`notebook-report-${pageIndex}`}
-            size="A4"
-            orientation="landscape"
-            style={styles.page}
-          >
-            {pageIndex === 0 ? (
-              <View style={styles.header}>
-                <Text style={styles.title}>รายงานสมุดจดบันทึก (Notebook Report)</Text>
-                {formattedRange ? (
-                  <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text>
-                ) : null}
-                <Text style={styles.subtitle}>
-                  พิมพ์เมื่อ: {printDate}
-                  {userName ? ` | โดย: ${userName}` : ""}
-                </Text>
-              </View>
+        <Page size="A4" orientation="landscape" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.title}>รายงานสมุดจดบันทึก (Notebook Report)</Text>
+            {formattedRange ? (
+              <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text>
             ) : null}
-            {renderActivityTable(pageRows)}
-            {renderFooter()}
-          </Page>
-        ))}
+            <Text style={styles.subtitle}>
+              พิมพ์เมื่อ: {printDate}
+              {userName ? ` | โดย: ${userName}` : ""}
+            </Text>
+          </View>
+          {renderActivityTable(rows)}
+          {renderFooter()}
+        </Page>
       </Document>
     );
   }
 
   return (
     <Document title="Notebook Self Report">
-      {selfLeadSummaryPages.map((pageRows, pageIndex) => (
-        <Page
-          key={`notebook-self-summary-${pageIndex}`}
-          size="A4"
-          orientation="landscape"
-          style={styles.page}
-        >
-          {pageIndex === 0 ? (
-            <>
-              <View style={styles.header}>
-                <Text style={styles.title}>Notebook Self Report</Text>
-                {formattedRange ? (
-                  <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text>
-                ) : null}
-                <Text style={styles.subtitle}>
-                  พิมพ์เมื่อ: {printDate}
-                  {userName ? ` | โดย: ${userName}` : ""}
-                </Text>
-              </View>
+      <Page size="A4" orientation="landscape" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Notebook Self Report</Text>
+          {formattedRange ? <Text style={styles.subtitle}>ช่วงเวลา: {formattedRange}</Text> : null}
+          <Text style={styles.subtitle}>
+            พิมพ์เมื่อ: {printDate}
+            {userName ? ` | โดย: ${userName}` : ""}
+          </Text>
+        </View>
 
-              <Text style={sectionStyles.sectionTitle}>Lead Intake Summary</Text>
-              <Text style={sectionStyles.sectionSubtitle}>
-                สรุปรายการที่เพิ่มลูกค้าเข้า Notebook queue ในช่วงวันที่ที่เลือก โดยอิงวันที่เพิ่ม
-                lead เข้า queue
-              </Text>
+        <View wrap={false}>
+          <Text style={sectionStyles.sectionTitle}>Lead Intake Summary</Text>
+          <Text style={sectionStyles.sectionSubtitle}>
+            สรุปรายการที่เพิ่มลูกค้าเข้า Notebook queue ในช่วงวันที่ที่เลือก โดยอิงวันที่เพิ่ม lead
+            เข้า queue
+          </Text>
 
-              <View style={sectionStyles.summaryCardRow}>
-                <View style={sectionStyles.summaryCard}>
-                  <Text style={sectionStyles.summaryLabel}>ผู้ส่งออก</Text>
-                  <Text style={sectionStyles.summaryValue}>{userName || "-"}</Text>
-                </View>
-                <View style={sectionStyles.summaryCard}>
-                  <Text style={sectionStyles.summaryLabel}>จำนวน lead additions</Text>
-                  <Text style={sectionStyles.summaryValue}>{leadSummaryRows.length}</Text>
-                </View>
-                <View style={sectionStyles.summaryCard}>
-                  <Text style={sectionStyles.summaryLabel}>จำนวนครั้ง Recall</Text>
-                  <Text style={sectionStyles.summaryValue}>{recallCount}</Text>
-                </View>
-                <View style={sectionStyles.summaryCard}>
-                  <Text style={sectionStyles.summaryLabel}>ช่วงวันที่</Text>
-                  <Text style={sectionStyles.summaryValue}>{formattedRange || "-"}</Text>
-                </View>
-              </View>
-            </>
-          ) : null}
-          {renderLeadSummaryTable(pageRows)}
-          {renderFooter()}
-        </Page>
-      ))}
-
-      {selfActivityPages.map((pageRows, pageIndex) => (
-        <Page
-          key={`notebook-self-activity-${pageIndex}`}
-          size="A4"
-          orientation="landscape"
-          style={styles.page}
-        >
-          {pageIndex === 0 ? (
-            <View style={styles.header}>
-              <Text style={sectionStyles.sectionTitle}>Daily Activity Report</Text>
-              <Text style={sectionStyles.sectionSubtitle}>
-                ตารางกิจกรรมประจำวันจาก activity/history รวมธุระส่วนตัวและ recall แบบบรรทัดข้อความ
-              </Text>
+          <View style={sectionStyles.summaryCardRow}>
+            <View style={sectionStyles.summaryCard}>
+              <Text style={sectionStyles.summaryLabel}>ผู้ส่งออก</Text>
+              <Text style={sectionStyles.summaryValue}>{userName || "-"}</Text>
             </View>
-          ) : null}
-          {renderActivityTable(pageRows)}
-          {renderFooter()}
-        </Page>
-      ))}
+            <View style={sectionStyles.summaryCard}>
+              <Text style={sectionStyles.summaryLabel}>จำนวน lead additions</Text>
+              <Text style={sectionStyles.summaryValue}>{leadSummaryRows.length}</Text>
+            </View>
+            <View style={sectionStyles.summaryCard}>
+              <Text style={sectionStyles.summaryLabel}>จำนวนครั้ง Recall</Text>
+              <Text style={sectionStyles.summaryValue}>{recallCount}</Text>
+            </View>
+            <View style={sectionStyles.summaryCard}>
+              <Text style={sectionStyles.summaryLabel}>ช่วงวันที่</Text>
+              <Text style={sectionStyles.summaryValue}>{formattedRange || "-"}</Text>
+            </View>
+          </View>
+        </View>
+
+        {renderLeadSummaryTable(leadSummaryRows)}
+        {renderFooter()}
+      </Page>
+
+      <Page size="A4" orientation="landscape" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={sectionStyles.sectionTitle}>Daily Activity Report</Text>
+          <Text style={sectionStyles.sectionSubtitle}>
+            ตารางกิจกรรมประจำวันจาก activity/history รวมธุระส่วนตัวและ recall แบบบรรทัดข้อความ
+          </Text>
+        </View>
+        {renderActivityTable(rows)}
+        {renderFooter()}
+      </Page>
     </Document>
   );
 };

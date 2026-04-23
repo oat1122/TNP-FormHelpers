@@ -7,6 +7,7 @@ import {
   MdEdit,
   MdMoreHoriz,
   MdPersonAdd,
+  MdSwapHoriz,
   MdVisibility,
 } from "react-icons/md";
 
@@ -27,6 +28,7 @@ const NotebookRowActions = ({
   scopeFilter = "all",
   canReserveQueue = false,
   queueActionMode = null,
+  canTransferMineToSales = false,
 }) => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const callHref = useMemo(
@@ -42,6 +44,16 @@ const NotebookRowActions = ({
   const canDelete = userRole === "admin" && !row.nb_converted_at && !isQueueRow;
   const canConvert = !isCustomerCare && !isPersonalActivity && !row.nb_converted_at && !isQueueRow;
   const canEdit = !row.nb_converted_at && !isQueueRow;
+  // Transfer (reassign) is only meaningful on rows the user already owns:
+  // not a queue row (queue has its own assign/reserve flow), not converted,
+  // and not a personal/customer-care side-entry. Uses the same assign
+  // mutation — the backend just reassigns `nb_manage_by`.
+  const canTransferToSales =
+    canTransferMineToSales &&
+    !isQueueRow &&
+    !row.nb_converted_at &&
+    !isPersonalActivity &&
+    !isCustomerCare;
 
   const handleOpenMenu = (event) => {
     event.stopPropagation();
@@ -151,6 +163,23 @@ const NotebookRowActions = ({
 
         {isQueueRow ? null : (
           <>
+            {canTransferToSales ? (
+              <Tooltip title="โอนย้ายลูกค้ารายนี้ไปให้เซลส์">
+                <span>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    size="medium"
+                    startIcon={<MdSwapHoriz />}
+                    onClick={handleAction(onAssign, row)}
+                    sx={{ borderRadius: 999, textTransform: "none" }}
+                  >
+                    โอนย้าย
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : null}
+
             {!isCustomerCare ? (
               <Tooltip title={canConvert ? "แปลงเป็นลูกค้า" : "แปลงไม่ได้"}>
                 <span>
@@ -287,6 +316,12 @@ const NotebookRowActions = ({
           </Tooltip>
 
           <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleCloseMenu}>
+            {canTransferToSales ? (
+              <MenuItem onClick={handleAction(onAssign, row)}>
+                <MdSwapHoriz style={{ marginRight: 8, color: "#ed6c02" }} />
+                โอนย้ายไปเซลส์
+              </MenuItem>
+            ) : null}
             {!isCustomerCare ? (
               <MenuItem onClick={handleAction(onConvert, row)} disabled={!canConvert}>
                 <MdPersonAdd style={{ marginRight: 8 }} />

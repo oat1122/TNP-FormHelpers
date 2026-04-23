@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { MdExpandLess, MdExpandMore, MdHistory, MdSchedule } from "react-icons/md";
 
 const TIMELINE_FIELDS = [

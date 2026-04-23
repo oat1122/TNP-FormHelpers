@@ -43,7 +43,7 @@ export const useNotebookList = () => {
   const [convertNotebook, { isLoading: isConverting }] = useConvertNotebookMutation();
   const [reserveNotebook, { isLoading: isReserving }] = useReserveNotebookMutation();
   const [updateNotebook] = useUpdateNotebookMutation();
-  const rows = data?.rows || [];
+  const rows = useMemo(() => data?.rows || [], [data?.rows]);
   const isBulkAssignEnabled =
     pageState.scopeFilter === "queue" && pageState.queueActionMode === "assign";
   const selectableQueueIds = useMemo(

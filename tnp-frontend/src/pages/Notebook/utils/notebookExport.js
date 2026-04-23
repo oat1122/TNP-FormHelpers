@@ -168,9 +168,7 @@ const buildCustomerLabel = ({ customerName, isOnline }) => {
 
 const buildDisplayDate = (value, fallback) => {
   const itemDate = value ? new Date(value) : fallback;
-  const dayMonth = format(itemDate, "dd/MM");
-  const year = itemDate.getFullYear() + 543;
-  return `${dayMonth}/${year}`;
+  return format(itemDate, "dd/MM/yyyy");
 };
 
 const buildPersonalActivityRow = ({ notebook, historyEntry, at, index }) => {
@@ -426,7 +424,7 @@ export const buildNotebookPdfRows = (rows = []) => {
 
 export const buildNotebookCsvContent = ({ rows = [], exporterName = "", dateRange }) => {
   const exportMonth = format(new Date(dateRange.start), "MMMM", { locale: th });
-  const exportYear = new Date(dateRange.start).getFullYear() + 543;
+  const exportYear = new Date(dateRange.start).getFullYear();
   const monthHeader = `ประจำเดือน ${exportMonth} ${exportYear}`;
 
   const row1 = [exporterName, "", "", "", "", "", "", "", "", monthHeader];

@@ -5,6 +5,7 @@ import { formatDate as commonFormatDate } from "./notebookCommon";
 export const styles = StyleSheet.create({
   page: {
     padding: 24,
+    paddingBottom: 40,
     fontSize: 9,
     fontFamily: "Kanit",
     lineHeight: 1.45,
@@ -53,11 +54,11 @@ export const styles = StyleSheet.create({
   colDate: { width: "6%" },
   colTime: { width: "5%" },
   colCustomer: { width: "16%" },
-  colAdditional: { width: "18%" },
+  colAdditional: { width: "17%" },
   colContact: { width: "9%" },
-  colEmail: { width: "13%" },
+  colEmail: { width: "11%" },
   colPerson: { width: "9%" },
-  colAction: { width: "11%" },
+  colAction: { width: "14%" },
   colStatus: { width: "7%" },
   colRemarks: { width: "6%" },
   headerText: {
@@ -86,16 +87,22 @@ export const styles = StyleSheet.create({
     fontWeight: 600,
     lineHeight: 1.45,
     color: "#111",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   secondaryText: {
     fontSize: 8,
     lineHeight: 1.45,
     color: "#333",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   tertiaryText: {
     fontSize: 7,
     lineHeight: 1.45,
     color: "#999",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   personalActivityRow: {
     backgroundColor: "#fff5f5",
@@ -126,9 +133,11 @@ export const styles = StyleSheet.create({
   },
   actionText: {
     fontFamily: "Sarabun",
-    fontSize: 6.6,
-    lineHeight: 1.2,
+    fontSize: 8,
+    lineHeight: 1.35,
     color: "#333",
+    maxWidth: "100%",
+    flexShrink: 1,
   },
   statusBadge: {
     maxWidth: "100%",

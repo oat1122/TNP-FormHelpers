@@ -10,6 +10,7 @@ import {
 } from "../../../features/Notebook/notebookSlice";
 import { useGetAllUserQuery } from "../../../features/UserManagement/userManagementApi";
 import {
+  canAssignNotebookQueue,
   canExportNotebookSelfReport,
   canCreateCustomerCare,
   canViewAllNotebookScope,
@@ -33,6 +34,10 @@ export const useNotebookPageState = () => {
   const canSelfReport = canExportNotebookSelfReport(currentUser);
   const canOpenCustomerCare = canCreateCustomerCare(currentUser);
   const canCreateMineCustomer = isSupportSalesUser(currentUser);
+  // Mirrors "assign queue → sales" permission, but applies to rows the user
+  // already manages (scopeFilter === "mine"). Lets SUPPORT_SALES / HEAD_OFFLINE
+  // / admin hand a lead off to a sales user without going through the queue.
+  const canTransferMineToSales = canAssignNotebookQueue(currentUser);
   const queueActionMode = getNotebookQueueActionMode(currentUser);
   const defaultScopeFilter = useMemo(() => getDefaultNotebookScope(currentUser), [currentUser]);
   const defaultPeriodFilter = useMemo(() => getDefaultNotebookPeriodFilter(), []);
@@ -321,6 +326,7 @@ export const useNotebookPageState = () => {
     queueActionMode,
     canSelfReport,
     canCreateMineCustomer,
+    canTransferMineToSales,
     canCreateCustomerCare: canOpenCustomerCare,
     paginationModel,
     setPaginationModel,

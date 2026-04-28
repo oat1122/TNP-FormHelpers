@@ -3,6 +3,8 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import { useMemo } from "react";
 
+import { tokens } from "../../../shared/styles/quotationFormStyles";
+
 const STATUS_TABS = [
   { value: "all", label: "ทั้งหมด", color: "default" },
   { value: "approved", label: "อนุมัติแล้ว", color: "success" },
@@ -13,12 +15,12 @@ const STATUS_TABS = [
 ];
 
 const STATUS_COLORS = {
-  all: "#757575",
-  approved: "#2e7d32",
-  pending_review: "#ed6c02",
-  draft: "#616161",
-  completed: "#0288d1",
-  rejected: "#c62828",
+  all: tokens.textSecondary,
+  approved: tokens.success,
+  pending_review: tokens.warningDark,
+  draft: tokens.textMuted,
+  completed: tokens.info,
+  rejected: tokens.errorMain,
 };
 
 const ReportStatusTabs = ({ value, counts = {}, onChange }) => {

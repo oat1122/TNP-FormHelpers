@@ -9,9 +9,10 @@ import {
   Paper,
   Chip,
   Typography,
-  Skeleton,
 } from "@mui/material";
 import { useMemo } from "react";
+
+import { QuotationTableSkeleton } from "../../../components/SkeletonLoaders";
 
 const STATUS_CONFIG = {
   approved: { label: "อนุมัติแล้ว", color: "success" },
@@ -72,13 +73,7 @@ const ReportTableView = ({ data = [], isLoading = false }) => {
   };
 
   if (isLoading) {
-    return (
-      <Box>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} height={48} sx={{ mb: 0.5 }} />
-        ))}
-      </Box>
-    );
+    return <QuotationTableSkeleton rows={6} />;
   }
 
   if (!data.length) {

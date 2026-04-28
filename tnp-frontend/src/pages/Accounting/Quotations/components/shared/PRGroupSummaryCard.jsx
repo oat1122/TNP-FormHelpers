@@ -1,30 +1,15 @@
-// 📁shared/PRGroupSummaryCard.jsx
-import { Box, Typography, Grid, Chip } from "@mui/material";
+import { Box, Chip, Grid, Typography } from "@mui/material";
 import React from "react";
 
-const InfoCard = ({ children, sx, ...props }) => (
-  <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 1, ...sx }} {...props}>
-    {children}
-  </Box>
-);
-
-const tokens = {
-  primary: "#1976d2",
-  border: "#e0e0e0",
-};
+import { resolvePRGroupFields } from "./utils/prAutofillResolver";
+import { InfoCard, tokens } from "../../../shared/styles/quotationFormStyles";
 
 export const PRGroupSummaryCard = React.memo(function PRGroupSummaryCard({
   group,
   index,
   prAutofillData,
 }) {
-  const pr = prAutofillData || {};
-  const name =
-    group.name && group.name !== "-" ? group.name : pr.pr_work_name || pr.work_name || "-";
-  const pattern = group.pattern || pr.pr_pattern || "";
-  const fabric = group.fabricType || pr.pr_fabric_type || "";
-  const color = group.color || pr.pr_color || "";
-  const size = group.size || pr.pr_sizes || "";
+  const { name, pattern, fabric, color, size } = resolvePRGroupFields(group, prAutofillData);
   const totalQty = (group.sizeRows || []).reduce((s, r) => s + Number(r.quantity || 0), 0);
   const unit = group.unit || "ชิ้น";
 

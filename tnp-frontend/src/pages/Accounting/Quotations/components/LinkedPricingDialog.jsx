@@ -20,10 +20,13 @@ import {
   useGetPricingRequestAutofillQuery,
 } from "../../../../features/Accounting/accountingApi";
 import PricingRequestNotesButton from "../../PricingIntegration/components/PricingRequestNotesButton";
+import { tokens } from "../../shared/styles/quotationFormStyles";
+
+const BRAND_GRADIENT = `linear-gradient(135deg, ${tokens.primary} 0%, ${tokens.primaryDark} 100%)`;
 
 const Title = styled(DialogTitle)({
-  background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
-  color: "#fff",
+  background: BRAND_GRADIENT,
+  color: tokens.white,
   fontWeight: 700,
 });
 
@@ -145,8 +148,8 @@ const LinkedPricingDialog = ({ open, onClose, quotationId }) => {
           onClick={onClose}
           variant="contained"
           sx={{
-            background: "linear-gradient(135deg, #900F0F 0%, #B20000 100%)",
-            color: "#fff",
+            background: BRAND_GRADIENT,
+            color: tokens.white,
           }}
         >
           ปิด

@@ -1,418 +1,89 @@
+import { Close as CloseIcon, Save as SaveIcon } from "@mui/icons-material";
 import {
-  Close as CloseIcon,
-  Save as SaveIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
-  LocationOn as LocationOnIcon,
-  AddCircleOutline as AddCircleOutlineIcon,
-} from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Stepper,
-  Step,
-  StepLabel,
-  TextField,
   Alert,
+  Box,
+  Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   IconButton,
   Typography,
-  Divider,
-  Grid,
-  InputAdornment,
 } from "@mui/material";
 import { useState } from "react";
 
 import CustomerCreateDialog from "./CustomerCreateDialog";
-import CustomerSelector from "./CustomerSelector";
-import FinancialSummaryPanel from "./FinancialSummaryPanel";
 import { useQuotationStandaloneForm } from "./hooks/useQuotationStandaloneForm";
-import QuotationJobManager from "./QuotationJobManager";
-import { PAYMENT_TERMS } from "../../../shared/constants/paymentTerms";
+import { useQuotationStandaloneSubmit } from "./hooks/useQuotationStandaloneSubmit";
+import { useQuotationStandaloneValidation } from "./hooks/useQuotationStandaloneValidation";
+import CustomerStep from "./sections/CustomerStep";
+import FinancialStep from "./sections/FinancialStep";
+import JobsStep from "./sections/JobsStep";
+import StepperBar from "./sections/StepperBar";
+import { STEP_LABELS } from "./utils/standaloneFormDefaults";
 
-const steps = ["ข้อมูลลูกค้า", "ข้อมูลใบเสนอราคา", "การคำนวณทางการเงิน(สรุปรวม)"];
-
-/**
- * QuotationStandaloneCreateDialog (Dumb UI)
- * ทำหน้าที่เพียงแสดงผล UI และรับ props จาก useQuotationStandaloneForm
- */
 const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }) => {
-  // State สำหรับเปิด/ปิด Dialog สร้างลูกค้า
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
 
-  // เรียกใช้ Hook เพื่อดึง State และ Handlers
-  const {
-    activeStep,
-    errors,
-    apiError,
-    formData,
-    financials,
-    selectedCustomer,
-    companies,
-    financialPanelItems,
-    isLoading,
-    isLoadingCompanies,
-    handleNext,
-    handleBack,
-    handleSubmit,
-    handleChange,
-    handleJobsChange,
-    handleFinancialsChange,
-    setSelectedCustomer,
-  } = useQuotationStandaloneForm({ open, onClose, onSuccess, companyId });
+  const form = useQuotationStandaloneForm({ open, companyId });
+  const validation = useQuotationStandaloneValidation(form.formData);
+  const submit = useQuotationStandaloneSubmit({
+    formData: form.formData,
+    financials: form.financials,
+    validate: () => validation.validateStep(form.activeStep),
+    onSuccess,
+    onClose,
+  });
 
-  // Logic การ render ถูกย้ายมานี่ แต่ใช้ State จาก Hook
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0: // ข้อมูลลูกค้า
+  const handleChange = (field, value) => {
+    form.handleChange(field, value);
+    validation.clearFieldError(field);
+  };
+
+  const handleNext = () => {
+    if (validation.validateStep(form.activeStep)) form.goNext();
+  };
+
+  const renderStep = () => {
+    switch (form.activeStep) {
+      case 0:
         return (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField
-              label="เลือกบริษัท"
-              value={formData.company_id}
-              onChange={(e) => handleChange("company_id", e.target.value)}
-              required
-              error={!!errors.company_id}
-              helperText={errors.company_id}
-              fullWidth
-              select
-              size="small"
-              disabled={isLoadingCompanies}
-              SelectProps={{ native: true }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BusinessIcon />
-                  </InputAdornment>
-                ),
-              }}
-            >
-              <option value="">-- กรุณาเลือกบริษัท --</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name} ({company.short_code})
-                </option>
-              ))}
-            </TextField>
-
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <PersonIcon /> ข้อมูลลูกค้า
-            </Typography>
-
-            {/* เพิ่มปุ่ม "สร้างลูกค้าใหม่" ข้าง CustomerSelector */}
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-              <Box sx={{ flexGrow: 1 }}>
-                <CustomerSelector
-                  value={selectedCustomer}
-                  onChange={setSelectedCustomer}
-                  error={!!errors.customer_id}
-                  helperText={errors.customer_id}
-                  required
-                />
-              </Box>
-              <Button
-                variant="outlined"
-                startIcon={<AddCircleOutlineIcon />}
-                onClick={() => setCreateCustomerOpen(true)}
-                sx={{
-                  height: "40px",
-                  whiteSpace: "nowrap",
-                  minWidth: "fit-content",
-                }}
-              >
-                สร้างลูกค้าใหม่
-              </Button>
-            </Box>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="ชื่อบริษัท"
-                  value={formData.customer_company}
-                  onChange={(e) => handleChange("customer_company", e.target.value)}
-                  required
-                  error={!!errors.customer_company}
-                  helperText={errors.customer_company}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="เบอร์โทรศัพท์"
-                  value={formData.customer_phone}
-                  onChange={(e) => handleChange("customer_phone", e.target.value)}
-                  required
-                  error={!!errors.customer_phone}
-                  helperText={errors.customer_phone}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <PersonIcon /> ข้อมูลผู้ติดต่อ
-            </Typography>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="ชื่อ"
-                  value={formData.contact_firstname}
-                  onChange={(e) => handleChange("contact_firstname", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="นามสกุล"
-                  value={formData.contact_lastname}
-                  onChange={(e) => handleChange("contact_lastname", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  label="ชื่อเล่น"
-                  value={formData.contact_nickname}
-                  onChange={(e) => handleChange("contact_nickname", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="ตำแหน่ง/แผนก"
-                  value={formData.contact_position}
-                  onChange={(e) => handleChange("contact_position", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="เบอร์โทรสำรอง"
-                  value={formData.contact_phone_alt}
-                  onChange={(e) => handleChange("contact_phone_alt", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="อีเมล"
-                  value={formData.customer_email}
-                  onChange={(e) => handleChange("customer_email", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="เลขประจำตัวผู้เสียภาษี"
-                  value={formData.customer_tax_id}
-                  onChange={(e) => handleChange("customer_tax_id", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <LocationOnIcon /> ข้อมูลที่อยู่
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  label="ที่อยู่"
-                  value={formData.customer_address}
-                  onChange={(e) => handleChange("customer_address", e.target.value)}
-                  fullWidth
-                  size="small"
-                  multiline
-                  rows={2}
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-              {/* Add Province, District, Sub-district, Zipcode fields here if needed */}
-              <Grid item xs={12} md={3}>
-                <TextField
-                  label="รหัสไปรษณีย์"
-                  value={formData.customer_zip_code}
-                  onChange={(e) => handleChange("customer_zip_code", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: !!selectedCustomer,
-                    sx: selectedCustomer ? { backgroundColor: "#f5f5f5" } : {},
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+          <CustomerStep
+            formData={form.formData}
+            errors={validation.errors}
+            companies={form.companies}
+            isLoadingCompanies={form.isLoadingCompanies}
+            selectedCustomer={form.selectedCustomer}
+            onChange={handleChange}
+            onSelectCustomer={form.setSelectedCustomer}
+            onOpenCreateCustomer={() => setCreateCustomerOpen(true)}
+          />
         );
-
-      case 1: {
-        // ข้อมูลใบเสนอราคา
-        const isCredit =
-          formData.payment_terms === PAYMENT_TERMS.CREDIT_30 ||
-          formData.payment_terms === PAYMENT_TERMS.CREDIT_60;
-
+      case 1:
         return (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6">รายการงาน</Typography>
-            {errors.jobs && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {errors.jobs}
-              </Alert>
-            )}
-            <QuotationJobManager jobs={formData.jobs} onChange={handleJobsChange} errors={errors} />
-
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-              <TextField
-                label="เงื่อนไขการชำระเงิน"
-                value={formData.payment_terms}
-                onChange={(e) => handleChange("payment_terms", e.target.value)}
-                fullWidth
-                size="small"
-                select
-                SelectProps={{ native: true }}
-              >
-                <option value={PAYMENT_TERMS.CREDIT_30}>เครดิต 30 วัน</option>
-                <option value={PAYMENT_TERMS.CREDIT_60}>เครดิต 60 วัน</option>
-                <option value={PAYMENT_TERMS.CASH}>เงินสด</option>
-                <option value={PAYMENT_TERMS.OTHER}>อื่นๆ (กำหนดเอง)</option>
-              </TextField>
-
-              {isCredit && (
-                <TextField
-                  label="วันครบกำหนด"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => handleChange("due_date", e.target.value)}
-                  fullWidth
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-            </Box>
-
-            {formData.payment_terms === PAYMENT_TERMS.OTHER && (
-              <TextField
-                label="เงื่อนไขการชำระเงิน (กำหนดเอง)"
-                value={formData.payment_terms_custom}
-                onChange={(e) => handleChange("payment_terms_custom", e.target.value)}
-                fullWidth
-                placeholder="เช่น จ่าย 50% ก่อนเริ่มงาน, ส่วนที่เหลือ 30 วัน"
-                size="small"
-                required
-              />
-            )}
-
-            <TextField
-              label="ประเภทหัวกระดาษ"
-              value={formData.document_header_type}
-              onChange={(e) => handleChange("document_header_type", e.target.value)}
-              fullWidth
-              select
-              SelectProps={{ native: true }}
-              size="small"
-            >
-              <option value="ต้นฉบับ">ต้นฉบับ</option>
-              <option value="สำเนา">สำเนา</option>
-            </TextField>
-
-            <TextField
-              label="หมายเหตุ"
-              value={formData.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-              placeholder="หมายเหตุเพิ่มเติม..."
-              size="small"
-            />
-          </Box>
+          <JobsStep
+            formData={form.formData}
+            errors={validation.errors}
+            onChange={handleChange}
+            onJobsChange={form.handleJobsChange}
+          />
         );
-      }
-
-      case 2: // การคำนวณทางการเงิน(สรุปรวม)
+      case 2:
         return (
-          <Box>
-            <FinancialSummaryPanel
-              items={financialPanelItems}
-              financials={financials}
-              onChange={handleFinancialsChange}
-            />
-          </Box>
+          <FinancialStep
+            items={form.financialPanelItems}
+            financials={form.financials}
+            onChange={form.handleFinancialsChange}
+          />
         );
-
       default:
         return null;
     }
   };
+
+  const isLastStep = form.activeStep === STEP_LABELS.length - 1;
 
   return (
     <>
@@ -421,9 +92,7 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
         onClose={onClose}
         maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: { height: "90vh" },
-        }}
+        PaperProps={{ sx: { height: "90vh" } }}
       >
         <DialogTitle>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -433,42 +102,28 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
             </IconButton>
           </Box>
         </DialogTitle>
-
         <Divider />
-
         <DialogContent sx={{ pt: 3 }}>
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          {apiError && (
+          <StepperBar activeStep={form.activeStep} />
+          {submit.apiError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {apiError?.data?.message || "เกิดข้อผิดพลาด"}
+              {submit.apiError?.data?.message || "เกิดข้อผิดพลาด"}
             </Alert>
           )}
-
-          <Box sx={{ minHeight: 400 }}>{renderStepContent(activeStep)}</Box>
+          <Box sx={{ minHeight: 400 }}>{renderStep()}</Box>
         </DialogContent>
-
         <Divider />
-
         <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
-          <Button onClick={onClose} disabled={isLoading}>
+          <Button onClick={onClose} disabled={submit.isLoading}>
             ยกเลิก
           </Button>
-
           <Box sx={{ display: "flex", gap: 1 }}>
-            {activeStep > 0 && (
-              <Button onClick={handleBack} disabled={isLoading}>
+            {form.activeStep > 0 && (
+              <Button onClick={form.goBack} disabled={submit.isLoading}>
                 ย้อนกลับ
               </Button>
             )}
-
-            {activeStep < steps.length - 1 ? (
+            {!isLastStep ? (
               <Button variant="contained" onClick={handleNext}>
                 ถัดไป
               </Button>
@@ -476,25 +131,23 @@ const QuotationStandaloneCreateDialog = ({ open, onClose, onSuccess, companyId }
               <Button
                 variant="contained"
                 color="primary"
-                onClick={handleSubmit}
-                disabled={isLoading}
-                startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
+                onClick={submit.handleSubmit}
+                disabled={submit.isLoading}
+                startIcon={submit.isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
               >
-                {isLoading ? "กำลังบันทึก..." : "สร้างใบเสนอราคา"}
+                {submit.isLoading ? "กำลังบันทึก..." : "สร้างใบเสนอราคา"}
               </Button>
             )}
           </Box>
         </DialogActions>
       </Dialog>
 
-      {/* Render CustomerCreateDialog */}
       {createCustomerOpen && (
         <CustomerCreateDialog
           open={createCustomerOpen}
           onClose={() => setCreateCustomerOpen(false)}
           onSuccess={(newCustomer) => {
-            // เมื่อสร้างสำเร็จ: เลือก customer ใหม่ใน Selector
-            setSelectedCustomer(newCustomer);
+            form.setSelectedCustomer(newCustomer);
             setCreateCustomerOpen(false);
           }}
         />

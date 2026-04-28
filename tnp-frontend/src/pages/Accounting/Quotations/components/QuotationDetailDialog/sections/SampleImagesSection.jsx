@@ -84,7 +84,9 @@ const SampleImagesSection = ({
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 8,
-                      border: checked ? `2px solid ${tokens.primary}` : "1px solid #ddd",
+                      border: checked
+                        ? `2px solid ${tokens.primary}`
+                        : `1px solid ${tokens.divider}`,
                       padding: 6,
                       borderRadius: 6,
                       cursor: "pointer",
@@ -153,7 +155,7 @@ const SampleImagesSection = ({
                             border: "1px solid " + tokens.border,
                             borderRadius: 1,
                             p: 1,
-                            bgcolor: "#fff",
+                            bgcolor: tokens.white,
                             cursor: "pointer",
                             position: "relative",
                           }}
@@ -172,7 +174,7 @@ const SampleImagesSection = ({
                               overflow: "hidden",
                               borderRadius: 1,
                               mb: 1,
-                              background: "#fafafa",
+                              background: tokens.bgAlt,
                             }}
                           >
                             <img

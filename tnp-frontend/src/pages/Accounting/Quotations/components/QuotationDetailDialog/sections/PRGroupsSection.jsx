@@ -200,10 +200,12 @@ const PRGroupsSection = ({
               </Typography>
               {canEdit && (
                 <>
-                  <SecondaryButton size="small" startIcon={<EditIcon />} onClick={onToggleEdit}>
-                    {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
-                  </SecondaryButton>
-                  {isEditing && (
+                  {onToggleEdit && (
+                    <SecondaryButton size="small" startIcon={<EditIcon />} onClick={onToggleEdit}>
+                      {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
+                    </SecondaryButton>
+                  )}
+                  {isEditing && onAddNewGroup && (
                     <SecondaryButton size="small" startIcon={<AddIcon />} onClick={onAddNewGroup}>
                       เพิ่มงานใหม่
                     </SecondaryButton>

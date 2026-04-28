@@ -100,8 +100,8 @@ const SyncProgressDialog = ({ open, syncJobId, onClose }) => {
   }, [isCompleted, isFailed, job, dispatch, onClose]);
 
   const getStatusIcon = () => {
-    if (isCompleted) return <CheckCircle sx={{ fontSize: 48, color: "#4caf50" }} />;
-    if (isFailed) return <ErrorIcon sx={{ fontSize: 48, color: "#f44336" }} />;
+    if (isCompleted) return <CheckCircle sx={{ fontSize: 48, color: tokens.successBright }} />;
+    if (isFailed) return <ErrorIcon sx={{ fontSize: 48, color: tokens.errorMain }} />;
     return (
       <Sync sx={{ fontSize: 48, color: tokens.primary, animation: "spin 2s linear infinite" }} />
     );
@@ -115,8 +115,8 @@ const SyncProgressDialog = ({ open, syncJobId, onClose }) => {
   };
 
   const getStatusColor = () => {
-    if (isCompleted) return "#4caf50";
-    if (isFailed) return "#f44336";
+    if (isCompleted) return tokens.successBright;
+    if (isFailed) return tokens.errorMain;
     return tokens.primary;
   };
 

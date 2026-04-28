@@ -1,37 +1,26 @@
-// 📁hooks/useQuotationDuplicateDialogLogic.js
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
-import { useCreateStandaloneQuotationMutation } from "../../../../../../features/Accounting/accountingApi";
 import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
-import {
-  showSuccess,
-  showError,
-  showLoading,
-  dismissToast,
-} from "../../../../utils/accountingToast";
-import { pickQuotation, normalizeCustomer, toISODate } from "../../shared/utils/quotationUtils";
+import { normalizeCustomer, pickQuotation } from "../../shared/utils/quotationUtils";
 
-/**
- * Hook สำหรับ Dialog การทำสำเนาใบเสนอราคา
- * ใช้ initialData แทนการ fetch และใช้ create แทน update
- */
-export function useQuotationDuplicateDialogLogic(initialData, open) {
-  // ไม่มี isLoading เพราะข้อมูลมาจาก props
-  const q = pickQuotation(initialData);
-  const isLoading = false;
-  const error = null;
+// State holder for QuotationDuplicateDialog. Mirrors useQuotationDialogLogic but
+// seeds from the `initialData` prop (no fetch). Returns nested `formState` +
+// `setters` objects so the shell + Phase 4 sections can consume the same shape.
+//
+// Effects (re-syncing on `open` / `initialData` change) live in
+// `useQuotationDialogFinancialsInit` (reused from Phase 4).
+export function useQuotationDuplicateDialogLogic(initialData) {
+  const q = useMemo(() => pickQuotation(initialData), [initialData]);
 
-  const [createQuotation, { isLoading: isSaving }] = useCreateStandaloneQuotationMutation();
-
-  // State for Customer
+  // Customer
   const [customer, setCustomer] = useState(() => normalizeCustomer(q));
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
 
-  // State for Payment Terms & Notes
+  // Notes + due date
   const [quotationNotes, setQuotationNotes] = useState(q?.notes || "");
   const [selectedDueDate, setSelectedDueDate] = useState(q?.due_date ? new Date(q.due_date) : null);
 
-  // Payment terms: support predefined codes and a custom (อื่นๆ) value
+  // Payment terms — predefined codes vs custom string
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
@@ -53,7 +42,7 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
     isKnownTerms ? "" : initialRawTerms || ""
   );
 
-  // Deposit state (supports percentage | amount)
+  // Deposit (percentage | amount)
   const inferredDepositPct =
     q?.deposit_percentage ?? (initialRawTerms === PAYMENT_TERMS.CASH ? 0 : 50);
 
@@ -63,9 +52,8 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
     q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : ""
   );
 
-  // Financial states (editable)
+  // Financial states
   const [specialDiscountType, setSpecialDiscountType] = useState(() => {
-    // infer type from existing data
     if ((q?.special_discount_percentage ?? 0) > 0) return "percentage";
     if ((q?.special_discount_amount ?? 0) > 0) return "amount";
     return "percentage";
@@ -79,194 +67,70 @@ export function useQuotationDuplicateDialogLogic(initialData, open) {
   const [withholdingTaxPercentage, setWithholdingTaxPercentage] = useState(() =>
     Number(q?.withholding_tax_percentage || 0)
   );
-
-  // VAT states (NEW)
   const [hasVat, setHasVat] = useState(() => q?.has_vat ?? true);
   const [vatPercentage, setVatPercentage] = useState(() => Number(q?.vat_percentage || 7));
   const [pricingMode, setPricingMode] = useState(() => q?.pricing_mode || "net");
 
-  // Effect to sync state when initialData changes
-  useEffect(() => {
-    if (!open) return;
-    const freshQ = pickQuotation(initialData);
-    setCustomer(normalizeCustomer(freshQ));
-    setQuotationNotes(freshQ?.notes || "");
+  const formState = useMemo(
+    () => ({
+      notes: quotationNotes,
+      dueDate: selectedDueDate,
+      payment: { type: paymentTermsType, custom: paymentTermsCustom },
+      deposit: {
+        mode: depositMode,
+        percentage: depositPct,
+        amountInput: depositAmountInput,
+      },
+      specialDiscount: { type: specialDiscountType, value: specialDiscountValue },
+      withholding: { enabled: hasWithholdingTax, percentage: withholdingTaxPercentage },
+      vat: { enabled: hasVat, percentage: vatPercentage },
+      pricingMode,
+    }),
+    [
+      quotationNotes,
+      selectedDueDate,
+      paymentTermsType,
+      paymentTermsCustom,
+      depositMode,
+      depositPct,
+      depositAmountInput,
+      specialDiscountType,
+      specialDiscountValue,
+      hasWithholdingTax,
+      withholdingTaxPercentage,
+      hasVat,
+      vatPercentage,
+      pricingMode,
+    ]
+  );
 
-    const raw =
-      freshQ?.payment_terms ||
-      freshQ?.payment_method ||
-      (freshQ?.credit_days === 30
-        ? PAYMENT_TERMS.CREDIT_30
-        : freshQ?.credit_days === 60
-          ? PAYMENT_TERMS.CREDIT_60
-          : PAYMENT_TERMS.CASH);
-    const known = [PAYMENT_TERMS.CASH, PAYMENT_TERMS.CREDIT_30, PAYMENT_TERMS.CREDIT_60].includes(
-      raw
-    );
-    setPaymentTermsType(known ? raw : PAYMENT_TERMS.OTHER);
-    setPaymentTermsCustom(known ? "" : raw || "");
-
-    setDepositPct(freshQ?.deposit_percentage ?? (raw === PAYMENT_TERMS.CASH ? 0 : 50));
-    setDepositMode(freshQ?.deposit_mode || "percentage");
-    setDepositAmountInput(freshQ?.deposit_mode === "amount" ? (freshQ?.deposit_amount ?? "") : "");
-    setSelectedDueDate(freshQ?.due_date ? new Date(freshQ.due_date) : null);
-
-    // Financial fields
-    if ((freshQ?.special_discount_percentage ?? 0) > 0) {
-      setSpecialDiscountType("percentage");
-      setSpecialDiscountValue(Number(freshQ.special_discount_percentage));
-    } else if ((freshQ?.special_discount_amount ?? 0) > 0) {
-      setSpecialDiscountType("amount");
-      setSpecialDiscountValue(Number(freshQ.special_discount_amount));
-    } else {
-      setSpecialDiscountType("percentage");
-      setSpecialDiscountValue(0);
-    }
-
-    setHasWithholdingTax(!!freshQ?.has_withholding_tax);
-    setWithholdingTaxPercentage(Number(freshQ?.withholding_tax_percentage || 0));
-
-    // VAT settings (NEW)
-    setHasVat(freshQ?.has_vat ?? true);
-    setVatPercentage(Number(freshQ?.vat_percentage || 7));
-    setPricingMode(freshQ?.pricing_mode || "net");
-  }, [open, initialData]);
-
-  // Main Save Handler (สร้างใบใหม่)
-  const handleSave = async (groups, financials) => {
-    // ✅ ใช้ global sequence counter เพื่อป้องกัน duplicate sequence_order
-    let globalSequence = 0;
-
-    // Map editable groups back to API items
-    const flatItems = groups.flatMap((g) => {
-      const unit = g.unit || "ชิ้น";
-      const base = {
-        pricing_request_id: g.prId || null,
-        item_name: g.name || "ไม่ระบุชื่องาน",
-        item_description: "",
-        pattern: g.pattern || "",
-        fabric_type: g.fabricType || "",
-        color: g.color || "",
-        unit,
-      };
-      return (g.sizeRows || []).map((r) => {
-        globalSequence++; // ✅ เพิ่ม global counter
-        const qty =
-          typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);
-        const price =
-          typeof r.unitPrice === "string"
-            ? parseFloat(r.unitPrice || "0")
-            : Number(r.unitPrice || 0);
-        return {
-          ...base,
-          size: r.size || "",
-          unit_price: isNaN(price) ? 0 : price,
-          quantity: isNaN(qty) ? 0 : qty,
-          notes: r.notes || "",
-          sequence_order: globalSequence, // ✅ ใช้ global sequence
-        };
-      });
-    });
-
-    const isCredit =
-      paymentTermsType === PAYMENT_TERMS.CREDIT_30 || paymentTermsType === PAYMENT_TERMS.CREDIT_60;
-    const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
-
-    const loadingId = showLoading("กำลังสร้างใบเสนอราคา (สำเนา)…");
-
-    try {
-      await createQuotation({
-        // ข้อมูลที่ createStandalone ต้องการ
-        company_id: q.company_id,
-        customer_id: customer.cus_id || q.customer_id,
-        work_name: q.work_name,
-
-        // ✅ เพิ่ม primary_pricing_request_id และ primary_pricing_request_ids
-        primary_pricing_request_id: q.primary_pricing_request_id || null,
-        primary_pricing_request_ids: q.primary_pricing_request_ids || [],
-
-        items: flatItems,
-
-        // Financials
-        subtotal: financials.subtotal,
-        net_subtotal: financials.netSubtotal,
-        tax_amount: financials.vat,
-        total_amount: financials.total,
-        special_discount_percentage:
-          specialDiscountType === "percentage" ? Number(specialDiscountValue || 0) : 0,
-        special_discount_amount:
-          specialDiscountType === "amount"
-            ? Number(specialDiscountValue || 0)
-            : financials.specialDiscountAmount,
-        has_vat: hasVat,
-        vat_percentage: Number(vatPercentage || 0),
-        pricing_mode: pricingMode,
-        has_withholding_tax: hasWithholdingTax,
-        withholding_tax_percentage: hasWithholdingTax ? Number(withholdingTaxPercentage || 0) : 0,
-        withholding_tax_amount: financials.withholdingTaxAmount,
-        final_total_amount: financials.finalTotal,
-        deposit_percentage:
-          depositMode === "percentage"
-            ? Number(depositPct || 0)
-            : Number(financials.depositPercentage || 0),
-        deposit_amount: financials.depositAmount,
-        deposit_mode: depositMode,
-        payment_terms:
-          paymentTermsType === PAYMENT_TERMS.OTHER ? paymentTermsCustom || "" : paymentTermsType,
-        due_date: dueDateForSave,
-        notes: quotationNotes || "",
-
-        // Sample images (ถ้ามี)
-        sample_images: q?.sample_images || [],
-      }).unwrap();
-
-      dismissToast(loadingId);
-      showSuccess("สร้างใบเสนอราคา (สำเนา) เรียบร้อย");
-      return true;
-    } catch (e) {
-      dismissToast(loadingId);
-      showError(e?.data?.message || e?.message || "สร้างใบเสนอราคาไม่สำเร็จ");
-      return false;
-    }
-  };
+  const setters = useMemo(
+    () => ({
+      setCustomer,
+      setEditCustomerOpen,
+      setQuotationNotes,
+      setSelectedDueDate,
+      setPaymentTermsType,
+      setPaymentTermsCustom,
+      setDepositMode,
+      setDepositPct,
+      setDepositAmountInput,
+      setSpecialDiscountType,
+      setSpecialDiscountValue,
+      setHasWithholdingTax,
+      setWithholdingTaxPercentage,
+      setHasVat,
+      setVatPercentage,
+      setPricingMode,
+    }),
+    []
+  );
 
   return {
     q,
-    isLoading,
-    isSaving,
-    error,
     customer,
-    setCustomer,
     editCustomerOpen,
-    setEditCustomerOpen,
-    quotationNotes,
-    setQuotationNotes,
-    selectedDueDate,
-    setSelectedDueDate,
-    paymentTermsType,
-    setPaymentTermsType,
-    paymentTermsCustom,
-    setPaymentTermsCustom,
-    depositMode,
-    setDepositMode,
-    depositPct,
-    setDepositPct,
-    depositAmountInput,
-    setDepositAmountInput,
-    specialDiscountType,
-    setSpecialDiscountType,
-    specialDiscountValue,
-    setSpecialDiscountValue,
-    hasWithholdingTax,
-    setHasWithholdingTax,
-    withholdingTaxPercentage,
-    setWithholdingTaxPercentage,
-    hasVat,
-    setHasVat,
-    vatPercentage,
-    setVatPercentage,
-    pricingMode,
-    setPricingMode,
-    handleSave,
+    formState,
+    setters,
   };
 }

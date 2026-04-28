@@ -82,7 +82,7 @@ const SyncDialogs = ({
 
       <Dialog open={!!previewImage} onClose={onClosePreviewImage} maxWidth="md" fullWidth>
         <DialogTitle>{previewImage?.filename || "ภาพตัวอย่าง"}</DialogTitle>
-        <DialogContent dividers sx={{ bgcolor: "#000" }}>
+        <DialogContent dividers sx={{ bgcolor: "common.black" }}>
           {previewImage && (
             <Box sx={{ position: "relative", width: "100%", textAlign: "center" }}>
               <img

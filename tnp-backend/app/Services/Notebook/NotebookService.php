@@ -690,25 +690,30 @@ class NotebookService
 
     protected function validateAssignableNotebook(Notebook $notebook): void
     {
-        if (! $notebook->isLeadQueue()) {
-            throw new \DomainException('Only lead queue notebooks can be assigned.');
-        }
-
         if ($notebook->nb_converted_at) {
             throw new \DomainException('This notebook lead has already been converted.');
         }
 
-        if ($notebook->nb_manage_by) {
-            throw new \DomainException('This notebook lead has already been assigned.');
+        if ($notebook->isCustomerCare() || $notebook->isPersonalActivity()) {
+            throw new \DomainException('This notebook entry type cannot be assigned to a sales user.');
         }
     }
 
     protected function assignLockedNotebook(Notebook $notebook, int $assigneeUserId, int $actionUserId): void
     {
+        $isReassignment = ! empty($notebook->nb_manage_by)
+            && (int) $notebook->nb_manage_by !== $assigneeUserId;
+
         $notebook->nb_manage_by = $assigneeUserId;
-        $notebook->nb_claimed_at = now();
+
+        // Only stamp the initial claim timestamp on the first assignment.
+        // Reassignments preserve the original claimed-at so ownership history stays intact.
+        if (empty($notebook->nb_claimed_at)) {
+            $notebook->nb_claimed_at = now();
+        }
+
         $notebook->updated_by = $actionUserId;
-        $notebook->setHistoryContext('assigned');
+        $notebook->setHistoryContext($isReassignment ? 'reassigned' : 'assigned');
         $notebook->save();
     }
 

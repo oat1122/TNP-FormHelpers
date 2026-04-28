@@ -1,66 +1,30 @@
-// 📁hooks/useQuotationDialogLogic.js
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useState } from "react";
 
-import {
-  useGetQuotationQuery,
-  useUpdateQuotationMutation,
-} from "../../../../../../features/Accounting/accountingApi";
+import { useGetQuotationQuery } from "../../../../../../features/Accounting/accountingApi";
 import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
-import {
-  showSuccess,
-  showError,
-  showLoading,
-  dismissToast,
-} from "../../../../utils/accountingToast";
-import {
-  pickQuotation,
-  normalizeCustomer,
-  toISODate,
-  computeTotals,
-} from "../../shared/utils/quotationUtils";
+import { normalizeCustomer, pickQuotation } from "../../shared/utils/quotationUtils";
 
-// Validation helper for manual jobs
-function validateManualJob(group) {
-  const errors = [];
-
-  if (!group.name || group.name.trim() === "") {
-    errors.push("กรุณากรอกชื่องาน");
-  }
-
-  const hasValidRows = group.sizeRows && group.sizeRows.length > 0;
-  if (!hasValidRows) {
-    errors.push("กรุณาเพิ่มอย่างน้อย 1 รายการขนาด");
-  } else {
-    const allRowsEmpty = group.sizeRows.every(
-      (row) =>
-        (!row.quantity || row.quantity === "" || row.quantity === 0) &&
-        (!row.unitPrice || row.unitPrice === "" || row.unitPrice === 0)
-    );
-    if (allRowsEmpty) {
-      errors.push("กรุณากรอกจำนวนและราคาอย่างน้อย 1 รายการ");
-    }
-  }
-
-  return errors;
-}
-
+// State holder for QuotationDetailDialog. Pure storage + setters only —
+// effects live in `useQuotationDialogFinancialsInit`, save flow lives in
+// `useQuotationDialogSave`, and validation lives in `utils/manualJobValidator`.
+//
+// Returns an object grouping related state into nested slices so the shell
+// can hand sections a small, stable prop surface.
 export function useQuotationDialogLogic(quotationId, open) {
   const { data, isLoading, error } = useGetQuotationQuery(quotationId, {
     skip: !open || !quotationId,
   });
   const q = useMemo(() => pickQuotation(data), [data]);
 
-  const [updateQuotation, { isLoading: isSaving }] = useUpdateQuotationMutation();
-
-  // State for Customer
+  // Customer
   const [customer, setCustomer] = useState(() => normalizeCustomer(q));
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
 
-  // State for Payment Terms & Notes
+  // Notes + due date
   const [quotationNotes, setQuotationNotes] = useState(q?.notes || "");
   const [selectedDueDate, setSelectedDueDate] = useState(q?.due_date ? new Date(q.due_date) : null);
 
-  // Payment terms: support predefined codes and a custom (อื่นๆ) value
+  // Payment terms — predefined codes vs custom string
   const initialRawTerms =
     q?.payment_terms ||
     q?.payment_method ||
@@ -82,7 +46,7 @@ export function useQuotationDialogLogic(quotationId, open) {
     isKnownTerms ? "" : initialRawTerms || ""
   );
 
-  // Deposit state (supports percentage | amount)
+  // Deposit (percentage | amount)
   const inferredDepositPct =
     q?.deposit_percentage ?? (initialRawTerms === PAYMENT_TERMS.CASH ? 0 : 50);
 
@@ -92,9 +56,8 @@ export function useQuotationDialogLogic(quotationId, open) {
     q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : ""
   );
 
-  // Financial states (editable)
+  // Financial states
   const [specialDiscountType, setSpecialDiscountType] = useState(() => {
-    // infer type from existing data
     if ((q.special_discount_percentage ?? 0) > 0) return "percentage";
     if ((q.special_discount_amount ?? 0) > 0) return "amount";
     return "percentage";
@@ -108,303 +71,72 @@ export function useQuotationDialogLogic(quotationId, open) {
   const [withholdingTaxPercentage, setWithholdingTaxPercentage] = useState(() =>
     Number(q.withholding_tax_percentage || 0)
   );
-
-  // VAT states (NEW)
   const [hasVat, setHasVat] = useState(() => q?.has_vat ?? true);
   const [vatPercentage, setVatPercentage] = useState(() => Number(q?.vat_percentage || 7));
   const [pricingMode, setPricingMode] = useState(() => q?.pricing_mode || "net");
 
-  // Effect to sync state when quotation data is loaded or changed
-  useEffect(() => {
-    setCustomer(normalizeCustomer(q));
-  }, [q]);
+  const formState = useMemo(
+    () => ({
+      notes: quotationNotes,
+      dueDate: selectedDueDate,
+      payment: { type: paymentTermsType, custom: paymentTermsCustom },
+      deposit: {
+        mode: depositMode,
+        percentage: depositPct,
+        amountInput: depositAmountInput,
+      },
+      specialDiscount: { type: specialDiscountType, value: specialDiscountValue },
+      withholding: { enabled: hasWithholdingTax, percentage: withholdingTaxPercentage },
+      vat: { enabled: hasVat, percentage: vatPercentage },
+      pricingMode,
+    }),
+    [
+      quotationNotes,
+      selectedDueDate,
+      paymentTermsType,
+      paymentTermsCustom,
+      depositMode,
+      depositPct,
+      depositAmountInput,
+      specialDiscountType,
+      specialDiscountValue,
+      hasWithholdingTax,
+      withholdingTaxPercentage,
+      hasVat,
+      vatPercentage,
+      pricingMode,
+    ]
+  );
 
-  useEffect(() => {
-    // Sync notes from server when quotation changes/opened
-    setQuotationNotes(q?.notes || "");
-
-    const raw =
-      q?.payment_terms ||
-      q?.payment_method ||
-      (q?.credit_days === 30
-        ? PAYMENT_TERMS.CREDIT_30
-        : q?.credit_days === 60
-          ? PAYMENT_TERMS.CREDIT_60
-          : PAYMENT_TERMS.CASH);
-    const known = [PAYMENT_TERMS.CASH, PAYMENT_TERMS.CREDIT_30, PAYMENT_TERMS.CREDIT_60].includes(
-      raw
-    );
-    setPaymentTermsType(known ? raw : PAYMENT_TERMS.OTHER);
-    setPaymentTermsCustom(known ? "" : raw || "");
-
-    setDepositPct(q?.deposit_percentage ?? (raw === PAYMENT_TERMS.CASH ? 0 : 50));
-    setDepositMode(q?.deposit_mode || "percentage");
-    setDepositAmountInput(q?.deposit_mode === "amount" ? (q?.deposit_amount ?? "") : "");
-    setSelectedDueDate(q?.due_date ? new Date(q.due_date) : null);
-  }, [
-    open,
-    q?.credit_days,
-    q?.deposit_amount,
-    q?.deposit_mode,
-    q?.deposit_percentage,
-    q?.due_date,
-    q?.id,
-    q?.notes,
-    q?.payment_method,
-    q?.payment_terms,
-  ]);
-
-  // Sync financial fields (special discount & withholding tax) after data fetched unless user is editing
-  const [hasInitializedFinancials, setHasInitializedFinancials] = useState(false);
-
-  // Reset initialization flag when quotation ID changes
-  useEffect(() => {
-    setHasInitializedFinancials(false);
-  }, [q?.id]);
-
-  useEffect(() => {
-    if (!q?.id) return; // nothing yet
-    if (hasInitializedFinancials) return; // don't override after initial setup
-
-    // Re-infer special discount type/value from latest quotation data
-    if ((q.special_discount_percentage ?? 0) > 0) {
-      setSpecialDiscountType("percentage");
-      setSpecialDiscountValue(Number(q.special_discount_percentage));
-    } else if ((q.special_discount_amount ?? 0) > 0) {
-      setSpecialDiscountType("amount");
-      setSpecialDiscountValue(Number(q.special_discount_amount));
-    } else {
-      setSpecialDiscountType("percentage");
-      setSpecialDiscountValue(0);
-    }
-
-    // Withholding tax
-    setHasWithholdingTax(!!q.has_withholding_tax);
-    setWithholdingTaxPercentage(Number(q.withholding_tax_percentage || 0));
-
-    // VAT settings (NEW)
-    setHasVat(q?.has_vat ?? true);
-    setVatPercentage(Number(q?.vat_percentage || 7));
-    setPricingMode(q?.pricing_mode || "net");
-
-    setHasInitializedFinancials(true);
-  }, [
-    q?.id,
-    q?.special_discount_percentage,
-    q?.special_discount_amount,
-    q?.has_withholding_tax,
-    q?.withholding_tax_percentage,
-    q?.has_vat,
-    q?.vat_percentage,
-    q?.pricing_mode,
-    hasInitializedFinancials,
-  ]);
-
-  // Main Save Handler with sync support
-  const handleSave = async (groups, financials, confirmSync = false) => {
-    // Validate manual jobs before saving
-    const manualJobErrors = {};
-    let hasValidationErrors = false;
-
-    groups.forEach((group) => {
-      if (group.isManual) {
-        const errors = validateManualJob(group);
-        if (errors.length > 0) {
-          manualJobErrors[group.id] = errors;
-          hasValidationErrors = true;
-        }
-      }
-    });
-
-    if (hasValidationErrors) {
-      // Show validation errors
-      const errorMessages = Object.entries(manualJobErrors)
-        .map(([groupId, errors]) => {
-          const groupIndex = groups.findIndex((g) => g.id === groupId);
-          const groupName = groups[groupIndex]?.name || `งานที่ ${groupIndex + 1}`;
-          return `${groupName}: ${errors.join(", ")}`;
-        })
-        .join("\n");
-
-      showError(`กรุณาตรวจสอบข้อมูลงานที่สร้างใหม่:\n${errorMessages}`);
-      return { success: false, validationError: true };
-    }
-
-    // ใช้ global sequence counter เพื่อป้องกัน duplicate sequence_order
-    let globalSequence = 0;
-
-    // Map editable groups back to API items
-    const flatItems = groups.flatMap((g) => {
-      const unit = g.unit || "ชิ้น";
-      const base = {
-        pricing_request_id: g.prId || null,
-        item_name: g.name || "ไม่ระบุชื่องาน",
-        item_description: "",
-        pattern: g.pattern || "",
-        fabric_type: g.fabricType || "",
-        color: g.color || "",
-        unit,
-      };
-      return (g.sizeRows || []).map((r) => {
-        globalSequence++; // ใช้ global counter
-        const qty =
-          typeof r.quantity === "string" ? parseFloat(r.quantity || "0") : Number(r.quantity || 0);
-        const price =
-          typeof r.unitPrice === "string"
-            ? parseFloat(r.unitPrice || "0")
-            : Number(r.unitPrice || 0);
-        return {
-          ...base,
-          size: r.size || "",
-          unit_price: isNaN(price) ? 0 : price,
-          quantity: isNaN(qty) ? 0 : qty,
-          notes: r.notes || "",
-          sequence_order: globalSequence, // ใช้ global sequence
-        };
-      });
-    });
-
-    const totals = computeTotals(groups, depositPct);
-    const isCredit =
-      paymentTermsType === PAYMENT_TERMS.CREDIT_30 || paymentTermsType === PAYMENT_TERMS.CREDIT_60;
-    const dueDateForSave = isCredit ? (selectedDueDate ? toISODate(selectedDueDate) : null) : null;
-
-    const loadingId = showLoading("กำลังบันทึกใบเสนอราคา…");
-
-    try {
-      const response = await updateQuotation({
-        id: q.id,
-        items: flatItems,
-        subtotal: totals.subtotal,
-        // Use calculated values from financials hook
-        net_subtotal: financials.netSubtotal,
-        tax_amount: financials.vat,
-        total_amount: financials.total,
-        // Extended financial fields (from local editable states)
-        special_discount_percentage:
-          specialDiscountType === "percentage" ? Number(specialDiscountValue || 0) : 0,
-        special_discount_amount:
-          specialDiscountType === "amount"
-            ? Number(specialDiscountValue || 0)
-            : financials.specialDiscountAmount,
-        has_vat: hasVat,
-        vat_percentage: Number(vatPercentage || 0),
-        pricing_mode: pricingMode,
-        has_withholding_tax: hasWithholdingTax,
-        withholding_tax_percentage: hasWithholdingTax ? Number(withholdingTaxPercentage || 0) : 0,
-        withholding_tax_amount: financials.withholdingTaxAmount,
-        final_total_amount: financials.finalTotal,
-        deposit_percentage:
-          depositMode === "percentage"
-            ? Number(depositPct || 0)
-            : Number(financials.depositPercentage || 0),
-        deposit_amount: financials.depositAmount,
-        deposit_mode: depositMode,
-        payment_terms:
-          paymentTermsType === PAYMENT_TERMS.OTHER ? paymentTermsCustom || "" : paymentTermsType,
-        due_date: dueDateForSave,
-        notes: quotationNotes || "",
-        // Sync confirmation flag
-        confirm_sync: confirmSync,
-      }).unwrap();
-
-      dismissToast(loadingId);
-
-      // Check if sync is needed (response contains sync info)
-      const syncMode = response?.data?.sync_mode;
-      const syncJobId = response?.data?.sync_job_id;
-      const syncCount = response?.data?.sync_count || 0;
-
-      if (syncMode === "queued" && syncJobId) {
-        // Background sync - return syncJobId to parent
-        showSuccess(`บันทึกเรียบร้อย กำลังซิงค์ข้อมูลไปยังใบแจ้งหนี้ ${syncCount} ใบในพื้นหลัง`);
-        return { success: true, syncJobId, syncMode };
-      } else if (syncMode === "immediate") {
-        // Immediate sync completed
-        showSuccess(`บันทึกและซิงค์ข้อมูลไปยังใบแจ้งหนี้ ${syncCount} ใบเรียบร้อย`);
-        return { success: true, syncMode };
-      } else {
-        // No sync needed (no invoices)
-        showSuccess("บันทึกใบเสนอราคาเรียบร้อย");
-        return { success: true };
-      }
-    } catch (e) {
-      dismissToast(loadingId);
-
-      // Handle 422 - needs confirmation
-      // RTK Query can return status in e.status or e.originalStatus
-      const statusCode = e?.status || e?.originalStatus;
-      const errorData = e?.data;
-
-      if (statusCode === 422 && errorData?.requires_confirmation) {
-        return {
-          success: false,
-          needsConfirmation: true,
-          invoiceCount: errorData?.invoice_count || 0,
-          affectedInvoices: errorData?.affected_invoices || [],
-          message: errorData?.message,
-        };
-      }
-
-      // Handle 403 - permission denied
-      if (statusCode === 403) {
-        const errorMessage = errorData?.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้";
-        const affectedInvoices = errorData?.affected_invoices || [];
-
-        showError(errorMessage);
-
-        return {
-          success: false,
-          permissionDenied: true,
-          message: errorMessage,
-          invoices: affectedInvoices,
-          invoiceCount: errorData?.invoice_count || 0,
-        };
-      }
-
-      // Other errors
-      showError(errorData?.message || e?.message || "บันทึกใบเสนอราคาไม่สำเร็จ");
-      return { success: false };
-    }
-  };
+  const setters = useMemo(
+    () => ({
+      setCustomer,
+      setEditCustomerOpen,
+      setQuotationNotes,
+      setSelectedDueDate,
+      setPaymentTermsType,
+      setPaymentTermsCustom,
+      setDepositMode,
+      setDepositPct,
+      setDepositAmountInput,
+      setSpecialDiscountType,
+      setSpecialDiscountValue,
+      setHasWithholdingTax,
+      setWithholdingTaxPercentage,
+      setHasVat,
+      setVatPercentage,
+      setPricingMode,
+    }),
+    []
+  );
 
   return {
     q,
     isLoading,
-    isSaving,
     error,
     customer,
-    setCustomer,
     editCustomerOpen,
-    setEditCustomerOpen,
-    quotationNotes,
-    setQuotationNotes,
-    selectedDueDate,
-    setSelectedDueDate,
-    paymentTermsType,
-    setPaymentTermsType,
-    paymentTermsCustom,
-    setPaymentTermsCustom,
-    depositMode,
-    setDepositMode,
-    depositPct,
-    setDepositPct,
-    depositAmountInput,
-    setDepositAmountInput,
-    specialDiscountType,
-    setSpecialDiscountType,
-    specialDiscountValue,
-    setSpecialDiscountValue,
-    hasWithholdingTax,
-    setHasWithholdingTax,
-    withholdingTaxPercentage,
-    setWithholdingTaxPercentage,
-    hasVat,
-    setHasVat,
-    vatPercentage,
-    setVatPercentage,
-    pricingMode,
-    setPricingMode,
-    handleSave,
+    formState,
+    setters,
   };
 }

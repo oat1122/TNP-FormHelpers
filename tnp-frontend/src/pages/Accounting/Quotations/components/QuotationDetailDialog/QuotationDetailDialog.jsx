@@ -1,301 +1,162 @@
-// QuotationDetailDialog.jsx (Refactored)
 import {
-  Assignment as AssignmentIcon,
-  Calculate as CalculateIcon,
-  Payment as PaymentIcon,
-  Edit as EditIcon,
-  Add as AddIcon,
-} from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Box,
-  Typography,
   CircularProgress,
-  Avatar,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
-  Chip,
-  TextField,
-  Divider,
+  Typography,
 } from "@mui/material";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import React from "react";
+import { useCallback, useMemo } from "react";
 
-import SyncConfirmationDialog from "../SyncConfirmationDialog";
-import SyncProgressDialog from "../SyncProgressDialog";
+import { useQuotationDialogFinancialsInit } from "./hooks/useQuotationDialogFinancialsInit";
 import { useQuotationDialogLogic } from "./hooks/useQuotationDialogLogic";
+import { useQuotationDialogSave } from "./hooks/useQuotationDialogSave";
+import { useQuotationEditPermission } from "./hooks/useQuotationEditPermission";
 import { useQuotationImageManager } from "./hooks/useQuotationImageManager";
-import { apiConfig } from "../../../../../api/apiConfig";
-import {
-  useGetBulkPricingRequestAutofillQuery,
-  useGetQuotationRelatedInvoicesQuery,
-} from "../../../../../features/Accounting/accountingApi";
-import PermissionErrorDialog from "../../../components/PermissionErrorDialog";
+import ActionBar from "./sections/ActionBar";
+import FinancialControlsSection from "./sections/FinancialControlsSection";
+import PaymentTermsSection from "./sections/PaymentTermsSection";
+import PRGroupsSection from "./sections/PRGroupsSection";
+import SampleImagesSection from "./sections/SampleImagesSection";
+import SyncDialogs from "./sections/SyncDialogs";
+import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
-import Calculation from "../../../shared/components/Calculation";
-import PricingModeSelector from "../../../shared/components/financial/PricingModeSelector";
-import SpecialDiscountField from "../../../shared/components/financial/SpecialDiscountField";
-import VatField from "../../../shared/components/financial/VatField";
-import WithholdingTaxField from "../../../shared/components/financial/WithholdingTaxField";
-import ImageUploadGrid from "../../../shared/components/ImageUploadGrid";
-import PaymentTerms from "../../../shared/components/PaymentTerms";
-import { PAYMENT_TERMS } from "../../../shared/constants/paymentTerms";
 import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
-import { sanitizeInt } from "../../../shared/inputSanitizers";
-import {
-  Section,
-  SectionHeader,
-  SecondaryButton,
-  InfoCard,
-  tokens,
-} from "../../../shared/styles/quotationFormStyles";
-import { showError } from "../../../utils/accountingToast";
+import { tokens } from "../../../shared/styles/quotationFormStyles";
 import { useQuotationGroups } from "../shared/hooks/useQuotationGroups";
-import { PRGroupCalcCard } from "../shared/PRGroupCalcCard";
-import { PRGroupSummaryCard } from "../shared/PRGroupSummaryCard";
-import { formatDateTH } from "../shared/utils/quotationFormatters";
 import { getAllPrIdsFromQuotation, normalizeAndGroupItems } from "../shared/utils/quotationUtils";
 
-// รับ onSaveSuccess เพิ่ม
+const LoadingShell = ({ open, onClose, label }) => (
+  <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+    <DialogContent>
+      <Box display="flex" alignItems="center" gap={1} p={2}>
+        <CircularProgress size={22} />
+        <Typography variant="body2">{label}</Typography>
+      </Box>
+    </DialogContent>
+  </Dialog>
+);
+
+const ErrorShell = ({ open, onClose }) => (
+  <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+    <DialogContent>
+      <Box p={2}>
+        <Typography color="error">ไม่สามารถโหลดข้อมูลได้</Typography>
+      </Box>
+    </DialogContent>
+  </Dialog>
+);
+
 const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) => {
-  // Sync-related state
-  const [syncConfirmOpen, setSyncConfirmOpen] = React.useState(false);
-  const [syncJobId, setSyncJobId] = React.useState(null);
-  const [pendingSaveData, setPendingSaveData] = React.useState(null);
+  const { q, isLoading, error, customer, editCustomerOpen, formState, setters } =
+    useQuotationDialogLogic(quotationId, open);
 
-  // Permission error state
-  const [permissionError, setPermissionError] = React.useState({
-    open: false,
-    message: "",
-    invoices: [],
-  });
+  const permission = useQuotationEditPermission(quotationId, open);
 
-  // Check user permissions first
-  const userData = React.useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
-  const canUploadSignatures = ["admin", "account", "sale"].includes(userData?.role);
-  const canUploadSampleImages = ["admin", "account", "sale"].includes(userData?.role);
+  useQuotationDialogFinancialsInit({ quotation: q, open, setters });
 
-  // Fetch related invoices to determine edit permission dynamically
-  const { data: relatedInvoicesData } = useGetQuotationRelatedInvoicesQuery(quotationId, {
-    skip: !open || !quotationId,
-  });
-
-  // Dynamic permission check based on role and invoice status
-  const canEditQuotation = React.useMemo(() => {
-    const userRole = userData?.role;
-    const hasInvoices = relatedInvoicesData?.has_invoices || false;
-
-    // Admin and Account can always edit
-    if (["admin", "account"].includes(userRole)) {
-      return true;
-    }
-
-    // Sale can only edit if no invoices are linked
-    if (userRole === "sale") {
-      return !hasInvoices;
-    }
-
-    return false;
-  }, [userData?.role, relatedInvoicesData?.has_invoices]);
-
-  // 1. Main logic hook for data, state, and save handlers
-  const dialogLogic = useQuotationDialogLogic(quotationId, open);
-  const { q, isLoading, isSaving, error, customer, setCustomer, editCustomerOpen } = dialogLogic;
-
-  // Parse quotation items
   const prIdsAll = getAllPrIdsFromQuotation(q);
   const items = normalizeAndGroupItems(q, prIdsAll);
 
-  // ***** Bulk Autofill Data Fetching *****
-  // 1. ดึงข้อมูล Autofill ทั้งหมดในครั้งเดียว
   const { data: bulkAutofillData, isLoading: isAutofillLoading } =
     useGetBulkPricingRequestAutofillQuery(prIdsAll, {
       skip: !open || prIdsAll.length === 0,
     });
 
-  // 2. แปลงข้อมูลที่ได้เป็น Map เพื่อให้ง่ายต่อการค้นหา
-  const prAutofillMap = React.useMemo(() => {
-    if (!bulkAutofillData?.data) return new Map();
-
+  const prAutofillMap = useMemo(() => {
     const map = new Map();
-    (bulkAutofillData.data || []).forEach((item) => {
-      // key ควรเป็น pr_id หรือ id ที่ตรงกับ group.prId
+    (bulkAutofillData?.data || []).forEach((item) => {
       const key = item.pr_id || item.id;
-      if (key) {
-        map.set(key, item);
-      }
+      if (key) map.set(key, item);
     });
     return map;
   }, [bulkAutofillData]);
-  // ***** จบส่วน Bulk Autofill *****
 
-  // 2. Hook for managing groups and editing state
   const groupsLogic = useQuotationGroups(items);
   const { groups, isEditing, setIsEditing: originalSetIsEditing, ...groupHandlers } = groupsLogic;
 
-  // Wrapper function to check permissions before allowing edit mode
-  const setIsEditing = React.useCallback(
+  const setIsEditing = useCallback(
     (value) => {
-      if (value && !canEditQuotation) {
-        return; // Block entering edit mode if user doesn't have permission
-      }
+      if (value && !permission.canEdit) return;
       originalSetIsEditing(value);
     },
-    [canEditQuotation, originalSetIsEditing]
+    [permission.canEdit, originalSetIsEditing]
   );
 
-  // 3. Hook for financial calculations
   const financials = useQuotationFinancials({
     items: isEditing ? groups : items,
-    pricingMode: dialogLogic.pricingMode,
-    depositMode: dialogLogic.depositMode,
-    depositPercentage: dialogLogic.depositPct,
-    depositAmountInput: dialogLogic.depositAmountInput,
-    specialDiscountType: dialogLogic.specialDiscountType,
-    specialDiscountValue: dialogLogic.specialDiscountValue,
-    hasWithholdingTax: dialogLogic.hasWithholdingTax,
-    withholdingTaxPercentage: dialogLogic.withholdingTaxPercentage,
-    hasVat: dialogLogic.hasVat,
-    vatPercentage: dialogLogic.vatPercentage,
+    pricingMode: formState.pricingMode,
+    depositMode: formState.deposit.mode,
+    depositPercentage: formState.deposit.percentage,
+    depositAmountInput: formState.deposit.amountInput,
+    specialDiscountType: formState.specialDiscount.type,
+    specialDiscountValue: formState.specialDiscount.value,
+    hasWithholdingTax: formState.withholding.enabled,
+    withholdingTaxPercentage: formState.withholding.percentage,
+    hasVat: formState.vat.enabled,
+    vatPercentage: formState.vat.percentage,
   });
 
-  // 4. Hook for handling images and PDF generation
-  const imageManager = useQuotationImageManager(quotationId, isEditing, () =>
-    dialogLogic.handleSave(groups, financials)
-  );
+  const saveFlow = useQuotationDialogSave({
+    quotationId,
+    formState,
+    onSuccess: () => {
+      setIsEditing(false);
+      onSaveSuccess?.();
+    },
+  });
 
-  // Initialize sample image selection
-  const signatureImages = React.useMemo(
-    () => (Array.isArray(q?.signature_images) ? q.signature_images : []),
-    [q?.signature_images]
-  );
-  const sampleImages = React.useMemo(
-    () => (Array.isArray(q?.sample_images) ? q.sample_images : []),
-    [q?.sample_images]
-  );
-  const { initializeSampleSelection, updateSampleSelection } = imageManager;
-
-  React.useEffect(() => {
-    initializeSampleSelection(sampleImages);
-  }, [q?.id, sampleImages, initializeSampleSelection]);
-
-  React.useEffect(() => {
-    updateSampleSelection(sampleImages);
-  }, [sampleImages, updateSampleSelection]);
-
-  // Main save handler with UI feedback and sync support
-  const handleSave = async () => {
-    // First attempt - without confirmation
-    const result = await dialogLogic.handleSave(groups, financials, false);
-
-    // Handle permission denied
+  const handleSave = useCallback(async () => {
+    const result = await saveFlow.handleSave(groups, financials);
     if (result?.permissionDenied) {
-      setPermissionError({
+      permission.setPermissionError({
         open: true,
         message: result.message || "คุณไม่มีสิทธิ์แก้ไขใบเสนอราคานี้",
         invoices: result.invoices || [],
       });
-      return;
     }
+  }, [saveFlow, groups, financials, permission]);
 
-    // Handle needs confirmation
-    if (result?.needsConfirmation) {
-      // Store current data for retry after confirmation
-      setPendingSaveData({
-        groups,
-        financials,
-        invoiceCount: result.invoiceCount,
-        affectedInvoices: result.affectedInvoices,
-      });
-      setSyncConfirmOpen(true);
-      return;
-    }
+  const sampleImages = useMemo(
+    () => (Array.isArray(q?.sample_images) ? q.sample_images : []),
+    [q?.sample_images]
+  );
+  const signatureImages = useMemo(
+    () => (Array.isArray(q?.signature_images) ? q.signature_images : []),
+    [q?.signature_images]
+  );
 
-    // Handle success
-    if (result?.success) {
-      setIsEditing(false);
+  const imageManager = useQuotationImageManager({
+    quotationId,
+    quotationKey: q?.id,
+    sampleImages,
+    isEditing,
+    handleSave: () => saveFlow.handleSave(groups, financials),
+  });
 
-      // If queued sync, show progress dialog
-      if (result?.syncJobId) {
-        setSyncJobId(result.syncJobId);
-      }
-
-      onSaveSuccess?.();
-    }
-  };
-
-  // Handle sync confirmation
-  const handleSyncConfirm = async () => {
-    if (!pendingSaveData) return;
-
-    // Retry save with confirmation
-    const result = await dialogLogic.handleSave(
-      pendingSaveData.groups,
-      pendingSaveData.financials,
-      true // confirm_sync = true
-    );
-
-    // Clean up pending data
-    setPendingSaveData(null);
-    setSyncConfirmOpen(false);
-
-    // Handle success
-    if (result?.success) {
-      setIsEditing(false);
-
-      // If queued sync, show progress dialog
-      if (result?.syncJobId) {
-        setSyncJobId(result.syncJobId);
-      }
-
-      onSaveSuccess?.();
-    }
-  };
+  const handleToggleEditCalc = useCallback(() => {
+    const el = document.getElementById("calc-section");
+    const y = el ? el.scrollTop : null;
+    setIsEditing(!isEditing);
+    setTimeout(() => {
+      const el2 = document.getElementById("calc-section");
+      if (el2 != null && y != null) el2.scrollTop = y;
+    }, 0);
+  }, [isEditing, setIsEditing]);
 
   if (isLoading || (prIdsAll.length > 0 && isAutofillLoading)) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogContent>
-          <Box display="flex" alignItems="center" gap={1} p={2}>
-            <CircularProgress size={22} />
-            <Typography variant="body2">
-              {isLoading ? "กำลังโหลดรายละเอียดใบเสนอราคา…" : "กำลังโหลดข้อมูล autofill…"}
-            </Typography>
-          </Box>
-        </DialogContent>
-      </Dialog>
+      <LoadingShell
+        open={open}
+        onClose={onClose}
+        label={isLoading ? "กำลังโหลดรายละเอียดใบเสนอราคา…" : "กำลังโหลดข้อมูล autofill…"}
+      />
     );
   }
 
-  if (error) {
-    return (
-      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogContent>
-          <Box p={2}>
-            <Typography color="error">ไม่สามารถโหลดข้อมูลได้</Typography>
-          </Box>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  const activeGroups = isEditing ? groups : items;
-  const workName = q.work_name || q.workname || q.title || "";
-  const quotationNumber = q.number || "";
-  const paymentMethod = isEditing
-    ? dialogLogic.paymentTermsType === PAYMENT_TERMS.OTHER
-      ? dialogLogic.paymentTermsCustom || ""
-      : dialogLogic.paymentTermsType
-    : q.payment_terms ||
-      q.payment_method ||
-      (q.credit_days === 30
-        ? PAYMENT_TERMS.CREDIT_30
-        : q.credit_days === 60
-          ? PAYMENT_TERMS.CREDIT_60
-          : PAYMENT_TERMS.CASH);
+  if (error) return <ErrorShell open={open} onClose={onClose} />;
 
   return (
     <>
@@ -306,767 +167,88 @@ const QuotationDetailDialog = ({ open, onClose, quotationId, onSaveSuccess }) =>
         <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
           <Box>
             <Grid container spacing={2}>
-              {/* === PR Info Section === */}
-              <Grid item xs={12}>
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      <AssignmentIcon fontSize="small" />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        ข้อมูลจาก Pricing Request
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        ดึงข้อมูลอัตโนมัติจาก PR
-                      </Typography>
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {/* Customer brief card */}
-                    <InfoCard sx={{ p: 2, mb: 1.5 }}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            {customer?.customer_type === "individual"
-                              ? "ชื่อผู้ติดต่อ"
-                              : "ชื่อบริษัท"}
-                          </Typography>
-                          <Typography variant="body1" fontWeight={700}>
-                            {customer?.customer_type === "individual"
-                              ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
-                                customer?.cus_name ||
-                                "-"
-                              : customer?.cus_company || "-"}
-                          </Typography>
-                        </Box>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {customer.cus_tel_1 ? (
-                            <Chip
-                              size="small"
-                              variant="outlined"
-                              label={customer.cus_tel_1}
-                              sx={{
-                                borderColor: tokens.primary,
-                                color: tokens.primary,
-                                fontWeight: 700,
-                              }}
-                            />
-                          ) : null}
-                          {canEditQuotation && (
-                            <SecondaryButton
-                              size="small"
-                              startIcon={<EditIcon />}
-                              onClick={() => dialogLogic.setEditCustomerOpen(true)}
-                            >
-                              แก้ไขลูกค้า
-                            </SecondaryButton>
-                          )}
-                        </Box>
-                      </Box>
-                      {(customer.contact_name ||
-                        customer.cus_email ||
-                        customer.cus_tax_id ||
-                        customer.cus_address) && (
-                        <Grid container spacing={1}>
-                          {customer.contact_name && (
-                            <Grid item xs={12} md={4}>
-                              <Typography variant="caption" color="text.secondary">
-                                ผู้ติดต่อ
-                              </Typography>
-                              <Typography variant="body2">
-                                {customer.contact_name}{" "}
-                                {customer.contact_nickname ? `(${customer.contact_nickname})` : ""}
-                              </Typography>
-                            </Grid>
-                          )}
-                          {customer.cus_email && (
-                            <Grid item xs={12} md={4}>
-                              <Typography variant="caption" color="text.secondary">
-                                อีเมล
-                              </Typography>
-                              <Typography variant="body2">{customer.cus_email}</Typography>
-                            </Grid>
-                          )}
-                          {customer.cus_tax_id && (
-                            <Grid item xs={12} md={4}>
-                              <Typography variant="caption" color="text.secondary">
-                                เลขประจำตัวผู้เสียภาษี
-                              </Typography>
-                              <Typography variant="body2">{customer.cus_tax_id}</Typography>
-                            </Grid>
-                          )}
-                          {customer.cus_address && (
-                            <Grid item xs={12}>
-                              <Typography variant="caption" color="text.secondary">
-                                ที่อยู่
-                              </Typography>
-                              <Typography variant="body2">{customer.cus_address}</Typography>
-                            </Grid>
-                          )}
-                        </Grid>
-                      )}
-                    </InfoCard>
+              <PRGroupsSection
+                customer={customer}
+                workName={q.work_name || q.workname || q.title || ""}
+                quotationNumber={q.number || ""}
+                items={items}
+                activeGroups={isEditing ? groups : items}
+                prAutofillMap={prAutofillMap}
+                isEditing={isEditing}
+                canEdit={permission.canEdit}
+                onToggleEdit={handleToggleEditCalc}
+                onEditCustomer={() => setters.setEditCustomerOpen(true)}
+                onAddNewGroup={groupHandlers.onAddNewGroup}
+                groupHandlers={groupHandlers}
+                financialControlsNode={
+                  <FinancialControlsSection
+                    isEditing={isEditing}
+                    financials={financials}
+                    formState={formState}
+                    setters={setters}
+                  />
+                }
+              />
 
-                    {/* Main work summary */}
-                    {(workName || quotationNumber) && (
-                      <InfoCard sx={{ p: 2, mb: 1.5 }}>
-                        <Grid container spacing={1}>
-                          {quotationNumber && (
-                            <Grid item xs={12} md={4}>
-                              <Typography variant="caption" color="text.secondary">
-                                เลขที่ใบเสนอราคา
-                              </Typography>
-                              <Typography variant="body2" fontWeight={700}>
-                                {quotationNumber}
-                              </Typography>
-                            </Grid>
-                          )}
-                          {workName && (
-                            <Grid item xs={12} md={8}>
-                              <Typography variant="caption" color="text.secondary">
-                                ใบงานหลัก
-                              </Typography>
-                              <Typography variant="body1" fontWeight={700}>
-                                {workName}
-                              </Typography>
-                            </Grid>
-                          )}
-                        </Grid>
-                      </InfoCard>
-                    )}
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle1" fontWeight={700} color={tokens.primary}>
-                        รายละเอียดงาน ({items.length})
-                      </Typography>
-                    </Box>
-
-                    {items.length === 0 ? (
-                      <InfoCard sx={{ p: 3 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          ไม่พบข้อมูลงาน
-                        </Typography>
-                      </InfoCard>
-                    ) : (
-                      items.map((item, idx) => (
-                        <PRGroupSummaryCard
-                          key={item.id}
-                          group={item}
-                          index={idx}
-                          prAutofillData={prAutofillMap.get(item.prId)}
-                        />
-                      ))
-                    )}
-                  </Box>
-                </Section>
-              </Grid>
-
-              {/* === Calculation Section === */}
-              <Grid item xs={12}>
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      <CalculateIcon fontSize="small" />
-                    </Avatar>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        การคำนวณราคา
-                      </Typography>
-                      {canEditQuotation && (
-                        <>
-                          <SecondaryButton
-                            size="small"
-                            startIcon={<EditIcon />}
-                            onClick={() => {
-                              const el = document.getElementById("calc-section");
-                              const y = el ? el.scrollTop : null;
-                              setIsEditing((v) => !v);
-                              // restore scroll shortly after DOM updates
-                              setTimeout(() => {
-                                const el2 = document.getElementById("calc-section");
-                                if (el2 != null && y != null) el2.scrollTop = y;
-                              }, 0);
-                            }}
-                          >
-                            {isEditing ? "ยกเลิกแก้ไข" : "แก้ไข"}
-                          </SecondaryButton>
-                          {isEditing && (
-                            <SecondaryButton
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={groupHandlers.onAddNewGroup}
-                            >
-                              เพิ่มงานใหม่
-                            </SecondaryButton>
-                          )}
-                        </>
-                      )}
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }} id="calc-section">
-                    {activeGroups.map((item, idx) => (
-                      <PRGroupCalcCard
-                        key={`calc-${item.id}`}
-                        group={item}
-                        index={idx}
-                        isEditing={isEditing}
-                        prAutofillData={prAutofillMap.get(item.prId)}
-                        {...groupHandlers}
-                      />
-                    ))}
-
-                    <Divider sx={{ my: 2 }} />
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                      <Grid item xs={12} md={6}>
-                        <SpecialDiscountField
-                          discountType={dialogLogic.specialDiscountType}
-                          discountValue={dialogLogic.specialDiscountValue}
-                          totalAmount={financials.subtotal}
-                          discountAmount={financials.specialDiscountAmount}
-                          onDiscountTypeChange={(t) => {
-                            if (!isEditing) return;
-                            dialogLogic.setSpecialDiscountType(t);
-                          }}
-                          onDiscountValueChange={(v) => {
-                            if (!isEditing) return;
-                            dialogLogic.setSpecialDiscountValue(v);
-                          }}
-                          disabled={!isEditing}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <WithholdingTaxField
-                          hasWithholdingTax={dialogLogic.hasWithholdingTax}
-                          taxPercentage={dialogLogic.withholdingTaxPercentage}
-                          taxAmount={financials.withholdingTaxAmount}
-                          subtotalAmount={financials.subtotal}
-                          onToggleWithholdingTax={(en) =>
-                            isEditing && dialogLogic.setHasWithholdingTax(en)
-                          }
-                          onTaxPercentageChange={(p) =>
-                            isEditing && dialogLogic.setWithholdingTaxPercentage(p)
-                          }
-                          disabled={!isEditing}
-                        />
-                      </Grid>
-
-                      {/* VAT Field */}
-                      <Grid item xs={12} md={6}>
-                        <VatField
-                          hasVat={dialogLogic.hasVat}
-                          vatPercentage={dialogLogic.vatPercentage}
-                          vatAmount={financials.vat}
-                          subtotalAmount={financials.discountedSubtotal}
-                          onToggleVat={(enabled) => isEditing && dialogLogic.setHasVat(enabled)}
-                          onVatPercentageChange={(percentage) =>
-                            isEditing && dialogLogic.setVatPercentage(percentage)
-                          }
-                          disabled={!isEditing}
-                        />
-                      </Grid>
-
-                      {/* Pricing Mode Selector */}
-                      {isEditing && (
-                        <Grid item xs={12}>
-                          <PricingModeSelector
-                            pricingMode={dialogLogic.pricingMode}
-                            onPricingModeChange={dialogLogic.setPricingMode}
-                            disabled={!isEditing}
-                          />
-                        </Grid>
-                      )}
-                    </Grid>
-
-                    <Calculation
-                      subtotal={financials.subtotal}
-                      discountAmount={financials.specialDiscountAmount}
-                      discountedBase={financials.discountedSubtotal}
-                      netSubtotal={financials.netSubtotal}
-                      pricingMode={financials.pricingMode}
-                      vat={financials.vat}
-                      totalAfterVat={financials.total}
-                      withholdingAmount={financials.withholdingTaxAmount}
-                      finalTotal={financials.finalTotal}
-                    />
-                  </Box>
-                </Section>
-              </Grid>
-
-              {/* === Payment Terms Section === */}
-              <Grid item xs={12}>
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      <PaymentIcon fontSize="small" />
-                    </Avatar>
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      เงื่อนไขการชำระเงิน
-                    </Typography>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    <PaymentTerms
-                      isEditing={isEditing}
-                      paymentTermsType={dialogLogic.paymentTermsType}
-                      paymentTermsCustom={dialogLogic.paymentTermsCustom}
-                      onChangePaymentTermsType={(v) =>
-                        isEditing && dialogLogic.setPaymentTermsType(v)
-                      }
-                      onChangePaymentTermsCustom={(v) =>
-                        isEditing && dialogLogic.setPaymentTermsCustom(v)
-                      }
-                      depositMode={dialogLogic.depositMode}
-                      onChangeDepositMode={(v) => isEditing && dialogLogic.setDepositMode(v)}
-                      depositPercentage={dialogLogic.depositPct}
-                      depositAmountInput={dialogLogic.depositAmountInput}
-                      onChangeDepositPercentage={(v) =>
-                        isEditing && dialogLogic.setDepositPct(sanitizeInt(v))
-                      }
-                      onChangeDepositAmount={(v) =>
-                        isEditing && dialogLogic.setDepositAmountInput(v)
-                      }
-                      isCredit={
-                        isEditing
-                          ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
-                            dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
-                          : paymentMethod !== PAYMENT_TERMS.CASH
-                      }
-                      dueDateNode={
-                        (
-                          isEditing
-                            ? dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
-                              dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60
-                            : paymentMethod !== PAYMENT_TERMS.CASH
-                        ) ? (
-                          <>
-                            <Grid item xs={6}>
-                              <Typography>วันครบกำหนด</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              {isEditing &&
-                              (dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_30 ||
-                                dialogLogic.paymentTermsType === PAYMENT_TERMS.CREDIT_60) ? (
-                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                  <DatePicker
-                                    value={dialogLogic.selectedDueDate}
-                                    onChange={(newVal) => dialogLogic.setSelectedDueDate(newVal)}
-                                    slotProps={{ textField: { size: "small", fullWidth: true } }}
-                                  />
-                                </LocalizationProvider>
-                              ) : (
-                                <Typography textAlign="right" fontWeight={700}>
-                                  {formatDateTH(q?.due_date)}
-                                </Typography>
-                              )}
-                            </Grid>
-                          </>
-                        ) : null
-                      }
-                      finalTotal={financials.finalTotal}
-                      depositAmount={financials.depositAmount}
-                      remainingAmount={financials.remainingAmount}
-                    />
-                    <Box sx={{ mt: 2 }}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="หมายเหตุ"
-                        value={isEditing ? (dialogLogic.quotationNotes ?? "") : (q?.notes ?? "")}
-                        disabled={!isEditing}
-                        onChange={(e) => dialogLogic.setQuotationNotes(e.target.value)}
-                      />
-                    </Box>
-                  </Box>
-                </Section>
-              </Grid>
+              <PaymentTermsSection
+                isEditing={isEditing}
+                quotation={q}
+                formState={formState}
+                financials={financials}
+                setters={setters}
+              />
             </Grid>
 
-            {/* Sample Images Section */}
-            <Section>
-              <SectionHeader>
-                <Avatar
-                  sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                >
-                  <AddIcon fontSize="small" />
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    รูปภาพตัวอย่าง
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    ไฟล์จะถูกแทรกลงใน PDF ใบเสนอราคา
-                  </Typography>
-                </Box>
-              </SectionHeader>
-              <Box sx={{ p: 2 }}>
-                <ImageUploadGrid
-                  title="รูปภาพตัวอย่าง"
-                  images={sampleImages}
-                  disabled={imageManager.isUploadingSamples || !canUploadSampleImages}
-                  onUpload={imageManager.handleUploadSamples}
-                  helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
-                />
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {/* ⭐️ GOAL 1 & 2: เปลี่ยนข้อความ */}
-                    เลือกรูปแสดงบน PDF (สูงสุด 3 รูป)
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                    {(sampleImages || []).map((img) => {
-                      const value = img.filename || "";
-                      const src = img.url || "";
-                      {
-                        /* ⭐️ GOAL 2: เปลี่ยน logic การ check */
-                      }
-                      const checked = imageManager.selectedSampleForPdfLocal.has(value);
-                      return (
-                        <label
-                          key={value || src}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            border: checked ? `2px solid ${tokens.primary}` : "1px solid #ddd",
-                            padding: 6,
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            userSelect: "none",
-                          }}
-                        >
-                          {/* ⭐️ GOAL 2: เปลี่ยน radio เป็น checkbox */}
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            disabled={!canUploadSampleImages}
-                            onChange={() => {
-                              {
-                                /* ⭐️ GOAL 2: เปลี่ยน logic การ update */
-                              }
-                              if (!canUploadSampleImages) return;
-
-                              const newValue = img.filename || "";
-                              if (!newValue) return; // Don't allow toggling images without filenames
-
-                              // Create a new Set based on the current local state
-                              const newSet = new Set(imageManager.selectedSampleForPdfLocal);
-
-                              if (newSet.has(newValue)) {
-                                // It's already checked, so uncheck it
-                                newSet.delete(newValue);
-                              } else {
-                                // It's not checked, so add it.
-                                // Enforce limit of 3.
-                                if (newSet.size >= 3) {
-                                  showError("คุณสามารถเลือกรูปภาพได้สูงสุด 3 รูปเท่านั้น");
-                                  return; // Don't add
-                                }
-                                newSet.add(newValue);
-                              }
-
-                              // Update local state immediately for UI feedback
-                              imageManager.setSelectedSampleForPdfLocal(newSet);
-                              // Schedule the debounced sync
-                              imageManager.scheduleSyncSelectedForPdf(newSet);
-                            }}
-                            style={{ margin: 0 }}
-                          />
-                          {src ? (
-                            <img
-                              src={src}
-                              alt="sample"
-                              style={{
-                                /* ⭐️ GOAL 1: ลดขนาดรูป */
-                                width: 50,
-                                height: 50,
-                                objectFit: "cover",
-                                display: "block",
-                              }}
-                            />
-                          ) : null}
-                        </label>
-                      );
-                    })}
-                  </Box>
-                </Box>
-              </Box>
-            </Section>
-
-            {/* Signature Images Section (only for approved status) */}
-            {q?.status === "approved" && (
-              <Grid item xs={12}>
-                <Section>
-                  <SectionHeader>
-                    <Avatar
-                      sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}
-                    >
-                      S
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        หลักฐานการเซ็น / Signed Evidence
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        ไฟล์รูปภาพที่ยืนยันการเซ็นใบเสนอราคา
-                      </Typography>
-                    </Box>
-                  </SectionHeader>
-                  <Box sx={{ p: 2 }}>
-                    {signatureImages.length === 0 && (
-                      <InfoCard sx={{ p: 2, textAlign: "center", mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          ยังไม่มีรูปหลักฐานการเซ็น
-                        </Typography>
-                      </InfoCard>
-                    )}
-                    {signatureImages.length > 0 && (
-                      <Grid container spacing={2} sx={{ mb: 2 }}>
-                        {signatureImages.map((img, idx) => {
-                          const apiBase = apiConfig.baseUrl || "";
-                          // Derive origin root (strip /api/... if present)
-                          const origin = (() => {
-                            try {
-                              if (!apiBase) return "";
-                              const u = new URL(apiBase);
-                              return u.origin; // http://localhost:8000
-                            } catch {
-                              return apiBase.replace(/\/api\b.*$/, "");
-                            }
-                          })();
-                          const normalize = (u) => {
-                            if (!u) return "";
-                            if (/^https?:/i.test(u)) return u; // absolute
-                            if (u.startsWith("//")) return window.location.protocol + u; // protocol-relative
-                            if (u.startsWith("/")) return origin + u; // backend relative root
-                            // maybe "storage/..." without leading slash
-                            if (u.startsWith("storage/")) return origin + "/" + u;
-                            return u; // fallback
-                          };
-                          let urlCandidate = img?.url || "";
-                          if (!urlCandidate && img?.path) {
-                            urlCandidate = "storage/" + img.path.replace(/^public\//, "");
-                          }
-                          const finalUrl = normalize(urlCandidate);
-                          return (
-                            <Grid item key={idx} xs={6} md={3}>
-                              <Box
-                                sx={{
-                                  border: "1px solid " + tokens.border,
-                                  borderRadius: 1,
-                                  p: 1,
-                                  bgcolor: "#fff",
-                                  cursor: "pointer",
-                                  position: "relative",
-                                }}
-                                onClick={() =>
-                                  imageManager.setPreviewImage({
-                                    url: finalUrl,
-                                    filename: img.original_filename || img.filename,
-                                    idx,
-                                  })
-                                }
-                              >
-                                <Box
-                                  sx={{
-                                    position: "relative",
-                                    pb: "70%",
-                                    overflow: "hidden",
-                                    borderRadius: 1,
-                                    mb: 1,
-                                    background: "#fafafa",
-                                  }}
-                                >
-                                  <img
-                                    src={finalUrl}
-                                    alt={img.filename}
-                                    style={{
-                                      position: "absolute",
-                                      top: 0,
-                                      left: 0,
-                                      width: "100%",
-                                      height: "100%",
-                                      objectFit: "contain",
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ display: "block", wordBreak: "break-all" }}
-                                >
-                                  {img.original_filename || img.filename}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          );
-                        })}
-                      </Grid>
-                    )}
-                    {canUploadSignatures && (
-                      <Box>
-                        <SecondaryButton
-                          component="label"
-                          disabled={imageManager.isUploadingSignatures}
-                        >
-                          {imageManager.isUploadingSignatures
-                            ? "กำลังอัปโหลด…"
-                            : "อัปโหลดรูปหลักฐานการเซ็น"}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            hidden
-                            onChange={imageManager.handleUploadSignatures}
-                          />
-                        </SecondaryButton>
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                          รองรับ JPG / PNG สูงสุด 5MB ต่อไฟล์
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Section>
-              </Grid>
-            )}
+            <SampleImagesSection
+              status={q?.status}
+              sampleImages={sampleImages}
+              signatureImages={signatureImages}
+              imageManager={imageManager}
+              canUploadSampleImages={permission.canUploadSampleImages}
+              canUploadSignatures={permission.canUploadSignatures}
+            />
           </Box>
         </DialogContent>
         <DialogActions>
-          {isEditing ? (
-            <>
-              <SecondaryButton
-                onClick={() => imageManager.handlePreviewPdf(q?.status)}
-                disabled={imageManager.isGeneratingPdf}
-              >
-                {imageManager.isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
-              </SecondaryButton>
-              <SecondaryButton onClick={() => setIsEditing(false)}>ยกเลิก</SecondaryButton>
-              <SecondaryButton onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "กำลังบันทึก…" : "บันทึก"}
-              </SecondaryButton>
-            </>
-          ) : (
-            <>
-              <SecondaryButton
-                onClick={() => imageManager.handlePreviewPdf(q?.status)}
-                disabled={imageManager.isGeneratingPdf}
-              >
-                {imageManager.isGeneratingPdf ? "กำลังสร้าง…" : "ดูตัวอย่าง PDF"}
-              </SecondaryButton>
-              <SecondaryButton onClick={onClose}>ปิด</SecondaryButton>
-            </>
-          )}
+          <ActionBar
+            isEditing={isEditing}
+            isSaving={saveFlow.isSaving}
+            isGeneratingPdf={imageManager.isGeneratingPdf}
+            onPreviewPdf={() => imageManager.handlePreviewPdf(q?.status)}
+            onCancelEdit={() => setIsEditing(false)}
+            onSave={handleSave}
+            onClose={onClose}
+          />
         </DialogActions>
 
-        {/* Customer Edit Dialog */}
         <CustomerEditDialog
           open={editCustomerOpen}
-          onClose={() => dialogLogic.setEditCustomerOpen(false)}
+          onClose={() => setters.setEditCustomerOpen(false)}
           customer={customer}
           onUpdated={(c) => {
-            setCustomer(c);
-            dialogLogic.setEditCustomerOpen(false);
+            setters.setCustomer(c);
+            setters.setEditCustomerOpen(false);
           }}
         />
       </Dialog>
 
-      {/* Sync Confirmation Dialog */}
-      <SyncConfirmationDialog
-        open={syncConfirmOpen}
-        onClose={() => {
-          setSyncConfirmOpen(false);
-          setPendingSaveData(null);
-        }}
-        onConfirm={handleSyncConfirm}
+      <SyncDialogs
+        syncConfirmOpen={saveFlow.syncConfirmOpen}
+        pendingSaveData={saveFlow.pendingSaveData}
+        onCloseSyncConfirm={saveFlow.closeSyncConfirm}
+        onConfirmSync={saveFlow.confirmSyncAndRetry}
         quotationId={quotationId}
-        invoiceCount={pendingSaveData?.invoiceCount || 0}
-        affectedInvoices={pendingSaveData?.affectedInvoices || []}
-      />
-
-      {/* Sync Progress Dialog */}
-      <SyncProgressDialog
-        open={!!syncJobId}
-        syncJobId={syncJobId}
-        onClose={() => setSyncJobId(null)}
-      />
-
-      {/* Backend PDF Viewer Dialog */}
-      <Dialog
-        open={imageManager.showPdfViewer}
-        onClose={() => imageManager.setShowPdfViewer(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>ดูตัวอย่าง PDF</DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          {imageManager.pdfUrl ? (
-            <iframe
-              title="quotation-pdf"
-              src={imageManager.pdfUrl}
-              style={{ width: "100%", height: "80vh", border: 0 }}
-            />
-          ) : (
-            <Box display="flex" alignItems="center" gap={1} p={2}>
-              <CircularProgress size={22} />
-              <Typography variant="body2">กำลังโหลดตัวอย่าง PDF…</Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {imageManager.pdfUrl && (
-            <SecondaryButton onClick={() => window.open(imageManager.pdfUrl, "_blank")}>
-              เปิดในแท็บใหม่
-            </SecondaryButton>
-          )}
-          <SecondaryButton onClick={() => imageManager.setShowPdfViewer(false)}>
-            ปิด
-          </SecondaryButton>
-        </DialogActions>
-      </Dialog>
-
-      {/* Signature Image Preview Dialog */}
-      <Dialog
-        open={!!imageManager.previewImage}
-        onClose={() => imageManager.setPreviewImage(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>{imageManager.previewImage?.filename || "ภาพตัวอย่าง"}</DialogTitle>
-        <DialogContent dividers sx={{ bgcolor: "#000" }}>
-          {imageManager.previewImage && (
-            <Box sx={{ position: "relative", width: "100%", textAlign: "center" }}>
-              <img
-                src={imageManager.previewImage.url}
-                alt={imageManager.previewImage.filename}
-                style={{ maxWidth: "100%", maxHeight: "75vh", objectFit: "contain" }}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <SecondaryButton onClick={() => imageManager.setPreviewImage(null)}>ปิด</SecondaryButton>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permission Error Dialog */}
-      <PermissionErrorDialog
-        open={permissionError.open}
-        onClose={() => setPermissionError({ open: false, message: "", invoices: [] })}
-        message={permissionError.message}
-        invoices={permissionError.invoices}
+        syncJobId={saveFlow.syncJobId}
+        onCloseSyncProgress={saveFlow.closeSyncProgress}
+        showPdfViewer={imageManager.showPdfViewer}
+        pdfUrl={imageManager.pdfUrl}
+        onClosePdfViewer={() => imageManager.setShowPdfViewer(false)}
+        previewImage={imageManager.previewImage}
+        onClosePreviewImage={() => imageManager.setPreviewImage(null)}
+        permissionError={permission.permissionError}
         quotationNumber={q?.number}
-        userRole={userData?.role}
+        userRole={permission.role}
+        onClosePermissionError={permission.clearPermissionError}
       />
     </>
   );

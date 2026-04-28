@@ -1,5 +1,4 @@
-// 📁hooks/useQuotationImageManager.js
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import {
   useGenerateQuotationPDFMutation,
@@ -14,7 +13,13 @@ import {
   dismissToast,
 } from "../../../../utils/accountingToast";
 
-export function useQuotationImageManager(quotationId, isEditing, handleSave) {
+export function useQuotationImageManager({
+  quotationId,
+  quotationKey,
+  sampleImages,
+  isEditing,
+  handleSave,
+}) {
   // State for PDF Generation
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
@@ -155,9 +160,18 @@ export function useQuotationImageManager(quotationId, isEditing, handleSave) {
     lastSyncedSelRef.current = JSON.stringify(Array.from(initialSet).sort());
   }, []);
 
-  const updateSampleSelection = useCallback((sampleImages) => {
-    sampleImagesRef.current = sampleImages;
+  const updateSampleSelection = useCallback((nextSampleImages) => {
+    sampleImagesRef.current = nextSampleImages;
   }, []);
+
+  // Re-initialize selection set when quotation switches; keep ref fresh on every render.
+  useEffect(() => {
+    initializeSampleSelection(sampleImages || []);
+  }, [quotationKey, sampleImages, initializeSampleSelection]);
+
+  useEffect(() => {
+    updateSampleSelection(sampleImages || []);
+  }, [sampleImages, updateSampleSelection]);
 
   return {
     // PDF Generation

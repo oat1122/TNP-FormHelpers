@@ -1097,24 +1097,13 @@ class NotebookControllerTest extends TestCase
         ]);
     }
 
-    public function test_assign_rejects_notebook_that_is_not_queue_already_assigned_or_converted(): void
+    public function test_assign_rejects_converted_or_side_entry_notebooks(): void
     {
         $supportUser = User::factory()->create(['role' => 'production']);
         $this->attachSubRole($supportUser, 'SUPPORT_SALES');
         $offlineSalesUser = User::factory()->sales()->create();
         $this->attachSubRole($offlineSalesUser, 'SALES_OFFLINE');
 
-        $standardNotebook = $this->createNotebook($supportUser, [
-            'nb_customer_name' => 'Standard Notebook',
-            'nb_manage_by' => null,
-            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
-        ]);
-        $assignedNotebook = $this->createNotebook($supportUser, [
-            'nb_customer_name' => 'Assigned Queue Notebook',
-            'nb_manage_by' => $offlineSalesUser->user_id,
-            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
-            'nb_claimed_at' => now(),
-        ]);
         $convertedNotebook = $this->createNotebook($supportUser, [
             'nb_customer_name' => 'Converted Queue Notebook',
             'nb_manage_by' => null,
@@ -1124,25 +1113,98 @@ class NotebookControllerTest extends TestCase
             ->where('id', $convertedNotebook->id)
             ->update(['nb_converted_at' => now()]);
 
+        $customerCareNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Customer Care Notebook',
+            'nb_manage_by' => $offlineSalesUser->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+            'nb_entry_type' => Notebook::ENTRY_TYPE_CUSTOMER_CARE,
+        ]);
+        $personalNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Personal Activity Notebook',
+            'nb_manage_by' => $offlineSalesUser->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+            'nb_entry_type' => Notebook::ENTRY_TYPE_PERSONAL_ACTIVITY,
+        ]);
+
         Sanctum::actingAs($supportUser);
-
-        $this->postJson("/api/v1/notebooks/{$standardNotebook->id}/assign", [
-            'sales_user_id' => $offlineSalesUser->user_id,
-        ])
-            ->assertUnprocessable()
-            ->assertJsonPath('message', 'Only lead queue notebooks can be assigned.');
-
-        $this->postJson("/api/v1/notebooks/{$assignedNotebook->id}/assign", [
-            'sales_user_id' => $offlineSalesUser->user_id,
-        ])
-            ->assertUnprocessable()
-            ->assertJsonPath('message', 'This notebook lead has already been assigned.');
 
         $this->postJson("/api/v1/notebooks/{$convertedNotebook->id}/assign", [
             'sales_user_id' => $offlineSalesUser->user_id,
         ])
             ->assertUnprocessable()
             ->assertJsonPath('message', 'This notebook lead has already been converted.');
+
+        $this->postJson("/api/v1/notebooks/{$customerCareNotebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This notebook entry type cannot be assigned to a sales user.');
+
+        $this->postJson("/api/v1/notebooks/{$personalNotebook->id}/assign", [
+            'sales_user_id' => $offlineSalesUser->user_id,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This notebook entry type cannot be assigned to a sales user.');
+    }
+
+    public function test_support_sales_can_reassign_already_owned_notebook_to_another_sales_user(): void
+    {
+        $supportUser = User::factory()->create(['role' => 'production']);
+        $this->attachSubRole($supportUser, 'SUPPORT_SALES');
+        $originalOwner = User::factory()->sales()->create();
+        $this->attachSubRole($originalOwner, 'SALES_OFFLINE');
+        $newOwner = User::factory()->sales()->create();
+        $this->attachSubRole($newOwner, 'SALES_OFFLINE');
+
+        $claimedAt = now()->subDays(3);
+        $assignedNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Reassignable Notebook',
+            'nb_manage_by' => $originalOwner->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_LEAD_QUEUE,
+            'nb_claimed_at' => $claimedAt,
+        ]);
+
+        $standardOwnedNotebook = $this->createNotebook($supportUser, [
+            'nb_customer_name' => 'Standard Owned Notebook',
+            'nb_manage_by' => $originalOwner->user_id,
+            'nb_workflow' => Notebook::WORKFLOW_STANDARD,
+            'nb_claimed_at' => $claimedAt,
+        ]);
+
+        Sanctum::actingAs($supportUser);
+
+        $this->postJson("/api/v1/notebooks/{$assignedNotebook->id}/assign", [
+            'sales_user_id' => $newOwner->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $newOwner->user_id);
+
+        $this->postJson("/api/v1/notebooks/{$standardOwnedNotebook->id}/assign", [
+            'sales_user_id' => $newOwner->user_id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('nb_manage_by', $newOwner->user_id);
+
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $assignedNotebook->id,
+            'nb_manage_by' => $newOwner->user_id,
+        ]);
+        $this->assertDatabaseHas('notebooks', [
+            'id' => $standardOwnedNotebook->id,
+            'nb_manage_by' => $newOwner->user_id,
+        ]);
+
+        // Original claimed_at should be preserved on reassignment.
+        $this->assertSame(
+            $claimedAt->format('Y-m-d H:i:s'),
+            Notebook::find($assignedNotebook->id)->nb_claimed_at->format('Y-m-d H:i:s')
+        );
+
+        $this->assertDatabaseHas('notebook_histories', [
+            'notebook_id' => $assignedNotebook->id,
+            'action' => 'reassigned',
+            'action_by' => $supportUser->user_id,
+        ]);
     }
 
     public function test_manager_can_filter_index_by_action_and_manage_by(): void

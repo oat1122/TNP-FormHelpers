@@ -80,21 +80,25 @@ export const isNotebookQueueAssignableRow = (row, scopeFilter = "all") =>
   !row?.nb_converted_at;
 
 export const isUntouchedQueueClaim = (row) => {
-  if (!row || row.nb_workflow !== "lead_queue" || !row.nb_manage_by || row.nb_converted_at) {
+  if (!row) {
+    return false;
+  }
+
+  if (row.nb_is_fresh_queue !== undefined && row.nb_is_fresh_queue !== null) {
+    return Boolean(row.nb_is_fresh_queue);
+  }
+
+  if (row.nb_workflow !== "lead_queue" || !row.nb_manage_by || row.nb_converted_at) {
     return false;
   }
 
   const hasStatus = Boolean(row.nb_status && String(row.nb_status).trim());
-  const hasNotes = Boolean(
-    (row.nb_additional_info && String(row.nb_additional_info).trim()) ||
-      (row.nb_remarks && String(row.nb_remarks).trim())
-  );
   const hasFollowup = Boolean(row.nb_next_followup_date);
   const hasFollowupNote = Boolean(
     row.nb_next_followup_note && String(row.nb_next_followup_note).trim()
   );
 
-  return !hasStatus && !hasNotes && !hasFollowup && !hasFollowupNote;
+  return !hasStatus && !hasFollowup && !hasFollowupNote;
 };
 
 export const getNotebookIntelligenceChips = (row) => {

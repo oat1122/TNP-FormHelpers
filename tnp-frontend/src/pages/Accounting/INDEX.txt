@@ -125,15 +125,17 @@ Pricing Integration:
 - `PricingIntegration/PricingIntegration.jsx`: fetches completed pricing requests and creates quotation from multiple pricing requests.
 - `PricingIntegration/components/quotation/CreateQuotationForm/CreateQuotationForm.jsx`: quotation form pieces and temp sample-image upload.
 
-Quotations:
+Quotations: (refactored Phase 0–10, 2026-04-28 — see `Quotations/REFACTOR_PLAN.md`)
 
-- `Quotations/Quotations.jsx`: main list, filters, actions, create/duplicate dialogs.
-- `Quotations/components/QuotationCard/hooks/useQuotationCardLogic.js`: card actions such as approve, submit, delete, update company.
-- `Quotations/components/QuotationDetailDialog/`: main detail/edit logic, financials, PR grouping, images, related invoices.
-- `Quotations/components/QuotationDuplicateDialog/`: duplicate flow reusing similar detail helpers.
-- `Quotations/components/QuotationStandaloneCreateDialog/`: standalone quotation creation and customer/company selection.
+- `Quotations/Quotations.jsx`: thin shell composed via `hooks/useQuotationsPage`.
+- `Quotations/components/QuotationCard/`: card folder (subcomponents/hooks/utils + barrel) — approve, submit, status reversal logic.
+- `Quotations/components/QuotationDetailDialog/`: detail/edit dialog folder — `hooks/` (logic, save, financials init, edit permission, image manager) + `utils/` (manualJobValidator, quotationUpdatePayload, signatureImageUrl) + `sections/` (FinancialControls, PRGroups, PaymentTerms, SampleImages, ActionBar, SyncDialogs).
+- `Quotations/components/QuotationDuplicateDialog/`: duplicate folder — reuses Phase 4 sections via cross-dialog import + own save/payload/logic hooks.
+- `Quotations/components/QuotationStandaloneCreateDialog/`: 3-step wizard folder — `hooks/` (form, submit, validation) + `utils/` (defaults, payload) + `sections/` (Stepper, Customer, Jobs, Financial) + nested `CustomerCreateDialog/` (Phase 5 break-up).
+- `Quotations/components/QuotationTableView/`: table folder — `subcomponents/QuotationTableRow` + `hooks/useQuotationTableActions` + `utils/{tableLookups, tableStyles}` + barrel.
+- `Quotations/components/shared/PRGroupCalcCard/` + `shared/utils/prAutofillResolver.js`: shared PR group rendering used by Detail + Duplicate.
 - `Quotations/components/SyncConfirmationDialog.jsx` and `SyncProgressDialog.jsx`: quotation-to-invoice sync UX.
-- `Quotations/report/QuotationReport.jsx`: report filters/export view.
+- `Quotations/report/`: filters/export folder — `hooks/{useQuotationReport, useReportDateFilter}` + `utils/{reportDateRanges, reportExportCsv}` + `components/{ReportFilterBar, ReportDateNavigator, ReportExportButton, ReportStatusTabs, ReportSummaryCards, ReportTableView}`.
 
 Invoices:
 

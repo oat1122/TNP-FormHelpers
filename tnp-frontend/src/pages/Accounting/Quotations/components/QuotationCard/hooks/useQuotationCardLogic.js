@@ -7,6 +7,7 @@ import {
   useSubmitQuotationMutation,
 } from "../../../../../../features/Accounting/accountingApi";
 import { formatUserDisplay } from "../../../../../../utils/formatUser";
+import { useCurrentUser } from "../../../../shared/hooks/useCurrentUser";
 
 export function useQuotationCardLogic(data, onActionSuccess) {
   // ✅ รับ argument ใหม่
@@ -33,19 +34,10 @@ export function useQuotationCardLogic(data, onActionSuccess) {
     return Array.isArray(list) ? list : [];
   }, [companiesResp]);
 
-  const userData = React.useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("userData") || "{}");
-    } catch (error) {
-      if (import.meta.env.DEV) console.error("Parse userData failed", error);
-      return {};
-    }
-  }, []);
+  const { currentUser } = useCurrentUser();
+  const userRole = currentUser?.role;
 
-  const canChangeCompany = React.useMemo(
-    () => ["admin", "account"].includes(userData?.role),
-    [userData?.role]
-  );
+  const canChangeCompany = React.useMemo(() => ["admin", "account"].includes(userRole), [userRole]);
 
   const currentCompany = React.useMemo(
     () => companies.find((company) => company.id === data?.company_id),
@@ -54,14 +46,13 @@ export function useQuotationCardLogic(data, onActionSuccess) {
 
   const canApprove = React.useMemo(
     () =>
-      ["admin", "account"].includes(userData?.role) &&
-      ["draft", "pending_review"].includes(data?.status),
-    [userData?.role, data?.status]
+      ["admin", "account"].includes(userRole) && ["draft", "pending_review"].includes(data?.status),
+    [userRole, data?.status]
   );
 
   const canRevokeApproval = React.useMemo(
-    () => ["admin", "account"].includes(userData?.role) && data?.status === "approved",
-    [userData?.role, data?.status]
+    () => ["admin", "account"].includes(userRole) && data?.status === "approved",
+    [userRole, data?.status]
   );
 
   const prIds = React.useMemo(() => {

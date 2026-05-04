@@ -9,6 +9,33 @@ use Illuminate\Support\Facades\Request;
 
 class NotebookObserver
 {
+    public function creating(Notebook $notebook): void
+    {
+        $notebook->nb_is_fresh_queue = $notebook->nb_workflow === Notebook::WORKFLOW_LEAD_QUEUE
+            && ! empty($notebook->nb_manage_by)
+            && empty($notebook->nb_converted_at);
+    }
+
+    public function updating(Notebook $notebook): void
+    {
+        if (! empty($notebook->nb_converted_at)) {
+            $notebook->nb_is_fresh_queue = false;
+
+            return;
+        }
+
+        $originalManageBy = $notebook->getOriginal('nb_manage_by');
+        $newManageBy = $notebook->nb_manage_by;
+
+        $justHandedOver = ! empty($newManageBy) && (
+            empty($originalManageBy)
+            || (int) $originalManageBy !== (int) $newManageBy
+        );
+
+        $notebook->nb_is_fresh_queue = $justHandedOver
+            && $notebook->nb_workflow === Notebook::WORKFLOW_LEAD_QUEUE;
+    }
+
     /**
      * Handle the Notebook "created" event.
      */

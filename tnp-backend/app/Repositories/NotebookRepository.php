@@ -155,6 +155,7 @@ class NotebookRepository extends BaseRepository implements NotebookRepositoryInt
             ->filterWorkflow($filters['workflow'] ?? null)
             ->filterManageBy(isset($filters['manage_by']) ? (int) $filters['manage_by'] : null)
             ->orderByDesc('nb_is_favorite')
+            ->orderByDesc('nb_is_fresh_queue')
             ->orderByDesc('created_at');
     }
 

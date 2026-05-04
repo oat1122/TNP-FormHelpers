@@ -51,6 +51,7 @@ class Notebook extends Model
         'nb_next_followup_date',
         'nb_next_followup_note',
         'nb_is_favorite',
+        'nb_is_fresh_queue',
         'nb_manage_by',
         'nb_workflow',
         'nb_entry_type',
@@ -70,6 +71,7 @@ class Notebook extends Model
     protected $casts = [
         'nb_is_online' => 'boolean',
         'nb_is_favorite' => 'boolean',
+        'nb_is_fresh_queue' => 'boolean',
         'nb_date' => 'date',
         'nb_next_followup_date' => 'date',
         'nb_converted_at' => 'datetime',

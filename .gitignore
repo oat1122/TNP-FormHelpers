@@ -2,3 +2,5 @@
 *.md
 .agents/
 .claude/
+.claude/settings.local.json
+.claude/projects/

@@ -138,3 +138,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.timestamp-*.mjs
+
+# Claude Code — local-only settings & projects cache
+.claude/settings.local.json
+.claude/projects/

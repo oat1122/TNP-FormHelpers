@@ -19,3 +19,7 @@ yarn-error.log
 /.idea
 
 /storage/phpstan
+
+# Claude Code — local-only settings & projects cache
+.claude/settings.local.json
+.claude/projects/

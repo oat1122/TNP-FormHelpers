@@ -1,3 +1,4 @@
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
@@ -33,6 +34,7 @@ const QuotationTableRow = ({
   onDownloadPDF,
   onDuplicate,
   onCreateInvoice,
+  onGoToInvoice,
   onActionSuccess,
 }) => {
   const status = q?.status || "draft";
@@ -230,6 +232,18 @@ const QuotationTableRow = ({
                   sx={{ color: "info.main" }}
                 >
                   <ReceiptIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {onGoToInvoice && isApproved && (
+              <Tooltip title="ไปยังใบแจ้งหนี้ของรายการนี้" arrow>
+                <IconButton
+                  size="small"
+                  onClick={() => onGoToInvoice?.(q)}
+                  sx={{ color: "info.dark" }}
+                >
+                  <AccountBalanceIcon sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
             )}

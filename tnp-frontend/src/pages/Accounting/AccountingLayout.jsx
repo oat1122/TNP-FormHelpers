@@ -21,19 +21,32 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
+import { useCurrentUser } from "./shared/hooks/useCurrentUser";
 import accountingTheme from "./theme/accountingTheme";
 import { setActiveStep } from "../../features/Accounting/accountingSlice";
 
 const drawerWidth = 280;
 
-// Navigation items
-const navigationItems = [
+const UNIFIED_DOC_ROLES = ["admin", "account"];
+
+// Navigation items — sidebar layout จะเลือกใช้ตาม role
+const baseItems = [
   {
     id: "pricing",
     title: "นำเข้างาน Pricing",
     icon: ImportIcon,
     path: "/accounting/pricing-integration",
   },
+];
+
+const unifiedDocItem = {
+  id: "documents",
+  title: "เอกสารบัญชี",
+  icon: AssignmentIcon,
+  path: "/accounting/quotations",
+};
+
+const splitDocItems = [
   {
     id: "quotation",
     title: "ใบเสนอราคา",
@@ -46,6 +59,9 @@ const navigationItems = [
     icon: InvoiceIcon,
     path: "/accounting/invoices",
   },
+];
+
+const tailItems = [
   {
     id: "delivery",
     title: "การจัดส่ง",
@@ -60,8 +76,14 @@ const navigationItems = [
   },
 ];
 
+const buildNavigationItems = (showUnifiedDocs) => [
+  ...baseItems,
+  ...(showUnifiedDocs ? [unifiedDocItem] : splitDocItems),
+  ...tailItems,
+];
+
 // Sidebar Component
-const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
+const Sidebar = ({ open, onClose, selectedItem, onItemSelect, navigationItems }) => {
   const navigate = useNavigate();
 
   const handleItemClick = (item) => {
@@ -140,8 +162,12 @@ const Sidebar = ({ open, onClose, selectedItem, onItemSelect }) => {
 const AccountingLayout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { currentUser, isAdmin } = useCurrentUser();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const showUnifiedDocs = isAdmin || UNIFIED_DOC_ROLES.includes(currentUser?.role);
+  const navigationItems = buildNavigationItems(showUnifiedDocs);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -170,6 +196,7 @@ const AccountingLayout = () => {
           onClose={handleDrawerToggle}
           selectedItem={currentItem.id}
           onItemSelect={handleItemSelect}
+          navigationItems={navigationItems}
         />
 
         {/* Main Content */}

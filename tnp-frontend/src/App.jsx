@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 
 import { AuthLayout, GuestLayout } from "./pages/Login/AuthLayout";
 import "./index.css";
@@ -34,8 +34,15 @@ const PricingIntegration = lazy(
 );
 const Quotations = lazy(() => import("./pages/Accounting/Quotations/Quotations"));
 const QuotationReport = lazy(() => import("./pages/Accounting/Quotations/report/QuotationReport"));
-const Invoices = lazy(() => import("./pages/Accounting/Invoices/Invoices"));
 const DeliveryNotes = lazy(() => import("./pages/Accounting/DeliveryNotes/DeliveryNotes"));
+
+// Redirect legacy /accounting/invoices → unified Quotations page (mode=invoice)
+const InvoicesRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const params = new URLSearchParams(searchParams);
+  params.set("type", "invoice");
+  return <Navigate to={`/accounting/quotations?${params.toString()}`} replace />;
+};
 
 // MaxSupply components
 const MaxSupplyHome = lazy(() => import("./pages/MaxSupply/MaxSupplyHome"));
@@ -101,7 +108,7 @@ function App() {
               <Route path="pricing-integration" element={<PricingIntegration />} />
               <Route path="quotations" element={<Quotations />} />
               <Route path="quotations/report" element={<QuotationReport />} />
-              <Route path="invoices" element={<Invoices />} />
+              <Route path="invoices" element={<InvoicesRedirect />} />
               <Route path="delivery-notes" element={<DeliveryNotes />} />
             </Route>
 

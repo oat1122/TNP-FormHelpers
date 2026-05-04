@@ -21,7 +21,7 @@ const quotationStatusOptions = [
   { value: "approved", label: "อนุมัติแล้ว" },
 ];
 
-export const useQuotationsPage = () => {
+export const useQuotationsPage = ({ enabled = true } = {}) => {
   const dispatch = useDispatch();
   const { filters, handlers, getQueryArgs } = useAdvancedFilter();
 
@@ -44,13 +44,16 @@ export const useQuotationsPage = () => {
 
   const [lastSavedId, setLastSavedId] = useState(null);
 
-  const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery({
-    ...getQueryArgs(),
-    signature_uploaded: signatureOnly ? 1 : undefined,
-    only_mine: showOnlyMine ? 1 : undefined,
-    page: 1,
-    per_page: CLIENT_SIDE_FETCH_LIMIT,
-  });
+  const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery(
+    {
+      ...getQueryArgs(),
+      signature_uploaded: signatureOnly ? 1 : undefined,
+      only_mine: showOnlyMine ? 1 : undefined,
+      page: 1,
+      per_page: CLIENT_SIDE_FETCH_LIMIT,
+    },
+    { skip: !enabled }
+  );
   const [generatePDF] = useGenerateQuotationPDFMutation();
   const [triggerGetDuplicateData] = useLazyGetQuotationDuplicateDataQuery();
 
@@ -161,6 +164,12 @@ export const useQuotationsPage = () => {
     }
   }, [lastSavedId, refetch]);
 
+  const openQuotationDetail = useCallback((quotationId) => {
+    if (!quotationId) return;
+    setSelectedQuotation({ id: quotationId });
+    setDetailOpen(true);
+  }, []);
+
   const handleDetailSaveSuccess = useCallback(() => {
     setLastSavedId(selectedQuotation?.id || null);
   }, [selectedQuotation]);
@@ -234,6 +243,7 @@ export const useQuotationsPage = () => {
     handleRefresh,
     handleCardActionSuccess,
     handleCloseDetailDialog,
+    openQuotationDetail,
     handleDetailSaveSuccess,
     handleStandaloneCreateSuccess,
     // Company filter pass-through (for standalone dialog)

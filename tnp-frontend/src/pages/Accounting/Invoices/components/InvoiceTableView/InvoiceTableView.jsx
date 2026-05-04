@@ -8,20 +8,18 @@ import {
   TableRow,
 } from "@mui/material";
 
-import { useQuotationTableActions } from "./hooks/useQuotationTableActions";
-import QuotationTableRow from "./subcomponents/QuotationTableRow";
+import { useInvoiceTableActions } from "./hooks/useInvoiceTableActions";
+import InvoiceTableRow from "./subcomponents/InvoiceTableRow";
 import { headCellSx } from "./utils/tableStyles";
 
-const QuotationTableView = ({
+const InvoiceTableView = ({
   data = [],
   onViewDetail,
-  onDownloadPDF,
-  onDuplicate,
-  onCreateInvoice,
-  onGoToInvoice,
+  onPreviewPDF,
+  onGoToQuotation,
   onActionSuccess,
 }) => {
-  const { getCompanyName } = useQuotationTableActions();
+  const { getCompanyName } = useInvoiceTableActions();
 
   return (
     <TableContainer
@@ -75,17 +73,15 @@ const QuotationTableView = ({
             </TableRow>
           )}
 
-          {data.map((q, idx) => (
-            <QuotationTableRow
-              key={q.id}
-              q={q}
+          {data.map((inv, idx) => (
+            <InvoiceTableRow
+              key={inv.id}
+              inv={inv}
               idx={idx}
               getCompanyName={getCompanyName}
               onViewDetail={onViewDetail}
-              onDownloadPDF={onDownloadPDF}
-              onDuplicate={onDuplicate}
-              onCreateInvoice={onCreateInvoice}
-              onGoToInvoice={onGoToInvoice}
+              onPreviewPDF={onPreviewPDF}
+              onGoToQuotation={onGoToQuotation}
               onActionSuccess={onActionSuccess}
             />
           ))}
@@ -95,4 +91,4 @@ const QuotationTableView = ({
   );
 };
 
-export default QuotationTableView;
+export default InvoiceTableView;

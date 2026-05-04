@@ -287,3 +287,8 @@ export const QuotationListSkeleton = ({ count = 6 }) => (
  * Quotation Table Skeleton — table view (number / customer / total / status / date / actions)
  */
 export const QuotationTableSkeleton = ({ rows = 6 }) => <TableSkeleton rows={rows} columns={6} />;
+
+/**
+ * Invoice Table Skeleton — table view (number+side / customer / company / status / total / date / user / actions)
+ */
+export const InvoiceTableSkeleton = ({ rows = 6 }) => <TableSkeleton rows={rows} columns={9} />;

@@ -893,6 +893,7 @@ export const {
   useMarkQuotationCompletedMutation,
   useGenerateQuotationPDFMutation,
   useGetQuotationRelatedInvoicesQuery,
+  useLazyGetQuotationRelatedInvoicesQuery,
   useGetSyncJobStatusQuery,
   useGetQuotationReportQuery,
   useLazyGetQuotationReportQuery,

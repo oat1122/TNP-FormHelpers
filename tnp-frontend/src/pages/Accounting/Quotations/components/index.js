@@ -1,4 +1,5 @@
 export { default as CompanyManagerDialog } from "./CompanyManagerDialog";
+export { default as DocumentTypeSelector } from "./DocumentTypeSelector";
 export { default as LinkedPricingDialog } from "./LinkedPricingDialog";
 export { default as QuotationCard } from "./QuotationCard";
 export { default as QuotationControlsBar } from "./QuotationControlsBar";

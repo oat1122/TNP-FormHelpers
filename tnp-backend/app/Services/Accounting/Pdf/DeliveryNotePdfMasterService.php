@@ -38,7 +38,8 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/delivery-note/delivery-note-master.css'),
-            // ใช้ header CSS ของ invoice ที่แชร์สไตล์หัวเอกสารพื้นฐานไว้แล้ว
+            resource_path('views/pdf/partials/_doc-header-shared.css'),
+            // ใช้ header CSS ของ invoice (เก็บ items-table.slim cross-domain rules + .doc-title color)
             resource_path('views/pdf/partials/invoice-header.css'),
         ];
     }
@@ -46,9 +47,9 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
         $deliveryNote = $data['deliveryNote'];
-        $customer     = $data['customer'];
-        $isFinal      = $data['isFinal'];
-        $headerType   = $data['headerType'] ?? 'ต้นฉบับ';
+        $customer = $data['customer'];
+        $isFinal = $data['isFinal'];
+        $headerType = $data['headerType'] ?? 'ต้นฉบับ';
 
         // Header (ใช้ partial ที่มีอยู่แล้ว)
         $headerHtml = View::make('accounting.pdf.delivery-note.partials.delivery-note-header', compact('deliveryNote', 'customer', 'isFinal', 'headerType'))->render();
@@ -56,7 +57,7 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
         $mpdf->SetHTMLHeader($headerHtml);
 
         // ✨ คืนค่า SetHTMLFooter - แสดงเลขหน้าในทุกหน้า
-        if (!empty($data['options']['showPageNumbers'])) {
+        if (! empty($data['options']['showPageNumbers'])) {
             $mpdf->SetHTMLFooter('<div style="text-align: right; font-size: 9pt; color: #888;">หน้า {PAGENO} / {nbpg}</div>');
         }
 
@@ -70,7 +71,7 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
 
         // ใช้ตัว extract กลางเพื่อให้ได้ข้อมูลลูกค้าแบบ normalize
         $customer = \App\Services\Accounting\Pdf\CustomerInfoExtractor::fromDeliveryNote($dn);
-        $groups   = $this->groupDeliveryNoteItems($dn);
+        $groups = $this->groupDeliveryNoteItems($dn);
 
         $isFinal = in_array($dn->status, ['shipping', 'in_transit', 'delivered', 'completed'], true);
 
@@ -78,16 +79,16 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
         $headerType = $options['document_header_type'] ?? 'ต้นฉบับ';
 
         return [
-            'deliveryNote'   => $dn,
-            'customer'       => $customer,
-            'groups'         => $groups,
-            'isFinal'        => $isFinal,
-            'headerType'     => $headerType,
-            'options'        => array_merge([
-                'format'          => 'A4',
-                'orientation'     => 'P',
+            'deliveryNote' => $dn,
+            'customer' => $customer,
+            'groups' => $groups,
+            'isFinal' => $isFinal,
+            'headerType' => $headerType,
+            'options' => array_merge([
+                'format' => 'A4',
+                'orientation' => 'P',
                 'showPageNumbers' => true,
-                'showWatermark'   => !$isFinal,
+                'showWatermark' => ! $isFinal,
             ], $options),
         ];
     }
@@ -112,19 +113,19 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
                 $item->unit ?? 'ชิ้น',
             ]));
 
-            if (!isset($groups[$key])) {
+            if (! isset($groups[$key])) {
                 $groups[$key] = [
-                    'name'   => $item->item_name ?? 'ไม่ระบุชื่องาน',
-                    'pattern'=> $item->pattern ?? '',
+                    'name' => $item->item_name ?? 'ไม่ระบุชื่องาน',
+                    'pattern' => $item->pattern ?? '',
                     'fabric' => $item->fabric_type ?? '',
-                    'color'  => $item->color ?? '',
-                    'unit'   => $item->unit ?? 'ชิ้น',
-                    'rows'   => [],
+                    'color' => $item->color ?? '',
+                    'unit' => $item->unit ?? 'ชิ้น',
+                    'rows' => [],
                 ];
             }
 
             $groups[$key]['rows'][] = [
-                'size'     => $item->size ?? '-',
+                'size' => $item->size ?? '-',
                 'quantity' => (float) ($item->delivered_quantity ?? 0),
             ];
         }
@@ -139,13 +140,13 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
     {
         // Normalize: trim + remove multiple spaces
         $normalized = preg_replace('/\s+/', '', trim($headerType));
-        
+
         $map = [
-            'ต้นฉบับ'      => 'original',
-            'สำเนา'        => 'copy',
+            'ต้นฉบับ' => 'original',
+            'สำเนา' => 'copy',
             'สำเนา-ลูกค้า' => 'copy-customer',
         ];
-        
+
         return $map[$normalized] ?? 'original';
     }
 
@@ -159,13 +160,13 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
 
         $directory = storage_path('app/public/pdfs/delivery-notes');
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             @mkdir($directory, 0755, true);
         }
 
         // สร้างชื่อไฟล์ที่ไม่ซ้ำกันด้วย header type และ microtime
         $headerSlug = $this->slugHeaderType($headerType);
-        $timestamp = date('Y-m-d-His') . '-' . substr(str_replace('.', '', microtime(true)), -6);
+        $timestamp = date('Y-m-d-His').'-'.substr(str_replace('.', '', microtime(true)), -6);
         $filename = sprintf(
             'delivery-note-%s-%s-%s.pdf',
             $deliveryNote->number ?? $deliveryNote->id,

@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\V1\Accounting;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Traits\QuotationItemRules;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 
 class CreateStandaloneQuotationRequest extends FormRequest
 {
@@ -15,7 +15,7 @@ class CreateStandaloneQuotationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization handled by middleware
+        return $this->user()?->can('quotation.create') ?? false;
     }
 
     /**

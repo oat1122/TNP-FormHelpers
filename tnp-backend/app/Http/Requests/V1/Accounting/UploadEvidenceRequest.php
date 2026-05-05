@@ -11,7 +11,7 @@ class UploadEvidenceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.uploadEvidence') ?? false;
     }
 
     /**
@@ -22,7 +22,7 @@ class UploadEvidenceRequest extends FormRequest
         return [
             'files' => 'required|array|min:1',
             'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB
-            'description' => 'nullable|string|max:500'
+            'description' => 'nullable|string|max:500',
         ];
     }
 

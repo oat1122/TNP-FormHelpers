@@ -17,7 +17,7 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
     {
         return 'tax-invoice';
     }
-    
+
     protected function getStorageFolder(): string
     {
         return 'tax-invoices';
@@ -30,37 +30,37 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
     {
         // Get base data from parent (InvoicePdfMasterService)
         $data = parent::buildViewData($invoice, $options);
-        
+
         // ✨ Override document metadata for tax invoice
         $metadata = $this->getDocumentMetadata($invoice, 'tax_invoice', $options);
-        
+
         $data['docNumber'] = $metadata['docNumber'];      // e.g., TAXB202510-0001
         $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
         $data['mode'] = $metadata['mode'];                // before/after/full
-        
-        \Log::info("🔍 TaxInvoicePDF buildViewData - Override metadata: " . json_encode($metadata));
-        
+
+        \Log::info('🔍 TaxInvoicePDF buildViewData - Override metadata: '.json_encode($metadata));
+
         return $data;
     }
 
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
-        $invoice  = $data['invoice'];
+        $invoice = $data['invoice'];
         $customer = $data['customer'];
-        $isFinal  = $data['isFinal'];
+        $isFinal = $data['isFinal'];
 
         // Tax Invoice Header (different from regular invoice)
         $summary = $data['summary'] ?? [];
-        
+
         // ✨ Pass docNumber, referenceNo, mode to header view
         $docNumber = $data['docNumber'] ?? null;
         $referenceNo = $data['referenceNo'] ?? null;
         $mode = $data['mode'] ?? null;
         $options = $data['options'] ?? [];
-        
-        $headerHtml = View::make('accounting.pdf.tax-invoice.partials.tax-header', compact(
+
+        $headerHtml = View::make('accounting.pdf._partials.doc-header', compact(
             'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
-        ))->render();
+        ) + ['docType' => 'tax_invoice', 'docTitle' => 'ใบกำกับภาษี'])->render();
 
         // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
@@ -91,11 +91,11 @@ class TaxInvoicePdfMasterService extends InvoicePdfMasterService
         );
 
         $directory = storage_path('app/public/pdfs/tax-invoices');
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
-        $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filePath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($filePath, 'F');
 
         return $filePath;

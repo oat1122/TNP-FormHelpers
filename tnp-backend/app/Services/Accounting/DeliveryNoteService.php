@@ -3,1185 +3,210 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\DeliveryNote;
-use App\Models\Accounting\DeliveryNoteItem;
-use App\Models\Accounting\Receipt;
-use App\Models\Accounting\DocumentHistory;
 use App\Models\Accounting\DocumentAttachment;
-use App\Models\Accounting\InvoiceItem;
-use App\Models\Accounting\Invoice;
-use App\Services\Accounting\AutofillService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
+use App\Services\Accounting\DeliveryNote\CreationService as DeliveryNoteCreationService;
+use App\Services\Accounting\DeliveryNote\ManagementService as DeliveryNoteManagementService;
+use App\Services\Accounting\DeliveryNote\MediaService as DeliveryNoteMediaService;
+use App\Services\Accounting\DeliveryNote\PdfService as DeliveryNotePdfService;
+use App\Services\Accounting\DeliveryNote\StatusService as DeliveryNoteStatusService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
+/**
+ * Facade over the DeliveryNote sub-services. Public methods delegate to the
+ * specialised service that owns the concern. Split (post-audit cleanup):
+ *
+ *   - CreationService    — create + createFromReceipt
+ *   - ManagementService  — getList + getInvoiceItemSources + getInvoiceSources
+ *                          + update + getCourierCompanies + getDeliveryMethods
+ *                          + getDeliveryTimeline
+ *   - StatusService      — startShipping / updateTrackingStatus / markAsDelivered
+ *                          / markAsCompleted / markAsFailed
+ *   - MediaService       — uploadEvidence
+ *   - PdfService         — generatePdf / streamPdf / generatePdfBundle
+ *                          (DeliveryNotePdfMasterService injected here, not via app())
+ *
+ * Public method shape is preserved 1-to-1 so controllers / external callers
+ * do not need changes.
+ */
 class DeliveryNoteService
 {
-    protected AutofillService $autofillService;
+    public function __construct(
+        protected AutofillService $autofillService,
+        private DeliveryNoteCreationService $creationService,
+        private DeliveryNoteManagementService $managementService,
+        private DeliveryNoteStatusService $statusService,
+        private DeliveryNoteMediaService $mediaService,
+        private DeliveryNotePdfService $pdfService,
+    ) {}
 
-    public function __construct(AutofillService $autofillService)
-    {
-        $this->autofillService = $autofillService;
-    }
+    // ---------------------------------------------------------------------
+    // ManagementService passthroughs (read + update)
+    // ---------------------------------------------------------------------
 
     /**
-     * Get invoice items that can be converted to delivery notes
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<array<string, mixed>>
      */
     public function getInvoiceItemSources(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        try {
-            $query = InvoiceItem::with(['invoice' => function ($invoiceQuery) {
-                // Build a safe select list that only includes existing columns
-                $columns = [
-                    'id',
-                    'number',
-                    'status',
-                    'customer_company',
-                    'customer_firstname',
-                    'customer_lastname',
-                    'customer_tel_1',
-                    'customer_address',
-                    'company_id',
-                    'customer_id',
-                    'created_at',
-                    'updated_at',
-                ];
-                // Include work_name only if it exists in the current schema
-                if (Schema::hasColumn('invoices', 'work_name')) {
-                    $columns[] = 'work_name';
-                }
-
-                $invoiceQuery->select($columns);
-            }])->whereHas('invoice', function ($invoiceQuery) {
-                $invoiceQuery->whereIn('status', ['sent', 'partial_paid', 'fully_paid', 'approved']);
-            });
-
-            if (!empty($filters['search'])) {
-                $search = '%' . $filters['search'] . '%';
-                $query->where(function ($q) use ($search) {
-                    $q->where('item_name', 'like', $search)
-                      ->orWhere('pattern', 'like', $search)
-                      ->orWhere('color', 'like', $search)
-                      ->orWhere('size', 'like', $search)
-                      ->orWhereHas('invoice', function ($invoiceQuery) use ($search) {
-                          $invoiceQuery->where('number', 'like', $search)
-                              ->orWhere('customer_company', 'like', $search);
-                          // Search by work_name only if the column exists
-                          if (Schema::hasColumn('invoices', 'work_name')) {
-                              $invoiceQuery->orWhere('work_name', 'like', $search);
-                          }
-                      });
-                });
-            }
-
-            if (!empty($filters['invoice_status'])) {
-                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
-                    $invoiceQuery->where('status', $filters['invoice_status']);
-                });
-            }
-
-            if (!empty($filters['company_id'])) {
-                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
-                    $invoiceQuery->where('company_id', $filters['company_id']);
-                });
-            }
-
-            if (!empty($filters['customer_id'])) {
-                $query->whereHas('invoice', function ($invoiceQuery) use ($filters) {
-                    $invoiceQuery->where('customer_id', $filters['customer_id']);
-                });
-            }
-
-            if (!empty($filters['invoice_id'])) {
-                $query->where('invoice_id', $filters['invoice_id']);
-            }
-
-            $query->orderByDesc('created_at');
-
-            $paginator = $query->paginate($perPage);
-
-            return $paginator->through(function (InvoiceItem $item) {
-                $invoice = $item->invoice;
-
-                return [
-                    'invoice_item_id' => $item->id,
-                    'invoice_id' => $invoice?->id,
-                    'invoice_number' => $invoice?->number,
-                    'invoice_status' => $invoice?->status,
-                    'company_id' => $invoice?->company_id,
-                    'customer_id' => $invoice?->customer_id,
-                    'customer_company' => $invoice?->customer_company,
-                    'customer_name' => trim(($invoice?->customer_firstname ?? '') . ' ' . ($invoice?->customer_lastname ?? '')),
-                    'customer_phone' => $invoice?->customer_tel_1,
-                    'delivery_address' => $invoice?->customer_address,
-                    'work_name' => $invoice?->work_name ?? $item->item_name,
-                    'item_name' => $item->item_name,
-                    'item_description' => $item->item_description,
-                    'quantity' => $item->quantity,
-                    'unit' => $item->unit,
-                    'unit_price' => $item->unit_price,
-                    'final_amount' => $item->final_amount,
-                    'sequence_order' => $item->sequence_order,
-                    'created_at' => $invoice?->created_at,
-                ];
-            });
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::getInvoiceItemSources error: ' . $e->getMessage());
-            throw $e;
-        }
+        return $this->managementService->getInvoiceItemSources($filters, $perPage);
     }
 
     /**
-     * Get invoices that can be converted to delivery notes (with their items included)
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<array<string, mixed>>
      */
     public function getInvoiceSources(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        try {
-            $query = Invoice::with(['items', 'customer'])
-                ->whereIn('status', ['sent', 'partial_paid', 'fully_paid', 'approved']);
-
-            if (!empty($filters['search'])) {
-                $search = '%' . $filters['search'] . '%';
-                $query->where(function ($q) use ($search) {
-                    $q->where('number', 'like', $search)
-                      ->orWhere('customer_company', 'like', $search)
-                      ->orWhere('customer_firstname', 'like', $search)
-                      ->orWhere('customer_lastname', 'like', $search);
-                    
-                    // Search by work_name only if the column exists
-                    if (Schema::hasColumn('invoices', 'work_name')) {
-                        $q->orWhere('work_name', 'like', $search);
-                    }
-
-                    // Search in related invoice items
-                    $q->orWhereHas('items', function ($itemQuery) use ($search) {
-                        $itemQuery->where('item_name', 'like', $search)
-                                 ->orWhere('pattern', 'like', $search)
-                                 ->orWhere('color', 'like', $search);
-                    });
-                });
-            }
-
-            if (!empty($filters['status'])) {
-                $statuses = is_array($filters['status']) ? $filters['status'] : [$filters['status']];
-                $query->whereIn('status', $statuses);
-            }
-
-            if (!empty($filters['company_id'])) {
-                $query->where('company_id', $filters['company_id']);
-            }
-
-            if (!empty($filters['customer_id'])) {
-                $query->where('customer_id', $filters['customer_id']);
-            }
-
-            $query->orderByDesc('created_at');
-
-            $paginator = $query->paginate($perPage);
-
-            return $paginator->through(function (Invoice $invoice) {
-                $data = [
-                    'id' => $invoice->id,
-                    'number' => $invoice->number,
-                    'status' => $invoice->status,
-                    'company_id' => $invoice->company_id,
-                    'customer_id' => $invoice->customer_id,
-                    'customer_company' => $invoice->customer_company,
-                    'customer_firstname' => $invoice->customer_firstname,
-                    'customer_lastname' => $invoice->customer_lastname,
-                    'customer_address' => $invoice->customer_address,
-                    'customer_tel_1' => $invoice->customer_tel_1,
-                    'total_amount' => $invoice->total_amount,
-                    'created_at' => $invoice->created_at,
-                    'updated_at' => $invoice->updated_at,
-                ];
-
-                // Include work_name only if it exists in the current schema
-                if (Schema::hasColumn('invoices', 'work_name')) {
-                    $data['work_name'] = $invoice->work_name;
-                }
-
-                // Include customer relationship data if available
-                if ($invoice->customer) {
-                    $data['customer'] = [
-                        'cus_company' => $invoice->customer->cus_company ?? null,
-                        'cus_address' => $invoice->customer->cus_address ?? null,
-                    ];
-                }
-
-                // Include invoice items
-                $data['items'] = $invoice->items->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'item_name' => $item->item_name,
-                        'item_description' => $item->item_description,
-                        'quantity' => $item->quantity,
-                        'unit' => $item->unit,
-                        'unit_price' => $item->unit_price,
-                        'final_amount' => $item->final_amount,
-                        'subtotal' => $item->subtotal,
-                        'pattern' => $item->pattern,
-                        'color' => $item->color,
-                        'size' => $item->size,
-                        'work_name' => $item->work_name ?? $item->item_name,
-                        'sequence_order' => $item->sequence_order,
-                    ];
-                });
-
-                return $data;
-            });
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::getInvoiceSources error: ' . $e->getMessage());
-            throw $e;
-        }
+        return $this->managementService->getInvoiceSources($filters, $perPage);
     }
 
     /**
-     * สร้าง Delivery Note จาก Receipt (One-Click Conversion)
-     */
-    public function createFromReceipt(string $receiptId, array $deliveryData, ?string $createdBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $receipt = Receipt::findOrFail($receiptId);
-
-            // ตรวจสอบสถานะ Receipt
-            if ($receipt->status !== 'approved') {
-                throw new \Exception('Receipt must be approved before creating delivery note');
-            }
-
-            // ตรวจสอบว่าได้สร้าง Delivery Note แล้วหรือยัง
-            $existingDeliveryNote = DeliveryNote::where('receipt_id', $receiptId)->first();
-            if ($existingDeliveryNote) {
-                throw new \Exception('Delivery note already exists for this receipt');
-            }
-
-            // ดึงข้อมูล Auto-fill จาก Receipt
-            $autofillData = $this->autofillService->getCascadeAutofillForDeliveryNote($receiptId);
-
-            // สร้าง Delivery Note
-            $deliveryNote = new DeliveryNote();
-            $deliveryNote->id = \Illuminate\Support\Str::uuid();
-            $deliveryNote->company_id = $receipt->company_id
-                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
-            $deliveryNote->invoice_id = $deliveryData['invoice_id'] ?? null;
-            $deliveryNote->invoice_item_id = $deliveryData['invoice_item_id'] ?? null;
-            $deliveryNote->receipt_id = $receipt->id;
-            
-            // Auto-fill ข้อมูลจาก Receipt
-            $deliveryNote->customer_id = $autofillData['customer_id'];
-            $deliveryNote->customer_company = $autofillData['customer_company'];
-            $deliveryNote->customer_address = $autofillData['customer_address'];
-            $deliveryNote->customer_zip_code = $autofillData['customer_zip_code'];
-            $deliveryNote->customer_tel_1 = $autofillData['customer_tel_1'];
-            $deliveryNote->customer_firstname = $autofillData['customer_firstname'];
-            $deliveryNote->customer_lastname = $autofillData['customer_lastname'];
-            $deliveryNote->work_name = $autofillData['work_name'];
-            $deliveryNote->quantity = $autofillData['quantity'] ?? '1 ชิ้น';
-            
-            // ข้อมูลการจัดส่งจาก Input
-            $deliveryNote->delivery_method = $deliveryData['delivery_method'] ?? 'courier';
-            $deliveryNote->courier_company = $deliveryData['courier_company'] ?? null;
-            $deliveryNote->delivery_address = $deliveryData['delivery_address'] ?? $autofillData['customer_address'];
-            $deliveryNote->recipient_name = $deliveryData['recipient_name'] ?? $autofillData['customer_firstname'] . ' ' . $autofillData['customer_lastname'];
-            $deliveryNote->recipient_phone = $deliveryData['recipient_phone'] ?? $autofillData['customer_tel_1'];
-            $deliveryNote->delivery_date = $deliveryData['delivery_date'] ?? now()->addDays(1)->format('Y-m-d');
-            $deliveryNote->delivery_notes = $deliveryData['delivery_notes'] ?? null;
-            $deliveryNote->notes = $deliveryData['notes'] ?? null;
-            
-            // Status และ Audit
-            $deliveryNote->status = 'preparing';
-            $deliveryNote->created_by = $createdBy;
-            
-            $deliveryNote->save();
-
-            // หากอัปเดตให้ใช้ข้อมูลลูกค้าจาก master ให้ล้างค่า override บนใบส่งของนี้
-            if (!empty($deliveryData['customer_data_source']) && $deliveryData['customer_data_source'] === 'master') {
-                $overrideFields = [
-                    'customer_company',
-                    'customer_address',
-                    'customer_zip_code',
-                    'customer_tel_1',
-                    'customer_firstname',
-                    'customer_lastname',
-                    'customer_tax_id',
-                ];
-                $needSave = false;
-                foreach ($overrideFields as $field) {
-                    if ($deliveryNote->{$field} !== null) {
-                        $deliveryNote->{$field} = null;
-                        $needSave = true;
-                    }
-                }
-                if ($needSave) {
-                    $deliveryNote->save();
-                    DocumentHistory::logAction(
-                        'delivery_note',
-                        $deliveryNote->id,
-                        'customer_source_master',
-                        $createdBy,
-                        'เปลี่ยนแหล่งข้อมูลลูกค้าเป็น master และล้างข้อมูลเฉพาะใบส่งของ'
-                    );
-                }
-            }
-
-            
-
-            // บันทึก Document History
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                null,
-                'preparing',
-                $createdBy,
-                'สร้างใบส่งของจากใบเสร็จ ' . $receipt->number
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::createFromReceipt error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * สร้าง Delivery Note แบบ Manual
-     */
-    public function create(array $data, ?string $createdBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = new DeliveryNote();
-            $deliveryNote->id = \Illuminate\Support\Str::uuid();
-            $deliveryNote->company_id = $data['company_id']
-                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $deliveryNote->number = DeliveryNote::generateDeliveryNoteNumber($deliveryNote->company_id);
-            $deliveryNote->invoice_id = $data['invoice_id'] ?? null;
-            $deliveryNote->invoice_item_id = $data['invoice_item_id'] ?? null;
-            // cache invoice number if provided/available
-            if (!empty($data['invoice_number'])) {
-                $deliveryNote->invoice_number = $data['invoice_number'];
-            } elseif (!empty($deliveryNote->invoice_id)) {
-                $deliveryNote->invoice_number = optional(Invoice::find($deliveryNote->invoice_id))->number;
-            }
-            
-            // ข้อมูลลูกค้า
-            $deliveryNote->customer_id = $data['customer_id'] ?? null;
-            $deliveryNote->customer_data_source = $data['customer_data_source'] ?? 'master';
-            $deliveryNote->customer_company = $data['customer_company'];
-            $deliveryNote->customer_address = $data['customer_address'];
-            $deliveryNote->customer_zip_code = $data['customer_zip_code'] ?? null;
-            $deliveryNote->customer_tel_1 = $data['customer_tel_1'] ?? null;
-            $deliveryNote->customer_tax_id = $data['customer_tax_id'] ?? null;
-            $deliveryNote->customer_firstname = $data['customer_firstname'] ?? null;
-            $deliveryNote->customer_lastname = $data['customer_lastname'] ?? null;
-            if (!empty($data['customer_snapshot'])) {
-                $deliveryNote->customer_snapshot = is_array($data['customer_snapshot'])
-                    ? json_encode($data['customer_snapshot'])
-                    : $data['customer_snapshot'];
-            }
-            
-            // ข้อมูลงาน
-            $deliveryNote->work_name = $data['work_name'];
-            $deliveryNote->quantity = $data['quantity'] ?? '1 ชิ้น';
-            
-            // ข้อมูลการจัดส่ง
-            $deliveryNote->delivery_method = $data['delivery_method'] ?? 'courier';
-            $deliveryNote->courier_company = $data['courier_company'] ?? null;
-            $deliveryNote->tracking_number = $data['tracking_number'] ?? null;
-            $deliveryNote->delivery_address = $data['delivery_address'] ?? ($data['customer_address'] ?? null);
-            $deliveryNote->recipient_name = $data['recipient_name'] ?? trim(($data['customer_firstname'] ?? '') . ' ' . ($data['customer_lastname'] ?? '')) ?: null;
-            $deliveryNote->recipient_phone = $data['recipient_phone'] ?? null;
-            $deliveryNote->delivery_date = $data['delivery_date'] ?? now()->addDays(1)->format('Y-m-d');
-            $deliveryNote->delivery_notes = $data['delivery_notes'] ?? null;
-            $deliveryNote->notes = $data['notes'] ?? null;
-            $deliveryNote->sender_company_id = $data['sender_company_id'] ?? null;
-            // Manage_by: default from master customer unless explicitly provided
-            if (!empty($data['manage_by'])) {
-                $deliveryNote->manage_by = $data['manage_by'];
-            } elseif (!empty($deliveryNote->customer_id)) {
-                $mc = \App\Models\MasterCustomer::find($deliveryNote->customer_id);
-                if ($mc && !empty($mc->cus_manage_by)) {
-                    $deliveryNote->manage_by = $mc->cus_manage_by;
-                }
-            }
-            
-            // Status และ Audit
-            $deliveryNote->status = 'preparing';
-            $deliveryNote->created_by = $createdBy;
-            
-            $deliveryNote->save();
-
-            // สร้างรายการ delivery_note_items หากมี payload มาด้วย
-            if (!empty($data['items']) && is_array($data['items'])) {
-                $seq = 1;
-                foreach ($data['items'] as $item) {
-                    $dni = new DeliveryNoteItem();
-                    $dni->delivery_note_id = $deliveryNote->id;
-                    $dni->invoice_id = $item['invoice_id'] ?? ($deliveryNote->invoice_id ?? null);
-                    $dni->invoice_item_id = $item['invoice_item_id'] ?? null;
-                    $dni->sequence_order = $item['sequence_order'] ?? $seq++;
-                    $dni->item_name = $item['item_name'] ?? ($item['work_name'] ?? 'รายการงาน');
-                    $dni->item_description = $item['item_description'] ?? null;
-                    $dni->pattern = $item['pattern'] ?? null;
-                    $dni->fabric_type = $item['fabric_type'] ?? ($item['fabric'] ?? null);
-                    $dni->color = $item['color'] ?? null;
-                    $dni->size = $item['size'] ?? null;
-                    $dni->delivered_quantity = (int)($item['delivered_quantity'] ?? $item['quantity'] ?? 0);
-                    $dni->unit = $item['unit'] ?? 'ชิ้น';
-                    if (!empty($item['item_snapshot'])) {
-                        $dni->item_snapshot = is_array($item['item_snapshot']) ? json_encode($item['item_snapshot']) : $item['item_snapshot'];
-                    }
-                    $dni->status = 'ready';
-                    $dni->created_by = $createdBy;
-                    $dni->save();
-                }
-            } elseif (!empty($deliveryNote->work_name)) {
-                // fallback: หากไม่มี items ให้สร้าง 1 แถวสรุปรวมตาม work_name/quantity
-                $dni = new DeliveryNoteItem();
-                $dni->delivery_note_id = $deliveryNote->id;
-                $dni->invoice_id = $deliveryNote->invoice_id;
-                $dni->invoice_item_id = $deliveryNote->invoice_item_id;
-                $dni->sequence_order = 1;
-                $dni->item_name = $deliveryNote->work_name;
-                $dni->item_description = null;
-                $dni->delivered_quantity = (int) (preg_replace('/[^0-9]/', '', (string) $deliveryNote->quantity) ?: 0);
-                $dni->unit = 'ชิ้น';
-                $dni->status = 'ready';
-                $dni->created_by = $createdBy;
-                $dni->save();
-            }
-
-            // บันทึก Document History
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                null,
-                'preparing',
-                $createdBy,
-                'สร้างใบส่งของแบบ Manual'
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['customer', 'creator', 'items', 'manager']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::create error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * อัปเดต Delivery Note
-     */
-    public function update(string $deliveryNoteId, array $data, ?string $updatedBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            // ตรวจสอบสถานะ - อนุญาตแก้ไขเฉพาะสถานะ preparing
-            if ($deliveryNote->status !== 'preparing') {
-                throw new \Exception('Only delivery notes in preparing status can be updated');
-            }
-
-            $oldData = $deliveryNote->toArray();
-
-            // อัปเดตข้อมูล (รองรับ customer_snapshot ถ้าเป็น array ให้เก็บเป็น json)
-            $fillData = $data;
-            if (array_key_exists('customer_snapshot', $fillData)) {
-                if (is_array($fillData['customer_snapshot'])) {
-                    $fillData['customer_snapshot'] = json_encode($fillData['customer_snapshot']);
-                }
-            }
-
-            $deliveryNote->fill(array_filter($fillData, function($value) {
-                return $value !== null;
-            }));
-            
-            $deliveryNote->save();
-
-            // บันทึกการเปลี่ยนแปลง
-            $changes = array_diff_assoc($deliveryNote->toArray(), $oldData);
-            if (!empty($changes)) {
-                DocumentHistory::logAction(
-                    'delivery_note',
-                    $deliveryNote->id,
-                    'updated',
-                    $updatedBy,
-                    'แก้ไขใบส่งของ: ' . implode(', ', array_keys($changes))
-                );
-            }
-
-            // หากส่ง items มาด้วย ให้แทนที่รายการเดิม (เฉพาะสถานะ preparing เท่านั้น)
-            if (!empty($data['items']) && is_array($data['items'])) {
-                // ลบรายการเดิมทั้งหมดก่อน แล้วเพิ่มใหม่ตามลำดับ
-                DeliveryNoteItem::where('delivery_note_id', $deliveryNote->id)->delete();
-                $seq = 1;
-                foreach ($data['items'] as $item) {
-                    $dni = new DeliveryNoteItem();
-                    $dni->delivery_note_id = $deliveryNote->id;
-                    $dni->invoice_id = $item['invoice_id'] ?? ($deliveryNote->invoice_id ?? null);
-                    $dni->invoice_item_id = $item['invoice_item_id'] ?? null;
-                    $dni->sequence_order = $item['sequence_order'] ?? $seq++;
-                    $dni->item_name = $item['item_name'] ?? ($item['work_name'] ?? 'รายการงาน');
-                    $dni->item_description = $item['item_description'] ?? null;
-                    $dni->pattern = $item['pattern'] ?? null;
-                    $dni->fabric_type = $item['fabric_type'] ?? ($item['fabric'] ?? null);
-                    $dni->color = $item['color'] ?? null;
-                    $dni->size = $item['size'] ?? null;
-                    $dni->delivered_quantity = (int)($item['delivered_quantity'] ?? $item['quantity'] ?? 0);
-                    $dni->unit = $item['unit'] ?? 'ชิ้น';
-                    if (!empty($item['item_snapshot'])) {
-                        $dni->item_snapshot = is_array($item['item_snapshot']) ? json_encode($item['item_snapshot']) : $item['item_snapshot'];
-                    }
-                    $dni->status = 'ready';
-                    $dni->created_by = $updatedBy;
-                    $dni->save();
-                }
-
-                DocumentHistory::logAction(
-                    'delivery_note',
-                    $deliveryNote->id,
-                    'items_replaced',
-                    $updatedBy,
-                    'ปรับปรุงรายการงาน (' . count($data['items']) . ' รายการ)'
-                );
-            }
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items', 'manager']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::update error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * ดึงรายการ Delivery Notes พร้อม Filter
+     * @param  array<string, mixed>  $filters
+     * @return LengthAwarePaginator<DeliveryNote>
      */
     public function getList(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        try {
-            $query = DeliveryNote::with(['receipt', 'invoice', 'invoiceItem', 'customer', 'creator', 'items']);
-
-            // Apply filters
-            if (!empty($filters['search'])) {
-                $search = '%' . $filters['search'] . '%';
-                $query->where(function ($q) use ($search) {
-                    $q->where('number', 'like', $search)
-                      ->orWhere('customer_company', 'like', $search)
-                      ->orWhere('work_name', 'like', $search)
-                      ->orWhere('recipient_name', 'like', $search)
-                      ->orWhere('tracking_number', 'like', $search)
-                      ->orWhereHas('invoice', function ($invoiceQuery) use ($search) {
-                          $invoiceQuery->where('number', 'like', $search)
-                              ->orWhere('customer_company', 'like', $search)
-                              ->orWhere('work_name', 'like', $search);
-                      })
-                      ->orWhereHas('invoiceItem', function ($itemQuery) use ($search) {
-                          $itemQuery->where('item_name', 'like', $search);
-                      });
-                });
-            }
-
-            if (!empty($filters['status'])) {
-                $query->where('status', $filters['status']);
-            }
-
-            if (!empty($filters['delivery_method'])) {
-                $query->where('delivery_method', $filters['delivery_method']);
-            }
-
-            if (!empty($filters['customer_id'])) {
-                $query->where('customer_id', $filters['customer_id']);
-            }
-
-            if (!empty($filters['invoice_id'])) {
-                $query->where('invoice_id', $filters['invoice_id']);
-            }
-
-            if (!empty($filters['invoice_item_id'])) {
-                $query->where('invoice_item_id', $filters['invoice_item_id']);
-            }
-
-            if (!empty($filters['courier_company'])) {
-                $query->where('courier_company', $filters['courier_company']);
-            }
-
-            if (!empty($filters['date_from'])) {
-                $query->whereDate('delivery_date', '>=', $filters['date_from']);
-            }
-
-            if (!empty($filters['date_to'])) {
-                $query->whereDate('delivery_date', '<=', $filters['date_to']);
-            }
-
-            return $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::getList error: ' . $e->getMessage());
-            throw $e;
-        }
+        return $this->managementService->getList($filters, $perPage);
     }
 
     /**
-     * เริ่มการจัดส่ง (Preparing → Shipping)
+     * @param  array<string, mixed>  $data
      */
-    public function startShipping(string $deliveryNoteId, array $shippingData, ?string $shippedBy = null): DeliveryNote
+    public function update(string $deliveryNoteId, array $data, ?string $updatedBy = null): DeliveryNote
     {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            if ($deliveryNote->status !== 'preparing') {
-                throw new \Exception('Only delivery notes in preparing status can be shipped');
-            }
-
-            // อัปเดตสถานะและข้อมูลการจัดส่ง
-            $deliveryNote->status = 'shipping';
-            
-            if (!empty($shippingData['tracking_number'])) {
-                $deliveryNote->tracking_number = $shippingData['tracking_number'];
-            }
-            
-            if (!empty($shippingData['courier_company'])) {
-                $deliveryNote->courier_company = $shippingData['courier_company'];
-            }
-
-            $deliveryNote->save();
-
-            // บันทึก History
-            $notes = "เริ่มการจัดส่ง";
-            if (!empty($shippingData['tracking_number'])) {
-                $notes .= " - Tracking: " . $shippingData['tracking_number'];
-            }
-            if (!empty($shippingData['courier_company'])) {
-                $notes .= " - ผู้ส่ง: " . $shippingData['courier_company'];
-            }
-
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                'preparing',
-                'shipping',
-                $shippedBy,
-                $notes
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::startShipping error: ' . $e->getMessage());
-            throw $e;
-        }
+        return $this->managementService->update($deliveryNoteId, $data, $updatedBy);
     }
 
     /**
-     * อัปเดตสถานะการขนส่ง (Shipping → In Transit)
-     */
-    public function updateTrackingStatus(string $deliveryNoteId, array $trackingData, ?string $updatedBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            if (!in_array($deliveryNote->status, ['shipping', 'in_transit'])) {
-                throw new \Exception('Tracking status can only be updated for shipped or in-transit items');
-            }
-
-            $deliveryNote->status = 'in_transit';
-            $deliveryNote->save();
-
-            // บันทึก Tracking Event
-            $notes = $trackingData['status_description'] ?? 'อัปเดตสถานะการติดตาม';
-            if (!empty($trackingData['location'])) {
-                $notes .= " - สถานที่: " . $trackingData['location'];
-            }
-
-            DocumentHistory::logAction(
-                'delivery_note',
-                $deliveryNote->id,
-                'tracking_update',
-                $updatedBy,
-                $notes
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator', 'items']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::updateTrackingStatus error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * ยืนยันการส่งสำเร็จ (In Transit → Delivered)
-     */
-    public function markAsDelivered(string $deliveryNoteId, array $deliveryData, ?string $deliveredBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            if (!in_array($deliveryNote->status, ['shipping', 'in_transit'])) {
-                throw new \Exception('Only shipped or in-transit items can be marked as delivered');
-            }
-
-            $deliveryNote->status = 'delivered';
-            $deliveryNote->delivered_at = now();
-            $deliveryNote->delivered_by = $deliveredBy;
-
-            if (!empty($deliveryData['delivery_notes'])) {
-                $deliveryNote->delivery_notes = $deliveryData['delivery_notes'];
-            }
-
-            $deliveryNote->save();
-
-            // บันทึก History
-            $notes = "ส่งสำเร็จ";
-            if (!empty($deliveryData['recipient_name'])) {
-                $notes .= " - ผู้รับ: " . $deliveryData['recipient_name'];
-            }
-            if (!empty($deliveryData['delivery_notes'])) {
-                $notes .= " - หมายเหตุ: " . $deliveryData['delivery_notes'];
-            }
-
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                'in_transit',
-                'delivered',
-                $deliveredBy,
-                $notes
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::markAsDelivered error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * ปิดงาน (Delivered → Completed)
-     */
-    public function markAsCompleted(string $deliveryNoteId, array $completionData, ?string $completedBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            if ($deliveryNote->status !== 'delivered') {
-                throw new \Exception('Only delivered items can be marked as completed');
-            }
-
-            $deliveryNote->status = 'completed';
-            
-            if (!empty($completionData['notes'])) {
-                $deliveryNote->notes = $completionData['notes'];
-            }
-
-            $deliveryNote->save();
-
-            // บันทึก History
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                'delivered',
-                'completed',
-                $completedBy,
-                $completionData['notes'] ?? 'ปิดงานเรียบร้อย'
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::markAsCompleted error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * รายงานปัญหา (Any Status → Failed)
-     */
-    public function markAsFailed(string $deliveryNoteId, array $failureData, ?string $reportedBy = null): DeliveryNote
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-
-            $oldStatus = $deliveryNote->status;
-            $deliveryNote->status = 'failed';
-            
-            if (!empty($failureData['notes'])) {
-                $deliveryNote->notes = $failureData['notes'];
-            }
-
-            $deliveryNote->save();
-
-            // บันทึก History
-            DocumentHistory::logStatusChange(
-                'delivery_note',
-                $deliveryNote->id,
-                $oldStatus,
-                'failed',
-                $reportedBy,
-                $failureData['reason'] ?? 'ไม่สามารถจัดส่งได้'
-            );
-
-            DB::commit();
-
-            return $deliveryNote->load(['receipt', 'customer', 'creator']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::markAsFailed error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * อัปโหลดหลักฐานการจัดส่ง
-     */
-    public function uploadEvidence(string $deliveryNoteId, array $files, ?string $description = null, ?string $uploadedBy = null): array
-    {
-        try {
-            DB::beginTransaction();
-
-            $deliveryNote = DeliveryNote::findOrFail($deliveryNoteId);
-            $uploadedFiles = [];
-
-            foreach ($files as $file) {
-                // สร้างชื่อไฟล์ที่ไม่ซ้ำ
-                $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('delivery_notes/evidence', $filename, 'public');
-
-                // บันทึกข้อมูลไฟล์
-                $attachment = new DocumentAttachment();
-                $attachment->id = \Illuminate\Support\Str::uuid();
-                $attachment->document_type = 'delivery_note';
-                $attachment->document_id = $deliveryNote->id;
-                $attachment->filename = $filename;
-                $attachment->original_filename = $file->getClientOriginalName();
-                $attachment->file_path = $path;
-                $attachment->file_size = $file->getSize();
-                $attachment->mime_type = $file->getMimeType();
-                $attachment->uploaded_by = $uploadedBy;
-                $attachment->save();
-
-                $uploadedFiles[] = $attachment;
-            }
-
-            // บันทึก History
-            DocumentHistory::logAction(
-                'delivery_note',
-                $deliveryNote->id,
-                'evidence_uploaded',
-                $uploadedBy,
-                'อัปโหลดหลักฐานการจัดส่ง: ' . count($files) . ' ไฟล์'
-            );
-
-            DB::commit();
-
-            return $uploadedFiles;
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('DeliveryNoteService::uploadEvidence error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * สร้าง PDF ใบส่งของ
-     */
-    public function generatePdf(string $deliveryNoteId, array $options = []): array
-    {
-        try {
-            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])->findOrFail($deliveryNoteId);
-
-            // ใช้ Master PDF Service (mPDF)
-            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
-            $result = $master->generatePdf($deliveryNote, $options);
-
-            // Log history (optional)
-            try {
-                \App\Models\Accounting\DocumentHistory::logAction(
-                    'delivery_note',
-                    $deliveryNote->id,
-                    'generate_pdf',
-                    auth()->user()->user_uuid ?? null,
-                    'สร้าง PDF (mPDF): '.$result['filename'].' ('.$result['type'].')'
-                );
-            } catch (\Throwable $logE) {
-                Log::warning('DeliveryNoteService::generatePdf history log failed: '.$logE->getMessage());
-            }
-
-            return [
-                'url'      => $result['url'],
-                'path'     => $result['path'],
-                'filename' => $result['filename'],
-                'size'     => $result['size'],
-                'engine'   => 'mPDF',
-                'type'     => $result['type'],
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::generatePdf error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * สร้าง PDF Bundle (หลายไฟล์พร้อม Zip) - รองรับหลายหัวกระดาษ
-     * 
-     * @param string $deliveryNoteId
-     * @param array $headerTypes รายการ header types ที่ต้องการสร้าง ['ต้นฉบับ', 'สำเนา', 'สำเนา-ลูกค้า']
-     * @param array $options ตัวเลือกเพิ่มเติม (format, orientation)
-     * @return array ผลลัพธ์ที่มี mode (single/zip) และข้อมูลไฟล์
-     */
-    public function generatePdfBundle(string $deliveryNoteId, array $headerTypes = [], array $options = []): array
-    {
-        try {
-            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])
-                ->findOrFail($deliveryNoteId);
-
-            // ถ้าไม่ระบุ headerTypes ให้ใช้ default ต้นฉบับ
-            if (empty($headerTypes)) {
-                $headerTypes = ['ต้นฉบับ'];
-            }
-
-            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
-            $files = [];
-
-            // สร้าง PDF สำหรับแต่ละ header type
-            foreach ($headerTypes as $headerType) {
-                $pdfOptions = array_merge($options, [
-                    'document_header_type' => $headerType
-                ]);
-
-                $result = $master->generatePdf($deliveryNote, $pdfOptions);
-                $files[] = $result;
-            }
-
-            // ถ้ามีไฟล์เดียว return ไฟล์นั้นโดยตรง
-            if (count($files) === 1) {
-                return [
-                    'mode' => 'single',
-                    'file' => $files[0],
-                ];
-            }
-
-            // ถ้ามีหลายไฟล์ สร้าง ZIP
-            $zipResult = $this->createZipFromFiles($deliveryNote, $files, $options);
-
-            return [
-                'mode' => 'zip',
-                'zip' => $zipResult,
-                'files' => $files,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::generatePdfBundle error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * สร้างไฟล์ ZIP จากรายการไฟล์ PDF
-     * 
-     * @param DeliveryNote $deliveryNote
-     * @param array $files รายการไฟล์ที่ต้องการรวมใน ZIP
-     * @param array $options ตัวเลือกเพิ่มเติม
-     * @return array ข้อมูล ZIP file
-     */
-    private function createZipFromFiles(DeliveryNote $deliveryNote, array $files, array $options = []): array
-    {
-        $zipDir = storage_path('app/public/pdfs/delivery-notes/zips');
-        if (!is_dir($zipDir)) {
-            @mkdir($zipDir, 0755, true);
-        }
-
-        // สร้างชื่อไฟล์ ZIP
-        $zipName = sprintf(
-            'delivery-note-%s-bundle-%s.zip',
-            $deliveryNote->number ?? $deliveryNote->id,
-            date('YmdHis')
-        );
-        
-        $zipPath = $zipDir . DIRECTORY_SEPARATOR . $zipName;
-
-        // สร้าง ZIP
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
-            throw new \Exception('ไม่สามารถสร้างไฟล์ ZIP ได้');
-        }
-
-        foreach ($files as $file) {
-            if (is_file($file['path'])) {
-                $zip->addFile($file['path'], $file['filename']);
-            }
-        }
-
-        $zip->close();
-
-        // สร้าง URL - normalize path
-        $relativePath = str_replace(storage_path('app/public/'), '', $zipPath);
-        $relativePath = str_replace('\\', '/', $relativePath);
-        $zipUrl = url('storage/' . $relativePath);
-        $zipSize = is_file($zipPath) ? filesize($zipPath) : 0;
-
-        return [
-            'path' => str_replace('\\', '/', $zipPath),
-            'url' => $zipUrl,
-            'filename' => $zipName,
-            'size' => $zipSize,
-        ];
-    }
-
-    /**
-     * Stream PDF สำหรับดู/ดาวน์โหลดทันที
-     */
-    public function streamPdf(string $deliveryNoteId, array $options = []): \Symfony\Component\HttpFoundation\Response
-    {
-        try {
-            $deliveryNote = DeliveryNote::with(['company','receipt','customer','creator','manager','deliveryPerson','items'])
-                ->findOrFail($deliveryNoteId);
-
-            $master = app(\App\Services\Accounting\Pdf\DeliveryNotePdfMasterService::class);
-            return $master->streamPdf($deliveryNote, $options);
-            
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::streamPdf error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * ดึงรายการบริษัทขนส่ง
+     * @return array<int, array<string, mixed>>
      */
     public function getCourierCompanies(): array
     {
-        return [
-            [
-                'id' => 'kerry',
-                'name' => 'Kerry Express',
-                'services' => ['standard', 'express'],
-                'tracking_url' => 'https://th.kerryexpress.com/en/track/?track='
-            ],
-            [
-                'id' => 'thailand_post',
-                'name' => 'ไปรษณีย์ไทย',
-                'services' => ['ems', 'registered'],
-                'tracking_url' => 'https://track.thailandpost.co.th/?trackNumber='
-            ],
-            [
-                'id' => 'flash',
-                'name' => 'Flash Express',
-                'services' => ['standard', 'same_day'],
-                'tracking_url' => 'https://www.flashexpress.co.th/tracking/?se='
-            ],
-            [
-                'id' => 'j_t',
-                'name' => 'J&T Express',
-                'services' => ['standard', 'express'],
-                'tracking_url' => 'https://www.jtexpress.co.th/index/query/gzquery.html?bills='
-            ]
-        ];
+        return $this->managementService->getCourierCompanies();
     }
 
     /**
-     * ดึงรายการวิธีการจัดส่ง
+     * @return array<int, array<string, mixed>>
      */
     public function getDeliveryMethods(): array
     {
-        return [
-            [
-                'value' => 'self_delivery',
-                'label' => 'ส่งเอง',
-                'description' => 'พนักงานบริษัทส่งเอง',
-                'requires_courier' => false,
-                'requires_tracking' => false
-            ],
-            [
-                'value' => 'courier',
-                'label' => 'บริษัทขนส่ง',
-                'description' => 'ใช้บริการบริษัทขนส่ง',
-                'requires_courier' => true,
-                'requires_tracking' => true
-            ],
-            [
-                'value' => 'customer_pickup',
-                'label' => 'ลูกค้ามารับเอง',
-                'description' => 'ลูกค้ามารับที่บริษัท',
-                'requires_courier' => false,
-                'requires_tracking' => false
-            ]
-        ];
+        return $this->managementService->getDeliveryMethods();
     }
 
     /**
-     * ดึง Timeline การจัดส่ง
+     * @return array<int, array<string, mixed>>
      */
     public function getDeliveryTimeline(string $deliveryNoteId): array
     {
-        try {
-            $deliveryNote = DeliveryNote::with(['documentHistory' => function ($query) {
-                $query->orderBy('created_at', 'asc');
-            }])->findOrFail($deliveryNoteId);
+        return $this->managementService->getDeliveryTimeline($deliveryNoteId);
+    }
 
-            $timeline = [];
-            
-            foreach ($deliveryNote->documentHistory as $history) {
-                $timeline[] = [
-                    'id' => $history->id,
-                    'timestamp' => $history->created_at,
-                    'status' => $history->new_status ?? $history->action,
-                    'description' => $history->notes,
-                    'notes' => $history->notes,
-                    'user' => $history->user->user_nickname ?? 'System'
-                ];
-            }
+    // ---------------------------------------------------------------------
+    // CreationService passthroughs
+    // ---------------------------------------------------------------------
 
-            return $timeline;
+    /**
+     * @param  array<string, mixed>  $deliveryData
+     */
+    public function createFromReceipt(string $receiptId, array $deliveryData, ?string $createdBy = null): DeliveryNote
+    {
+        return $this->creationService->createFromReceipt($receiptId, $deliveryData, $createdBy);
+    }
 
-        } catch (\Exception $e) {
-            Log::error('DeliveryNoteService::getDeliveryTimeline error: ' . $e->getMessage());
-            throw $e;
-        }
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function create(array $data, ?string $createdBy = null): DeliveryNote
+    {
+        return $this->creationService->create($data, $createdBy);
+    }
+
+    // ---------------------------------------------------------------------
+    // StatusService passthroughs
+    // ---------------------------------------------------------------------
+
+    /**
+     * @param  array<string, mixed>  $shippingData
+     */
+    public function startShipping(string $deliveryNoteId, array $shippingData, ?string $shippedBy = null): DeliveryNote
+    {
+        return $this->statusService->startShipping($deliveryNoteId, $shippingData, $shippedBy);
+    }
+
+    /**
+     * @param  array<string, mixed>  $trackingData
+     */
+    public function updateTrackingStatus(string $deliveryNoteId, array $trackingData, ?string $updatedBy = null): DeliveryNote
+    {
+        return $this->statusService->updateTrackingStatus($deliveryNoteId, $trackingData, $updatedBy);
+    }
+
+    /**
+     * @param  array<string, mixed>  $deliveryData
+     */
+    public function markAsDelivered(string $deliveryNoteId, array $deliveryData, ?string $deliveredBy = null): DeliveryNote
+    {
+        return $this->statusService->markAsDelivered($deliveryNoteId, $deliveryData, $deliveredBy);
+    }
+
+    /**
+     * @param  array<string, mixed>  $completionData
+     */
+    public function markAsCompleted(string $deliveryNoteId, array $completionData, ?string $completedBy = null): DeliveryNote
+    {
+        return $this->statusService->markAsCompleted($deliveryNoteId, $completionData, $completedBy);
+    }
+
+    /**
+     * @param  array<string, mixed>  $failureData
+     */
+    public function markAsFailed(string $deliveryNoteId, array $failureData, ?string $reportedBy = null): DeliveryNote
+    {
+        return $this->statusService->markAsFailed($deliveryNoteId, $failureData, $reportedBy);
+    }
+
+    // ---------------------------------------------------------------------
+    // MediaService passthroughs
+    // ---------------------------------------------------------------------
+
+    /**
+     * @param  array<int, \Illuminate\Http\UploadedFile>  $files
+     * @return array<int, DocumentAttachment>
+     */
+    public function uploadEvidence(string $deliveryNoteId, array $files, ?string $description = null, ?string $uploadedBy = null): array
+    {
+        return $this->mediaService->uploadEvidence($deliveryNoteId, $files, $description, $uploadedBy);
+    }
+
+    // ---------------------------------------------------------------------
+    // PdfService passthroughs
+    // ---------------------------------------------------------------------
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public function generatePdf(string $deliveryNoteId, array $options = []): array
+    {
+        return $this->pdfService->generatePdf($deliveryNoteId, $options);
+    }
+
+    /**
+     * @param  array<int, string>  $headerTypes
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public function generatePdfBundle(string $deliveryNoteId, array $headerTypes = [], array $options = []): array
+    {
+        return $this->pdfService->generatePdfBundle($deliveryNoteId, $headerTypes, $options);
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function streamPdf(string $deliveryNoteId, array $options = []): \Symfony\Component\HttpFoundation\Response
+    {
+        return $this->pdfService->streamPdf($deliveryNoteId, $options);
     }
 }
-

@@ -2,34 +2,30 @@
 
 namespace App\Http\Controllers\Api\V1\Accounting;
 
-use App\Http\Controllers\Controller;
-use App\Services\Accounting\InvoiceService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
-use App\Services\Accounting\Pdf\TaxInvoicePdfMasterService;
-use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
-use App\Services\Accounting\Pdf\TaxInvoiceFullPdfMasterService;
-use App\Services\Accounting\Pdf\ReceiptFullPdfMasterService;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use App\Traits\ApiResponseHelper;
-use App\Traits\HandlesPdfGeneration;
 use App\Helpers\AccountingHelper;
-use App\Http\Requests\V1\Accounting\StoreInvoiceRequest;
-use App\Http\Requests\V1\Accounting\UpdateInvoiceRequest;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Accounting\ApproveInvoiceRequest;
 use App\Http\Requests\V1\Accounting\CreateFromQuotationRequest;
 use App\Http\Requests\V1\Accounting\RecordPaymentRequest;
-use App\Http\Requests\V1\Accounting\ApproveInvoiceRequest;
 use App\Http\Requests\V1\Accounting\RejectInvoiceRequest;
-use App\Http\Requests\V1\Accounting\SendToCustomerRequest;
-use App\Http\Requests\V1\Accounting\SendReminderRequest;
-use App\Http\Requests\V1\Accounting\UpdateDepositModeRequest;
-use App\Http\Requests\V1\Accounting\SubmitAfterDepositRequest;
 use App\Http\Requests\V1\Accounting\RevertToDraftRequest;
-use App\Http\Requests\V1\Accounting\UploadEvidenceRequest;
+use App\Http\Requests\V1\Accounting\SendReminderRequest;
+use App\Http\Requests\V1\Accounting\SendToCustomerRequest;
+use App\Http\Requests\V1\Accounting\StoreInvoiceRequest;
+use App\Http\Requests\V1\Accounting\SubmitAfterDepositRequest;
+use App\Http\Requests\V1\Accounting\UpdateDepositModeRequest;
+use App\Http\Requests\V1\Accounting\UpdateInvoiceRequest;
 use App\Http\Requests\V1\Accounting\UploadEvidenceByModeRequest;
+use App\Http\Requests\V1\Accounting\UploadEvidenceRequest;
+use App\Services\Accounting\InvoiceService;
+use App\Services\Accounting\Pdf\ReceiptFullPdfMasterService;
+use App\Services\Accounting\Pdf\ReceiptPdfMasterService;
+use App\Services\Accounting\Pdf\TaxInvoiceFullPdfMasterService;
+use App\Services\Accounting\Pdf\TaxInvoicePdfMasterService;
+use App\Traits\ApiResponseHelper;
+use App\Traits\HandlesPdfGeneration;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
@@ -106,10 +102,11 @@ class InvoiceController extends Controller
                     : null,
             ];
 
-            $filters = array_filter($filters, fn($value) => !is_null($value));
-            $perPage = min($request->query('per_page', 20), 100);
+            $filters = array_filter($filters, fn ($value) => ! is_null($value));
+            $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
 
             $invoices = $this->invoiceService->getList($filters, $perPage);
+
             return $this->successResponse($invoices, 'Invoices retrieved successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('InvoiceController::index', $e);
@@ -125,7 +122,7 @@ class InvoiceController extends Controller
         try {
             $invoice = \App\Models\Accounting\Invoice::with([
                 'quotation', 'documentHistory', 'attachments', 'items',
-                'customer', 'manager', 'company', 'referenceInvoice', 'afterDepositInvoices'
+                'customer', 'manager', 'company', 'referenceInvoice', 'afterDepositInvoices',
             ])->findOrFail($id);
 
             return $this->successResponse($invoice, 'Invoice details retrieved successfully');
@@ -177,9 +174,7 @@ class InvoiceController extends Controller
     public function destroy($id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can delete invoices');
-            }
+            \Illuminate\Support\Facades\Gate::authorize('invoice.destroy');
 
             $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
 
@@ -188,6 +183,7 @@ class InvoiceController extends Controller
             }
 
             $invoice->delete();
+
             return $this->successResponse(null, 'Invoice deleted successfully');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Invoice');
@@ -237,10 +233,6 @@ class InvoiceController extends Controller
     public function approveBefore(ApproveInvoiceRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can approve invoices');
-            }
-
             $data = $request->validated();
             $approvedBy = AccountingHelper::getCurrentUserId();
             $invoice = $this->invoiceService->approveBefore($id, $approvedBy, $data['notes'] ?? null);
@@ -276,10 +268,6 @@ class InvoiceController extends Controller
     public function submitAfter(SubmitAfterDepositRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can submit after-deposit');
-            }
-
             $data = $request->validated();
             $submittedBy = AccountingHelper::getCurrentUserId();
             $invoice = $this->invoiceService->submitAfter($id, $submittedBy);
@@ -298,10 +286,6 @@ class InvoiceController extends Controller
     public function approveAfter(ApproveInvoiceRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can approve after-deposit');
-            }
-
             $data = $request->validated();
             $approvedBy = AccountingHelper::getCurrentUserId();
             $invoice = $this->invoiceService->approveAfter($id, $approvedBy, $data['notes'] ?? null);
@@ -337,10 +321,6 @@ class InvoiceController extends Controller
     public function revertToDraft(RevertToDraftRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can revert invoice status');
-            }
-
             $data = $request->validated();
             $revertedBy = AccountingHelper::getCurrentUserId();
             $invoice = $this->invoiceService->revertToDraft($id, $data['side'] ?? null, $revertedBy, $data['reason'] ?? null);
@@ -454,7 +434,7 @@ class InvoiceController extends Controller
         $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
-        
+
         return $this->invoiceService->streamPdf($id, $options);
     }
 
@@ -464,21 +444,22 @@ class InvoiceController extends Controller
     public function downloadPdf(Request $request, $id)
     {
         $invoice = \App\Models\Accounting\Invoice::with([
-            'items', 'quotation', 'quotation.items', 'customer', 'company', 
-            'creator', 'manager', 'referenceInvoice'
+            'items', 'quotation', 'quotation.items', 'customer', 'company',
+            'creator', 'manager', 'referenceInvoice',
         ])->findOrFail($id);
-        
+
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
         $headerTypes = $request->input('headerTypes');
 
         // Single header: use service method directly
-        if (empty($headerTypes) || !is_array($headerTypes)) {
+        if (empty($headerTypes) || ! is_array($headerTypes)) {
             return $this->downloadPdfResponse($this->invoiceService, $invoice, $options, 'invoice');
         }
 
         // Multi-header: use trait method for ZIP generation
         $pdfService = app(\App\Services\Accounting\Pdf\InvoicePdfMasterService::class);
+
         return $this->generateMultiHeaderPdfWithZip($pdfService, $invoice, $headerTypes, $options, 'invoice');
     }
 
@@ -492,7 +473,7 @@ class InvoiceController extends Controller
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
         $service = app(TaxInvoicePdfMasterService::class);
-        
+
         return $this->streamPdfResponse($service, $invoice, $options);
     }
 
@@ -504,16 +485,16 @@ class InvoiceController extends Controller
     {
         $invoice = \App\Models\Accounting\Invoice::with([
             'items', 'quotation', 'quotation.items', 'customer', 'company',
-            'creator', 'manager', 'referenceInvoice'
+            'creator', 'manager', 'referenceInvoice',
         ])->findOrFail($id);
-        
+
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
         $headerTypes = $request->input('headerTypes');
         $pdfService = app(TaxInvoicePdfMasterService::class);
 
         // Single header: direct download
-        if (empty($headerTypes) || !is_array($headerTypes)) {
+        if (empty($headerTypes) || ! is_array($headerTypes)) {
             return $this->downloadPdfResponse($pdfService, $invoice, $options, 'tax-invoice');
         }
 
@@ -531,7 +512,7 @@ class InvoiceController extends Controller
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
         $service = app(ReceiptPdfMasterService::class);
-        
+
         return $this->streamPdfResponse($service, $invoice, $options);
     }
 
@@ -543,16 +524,16 @@ class InvoiceController extends Controller
     {
         $invoice = \App\Models\Accounting\Invoice::with([
             'items', 'quotation', 'quotation.items', 'customer', 'company',
-            'creator', 'manager', 'referenceInvoice'
+            'creator', 'manager', 'referenceInvoice',
         ])->findOrFail($id);
-        
+
         $options = $this->extractPdfOptions($request);
         $options['deposit_mode'] = $this->extractDepositMode($request, $invoice);
         $headerTypes = $request->input('headerTypes');
         $pdfService = app(ReceiptPdfMasterService::class);
 
         // Single header: direct download
-        if (empty($headerTypes) || !is_array($headerTypes)) {
+        if (empty($headerTypes) || ! is_array($headerTypes)) {
             return $this->downloadPdfResponse($pdfService, $invoice, $options, 'receipt');
         }
 
@@ -575,12 +556,12 @@ class InvoiceController extends Controller
     public function getPaymentHistory($id): JsonResponse
     {
         $invoice = \App\Models\Accounting\Invoice::with([
-            'documentHistory' => function($query) {
+            'documentHistory' => function ($query) {
                 $query->where('action_type', 'record_payment')->orderBy('created_at', 'desc');
-            }
+            },
         ])->findOrFail($id);
 
-        $paymentHistory = $invoice->documentHistory->map(function($history) {
+        $paymentHistory = $invoice->documentHistory->map(function ($history) {
             return [
                 'id' => $history->id,
                 'amount' => $this->extractAmountFromNotes($history->notes),
@@ -588,7 +569,7 @@ class InvoiceController extends Controller
                 'reference_number' => $this->extractReferenceFromNotes($history->notes),
                 'recorded_by' => $history->action_by,
                 'recorded_at' => $history->created_at,
-                'notes' => $history->notes
+                'notes' => $history->notes,
             ];
         });
 
@@ -598,7 +579,7 @@ class InvoiceController extends Controller
             'total_amount' => $invoice->total_amount,
             'paid_amount' => $invoice->paid_amount ?? 0,
             'remaining_amount' => $invoice->remaining_amount,
-            'payment_history' => $paymentHistory
+            'payment_history' => $paymentHistory,
         ];
 
         return $this->successResponse($data, 'Payment history retrieved successfully');
@@ -613,7 +594,7 @@ class InvoiceController extends Controller
         $data = $request->validated();
         $invoice = \App\Models\Accounting\Invoice::findOrFail($id);
 
-        if (!in_array($invoice->status, ['sent', 'partial_paid'])) {
+        if (! in_array($invoice->status, ['sent', 'partial_paid'])) {
             return $this->errorResponse('Reminder can only be sent for invoices that are sent or partially paid', 400);
         }
 
@@ -628,6 +609,7 @@ class InvoiceController extends Controller
         if (preg_match('/ชำระเงิน: ฿([\d,]+\.?\d*)/', $notes, $matches)) {
             return floatval(str_replace(',', '', $matches[1]));
         }
+
         return 0;
     }
 
@@ -636,6 +618,7 @@ class InvoiceController extends Controller
         if (preg_match('/วิธีการชำระ: (.+)(?:\n|$)/', $notes, $matches)) {
             return trim($matches[1]);
         }
+
         return null;
     }
 
@@ -644,6 +627,7 @@ class InvoiceController extends Controller
         if (preg_match('/เลขที่อ้างอิง: (.+)(?:\n|$)/', $notes, $matches)) {
             return trim($matches[1]);
         }
+
         return null;
     }
 
@@ -653,10 +637,6 @@ class InvoiceController extends Controller
      */
     public function rejectBefore(RejectInvoiceRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can reject invoices');
-        }
-
         $data = $request->validated();
         $rejectedBy = AccountingHelper::getCurrentUserId();
         $invoice = $this->invoiceService->rejectBefore($id, $data['reason'], $rejectedBy);
@@ -666,15 +646,11 @@ class InvoiceController extends Controller
     }
 
     /**
-     * ปฏิเสธใบแจ้งหนี้ฝั่ง After Deposit  
+     * ปฏิเสธใบแจ้งหนี้ฝั่ง After Deposit
      * POST /api/v1/invoices/{id}/reject-after-deposit
      */
     public function rejectAfter(RejectInvoiceRequest $request, $id): JsonResponse
     {
-        if (!AccountingHelper::hasRole(['admin', 'account'])) {
-            return $this->forbiddenResponse('Only admin/account can reject invoices');
-        }
-
         $data = $request->validated();
         $rejectedBy = AccountingHelper::getCurrentUserId();
         $invoice = $this->invoiceService->rejectAfter($id, $data['reason'], $rejectedBy);
@@ -722,7 +698,7 @@ class InvoiceController extends Controller
         $options['deposit_mode'] = 'full';
         $headerTypes = $request->input('headerTypes');
 
-        if (empty($headerTypes) || !is_array($headerTypes)) {
+        if (empty($headerTypes) || ! is_array($headerTypes)) {
             return $this->downloadPdfResponse($pdfService, $invoice, $options, 'tax-invoice-full');
         }
 
@@ -741,7 +717,7 @@ class InvoiceController extends Controller
         $options['deposit_mode'] = 'full';
         $headerTypes = $request->input('headerTypes');
 
-        if (empty($headerTypes) || !is_array($headerTypes)) {
+        if (empty($headerTypes) || ! is_array($headerTypes)) {
             return $this->downloadPdfResponse($pdfService, $invoice, $options, 'receipt-full');
         }
 

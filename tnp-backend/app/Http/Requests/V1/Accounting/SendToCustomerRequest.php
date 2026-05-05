@@ -11,7 +11,7 @@ class SendToCustomerRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.sendToCustomer') ?? false;
     }
 
     /**
@@ -22,7 +22,7 @@ class SendToCustomerRequest extends FormRequest
         return [
             'delivery_method' => 'required|string|max:50',
             'recipient_email' => 'nullable|email|max:255',
-            'notes' => 'nullable|string|max:1000'
+            'notes' => 'nullable|string|max:1000',
         ];
     }
 

@@ -3,7 +3,6 @@
 namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Quotation;
-use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 use App\Services\PdfImageOptimizer;
 use Illuminate\Support\Facades\View;
 use Mpdf\Mpdf;
@@ -19,8 +18,6 @@ class QuotationPdfMasterService extends BasePdfMasterService
 
     /**
      * Constructor with Dependency Injection
-     *
-     * @param PdfImageOptimizer $imageOptimizer
      */
     public function __construct(PdfImageOptimizer $imageOptimizer)
     {
@@ -36,7 +33,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
     {
         return 'accounting.pdf.quotation.quotation-master';
     }
-    
+
     protected function getSignatureTemplatePath(): string
     {
         return 'accounting.pdf.quotation.partials.quotation-signature';
@@ -45,8 +42,9 @@ class QuotationPdfMasterService extends BasePdfMasterService
     protected function cssFiles(): array
     {
         return [
-            // resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/quotation/quotation-master.css'),
+            resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/quotation-header.css'),
         ];
     }
@@ -56,10 +54,11 @@ class QuotationPdfMasterService extends BasePdfMasterService
         $quotation = $data['quotation'];
         $customer = $data['customer'];
         $isFinal = $data['isFinal'];
+        $sellerName = $data['sellerName'] ?? null;
 
         // Header
         $headerHtml = View::make('accounting.pdf.quotation.partials.quotation-header', compact(
-            'quotation', 'customer', 'isFinal'
+            'quotation', 'customer', 'isFinal', 'sellerName'
         ))->render();
 
         // Footer (single version without signature - signature will be rendered via adaptive placement)
@@ -72,7 +71,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
         $mpdf->SetHTMLFooter($footerHtml); // ✨ คืนค่า: แสดงเลขหน้าในทุกหน้า
 
         // Watermark for non-final quotations
-        if (!$isFinal && ($data['options']['showWatermark'] ?? true)) {
+        if (! $isFinal && ($data['options']['showWatermark'] ?? true)) {
             $mpdf->SetWatermarkText('PREVIEW', 0.1);
             $mpdf->showWatermarkText = true;
         }
@@ -91,18 +90,43 @@ class QuotationPdfMasterService extends BasePdfMasterService
 
         return [
             'quotation' => $q,
-            'customer'  => $customer,
-            'groups'    => $groups,
-            'summary'   => $summary,
-            'isFinal'   => $isFinal,
+            'customer' => $customer,
+            'groups' => $groups,
+            'summary' => $summary,
+            'sellerName' => $this->resolveSellerName($q),
+            'isFinal' => $isFinal,
             'imageOptimizer' => $this->imageOptimizer, // Pass optimizer to Blade template
-            'options'   => array_merge([
-                'format'          => 'A4',
-                'orientation'     => 'P',
+            'options' => array_merge([
+                'format' => 'A4',
+                'orientation' => 'P',
                 'showPageNumbers' => true,
-                'showWatermark'   => !$isFinal,
+                'showWatermark' => ! $isFinal,
             ], $options),
         ];
+    }
+
+    /**
+     * Resolve "salesperson" display name for the header.
+     *
+     * Priority: customer's assigned manager (cus_manage_by) → quotation creator → null.
+     * Replaces the inline DB queries previously done in quotation-header.blade.php
+     * (audit accounting-pdf-views-2026-05-05 finding C1).
+     */
+    protected function resolveSellerName(Quotation $quotation): ?string
+    {
+        $managerId = $quotation->customer->cus_manage_by ?? null;
+        if ($managerId) {
+            $manager = \App\Models\User::where('user_id', $managerId)
+                ->select('user_firstname', 'username')
+                ->first();
+            if ($manager) {
+                return $manager->user_firstname ?? $manager->username ?? null;
+            }
+        }
+
+        $creator = $quotation->creator;
+
+        return $creator?->user_firstname ?? $creator?->username ?? null;
     }
 
     // =======================================================================
@@ -111,12 +135,13 @@ class QuotationPdfMasterService extends BasePdfMasterService
 
     /**
      * จัดกลุ่มรายการสินค้า/บริการใน Quotation
+     *
      * @return array<mixed>
      */
     protected function groupQuotationItems(Quotation $quotation): array
     {
         $items = $quotation->items ?? collect();
-        
+
         if ($items->isEmpty()) {
             return [];
         }
@@ -127,23 +152,23 @@ class QuotationPdfMasterService extends BasePdfMasterService
             // สร้าง key สำหรับจัดกลุ่ม
             $groupKey = $this->generateQuotationGroupKey($item);
 
-            if (!isset($groups[$groupKey])) {
+            if (! isset($groups[$groupKey])) {
                 $groups[$groupKey] = [
                     'name' => $item->item_name ?? 'ไม่ระบุชื่องาน',
                     'pattern' => $item->pattern,
                     'fabric' => $item->fabric_type,
                     'color' => $item->color,
                     'unit' => $item->unit ?? 'ชิ้น',
-                    'rows' => []
+                    'rows' => [],
                 ];
             }
 
             // เพิ่มรายการลงในกลุ่ม
             $groups[$groupKey]['rows'][] = [
                 'size' => $item->size ?? '-',
-                'quantity' => (float)($item->quantity ?? 0),
-                'unit_price' => (float)($item->unit_price ?? 0),
-                'discount_amount' => (float)($item->discount_amount ?? 0),
+                'quantity' => (float) ($item->quantity ?? 0),
+                'unit_price' => (float) ($item->unit_price ?? 0),
+                'discount_amount' => (float) ($item->discount_amount ?? 0),
                 'description' => $item->item_description,
                 'notes' => $item->notes ?? null,
             ];
@@ -161,32 +186,33 @@ class QuotationPdfMasterService extends BasePdfMasterService
             $item->item_name ?? '',
             $item->pattern ?? '',
             $item->fabric_type ?? '',
-            $item->color ?? ''
+            $item->color ?? '',
         ];
-        
+
         return md5(implode('|', $keyParts));
     }
 
     /**
      * สร้างสรุปทางการเงินสำหรับ Quotation
+     *
      * @return array<string, mixed>
      */
     protected function buildFinancialSummary(Quotation $quotation): array
     {
         return [
-            'subtotal' => (float)($quotation->subtotal ?? 0),
+            'subtotal' => (float) ($quotation->subtotal ?? 0),
             'special_discount_percentage' => $quotation->special_discount_percentage ?? 0,
-            'special_discount_amount' => (float)($quotation->special_discount_amount ?? 0),
-            'has_vat' => (bool)($quotation->has_vat ?? true),
-            'vat_percentage' => (float)($quotation->vat_percentage ?? 7.00),
-            'vat_amount' => (float)($quotation->vat_amount ?? 0),
-            'has_withholding_tax' => (bool)($quotation->has_withholding_tax ?? false),
-            'withholding_tax_percentage' => (float)($quotation->withholding_tax_percentage ?? 0),
-            'withholding_tax_amount' => (float)($quotation->withholding_tax_amount ?? 0),
-            'total_amount' => (float)($quotation->total_amount ?? 0),
+            'special_discount_amount' => (float) ($quotation->special_discount_amount ?? 0),
+            'has_vat' => (bool) ($quotation->has_vat ?? true),
+            'vat_percentage' => (float) ($quotation->vat_percentage ?? 7.00),
+            'vat_amount' => (float) ($quotation->vat_amount ?? 0),
+            'has_withholding_tax' => (bool) ($quotation->has_withholding_tax ?? false),
+            'withholding_tax_percentage' => (float) ($quotation->withholding_tax_percentage ?? 0),
+            'withholding_tax_amount' => (float) ($quotation->withholding_tax_amount ?? 0),
+            'total_amount' => (float) ($quotation->total_amount ?? 0),
             'deposit_mode' => $quotation->deposit_mode ?? 'percentage',
-            'deposit_percentage' => (float)($quotation->deposit_percentage ?? 0),
-            'deposit_amount' => (float)($quotation->deposit_amount ?? 0),
+            'deposit_percentage' => (float) ($quotation->deposit_percentage ?? 0),
+            'deposit_amount' => (float) ($quotation->deposit_amount ?? 0),
         ];
     }
 }

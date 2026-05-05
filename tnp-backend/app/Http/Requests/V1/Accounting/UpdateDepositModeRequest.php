@@ -11,7 +11,7 @@ class UpdateDepositModeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.update') ?? false;
     }
 
     /**
@@ -20,7 +20,7 @@ class UpdateDepositModeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'deposit_display_order' => 'required|string|in:before,after'
+            'deposit_display_order' => 'required|string|in:before,after',
         ];
     }
 

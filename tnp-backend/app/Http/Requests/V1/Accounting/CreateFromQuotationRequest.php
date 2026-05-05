@@ -13,7 +13,7 @@ class CreateFromQuotationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.create') ?? false;
     }
 
     /**
@@ -28,7 +28,7 @@ class CreateFromQuotationRequest extends FormRequest
             $quotationId = $data['quotation_id'] ?? null;
             if ($quotationId) {
                 $quotation = Quotation::find($quotationId);
-                if ($quotation && !$quotation->canConvertToInvoice()) {
+                if ($quotation && ! $quotation->canConvertToInvoice()) {
                     $v->errors()->add(
                         'quotation_id',
                         "ใบเสนอราคาต้องมีสถานะ 'อนุมัติแล้ว' หรือ 'ส่งแล้ว' จึงจะแปลงเป็นใบแจ้งหนี้ได้ (สถานะปัจจุบัน: {$quotation->status})"
@@ -85,7 +85,7 @@ class CreateFromQuotationRequest extends FormRequest
             'document_header_type' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:1000',
             'customer_data_source' => 'nullable|in:master,invoice',
-            
+
             // Financial fields from frontend calculation
             'subtotal' => 'required|numeric|min:0',
             'subtotal_before_vat' => 'nullable|numeric|min:0',
@@ -100,21 +100,21 @@ class CreateFromQuotationRequest extends FormRequest
             'withholding_tax_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
             'final_total_amount' => 'required|numeric|min:0',
-            
+
             // Deposit information
             'deposit_mode' => 'nullable|in:percentage,amount',
             'deposit_percentage' => 'nullable|numeric|min:0|max:100',
             'deposit_amount' => 'nullable|numeric|min:0',
             'deposit_amount_before_vat' => 'nullable|numeric|min:0',
-            
+
             // Reference invoice information
             'reference_invoice_id' => 'nullable|string|exists:invoices,id',
             'reference_invoice_number' => 'nullable|string|max:50',
-            
+
             // Images
             'signature_images' => 'nullable|array',
             'sample_images' => 'nullable|array',
-            
+
             // Items (optional - can override quotation items if provided)
             'invoice_items' => 'nullable|array',
             'invoice_items.*.pricing_request_id' => 'nullable|string',

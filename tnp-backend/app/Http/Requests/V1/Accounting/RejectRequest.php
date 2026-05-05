@@ -11,7 +11,7 @@ class RejectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization handled by middleware
+        return $this->user()?->can('quotation.reject') ?? false;
     }
 
     /**

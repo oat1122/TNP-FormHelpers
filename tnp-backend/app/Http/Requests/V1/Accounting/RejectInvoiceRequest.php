@@ -11,7 +11,7 @@ class RejectInvoiceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.reject') ?? false;
     }
 
     /**
@@ -20,7 +20,7 @@ class RejectInvoiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => 'required|string|max:1000'
+            'reason' => 'required|string|max:1000',
         ];
     }
 

@@ -1,14 +1,24 @@
-{{-- resources/views/accounting/pdf/receipt/partials/receipt-header.blade.php --}}
+{{--
+  Shared header partial for invoice-family PDF docs (Receipt, TaxInvoice, +).
+  Consumers must pass:
+    - $invoice         — Invoice model (or compatible — uses ->company, ->manager, ->creator, ->getDocumentNumber, ->getReferenceNumber)
+    - $customer        — array (name, address, tel, tax_id) — see CustomerInfoExtractor
+    - $docType         — string passed to $invoice->getDocumentNumber($docType, $mode) — e.g. 'receipt', 'tax_invoice'
+    - $docTitle        — string rendered in <div.doc-title> — e.g. 'ใบเสร็จรับเงิน', 'ใบกำกับภาษี'
+    - $isFinal, $summary, $docNumber, $referenceNo, $mode, $options — optional context (forwarded by master service)
+
+  Extracted from receipt-header + tax-header (95% identical) per audit accounting-pdf-views-2026-05-05 finding P5.
+--}}
 <table class="pdf-header">
   <tr>
     <td class="header-left">
       <div class="logo-wrap">
-        <x-company-logo 
-          :company-id="$invoice->company->id ?? null" 
+        <x-company-logo
+          :company-id="$invoice->company->id ?? null"
           :logo-path="$logoPath ?? null"
-          css-class="logo-img" 
-          alt="logo" 
-          :for-pdf="true" 
+          css-class="logo-img"
+          alt="logo"
+          :for-pdf="true"
         />
       </div>
 
@@ -28,10 +38,10 @@
         $name   = trim($customer['name'] ?? '-');
         $addr   = trim($customer['address'] ?? '-');
         $telRaw = $customer['tel'] ?? '';
-        $phones = implode(', ', array_filter(preg_split('/[,\\s\/|]+/', $telRaw)));
+        $phones = implode(', ', array_filter(preg_split('/[,\s\/|]+/', $telRaw)));
         $taxId  = trim($customer['tax_id'] ?? '');
-        if (preg_match('/^\\d{13}$/', $taxId)) {
-            $taxId = preg_replace('/(\\d{1})(\\d{4})(\\d{5})(\\d{2})(\\d{1})/', '$1-$2-$3-$4-$5', $taxId);
+        if (preg_match('/^\d{13}$/', $taxId)) {
+            $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
         }
       @endphp
       <div class="customer-box">
@@ -47,14 +57,10 @@
     </td>
     <td class="header-right">
     @php
-    $docTitle    = 'ใบเสร็จรับเงิน';
-    $docSubTitle = $invoice->document_header_type ?? 'ต้นฉบับ';
     $createdDate = $invoice->created_at ? $invoice->created_at->format('d/m/Y') : date('d/m/Y');
-    // $dueDate     = !empty($invoice->due_date) ? date('d/m/Y', strtotime($invoice->due_date)) : null; // Less relevant for receipt
 
-    // ✨ Use document number and reference from service (passed as variables)
-    // Fallback to invoice methods if not provided
-    $displayDocNumber = $docNumber ?? $invoice->getDocumentNumber('receipt', $mode ?? null);
+    // Use document number/reference passed from service; fallback to invoice helpers
+    $displayDocNumber = $docNumber ?? $invoice->getDocumentNumber($docType, $mode ?? null);
     $displayReferenceNo = $referenceNo ?? $invoice->getReferenceNumber($mode ?? null);
 
     $seller      = $invoice->manager ?? $invoice->creator;
@@ -69,10 +75,8 @@
       ['label'=>'เลขที่','value'=>$displayDocNumber],
       ['label'=>'วันที่','value'=>$createdDate],
     ];
-    // Due date might not be relevant for receipt
     if ($sellerDisplay)      $metaRows[] = ['label'=>'ผู้ขาย','value'=> trim($sellerFirst) ?: $sellerUser];
     if ($displayReferenceNo) $metaRows[] = ['label'=>'อ้างอิง','value'=>$displayReferenceNo,'format'=>'inline'];
-
     @endphp
 
       <div class="doc-header-section">

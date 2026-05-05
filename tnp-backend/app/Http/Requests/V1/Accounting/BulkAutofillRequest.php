@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Class BulkAutofillRequest
- * 
+ *
  * Validation request for bulk pricing request autofill
  * POST /api/v1/pricing-requests/bulk-autofill
  */
@@ -14,12 +14,10 @@ class BulkAutofillRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
-        return true; // Authorization handled by middleware
+        return $this->user()?->can('quotation.bulkAutofill') ?? false;
     }
 
     /**
@@ -31,7 +29,7 @@ class BulkAutofillRequest extends FormRequest
     {
         return [
             'ids' => 'required|array|min:1|max:50', // จำกัดไม่เกิน 50 รายการต่อครั้ง
-            'ids.*' => 'required|integer'
+            'ids.*' => 'required|integer',
         ];
     }
 
@@ -47,7 +45,7 @@ class BulkAutofillRequest extends FormRequest
             'ids.array' => 'IDs ต้องเป็น array',
             'ids.min' => 'ต้องระบุอย่างน้อย 1 รายการ',
             'ids.max' => 'สามารถดึงข้อมูลได้สูงสุด 50 รายการต่อครั้ง',
-            'ids.*.integer' => 'ID ต้องเป็นตัวเลขจำนวนเต็ม'
+            'ids.*.integer' => 'ID ต้องเป็นตัวเลขจำนวนเต็ม',
         ];
     }
 }

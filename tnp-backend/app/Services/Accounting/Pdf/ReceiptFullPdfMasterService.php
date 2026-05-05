@@ -5,7 +5,6 @@ namespace App\Services\Accounting\Pdf;
 use App\Models\Accounting\Invoice;
 use Illuminate\Support\Facades\View;
 use Mpdf\Mpdf;
-use App\Services\Accounting\Pdf\CustomerInfoExtractor;
 
 /**
  * Master PDF Service สำหรับใบเสร็จรับเงิน (100% - ใช้ Body แบบ Quotation)
@@ -34,6 +33,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/quotation/quotation-master.css'),
+            resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/invoice-header.css'),
         ];
     }
@@ -44,9 +44,9 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
      */
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
-        $invoice  = $data['invoice'];
+        $invoice = $data['invoice'];
         $customer = $data['customer'];
-        $isFinal  = $data['isFinal'];
+        $isFinal = $data['isFinal'];
         $summary = $data['summary'] ?? [];
 
         // ✨ Pass docNumber, referenceNo, mode to header view
@@ -55,10 +55,10 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $mode = $data['mode'] ?? 'full';
         $options = $data['options'] ?? [];
 
-        // **** ใช้ Header ของ Receipt ****
-        $headerHtml = View::make('accounting.pdf.receipt.partials.receipt-header', compact(
+        // **** ใช้ Header ของ Receipt (consolidated to _partials/doc-header per audit P5) ****
+        $headerHtml = View::make('accounting.pdf._partials.doc-header', compact(
             'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
-        ))->render();
+        ) + ['docType' => 'receipt', 'docTitle' => 'ใบเสร็จรับเงิน'])->render();
 
         // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
@@ -82,7 +82,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $invoice = $invoiceModel->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager']);
 
         // Allow runtime override of document header type
-        if (!empty($options['document_header_type'])) {
+        if (! empty($options['document_header_type'])) {
             $invoice->document_header_type = $options['document_header_type'];
         }
 
@@ -103,7 +103,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
         $invoiceForView = clone $invoice;
         $invoiceForView->sample_images = []; // ไม่แสดงรูปภาพตัวอย่างในเอกสารทางการ
 
-        \Log::info("🔍 ReceiptFullPDF buildViewData - Full mode metadata: " . json_encode($metadata));
+        \Log::info('🔍 ReceiptFullPDF buildViewData - Full mode metadata: '.json_encode($metadata));
 
         // **** Key หลักของ Array ต้องตรงกับที่ quotation-master.blade.php คาดหวัง ****
         return [
@@ -120,7 +120,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
                 'format' => 'A4',
                 'orientation' => 'P',
                 'showPageNumbers' => true,
-                'showWatermark' => !$isFinal,
+                'showWatermark' => ! $isFinal,
                 'deposit_mode' => 'full',
             ], $options),
         ];
@@ -146,6 +146,7 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
                 'rows' => $group['rows'] ?? [],
             ];
         }
+
         return $finalGroups;
     }
 
@@ -168,12 +169,12 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
             $timestamp
         );
 
-        $directory = storage_path('app/public/pdfs/' . $this->getStorageFolder());
-        if (!is_dir($directory)) {
+        $directory = storage_path('app/public/pdfs/'.$this->getStorageFolder());
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
-        $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filePath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($filePath, 'F');
 
         return $filePath;

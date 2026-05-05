@@ -3,7 +3,7 @@
 namespace App\Services\Accounting\Pdf;
 
 use App\Models\Accounting\Invoice;
-use App\Services\Accounting\Pdf\CustomerInfoExtractor;
+use App\Services\Accounting\Invoice\Calculator;
 use Illuminate\Support\Facades\View;
 use Mpdf\Mpdf;
 
@@ -14,6 +14,8 @@ use Mpdf\Mpdf;
  */
 class InvoicePdfMasterService extends BasePdfMasterService
 {
+    public function __construct(protected Calculator $calculator) {}
+
     protected function getFilenamePrefix(): string
     {
         return 'invoice';
@@ -22,11 +24,12 @@ class InvoicePdfMasterService extends BasePdfMasterService
     protected function getTemplatePath(array $viewData): string
     {
         $depositMode = $viewData['options']['deposit_mode'] ?? 'before';
+
         return ($depositMode === 'after')
             ? 'accounting.pdf.invoice.invoice-deposit-after'
             : 'accounting.pdf.invoice.invoice-master';
     }
-    
+
     protected function getSignatureTemplatePath(): string
     {
         return 'accounting.pdf.invoice.partials.invoice-signature';
@@ -37,27 +40,29 @@ class InvoicePdfMasterService extends BasePdfMasterService
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
             resource_path('views/accounting/pdf/invoice/invoice-master.css'),
+            resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/invoice-header.css'),
         ];
     }
 
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
-        $invoice  = $data['invoice'];
+        $invoice = $data['invoice'];
         $customer = $data['customer'];
-        $isFinal  = $data['isFinal'];
+        $isFinal = $data['isFinal'];
 
         // Header (คงเดิม)
         $summary = $data['summary'] ?? [];
-        
+
         // ✨ Pass docNumber, referenceNo, mode to header view
         $docNumber = $data['docNumber'] ?? null;
         $referenceNo = $data['referenceNo'] ?? null;
         $mode = $data['mode'] ?? null;
         $options = $data['options'] ?? [];
-        
+        $sellerName = $data['sellerName'] ?? null;
+
         $headerHtml = View::make('accounting.pdf.invoice.partials.invoice-header', compact(
-            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
+            'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options', 'sellerName'
         ))->render();
 
         // Footer (single version without signature - signature will be rendered via adaptive placement)
@@ -77,8 +82,8 @@ class InvoicePdfMasterService extends BasePdfMasterService
             ? strtolower($invoice->status_after ?? '')
             : strtolower($invoice->status_before ?? '');
         $activeDraft = ($activeSideStatus === 'draft');
-        $shouldWatermark = (!$isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft || $activeDraft;
-        
+        $shouldWatermark = (! $isFinal && ($data['options']['showWatermark'] ?? true)) || $bothDraft || $activeDraft;
+
         if ($shouldWatermark) {
             $mpdf->SetWatermarkText('PREVIEW', 0.1);
             $mpdf->showWatermarkText = true;
@@ -89,60 +94,89 @@ class InvoicePdfMasterService extends BasePdfMasterService
     {
         /** @var Invoice $i */
         \Log::info("🔍 PDF buildViewData - Start for Invoice ID: {$invoice->id}, Type: {$invoice->type}");
-        
+
         $i = $invoice->loadMissing(['company', 'customer', 'quotation', 'quotation.items', 'items', 'creator', 'manager', 'referenceInvoice']);
 
         // Log relationship loading status
         $itemsLoaded = $i->relationLoaded('items');
         $itemCount = $itemsLoaded ? $i->items->count() : 'NOT LOADED';
-        \Log::info("🔍 PDF buildViewData - Items relationship loaded: " . ($itemsLoaded ? 'YES' : 'NO') . ", Count: {$itemCount}");
+        \Log::info('🔍 PDF buildViewData - Items relationship loaded: '.($itemsLoaded ? 'YES' : 'NO').", Count: {$itemCount}");
 
         // Allow runtime override of document header type (ไม่บันทึกลง DB)
-        if (!empty($options['document_header_type'])) {
+        if (! empty($options['document_header_type'])) {
             $i->document_header_type = $options['document_header_type'];
         }
 
         $customer = CustomerInfoExtractor::fromInvoice($i);
-        
-        \Log::info("🔍 PDF buildViewData - Calling getInvoiceItems...");
-        $items    = $this->getInvoiceItems($i);
-        \Log::info("🔍 PDF buildViewData - getInvoiceItems returned " . count($items) . " items");
-        
+
+        \Log::info('🔍 PDF buildViewData - Calling getInvoiceItems...');
+        $items = $this->getInvoiceItems($i);
+        \Log::info('🔍 PDF buildViewData - getInvoiceItems returned '.count($items).' items');
+
         if (count($items) > 0) {
-            \Log::info("🔍 PDF buildViewData - First item: " . json_encode($items[0]));
+            \Log::info('🔍 PDF buildViewData - First item: '.json_encode($items[0]));
         }
-        
-        $summary  = $this->buildFinancialSummary($i);
-        
+
+        $summary = $this->buildFinancialSummary($i);
+
         // สร้างข้อมูล groups สำหรับ deposit-after mode
         $groups = $this->groupInvoiceItems($i);
-        \Log::info("🔍 PDF buildViewData - groupInvoiceItems returned " . count($groups) . " groups");
+        \Log::info('🔍 PDF buildViewData - groupInvoiceItems returned '.count($groups).' groups');
 
-        $isFinal  = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
+        $isFinal = in_array($i->status, ['approved', 'sent', 'completed', 'partial_paid', 'fully_paid'], true);
 
         // ✨ NEW: Get document metadata (number, reference) using helper method
         $metadata = $this->getDocumentMetadata($i, 'invoice', $options);
 
-        \Log::info("🔍 PDF buildViewData - Final data: items=" . count($items) . ", groups=" . count($groups));
-        \Log::info("🔍 PDF buildViewData - Document metadata: " . json_encode($metadata));
+        \Log::info('🔍 PDF buildViewData - Final data: items='.count($items).', groups='.count($groups));
+        \Log::info('🔍 PDF buildViewData - Document metadata: '.json_encode($metadata));
+
+        // C2: build invoiceItems for PDF body table — replaces inline @php in invoice-master.blade.php
+        $invoiceItems = $this->calculator->buildPdfItemsForType($i, $items);
 
         return [
-            'invoice'     => $i,
-            'customer'    => $customer,
-            'items'       => $items,
-            'groups'      => $groups,
-            'summary'     => $summary,
-            'isFinal'     => $isFinal,
-            'docNumber'   => $metadata['docNumber'],    // ✨ NEW: Document number with appropriate prefix
+            'invoice' => $i,
+            'customer' => $customer,
+            'items' => $items,
+            'invoiceItems' => $invoiceItems,
+            'groups' => $groups,
+            'summary' => $summary,
+            'sellerName' => $this->resolveSellerName($i),
+            'isFinal' => $isFinal,
+            'docNumber' => $metadata['docNumber'],    // ✨ NEW: Document number with appropriate prefix
             'referenceNo' => $metadata['referenceNo'],  // ✨ NEW: Reference number
-            'mode'        => $metadata['mode'],         // ✨ NEW: Current mode (before/after/full)
-            'options'     => array_merge([
-                'format'          => 'A4',
-                'orientation'     => 'P',
+            'mode' => $metadata['mode'],         // ✨ NEW: Current mode (before/after/full)
+            'options' => array_merge([
+                'format' => 'A4',
+                'orientation' => 'P',
                 'showPageNumbers' => true,
-                'showWatermark'   => !$isFinal,
+                'showWatermark' => ! $isFinal,
             ], $options),
         ];
+    }
+
+    /**
+     * Resolve "salesperson" display name for the header.
+     *
+     * Priority: customer's assigned manager (cus_manage_by) → invoice's own manager (inv_manage_by) → creator → null.
+     * Replaces the inline DB queries previously done in invoice-header.blade.php
+     * (audit accounting-pdf-views-2026-05-05 finding C1).
+     */
+    protected function resolveSellerName(\App\Models\Accounting\Invoice $invoice): ?string
+    {
+        $managerId = $invoice->customer->cus_manage_by ?? null;
+        if ($managerId) {
+            $manager = \App\Models\User::where('user_id', $managerId)
+                ->select('user_firstname', 'username')
+                ->first();
+            if ($manager) {
+                return $manager->user_firstname ?? $manager->username ?? null;
+            }
+        }
+
+        $seller = $invoice->manager ?? $invoice->creator;
+
+        return $seller?->user_firstname ?? $seller?->username ?? null;
     }
 
     // =======================================================================
@@ -151,7 +185,8 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
     /**
      * สร้าง key สำหรับจัดกลุ่มรายการสินค้า
-     * @param array<string, mixed> $itemData
+     *
+     * @param  array<string, mixed>  $itemData
      */
     protected function generateItemGroupKey(array $itemData): string
     {
@@ -159,71 +194,75 @@ class InvoicePdfMasterService extends BasePdfMasterService
             $itemData['item_name'] ?? '',
             $itemData['pattern'] ?? '',
             $itemData['fabric_type'] ?? '',
-            $itemData['color'] ?? ''
+            $itemData['color'] ?? '',
         ];
-        
+
         return md5(implode('|', $keyParts));
     }
 
     /**
      * ดึงรายการสินค้า/บริการจาก Invoice - แก้ไข: ใช้เฉพาะ invoice_items เท่านั้น
+     *
      * @return array<mixed>
      */
     protected function getInvoiceItems(Invoice $invoice): array
     {
         \Log::info("🔍 getInvoiceItems - Invoice ID: {$invoice->id}");
-        
+
         // ตรวจสอบให้แน่ใจว่า relationship 'items' ถูกโหลดแล้ว
         // การเรียก $invoice->items จะพยายามโหลดถ้ายังไม่ได้โหลด
         $invoiceItems = $invoice->items;
-        
-        \Log::info("🔍 getInvoiceItems - Retrieved items, count: " . ($invoiceItems ? $invoiceItems->count() : 'NULL'));
+
+        \Log::info('🔍 getInvoiceItems - Retrieved items, count: '.($invoiceItems ? $invoiceItems->count() : 'NULL'));
 
         if ($invoiceItems && $invoiceItems->count() > 0) {
             // ใช้ข้อมูลจาก invoice_items เท่านั้น
             $result = $invoiceItems->sortBy('sequence_order')->values()->toArray();
-            \Log::info("🔍 getInvoiceItems - Returning " . count($result) . " items from invoice_items");
+            \Log::info('🔍 getInvoiceItems - Returning '.count($result).' items from invoice_items');
+
             return $result;
         }
 
         // ไม่ต้อง fallback ไปหา quotation->items
         // ถ้าไม่มี invoice_items ให้คืนค่า array ว่าง
-        \Log::warning("⚠️ getInvoiceItems - No invoice_items found, returning empty array");
+        \Log::warning('⚠️ getInvoiceItems - No invoice_items found, returning empty array');
+
         return [];
     }
 
     /**
      * จัดกลุ่มรายการสินค้าจาก invoice_items สำหรับแสดงในตารางแบบ quotation
+     *
      * @return array<mixed>
      */
     protected function groupInvoiceItems(Invoice $invoice): array
     {
         $items = $this->getInvoiceItems($invoice);
-        
+
         if (empty($items)) {
             return [];
         }
 
         $groups = [];
-        
+
         foreach ($items as $item) {
             // แปลงข้อมูลจาก invoice_items หรือ quotation_items
             $itemData = $this->normalizeItemData($item);
-            
+
             // สร้าง key สำหรับจัดกลุ่มโดยใช้ item_name + pattern + fabric_type + color
             $groupKey = $this->generateItemGroupKey($itemData);
-            
-            if (!isset($groups[$groupKey])) {
+
+            if (! isset($groups[$groupKey])) {
                 $groups[$groupKey] = [
                     'name' => $itemData['item_name'],
                     'pattern' => $itemData['pattern'],
                     'fabric' => $itemData['fabric_type'],
                     'color' => $itemData['color'],
                     'unit' => $itemData['unit'],
-                    'rows' => []
+                    'rows' => [],
                 ];
             }
-            
+
             // เพิ่มรายการลงในกลุ่ม
             $groups[$groupKey]['rows'][] = [
                 'size' => $itemData['size'],
@@ -240,27 +279,28 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
     /**
      * แปลงข้อมูล item ให้เป็นรูปแบบเดียวกัน
+     *
      * @return array<string, mixed>
      */
     protected function normalizeItemData(mixed $item): array
     {
         // ตรวจสอบว่าเป็นข้อมูลจาก invoice_items หรือ quotation_items
         $isInvoiceItem = isset($item['item_name']);
-        
+
         return [
-            'item_name' => $isInvoiceItem 
+            'item_name' => $isInvoiceItem
                 ? ($item['item_name'] ?? 'ไม่ระบุชื่องาน')
                 : ($item['name'] ?? 'ไม่ระบุชื่องาน'),
             'pattern' => $item['pattern'] ?? null,
-            'fabric_type' => $isInvoiceItem 
+            'fabric_type' => $isInvoiceItem
                 ? ($item['fabric_type'] ?? null)
                 : ($item['fabric'] ?? null),
             'color' => $item['color'] ?? null,
             'unit' => $item['unit'] ?? 'ชิ้น',
             'size' => $item['size'] ?? '-',
-            'quantity' => (float)($item['quantity'] ?? 0),
-            'unit_price' => (float)($item['unit_price'] ?? 0),
-            'discount_amount' => (float)($item['discount_amount'] ?? 0),
+            'quantity' => (float) ($item['quantity'] ?? 0),
+            'unit_price' => (float) ($item['unit_price'] ?? 0),
+            'discount_amount' => (float) ($item['discount_amount'] ?? 0),
             'item_description' => $isInvoiceItem
                 ? ($item['item_description'] ?? null)
                 : ($item['description'] ?? null),
@@ -270,6 +310,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
     /**
      * สร้างสรุปทางการเงิน
+     *
      * @return array<string, mixed>
      */
     protected function buildFinancialSummary(Invoice $invoice): array
@@ -302,7 +343,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
             'withholding_tax_amount' => $withholdingTaxAmount,
             'total_amount' => $invoice->total_amount ?? 0,
             'final_total_amount' => $invoice->final_total_amount ?? $invoice->total_amount ?? 0,
-            
+
             // New deposit-after calculations
             'deposit_after' => $depositAfterCalculations,
         ];
@@ -310,17 +351,18 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
     /**
      * คำนวณยอดเงินสำหรับใบวางบิลหลังมัดจำ
+     *
      * @return array<string, mixed>
      */
     protected function calculateDepositAfterAmounts(Invoice $invoice): array
     {
         // ตรวจสอบว่าเป็นใบวางบิลหลังมัดจำหรือไม่
         $isDepositAfter = (
-            ($invoice->type ?? '') === 'remaining' || 
+            ($invoice->type ?? '') === 'remaining' ||
             ($invoice->deposit_display_order ?? '') === 'after'
         );
-        
-        if (!$isDepositAfter) {
+
+        if (! $isDepositAfter) {
             return [
                 'is_deposit_after' => false,
                 'total_before_vat' => 0,
@@ -334,9 +376,9 @@ class InvoicePdfMasterService extends BasePdfMasterService
 
         // 1. รวมเป็นเงิน = เงินทั้งหมด (ก่อนคำนวน vat7%)
         $totalBeforeVat = 0;
-        
+
         // Use subtotal_before_vat if available, otherwise fallback to existing logic
-        if (!empty($invoice->subtotal_before_vat)) {
+        if (! empty($invoice->subtotal_before_vat)) {
             $totalBeforeVat = (float) $invoice->subtotal_before_vat;
         } elseif ($invoice->quotation) {
             // ใช้ยอดจากใบเสนอราคา (subtotal ก่อน VAT)
@@ -349,7 +391,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
         // 2. หักเงินมัดจำ(รหัสใบวางบิล ก่อน) = เงินทั้งหมดที่จ่ายในมัดจำก่อน (ก่อนคำนวน vat7%)
         $depositPaidBeforeVat = 0;
         $referenceInvoiceNumber = '';
-        
+
         // กรณีพิเศษ: ถ้าเป็น deposit แต่แสดงผลแบบ after (ใบมัดจำเดียวที่แสดงยอดคงเหลือ)
         if (($invoice->type ?? '') === 'deposit' && ($invoice->deposit_display_order ?? '') === 'after') {
             // ใช้ deposit_amount_before_vat ของตัวเองเป็นยอดที่หัก
@@ -360,9 +402,9 @@ class InvoicePdfMasterService extends BasePdfMasterService
         elseif ($invoice->reference_invoice_id && $invoice->referenceInvoice) {
             $depositInvoice = $invoice->referenceInvoice;
             // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
-            if (!empty($depositInvoice->deposit_amount_before_vat)) {
+            if (! empty($depositInvoice->deposit_amount_before_vat)) {
                 $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
-            } elseif (!empty($depositInvoice->subtotal_before_vat)) {
+            } elseif (! empty($depositInvoice->subtotal_before_vat)) {
                 $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
             } else {
                 $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
@@ -371,7 +413,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
         } else {
             // Fallback: หาใบแจ้งหนี้มัดจำก่อนหน้า
             $depositInvoice = null;
-            
+
             if ($invoice->quotation_id) {
                 // หาใบมัดจำที่อ้างอิงใบเสนอราคาเดียวกัน
                 $depositInvoice = \App\Models\Accounting\Invoice::where('quotation_id', $invoice->quotation_id)
@@ -381,9 +423,9 @@ class InvoicePdfMasterService extends BasePdfMasterService
                     ->orderBy('created_at', 'asc') // เอาใบแรกสุด
                     ->first();
             }
-            
+
             // ถ้ายังไม่เจอ ลองหาจาก customer เดียวกันและวันที่ใกล้เคียง
-            if (!$depositInvoice && $invoice->customer_id) {
+            if (! $depositInvoice && $invoice->customer_id) {
                 $depositInvoice = \App\Models\Accounting\Invoice::where('customer_id', $invoice->customer_id)
                     ->where('type', 'deposit')
                     ->where('status_before', 'approved')
@@ -392,12 +434,12 @@ class InvoicePdfMasterService extends BasePdfMasterService
                     ->orderBy('created_at', 'desc') // เอาใบล่าสุด
                     ->first();
             }
-                    
+
             if ($depositInvoice) {
                 // Use deposit_amount_before_vat if available, otherwise subtotal_before_vat, then subtotal
-                if (!empty($depositInvoice->deposit_amount_before_vat)) {
+                if (! empty($depositInvoice->deposit_amount_before_vat)) {
                     $depositPaidBeforeVat = (float) $depositInvoice->deposit_amount_before_vat;
-                } elseif (!empty($depositInvoice->subtotal_before_vat)) {
+                } elseif (! empty($depositInvoice->subtotal_before_vat)) {
                     $depositPaidBeforeVat = (float) $depositInvoice->subtotal_before_vat;
                 } else {
                     $depositPaidBeforeVat = (float) ($depositInvoice->subtotal ?? 0);
@@ -424,7 +466,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
             'vat_on_remaining' => $vatOnRemaining,
             'final_total_with_vat' => $finalTotalWithVat,
             'reference_invoice_number' => $referenceInvoiceNumber,
-            
+
             // Alternative variable names for template convenience
             'subtotal_before_vat' => $totalBeforeVat,
             'deposit_before_vat' => $depositPaidBeforeVat,
@@ -448,6 +490,7 @@ class InvoicePdfMasterService extends BasePdfMasterService
         $label = preg_replace('/\s+/u', '-', $label);
         // กรองอักขระที่ไม่ใช่ ตัวอักษรไทย อังกฤษ ตัวเลข หรือ -
         $label = preg_replace('/[^ก-๙A-Za-z0-9\-]+/u', '', $label);
+
         return $label === '' ? 'doc' : mb_strtolower($label);
     }
 
@@ -468,11 +511,11 @@ class InvoicePdfMasterService extends BasePdfMasterService
         );
 
         $directory = storage_path('app/public/pdfs/invoices');
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
-        $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filePath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($filePath, 'F');
 
         return $filePath;

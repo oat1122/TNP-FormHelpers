@@ -11,7 +11,7 @@ class StoreInvoiceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.create') ?? false;
     }
 
     /**
@@ -34,13 +34,13 @@ class StoreInvoiceRequest extends FormRequest
             'vat_percentage' => 'nullable|numeric|min:0|max:100',
             'pricing_mode' => 'nullable|in:net,vat_included',
             'payment_terms' => 'nullable|string|max:100',
-            
+
             // Deposit fields
             'deposit_amount_before_vat' => 'nullable|numeric|min:0',
-            
+
             // Reference invoice information
             'reference_invoice_id' => 'nullable|string|exists:invoices,id',
-            'reference_invoice_number' => 'nullable|string|max:50'
+            'reference_invoice_number' => 'nullable|string|max:50',
         ];
     }
 

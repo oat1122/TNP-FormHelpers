@@ -2,19 +2,20 @@
 
 namespace App\Models\Accounting;
 
-use App\Services\Accounting\PdfCacheService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Company;
 use App\Models\MasterCustomer;
 use App\Models\User;
-use App\Models\Company;
+use App\Services\Accounting\PdfCacheService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class Receipt
- * 
+ *
  * @property string $id
  * @property string $number
  * @property string|null $invoice_id
@@ -52,7 +53,9 @@ use App\Models\Company;
 class Receipt extends Model
 {
     protected $table = 'receipts';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -82,7 +85,7 @@ class Receipt extends Model
         'notes',
         'issued_by',
         'approved_by',
-        'approved_at'
+        'approved_at',
     ];
 
     protected $casts = [
@@ -91,22 +94,30 @@ class Receipt extends Model
         'total_amount' => 'decimal:2',
         'approved_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
-    protected $appends = [
-        'receipt_type',
-        'payment_date',
-        'payment_amount',
-        'vat_rate',
-        'vat_amount',
-    ];
+    /*
+     * Legacy aliases (receipt_type, payment_date, payment_amount, vat_rate,
+     * vat_amount) were removed from $appends in m7.1 to avoid 5x over-fetch
+     * on every toArray() / JSON serialization (~500 accessor calls per
+     * 100-row list).
+     *
+     * The accessors still exist on this model — any caller that reads them
+     * directly (`$receipt->receipt_type`) continues to work. Callers that
+     * need the legacy keys baked into JSON output can call
+     * `$receipt->append([...])` explicitly per request.
+     *
+     * If a consumer regresses, see docs/audits/accounting-reflect-2026-05-05.md
+     * (m7 / m7.1) for the deprecation rationale.
+     */
+    protected $appends = [];
 
     // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
@@ -115,32 +126,33 @@ class Receipt extends Model
                 $model->company_id = optional(Company::where('is_active', true)->first())->id;
             }
         });
-        
+
         // Invalidate PDF cache when receipt is updated
         static::updated(function ($receipt) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('receipt', $receipt->id);
-                Log::info("Receipt updated - PDF cache invalidated", ['receipt_id' => $receipt->id]);
+                Log::info('Receipt updated - PDF cache invalidated', ['receipt_id' => $receipt->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on receipt update: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on receipt update: '.$e->getMessage());
             }
         });
-        
+
         // Invalidate PDF cache when receipt is deleted
         static::deleted(function ($receipt) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('receipt', $receipt->id);
-                Log::info("Receipt deleted - PDF cache invalidated", ['receipt_id' => $receipt->id]);
+                Log::info('Receipt deleted - PDF cache invalidated', ['receipt_id' => $receipt->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on receipt delete: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on receipt delete: '.$e->getMessage());
             }
         });
     }
 
     /**
      * Relationship: Receipt belongs to Invoice
+     *
      * @return BelongsTo<Invoice, Receipt>
      */
     public function invoice(): BelongsTo
@@ -150,6 +162,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Customer
+     *
      * @return BelongsTo<MasterCustomer, Receipt>
      */
     public function customer(): BelongsTo
@@ -159,6 +172,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Issuer
+     *
      * @return BelongsTo<User, Receipt>
      */
     public function issuer(): BelongsTo
@@ -168,6 +182,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt belongs to Approver
+     *
      * @return BelongsTo<User, Receipt>
      */
     public function approver(): BelongsTo
@@ -177,6 +192,7 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt has many Delivery Notes
+     *
      * @return HasMany<DeliveryNote>
      */
     public function deliveryNotes(): HasMany
@@ -186,27 +202,30 @@ class Receipt extends Model
 
     /**
      * Relationship: Receipt has many Document History
+     *
      * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
         return $this->hasMany(DocumentHistory::class, 'document_id', 'id')
-                    ->where('document_type', 'receipt');
+            ->where('document_type', 'receipt');
     }
 
     /**
      * Relationship: Receipt has many Document Attachments
+     *
      * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
         return $this->hasMany(DocumentAttachment::class, 'document_id', 'id')
-                    ->where('document_type', 'receipt');
+            ->where('document_type', 'receipt');
     }
 
     /**
      * Scope: Filter by type
-     * @param Builder<Receipt> $query
+     *
+     * @param  Builder<Receipt>  $query
      * @return Builder<Receipt>
      */
     public function scopeType(Builder $query, string $type): Builder
@@ -216,7 +235,8 @@ class Receipt extends Model
 
     /**
      * Scope: Filter by status
-     * @param Builder<Receipt> $query
+     *
+     * @param  Builder<Receipt>  $query
      * @return Builder<Receipt>
      */
     public function scopeStatus(Builder $query, string $status): Builder
@@ -226,7 +246,8 @@ class Receipt extends Model
 
     /**
      * Scope: Filter by customer
-     * @param Builder<Receipt> $query
+     *
+     * @param  Builder<Receipt>  $query
      * @return Builder<Receipt>
      */
     public function scopeCustomer(Builder $query, string $customerId): Builder
@@ -253,55 +274,72 @@ class Receipt extends Model
                 ->next($this->company_id, 'tax_invoice');
             $this->save();
         }
+
         return $this;
     }
 
     /**
-     * Get customer full name
+     * Get customer full name from snapshot fields.
      */
-    public function getCustomerFullNameAttribute(): string
+    protected function customerFullName(): Attribute
     {
-        return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+        return Attribute::make(
+            get: fn ($_, array $attrs) => trim(($attrs['customer_firstname'] ?? '').' '.($attrs['customer_lastname'] ?? '')),
+        );
     }
 
     /**
-     * Legacy API alias for the canonical type column.
+     * Legacy API alias for the canonical `type` column.
      */
-    public function getReceiptTypeAttribute(): string
+    protected function receiptType(): Attribute
     {
-        return $this->type;
+        return Attribute::make(
+            get: fn ($_, array $attrs) => $attrs['type'] ?? null,
+        );
     }
 
     /**
-     * Legacy API alias for the receipt creation date.
+     * Legacy API alias: payment date derived from `created_at`.
      */
-    public function getPaymentDateAttribute(): ?string
+    protected function paymentDate(): Attribute
     {
-        return $this->created_at?->toDateString();
+        return Attribute::make(
+            get: fn () => $this->created_at?->toDateString(),
+        );
     }
 
     /**
-     * Legacy API alias for the canonical total_amount column.
+     * Legacy API alias for the canonical `total_amount` column.
      */
-    public function getPaymentAmountAttribute(): float
+    protected function paymentAmount(): Attribute
     {
-        return (float) $this->total_amount;
+        return Attribute::make(
+            get: fn ($_, array $attrs) => (float) ($attrs['total_amount'] ?? 0),
+        );
     }
 
     /**
-     * Runtime VAT rate derived from receipt type.
+     * Runtime VAT rate derived from receipt type. Uses configured rate
+     * (config/accounting.php) so a future Revenue Department change can be
+     * applied via env without a code deploy.
      */
-    public function getVatRateAttribute(): float
+    protected function vatRate(): Attribute
     {
-        return in_array($this->type, ['tax_invoice', 'full_tax_invoice'], true) ? 0.07 : 0.0;
+        return Attribute::make(
+            get: fn ($_, array $attrs) => in_array($attrs['type'] ?? null, ['tax_invoice', 'full_tax_invoice'], true)
+                ? (float) config('accounting.vat_rate', 0.07)
+                : 0.0,
+        );
     }
 
     /**
-     * Legacy API alias for the canonical tax_amount column.
+     * Legacy API alias for the canonical `tax_amount` column.
      */
-    public function getVatAmountAttribute(): float
+    protected function vatAmount(): Attribute
     {
-        return (float) $this->tax_amount;
+        return Attribute::make(
+            get: fn ($_, array $attrs) => (float) ($attrs['tax_amount'] ?? 0),
+        );
     }
 
     /**
@@ -328,9 +366,9 @@ class Receipt extends Model
         $labels = [
             'receipt' => 'ใบเสร็จรับเงิน',
             'tax_invoice' => 'ใบกำกับภาษี',
-            'full_tax_invoice' => 'ใบเสร็จรับเงิน/ใบกำกับภาษี'
+            'full_tax_invoice' => 'ใบเสร็จรับเงิน/ใบกำกับภาษี',
         ];
-        
+
         return $labels[$this->type] ?? $this->type;
     }
 }

@@ -2,24 +2,22 @@
 
 namespace App\Models\Accounting;
 
-use App\Services\Accounting\PdfCacheService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Company;
 use App\Models\MasterCustomer;
 use App\Models\PricingRequest;
 use App\Models\User;
-use App\Models\Accounting\QuotationItem;
-use App\Models\Company;
+use App\Services\Accounting\PdfCacheService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Class Quotation
- * 
+ *
  * @property string $id
  * @property string $number
  * @property string|null $pricing_request_id
@@ -63,7 +61,9 @@ use Illuminate\Support\Facades\Log;
 class Quotation extends Model
 {
     protected $table = 'quotations';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -104,8 +104,8 @@ class Quotation extends Model
     ];
 
     protected $casts = [
-    'primary_pricing_request_ids' => 'array',
-    'customer_snapshot' => 'array',
+        'primary_pricing_request_ids' => 'array',
+        'customer_snapshot' => 'array',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'special_discount_percentage' => 'decimal:2',
@@ -126,7 +126,7 @@ class Quotation extends Model
         'due_date' => 'date',
         'approved_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -134,15 +134,15 @@ class Quotation extends Model
      */
     protected $appends = [
         'calculated_withholding_tax',
-        'net_after_discount', 
-        'final_net_amount'
+        'net_after_discount',
+        'final_net_amount',
     ];
 
     // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) \Illuminate\Support\Str::uuid();
@@ -152,32 +152,33 @@ class Quotation extends Model
                 $model->company_id = optional(\App\Models\Company::where('is_active', true)->first())->id;
             }
         });
-        
+
         // Invalidate PDF cache when quotation is updated
         static::updated(function ($quotation) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('quotation', $quotation->id);
-                Log::info("Quotation updated - PDF cache invalidated", ['quotation_id' => $quotation->id]);
+                Log::info('Quotation updated - PDF cache invalidated', ['quotation_id' => $quotation->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on quotation update: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on quotation update: '.$e->getMessage());
             }
         });
-        
+
         // Invalidate PDF cache when quotation is deleted
         static::deleted(function ($quotation) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('quotation', $quotation->id);
-                Log::info("Quotation deleted - PDF cache invalidated", ['quotation_id' => $quotation->id]);
+                Log::info('Quotation deleted - PDF cache invalidated', ['quotation_id' => $quotation->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on quotation delete: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on quotation delete: '.$e->getMessage());
             }
         });
     }
 
     /**
      * Relationship: Quotation belongs to Company
+     *
      * @return BelongsTo<Company, Quotation>
      */
     public function company(): BelongsTo
@@ -187,6 +188,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to PricingRequest
+     *
      * @return BelongsTo<PricingRequest, Quotation>
      */
     public function pricingRequest(): BelongsTo
@@ -197,6 +199,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Customer
+     *
      * @return BelongsTo<MasterCustomer, Quotation>
      */
     public function customer(): BelongsTo
@@ -206,6 +209,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Creator
+     *
      * @return BelongsTo<User, Quotation>
      */
     public function creator(): BelongsTo
@@ -215,6 +219,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation belongs to Approver
+     *
      * @return BelongsTo<User, Quotation>
      */
     public function approver(): BelongsTo
@@ -224,6 +229,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Invoices
+     *
      * @return HasMany<Invoice>
      */
     public function invoices(): HasMany
@@ -233,6 +239,7 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Order Items Tracking
+     *
      * @return HasMany<OrderItemsTracking>
      */
     public function orderItemsTracking(): HasMany
@@ -242,26 +249,29 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Quotation Items
+     *
      * @return HasMany<QuotationItem>
      */
     public function items(): HasMany
     {
         return $this->hasMany(QuotationItem::class, 'quotation_id', 'id')
-                    ->orderBy('sequence_order');
+            ->orderBy('sequence_order');
     }
 
     /**
      * Relationship: Quotation has many Pricing Requests (via junction table)
+     *
      * @return HasMany<QuotationPricingRequest>
      */
     public function quotationPricingRequests(): HasMany
     {
         return $this->hasMany(QuotationPricingRequest::class, 'quotation_id', 'id')
-                    ->orderBy('sequence_order');
+            ->orderBy('sequence_order');
     }
 
     /**
      * Relationship: Many-to-Many with Pricing Requests through junction table
+     *
      * @return BelongsToMany<PricingRequest>
      */
     public function pricingRequests(): BelongsToMany
@@ -274,12 +284,13 @@ class Quotation extends Model
             'id',
             'pr_id'
         )->withPivot(['sequence_order', 'allocated_amount', 'allocated_quantity', 'created_by'])
-         ->withTimestamps()
-         ->orderBy('sequence_order');
+            ->withTimestamps()
+            ->orderBy('sequence_order');
     }
 
     /**
      * Relationship: Primary Pricing Request (first in the list)
+     *
      * @return BelongsTo<PricingRequest, Quotation>
      */
     public function primaryPricingRequest(): BelongsTo
@@ -289,27 +300,30 @@ class Quotation extends Model
 
     /**
      * Relationship: Quotation has many Document History
+     *
      * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
         return $this->hasMany(DocumentHistory::class, 'document_id', 'id')
-                    ->where('document_type', 'quotation');
+            ->where('document_type', 'quotation');
     }
 
     /**
      * Relationship: Quotation has many Document Attachments
+     *
      * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
         return $this->hasMany(DocumentAttachment::class, 'document_id', 'id')
-                    ->where('document_type', 'quotation');
+            ->where('document_type', 'quotation');
     }
 
     /**
      * Scope: Filter by status
-     * @param Builder<Quotation> $query
+     *
+     * @param  Builder<Quotation>  $query
      * @return Builder<Quotation>
      */
     public function scopeStatus(Builder $query, string $status): Builder
@@ -319,7 +333,8 @@ class Quotation extends Model
 
     /**
      * Scope: Filter by customer
-     * @param Builder<Quotation> $query
+     *
+     * @param  Builder<Quotation>  $query
      * @return Builder<Quotation>
      */
     public function scopeCustomer(Builder $query, string $customerId): Builder
@@ -329,7 +344,8 @@ class Quotation extends Model
 
     /**
      * Scope: Filter by date range
-     * @param Builder<Quotation> $query
+     *
+     * @param  Builder<Quotation>  $query
      * @return Builder<Quotation>
      */
     public function scopeDateRange(Builder $query, string $startDate, string $endDate): Builder
@@ -347,50 +363,53 @@ class Quotation extends Model
     }
 
     /**
-     * Get customer full name
+     * Get customer full name from snapshot fields.
      */
-    public function getCustomerFullNameAttribute(): string
+    protected function customerFullName(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn ($_, array $attrs) => trim(($attrs['customer_firstname'] ?? '').' '.($attrs['customer_lastname'] ?? '')),
+        );
     }
 
     /**
-     * Calculate remaining amount after paid
+     * Calculate remaining amount after paid (= total_amount - deposit_amount).
      */
-    public function getRemainingAmountAttribute(): float
+    protected function remainingAmount(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        return $this->total_amount - $this->deposit_amount;
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn ($_, array $attrs) => (float) ($attrs['total_amount'] ?? 0) - (float) ($attrs['deposit_amount'] ?? 0),
+        );
     }
 
     /**
-     * Calculate net amount after special discount (before withholding tax)
+     * Net amount after special discount — delegates to Calculator (m4).
      */
-    public function getNetAfterDiscountAttribute(): float
+    protected function netAfterDiscount(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        return $this->total_amount - $this->special_discount_amount;
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => app(\App\Services\Accounting\Quotation\Calculator::class)->netAfterDiscount($this),
+        );
     }
 
     /**
-     * Calculate withholding tax amount based on subtotal (before VAT)
-     * ภาษีหัก ณ ที่จ่าย = ยอดก่อนภาษี × อัตราภาษี
+     * Withholding tax amount — delegates to Calculator (m4).
      */
-    public function getCalculatedWithholdingTaxAttribute(): float
+    protected function calculatedWithholdingTax(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        if (!$this->has_withholding_tax || $this->withholding_tax_percentage <= 0) {
-            return 0;
-        }
-        return $this->subtotal * ($this->withholding_tax_percentage / 100);
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => app(\App\Services\Accounting\Quotation\Calculator::class)->calculatedWithholdingTax($this),
+        );
     }
 
     /**
-     * Calculate final total after all deductions
-     * ยอดสุทธิสุดท้าย = ยอดหลังหักส่วนลดพิเศษ - ภาษีหัก ณ ที่จ่าย
+     * Final net amount after all deductions — delegates to Calculator (m4).
      */
-    public function getFinalNetAmountAttribute(): float
+    protected function finalNetAmount(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
-        $netAfterDiscount = $this->net_after_discount;
-        $withholdingTax = $this->calculated_withholding_tax;
-        return $netAfterDiscount - $withholdingTax;
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn () => app(\App\Services\Accounting\Quotation\Calculator::class)->finalNetAmount($this),
+        );
     }
 
     /**
@@ -412,34 +431,37 @@ class Quotation extends Model
     /**
      * Get primary pricing request IDs as array
      * รองรับทั้ง primary_pricing_request_id (single) และ primary_pricing_request_ids (array)
+     *
      * @return array<string>
      */
     public function getPrimaryPricingRequestIdsAttribute(): array
     {
         // ถ้ามี primary_pricing_request_ids ใช้ array นั้น
-        if (!empty($this->attributes['primary_pricing_request_ids'])) {
+        if (! empty($this->attributes['primary_pricing_request_ids'])) {
             $decoded = json_decode($this->attributes['primary_pricing_request_ids'], true);
+
             return is_array($decoded) ? $decoded : [$decoded];
         }
-        
+
         // fallback ไปใช้ primary_pricing_request_id (single value)
-        if (!empty($this->attributes['primary_pricing_request_id'])) {
+        if (! empty($this->attributes['primary_pricing_request_id'])) {
             return [$this->attributes['primary_pricing_request_id']];
         }
-        
+
         return [];
     }
 
     /**
      * Set primary pricing request IDs from array
-     * @param mixed $value
+     *
+     * @param  mixed  $value
      */
     public function setPrimaryPricingRequestIdsAttribute($value): void
     {
         if (is_array($value)) {
             $this->attributes['primary_pricing_request_ids'] = json_encode($value);
             // ตั้ง primary_pricing_request_id เป็น first element สำหรับ backward compatibility
-            $this->attributes['primary_pricing_request_id'] = !empty($value) ? $value[0] : null;
+            $this->attributes['primary_pricing_request_id'] = ! empty($value) ? $value[0] : null;
         } elseif (is_string($value)) {
             $this->attributes['primary_pricing_request_ids'] = json_encode([$value]);
             $this->attributes['primary_pricing_request_id'] = $value;
@@ -451,6 +473,7 @@ class Quotation extends Model
 
     /**
      * Helper: ดึง Pricing Requests ทั้งหมดที่เชื่อมโยงกับ Quotation นี้
+     *
      * @return Collection<int, PricingRequest>
      */
     public function getAllPricingRequests(): Collection
@@ -468,8 +491,6 @@ class Quotation extends Model
 
     /**
      * Check if quotation has linked invoices
-     * 
-     * @return bool
      */
     public function hasInvoices(): bool
     {
@@ -478,8 +499,6 @@ class Quotation extends Model
 
     /**
      * Get count of related invoices
-     * 
-     * @return int
      */
     public function getRelatedInvoicesCount(): int
     {
@@ -488,7 +507,7 @@ class Quotation extends Model
 
     /**
      * Get related invoices with items eager-loaded
-     * 
+     *
      * @return Collection<int, Invoice>
      */
     public function getRelatedInvoicesWithItems(): Collection
@@ -498,7 +517,7 @@ class Quotation extends Model
 
     /**
      * Get summary of related invoices for permission checks
-     * 
+     *
      * @return array<int, array{id: string, number: string, status: string}>
      */
     public function getRelatedInvoicesSummary(): array
@@ -506,11 +525,11 @@ class Quotation extends Model
         return $this->invoices()
             ->select('id', 'number', 'status', 'quotation_id')
             ->get()
-            ->map(function($invoice) {
+            ->map(function ($invoice) {
                 return [
                     'id' => $invoice->id,
                     'number' => $invoice->number,
-                    'status' => $invoice->status
+                    'status' => $invoice->status,
                 ];
             })
             ->toArray();
@@ -518,8 +537,7 @@ class Quotation extends Model
 
     /**
      * Check if quotation can be edited by user
-     * 
-     * @param User $user
+     *
      * @return array{can_edit: bool, reason: string|null, invoice_count: int, invoices: array}
      */
     public function canBeEditedBy(User $user): array
@@ -535,7 +553,7 @@ class Quotation extends Model
                     'can_edit' => true,
                     'reason' => null,
                     'invoice_count' => 0,
-                    'invoices' => []
+                    'invoices' => [],
                 ];
             }
 
@@ -543,13 +561,14 @@ class Quotation extends Model
                 'can_edit' => false,
                 'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
                 'invoice_count' => 0,
-                'invoices' => []
+                'invoices' => [],
             ];
         }
 
         // If has invoices, deny Sale role
         if ($userRole === 'sale') {
             $invoiceNumbers = implode(', ', array_column($invoices, 'number'));
+
             return [
                 'can_edit' => false,
                 'reason' => sprintf(
@@ -558,7 +577,7 @@ class Quotation extends Model
                     $invoiceNumbers
                 ),
                 'invoice_count' => $invoiceCount,
-                'invoices' => $invoices
+                'invoices' => $invoices,
             ];
         }
 
@@ -568,7 +587,7 @@ class Quotation extends Model
                 'can_edit' => true,
                 'reason' => null,
                 'invoice_count' => $invoiceCount,
-                'invoices' => $invoices
+                'invoices' => $invoices,
             ];
         }
 
@@ -577,7 +596,7 @@ class Quotation extends Model
             'can_edit' => false,
             'reason' => 'บทบาทของคุณไม่มีสิทธิ์แก้ไขใบเสนอราคา',
             'invoice_count' => $invoiceCount,
-            'invoices' => $invoices
+            'invoices' => $invoices,
         ];
     }
 }

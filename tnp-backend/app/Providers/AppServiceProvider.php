@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
-use App\Repositories\NotificationRepositoryInterface;
+use App\Helpers\AccountingHelper;
 use App\Repositories\NotificationRepository;
+use App\Repositories\NotificationRepositoryInterface;
 use App\Services\PdfImageOptimizer;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\ImageManager;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,7 +20,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register PdfImageOptimizer as singleton with ImageManager DI
         $this->app->singleton(PdfImageOptimizer::class, function ($app) {
-            $imageManager = new ImageManager(new GdDriver());
+            $imageManager = new ImageManager(new GdDriver);
+
             return new PdfImageOptimizer($imageManager);
         });
 
@@ -56,7 +59,7 @@ class AppServiceProvider extends ServiceProvider
                 \Illuminate\Support\Facades\Log::channel('slow_queries')->warning('Slow Query Detected', [
                     'sql' => $query->sql,
                     'bindings' => $query->bindings,
-                    'time' => $query->time . 'ms',
+                    'time' => $query->time.'ms',
                     'url' => request()->fullUrl(),
                 ]);
             }
@@ -64,5 +67,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Observers
         \App\Models\Notebook::observe(\App\Observers\NotebookObserver::class);
+
+        // @thaiBaht($amount) — render number as Thai baht text in Blade templates
+        // (used by accounting PDF master blades; see app/Helpers/AccountingHelper.php)
+        Blade::directive('thaiBaht', fn ($expr) => "<?php echo \App\Helpers\AccountingHelper::numberToThaiBaht($expr); ?>");
     }
 }

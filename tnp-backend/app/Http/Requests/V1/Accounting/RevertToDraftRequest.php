@@ -11,7 +11,7 @@ class RevertToDraftRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.revertToDraft') ?? false;
     }
 
     /**
@@ -21,7 +21,7 @@ class RevertToDraftRequest extends FormRequest
     {
         return [
             'side' => 'nullable|in:before,after',
-            'reason' => 'nullable|string|max:1000'
+            'reason' => 'nullable|string|max:1000',
         ];
     }
 

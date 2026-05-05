@@ -2,20 +2,20 @@
 
 namespace App\Models\Accounting;
 
+use App\Models\Company;
+use App\Models\MasterCustomer;
+use App\Models\PricingRequest;
+use App\Models\User;
 use App\Services\Accounting\PdfCacheService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
-use App\Models\MasterCustomer;
-use App\Models\User;
-use App\Models\Company;
-use App\Models\PricingRequest;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class Invoice
- * 
+ *
  * @property string $id
  * @property string $number
  * @property string|null $quotation_id
@@ -54,7 +54,9 @@ use App\Models\PricingRequest;
 class Invoice extends Model
 {
     protected $table = 'invoices';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -77,7 +79,7 @@ class Invoice extends Model
         'customer_email',
         'customer_firstname',
         'customer_lastname',
-    'customer_data_source',
+        'customer_data_source',
         'customer_snapshot',
         'status',
         'status_before',
@@ -101,7 +103,7 @@ class Invoice extends Model
         'deposit_percentage',
         'deposit_amount',
         'deposit_amount_before_vat',
-    'deposit_display_order',
+        'deposit_display_order',
         'deposit_mode',
         'paid_amount',
         'due_date',
@@ -110,7 +112,7 @@ class Invoice extends Model
         'notes',
         'signature_images',
         'sample_images',
-    'evidence_files',
+        'evidence_files',
         'document_header_type',
         'created_by',
         'inv_manage_by',
@@ -123,7 +125,7 @@ class Invoice extends Model
         'rejected_at',
         'sent_by',
         'sent_at',
-        'paid_at'
+        'paid_at',
     ];
 
     /**
@@ -141,7 +143,7 @@ class Invoice extends Model
         'customer_snapshot' => 'array',
         'signature_images' => 'array',
         'sample_images' => 'array',
-    'evidence_files' => 'array',
+        'evidence_files' => 'array',
         'subtotal' => 'decimal:2',
         'net_subtotal' => 'decimal:2',
         'subtotal_before_vat' => 'decimal:2',
@@ -157,11 +159,11 @@ class Invoice extends Model
         'final_total_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'deposit_amount_before_vat' => 'decimal:2',
-    'deposit_display_order' => 'string',
+        'deposit_display_order' => 'string',
         'paid_amount' => 'decimal:2',
         'has_vat' => 'boolean',
         'has_withholding_tax' => 'boolean',
-    'customer_data_source' => 'string',
+        'customer_data_source' => 'string',
         'due_date' => 'date',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
@@ -169,14 +171,14 @@ class Invoice extends Model
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     // Generate UUID when creating + PDF cache invalidation
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($model) {
             /** @var Invoice $model */
             if (empty($model->id)) {
@@ -185,76 +187,55 @@ class Invoice extends Model
             if (empty($model->company_id)) {
                 $model->company_id = optional(Company::where('is_active', true)->first())->id;
             }
-            
+
             // Auto-set inv_manage_by from quotation's created_by if not set
-            if (empty($model->inv_manage_by) && !empty($model->quotation_id)) {
+            if (empty($model->inv_manage_by) && ! empty($model->quotation_id)) {
                 /** @var Quotation|null $quotation */
                 $quotation = Quotation::find($model->quotation_id);
-                if ($quotation && !empty($quotation->created_by)) {
+                if ($quotation && ! empty($quotation->created_by)) {
                     $model->inv_manage_by = $quotation->created_by;
                 }
             }
         });
-        
+
         // Invalidate PDF cache when invoice is updated
         static::updated(function ($invoice) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('invoice', $invoice->id);
-                Log::info("Invoice updated - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+                Log::info('Invoice updated - PDF cache invalidated', ['invoice_id' => $invoice->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on invoice update: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on invoice update: '.$e->getMessage());
             }
         });
-        
+
         // Invalidate PDF cache when invoice is deleted
         static::deleted(function ($invoice) {
             try {
                 $cacheService = app(PdfCacheService::class);
                 $cacheService->invalidate('invoice', $invoice->id);
-                Log::info("Invoice deleted - PDF cache invalidated", ['invoice_id' => $invoice->id]);
+                Log::info('Invoice deleted - PDF cache invalidated', ['invoice_id' => $invoice->id]);
             } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on invoice delete: " . $e->getMessage());
+                Log::warning('Failed to invalidate PDF cache on invoice delete: '.$e->getMessage());
             }
         });
-        
+
         static::updating(function ($model) {
             /** @var Invoice $model */
             // Auto-sync inv_manage_by if quotation_id changed and inv_manage_by is empty
-            if ($model->isDirty('quotation_id') && empty($model->inv_manage_by) && !empty($model->quotation_id)) {
+            if ($model->isDirty('quotation_id') && empty($model->inv_manage_by) && ! empty($model->quotation_id)) {
                 /** @var Quotation|null $quotation */
                 $quotation = Quotation::find($model->quotation_id);
-                if ($quotation && !empty($quotation->created_by)) {
+                if ($quotation && ! empty($quotation->created_by)) {
                     $model->inv_manage_by = $quotation->created_by;
                 }
-            }
-        });
-        
-        // Invalidate PDF cache when invoice is updated
-        static::updated(function ($invoice) {
-            try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('invoice', $invoice->id);
-                Log::info("Invoice updated - PDF cache invalidated", ['invoice_id' => $invoice->id]);
-            } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on invoice update: " . $e->getMessage());
-            }
-        });
-        
-        // Invalidate PDF cache when invoice is deleted
-        static::deleted(function ($invoice) {
-            try {
-                $cacheService = app(PdfCacheService::class);
-                $cacheService->invalidate('invoice', $invoice->id);
-                Log::info("Invoice deleted - PDF cache invalidated", ['invoice_id' => $invoice->id]);
-            } catch (\Exception $e) {
-                Log::warning("Failed to invalidate PDF cache on invoice delete: " . $e->getMessage());
             }
         });
     }
 
     /**
      * Relationship: Invoice belongs to Quotation
+     *
      * @return BelongsTo<Quotation, Invoice>
      */
     public function quotation(): BelongsTo
@@ -264,16 +245,18 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many InvoiceItems
+     *
      * @return HasMany<InvoiceItem>
      */
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class, 'invoice_id')
-                   ->orderBy('sequence_order');
+            ->orderBy('sequence_order');
     }
 
     /**
      * Relationship: Invoice belongs to primary pricing request
+     *
      * @return BelongsTo<PricingRequest, Invoice>
      */
     public function primaryPricingRequest(): BelongsTo
@@ -283,6 +266,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Customer
+     *
      * @return BelongsTo<MasterCustomer, Invoice>
      */
     public function customer(): BelongsTo
@@ -292,6 +276,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Company
+     *
      * @return BelongsTo<Company, Invoice>
      */
     public function company(): BelongsTo
@@ -301,6 +286,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Reference Invoice (before-deposit invoice)
+     *
      * @return BelongsTo<Invoice, Invoice>
      */
     public function referenceInvoice(): BelongsTo
@@ -310,6 +296,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many after-deposit invoices
+     *
      * @return HasMany<Invoice>
      */
     public function afterDepositInvoices(): HasMany
@@ -319,6 +306,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Creator
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function creator(): BelongsTo
@@ -328,6 +316,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Updater
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function updater(): BelongsTo
@@ -337,6 +326,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Manager
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function manager(): BelongsTo
@@ -346,6 +336,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Submitter
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function submitter(): BelongsTo
@@ -355,6 +346,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Approver
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function approver(): BelongsTo
@@ -364,6 +356,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Rejecter
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function rejecter(): BelongsTo
@@ -373,6 +366,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice belongs to Sender
+     *
      * @return BelongsTo<User, Invoice>
      */
     public function sender(): BelongsTo
@@ -382,6 +376,7 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many Receipts
+     *
      * @return HasMany<Receipt>
      */
     public function receipts(): HasMany
@@ -391,27 +386,30 @@ class Invoice extends Model
 
     /**
      * Relationship: Invoice has many Document History
+     *
      * @return HasMany<DocumentHistory>
      */
     public function documentHistory(): HasMany
     {
         return $this->hasMany(DocumentHistory::class, 'document_id', 'id')
-                    ->where('document_type', 'invoice');
+            ->where('document_type', 'invoice');
     }
 
     /**
      * Relationship: Invoice has many Document Attachments
+     *
      * @return HasMany<DocumentAttachment>
      */
     public function attachments(): HasMany
     {
         return $this->hasMany(DocumentAttachment::class, 'document_id', 'id')
-                    ->where('document_type', 'invoice');
+            ->where('document_type', 'invoice');
     }
 
     /**
      * Scope: Filter by status
-     * @param Builder<Invoice> $query
+     *
+     * @param  Builder<Invoice>  $query
      * @return Builder<Invoice>
      */
     public function scopeStatus(Builder $query, string $status): Builder
@@ -421,7 +419,8 @@ class Invoice extends Model
 
     /**
      * Scope: Filter by customer
-     * @param Builder<Invoice> $query
+     *
+     * @param  Builder<Invoice>  $query
      * @return Builder<Invoice>
      */
     public function scopeCustomer(Builder $query, string $customerId): Builder
@@ -431,13 +430,14 @@ class Invoice extends Model
 
     /**
      * Scope: Overdue invoices
-     * @param Builder<Invoice> $query
+     *
+     * @param  Builder<Invoice>  $query
      * @return Builder<Invoice>
      */
     public function scopeOverdue(Builder $query): Builder
     {
         return $query->where('due_date', '<', now())
-                    ->whereNotIn('status', ['fully_paid']);
+            ->whereNotIn('status', ['fully_paid']);
     }
 
     /**
@@ -455,6 +455,7 @@ class Invoice extends Model
     public static function generateInvoiceNumberByDepositMode(string $companyId, string $depositDisplayOrder = 'before'): string
     {
         $docType = $depositDisplayOrder === 'after' ? 'invoice_after' : 'invoice_before';
+
         return app(\App\Services\Support\DocumentNumberService::class)
             ->next($companyId, $docType);
     }
@@ -465,10 +466,10 @@ class Invoice extends Model
     public function assignInvoiceNumbers(): void
     {
         $documentService = app(\App\Services\Support\DocumentNumberService::class);
-        
+
         // Generate number for before-deposit
         $this->number_before = $documentService->nextInvoiceNumber($this->company_id, 'before');
-        
+
         // If this is an after-deposit invoice, also generate after number
         if ($this->deposit_display_order === 'after' || $this->type === 'remaining') {
             $this->number_after = $documentService->nextInvoiceNumber($this->company_id, 'after');
@@ -485,7 +486,7 @@ class Invoice extends Model
      */
     public function getCustomerFullNameAttribute(): string
     {
-        return trim($this->customer_firstname . ' ' . $this->customer_lastname);
+        return trim($this->customer_firstname.' '.$this->customer_lastname);
     }
 
     /**
@@ -509,7 +510,7 @@ class Invoice extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->due_date && $this->due_date < now() && !$this->isFullyPaid();
+        return $this->due_date && $this->due_date < now() && ! $this->isFullyPaid();
     }
 
     /**
@@ -518,20 +519,20 @@ class Invoice extends Model
     public function recordPayment(float $amount, ?string $method = null, ?string $reference = null): self
     {
         $this->paid_amount += $amount;
-        
+
         if ($method) {
             $this->payment_method = $method;
         }
-        
+
         // Update status based on payment
         if ($this->isFullyPaid()) {
             $this->status = 'fully_paid';
         } else {
             $this->status = 'partial_paid';
         }
-        
+
         $this->save();
-        
+
         return $this;
     }
 
@@ -551,8 +552,10 @@ class Invoice extends Model
         if ($this->quotation_id && $this->quotation) {
             $this->inv_manage_by = $this->quotation->created_by;
             $this->save();
+
             return true;
         }
+
         return false;
     }
 
@@ -562,6 +565,7 @@ class Invoice extends Model
     public function getUiStatusAttribute(): string
     {
         $mode = $this->deposit_display_order === 'before' ? 'before' : 'after';
+
         return $mode === 'before' ? $this->status_before : $this->status_after;
     }
 
@@ -570,10 +574,10 @@ class Invoice extends Model
      */
     public function getStatusForSide(string $side): string
     {
-        if (!in_array($side, ['before', 'after'])) {
+        if (! in_array($side, ['before', 'after'])) {
             throw new \InvalidArgumentException('Invalid side. Must be "before" or "after".');
         }
-        
+
         return $side === 'before' ? $this->status_before : $this->status_after;
     }
 
@@ -582,17 +586,17 @@ class Invoice extends Model
      */
     public function setStatusForSide(string $side, string $status): void
     {
-        if (!in_array($side, ['before', 'after'])) {
+        if (! in_array($side, ['before', 'after'])) {
             throw new \InvalidArgumentException('Invalid side. Must be "before" or "after".');
         }
-        
-        if (!in_array($status, ['draft', 'pending', 'approved', 'rejected'])) {
+
+        if (! in_array($status, ['draft', 'pending', 'approved', 'rejected'])) {
             throw new \InvalidArgumentException('Invalid status.');
         }
 
         $column = $side === 'before' ? 'status_before' : 'status_after';
         $this->forceFill([$column => $status]);
-        
+
         // Update overall status based on both sides
         $this->status = $this->deriveOverallStatus();
     }
@@ -606,19 +610,20 @@ class Invoice extends Model
         if ($this->status_before === 'approved' && $this->status_after === 'approved') {
             return 'approved';
         }
-        
+
         // If any side is pending, overall is pending
         if ($this->status_before === 'pending' || $this->status_after === 'pending') {
             return 'pending';
         }
-        
+
         // If any side is rejected, overall is rejected
         if ($this->status_before === 'rejected' || $this->status_after === 'rejected') {
             return 'rejected';
         }
-        
+
         // Default to the status of the current active side
         $activeSide = $this->deposit_display_order === 'before' ? 'before' : 'after';
+
         return $this->getStatusForSide($activeSide);
     }
 
@@ -628,6 +633,7 @@ class Invoice extends Model
     public function canSubmitForSide(string $side): bool
     {
         $status = $this->getStatusForSide($side);
+
         return $status === 'draft';
     }
 
@@ -637,6 +643,7 @@ class Invoice extends Model
     public function canApproveForSide(string $side): bool
     {
         $status = $this->getStatusForSide($side);
+
         return in_array($status, ['draft', 'pending']);
     }
 
@@ -646,6 +653,7 @@ class Invoice extends Model
     public function canRejectForSide(string $side): bool
     {
         $status = $this->getStatusForSide($side);
+
         return in_array($status, ['pending']);
     }
 
@@ -655,9 +663,9 @@ class Invoice extends Model
 
     /**
      * Get prefix for document type and mode
-     * 
-     * @param string $type 'invoice' | 'tax_invoice' | 'receipt'
-     * @param string $mode 'before' | 'after' | 'full'
+     *
+     * @param  string  $type  'invoice' | 'tax_invoice' | 'receipt'
+     * @param  string  $mode  'before' | 'after' | 'full'
      * @return string Prefix like 'INVB', 'TAXA', 'RECF', etc.
      */
     protected function getDocumentPrefix(string $type, string $mode): string
@@ -665,74 +673,73 @@ class Invoice extends Model
         $prefixMap = [
             'invoice' => [
                 'before' => 'INVB',
-                'after'  => 'INVA',
-                'full'   => 'INVA', // Full mode uses INVA
+                'after' => 'INVA',
+                'full' => 'INVA', // Full mode uses INVA
             ],
             'tax_invoice' => [
                 'before' => 'TAXB',
-                'after'  => 'TAXA',
-                'full'   => 'TAXF',
+                'after' => 'TAXA',
+                'full' => 'TAXF',
             ],
             'receipt' => [
                 'before' => 'RECB',
-                'after'  => 'RECA',
-                'full'   => 'RECF',
+                'after' => 'RECA',
+                'full' => 'RECF',
             ],
         ];
-        
+
         return $prefixMap[$type][$mode] ?? 'INV';
     }
 
     /**
      * Get document number for specific type and mode
      * Converts existing number with appropriate prefix dynamically
-     * 
-     * @param string $type 'invoice' | 'tax_invoice' | 'receipt'
-     * @param string|null $mode 'before' | 'after' | 'full' (null = use deposit_display_order)
+     *
+     * @param  string  $type  'invoice' | 'tax_invoice' | 'receipt'
+     * @param  string|null  $mode  'before' | 'after' | 'full' (null = use deposit_display_order)
      * @return string Document number with appropriate prefix (e.g., 'TAXB202510-0001')
      */
     public function getDocumentNumber(string $type, ?string $mode = null): string
     {
         // Determine mode from deposit_display_order if not specified
         $mode = $mode ?? $this->deposit_display_order ?? 'before';
-        
+
         // Get the base number based on mode
-        $baseNumber = ($mode === 'after' || $mode === 'full') 
+        $baseNumber = ($mode === 'after' || $mode === 'full')
             ? ($this->number_after ?? $this->number)
             : ($this->number_before ?? $this->number);
-        
+
         // Return DRAFT if no number exists
         if (empty($baseNumber) || str_starts_with($baseNumber, 'DRAFT')) {
             return 'DRAFT';
         }
-        
+
         // Extract numeric part (e.g., '202510-0001' from 'INVB202510-0001')
         $numericPart = preg_replace('/^[A-Z]+/', '', $baseNumber);
-        
+
         // Get appropriate prefix for this document type and mode
         $prefix = $this->getDocumentPrefix($type, $mode);
-        
-        return $prefix . $numericPart;
+
+        return $prefix.$numericPart;
     }
 
     /**
      * Get reference number based on mode
-     * 
-     * @param string|null $mode 'before' | 'after' | 'full' (null = use deposit_display_order)
+     *
+     * @param  string|null  $mode  'before' | 'after' | 'full' (null = use deposit_display_order)
      * @return string|null Reference document number
      */
     public function getReferenceNumber(?string $mode = null): ?string
     {
         $mode = $mode ?? $this->deposit_display_order ?? 'before';
-        
+
         if ($mode === 'before') {
             // Reference for 'before' mode is the quotation number
             return $this->quotation?->number;
-        } 
-        elseif ($mode === 'after') {
+        } elseif ($mode === 'after') {
             // Reference for 'after' mode is the INVB number (number_before)
             $refNumber = $this->number_before;
-            
+
             // If number_before doesn't exist, check reference_invoice_number or referenceInvoice
             if (empty($refNumber)) {
                 $refNumber = $this->reference_invoice_number;
@@ -740,31 +747,29 @@ class Invoice extends Model
             if (empty($refNumber) && $this->referenceInvoice) {
                 $refNumber = $this->referenceInvoice->number_before ?? $this->referenceInvoice->number;
             }
-            
+
             // Don't return DRAFT numbers as references
             if ($refNumber && str_starts_with($refNumber, 'DRAFT')) {
                 return null;
             }
-            
+
             return $refNumber;
-        } 
-        elseif ($mode === 'full') {
+        } elseif ($mode === 'full') {
             // Reference for 'full' (100%) mode is the quotation number
             return $this->quotation?->number;
         }
-        
+
         return null;
     }
 
     /**
      * Get display number based on current deposit_display_order
      * This is the main invoice number shown in the header
-     * 
-     * @return string
      */
     public function getDisplayNumber(): string
     {
         $mode = $this->deposit_display_order ?? 'before';
+
         return $this->getDocumentNumber('invoice', $mode);
     }
 }

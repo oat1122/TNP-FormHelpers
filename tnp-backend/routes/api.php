@@ -1,38 +1,35 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Api\V1\User\UserController;
-use App\Http\Controllers\Api\V1\MonitorProduction\ProductionController;
-use App\Http\Controllers\Api\V1\MonitorProduction\BlockController;
-use App\Http\Controllers\Api\V1\MonitorProduction\ProductionCostController;
-use App\Http\Controllers\Api\V1\MonitorProduction\NoteController;
-use App\Http\Controllers\Api\V1\CostCalc\CostFabricController;
-use App\Http\Controllers\Api\V1\CostCalc\PatternController;
-use App\Http\Controllers\Api\V1\Worksheet\WorksheetController;
-use App\Http\Controllers\Api\V1\Worksheet\ShirtPatternController;
-use App\Http\Controllers\Api\V1\Customers\CustomerController;
-use App\Http\Controllers\Api\V1\LocationController;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\GlobalController;
-use App\Http\Controllers\Api\V1\StatsController;
-use App\Http\Controllers\Api\V1\Pricing\PricingController;
-use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
-use App\Http\Controllers\Api\V1\MaxSupply\CalendarController;
 use App\Http\Controllers\Api\V1\Accounting\AutofillController;
+use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationController;
 use App\Http\Controllers\Api\V1\Accounting\QuotationReportController;
-use App\Http\Controllers\Api\V1\Accounting\InvoiceController;
-use App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController;
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CompanyController;
-use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
-use App\Http\Controllers\Api\V1\Supy\SupplierProductController;
-use App\Http\Controllers\Api\V1\Supy\SupplierTagController;
-use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
-use App\Http\Controllers\Api\V1\Supy\SupplierSellerController;
+use App\Http\Controllers\Api\V1\CostCalc\CostFabricController;
+use App\Http\Controllers\Api\V1\CostCalc\PatternController;
+use App\Http\Controllers\Api\V1\Customers\CustomerController;
+use App\Http\Controllers\Api\V1\GlobalController;
+use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\MaxSupply\MaxSupplyController;
+use App\Http\Controllers\Api\V1\MonitorProduction\BlockController;
+use App\Http\Controllers\Api\V1\MonitorProduction\NoteController;
+use App\Http\Controllers\Api\V1\MonitorProduction\ProductionController;
+use App\Http\Controllers\Api\V1\MonitorProduction\ProductionCostController;
 use App\Http\Controllers\Api\V1\Notebook\NotebookController;
 use App\Http\Controllers\Api\V1\Notebook\NotebookKpiController;
+use App\Http\Controllers\Api\V1\Pricing\PricingController;
+use App\Http\Controllers\Api\V1\StatsController;
+use App\Http\Controllers\Api\V1\SubRole\SubRoleController;
+use App\Http\Controllers\Api\V1\Supy\SupplierCategoryController;
+use App\Http\Controllers\Api\V1\Supy\SupplierProductController;
+use App\Http\Controllers\Api\V1\Supy\SupplierSellerController;
+use App\Http\Controllers\Api\V1\Supy\SupplierTagController;
+use App\Http\Controllers\Api\V1\User\UserController;
+use App\Http\Controllers\Api\V1\Worksheet\ShirtPatternController;
+use App\Http\Controllers\Api\V1\Worksheet\WorksheetController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
 
 /*
@@ -56,8 +53,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
-    
-    //---------- MaxSupply ----------
+
+    // ---------- MaxSupply ----------
     Route::prefix('max-supplies')->group(function () {
         Route::get('/', [MaxSupplyController::class, 'index']);
         Route::post('/', [MaxSupplyController::class, 'store']);
@@ -68,7 +65,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/status', [MaxSupplyController::class, 'updateStatus']);
     });
 
-    //---------- Telesales & Allocation (Protected Routes) ----------
+    // ---------- Telesales & Allocation (Protected Routes) ----------
     Route::get('/notebooks/self-report', [NotebookController::class, 'selfReport']);
     Route::post('/notebooks/check-duplicate', [NotebookController::class, 'checkDuplicate']);
     Route::get('/notebooks/customer-care/sources', [NotebookController::class, 'customerCareSources']);
@@ -81,7 +78,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/notebooks/{id}/convert', [NotebookController::class, 'convert']);
     Route::apiResource('notebooks', NotebookController::class);
 
-    //---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------
+    // ---------- KPI Dashboard (must be BEFORE apiResource to avoid route conflict) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Customers\KpiController::class)->group(function () {
         Route::get('/customers/kpi', 'dashboard'); // KPI dashboard with filters
         Route::get('/customers/kpi/details', 'details'); // KPI details list
@@ -113,10 +110,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         // Operations
         Route::get('/customers/{id}/group-counts', 'getGroupCounts');
         Route::get('/customerGroupCounts', 'getGroupCounts');
-        
+
         Route::post('/customers/{id}/recall', 'recall');
         Route::put('/customerRecall/{id}', 'recall');
-        
+
         Route::patch('/customers/{id}/change-grade', 'changeGrade');
         Route::put('/customerChangeGrade/{id}', 'changeGrade');
     });
@@ -124,13 +121,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // apiResource LAST - so {customer} wildcard doesn't catch specific routes above
     Route::apiResource('customers', CustomerController::class);
 
-    //---------- Stats & KPI (Protected Routes) ----------
+    // ---------- Stats & KPI (Protected Routes) ----------
     // Route::controller(StatsController::class)->group(function () {
     //     Route::get('/stats/daily-customers', 'dailyCustomers'); // Daily customer stats (admin/manager)
     //     Route::get('/stats/telesales-dashboard', 'telesalesDashboard'); // Personal dashboard (telesales)
     // });
 
-    //---------- Notifications (Protected Routes) ----------
+    // ---------- Notifications (Protected Routes) ----------
     Route::controller(\App\Http\Controllers\Api\V1\NotificationController::class)->group(function () {
         Route::get('/notifications/unread', 'getUnreadNotifications');
         Route::post('/notifications/mark-as-read', 'markAsRead');
@@ -142,7 +139,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'details']);
         Route::get('/recall-details', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallDetails']);
         Route::get('/recall-history', [App\Http\Controllers\Api\V1\Customers\KpiController::class, 'recallHistory']);
-    });    //---------- Supplier System ----------
+    });    // ---------- Supplier System ----------
     Route::prefix('supplier')->group(function () {
         Route::get('/products', [SupplierProductController::class, 'index']);
         Route::post('/products', [SupplierProductController::class, 'store']);
@@ -181,55 +178,52 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 });
 
 // ========== PUBLIC ROUTES (ไม่ต้อง login) ==========
-Route::prefix('v1')->group(function() {
+Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 // ========== PROTECTED ROUTES (ต้อง login — SEC-01 Fix) ==========
-Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::apiResources([
-        //---------- Monitor Production ----------
+        // ---------- Monitor Production ----------
         'production' => ProductionController::class,
         'note' => NoteController::class,
 
-        //---------- Cost Calculator ----------
+        // ---------- Cost Calculator ----------
         'pattern' => PatternController::class,
         'costFabric' => CostFabricController::class,
 
-        //---------- Worksheet ----------
+        // ---------- Worksheet ----------
         'worksheets' => WorksheetController::class,
         'shirt-patterns' => ShirtPatternController::class,
 
-        //---------- Location ----------
+        // ---------- Location ----------
         'locations' => LocationController::class,
     ]);
-
-
 
     Route::apiResources([
         'pricing' => PricingController::class,
     ]);
 
-
-    //---------- User Management ----------
+    // ---------- User Management ----------
     Route::controller(UserController::class)->group(function () {
         // Route::get("/users", "index");
-        Route::get("/get-users-by-role", "get_users_by_role");
-        Route::get("/users/by-role", "get_users_by_role");
-        Route::get("/users/by-sub-role", "get_users_by_sub_role");
+        Route::get('/get-users-by-role', 'get_users_by_role');
+        Route::get('/users/by-role', 'get_users_by_role');
+        Route::get('/users/by-sub-role', 'get_users_by_sub_role');
 
-        Route::post("/signup", "signup");
+        Route::post('/signup', 'signup');
         // Route::post("/login", "login");
-        Route::post("user/{username}", "userDetail");
+        Route::post('user/{username}', 'userDetail');
 
-        Route::put("/user/{id}", "update");
+        Route::put('/user/{id}', 'update');
         Route::put('/users/{user}/reset-password', 'resetPassword')->name('users.reset-password');
 
-        Route::delete("/user/{id}", "destroy");
+        Route::delete('/user/{id}', 'destroy');
     });
 
-    //---------- Sub Role Management ----------
+    // ---------- Sub Role Management ----------
     Route::controller(SubRoleController::class)->group(function () {
         Route::get('/sub-roles', 'index');
         Route::post('/sub-roles', 'store');
@@ -238,7 +232,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::delete('/sub-roles/{id}', 'destroy');
     });
 
-    //---------- Companies ----------
+    // ---------- Companies ----------
     Route::controller(CompanyController::class)->group(function () {
         Route::get('/companies', 'index');
         Route::post('/companies', 'store');
@@ -247,8 +241,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::delete('/companies/{id}', 'destroy');
     });
 
-
-    //---------- start Monitor Production ----------
+    // ---------- start Monitor Production ----------
     Route::controller(ProductionController::class)->group(function () {
         Route::get('/getProduction', 'getProduction');
         Route::get('/getFactory', 'getFactory');
@@ -269,10 +262,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::post('/updateCost/{id}', 'updateCost');
         Route::post('/updateCost', 'updateCost');
     });
-    //---------- end Monitor Production ----------
+    // ---------- end Monitor Production ----------
 
-
-    //---------- Cost Calculator ----------
+    // ---------- Cost Calculator ----------
     Route::controller(CostFabricController::class)->group(function () {
         Route::get('/getEnumFabricClass', 'getEnumFabricClass');
 
@@ -280,8 +272,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::put('/costFabricOnce', 'updateOnce');
     });
 
-
-    //---------- Worksheet ----------
+    // ---------- Worksheet ----------
     Route::controller(WorksheetController::class)->group(function () {
         Route::get('/get-all-customers', 'getAllCustomers');
 
@@ -297,19 +288,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         // Route::get('/test-worksheet-gen-pdf/{id}/{sheet}/{role}', 'generatePdfGet');
     });
 
-
-
-    //---------- Pricing ----------
+    // ---------- Pricing ----------
     Route::controller(PricingController::class)->group(function () {
         Route::put('/pricing-update-status', 'update_status');
     });
 
-    //---------- Calendar ----------
+    // ---------- Calendar ----------
     Route::prefix('calendar')->group(function () {
         require __DIR__.'/calendar.php';
     });
 
-    //---------- Global ----------
+    // ---------- Global ----------
     Route::controller(GlobalController::class)->group(function () {
         Route::get('/get-all-product-categories', 'get_all_product_categories');
         Route::get('/get-all-business-types', 'get_all_business_types');
@@ -319,33 +308,30 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::get('/get-status-by-type/{status_type}', 'get_status_by_type');
     });
 
-    //---------- Accounting System ----------
-    
-    
-    
+    // ---------- Accounting System ----------
 
-    // Pricing Requests for Accounting Integration  
+    // Pricing Requests for Accounting Integration
     Route::get('/pricing-requests', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getCompletedPricingRequests']);
-    
+
     Route::get('/pricing-requests/{id}/autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestAutofill']);
-    
+
     // NEW: Bulk autofill for multiple pricing requests (Cache Optimization)
     Route::post('/pricing-requests/bulk-autofill', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getBulkPricingRequestAutofill']);
-    
+
     // NEW: Pricing Request Notes API
     Route::get('/pricing-requests/{id}/notes', [\App\Http\Controllers\Api\V1\Accounting\AutofillController::class, 'getPricingRequestNotes']);
-    
+
     // Auto-fill APIs
     Route::controller(AutofillController::class)->group(function () {
         // Pricing Request Auto-fill - UNUSED ROUTES
         // Route::get('/quotations/autofill/pricing-request/{id}', 'getPricingRequestAutofill');
         // Route::get('/pricing/completed-requests', 'getCompletedPricingRequests');
         // Route::post('/pricing/requests/{id}/mark-used', 'markPricingRequestAsUsed');
-        
+
         // Customer Auto-fill
         Route::get('/customers/search', 'searchCustomers');
         Route::get('/customers/{id}/details', 'getCustomerDetails');
-        
+
         // Cascade Auto-fill - UNUSED ROUTES
         // Route::get('/invoices/autofill/quotation/{id}', 'getQuotationAutofillForInvoice');
         // Route::get('/receipts/autofill/invoice/{id}', 'getInvoiceAutofillForReceipt');
@@ -366,13 +352,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::get('/quotations/{id}/duplicate-data', 'getDuplicateData');
         Route::put('/quotations/{id}', 'update');
         Route::delete('/quotations/{id}', 'destroy');
-        
+
         // Quotation Actions
         Route::post('/quotations/{id}/submit', 'submit');
         Route::post('/quotations/{id}/approve', 'approve');
         Route::post('/quotations/{id}/reject', 'reject');
-        // Route::post('/quotations/{id}/convert-to-invoice', 'convertToInvoice'); // UNUSED
-        
+
         // Step 1 Workflow APIs
         Route::post('/quotations/{id}/send-back', 'sendBack');
         Route::post('/quotations/{id}/revoke-approval', 'revokeApproval');
@@ -390,11 +375,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::delete('/quotations/{id}/signatures/{identifier}', 'deleteSignatureImage');
         Route::post('/quotations/{id}/mark-completed', 'markCompleted');
         Route::post('/quotations/{id}/mark-sent', 'markSent');
-        
+
         // Quotation-Invoice Sync APIs
         Route::get('/quotations/{id}/related-invoices', 'getRelatedInvoices');
         Route::get('/quotations/sync-jobs/{jobId}', 'getSyncJobStatus');
-        
+
         // Special Creation
         Route::post('/quotations/create-from-pricing', 'createFromPricingRequest');
         Route::post('/quotations/create-from-multiple-pricing', 'createFromMultiplePricingRequests');
@@ -414,49 +399,49 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::get('/invoices/{id}', 'show');
         Route::put('/invoices/{id}', 'update');
         // Route::delete('/invoices/{id}', 'destroy'); // UNUSED
-        
+
         // Invoice Actions - Before Deposit Mode
         Route::post('/invoices/{id}/submit', 'submitBefore');
         Route::post('/invoices/{id}/approve', 'approveBefore');
         // Route::post('/invoices/{id}/reject', 'rejectBefore'); // UNUSED
-        
-        // Invoice Actions - After Deposit Mode  
+
+        // Invoice Actions - After Deposit Mode
         Route::post('/invoices/{id}/submit-after-deposit', 'submitAfter');
         Route::post('/invoices/{id}/approve-after-deposit', 'approveAfter');
         // Route::post('/invoices/{id}/reject-after-deposit', 'rejectAfter'); // UNUSED
-        
+
         // General Actions (not side-specific)
         // Route::post('/invoices/{id}/send-back', 'sendBack'); // UNUSED
         Route::post('/invoices/{id}/revert-to-draft', 'revertToDraft');
-        
+
         // Deposit Mode Management
         Route::patch('/invoices/{id}/deposit-display-order', 'setDepositMode');
-        
+
         // Step 2 Workflow APIs - UNUSED
         // Route::post('/invoices/{id}/send-to-customer', 'sendToCustomer');
         // Route::post('/invoices/{id}/record-payment', 'recordPayment');
         // Route::get('/invoices/{id}/payment-history', 'getPaymentHistory');
         // Route::post('/invoices/{id}/send-reminder', 'sendReminder');
         // Route::post('/invoices/{id}/upload-evidence', 'uploadEvidence');
-    Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
-        
+        Route::post('/invoices/{id}/evidence/{mode}', 'uploadEvidenceByMode');
+
         // PDF APIs (mPDF-first with fallback) - Mode-specific
         Route::match(['get', 'post'], '/invoices/{id}/generate-pdf', 'generatePdf');
         Route::get('/invoices/{id}/pdf/preview', 'streamPdf'); // UNUSED - Renamed for clarity
         Route::get('/invoices/{id}/pdf/download', 'downloadPdf'); // UNUSED
-    // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers)
-    Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
-    Route::post('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
-    Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
-    Route::post('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
-    
-    // Tax Invoice / Receipt Full PDF APIs (100% - uses quotation body template)
-    Route::post('/invoices/{id}/pdf/tax/full/download', 'downloadTaxInvoiceFullPdf');
-    Route::post('/invoices/{id}/pdf/receipt/full/download', 'downloadReceiptFullPdf');
-        
+        // Tax Invoice / Receipt PDF APIs (reuse invoice body with different headers)
+        Route::get('/invoices/{id}/pdf/tax/preview', 'streamTaxPdf');
+        Route::post('/invoices/{id}/pdf/tax/download', 'downloadTaxPdf');
+        Route::get('/invoices/{id}/pdf/receipt/preview', 'streamReceiptPdf');
+        Route::post('/invoices/{id}/pdf/receipt/download', 'downloadReceiptPdf');
+
+        // Tax Invoice / Receipt Full PDF APIs (100% - uses quotation body template)
+        Route::post('/invoices/{id}/pdf/tax/full/download', 'downloadTaxInvoiceFullPdf');
+        Route::post('/invoices/{id}/pdf/receipt/full/download', 'downloadReceiptFullPdf');
+
         // Legacy support (will use deposit_display_order as default mode) - UNUSED
         // Route::get('/invoices/{id}/pdf/stream', 'streamPdf');
-        
+
         // One-Click Conversion
         Route::post('/invoices/create-from-quotation', 'createFromQuotation');
     });
@@ -464,7 +449,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
     // System APIs - UNUSED
     // Route::get('/system/invoice-pdf-status', [InvoiceController::class, 'checkPdfStatus']);
 
-    //---------- Receipt Controller (Step 3) ----------
+    // ---------- Receipt Controller (Step 3) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\ReceiptController::class)->group(function () {
         // Receipt CRUD
         Route::get('/receipts', 'index');
@@ -476,21 +461,22 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         // Route::post('/receipts', 'store'); // UNUSED
         Route::put('/receipts/{id}', 'update');
         // Route::delete('/receipts/{id}', 'destroy'); // UNUSED
-        
+
         // Receipt Actions - UNUSED
         // Route::post('/receipts/{id}/submit', 'submit');
         Route::post('/receipts/{id}/approve', 'approve');
         // Route::post('/receipts/{id}/reject', 'reject');
-        
+
         // Step 3 Workflow APIs
         Route::post('/receipts/create-from-payment', 'createFromPayment');
         Route::post('/receipts/{receiptId}/upload-evidence', 'uploadEvidence');
-        Route::get('/receipts/{id}/generate-pdf', 'generatePdf');
+        // Receipt PDF generation removed (M6) — text-dummy implementation that
+        // pretended to be a PDF. For real receipt PDFs use the invoice-side
+        // routes: GET /invoices/{id}/pdf/receipt/preview and
+        // POST /invoices/{id}/pdf/receipt/download (ReceiptPdfMasterService).
     });
 
-
-
-    //---------- DeliveryNote Controller (Step 4) ----------
+    // ---------- DeliveryNote Controller (Step 4) ----------
     Route::controller(\App\Http\Controllers\Api\V1\Accounting\DeliveryNoteController::class)->group(function () {
         // DeliveryNote CRUD
         Route::get('/delivery-notes', 'index')->name('delivery-notes.index');
@@ -504,17 +490,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
         Route::post('/delivery-notes', 'store')->name('delivery-notes.store');
         Route::put('/delivery-notes/{id}', 'update')->name('delivery-notes.update');
         Route::delete('/delivery-notes/{id}', 'destroy')->name('delivery-notes.destroy');
-        
+
         // Step 4 Workflow APIs - Create from Receipt
         Route::post('/delivery-notes/create-from-receipt', 'createFromReceipt')->name('delivery-notes.create-from-receipt');
-        
+
         // Step 4 Workflow APIs - Status Management
         Route::post('/delivery-notes/{id}/start-shipping', 'startShipping')->name('delivery-notes.start-shipping');
         Route::post('/delivery-notes/{id}/update-tracking', 'updateTracking')->name('delivery-notes.update-tracking');
         Route::post('/delivery-notes/{id}/mark-delivered', 'markDelivered')->name('delivery-notes.mark-delivered');
         Route::post('/delivery-notes/{id}/mark-completed', 'markCompleted')->name('delivery-notes.mark-completed');
         Route::post('/delivery-notes/{id}/mark-failed', 'markFailed')->name('delivery-notes.mark-failed');
-        
+
         // Step 4 Workflow APIs - Evidence & Documents
         // Route::post('/delivery-notes/{id}/upload-evidence', 'uploadEvidence')->name('delivery-notes.upload-evidence'); // UNUSED
         Route::get('/delivery-notes/{id}/generate-pdf', 'generatePdf')->name('delivery-notes.generate-pdf');
@@ -526,18 +512,20 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function() {
 });
 
 // ========== EMERGENCY ROUTE (Clear Cache on Production Without SSH) ==========
-Route::get('/clear-system-cache', function() {
+Route::get('/clear-system-cache', function () {
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+
     return response()->json([
         'success' => true,
-        'message' => 'System Cache (Config, Route, View, Event) has been cleared successfully.'
+        'message' => 'System Cache (Config, Route, View, Event) has been cleared successfully.',
     ]);
 });
 
 // ========== EMERGENCY ROUTE (Run Recall Snapshot Without SSH) ==========
-Route::get('/run-recall-snapshot', function() {
+Route::get('/run-recall-snapshot', function () {
     $exitCode = \Illuminate\Support\Facades\Artisan::call('recall:take-snapshot');
     $output = \Illuminate\Support\Facades\Artisan::output();
+
     return response()->json([
         'success' => $exitCode === 0,
         'message' => $exitCode === 0

@@ -2,23 +2,23 @@
 
 namespace App\Jobs\Accounting;
 
+use App\Models\Accounting\DocumentHistory;
+use App\Models\Accounting\Invoice;
+use App\Models\Accounting\InvoiceItem;
+use App\Models\Accounting\Quotation;
+use App\Models\Accounting\QuotationInvoiceSyncJob;
+use App\Services\Accounting\InvoiceService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\Accounting\Quotation;
-use App\Models\Accounting\QuotationInvoiceSyncJob;
-use App\Models\Accounting\Invoice;
-use App\Models\Accounting\InvoiceItem;
-use App\Models\Accounting\DocumentHistory;
-use App\Services\Accounting\InvoiceService;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Sync Quotation to Invoices Job
- * 
+ *
  * Background job for syncing quotation changes to related invoices
  * Used when there are more than 3 invoices to update
  */
@@ -30,6 +30,11 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
      * The number of times the job may be attempted
      */
     public $tries = 3;
+
+    /**
+     * Exponential backoff between retries (seconds): 1m → 3m → 10m
+     */
+    public $backoff = [60, 180, 600];
 
     /**
      * The number of seconds the job can run before timing out
@@ -53,10 +58,6 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
 
     /**
      * Create a new job instance
-     *
-     * @param string $quotationId
-     * @param string $syncJobId
-     * @param string|null $userId
      */
     public function __construct(string $quotationId, string $syncJobId, ?string $userId = null)
     {
@@ -74,14 +75,14 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
             Log::info('SyncQuotationToInvoicesJob started', [
                 'quotation_id' => $this->quotationId,
                 'sync_job_id' => $this->syncJobId,
-                'user_id' => $this->userId
+                'user_id' => $this->userId,
             ]);
 
             // Load sync job and update status
             $syncJob = QuotationInvoiceSyncJob::findOrFail($this->syncJobId);
             $syncJob->update([
                 'status' => 'processing',
-                'started_at' => now()
+                'started_at' => now(),
             ]);
 
             // Load quotation with items and invoices
@@ -92,8 +93,9 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                 Log::warning('No invoices found for quotation', ['quotation_id' => $this->quotationId]);
                 $syncJob->update([
                     'status' => 'completed',
-                    'completed_at' => now()
+                    'completed_at' => now(),
                 ]);
+
                 return;
             }
 
@@ -113,7 +115,7 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
             if ($deletedCount > 0) {
                 Log::info("Deleted {$deletedCount} orphaned invoice items", [
                     'quotation_id' => $this->quotationId,
-                    'invoice_ids' => $invoiceIds
+                    'invoice_ids' => $invoiceIds,
                 ]);
             }
 
@@ -147,7 +149,7 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                     $itemsUpdated = 0;
                     foreach ($quotation->items as $qItem) {
                         $invoiceItem = $invoice->items->where('quotation_item_id', $qItem->id)->first();
-                        
+
                         if ($invoiceItem) {
                             $invoiceItem->item_name = $qItem->item_name;
                             $invoiceItem->item_description = $qItem->item_description;
@@ -173,7 +175,7 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
 
                     // Recalculate invoice totals
                     $recalculated = $invoiceService->calculateBeforeVatFields($invoice);
-                    
+
                     $invoice->subtotal = $recalculated['subtotal'];
                     $invoice->net_subtotal = $recalculated['net_subtotal'] ?? $recalculated['subtotal'];
                     $invoice->tax_amount = $recalculated['tax_amount'];
@@ -200,7 +202,7 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                             'sync_job_id' => $this->syncJobId,
                             'updated_items_count' => $itemsUpdated,
                             'deleted_items_count' => $deletedCount,
-                            'timestamp' => now()->toISOString()
+                            'timestamp' => now()->toISOString(),
                         ])
                     );
 
@@ -210,13 +212,13 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                     $currentProgress = $index + 1;
                     Log::info("Synced invoice {$currentProgress}/{$syncJob->progress_total}", [
                         'invoice_id' => $invoice->id,
-                        'invoice_number' => $invoice->number
+                        'invoice_number' => $invoice->number,
                     ]);
 
                 } catch (\Exception $e) {
-                    Log::error("Failed to sync invoice in background job", [
+                    Log::error('Failed to sync invoice in background job', [
                         'invoice_id' => $invoice->id,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                     throw $e; // Re-throw to trigger job failure
                 }
@@ -227,7 +229,7 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
             // Mark sync job as completed
             $syncJob->update([
                 'status' => 'completed',
-                'completed_at' => now()
+                'completed_at' => now(),
             ]);
 
             // Log completion
@@ -240,24 +242,24 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                     'sync_job_id' => $this->syncJobId,
                     'total_invoices' => $syncJob->progress_total,
                     'updated_items' => $totalItemsUpdated,
-                    'deleted_items' => $totalItemsDeleted
+                    'deleted_items' => $totalItemsDeleted,
                 ])
             );
 
             Log::info('SyncQuotationToInvoicesJob completed successfully', [
                 'quotation_id' => $this->quotationId,
                 'sync_job_id' => $this->syncJobId,
-                'invoices_synced' => $syncJob->progress_total
+                'invoices_synced' => $syncJob->progress_total,
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('SyncQuotationToInvoicesJob failed', [
                 'quotation_id' => $this->quotationId,
                 'sync_job_id' => $this->syncJobId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e; // Re-throw to trigger failed() method
@@ -271,12 +273,12 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
     {
         try {
             $syncJob = QuotationInvoiceSyncJob::find($this->syncJobId);
-            
+
             if ($syncJob) {
                 $syncJob->update([
                     'status' => 'failed',
                     'error_message' => $exception->getMessage(),
-                    'completed_at' => now()
+                    'completed_at' => now(),
                 ]);
             }
 
@@ -288,19 +290,19 @@ class SyncQuotationToInvoicesJob implements ShouldQueue
                 $this->userId,
                 json_encode([
                     'sync_job_id' => $this->syncJobId,
-                    'error' => $exception->getMessage()
+                    'error' => $exception->getMessage(),
                 ])
             );
 
             Log::error('SyncQuotationToInvoicesJob permanently failed', [
                 'quotation_id' => $this->quotationId,
                 'sync_job_id' => $this->syncJobId,
-                'error' => $exception->getMessage()
+                'error' => $exception->getMessage(),
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to handle job failure', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }

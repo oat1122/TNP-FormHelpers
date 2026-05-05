@@ -8,34 +8,12 @@
 <body>
   <div class="document-content">
 
-    {{-- ข้อมูลลูกค้า --}}
-    {{-- ข้อมูลลูกค้าย้ายไปหัวเอกสาร (header) --}}
-
-    <!-- @php
-      $name   = trim($customer['name'] ?? '-');
-      $addr   = trim($customer['address'] ?? '-');
-      $telRaw = $customer['tel'] ?? '';
-      // แยกเบอร์ด้วย , / | หรือช่องว่างหลายตัว
-      $phones = implode(', ', array_filter(preg_split('/[,\s\/|]+/', $telRaw)));
-      $taxId  = trim($customer['tax_id'] ?? '');
-      // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
-      if (preg_match('/^\d{13}$/', $taxId)) {
-          $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
-      }
-    @endphp -->
-
-    <!-- <div class="customer-box mb-4">
-      <div class="customer-name">{{ $name }}</div>
-      <div class="customer-line">{!! nl2br(e($addr)) !!}</div>
-
-      @if($phones)
-        <div class="customer-line muted">โทร: {{ $phones }}</div>
-      @endif
-
-      @if($taxId !== '')
-        <div class="customer-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
-      @endif
-    </div> -->
+    {{-- ข้อมูลลูกค้าย้ายไปหัวเอกสาร (header) — customer-box ถูก render ใน quotation-header.blade.php --}}
+    {{-- TODO P4: PHP blocks here should move to QuotationPdfMasterService::buildViewData(): --}}
+    {{--   - L24 items grouping → already in groupQuotationItems(), drop inline duplicate --}}
+    {{--   - L116 image resolver closure → extract to PdfImageOptimizer::resolveSourceUrl() --}}
+    {{--   - L213 financial field extraction → move to buildFinancialSummary() --}}
+    {{--   See: docs/audits/accounting-pdf-views-2026-05-05.md (P4) --}}
 
 
     {{-- ตารางสินค้า/บริการ --}}
@@ -135,49 +113,7 @@
       <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
-    {{-- Helper: แปลงตัวเลขเป็นข้อความไทยแบบบาทสตางค์ --}}
-    @php
-      $thaiBahtText=function($number){
-        $number=(float)$number; 
-        $txtnum1=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า']; 
-        $txtnum2=['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
-        
-        $toWords=function($numStr) use (&$toWords,$txtnum1,$txtnum2){ 
-          $len=strlen($numStr); 
-          if($len>7){
-            $head=substr($numStr,0,$len-6); 
-            $tail=substr($numStr,-6); 
-            return $toWords(ltrim($head,'0')).'ล้าน'.$toWords(str_pad($tail,6,'0',STR_PAD_LEFT));
-          }
-          
-          $result=''; 
-          for($i=0;$i<$len;$i++){ 
-            $n=(int)$numStr[$i]; 
-            $pos=$len-$i-1; 
-            if($n===0) continue; 
-            if($pos===0&&$n===1&&$len>1){
-              $result.='เอ็ด';
-            } elseif($pos===1&&$n===2){
-              $result.='ยี่';
-            } elseif($pos===1&&$n===1){ 
-              // skip
-            } else { 
-              $result.=$txtnum1[$n]; 
-            } 
-            $result.=$txtnum2[$pos]??''; 
-          }
-          return $result===''?'ศูนย์':$result; 
-        };
-        
-        $formatted=number_format($number,2,'.',''); 
-        [$intPart,$decPart]=explode('.',$formatted); 
-        $intPart=ltrim($intPart,'0'); 
-        $text=($intPart===''?'ศูนย์':$toWords($intPart)).'บาท'; 
-        $dec=(int)$decPart; 
-        $text.=$dec===0?'ถ้วน':$toWords(str_pad((string)$dec,2,'0',STR_PAD_LEFT)).'สตางค์'; 
-        return $text; 
-      };
-    @endphp
+    {{-- Number → Thai baht text uses @thaiBaht directive (see AppServiceProvider + AccountingHelper) --}}
 
     {{-- Summary and Notes Section - แยกคำอ่านออกมา --}}
     {{-- Sample Images (moved under items table) --}}
@@ -368,7 +304,7 @@
                 <tr class="reading-row">
                   <td colspan="2" class="reading-cell">
                     <div class="reading-full-width">
-                      ({{ $thaiBahtText($finalTotalAmount) }})
+                      (@thaiBaht($finalTotalAmount))
                     </div>
                   </td>
                 </tr>

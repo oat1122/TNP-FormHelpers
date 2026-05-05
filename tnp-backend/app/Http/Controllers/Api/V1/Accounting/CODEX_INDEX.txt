@@ -222,7 +222,7 @@ Shared/audit models:
   - Tracks ordered, delivered, remaining quantity/value by quotation/pricing request.
 - `QuotationInvoiceSyncJob` -> `quotation_invoice_sync_jobs`
   - Async-ish sync tracking with snapshots, status, progress, error, started_by timestamps.
-- `AdjustmentNote` exists as a model but is not part of the active route flow found in `routes/api.php`.
+- `AdjustmentNote` model is intentionally not implemented. The `AN-` prefix is reserved in `DocumentNumberService` design but there is no migration, controller, service, route, or FE consumer. Re-implement only if a business requirement appears.
 
 Legacy and external tables referenced:
 

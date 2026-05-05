@@ -2,9 +2,9 @@
 
 namespace App\Services\Accounting\Pdf;
 
-use App\Models\Accounting\Quotation;
-use App\Models\Accounting\Invoice;
 use App\Models\Accounting\DeliveryNote;
+use App\Models\Accounting\Invoice;
+use App\Models\Accounting\Quotation;
 
 /**
  * Centralized extractor for customer info used in PDF documents.
@@ -16,6 +16,7 @@ class CustomerInfoExtractor
      * Extract customer fields from a Quotation model into a normalized array.
      *
      * Returns keys: name, address, tax_id, tel
+     *
      * @return array{name: string, address: string, tax_id: string, tel: string}
      */
     public static function fromQuotation(Quotation $q): array
@@ -72,11 +73,11 @@ class CustomerInfoExtractor
             ?? ($snap['customer_zip_code'] ?? null)
             ?? '';
         if ($address && $zip) {
-            $a = trim((string)$address);
-            $z = trim((string)$zip);
+            $a = trim((string) $address);
+            $z = trim((string) $zip);
             // Append zip only if it's not already present as a standalone token
-            $hasZip = preg_match('/\b' . preg_quote($z, '/') . '\b/u', $a) === 1;
-            $address = $hasZip ? $a : ($a . ' ' . $z);
+            $hasZip = preg_match('/\b'.preg_quote($z, '/').'\b/u', $a) === 1;
+            $address = $hasZip ? $a : ($a.' '.$z);
         }
 
         // Tax ID (live first)
@@ -89,14 +90,14 @@ class CustomerInfoExtractor
         // Telephone: prefer live master customer primary tel
         $tel = $live->cus_tel_1 ?? '';
         // Normalize obvious invalids like '0' or all zeros
-        $isInvalid = trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1;
+        $isInvalid = trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1;
         if ($isInvalid) {
             // Fallbacks if primary missing/invalid
             $tel = ($snap['cus_tel_1'] ?? null)
                 ?? ($snap['customer_tel_1'] ?? null)
                 ?? $q->customer_tel_1
                 ?? '';
-            if (trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1) {
+            if (trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1) {
                 $tel = ($snap['cus_tel_2'] ?? null)
                     ?? ($snap['customer_tel_2'] ?? null)
                     ?? $q->customer_tel_2
@@ -106,10 +107,10 @@ class CustomerInfoExtractor
         }
 
         return [
-            'name' => (string)$name,
-            'address' => (string)$address,
-            'tax_id' => (string)$tax,
-            'tel' => (string)$tel,
+            'name' => (string) $name,
+            'address' => (string) $address,
+            'tax_id' => (string) $tax,
+            'tel' => (string) $tel,
         ];
     }
 
@@ -117,6 +118,7 @@ class CustomerInfoExtractor
      * Extract customer fields from an Invoice model into a normalized array.
      *
      * Returns keys: name, address, tax_id, tel
+     *
      * @return array{name: string, address: string, tax_id: string, tel: string}
      */
     public static function fromInvoice(Invoice $i): array
@@ -187,11 +189,11 @@ class CustomerInfoExtractor
                 ?? ($snap['customer_zip_code'] ?? null)
                 ?? '');
         if ($address && $zip) {
-            $a = trim((string)$address);
-            $z = trim((string)$zip);
+            $a = trim((string) $address);
+            $z = trim((string) $zip);
             // Append zip only if it's not already present as a standalone token
-            $hasZip = preg_match('/\b' . preg_quote($z, '/') . '\b/u', $a) === 1;
-            $address = $hasZip ? $a : ($a . ' ' . $z);
+            $hasZip = preg_match('/\b'.preg_quote($z, '/').'\b/u', $a) === 1;
+            $address = $hasZip ? $a : ($a.' '.$z);
         }
 
         // Tax ID
@@ -210,13 +212,13 @@ class CustomerInfoExtractor
         // Telephone: base on source
         $tel = $preferInvoice ? ($i->customer_tel_1 ?? '') : ($live->cus_tel_1 ?? '');
         // Normalize obvious invalids like '0' or all zeros
-        $isInvalid = trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1;
+        $isInvalid = trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1;
         if ($isInvalid) {
             // Fallbacks if primary missing/invalid
             $tel = $preferInvoice
                 ? (($snap['customer_tel_1'] ?? null) ?? ($snap['cus_tel_1'] ?? null) ?? $live->cus_tel_1 ?? '')
                 : (($snap['cus_tel_1'] ?? null) ?? ($snap['customer_tel_1'] ?? null) ?? $i->customer_tel_1 ?? '');
-            if (trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1) {
+            if (trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1) {
                 $tel = ($snap['cus_tel_2'] ?? null)
                     ?? ($snap['customer_tel_2'] ?? null)
                     ?? ($preferInvoice ? $live->cus_tel_2 : ($i->customer_tel_2 ?? null))
@@ -225,10 +227,10 @@ class CustomerInfoExtractor
         }
 
         return [
-            'name' => (string)$name,
-            'address' => (string)$address,
-            'tax_id' => (string)$tax,
-            'tel' => (string)$tel,
+            'name' => (string) $name,
+            'address' => (string) $address,
+            'tax_id' => (string) $tax,
+            'tel' => (string) $tel,
         ];
     }
 
@@ -236,6 +238,7 @@ class CustomerInfoExtractor
      * Extract customer fields from a DeliveryNote model into a normalized array.
      *
      * Returns keys: name, address, tax_id, tel
+     *
      * @return array{name: string, address: string, tax_id: string, tel: string}
      */
     public static function fromDeliveryNote(DeliveryNote $d): array
@@ -305,10 +308,10 @@ class CustomerInfoExtractor
                 ?? ($snap['customer_zip_code'] ?? null)
                 ?? '');
         if ($address && $zip) {
-            $a = trim((string)$address);
-            $z = trim((string)$zip);
-            $hasZip = preg_match('/\b' . preg_quote($z, '/') . '\b/u', $a) === 1;
-            $address = $hasZip ? $a : ($a . ' ' . $z);
+            $a = trim((string) $address);
+            $z = trim((string) $zip);
+            $hasZip = preg_match('/\b'.preg_quote($z, '/').'\b/u', $a) === 1;
+            $address = $hasZip ? $a : ($a.' '.$z);
         }
 
         // Tax ID
@@ -326,12 +329,12 @@ class CustomerInfoExtractor
 
         // Telephone
         $tel = $preferDelivery ? ($d->customer_tel_1 ?? '') : ($live->cus_tel_1 ?? '');
-        $isInvalid = trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1;
+        $isInvalid = trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1;
         if ($isInvalid) {
             $tel = $preferDelivery
                 ? (($snap['customer_tel_1'] ?? null) ?? ($snap['cus_tel_1'] ?? null) ?? $live->cus_tel_1 ?? '')
                 : (($snap['cus_tel_1'] ?? null) ?? ($snap['customer_tel_1'] ?? null) ?? $d->customer_tel_1 ?? '');
-            if (trim((string)$tel) === '' || preg_match('/^0+$/', (string)$tel) === 1) {
+            if (trim((string) $tel) === '' || preg_match('/^0+$/', (string) $tel) === 1) {
                 $tel = ($snap['cus_tel_2'] ?? null)
                     ?? ($snap['customer_tel_2'] ?? null)
                     ?? ($preferDelivery ? $live->cus_tel_2 : ($d->customer_tel_2 ?? null))
@@ -340,10 +343,10 @@ class CustomerInfoExtractor
         }
 
         return [
-            'name' => (string)$name,
-            'address' => (string)$address,
-            'tax_id' => (string)$tax,
-            'tel' => (string)$tel,
+            'name' => (string) $name,
+            'address' => (string) $address,
+            'tax_id' => (string) $tax,
+            'tel' => (string) $tel,
         ];
     }
 }

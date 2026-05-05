@@ -2,13 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1\Accounting;
 
+use App\Helpers\AccountingHelper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Accounting\ApproveReceiptRequest;
+use App\Http\Requests\V1\Accounting\CalculateVatRequest;
+use App\Http\Requests\V1\Accounting\CreateReceiptFromPaymentRequest;
+use App\Http\Requests\V1\Accounting\RejectReceiptRequest;
+use App\Http\Requests\V1\Accounting\StoreReceiptRequest;
+use App\Http\Requests\V1\Accounting\UpdateReceiptRequest;
+use App\Http\Requests\V1\Accounting\UploadReceiptEvidenceRequest;
 use App\Services\Accounting\ReceiptService;
 use App\Traits\ApiResponseHelper;
-use App\Helpers\AccountingHelper;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 
 class ReceiptController extends Controller
 {
@@ -38,7 +44,7 @@ class ReceiptController extends Controller
                 'customer_id' => $request->query('customer_id'),
                 'payment_method' => $request->query('payment_method'),
                 'date_from' => $request->query('date_from'),
-                'date_to' => $request->query('date_to')
+                'date_to' => $request->query('date_to'),
             ];
 
             $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 20), 20, 50);
@@ -60,7 +66,7 @@ class ReceiptController extends Controller
             $receipt = \App\Models\Accounting\Receipt::with([
                 'invoice',
                 'documentHistory',
-                'attachments'
+                'attachments',
             ])->findOrFail($id);
 
             return $this->successResponse($receipt, 'Receipt details retrieved successfully');
@@ -75,31 +81,11 @@ class ReceiptController extends Controller
      * สร้าง Receipt แบบ Manual
      * POST /api/v1/receipts
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreReceiptRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'company_id' => 'nullable|string|exists:companies,id',
-                'customer_company' => 'required|string|max:255',
-                'customer_address' => 'required|string|max:500',
-                'work_name' => 'required|string|max:255',
-                'total_amount' => 'required_without:payment_amount|numeric|min:0.01',
-                'payment_amount' => 'required_without:total_amount|numeric|min:0.01',
-                'payment_date' => 'nullable|date',
-                'payment_method' => 'required|in:cash,transfer,check,credit_card',
-                'type' => 'required_without:receipt_type|in:receipt,tax_invoice,full_tax_invoice',
-                'receipt_type' => 'required_without:type|in:receipt,tax_invoice,full_tax_invoice',
-                'subtotal' => 'nullable|numeric|min:0',
-                'tax_amount' => 'nullable|numeric|min:0',
-                'vat_amount' => 'nullable|numeric|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $createdBy = AccountingHelper::getCurrentUserId();
-            $receipt = $this->receiptService->create($validator->validated(), $createdBy);
+            $receipt = $this->receiptService->create($request->validated(), $createdBy);
 
             return $this->successResponse($receipt, 'Receipt created successfully', 201);
         } catch (\Exception $e) {
@@ -111,32 +97,11 @@ class ReceiptController extends Controller
      * แก้ไข Receipt
      * PUT /api/v1/receipts/{id}
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(UpdateReceiptRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'customer_company' => 'sometimes|string|max:255',
-                'customer_address' => 'sometimes|string|max:500',
-                'work_name' => 'sometimes|string|max:255',
-                'payment_amount' => 'sometimes|numeric|min:0.01',
-                'total_amount' => 'sometimes|numeric|min:0.01',
-                'payment_date' => 'sometimes|date',
-                'payment_method' => 'sometimes|in:cash,transfer,check,credit_card',
-                'type' => 'sometimes|in:receipt,tax_invoice,full_tax_invoice',
-                'receipt_type' => 'sometimes|in:receipt,tax_invoice,full_tax_invoice',
-                'subtotal' => 'sometimes|numeric|min:0',
-                'tax_amount' => 'sometimes|numeric|min:0',
-                'vat_amount' => 'sometimes|numeric|min:0',
-                'payment_reference' => 'sometimes|nullable|string|max:100',
-                'reference_number' => 'sometimes|nullable|string|max:100'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $updatedBy = AccountingHelper::getCurrentUserId();
-            $receipt = $this->receiptService->update($id, $validator->validated(), $updatedBy);
+            $receipt = $this->receiptService->update($id, $request->validated(), $updatedBy);
 
             return $this->successResponse($receipt, 'Receipt updated successfully');
         } catch (\Exception $e) {
@@ -158,6 +123,7 @@ class ReceiptController extends Controller
             }
 
             $receipt->delete();
+
             return $this->successResponse(null, 'Receipt deleted successfully');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFoundResponse('Receipt');
@@ -170,29 +136,10 @@ class ReceiptController extends Controller
      * สร้าง Receipt จาก Payment
      * POST /api/v1/receipts/create-from-payment
      */
-    public function createFromPayment(Request $request): JsonResponse
+    public function createFromPayment(CreateReceiptFromPaymentRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'invoice_id' => 'required|string|exists:invoices,id',
-                'amount' => 'required_without_all:total_amount,payment_amount|numeric|min:0.01',
-                'total_amount' => 'required_without_all:amount,payment_amount|numeric|min:0.01',
-                'payment_amount' => 'required_without_all:amount,total_amount|numeric|min:0.01',
-                'payment_date' => 'nullable|date',
-                'payment_method' => 'required|in:cash,transfer,check,credit_card',
-                'type' => 'nullable|in:receipt,tax_invoice,full_tax_invoice',
-                'receipt_type' => 'nullable|in:receipt,tax_invoice,full_tax_invoice',
-                'reference_number' => 'nullable|string|max:100',
-                'payment_reference' => 'nullable|string|max:100',
-                'bank_name' => 'nullable|string|max:100',
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
-            $validated = $validator->validated();
+            $validated = $request->validated();
             $createdBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->createFromPayment(
                 $validated['invoice_id'],
@@ -215,6 +162,7 @@ class ReceiptController extends Controller
         try {
             $submittedBy = AccountingHelper::getCurrentUserId();
             $receipt = $this->receiptService->submit($id, $submittedBy);
+
             return $this->successResponse($receipt, 'Receipt submitted for approval successfully');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('ReceiptController::submit', $e);
@@ -225,23 +173,12 @@ class ReceiptController extends Controller
      * อนุมัติใบเสร็จ
      * POST /api/v1/receipts/{id}/approve
      */
-    public function approve(Request $request, $id): JsonResponse
+    public function approve(ApproveReceiptRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can approve receipts');
-            }
-
-            $validator = Validator::make($request->all(), [
-                'notes' => 'nullable|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
+            $notes = $request->validated()['notes'] ?? null;
             $approvedBy = AccountingHelper::getCurrentUserId();
-            $receipt = $this->receiptService->approve($id, $approvedBy, $request->notes);
+            $receipt = $this->receiptService->approve($id, $approvedBy, $notes);
 
             return $this->successResponse($receipt, 'Receipt approved successfully');
         } catch (\Exception $e) {
@@ -253,23 +190,12 @@ class ReceiptController extends Controller
      * ปฏิเสธใบเสร็จ
      * POST /api/v1/receipts/{id}/reject
      */
-    public function reject(Request $request, $id): JsonResponse
+    public function reject(RejectReceiptRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can reject receipts');
-            }
-
-            $validator = Validator::make($request->all(), [
-                'reason' => 'required|string|max:1000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
+            $reason = $request->validated()['reason'];
             $rejectedBy = AccountingHelper::getCurrentUserId();
-            $receipt = $this->receiptService->reject($id, $request->reason, $rejectedBy);
+            $receipt = $this->receiptService->reject($id, $reason, $rejectedBy);
 
             return $this->successResponse($receipt, 'Receipt rejected successfully');
         } catch (\Exception $e) {
@@ -281,24 +207,15 @@ class ReceiptController extends Controller
      * อัปโหลดหลักฐานการชำระ
      * POST /api/v1/receipts/{id}/upload-evidence
      */
-    public function uploadEvidence(Request $request, $id): JsonResponse
+    public function uploadEvidence(UploadReceiptEvidenceRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required|array|min:1',
-                'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB max
-                'description' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
+            $description = $request->validated()['description'] ?? null;
             $uploadedBy = AccountingHelper::getCurrentUserId();
             $result = $this->receiptService->uploadEvidence(
                 $id,
                 $request->file('files'),
-                $request->description,
+                $description,
                 $uploadedBy
             );
 
@@ -309,38 +226,15 @@ class ReceiptController extends Controller
     }
 
     /**
-     * สร้าง PDF ใบเสร็จ/ใบกำกับภาษี
-     * GET /api/v1/receipts/{id}/generate-pdf
-     */
-    public function generatePdf($id): JsonResponse
-    {
-        try {
-            $pdfData = $this->receiptService->generatePdf($id);
-            return $this->successResponse($pdfData, 'PDF generated successfully');
-        } catch (\Exception $e) {
-            return $this->serverErrorResponse('ReceiptController::generatePdf', $e);
-        }
-    }
-
-    /**
      * ดูข้อมูลการคำนวณ VAT
      * GET /api/v1/receipts/calculate-vat
      */
-    public function calculateVat(Request $request): JsonResponse
+    public function calculateVat(CalculateVatRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'amount' => 'required|numeric|min:0.01',
-                'type' => 'required_without:receipt_type|in:receipt,tax_invoice,full_tax_invoice',
-                'receipt_type' => 'required_without:type|in:receipt,tax_invoice,full_tax_invoice'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
-            $amount = $request->input('amount');
-            $receiptType = $request->input('type') ?? $request->input('receipt_type');
+            $validated = $request->validated();
+            $amount = $validated['amount'];
+            $receiptType = $validated['type'] ?? $validated['receipt_type'] ?? null;
 
             if (in_array($receiptType, ['tax_invoice', 'full_tax_invoice'])) {
                 // คำนวณ VAT 7% (ราคารวม VAT แล้ว)
@@ -353,7 +247,7 @@ class ReceiptController extends Controller
                     'subtotal' => round($subtotal, 2),
                     'vat_rate' => $vatRate,
                     'vat_amount' => round($vatAmount, 2),
-                    'has_vat' => true
+                    'has_vat' => true,
                 ];
             } else {
                 // ใบเสร็จธรรมดา (ไม่มี VAT)
@@ -362,7 +256,7 @@ class ReceiptController extends Controller
                     'subtotal' => $amount,
                     'vat_rate' => 0,
                     'vat_amount' => 0,
-                    'has_vat' => false
+                    'has_vat' => false,
                 ];
             }
 
@@ -384,20 +278,20 @@ class ReceiptController extends Controller
                     'value' => 'receipt',
                     'label' => 'ใบเสร็จธรรมดา',
                     'description' => 'ใบเสร็จสำหรับลูกค้าที่ไม่มีเลขภาษี',
-                    'has_vat' => false
+                    'has_vat' => false,
                 ],
                 [
                     'value' => 'tax_invoice',
                     'label' => 'ใบกำกับภาษี',
                     'description' => 'ใบกำกับภาษีสำหรับลูกค้าที่มีเลขภาษี',
-                    'has_vat' => true
+                    'has_vat' => true,
                 ],
                 [
                     'value' => 'full_tax_invoice',
                     'label' => 'ใบกำกับภาษี/ใบเสร็จ',
                     'description' => 'ใบกำกับภาษีเต็มรูปแบบ',
-                    'has_vat' => true
-                ]
+                    'has_vat' => true,
+                ],
             ];
 
             return $this->successResponse($types, 'Receipt types retrieved successfully');
@@ -418,26 +312,26 @@ class ReceiptController extends Controller
                     'value' => 'cash',
                     'label' => 'เงินสด',
                     'requires_reference' => false,
-                    'requires_bank' => false
+                    'requires_bank' => false,
                 ],
                 [
                     'value' => 'transfer',
                     'label' => 'โอนเงิน',
                     'requires_reference' => true,
-                    'requires_bank' => true
+                    'requires_bank' => true,
                 ],
                 [
                     'value' => 'check',
                     'label' => 'เช็ค',
                     'requires_reference' => true,
-                    'requires_bank' => true
+                    'requires_bank' => true,
                 ],
                 [
                     'value' => 'credit_card',
                     'label' => 'บัตรเครดิต',
                     'requires_reference' => true,
-                    'requires_bank' => false
-                ]
+                    'requires_bank' => false,
+                ],
             ];
 
             return $this->successResponse($methods, 'Payment methods retrieved successfully');

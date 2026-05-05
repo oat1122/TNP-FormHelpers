@@ -2,35 +2,40 @@
 
 namespace App\Http\Controllers\Api\V1\Accounting;
 
-use App\Http\Controllers\Controller;
-use App\Services\Accounting\QuotationService;
-use App\Models\Accounting\Quotation;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
-use App\Traits\ApiResponseHelper;
-use App\Traits\HandlesPdfGeneration;
 use App\Helpers\AccountingHelper;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\Accounting\ApproveQuotationRequest;
+use App\Http\Requests\V1\Accounting\CreateFromMultiplePricingRequestsRequest;
+use App\Http\Requests\V1\Accounting\CreateFromPricingRequestRequest;
+use App\Http\Requests\V1\Accounting\CreateStandaloneQuotationRequest;
+use App\Http\Requests\V1\Accounting\MarkQuotationCompletedRequest;
+use App\Http\Requests\V1\Accounting\MarkSentRequest;
+use App\Http\Requests\V1\Accounting\RejectRequest;
+use App\Http\Requests\V1\Accounting\SendEmailRequest;
 use App\Http\Requests\V1\Accounting\StoreQuotationRequest;
 use App\Http\Requests\V1\Accounting\UpdateQuotationRequest;
-use App\Http\Requests\V1\Accounting\CreateFromPricingRequestRequest;
-use App\Http\Requests\V1\Accounting\CreateFromMultiplePricingRequestsRequest;
-use App\Http\Requests\V1\Accounting\CreateStandaloneQuotationRequest;
-use App\Http\Requests\V1\Accounting\RejectRequest;
-use App\Http\Requests\V1\Accounting\MarkSentRequest;
-use App\Http\Requests\V1\Accounting\SendEmailRequest;
+use App\Http\Requests\V1\Accounting\UploadQuotationEvidenceRequest;
+use App\Http\Requests\V1\Accounting\UploadQuotationSampleImagesRequest;
+use App\Http\Requests\V1\Accounting\UploadQuotationSampleImagesTempRequest;
+use App\Http\Requests\V1\Accounting\UploadQuotationSignaturesRequest;
+use App\Models\Accounting\Quotation;
+use App\Services\Accounting\QuotationService;
+use App\Traits\ApiResponseHelper;
+use App\Traits\HandlesPdfGeneration;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class QuotationController extends Controller
 {
     use ApiResponseHelper, HandlesPdfGeneration;
-    
+
     protected $quotationService;
 
     public function __construct(QuotationService $quotationService)
     {
         $this->quotationService = $quotationService;
-    // Require authentication for all quotation endpoints so created_by uses auth()->user()->user_uuid
-    $this->middleware('auth:sanctum');
+        // Require authentication for all quotation endpoints so created_by uses auth()->user()->user_uuid
+        $this->middleware('auth:sanctum');
     }
 
     /**
@@ -48,12 +53,12 @@ class QuotationController extends Controller
                 'date_to' => $request->query('date_to'),
                 'search' => $request->query('search'),
                 'signature_uploaded' => $request->query('signature_uploaded'),
-                'only_mine' => $request->query('only_mine')
+                'only_mine' => $request->query('only_mine'),
             ];
 
             $perPage = AccountingHelper::sanitizePerPage($request->query('per_page', 15), 15, 50);
             $quotations = $this->quotationService->getList($filters, $perPage);
-            
+
             return $this->successResponse($quotations, 'Quotations retrieved successfully');
 
         } catch (\Exception $e) {
@@ -71,7 +76,7 @@ class QuotationController extends Controller
             $data = $request->validated();
             $createdBy = AccountingHelper::getCurrentUserId();
 
-            if (!empty($data['pricing_request_id'])) {
+            if (! empty($data['pricing_request_id'])) {
                 $additionalData = collect($data)->except(['pricing_request_id'])->toArray();
                 $quotation = $this->quotationService->createFromPricingRequest(
                     $data['pricing_request_id'],
@@ -81,7 +86,7 @@ class QuotationController extends Controller
             } else {
                 $quotation = $this->quotationService->create($data, $createdBy);
             }
-            
+
             return $this->createdResponse($quotation, 'Quotation created successfully');
 
         } catch (\Exception $e) {
@@ -105,9 +110,9 @@ class QuotationController extends Controller
                 'documentHistory.actionBy',
                 'attachments',
                 'orderItemsTracking',
-                'items'
+                'items',
             ])->findOrFail($id);
-            
+
             return $this->successResponse($quotation, 'Quotation retrieved successfully');
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -134,45 +139,47 @@ class QuotationController extends Controller
 
             // Check if user can edit this quotation
             $permissionCheck = $quotation->canBeEditedBy($user);
-            
-            if (!$permissionCheck['can_edit']) {
+
+            if (! $permissionCheck['can_edit']) {
                 return response()->json([
                     'success' => false,
                     'message' => $permissionCheck['reason'],
                     'has_invoices' => $permissionCheck['invoice_count'] > 0,
                     'invoice_count' => $permissionCheck['invoice_count'],
-                    'affected_invoices' => $permissionCheck['invoices']
+                    'affected_invoices' => $permissionCheck['invoices'],
                 ], 403);
             }
 
-            // If quotation has invoices and user is Admin/Account, require sync confirmation
-            if ($permissionCheck['invoice_count'] > 0 && in_array($userRole, ['admin', 'account'])) {
+            // If quotation has invoices and user is Admin/Manager, require sync confirmation
+            // Note: legacy code used 'account' which never existed in users.role enum (M1.6) —
+            // treated as typo for 'manager', consistent with Phase 3 D1.
+            if ($permissionCheck['invoice_count'] > 0 && in_array($userRole, ['admin', 'manager'], true)) {
                 $confirmSync = $request->input('confirm_sync', false);
-                
-                if (!$confirmSync) {
+
+                if (! $confirmSync) {
                     return response()->json([
                         'success' => false,
                         'message' => 'ต้องยืนยันการซิงค์ข้อมูลกับใบแจ้งหนี้',
                         'requires_confirmation' => true,
-                        'affected_invoices' => $quotation->invoices->map(function($inv) {
+                        'affected_invoices' => $quotation->invoices->map(function ($inv) {
                             return [
                                 'id' => $inv->id,
                                 'number' => $inv->number,
-                                'status' => $inv->status
+                                'status' => $inv->status,
                             ];
                         }),
-                        'invoice_count' => $quotation->invoices->count()
+                        'invoice_count' => $quotation->invoices->count(),
                     ], 422);
                 }
             }
 
             // Perform update with optional sync
             $result = $this->quotationService->update($id, $data, $updatedBy, $request->input('confirm_sync', false));
-            
+
             // Prepare response with sync info
             $response = [
                 'success' => true,
-                'message' => 'Quotation updated successfully'
+                'message' => 'Quotation updated successfully',
             ];
 
             // Add data wrapper with quotation and sync info
@@ -205,7 +212,7 @@ class QuotationController extends Controller
             $deletedBy = AccountingHelper::getCurrentUserId();
 
             $this->quotationService->delete($id, $deletedBy, $reason);
-            
+
             return $this->successResponse(null, 'Quotation deleted successfully');
 
         } catch (\Exception $e) {
@@ -221,6 +228,7 @@ class QuotationController extends Controller
     {
         try {
             $duplicateData = $this->quotationService->getDataForDuplication($id);
+
             return $this->successResponse($duplicateData, 'Quotation data for duplication retrieved successfully');
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -239,7 +247,7 @@ class QuotationController extends Controller
         try {
             $submittedBy = AccountingHelper::getCurrentUserId();
             $quotation = $this->quotationService->submitForReview($id, $submittedBy);
-            
+
             return $this->successResponse($quotation, 'Quotation submitted for review successfully');
 
         } catch (\Exception $e) {
@@ -251,18 +259,14 @@ class QuotationController extends Controller
      * อนุมัติใบเสนอราคา
      * POST /api/v1/quotations/{id}/approve
      */
-    public function approve(Request $request, $id): JsonResponse
+    public function approve(ApproveQuotationRequest $request, $id): JsonResponse
     {
         try {
-            if (!AccountingHelper::hasRole(['admin', 'account'])) {
-                return $this->forbiddenResponse('Only admin/account can approve quotations');
-            }
-
-            $notes = $request->input('notes');
+            $notes = $request->validated()['notes'] ?? null;
             $approvedBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->approve($id, $approvedBy, $notes);
-            
+
             return $this->successResponse($quotation, 'Quotation approved successfully');
 
         } catch (\Exception $e) {
@@ -279,42 +283,13 @@ class QuotationController extends Controller
         try {
             $reason = $request->input('reason');
             $rejectedBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->reject($id, $rejectedBy, $reason);
-            
+
             return $this->successResponse($quotation, 'Quotation rejected successfully');
 
         } catch (\Exception $e) {
             return $this->serverErrorResponse('QuotationController::reject', $e);
-        }
-    }
-
-    /**
-     * แปลงใบเสนอราคาเป็นใบแจ้งหนี้
-     * POST /api/v1/quotations/{id}/convert-to-invoice
-     */
-    public function convertToInvoice(Request $request, $id): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'due_date' => 'nullable|date',
-                'payment_method' => 'nullable|string|max:50',
-                'notes' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
-            $additionalData = $validator->validated();
-            $convertedBy = AccountingHelper::getCurrentUserId();
-            
-            $invoice = $this->quotationService->convertToInvoice($id, $convertedBy, $additionalData);
-            
-            return $this->successResponse($invoice, 'Quotation converted to invoice successfully');
-
-        } catch (\Exception $e) {
-            return $this->serverErrorResponse('QuotationController::convertToInvoice', $e);
         }
     }
 
@@ -330,13 +305,13 @@ class QuotationController extends Controller
 
             $pricingRequestId = $data['pricing_request_id'];
             $additionalData = collect($data)->except(['pricing_request_id'])->toArray();
-            
+
             $quotation = $this->quotationService->createFromPricingRequest(
                 $pricingRequestId,
                 $additionalData,
                 $createdBy
             );
-            
+
             return $this->createdResponse($quotation, 'Quotation created from pricing request successfully');
 
         } catch (\Exception $e) {
@@ -360,7 +335,7 @@ class QuotationController extends Controller
                 $data,
                 $createdBy
             );
-            
+
             return $this->createdResponse($quotation, 'Quotation created from multiple pricing requests successfully');
 
         } catch (\Exception $e) {
@@ -379,7 +354,7 @@ class QuotationController extends Controller
             $createdBy = AccountingHelper::getCurrentUserId();
 
             $quotation = $this->quotationService->createStandalone($data, $createdBy);
-            
+
             return $this->createdResponse(
                 $quotation->load(['customer', 'company', 'items', 'creator']),
                 'Quotation created successfully'
@@ -399,9 +374,9 @@ class QuotationController extends Controller
         try {
             $reason = $request->input('reason');
             $actionBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->sendBackForEdit($id, $reason, $actionBy);
-            
+
             return $this->successResponse($quotation, 'Quotation sent back for editing successfully');
 
         } catch (\Exception $e) {
@@ -418,9 +393,9 @@ class QuotationController extends Controller
         try {
             $reason = $request->input('reason');
             $actionBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->revokeApproval($id, $reason, $actionBy);
-            
+
             return $this->successResponse($quotation, 'Quotation approval revoked successfully');
 
         } catch (\Exception $e) {
@@ -434,6 +409,7 @@ class QuotationController extends Controller
     public function generatePdf(Request $request, $id)
     {
         $options = $this->extractPdfOptions($request);
+
         return $this->generatePdfJsonResponse($this->quotationService, $id, $options);
     }
 
@@ -443,6 +419,7 @@ class QuotationController extends Controller
     public function streamPdf(Request $request, $id)
     {
         $options = $this->extractPdfOptions($request);
+
         return $this->streamPdfResponse($this->quotationService, $id, $options);
     }
 
@@ -452,7 +429,8 @@ class QuotationController extends Controller
     public function downloadPdf(Request $request, $id)
     {
         $options = $this->extractPdfOptions($request);
-        $defaultFilename = 'quotation-' . $id . '.pdf';
+        $defaultFilename = 'quotation-'.$id.'.pdf';
+
         return $this->downloadPdfResponse($this->quotationService, $id, $options, $defaultFilename);
     }
 
@@ -473,9 +451,9 @@ class QuotationController extends Controller
         try {
             $emailData = $request->validated();
             $sentBy = AccountingHelper::getCurrentUserId();
-            
+
             $result = $this->quotationService->sendEmail($id, $emailData, $sentBy);
-            
+
             return $this->successResponse($result, 'Email sent successfully');
 
         } catch (\Exception $e) {
@@ -487,23 +465,14 @@ class QuotationController extends Controller
      * อัปโหลดหลักฐานการส่ง
      * POST /api/v1/quotations/{id}/upload-evidence
      */
-    public function uploadEvidence(Request $request, $id): JsonResponse
+    public function uploadEvidence(UploadQuotationEvidenceRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
-                'description' => 'nullable|string|max:500'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $uploadedBy = AccountingHelper::getCurrentUserId();
-            $description = $request->input('description');
-            
+            $description = $request->validated()['description'] ?? null;
+
             $result = $this->quotationService->uploadEvidence($id, $request->file('files'), $description, $uploadedBy);
-            
+
             return $this->successResponse($result, 'Evidence uploaded successfully');
 
         } catch (\Exception $e) {
@@ -515,34 +484,11 @@ class QuotationController extends Controller
      * อัปโหลดรูปหลักฐานการเซ็น (images only) - เฉพาะใบเสนอราคา approved และผู้ใช้ role sale/admin เท่านั้น
      * POST /api/v1/quotations/{id}/upload-signatures
      */
-    public function uploadSignatures(Request $request, $id): JsonResponse
+    public function uploadSignatures(UploadQuotationSignaturesRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required',
-                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120', // 5MB per image
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $user = auth()->user();
-            $role = $user->role ?? null;
-            if (!in_array($role, ['admin','sale'])) {
-                return $this->errorResponse('คุณไม่มีสิทธิ์อัปโหลดหลักฐานการเซ็น', 403);
-            }
-
-            // รองรับ keys แบบ files[] จาก FormData
-            $rawFiles = $request->file('files');
-            // Normalise to array
-            if ($rawFiles === null) {
-                return $this->validationErrorResponse(['files' => ['No uploaded files found']]);
-            }
-            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
-            if (count($files) === 0) {
-                return $this->validationErrorResponse(['files' => ['Empty files array']]);
-            }
+            $files = $request->file('files');
 
             $result = $this->quotationService->uploadSignatures($id, $files, $user->user_uuid ?? null);
 
@@ -557,23 +503,11 @@ class QuotationController extends Controller
      * Upload sample images and append to quotation->sample_images
      * POST /api/v1/quotations/{id}/upload-sample-images
      */
-    public function uploadSampleImages(Request $request, $id): JsonResponse
+    public function uploadSampleImages(UploadQuotationSampleImagesRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required',
-                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
-            ]);
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
             $user = auth()->user();
-            $rawFiles = $request->file('files');
-            if ($rawFiles === null) {
-                return $this->validationErrorResponse(['files' => ['No uploaded files found']]);
-            }
-            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
+            $files = $request->file('files');
 
             $result = $this->quotationService->uploadSampleImages($id, $files, $user->user_uuid ?? null);
 
@@ -588,31 +522,16 @@ class QuotationController extends Controller
      * Upload sample images without binding to quotation (for create form)
      * POST /api/v1/quotations/upload-sample-images
      */
-    public function uploadSampleImagesTemp(Request $request): JsonResponse
+    public function uploadSampleImagesTemp(UploadQuotationSampleImagesTempRequest $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required',
-                'files.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
-            ]);
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $rawFiles = $request->file('files');
-            $files = is_array($rawFiles) ? $rawFiles : [$rawFiles];
+            $files = $request->file('files');
             $user = auth()->user();
 
             $result = $this->quotationService->uploadSampleImagesNoBind($files, $user->user_uuid ?? null);
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Sample images uploaded successfully'
-            ]);
+
+            return $this->successResponse($result, 'Sample images uploaded successfully');
+
         } catch (\Exception $e) {
             return $this->serverErrorResponse('QuotationController::uploadSampleImagesTemp', $e);
         }
@@ -628,11 +547,12 @@ class QuotationController extends Controller
         try {
             $user = auth()->user();
             $role = $user->role ?? null;
-            if (!in_array($role, ['admin','sale'])) {
+            if (! in_array($role, ['admin', 'sale'])) {
                 return $this->errorResponse('คุณไม่มีสิทธิ์ลบรูปหลักฐานการเซ็น', 403);
             }
 
             $result = $this->quotationService->deleteSignatureImage($id, $identifier, $user->user_uuid ?? null);
+
             return $this->successResponse($result, 'ลบรูปหลักฐานการเซ็นเรียบร้อย');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('QuotationController::deleteSignatureImage', $e);
@@ -643,23 +563,14 @@ class QuotationController extends Controller
      * มาร์คว่าลูกค้าตอบรับแล้ว
      * POST /api/v1/quotations/{id}/mark-completed
      */
-    public function markCompleted(Request $request, $id): JsonResponse
+    public function markCompleted(MarkQuotationCompletedRequest $request, $id): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'completion_notes' => 'nullable|string|max:1000',
-                'customer_response' => 'nullable|string|max:2000'
-            ]);
-
-            if ($validator->fails()) {
-                return $this->validationErrorResponse($validator->errors());
-            }
-
-            $data = $validator->validated();
+            $data = $request->validated();
             $completedBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->markCompleted($id, $data, $completedBy);
-            
+
             return $this->successResponse($quotation, 'Quotation marked as completed successfully');
 
         } catch (\Exception $e) {
@@ -676,9 +587,9 @@ class QuotationController extends Controller
         try {
             $data = $request->validated();
             $sentBy = AccountingHelper::getCurrentUserId();
-            
+
             $quotation = $this->quotationService->markSent($id, $data, $sentBy);
-            
+
             return $this->successResponse($quotation, 'Quotation marked as sent successfully');
 
         } catch (\Exception $e) {
@@ -699,13 +610,13 @@ class QuotationController extends Controller
                 'success' => true,
                 'has_invoices' => $quotation->invoices->isNotEmpty(),
                 'invoice_count' => $quotation->invoices->count(),
-                'invoices' => $quotation->invoices->map(function($inv) {
+                'invoices' => $quotation->invoices->map(function ($inv) {
                     return [
                         'id' => $inv->id,
                         'number' => $inv->number,
-                        'status' => $inv->status
+                        'status' => $inv->status,
                     ];
-                })
+                }),
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -724,7 +635,7 @@ class QuotationController extends Controller
         try {
             $job = \App\Models\Accounting\QuotationInvoiceSyncJob::with([
                 'quotation:id,number',
-                'startedBy:user_uuid,name'
+                'startedBy:user_uuid,name',
             ])->findOrFail($jobId);
 
             $invoiceNumbers = $job->getAffectedInvoiceNumbers();
@@ -743,13 +654,13 @@ class QuotationController extends Controller
                     'affected_invoice_numbers' => $invoiceNumbers,
                     'started_by' => [
                         'id' => $job->startedBy->user_uuid ?? null,
-                        'name' => $job->startedBy->name ?? null
+                        'name' => $job->startedBy->name ?? null,
                     ],
                     'started_at' => $job->started_at,
                     'completed_at' => $job->completed_at,
                     'elapsed_seconds' => $elapsedSeconds,
-                    'error_message' => $job->error_message
-                ]
+                    'error_message' => $job->error_message,
+                ],
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

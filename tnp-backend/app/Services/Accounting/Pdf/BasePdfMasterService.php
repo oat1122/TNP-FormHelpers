@@ -24,24 +24,25 @@ abstract class BasePdfMasterService
      * PDF Cache Service instance
      */
     protected ?PdfCacheService $cacheService = null;
-    
+
     /**
      * Get or initialize cache service (lazy loading)
      */
     protected function getCacheService(): PdfCacheService
     {
-        if (!$this->cacheService) {
+        if (! $this->cacheService) {
             $this->cacheService = app(PdfCacheService::class);
         }
+
         return $this->cacheService;
     }
 
     /**
      * สร้าง PDF เป็นไฟล์ใน storage พร้อม URL (with caching support)
      *
-     * @param object $model      (เช่น Quotation, Invoice)
-     * @param array<string, mixed> $options
-     * @param bool $useCache     Whether to use cache (default: true)
+     * @param  object  $model  (เช่น Quotation, Invoice)
+     * @param  array<string, mixed>  $options
+     * @param  bool  $useCache  Whether to use cache (default: true)
      * @return array{path:string,url:string,filename:string,size:int,type:string,from_cache:bool}
      */
     public function generatePdf(object $model, array $options = [], bool $useCache = true): array
@@ -49,53 +50,53 @@ abstract class BasePdfMasterService
         try {
             // Get document type for cache lookup
             $documentType = $this->getDocumentTypeFromModel($model);
-            
+
             // Check cache if enabled and not forced to regenerate
-            if ($useCache && !($options['force_regenerate'] ?? false)) {
+            if ($useCache && ! ($options['force_regenerate'] ?? false)) {
                 $cachedPdf = $this->getCacheService()->getCached($documentType, $model->id, $options);
-                
+
                 if ($cachedPdf) {
-                    Log::info("PDF Cache HIT - returning cached PDF", [
+                    Log::info('PDF Cache HIT - returning cached PDF', [
                         'document_type' => $documentType,
                         'document_id' => $model->id,
-                        'cached_at' => $cachedPdf['cached_at']
+                        'cached_at' => $cachedPdf['cached_at'],
                     ]);
-                    
+
                     return [
-                        'path'           => $cachedPdf['path'],
-                        'url'            => $cachedPdf['url'],
-                        'filename'       => $cachedPdf['filename'],
-                        'size'           => $cachedPdf['size'],
-                        'type'           => 'cached',
-                        'engine'         => 'mPDF',
-                        'from_cache'     => true,
-                        'cached_at'      => $cachedPdf['cached_at'],
-                        'expires_at'     => $cachedPdf['expires_at'],
-                        'cache_version'  => $cachedPdf['cache_version']
+                        'path' => $cachedPdf['path'],
+                        'url' => $cachedPdf['url'],
+                        'filename' => $cachedPdf['filename'],
+                        'size' => $cachedPdf['size'],
+                        'type' => 'cached',
+                        'engine' => 'mPDF',
+                        'from_cache' => true,
+                        'cached_at' => $cachedPdf['cached_at'],
+                        'expires_at' => $cachedPdf['expires_at'],
+                        'cache_version' => $cachedPdf['cache_version'],
                     ];
                 }
-                
-                Log::info("PDF Cache MISS - generating new PDF", [
+
+                Log::info('PDF Cache MISS - generating new PDF', [
                     'document_type' => $documentType,
-                    'document_id' => $model->id
+                    'document_id' => $model->id,
                 ]);
             }
-            
+
             // Generate new PDF
             $viewData = $this->buildViewData($model, $options);
             $mpdf = $this->createMpdf($viewData);
             $filePath = $this->savePdfFile($mpdf, $viewData);
 
             $result = [
-                'path'       => $filePath,
-                'url'        => $this->generatePublicUrl($filePath),
-                'filename'   => basename($filePath),
-                'size'       => is_file($filePath) ? filesize($filePath) : 0,
-                'type'       => $viewData['isFinal'] ? 'final' : 'preview',
-                'engine'     => 'mPDF',
-                'from_cache' => false
+                'path' => $filePath,
+                'url' => $this->generatePublicUrl($filePath),
+                'filename' => basename($filePath),
+                'size' => is_file($filePath) ? filesize($filePath) : 0,
+                'type' => $viewData['isFinal'] ? 'final' : 'preview',
+                'engine' => 'mPDF',
+                'from_cache' => false,
             ];
-            
+
             // Store in cache if enabled
             if ($useCache) {
                 try {
@@ -103,20 +104,20 @@ abstract class BasePdfMasterService
                     $result['cache_stored'] = true;
                     $result['expires_at'] = $cacheData['expires_at'];
                     $result['cache_version'] = $this->getCacheService()->calculateCacheVersion($model);
-                    
-                    Log::info("PDF stored in cache", [
+
+                    Log::info('PDF stored in cache', [
                         'document_type' => $documentType,
                         'document_id' => $model->id,
-                        'cache_path' => $cacheData['path']
+                        'cache_path' => $cacheData['path'],
                     ]);
                 } catch (\Exception $e) {
-                    Log::warning("Failed to store PDF in cache: " . $e->getMessage());
+                    Log::warning('Failed to store PDF in cache: '.$e->getMessage());
                     $result['cache_stored'] = false;
                 }
             }
 
             return $result;
-            
+
         } catch (\Throwable $e) {
             Log::error(static::class.'::generatePdf error: '.$e->getMessage(), [
                 'model_id' => $model->id ?? null,
@@ -126,22 +127,27 @@ abstract class BasePdfMasterService
             throw $e;
         }
     }
-    
+
     /**
      * Get document type from model instance
-     * 
-     * @param object $model
-     * @return string
      */
     protected function getDocumentTypeFromModel(object $model): string
     {
         $class = get_class($model);
-        
-        if (str_contains($class, 'Quotation')) return 'quotation';
-        if (str_contains($class, 'Invoice')) return 'invoice';
-        if (str_contains($class, 'Receipt')) return 'receipt';
-        if (str_contains($class, 'DeliveryNote')) return 'delivery_note';
-        
+
+        if (str_contains($class, 'Quotation')) {
+            return 'quotation';
+        }
+        if (str_contains($class, 'Invoice')) {
+            return 'invoice';
+        }
+        if (str_contains($class, 'Receipt')) {
+            return 'receipt';
+        }
+        if (str_contains($class, 'DeliveryNote')) {
+            return 'delivery_note';
+        }
+
         return 'unknown';
     }
 
@@ -165,6 +171,7 @@ abstract class BasePdfMasterService
 
     /**
      * เตรียมข้อมูลสำหรับ View
+     *
      * @return array<string, mixed>
      */
     abstract protected function buildViewData(object $model, array $options = []): array;
@@ -176,6 +183,7 @@ abstract class BasePdfMasterService
 
     /**
      * ระบุรายการไฟล์ CSS
+     *
      * @return array<string>
      */
     abstract protected function cssFiles(): array;
@@ -222,17 +230,17 @@ abstract class BasePdfMasterService
 
     protected function getMpdfConfig(array $options = []): array
     {
-        $defaultConfig = (new ConfigVariables())->getDefaults();
+        $defaultConfig = (new ConfigVariables)->getDefaults();
         $fontDirs = $defaultConfig['fontDir'];
-        $defaultFontConfig = (new FontVariables())->getDefaults();
+        $defaultFontConfig = (new FontVariables)->getDefaults();
         $fontData = $defaultFontConfig['fontdata'];
 
-        $customFontDir  = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
+        $customFontDir = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
         $customFontData = config('pdf.custom_font_data', [
             'thsarabun' => [
-                'R'  => 'Sarabun-Regular.ttf',
-                'B'  => 'Sarabun-Bold.ttf',
-                'I'  => 'Sarabun-Italic.ttf',
+                'R' => 'Sarabun-Regular.ttf',
+                'B' => 'Sarabun-Bold.ttf',
+                'I' => 'Sarabun-Italic.ttf',
                 'BI' => 'Sarabun-BoldItalic.ttf',
             ],
         ]);
@@ -245,7 +253,7 @@ abstract class BasePdfMasterService
             'margin_left' => 10,
             'margin_right' => 10,
             'margin_top' => 16,
-            'margin_bottom' => 10, 
+            'margin_bottom' => 10,
             'setAutoTopMargin' => 'stretch',
             'setAutoBottomMargin' => 'stretch',
             'default_font' => $hasThaiFonts ? 'thsarabun' : 'dejavusans',
@@ -260,9 +268,10 @@ abstract class BasePdfMasterService
             'autoScriptToLang' => true,
         ];
 
-        if (!is_dir($config['tempDir'])) {
+        if (! is_dir($config['tempDir'])) {
             @mkdir($config['tempDir'], 0755, true);
         }
+
         return $config;
     }
 
@@ -286,29 +295,31 @@ abstract class BasePdfMasterService
     protected function savePdfFile(Mpdf $mpdf, array $viewData): string
     {
         $model = $viewData[strtolower($this->getFilenamePrefix())];
-        $directory = storage_path('app/public/pdfs/' . $this->getStorageFolder());
+        $directory = storage_path('app/public/pdfs/'.$this->getStorageFolder());
 
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             @mkdir($directory, 0755, true);
         }
 
         $filename = sprintf('%s-%s-%s.pdf', $this->getFilenamePrefix(), $model->number ?? $model->id, date('Y-m-d-His'));
-        $fullPath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $fullPath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($fullPath, 'F');
+
         return $fullPath;
     }
 
     protected function getStorageFolder(): string
     {
         // e.g., 'invoices', 'quotations'
-        return $this->getFilenamePrefix() . 's';
+        return $this->getFilenamePrefix().'s';
     }
 
     protected function generatePublicUrl(string $filePath): string
     {
         $relative = str_replace(storage_path('app/public/'), '', $filePath);
         $relative = str_replace('\\', '/', $relative);
-        return url('storage/' . $relative);
+
+        return url('storage/'.$relative);
     }
 
     protected function writeCss(Mpdf $mpdf, array $files): void
@@ -323,12 +334,12 @@ abstract class BasePdfMasterService
     public function checkSystemStatus(): array
     {
         $status = [
-            'mpdf_available'       => class_exists(Mpdf::class),
+            'mpdf_available' => class_exists(Mpdf::class),
             'thai_fonts_available' => $this->checkThaiFonts(),
-            'storage_writable'     => is_writable(storage_path('app/public/pdfs/' . $this->getStorageFolder())),
-            'temp_dir_writable'    => is_writable(storage_path('app/mpdf-temp')) || @mkdir(storage_path('app/mpdf-temp'), 0755, true),
+            'storage_writable' => is_writable(storage_path('app/public/pdfs/'.$this->getStorageFolder())),
+            'temp_dir_writable' => is_writable(storage_path('app/mpdf-temp')) || @mkdir(storage_path('app/mpdf-temp'), 0755, true),
         ];
-        
+
         return $status;
     }
 
@@ -336,11 +347,12 @@ abstract class BasePdfMasterService
     {
         $fontPath = config('pdf.custom_font_dir', public_path('fonts/thsarabun/'));
         $required = ['Sarabun-Regular.ttf', 'Sarabun-Bold.ttf'];
-        foreach ($required as $f) { 
-            if (!is_file($fontPath.$f)) { 
-                return false; 
-            } 
+        foreach ($required as $f) {
+            if (! is_file($fontPath.$f)) {
+                return false;
+            }
         }
+
         return true;
     }
 
@@ -351,7 +363,7 @@ abstract class BasePdfMasterService
     /**
      * Render a signature section at a fixed position on the LAST page.
      * This renders *ABOVE* the footer (which is handled by SetHTMLFooter in child classes)
-     * 
+     *
      * ✅ FIX: Improved signature positioning to prevent overlap with content
      * ✅ UPDATED: Adjusted for smaller signature size (10pt font, 220×70pt box)
      * - Content reserves 35mm spacer at bottom
@@ -363,12 +375,12 @@ abstract class BasePdfMasterService
         try {
             // 1. Render HTML ลายเซ็นจากคลาสลูก (เช่น quotation-signature, invoice-signature)
             $sigHtml = View::make($this->getSignatureTemplatePath(), $data)->render();
-            
+
             // 2. กำหนดความสูงและตำแหน่งของลายเซ็น (ปรับลดเพราะ signature เล็กลง)
             $signature_height_mm = 30; // ความสูงของลายเซ็น (30mm) - ลดจาก 40mm
-            
+
             // 3. กำหนดตำแหน่ง bottom (เหนือ Footer margin 10mm + เว้นระยะ 5mm = 15mm)
-            $bottom_position_mm = 15; 
+            $bottom_position_mm = 15;
 
             /*
              * ภาพประกอบการวางตำแหน่ง (Updated for compact signature):
@@ -382,7 +394,7 @@ abstract class BasePdfMasterService
              * |-------------------| ขอบล่าง Margin (10mm)
              * | (Footer เลขหน้า)   | <--- SetHTMLFooter แสดงผลในพื้นที่นี้
              * |-------------------| ขอบล่างกระดาษ (0mm)
-             * 
+             *
              * คำอธิบาย:
              * - Spacer 35mm ในเนื้อหาจะป้องกันไม่ให้ข้อความไหลลงมาทับลายเซ็น
              * - Signature วางแบบ absolute ที่ bottom 15mm (เหนือ footer)
@@ -406,7 +418,7 @@ abstract class BasePdfMasterService
         } catch (\Throwable $e) {
             Log::error('Signature absolute placement failed: '.$e->getMessage(), [
                 'model_id' => $data[strtolower($this->getFilenamePrefix())]->id ?? 'unknown',
-                'trace'    => $e->getTraceAsString(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -418,27 +430,26 @@ abstract class BasePdfMasterService
     /**
      * Get document metadata for PDF header (document number, reference number, mode)
      * This method extracts the appropriate numbers based on document type and mode
-     * 
-     * @param object $document Invoice, Quotation, etc.
-     * @param string $documentType 'invoice' | 'tax_invoice' | 'receipt'
-     * @param array $options
+     *
+     * @param  object  $document  Invoice, Quotation, etc.
+     * @param  string  $documentType  'invoice' | 'tax_invoice' | 'receipt'
      * @return array ['docNumber' => string, 'referenceNo' => string|null, 'mode' => string]
      */
     protected function getDocumentMetadata(object $document, string $documentType, array $options = []): array
     {
         // Determine mode from options or document's deposit_display_order
         $mode = $options['deposit_mode'] ?? $document->deposit_display_order ?? 'before';
-        
+
         // Get appropriate document number using the model's method
-        $docNumber = method_exists($document, 'getDocumentNumber') 
+        $docNumber = method_exists($document, 'getDocumentNumber')
             ? $document->getDocumentNumber($documentType, $mode)
             : ($document->number ?? 'DRAFT');
-        
+
         // Get reference number using the model's method
         $referenceNo = method_exists($document, 'getReferenceNumber')
             ? $document->getReferenceNumber($mode)
             : null;
-        
+
         return [
             'docNumber' => $docNumber,
             'referenceNo' => $referenceNo,

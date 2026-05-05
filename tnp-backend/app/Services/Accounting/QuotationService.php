@@ -3,31 +3,32 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\Quotation;
-use App\Models\Accounting\QuotationItem;
-use App\Models\Accounting\Invoice;
-use App\Models\Accounting\DocumentHistory;
-use App\Services\Accounting\AutofillService;
 use App\Services\Accounting\Quotation\Calculator;
 use App\Services\Accounting\Quotation\CreationService;
 use App\Services\Accounting\Quotation\ManagementService;
-use App\Services\Accounting\Quotation\StatusService;
 use App\Services\Accounting\Quotation\MediaService;
 use App\Services\Accounting\Quotation\PdfService;
+use App\Services\Accounting\Quotation\StatusService;
 use App\Services\Accounting\Quotation\SyncService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class QuotationService
 {
     protected AutofillService $autofillService;
+
     protected CreationService $creationService;
+
     protected ManagementService $managementService;
+
     protected StatusService $statusService;
+
     protected MediaService $mediaService;
+
     protected PdfService $pdfService;
+
     protected SyncService $syncService;
+
     protected Calculator $calculator;
 
     public function __construct(
@@ -52,7 +53,8 @@ class QuotationService
 
     /**
      * คำนวณฐานสำหรับมัดจำแบบก่อน VAT (Pre-VAT)
-     * @param array<string,mixed>|null $ref
+     *
+     * @param  array<string,mixed>|null  $ref
      */
     protected function computeDepositBasePreVat(Quotation $q, ?array $ref = null): float
     {
@@ -61,10 +63,10 @@ class QuotationService
 
     /**
      * สร้าง Quotation จาก Pricing Request
-     * @param mixed $pricingRequestId
-     * @param mixed $additionalData
-     * @param mixed $createdBy
-     * @return Quotation
+     *
+     * @param  mixed  $pricingRequestId
+     * @param  mixed  $additionalData
+     * @param  mixed  $createdBy
      */
     public function createFromPricingRequest($pricingRequestId, $additionalData = [], $createdBy = null): Quotation
     {
@@ -73,9 +75,9 @@ class QuotationService
 
     /**
      * สร้าง Quotation ใหม่ (ไม่ได้จาก Pricing Request)
-     * @param mixed $data
-     * @param mixed $createdBy
-     * @return Quotation
+     *
+     * @param  mixed  $data
+     * @param  mixed  $createdBy
      */
     public function create($data, $createdBy = null): Quotation
     {
@@ -84,9 +86,9 @@ class QuotationService
 
     /**
      * สร้างใบเสนอราคาแบบ Standalone (ไม่ต้องอิง Pricing Request)
-     * @param array<string,mixed> $data
-     * @param string|null $createdBy
-     * @return Quotation
+     *
+     * @param  array<string,mixed>  $data
+     * @param  string|null  $createdBy
      */
     public function createStandalone(array $data, $createdBy = null): Quotation
     {
@@ -95,11 +97,11 @@ class QuotationService
 
     /**
      * สร้าง Quotation จาก Multiple Pricing Requests
-     * @param mixed $pricingRequestIds
-     * @param mixed $customerId
-     * @param mixed $additionalData
-     * @param mixed $createdBy
-     * @return Quotation
+     *
+     * @param  mixed  $pricingRequestIds
+     * @param  mixed  $customerId
+     * @param  mixed  $additionalData
+     * @param  mixed  $createdBy
      */
     public function createFromMultiplePricingRequests($pricingRequestIds, $customerId, $additionalData = [], $createdBy = null): Quotation
     {
@@ -108,10 +110,11 @@ class QuotationService
 
     /**
      * อัปเดต Quotation
-     * @param mixed $id
-     * @param mixed $data
-     * @param mixed $updatedBy
-     * @param bool $confirmSync
+     *
+     * @param  mixed  $id
+     * @param  mixed  $data
+     * @param  mixed  $updatedBy
+     * @param  bool  $confirmSync
      * @return array|Quotation
      */
     public function update($id, $data, $updatedBy = null, $confirmSync = false)
@@ -121,9 +124,9 @@ class QuotationService
 
     /**
      * ส่งใบเสนอราคาเพื่อขออนุมัติ
-     * @param mixed $id
-     * @param mixed $submittedBy
-     * @return Quotation
+     *
+     * @param  mixed  $id
+     * @param  mixed  $submittedBy
      */
     public function submitForReview($id, $submittedBy = null): Quotation
     {
@@ -132,10 +135,10 @@ class QuotationService
 
     /**
      * อนุมัติใบเสนอราคา
-     * @param mixed $id
-     * @param mixed $approvedBy
-     * @param mixed $notes
-     * @return Quotation
+     *
+     * @param  mixed  $id
+     * @param  mixed  $approvedBy
+     * @param  mixed  $notes
      */
     public function approve($id, $approvedBy = null, $notes = null): Quotation
     {
@@ -144,10 +147,10 @@ class QuotationService
 
     /**
      * ปฏิเสธใบเสนอราคา
-     * @param mixed $id
-     * @param mixed $rejectedBy
-     * @param mixed $reason
-     * @return Quotation
+     *
+     * @param  mixed  $id
+     * @param  mixed  $rejectedBy
+     * @param  mixed  $reason
      */
     public function reject($id, $rejectedBy = null, $reason = null): Quotation
     {
@@ -155,77 +158,11 @@ class QuotationService
     }
 
     /**
-     * แปลงเป็น Invoice
-     * @param mixed $id
-     * @param mixed $convertedBy
-     * @param mixed $additionalData
-     * @return Invoice
-     */
-    public function convertToInvoice($id, $convertedBy = null, $additionalData = []): Invoice
-    {
-        try {
-            DB::beginTransaction();
-
-            $quotation = Quotation::findOrFail($id);
-            
-            if (!$quotation->canConvertToInvoice()) {
-                throw new \Exception('Quotation cannot be converted to invoice in current status');
-            }
-
-            // ดึงข้อมูล Auto-fill
-            $autofillData = $this->autofillService->getCascadeAutofillForInvoice($id);
-
-            // สร้าง Invoice
-            $invoice = new Invoice();
-            $invoice->id = \Illuminate\Support\Str::uuid();
-            $invoice->company_id = $quotation->company_id
-                ?? (auth()->user()->company_id ?? optional(\App\Models\Company::where('is_active', true)->first())->id);
-            $invoice->number = Invoice::generateInvoiceNumber($invoice->company_id);
-            $invoice->quotation_id = $quotation->id;
-            
-            // Auto-fill ข้อมูลจาก Quotation
-            foreach ($autofillData as $key => $value) {
-                if ($invoice->isFillable($key)) {
-                    $invoice->$key = $value;
-                }
-            }
-
-            // ข้อมูลเพิ่มเติม
-            foreach ($additionalData as $key => $value) {
-                if ($invoice->isFillable($key)) {
-                    $invoice->$key = $value;
-                }
-            }
-
-            $invoice->status = 'draft';
-            $invoice->created_by = $convertedBy;
-            $invoice->save();
-
-            // อัปเดตสถานะ Quotation
-            $quotation->status = 'completed';
-            $quotation->save();
-
-            // บันทึก History
-            DocumentHistory::logAction('quotation', $quotation->id, 'converted', $convertedBy, 'แปลงเป็นใบแจ้งหนี้: ' . $invoice->number);
-            DocumentHistory::logCreation('invoice', $invoice->id, $convertedBy, 'สร้างจากใบเสนอราคา: ' . $quotation->number);
-
-            DB::commit();
-
-            return $invoice->load(['quotation', 'customer', 'creator']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('QuotationService::convertToInvoice error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
      * ลบใบเสนอราคา (Soft Delete)
-     * @param mixed $id
-     * @param mixed $deletedBy
-     * @param mixed $reason
-     * @return bool
+     *
+     * @param  mixed  $id
+     * @param  mixed  $deletedBy
+     * @param  mixed  $reason
      */
     public function delete($id, $deletedBy = null, $reason = null): bool
     {
@@ -234,7 +171,8 @@ class QuotationService
 
     /**
      * ดึงข้อมูล Quotation และ Items สำหรับการทำสำเนา (Duplicate)
-     * @param string $id ID ของ Quotation ต้นฉบับ
+     *
+     * @param  string  $id  ID ของ Quotation ต้นฉบับ
      * @return array<string,mixed> ข้อมูลที่พร้อมสำหรับส่งให้ Frontend
      */
     public function getDataForDuplication(string $id): array
@@ -244,8 +182,9 @@ class QuotationService
 
     /**
      * ดึงรายการใบเสนอราคาพร้อม filter
-     * @param mixed $filters
-     * @param mixed $perPage
+     *
+     * @param  mixed  $filters
+     * @param  mixed  $perPage
      * @return mixed
      */
     public function getList($filters = [], $perPage = 15)
@@ -258,39 +197,39 @@ class QuotationService
             }
 
             $query = Quotation::with($with)
-                            ->whereNotIn('status', ['deleted']);
+                ->whereNotIn('status', ['deleted']);
 
             // Apply filters
-            if (!empty($filters['status'])) {
+            if (! empty($filters['status'])) {
                 $query->where('status', $filters['status']);
             }
 
-            if (!empty($filters['customer_id'])) {
+            if (! empty($filters['customer_id'])) {
                 $query->where('customer_id', $filters['customer_id']);
             }
 
-            if (!empty($filters['created_by'])) {
+            if (! empty($filters['created_by'])) {
                 $query->where('created_by', $filters['created_by']);
             }
 
-            if (!empty($filters['date_from'])) {
+            if (! empty($filters['date_from'])) {
                 $query->whereDate('created_at', '>=', $filters['date_from']);
             }
 
-            if (!empty($filters['date_to'])) {
+            if (! empty($filters['date_to'])) {
                 $query->whereDate('created_at', '<=', $filters['date_to']);
             }
 
-            if (!empty($filters['only_mine'])) {
+            if (! empty($filters['only_mine'])) {
                 $userId = auth()->user()->user_id;
                 $query->whereHas('customer', function ($q) use ($userId) {
                     $q->where('cus_manage_by', $userId);
                 });
             }
 
-            if (!empty($filters['search'])) {
+            if (! empty($filters['search'])) {
                 $rawSearch = trim($filters['search']);
-                $like = '%' . $rawSearch . '%';
+                $like = '%'.$rawSearch.'%';
 
                 // Pre-compute which quotation columns exist
                 $hasCustomerCompany = Schema::hasColumn('quotations', 'customer_company');
@@ -322,7 +261,7 @@ class QuotationService
 
                 $query->where(function ($q) use ($like, $hasCustomerCompany, $hasCustomerFirst, $hasCustomerLast, $joinedMaster, $joinedPricing) {
                     $q->where('quotations.number', 'like', $like)
-                      ->orWhere('quotations.work_name', 'like', $like);
+                        ->orWhere('quotations.work_name', 'like', $like);
                     if ($hasCustomerCompany) {
                         $q->orWhere('quotations.customer_company', 'like', $like);
                     }
@@ -333,14 +272,14 @@ class QuotationService
                         $q->orWhere('quotations.customer_lastname', 'like', $like);
                     }
                     if ($joinedMaster) {
-                        foreach (['cus_company','cus_firstname','cus_lastname','cus_name'] as $col) {
+                        foreach (['cus_company', 'cus_firstname', 'cus_lastname', 'cus_name'] as $col) {
                             if (Schema::hasColumn('master_customers', $col)) {
                                 $q->orWhere("master_customers.$col", 'like', $like);
                             }
                         }
                     }
                     if ($joinedPricing) {
-                        foreach (['pr_no','pr_work_name'] as $col) {
+                        foreach (['pr_no', 'pr_work_name'] as $col) {
                             if (Schema::hasColumn('pricing_requests', $col)) {
                                 $q->orWhere("pricing_requests.$col", 'like', $like);
                             }
@@ -352,20 +291,20 @@ class QuotationService
             // Filter by presence of uploaded signature evidence
             // signature_uploaded: '1'|'true' => has signatures; '0'|'false' => no signatures
             if (array_key_exists('signature_uploaded', $filters) && $filters['signature_uploaded'] !== null && $filters['signature_uploaded'] !== '') {
-                $val = strtolower((string)$filters['signature_uploaded']);
-                $wantHas = in_array($val, ['1','true','yes']);
+                $val = strtolower((string) $filters['signature_uploaded']);
+                $wantHas = in_array($val, ['1', 'true', 'yes']);
                 if ($wantHas) {
                     // JSON_VALID + JSON_LENGTH > 0 covers non-empty arrays
-                    $query->where(function($q){
+                    $query->where(function ($q) {
                         $q->whereNotNull('signature_images')
-                          ->whereRaw('JSON_VALID(signature_images)')
-                          ->whereRaw('JSON_LENGTH(signature_images) > 0');
+                            ->whereRaw('JSON_VALID(signature_images)')
+                            ->whereRaw('JSON_LENGTH(signature_images) > 0');
                     });
                 } else {
-                    $query->where(function($q){
+                    $query->where(function ($q) {
                         $q->whereNull('signature_images')
-                          ->orWhereRaw('NOT JSON_VALID(signature_images)')
-                          ->orWhereRaw('JSON_LENGTH(signature_images) = 0');
+                            ->orWhereRaw('NOT JSON_VALID(signature_images)')
+                            ->orWhereRaw('JSON_LENGTH(signature_images) = 0');
                     });
                 }
             }
@@ -373,17 +312,17 @@ class QuotationService
             return $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         } catch (\Exception $e) {
-            Log::error('QuotationService::getList error: ' . $e->getMessage());
+            Log::error('QuotationService::getList error: '.$e->getMessage());
             throw $e;
         }
     }
 
     /**
      * ส่งกลับแก้ไข (Account ส่งกลับให้ Sales)
-     * @param mixed $quotationId
-     * @param mixed $reason
-     * @param mixed $actionBy
-     * @return Quotation
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $reason
+     * @param  mixed  $actionBy
      */
     public function sendBackForEdit($quotationId, $reason, $actionBy = null): Quotation
     {
@@ -392,10 +331,10 @@ class QuotationService
 
     /**
      * ยกเลิกการอนุมัติ (Account)
-     * @param mixed $quotationId
-     * @param mixed $reason
-     * @param mixed $actionBy
-     * @return Quotation
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $reason
+     * @param  mixed  $actionBy
      */
     public function revokeApproval($quotationId, $reason, $actionBy = null): Quotation
     {
@@ -404,9 +343,10 @@ class QuotationService
 
     /**
      * สร้าง PDF ใบเสนอราคา
-     * @param mixed $quotationId
-     * @param mixed $options
-     * @param bool $useCache Whether to use cache (default: true)
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $options
+     * @param  bool  $useCache  Whether to use cache (default: true)
      * @return array<string,mixed>
      */
     public function generatePdf($quotationId, $options = [], bool $useCache = true): array
@@ -416,9 +356,9 @@ class QuotationService
 
     /**
      * Stream PDF สำหรับดู/ดาวน์โหลดทันที
-     * @param mixed $quotationId
-     * @param mixed $options
-     * @return \Symfony\Component\HttpFoundation\Response
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $options
      */
     public function streamPdf($quotationId, $options = []): \Symfony\Component\HttpFoundation\Response
     {
@@ -427,6 +367,7 @@ class QuotationService
 
     /**
      * ตรวจสอบสถานะระบบ PDF
+     *
      * @return array<string,mixed>
      */
     public function checkPdfSystemStatus(): array
@@ -435,7 +376,7 @@ class QuotationService
     }
 
     /**
-     * @param mixed $status
+     * @param  mixed  $status
      * @return array<int,string>
      */
     public function getPdfRecommendations($status): array
@@ -454,14 +395,15 @@ class QuotationService
         // checkPdfSystemStatus returns 'recommendations' key which is populated by it.
         // So I don't need to expose it unless some controller calls it directly.
         // I will omit it for now.
-        return []; 
+        return [];
     }
 
     /**
      * ส่งอีเมลใบเสนอราคา
-     * @param mixed $quotationId
-     * @param mixed $emailData
-     * @param mixed $sentBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $emailData
+     * @param  mixed  $sentBy
      * @return array<string,mixed>
      */
     public function sendEmail($quotationId, $emailData, $sentBy = null): array
@@ -471,10 +413,11 @@ class QuotationService
 
     /**
      * อัปโหลดหลักฐานการส่ง
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $description
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $description
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadEvidence($quotationId, $files, $description = null, $uploadedBy = null): array
@@ -484,9 +427,10 @@ class QuotationService
 
     /**
      * อัปโหลดรูปหลักฐานการเซ็น
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSignatures($quotationId, $files, $uploadedBy = null): array
@@ -496,9 +440,10 @@ class QuotationService
 
     /**
      * ลบรูปหลักฐานการเซ็น
-     * @param mixed $quotationId
-     * @param mixed $identifier
-     * @param mixed $deletedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $identifier
+     * @param  mixed  $deletedBy
      * @return array<string,mixed>
      */
     public function deleteSignatureImage($quotationId, $identifier, $deletedBy = null): array
@@ -508,9 +453,10 @@ class QuotationService
 
     /**
      * Upload sample images
-     * @param mixed $quotationId
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSampleImages($quotationId, $files, $uploadedBy = null): array
@@ -520,8 +466,9 @@ class QuotationService
 
     /**
      * Upload sample images without bind
-     * @param mixed $files
-     * @param mixed $uploadedBy
+     *
+     * @param  mixed  $files
+     * @param  mixed  $uploadedBy
      * @return array<string,mixed>
      */
     public function uploadSampleImagesNoBind($files, $uploadedBy = null): array
@@ -531,10 +478,10 @@ class QuotationService
 
     /**
      * มาร์คว่าลูกค้าตอบรับแล้ว
-     * @param mixed $quotationId
-     * @param mixed $data
-     * @param mixed $completedBy
-     * @return Quotation
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $data
+     * @param  mixed  $completedBy
      */
     public function markCompleted($quotationId, $data, $completedBy = null): Quotation
     {
@@ -543,10 +490,10 @@ class QuotationService
 
     /**
      * บันทึกการส่งเอกสาร
-     * @param mixed $quotationId
-     * @param mixed $data
-     * @param mixed $sentBy
-     * @return Quotation
+     *
+     * @param  mixed  $quotationId
+     * @param  mixed  $data
+     * @param  mixed  $sentBy
      */
     public function markSent($quotationId, $data, $sentBy = null): Quotation
     {
@@ -555,9 +502,6 @@ class QuotationService
 
     /**
      * Sync quotation changes to related invoices immediately
-     * @param Quotation $quotation
-     * @param string|null $userId
-     * @return array
      */
     public function syncToInvoicesImmediately(Quotation $quotation, ?string $userId): array
     {
@@ -566,8 +510,7 @@ class QuotationService
 
     /**
      * Queue invoice sync job
-     * @param Quotation $quotation
-     * @param string|null $userId
+     *
      * @return string Sync job ID
      */
     public function queueInvoiceSync(Quotation $quotation, ?string $userId): string

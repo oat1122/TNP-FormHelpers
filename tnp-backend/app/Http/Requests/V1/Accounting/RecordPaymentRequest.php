@@ -11,7 +11,7 @@ class RecordPaymentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.recordPayment') ?? false;
     }
 
     /**
@@ -24,7 +24,7 @@ class RecordPaymentRequest extends FormRequest
             'payment_method' => 'nullable|string|max:50',
             'reference_number' => 'nullable|string|max:100',
             'payment_date' => 'nullable|date',
-            'notes' => 'nullable|string|max:1000'
+            'notes' => 'nullable|string|max:1000',
         ];
     }
 

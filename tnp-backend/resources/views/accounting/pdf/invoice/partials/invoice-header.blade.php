@@ -51,22 +51,7 @@
         $displayDocNumber = $docNumber ?? $invoice->getDisplayNumber();
         $displayReferenceNo = $referenceNo ?? $invoice->getReferenceNumber($mode ?? null);
 
-        // Get seller from customer's manager (cus_manage_by)
-        $sellerName = null;
-        if ($invoice->customer_id) {
-          $customer = \App\Models\MasterCustomer::find($invoice->customer_id);
-          if ($customer && $customer->cus_manage_by) {
-            $manager = \App\Models\User::find($customer->cus_manage_by);
-            if ($manager) {
-              $sellerName = $manager->user_firstname ?? $manager->username ?? null;
-            }
-          }
-        }
-        // Fallback to invoice manager/creator if no customer manager found
-        if (!$sellerName) {
-          $seller = $invoice->manager ?? $invoice->creator;
-          $sellerName = optional($seller)->user_firstname ?? optional($seller)->username;
-        }
+        // $sellerName resolved in InvoicePdfMasterService::resolveSellerName() (audit C1)
         $jobName = $invoice->job_name ?? $invoice->project_name ?? $invoice->work_name ?? null;
         if (is_string($jobName)) { $jobName = trim($jobName); }
 

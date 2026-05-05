@@ -11,7 +11,7 @@ class UpdateInvoiceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.update') ?? false;
     }
 
     /**
@@ -22,7 +22,7 @@ class UpdateInvoiceRequest extends FormRequest
         return [
             // Company selection (can be changed before approval)
             'company_id' => 'sometimes|nullable|string|exists:companies,id',
-            
+
             // Customer override fields (nullable when not overriding)
             'customer_company' => 'sometimes|nullable|string|max:255',
             'customer_tax_id' => 'sometimes|nullable|string|max:13',
@@ -59,7 +59,7 @@ class UpdateInvoiceRequest extends FormRequest
             'deposit_percentage' => 'sometimes|numeric|min:0|max:100',
             'deposit_amount' => 'sometimes|numeric|min:0',
             'deposit_amount_before_vat' => 'sometimes|nullable|numeric|min:0',
-            
+
             // Reference invoice information
             'reference_invoice_id' => 'sometimes|nullable|string|exists:invoices,id',
             'reference_invoice_number' => 'sometimes|nullable|string|max:50',

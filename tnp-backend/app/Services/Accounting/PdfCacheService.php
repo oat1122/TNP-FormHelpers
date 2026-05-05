@@ -2,254 +2,245 @@
 
 namespace App\Services\Accounting;
 
+use App\Models\Accounting\DeliveryNote;
 use App\Models\Accounting\DocumentAttachment;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use App\Models\Accounting\Invoice;
+use App\Models\Accounting\Quotation;
+use App\Models\Accounting\Receipt;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
- * PDF Cache Service
- * 
- * Manages PDF caching with organized directory structure:
- * storage/app/public/pdfs-cache/{document_type}/{year}/{month}/
+ * PDF Cache Service.
+ *
+ * Manages PDF caching with an organized directory structure under
+ * `storage/app/public/pdfs-cache/{document_type}/{year}/{month}/`.
+ *
+ * The cache uses `DocumentAttachment` rows with `attachment_type = 'cached_pdf'`
+ * to bridge filesystem files with TTL/version metadata. Lookups happen by a
+ * deterministic `cache_key` (see `generateCacheKey()`) and bust automatically
+ * when the underlying document's relevant fields change (`calculateCacheVersion()`).
  */
 class PdfCacheService
 {
     /**
-     * TTL configurations based on document status (in minutes)
+     * TTL configurations based on document status (in minutes).
      */
-    const TTL_DRAFT = 30;           // 30 minutes
-    const TTL_APPROVED = 1440;      // 24 hours
-    const TTL_SENT = 10080;         // 7 days
-    const TTL_COMPLETED = 10080;    // 7 days
+    public const TTL_DRAFT = 30;          // 30 minutes
+
+    public const TTL_APPROVED = 1440;     // 24 hours
+
+    public const TTL_SENT = 10080;        // 7 days
+
+    public const TTL_COMPLETED = 10080;   // 7 days
 
     /**
-     * Get cached PDF if available and valid
-     * 
-     * @param string $documentType (quotation, invoice, receipt, delivery_note)
-     * @param string $documentId
-     * @param array $options (document_header_type, deposit_mode, etc.)
-     * @return array|null ['path' => string, 'url' => string, 'size' => int, 'cached_at' => datetime] or null
+     * DocumentAttachment.attachment_type discriminator for cached PDF rows.
+     */
+    private const ATTACHMENT_TYPE_CACHE = 'cached_pdf';
+
+    /**
+     * Filesystem prefix (relative to storage/app/public/) for cached PDFs.
+     */
+    private const CACHE_BASE_DIR = 'pdfs-cache';
+
+    /**
+     * Hours to keep soft-deleted cache entries before physical removal.
+     */
+    private const SOFT_DELETE_GRACE_HOURS = 24;
+
+    // ---------------------------------------------------------------------
+    // Public API
+    // ---------------------------------------------------------------------
+
+    /**
+     * Get a cached PDF if a fresh, valid entry exists for this document +
+     * options combination. Returns null on miss / expiry / missing file.
+     *
+     * @param  string  $documentType  ('quotation' | 'invoice' | 'receipt' | 'delivery_note')
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>|null
      */
     public function getCached(string $documentType, string $documentId, array $options = []): ?array
     {
         try {
-            // Get document to calculate cache version
             $document = $this->getDocument($documentType, $documentId);
-            if (!$document) {
+            if (! $document) {
                 return null;
             }
 
-            // Generate cache key
             $cacheKey = $this->generateCacheKey($documentType, $documentId, $options, $document);
-            
-            // Find cache entry
+
             $cacheEntry = DocumentAttachment::where('cache_key', $cacheKey)
-                ->where('attachment_type', 'cached_pdf')
+                ->where('attachment_type', self::ATTACHMENT_TYPE_CACHE)
                 ->whereNull('deleted_at')
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereNull('cache_expires_at')
-                          ->orWhere('cache_expires_at', '>', Carbon::now());
+                        ->orWhere('cache_expires_at', '>', Carbon::now());
                 })
                 ->first();
 
-            if (!$cacheEntry) {
-                Log::info("PDF Cache MISS", ['cache_key' => $cacheKey]);
+            if (! $cacheEntry) {
+                Log::info('PDF Cache MISS', ['cache_key' => $cacheKey]);
+
                 return null;
             }
 
-            // Check if file exists
-            $fullPath = storage_path('app/public/' . $cacheEntry->file_path);
-            if (!file_exists($fullPath)) {
-                Log::warning("PDF Cache entry exists but file missing", [
+            $fullPath = storage_path('app/public/'.$cacheEntry->file_path);
+            if (! file_exists($fullPath)) {
+                Log::warning('PDF Cache entry exists but file missing', [
                     'cache_key' => $cacheKey,
-                    'path' => $fullPath
+                    'path' => $fullPath,
                 ]);
-                // Clean up invalid cache entry
                 $cacheEntry->delete();
+
                 return null;
             }
 
-            Log::info("PDF Cache HIT", [
+            Log::info('PDF Cache HIT', [
                 'cache_key' => $cacheKey,
-                'expires_at' => $cacheEntry->cache_expires_at
+                'expires_at' => $cacheEntry->cache_expires_at,
             ]);
 
             return [
                 'path' => $fullPath,
-                'url' => asset('storage/' . $cacheEntry->file_path),
+                'url' => asset('storage/'.$cacheEntry->file_path),
                 'filename' => $cacheEntry->filename,
                 'size' => $cacheEntry->file_size,
                 'cached_at' => $cacheEntry->created_at,
                 'expires_at' => $cacheEntry->cache_expires_at,
                 'cache_version' => $cacheEntry->cache_version,
-                'from_cache' => true
+                'from_cache' => true,
             ];
 
         } catch (\Exception $e) {
-            Log::error("PDF Cache getCached error: " . $e->getMessage(), [
+            Log::error('PDF Cache getCached error: '.$e->getMessage(), [
                 'document_type' => $documentType,
-                'document_id' => $documentId
+                'document_id' => $documentId,
             ]);
+
             return null;
         }
     }
 
     /**
-     * Store PDF in cache with organized directory structure
-     * 
-     * @param object $document Document model instance
-     * @param string $pdfPath Full path to generated PDF file
-     * @param array $options PDF generation options
-     * @return array Cache entry data
+     * Store a freshly-generated PDF in the cache. The PDF is copied to the
+     * organized directory structure and a DocumentAttachment row records the
+     * key/version/TTL metadata.
+     *
+     * @param  object  $document  Document model instance (Quotation/Invoice/Receipt/DeliveryNote)
+     * @param  string  $pdfPath  Absolute path to the generated PDF
+     * @param  array<string, mixed>  $options  Generation options (document_header_type, deposit_mode, ...)
+     * @return array<string, mixed>
      */
     public function store($document, string $pdfPath, array $options = []): array
     {
+        $documentType = $this->getDocumentType($document);
+        $documentId = $document->id;
+
         try {
-            $documentType = $this->getDocumentType($document);
-            $documentId = $document->id;
-
-            // Calculate cache version
             $cacheVersion = $this->calculateCacheVersion($document);
-            
-            // Generate cache key
             $cacheKey = $this->generateCacheKey($documentType, $documentId, $options, $document);
-
-            // Calculate TTL based on document status
             $ttlMinutes = $this->calculateTTL($document);
             $expiresAt = $ttlMinutes > 0 ? Carbon::now()->addMinutes($ttlMinutes) : null;
 
-            // Get organized storage path
             $storagePath = $this->getStoragePath($documentType, Carbon::now());
-            $storageFullPath = storage_path('app/public/' . $storagePath);
-            
-            // Create directory if not exists
-            if (!is_dir($storageFullPath)) {
-                mkdir($storageFullPath, 0755, true);
-            }
+            $storageFullPath = $this->prepareStorageDirectory($storagePath);
 
-            // Generate unique filename
-            $headerType = $options['document_header_type'] ?? 'default';
-            $headerTypeSafe = $this->sanitizeFilename($headerType);
-            $timestamp = Carbon::now()->format('YmdHis');
-            $filename = sprintf(
-                '%s-%s-%s-%s.pdf',
+            $filename = $this->buildCacheFilename(
                 $documentType,
-                $document->number ?? $documentId,
-                $headerTypeSafe,
-                $timestamp
+                $documentId,
+                $document->number ?? null,
+                $options['document_header_type'] ?? 'default'
             );
 
-            // Copy PDF to cache location
-            $destinationPath = $storageFullPath . DIRECTORY_SEPARATOR . $filename;
-            if (!copy($pdfPath, $destinationPath)) {
-                throw new \Exception("Failed to copy PDF to cache location");
+            $destinationPath = $storageFullPath.DIRECTORY_SEPARATOR.$filename;
+            if (! copy($pdfPath, $destinationPath)) {
+                throw new \Exception('Failed to copy PDF to cache location');
             }
 
-            // Get file size
             $fileSize = filesize($destinationPath);
 
-            // Get current user ID (try multiple authentication methods)
-            $uploadedBy = null;
-            if (auth()->check()) {
-                $uploadedBy = auth()->user()->user_uuid ?? auth()->id();
-            } elseif (!empty($options['user_id'])) {
-                $uploadedBy = $options['user_id'];
-            } elseif (!empty($document->created_by)) {
-                $uploadedBy = $document->created_by;
-            }
-
-            // Store cache entry in database
             $cacheEntry = DocumentAttachment::create([
                 'document_type' => $documentType,
                 'document_id' => $documentId,
-                'attachment_type' => 'cached_pdf',
+                'attachment_type' => self::ATTACHMENT_TYPE_CACHE,
                 'filename' => $filename,
                 'original_filename' => $filename,
-                'file_path' => $storagePath . $filename,
+                'file_path' => $storagePath.$filename,
                 'file_size' => $fileSize,
                 'mime_type' => 'application/pdf',
                 'cache_expires_at' => $expiresAt,
                 'cache_version' => $cacheVersion,
                 'cache_key' => $cacheKey,
-                'uploaded_by' => $uploadedBy
+                'uploaded_by' => $this->resolveActorId($options, $document),
             ]);
 
-            Log::info("PDF Cache STORED", [
+            Log::info('PDF Cache STORED', [
                 'cache_key' => $cacheKey,
-                'path' => $storagePath . $filename,
+                'path' => $storagePath.$filename,
                 'ttl_minutes' => $ttlMinutes,
-                'expires_at' => $expiresAt
+                'expires_at' => $expiresAt,
             ]);
 
             return [
                 'cache_entry_id' => $cacheEntry->id,
                 'path' => $destinationPath,
-                'url' => asset('storage/' . $storagePath . $filename),
+                'url' => asset('storage/'.$storagePath.$filename),
                 'filename' => $filename,
                 'size' => $fileSize,
                 'expires_at' => $expiresAt,
-                'ttl_minutes' => $ttlMinutes
+                'ttl_minutes' => $ttlMinutes,
             ];
 
         } catch (\Exception $e) {
-            Log::error("PDF Cache store error: " . $e->getMessage(), [
-                'document_type' => $documentType ?? 'unknown',
-                'document_id' => $documentId ?? 'unknown'
+            Log::error('PDF Cache store error: '.$e->getMessage(), [
+                'document_type' => $documentType,
+                'document_id' => $documentId,
             ]);
             throw $e;
         }
     }
 
     /**
-     * Invalidate cache for a specific document
-     * 
-     * @param string $documentType
-     * @param string $documentId
-     * @return int Number of cache entries invalidated
+     * Soft-delete all cache entries for a document (the actual physical files
+     * are removed by `cleanupExpired()` after the soft-delete grace period).
      */
     public function invalidate(string $documentType, string $documentId): int
     {
         try {
             $entries = DocumentAttachment::where('document_type', $documentType)
                 ->where('document_id', $documentId)
-                ->where('attachment_type', 'cached_pdf')
+                ->where('attachment_type', self::ATTACHMENT_TYPE_CACHE)
                 ->whereNull('deleted_at')
                 ->get();
 
             $count = 0;
             foreach ($entries as $entry) {
-                // Soft delete the cache entry
                 $entry->update(['deleted_at' => Carbon::now()]);
-                
-                // Optionally delete physical file immediately or wait for cleanup
-                // $this->deletePhysicalFile($entry->file_path);
-                
                 $count++;
             }
 
-            Log::info("PDF Cache INVALIDATED", [
+            Log::info('PDF Cache INVALIDATED', [
                 'document_type' => $documentType,
                 'document_id' => $documentId,
-                'count' => $count
+                'count' => $count,
             ]);
 
             return $count;
 
         } catch (\Exception $e) {
-            Log::error("PDF Cache invalidate error: " . $e->getMessage());
+            Log::error('PDF Cache invalidate error: '.$e->getMessage());
+
             return 0;
         }
     }
 
     /**
-     * Generate unique cache key
-     * 
-     * @param string $documentType
-     * @param string $documentId
-     * @param array $options
-     * @param object $document
-     * @return string
+     * Build the deterministic cache key from document identity + options +
+     * a content-version hash. Same inputs always yield the same key.
+     *
+     * @param  array<string, mixed>  $options
      */
     public function generateCacheKey(string $documentType, string $documentId, array $options, $document): string
     {
@@ -268,15 +259,14 @@ class PdfCacheService
     }
 
     /**
-     * Calculate cache version hash from document data
-     * 
-     * @param object $document
-     * @return string MD5 hash
+     * Hash the fields that should bust the cache when they change. Loads the
+     * customer relation lazily (eager loading is preferred at the call site).
+     *
+     * @return string MD5 hex digest
      */
     public function calculateCacheVersion($document): string
     {
-        // Load customer relation if needed to check for customer data updates
-        if (!$document->relationLoaded('customer') && method_exists($document, 'customer')) {
+        if (! $document->relationLoaded('customer') && method_exists($document, 'customer')) {
             $document->load('customer');
         }
 
@@ -288,175 +278,86 @@ class PdfCacheService
             'total_amount' => $document->total_amount ?? null,
         ];
 
-        // Add items data if available
         if (method_exists($document, 'items') && $document->relationLoaded('items')) {
-            $data['items'] = $document->items->map(function($item) {
-                return [
-                    'id' => $item->id,
-                    'quantity' => $item->quantity ?? null,
-                    'unit_price' => $item->unit_price ?? null,
-                ];
-            })->toArray();
+            $data['items'] = $document->items->map(fn ($item) => [
+                'id' => $item->id,
+                'quantity' => $item->quantity ?? null,
+                'unit_price' => $item->unit_price ?? null,
+            ])->toArray();
         }
 
         return md5(serialize($data));
     }
 
     /**
-     * Calculate TTL based on document status
-     * 
-     * @param object $document
-     * @return int TTL in minutes
+     * Sweep expired cache entries: removes physical files, hard-deletes their
+     * DocumentAttachment rows, then prunes empty directories.
+     *
+     * @param  int  $softDeleteGracePeriodHours  Hours to keep soft-deleted entries before physical deletion
+     * @return array{deleted_count: int, freed_space: int}
      */
-    protected function calculateTTL($document): int
-    {
-        $status = strtolower($document->status ?? 'draft');
-
-        // Map status to TTL
-        if (in_array($status, ['draft', 'pending'])) {
-            return self::TTL_DRAFT;
-        }
-
-        if (in_array($status, ['approved'])) {
-            return self::TTL_APPROVED;
-        }
-
-        if (in_array($status, ['sent', 'completed', 'delivered'])) {
-            return self::TTL_SENT;
-        }
-
-        // Default to draft TTL
-        return self::TTL_DRAFT;
-    }
-
-    /**
-     * Get organized storage path based on document type and date
-     * 
-     * @param string $documentType
-     * @param Carbon $date
-     * @return string Relative path like 'pdfs-cache/invoice/2025/11/'
-     */
-    protected function getStoragePath(string $documentType, Carbon $date): string
-    {
-        return sprintf(
-            'pdfs-cache/%s/%s/%s/',
-            $documentType,
-            $date->format('Y'),
-            $date->format('m')
-        );
-    }
-
-    /**
-     * Clean up expired cache entries
-     * 
-     * @param int $softDeleteGracePeriodHours Hours to keep soft-deleted files before physical deletion
-     * @return array ['deleted_count' => int, 'freed_space' => int]
-     */
-    public function cleanupExpired(int $softDeleteGracePeriodHours = 24): array
+    public function cleanupExpired(int $softDeleteGracePeriodHours = self::SOFT_DELETE_GRACE_HOURS): array
     {
         try {
             $deletedCount = 0;
             $freedSpace = 0;
 
-            // Find expired cache entries
-            $expiredEntries = DocumentAttachment::where('attachment_type', 'cached_pdf')
-                ->where(function($query) {
+            $expiredEntries = DocumentAttachment::where('attachment_type', self::ATTACHMENT_TYPE_CACHE)
+                ->where(function ($query) use ($softDeleteGracePeriodHours) {
                     $query->where('cache_expires_at', '<=', Carbon::now())
-                          ->orWhere('deleted_at', '<=', Carbon::now()->subHours(24));
+                        ->orWhere('deleted_at', '<=', Carbon::now()->subHours($softDeleteGracePeriodHours));
                 })
                 ->get();
 
             foreach ($expiredEntries as $entry) {
-                $fullPath = storage_path('app/public/' . $entry->file_path);
-                
+                $fullPath = storage_path('app/public/'.$entry->file_path);
+
                 if (file_exists($fullPath)) {
                     $freedSpace += filesize($fullPath);
                     unlink($fullPath);
                 }
 
-                $entry->forceDelete(); // Hard delete from database
+                $entry->forceDelete();
                 $deletedCount++;
             }
 
-            // Clean up empty directories
             $this->cleanupEmptyDirectories();
 
-            Log::info("PDF Cache CLEANUP completed", [
+            Log::info('PDF Cache CLEANUP completed', [
                 'deleted_count' => $deletedCount,
-                'freed_space_mb' => round($freedSpace / 1024 / 1024, 2)
+                'freed_space_mb' => round($freedSpace / 1024 / 1024, 2),
             ]);
 
             return [
                 'deleted_count' => $deletedCount,
-                'freed_space' => $freedSpace
+                'freed_space' => $freedSpace,
             ];
 
         } catch (\Exception $e) {
-            Log::error("PDF Cache cleanup error: " . $e->getMessage());
+            Log::error('PDF Cache cleanup error: '.$e->getMessage());
+
             return ['deleted_count' => 0, 'freed_space' => 0];
         }
     }
 
     /**
-     * Clean up empty directories in cache structure
-     */
-    protected function cleanupEmptyDirectories(): void
-    {
-        $basePath = storage_path('app/public/pdfs-cache');
-        if (!is_dir($basePath)) {
-            return;
-        }
-
-        // Recursively find and remove empty directories
-        $this->removeEmptySubfolders($basePath);
-    }
-
-    /**
-     * Recursively remove empty subdirectories
-     * 
-     * @param string $path
-     */
-    protected function removeEmptySubfolders(string $path): void
-    {
-        $empty = true;
-        foreach (glob($path . DIRECTORY_SEPARATOR . '*') as $file) {
-            if (is_dir($file)) {
-                $this->removeEmptySubfolders($file);
-                if (is_dir($file)) {
-                    $empty = false;
-                }
-            } else {
-                $empty = false;
-            }
-        }
-        
-        if ($empty && $path !== storage_path('app/public/pdfs-cache')) {
-            @rmdir($path);
-        }
-    }
-
-    /**
-     * Get cache statistics
-     * 
-     * @return array
+     * Aggregate metrics for the cache (counts, total size, expired count,
+     * breakdown by document type).
+     *
+     * @return array<string, mixed>
      */
     public function getStatistics(): array
     {
-        $totalEntries = DocumentAttachment::where('attachment_type', 'cached_pdf')
-            ->whereNull('deleted_at')
-            ->count();
+        $base = fn () => DocumentAttachment::where('attachment_type', self::ATTACHMENT_TYPE_CACHE)->whereNull('deleted_at');
 
-        $totalSize = DocumentAttachment::where('attachment_type', 'cached_pdf')
-            ->whereNull('deleted_at')
-            ->sum('file_size');
+        $totalEntries = $base()->count();
+        $totalSize = (int) $base()->sum('file_size');
 
-        $expiredCount = DocumentAttachment::where('attachment_type', 'cached_pdf')
-            ->whereNull('deleted_at')
+        $expiredCount = $base()
             ->where('cache_expires_at', '<=', Carbon::now())
             ->count();
 
-        $byDocumentType = DocumentAttachment::where('attachment_type', 'cached_pdf')
-            ->whereNull('deleted_at')
+        $byDocumentType = $base()
             ->selectRaw('document_type, COUNT(*) as count, SUM(file_size) as size')
             ->groupBy('document_type')
             ->get();
@@ -466,28 +367,164 @@ class PdfCacheService
             'total_size_bytes' => $totalSize,
             'total_size_mb' => round($totalSize / 1024 / 1024, 2),
             'expired_count' => $expiredCount,
-            'by_document_type' => $byDocumentType->toArray()
+            'by_document_type' => $byDocumentType->toArray(),
         ];
     }
 
+    // ---------------------------------------------------------------------
+    // Private helpers — TTL, paths, filenames
+    // ---------------------------------------------------------------------
+
     /**
-     * Get document model instance
-     * 
-     * @param string $documentType
-     * @param string $documentId
-     * @return object|null
+     * Map document status → TTL (minutes). Unknown status falls back to draft TTL.
      */
-    protected function getDocument(string $documentType, string $documentId)
+    protected function calculateTTL($document): int
+    {
+        $status = strtolower($document->status ?? 'draft');
+
+        if (in_array($status, ['draft', 'pending'], true)) {
+            return self::TTL_DRAFT;
+        }
+
+        if (in_array($status, ['approved'], true)) {
+            return self::TTL_APPROVED;
+        }
+
+        if (in_array($status, ['sent', 'completed', 'delivered'], true)) {
+            return self::TTL_SENT;
+        }
+
+        return self::TTL_DRAFT;
+    }
+
+    /**
+     * Relative cache path under storage/app/public/ — e.g.
+     * `pdfs-cache/invoice/2026/05/`.
+     */
+    protected function getStoragePath(string $documentType, Carbon $date): string
+    {
+        return sprintf(
+            '%s/%s/%s/%s/',
+            self::CACHE_BASE_DIR,
+            $documentType,
+            $date->format('Y'),
+            $date->format('m')
+        );
+    }
+
+    /**
+     * Ensure the absolute storage directory exists, creating it (recursive)
+     * when missing. Returns the absolute path.
+     */
+    private function prepareStorageDirectory(string $relativeStoragePath): string
+    {
+        $storageFullPath = storage_path('app/public/'.$relativeStoragePath);
+
+        if (! is_dir($storageFullPath)) {
+            mkdir($storageFullPath, 0755, true);
+        }
+
+        return $storageFullPath;
+    }
+
+    /**
+     * Build the cached PDF filename:
+     *   <documentType>-<documentNumberOrId>-<sanitizedHeader>-<timestamp>.pdf
+     */
+    private function buildCacheFilename(
+        string $documentType,
+        string $documentId,
+        ?string $documentNumber,
+        string $headerType
+    ): string {
+        return sprintf(
+            '%s-%s-%s-%s.pdf',
+            $documentType,
+            $documentNumber ?: $documentId,
+            $this->sanitizeFilename($headerType),
+            Carbon::now()->format('YmdHis')
+        );
+    }
+
+    /**
+     * Resolve the actor id for the cache entry. Tries auth context first,
+     * falls back to options['user_id'], then the document's created_by.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    private function resolveActorId(array $options, $document): ?string
+    {
+        if (auth()->check()) {
+            return auth()->user()->user_uuid ?? auth()->id();
+        }
+
+        if (! empty($options['user_id'])) {
+            return $options['user_id'];
+        }
+
+        if (! empty($document->created_by)) {
+            return $document->created_by;
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------------------
+    // Private helpers — cleanup
+    // ---------------------------------------------------------------------
+
+    protected function cleanupEmptyDirectories(): void
+    {
+        $basePath = storage_path('app/public/'.self::CACHE_BASE_DIR);
+        if (! is_dir($basePath)) {
+            return;
+        }
+
+        $this->removeEmptySubfolders($basePath);
+    }
+
+    /**
+     * Recursively remove empty subdirectories. Never removes the root cache
+     * directory itself.
+     */
+    protected function removeEmptySubfolders(string $path): void
+    {
+        $empty = true;
+        foreach (glob($path.DIRECTORY_SEPARATOR.'*') as $file) {
+            if (is_dir($file)) {
+                $this->removeEmptySubfolders($file);
+                if (is_dir($file)) {
+                    $empty = false;
+                }
+            } else {
+                $empty = false;
+            }
+        }
+
+        if ($empty && $path !== storage_path('app/public/'.self::CACHE_BASE_DIR)) {
+            @rmdir($path);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Private helpers — document type resolution
+    // ---------------------------------------------------------------------
+
+    /**
+     * Resolve a model instance for `getCached()` to compute the cache version.
+     * Returns null when the document type is unknown or the row is missing.
+     */
+    protected function getDocument(string $documentType, string $documentId): ?object
     {
         $modelMap = [
-            'quotation' => \App\Models\Accounting\Quotation::class,
-            'invoice' => \App\Models\Accounting\Invoice::class,
-            'receipt' => \App\Models\Accounting\Receipt::class,
-            'delivery_note' => \App\Models\Accounting\DeliveryNote::class,
+            'quotation' => Quotation::class,
+            'invoice' => Invoice::class,
+            'receipt' => Receipt::class,
+            'delivery_note' => DeliveryNote::class,
         ];
 
         $modelClass = $modelMap[$documentType] ?? null;
-        if (!$modelClass) {
+        if (! $modelClass) {
             return null;
         }
 
@@ -495,48 +532,37 @@ class PdfCacheService
     }
 
     /**
-     * Get document type from model instance
-     * 
-     * @param object $document
-     * @return string
+     * Reverse-map a model instance to its `documentType` string. Uses class
+     * name substring matching — assumes Receipt/Invoice/etc. naming.
      */
     protected function getDocumentType($document): string
     {
         $class = get_class($document);
-        
-        if (str_contains($class, 'Quotation')) return 'quotation';
-        if (str_contains($class, 'Invoice')) return 'invoice';
-        if (str_contains($class, 'Receipt')) return 'receipt';
-        if (str_contains($class, 'DeliveryNote')) return 'delivery_note';
-        
+
+        if (str_contains($class, 'DeliveryNote')) {
+            return 'delivery_note';
+        }
+        if (str_contains($class, 'Quotation')) {
+            return 'quotation';
+        }
+        if (str_contains($class, 'Invoice')) {
+            return 'invoice';
+        }
+        if (str_contains($class, 'Receipt')) {
+            return 'receipt';
+        }
+
         return 'unknown';
     }
 
     /**
-     * Sanitize filename for safe filesystem storage
-     * 
-     * @param string $filename
-     * @return string
+     * Sanitize a string for filesystem-safe use in filenames. Replaces
+     * non-ASCII / special characters with `-` and caps length at 50 chars.
      */
     protected function sanitizeFilename(string $filename): string
     {
-        // Replace Thai and special characters with safe alternatives
         $filename = preg_replace('/[^a-zA-Z0-9\-_]/', '-', $filename);
-        return substr($filename, 0, 50); // Limit length
-    }
 
-    /**
-     * Delete physical file
-     * 
-     * @param string $relativePath
-     * @return bool
-     */
-    protected function deletePhysicalFile(string $relativePath): bool
-    {
-        $fullPath = storage_path('app/public/' . $relativePath);
-        if (file_exists($fullPath)) {
-            return unlink($fullPath);
-        }
-        return false;
+        return substr($filename, 0, 50);
     }
 }

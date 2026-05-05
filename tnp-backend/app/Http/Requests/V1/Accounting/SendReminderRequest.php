@@ -11,7 +11,7 @@ class SendReminderRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.sendReminder') ?? false;
     }
 
     /**
@@ -21,7 +21,7 @@ class SendReminderRequest extends FormRequest
     {
         return [
             'recipient_email' => 'required|email|max:255',
-            'notes' => 'nullable|string|max:1000'
+            'notes' => 'nullable|string|max:1000',
         ];
     }
 

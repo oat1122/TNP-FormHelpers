@@ -17,7 +17,7 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
     {
         return 'receipt';
     }
-    
+
     protected function getStorageFolder(): string
     {
         return 'receipts';
@@ -30,37 +30,37 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
     {
         // Get base data from parent (InvoicePdfMasterService)
         $data = parent::buildViewData($invoice, $options);
-        
+
         // ✨ Override document metadata for receipt
         $metadata = $this->getDocumentMetadata($invoice, 'receipt', $options);
-        
+
         $data['docNumber'] = $metadata['docNumber'];      // e.g., RECB202510-0001
         $data['referenceNo'] = $metadata['referenceNo'];  // Reference number
         $data['mode'] = $metadata['mode'];                // before/after/full
-        
-        \Log::info("🔍 ReceiptPDF buildViewData - Override metadata: " . json_encode($metadata));
-        
+
+        \Log::info('🔍 ReceiptPDF buildViewData - Override metadata: '.json_encode($metadata));
+
         return $data;
     }
 
     protected function addHeaderFooter(Mpdf $mpdf, array $data): void
     {
-        $invoice  = $data['invoice'];
+        $invoice = $data['invoice'];
         $customer = $data['customer'];
-        $isFinal  = $data['isFinal'];
+        $isFinal = $data['isFinal'];
 
         // Receipt Header (different from regular invoice)
         $summary = $data['summary'] ?? [];
-        
+
         // ✨ Pass docNumber, referenceNo, mode to header view
         $docNumber = $data['docNumber'] ?? null;
         $referenceNo = $data['referenceNo'] ?? null;
         $mode = $data['mode'] ?? null;
         $options = $data['options'] ?? [];
-        
-        $headerHtml = View::make('accounting.pdf.receipt.partials.receipt-header', compact(
+
+        $headerHtml = View::make('accounting.pdf._partials.doc-header', compact(
             'invoice', 'customer', 'isFinal', 'summary', 'docNumber', 'referenceNo', 'mode', 'options'
-        ))->render();
+        ) + ['docType' => 'receipt', 'docTitle' => 'ใบเสร็จรับเงิน'])->render();
 
         // Footer (single version without signature - signature will be rendered via adaptive placement)
         $footerHtml = View::make('accounting.pdf.invoice.partials.invoice-footer', compact(
@@ -91,11 +91,11 @@ class ReceiptPdfMasterService extends InvoicePdfMasterService
         );
 
         $directory = storage_path('app/public/pdfs/receipts');
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
-        $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        $filePath = $directory.DIRECTORY_SEPARATOR.$filename;
         $mpdf->Output($filePath, 'F');
 
         return $filePath;

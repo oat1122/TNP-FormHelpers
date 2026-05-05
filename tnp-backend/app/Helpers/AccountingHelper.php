@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 /**
  * Class AccountingHelper
- * 
+ *
  * Utility helper methods for Accounting module
  * Provides common functionality used across accounting controllers
  */
@@ -16,8 +16,6 @@ class AccountingHelper
 {
     /**
      * Get current authenticated user UUID
-     * 
-     * @return string|null
      */
     public static function getCurrentUserId(): ?string
     {
@@ -27,34 +25,33 @@ class AccountingHelper
     /**
      * Get current authenticated user information for access control
      * Extracts user_id, user_uuid, and role from authenticated user
-     * 
+     *
      * @return array|null Array with user_id, user_uuid, role or null if not authenticated
      */
     public static function getCurrentUserInfo(): ?array
     {
         $user = auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return null;
         }
-        
+
         return [
             'user_id' => $user->user_id,
             'user_uuid' => $user->user_uuid,
-            'role' => $user->role
+            'role' => $user->role,
         ];
     }
 
     /**
      * Get user information from request for access control
      * Used for API endpoints that receive user UUID in request
-     * 
-     * @param Request $request
+     *
      * @return array|null Array with user_id, user_uuid, role or null if user not found
      */
     public static function getUserInfoFromRequest(Request $request): ?array
     {
-        if (!$request->has('user') || !$request->user) {
+        if (! $request->has('user') || ! $request->user) {
             return null;
         }
 
@@ -62,23 +59,23 @@ class AccountingHelper
             ->where('user_is_enable', true)
             ->select('user_id', 'user_uuid', 'role')
             ->first();
-        
-        if (!$user) {
+
+        if (! $user) {
             return null;
         }
-        
+
         return [
             'user_id' => $user->user_id,
             'user_uuid' => $user->user_uuid,
-            'role' => $user->role
+            'role' => $user->role,
         ];
     }
 
     /**
      * Calculate VAT from total amount
-     * 
-     * @param float $amount Total amount including VAT
-     * @param float $rate VAT rate (default: 0.07 = 7%)
+     *
+     * @param  float  $amount  Total amount including VAT
+     * @param  float  $rate  VAT rate (default: 0.07 = 7%)
      * @return array Array with total_amount, subtotal, vat_rate, vat_amount
      */
     public static function calculateVat(float $amount, float $rate = 0.07): array
@@ -96,9 +93,9 @@ class AccountingHelper
 
     /**
      * Calculate subtotal and VAT from base amount
-     * 
-     * @param float $subtotal Subtotal amount (excluding VAT)
-     * @param float $rate VAT rate (default: 0.07 = 7%)
+     *
+     * @param  float  $subtotal  Subtotal amount (excluding VAT)
+     * @param  float  $rate  VAT rate (default: 0.07 = 7%)
      * @return array Array with subtotal, vat_rate, vat_amount, total_amount
      */
     public static function addVat(float $subtotal, float $rate = 0.07): array
@@ -116,21 +113,79 @@ class AccountingHelper
 
     /**
      * Format currency amount
-     * 
-     * @param float $amount Amount to format
-     * @param string $currency Currency code (default: 'THB')
-     * @param int $decimals Number of decimal places (default: 2)
+     *
+     * @param  float  $amount  Amount to format
+     * @param  string  $currency  Currency code (default: 'THB')
+     * @param  int  $decimals  Number of decimal places (default: 2)
      * @return string Formatted currency string
      */
     public static function formatCurrency(float $amount, string $currency = 'THB', int $decimals = 2): string
     {
-        return number_format($amount, $decimals) . ' ' . $currency;
+        return number_format($amount, $decimals).' '.$currency;
+    }
+
+    /**
+     * Convert a number to Thai baht text (e.g. 1234.56 → "หนึ่งพันสองร้อยสามสิบสี่บาทห้าสิบหกสตางค์").
+     *
+     * Preserves Thai numerical reading rules:
+     *   - "เอ็ด" instead of "หนึ่ง" for the units digit when tens digit is non-zero
+     *   - "ยี่" instead of "สอง" for "twenty"
+     *   - dropped "หนึ่ง" prefix for "ten" (10–19)
+     *   - "ล้าน" recursion for numbers > 999,999
+     *   - "ถ้วน" suffix when satang is zero
+     *
+     * Use via Blade directive: @thaiBaht($amount)
+     */
+    public static function numberToThaiBaht(float $number): string
+    {
+        $txtnum1 = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+        $txtnum2 = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+
+        $toWords = function ($numStr) use (&$toWords, $txtnum1, $txtnum2) {
+            $len = strlen($numStr);
+            if ($len > 7) {
+                $head = substr($numStr, 0, $len - 6);
+                $tail = substr($numStr, -6);
+
+                return $toWords(ltrim($head, '0')).'ล้าน'.$toWords(str_pad($tail, 6, '0', STR_PAD_LEFT));
+            }
+
+            $result = '';
+            for ($i = 0; $i < $len; $i++) {
+                $n = (int) $numStr[$i];
+                $pos = $len - $i - 1;
+                if ($n === 0) {
+                    continue;
+                }
+                if ($pos === 0 && $n === 1 && $len > 1) {
+                    $result .= 'เอ็ด';
+                } elseif ($pos === 1 && $n === 2) {
+                    $result .= 'ยี่';
+                } elseif ($pos === 1 && $n === 1) {
+                    // "หนึ่ง" prefix is dropped for 10–19 (reads as "สิบ" not "หนึ่งสิบ")
+                } else {
+                    $result .= $txtnum1[$n];
+                }
+                $result .= $txtnum2[$pos] ?? '';
+            }
+
+            return $result === '' ? 'ศูนย์' : $result;
+        };
+
+        $formatted = number_format($number, 2, '.', '');
+        [$intPart, $decPart] = explode('.', $formatted);
+        $intPart = ltrim($intPart, '0');
+        $text = ($intPart === '' ? 'ศูนย์' : $toWords($intPart)).'บาท';
+        $dec = (int) $decPart;
+        $text .= $dec === 0 ? 'ถ้วน' : $toWords(str_pad((string) $dec, 2, '0', STR_PAD_LEFT)).'สตางค์';
+
+        return $text;
     }
 
     /**
      * Extract pagination metadata from Laravel paginator
-     * 
-     * @param mixed $paginator Laravel paginator instance
+     *
+     * @param  mixed  $paginator  Laravel paginator instance
      * @return array Pagination metadata array
      */
     public static function getPaginationMetadata($paginator): array
@@ -141,16 +196,16 @@ class AccountingHelper
             'total' => $paginator->total(),
             'last_page' => $paginator->lastPage(),
             'from' => $paginator->firstItem(),
-            'to' => $paginator->lastItem()
+            'to' => $paginator->lastItem(),
         ];
     }
 
     /**
      * Sanitize and limit per_page parameter
-     * 
-     * @param int $perPage Requested per_page value
-     * @param int $default Default value (default: 20)
-     * @param int $max Maximum allowed value (default: 200)
+     *
+     * @param  int  $perPage  Requested per_page value
+     * @param  int  $default  Default value (default: 20)
+     * @param  int  $max  Maximum allowed value (default: 200)
      * @return int Sanitized per_page value
      */
     public static function sanitizePerPage(int $perPage, int $default = 20, int $max = 200): int
@@ -160,8 +215,8 @@ class AccountingHelper
 
     /**
      * Sanitize page parameter
-     * 
-     * @param int $page Requested page number
+     *
+     * @param  int  $page  Requested page number
      * @return int Sanitized page number (minimum 1)
      */
     public static function sanitizePage(int $page): int
@@ -171,25 +226,25 @@ class AccountingHelper
 
     /**
      * Check if current authenticated user has one of the specified roles
-     * 
-     * @param array $roles Array of role names to check
+     *
+     * @param  array  $roles  Array of role names to check
      * @return bool True if user has any of the specified roles
      */
     public static function hasRole(array $roles): bool
     {
         $user = auth()->user();
-        
-        if (!$user || !isset($user->role)) {
+
+        if (! $user || ! isset($user->role)) {
             return false;
         }
-        
+
         return in_array($user->role, $roles, true);
     }
 
     /**
      * Check if current user can manage leads
      * Allowed roles: admin, manager, sale
-     * 
+     *
      * @return bool True if user can manage leads
      */
     public static function canManageLeads(): bool
@@ -200,7 +255,7 @@ class AccountingHelper
     /**
      * Check if current user can create customers
      * Allowed roles: admin, manager, sale, telesale
-     * 
+     *
      * @return bool True if user can create customers
      */
     public static function canCreateCustomer(): bool
@@ -211,7 +266,7 @@ class AccountingHelper
     /**
      * Check if current user can allocate customers from pool
      * Allowed roles: admin, manager, or users with HEAD sub_roles
-     * 
+     *
      * @return bool True if user can allocate customers
      */
     public static function canAllocateCustomers(): bool
@@ -220,20 +275,20 @@ class AccountingHelper
         if (self::hasRole([UserRole::ADMIN, UserRole::MANAGER])) {
             return true;
         }
-        
+
         // HEAD users (by sub_role) can also allocate
         $user = auth()->user();
         if ($user && method_exists($user, 'hasSubRole')) {
             return $user->hasSubRole('HEAD_ONLINE') || $user->hasSubRole('HEAD_OFFLINE');
         }
-        
+
         return false;
     }
 
     /**
      * Check if current user can view reports
      * Allowed roles: admin, manager
-     * 
+     *
      * @return bool True if user can view reports
      */
     public static function canViewReports(): bool
@@ -245,7 +300,7 @@ class AccountingHelper
      * Check if current user can view all customers
      * Allowed roles: admin, manager
      * Regular sales and telesales can only see their assigned customers
-     * 
+     *
      * @return bool True if user can view all customers
      */
     public static function canViewAllCustomers(): bool
@@ -255,7 +310,7 @@ class AccountingHelper
 
     /**
      * Check if current user is telesales
-     * 
+     *
      * @return bool True if user is telesales
      */
     public static function isTelesales(): bool

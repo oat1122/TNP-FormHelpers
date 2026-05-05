@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\V1\Accounting;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Traits\QuotationItemRules;
+use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateQuotationRequest extends FormRequest
 {
@@ -14,7 +14,7 @@ class UpdateQuotationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization handled by middleware
+        return $this->user()?->can('quotation.update') ?? false;
     }
 
     /**

@@ -11,7 +11,7 @@ class SubmitAfterDepositRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('invoice.submitAfterDeposit') ?? false;
     }
 
     /**
@@ -20,7 +20,7 @@ class SubmitAfterDepositRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notes' => 'nullable|string|max:1000'
+            'notes' => 'nullable|string|max:1000',
         ];
     }
 

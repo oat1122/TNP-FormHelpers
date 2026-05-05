@@ -1,104 +1,14 @@
-/* ===== Header layout ===== */
-.pdf-header {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'thsarabun', sans-serif;
-  margin: 0; padding: 0;
-}
-.pdf-header td { vertical-align: top; padding: 8pt; }
+/*
+ | =======================================================================
+ | Quotation header overrides
+ | -----------------------------------------------------------------------
+ | Only Quotation-specific deviations from _doc-header-shared.css.
+ | Loaded AFTER _doc-header-shared.css in QuotationPdfMasterService::cssFiles().
+ | =======================================================================
+ */
 
-/* ซ้าย/ขวา */
-.header-left  { width: 77%; }
-.header-right { width: 23%; text-align: right; }
+/* Document title color — Quotation uses red-orange (vs Invoice dark red) */
+.doc-title { color: #e74c3c; }
 
-/* ===== Logo (ตัดปัญหา baseline ช่องว่างใต้รูป) ===== */
-.logo-wrap { line-height: 0; }      /* สำคัญ: ตัด baseline */
-.logo-img  {
-  display: block;                    /* ไม่ให้อยู่บน baseline */
-  height: 20mm;
-  margin: 0 0 4pt 0;                 /* ระยะห่างจากข้อความด้านล่าง */
-}
-
-/* ===== Company text ===== */
-.company-name {
-  font-size: 10pt;                   /* ลดลงอีก ยังชัดสำหรับหัวเรื่อง */
-  font-weight: normal;
-  color: #2c3e50;
-  line-height: 1.18;                 /* เพิ่ม line-height นิดเพราะตัวเล็กลง */
-  margin: 1pt 0 3pt 0;
-}
-.company-addr {
-  font-size: 9pt;                    /* ตัวเนื้อหา ที่อยู่ */
-  color: #34495e;
-  line-height: 1.34;
-  margin: 0 0 3pt 0;
-}
-.company-meta {
-  font-size: 8pt;                    /* เมตา เล็กกว่าที่อยู่ 1 จุด */
-  color: #7f8c8d;
-  line-height: 1.3;
-}
-
-/* Customer name styling */
-.customer-name {
-  font-size: 9pt;
-  font-weight: normal;
-  color: #2c3e50;
-  margin-bottom: 2pt;
-}
-
-/* ===== Document right side ===== */
-.doc-title {
-  font-size: 10pt;
-  font-weight: bold;
-  color: #e74c3c;
-  margin: 0 0 5pt 0;
-  line-height: 1.05;                 /* คุมให้หัวข้อไม่ห้อย */
-}
-.doc-meta {
-  font-size: 9pt;
-  color: #2c3e50;
-  line-height: 1.35;
-}
-.badge-draft {
-  margin-top: 8pt;
-  padding: 4pt 8pt;
-  background: #f39c12;
-  color: #fff;
-  border-radius: 3pt;
-  font-size: 10pt;
-  font-weight: bold;
-  display: inline-block;
-}
-
-/* เส้นคั่นใต้ header */
-.header-divider {
-  border-bottom: 2pt solid #34495e;
-  margin: 8pt 0 4pt 0; /* ลดช่องว่างด้านล่างลง ให้ customer-box ขยับขึ้น */
-}
-
-/* ป้องกันผลกระทบจาก Bootstrap (ถ้ามี) */
+/* Defensive override: kill Bootstrap-style image borders if present */
 .pdf-header img { border: 0 !important; }
-
-/* =======================================================================
- | Compact Typography Adjustments (FlowAccount-inspired)
- | - Slightly smaller body text; headers a touch larger
- * ======================================================================= */
-.company-name { font-size: 10pt; font-weight: normal; }
-.company-addr  { font-size: 8.5pt; }
-.company-meta  { font-size: 7.5pt; }
-.doc-title     { font-size: 11pt; }
-.doc-meta      { font-size: 8.5pt; }
-.badge-draft   { font-size: 9.5pt; }
-
-/* =======================================================================
- | Spacing between company and customer info
- * ======================================================================= */
-/* Increase gap below company section */
-.header-divider { margin: 16pt 0 12pt 0; }
-
-/* Add space for the label right after the divider ("ลูกค้า") */
-.header-divider + .company-meta { margin-top: 8pt; margin-bottom: 8pt; }
-
-/* Override global negative margin on customer-box when used in header */
-.pdf-header .customer-box { margin-top: 12pt !important; }

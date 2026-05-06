@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { showError } from "../../../../../utils/accountingToast";
 import { useCustomerPricingRequests } from "../../hooks/useCustomerPricingRequests";
 
 export const useCreateQuotationDialogState = ({ open, pricingRequest, onSubmit, onClose }) => {
   const { list, isLoading, fetchForCustomer } = useCustomerPricingRequests();
   const [selectedPricingItems, setSelectedPricingItems] = useState([]);
-  const [additionalNotes, setAdditionalNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -22,9 +22,15 @@ export const useCreateQuotationDialogState = ({ open, pricingRequest, onSubmit, 
     );
   }, []);
 
+  const selectMany = useCallback((prIds = []) => {
+    setSelectedPricingItems((prev) => Array.from(new Set([...prev, ...prIds])));
+  }, []);
+
+  const clearAll = useCallback(() => setSelectedPricingItems([]), []);
+
   const handleSubmit = useCallback(async () => {
     if (selectedPricingItems.length === 0) {
-      alert("กรุณาเลือกอย่างน้อย 1 งาน");
+      showError("กรุณาเลือกอย่างน้อย 1 งาน");
       return;
     }
     setIsSubmitting(true);
@@ -37,23 +43,21 @@ export const useCreateQuotationDialogState = ({ open, pricingRequest, onSubmit, 
       await onSubmit?.({
         pricingRequestIds: selectedPricingItems,
         customerId: pricingRequest?.customer?.cus_id,
-        notes: additionalNotes,
         selectedRequestsData: selectionsWithCustomer,
         customer: pricingRequest?.customer,
       });
       onClose();
-      setAdditionalNotes("");
       setSelectedPricingItems([]);
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedPricingItems, list, pricingRequest, additionalNotes, onSubmit, onClose]);
+  }, [selectedPricingItems, list, pricingRequest, onSubmit, onClose]);
 
   const selectedTotal = useMemo(
     () =>
       list
         .filter((x) => selectedPricingItems.includes(x.pr_id))
-        .reduce((s, it) => s + (it.pr_quantity || 0), 0),
+        .reduce((s, it) => s + (Number(it.pr_quantity) || 0), 0),
     [list, selectedPricingItems]
   );
 
@@ -61,10 +65,10 @@ export const useCreateQuotationDialogState = ({ open, pricingRequest, onSubmit, 
     list,
     isLoading,
     selectedPricingItems,
-    additionalNotes,
-    setAdditionalNotes,
     isSubmitting,
     toggleSelect,
+    selectMany,
+    clearAll,
     handleSubmit,
     selectedTotal,
   };

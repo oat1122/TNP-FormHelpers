@@ -1,5 +1,4 @@
-import { Info as InfoIcon } from "@mui/icons-material";
-import { Alert, Box, Dialog, DialogContent, LinearProgress, TextField } from "@mui/material";
+import { Box, Dialog, DialogContent, LinearProgress } from "@mui/material";
 
 import { useCreateQuotationDialogState } from "./hooks/useCreateQuotationDialogState";
 import CustomerInfoBanner from "./sections/CustomerInfoBanner";
@@ -20,10 +19,6 @@ const CreateQuotationDialog = ({ open, onClose, pricingRequest, onSubmit }) => {
         )}
 
         <Box sx={{ p: 3 }}>
-          <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
-            เลือกงานที่ต้องการสร้างใบเสนอราคา (เลือกได้หลายงานรวมใบเดียว)
-          </Alert>
-
           <CustomerInfoBanner customer={pricingRequest?.customer} />
 
           <PricingRequestSelectorList
@@ -32,17 +27,8 @@ const CreateQuotationDialog = ({ open, onClose, pricingRequest, onSubmit }) => {
             selectedPricingItems={state.selectedPricingItems}
             selectedTotal={state.selectedTotal}
             onToggleSelect={state.toggleSelect}
-          />
-
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="หมายเหตุเพิ่มเติม"
-            value={state.additionalNotes}
-            onChange={(e) => state.setAdditionalNotes(e.target.value)}
-            placeholder="หมายเหตุเพิ่มเติมสำหรับใบเสนอราคา…"
-            sx={{ mt: 2 }}
+            onSelectMany={state.selectMany}
+            onClearAll={state.clearAll}
           />
         </Box>
       </DialogContent>

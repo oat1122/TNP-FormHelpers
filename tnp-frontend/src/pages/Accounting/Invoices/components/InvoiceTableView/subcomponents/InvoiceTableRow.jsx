@@ -23,6 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import InvoiceHeaderTypeDialog from "./InvoiceHeaderTypeDialog";
 import { formatUserDisplay } from "../../../../../../utils/formatUser";
 import {
   formatDateTH,
@@ -330,6 +331,14 @@ const InvoiceTableRow = ({
           );
         })}
       </Menu>
+
+      <InvoiceHeaderTypeDialog
+        open={downloads.dialogOpen}
+        onClose={downloads.cancelDownload}
+        onConfirm={downloads.confirmDownload}
+        loading={downloads.downloading}
+        documentLabel={downloads.dialogDocumentLabel}
+      />
     </>
   );
 };

@@ -11,14 +11,21 @@ const KIND_PATH = {
   receiptFull: "receipt/full",
 };
 
-// Fixed default headerType ใน table view — ใน card view ผู้ใช้เลือกได้ผ่าน checkbox
-// แต่ table view ต้อง compact: ใช้ "ต้นฉบับ" เป็น default ตาม useInvoicePDFDownload.js:13
-const DEFAULT_HEADER_TYPES = ["ต้นฉบับ"];
+const KIND_LABEL = {
+  tax: "ใบกำกับภาษี",
+  taxFull: "ใบกำกับภาษี (100%)",
+  receipt: "ใบเสร็จรับเงิน",
+  receiptFull: "ใบเสร็จรับเงิน (100%)",
+};
 
 export const useInvoiceTableDownloads = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [downloading, setDownloading] = useState(false);
+
+  // Header-type picker dialog state ที่เปิดก่อนยิง download
+  const [pendingDownload, setPendingDownload] = useState(null); // { kind, mode, invoiceId }
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const openMenu = useCallback((event, invoice) => {
     event.stopPropagation();
@@ -31,15 +38,44 @@ export const useInvoiceTableDownloads = () => {
     setActiveInvoice(null);
   }, []);
 
+  // เปิด picker dialog (ไม่ยิง API ทันที — รอ user เลือกหัวกระดาษ)
   const triggerDownload = useCallback(
-    async ({ kind, mode }) => {
+    ({ kind, mode }) => {
       if (!activeInvoice?.id) return;
       const path = KIND_PATH[kind];
       if (!path) return;
 
+      setPendingDownload({
+        kind,
+        mode,
+        invoiceId: activeInvoice.id,
+      });
+      setDialogOpen(true);
+      closeMenu();
+    },
+    [activeInvoice, closeMenu]
+  );
+
+  const cancelDownload = useCallback(() => {
+    if (downloading) return;
+    setDialogOpen(false);
+    setPendingDownload(null);
+  }, [downloading]);
+
+  // ยิง download จริงหลัง user เลือก headerType จาก dialog
+  // ส่ง `document_header_type` (single) — ไม่ส่ง `headerTypes` array → BE single-path
+  // BE คืน binary PDF (response()->download()) — ไม่ใช่ JSON — ต้อง parse เป็น Blob
+  const confirmDownload = useCallback(
+    async (headerType) => {
+      if (!pendingDownload) return;
+      const { kind, mode, invoiceId } = pendingDownload;
+      const path = KIND_PATH[kind];
+      if (!path) return;
+
       setDownloading(true);
+      let blobUrl = null;
       try {
-        const url = `${apiConfig.baseUrl}/invoices/${activeInvoice.id}/pdf/${path}/download`;
+        const url = `${apiConfig.baseUrl}/invoices/${invoiceId}/pdf/${path}/download`;
         const token = getAuthToken();
         if (!token) throw new Error("ไม่พบ Authentication token");
 
@@ -48,33 +84,64 @@ export const useInvoiceTableDownloads = () => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            Accept: "application/json",
+            Accept: "application/pdf, application/json",
           },
           body: JSON.stringify({
-            headerTypes: DEFAULT_HEADER_TYPES,
+            document_header_type: headerType,
             mode,
           }),
           credentials: "include",
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          // Error response is JSON — try to extract message
+          let msg = `HTTP ${response.status}`;
+          try {
+            const err = await response.json();
+            if (err?.message) msg = err.message;
+          } catch {
+            /* ignore */
+          }
+          throw new Error(msg);
+        }
 
-        const data = await response.json();
-        const downloadUrl = data?.zip_url || data?.pdf_url;
-        if (downloadUrl) {
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/pdf")) {
+          // ผ่าน path ZIP หรือ JSON-only response — fallback หา URL
+          const data = await response.json();
+          const downloadUrl = data?.pdf_url || data?.zip_url || data?.data?.pdf_url;
+          if (!downloadUrl) throw new Error("ไม่พบไฟล์ PDF ใน response");
           window.open(downloadUrl, "_blank");
         } else {
-          console.error("No download URL in response", data);
+          // Binary PDF response → blob → object URL → เปิดแท็บใหม่
+          const blob = await response.blob();
+          blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, "_blank");
+          // Cleanup blob URL หลังจาก browser มีโอกาสเปิด (~ 1 minute เผื่อโหลดช้า)
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
         }
+
+        setDialogOpen(false);
+        setPendingDownload(null);
       } catch (e) {
-        console.error("Invoice PDF download failed", e);
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        if (import.meta.env.DEV) console.error("Invoice PDF download failed", e);
       } finally {
         setDownloading(false);
-        closeMenu();
       }
     },
-    [activeInvoice, closeMenu]
+    [pendingDownload]
   );
+
+  // Label สำหรับแสดงใน dialog (เช่น "ใบกำกับภาษี (มัดจำก่อน)")
+  const dialogDocumentLabel = pendingDownload
+    ? `${KIND_LABEL[pendingDownload.kind] ?? "PDF"}` +
+      (pendingDownload.mode === "before"
+        ? " (มัดจำก่อน)"
+        : pendingDownload.mode === "after"
+          ? " (มัดจำหลัง)"
+          : "")
+    : "PDF";
 
   return {
     anchorEl,
@@ -83,5 +150,10 @@ export const useInvoiceTableDownloads = () => {
     openMenu,
     closeMenu,
     triggerDownload,
+    // Header-type picker dialog
+    dialogOpen,
+    cancelDownload,
+    confirmDownload,
+    dialogDocumentLabel,
   };
 };

@@ -70,6 +70,15 @@ class UpdateInvoiceRequest extends FormRequest
             'payment_terms' => 'nullable|string|max:100',
             'document_header_type' => 'sometimes|nullable|string|max:50',
             'notes' => 'sometimes|nullable|string|max:2000',
+
+            // Per-side override fields (มัดจำก่อน / มัดจำหลัง) — Phase 1 of invoice-side-edit plan
+            // null = fall back to legacy atomic value
+            'due_date_before' => 'sometimes|nullable|date',
+            'due_date_after' => 'sometimes|nullable|date',
+            'paid_amount_before' => 'sometimes|nullable|numeric|min:0',
+            'paid_amount_after' => 'sometimes|nullable|numeric|min:0',
+            'notes_before' => 'sometimes|nullable|string|max:5000',
+            'notes_after' => 'sometimes|nullable|string|max:5000',
         ];
     }
 

@@ -51,8 +51,8 @@
       </table>
     </div>
 
-    {{-- Spacer to reserve space for signature (prevent content from overlapping signature area) --}}
-    <div style="height: 35mm; page-break-inside: avoid;"></div>
+    {{-- Spacer to reserve 45mm for signature area (sig height 30mm + 15mm gap to footer line; see BasePdfMasterService::renderSignatureAdaptive) --}}
+    <div style="height: 45mm; page-break-inside: avoid;"></div>
 
   </div>
 </body>

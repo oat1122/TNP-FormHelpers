@@ -25,9 +25,132 @@ import { statusColors, typeLabels } from "../utils/invoiceDetailNormalizers";
 /**
  * Section 1: ข้อมูลใบแจ้งหนี้และลูกค้า — Customer info + Invoice header + Work summary
  *
- * Extracted from InvoiceDetailDialog.jsx during Phase 1b of redesign refactor.
- * Zero behavior change — JSX moved verbatim, props threaded through.
+ * Phase 1b: extracted from InvoiceDetailDialog.jsx (zero behavior change).
+ * Phase 2:  view mode redesigned to compact single-card layout (read-mode only).
  */
+
+/** Compact key-value display: label · value (smaller, inline) */
+const KeyValueLine = ({ label, value, fullWidth = false }) => (
+  <Grid item xs={12} md={fullWidth ? 12 : 6} lg={fullWidth ? 12 : 4}>
+    <Box sx={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ minWidth: 80, fontSize: "0.72rem" }}
+      >
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: "text.primary" }}>
+        {value || "-"}
+      </Typography>
+    </Box>
+  </Grid>
+);
+
+/**
+ * Compact read-only view: combines customer + invoice info into a single dense card.
+ * Replaces 2 separate InfoCards in pre-Phase 2 layout (~30% less visual space).
+ *
+ * Exported (Phase 3) so EditModeTabs can render it in the "ภาพรวม" tab as context.
+ */
+export const CompactReadOnlyView = ({
+  customer,
+  customerDataSource,
+  formData,
+  invoice,
+  depositMode,
+}) => {
+  const customerName =
+    customerDataSource === "master"
+      ? customer?.customer_type === "individual"
+        ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
+          customer?.cus_name ||
+          "-"
+        : customer?.cus_company || "-"
+      : formData.customer_company ||
+        `${formData.customer_firstname || ""} ${formData.customer_lastname || ""}`.trim() ||
+        "-";
+
+  return (
+    <InfoCard sx={{ p: 1.5 }}>
+      {/* Header row: invoice number + status chip + customer name */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 1,
+          pb: 1,
+          mb: 1,
+          borderBottom: `1px solid ${tokens.borderLight}`,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, flexWrap: "wrap" }}>
+          <Typography
+            variant="body1"
+            sx={{ fontWeight: 700, color: tokens.primary, fontFamily: "monospace" }}
+          >
+            {getDisplayInvoiceNumber(invoice, depositMode) || "-"}
+          </Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            {typeLabels[invoice.type] || invoice.type || "-"}
+          </Typography>
+          <Chip
+            label={invoice.status || "draft"}
+            color={statusColors[invoice.status] || "default"}
+            size="small"
+            variant="outlined"
+            sx={{ height: 20, fontSize: "0.7rem" }}
+          />
+        </Box>
+        {customer.cus_tel_1 && (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={customer.cus_tel_1}
+            sx={{
+              borderColor: tokens.primary,
+              color: tokens.primary,
+              fontWeight: 700,
+              height: 20,
+              fontSize: "0.7rem",
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Customer name (prominent) */}
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+          {customer?.customer_type === "individual" ? "ชื่อผู้ติดต่อ" : "ชื่อบริษัท"}
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 700 }}>
+          {customerName}
+        </Typography>
+      </Box>
+
+      {/* Compact key-value grid for remaining fields */}
+      <Grid container rowSpacing={0.75} columnSpacing={2}>
+        {customer.contact_name && (
+          <KeyValueLine
+            label="ผู้ติดต่อ"
+            value={`${customer.contact_name}${customer.contact_nickname ? ` (${customer.contact_nickname})` : ""}`}
+          />
+        )}
+        {customer.cus_email && <KeyValueLine label="อีเมล" value={customer.cus_email} />}
+        {customer.cus_tax_id && <KeyValueLine label="เลขผู้เสียภาษี" value={customer.cus_tax_id} />}
+        <KeyValueLine label="วันที่ออก" value={formatDateTH(invoice.invoice_date)} />
+        {invoice.quotation_number && (
+          <KeyValueLine label="ใบเสนอราคา" value={invoice.quotation_number} />
+        )}
+        {customer.cus_address && (
+          <KeyValueLine label="ที่อยู่" value={customer.cus_address} fullWidth />
+        )}
+      </Grid>
+    </InfoCard>
+  );
+};
 const CustomerSection = ({
   // mode flags
   isEditing,
@@ -59,7 +182,7 @@ const CustomerSection = ({
             </Typography>
           </Box>
         </SectionHeader>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 1.5 }}>
           {/* === Customer Info Card (Read Only) OR (Edit Form) === */}
           {isEditing ? (
             /* === โค้ด HTML ที่ 2 (Edit Form) === */
@@ -245,133 +368,15 @@ const CustomerSection = ({
               </Grid>
             </Box>
           ) : (
-            /* === โค้ด HTML ที่ 1 (Read Only) === */
-            <InfoCard sx={{ p: 2, mb: 1.5 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {customer?.customer_type === "individual" ? "ชื่อผู้ติดต่อ" : "ชื่อบริษัท"}
-                  </Typography>
-                  <Typography variant="body1" fontWeight={700}>
-                    {customerDataSource === "master"
-                      ? customer?.customer_type === "individual"
-                        ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
-                          customer?.cus_name ||
-                          "-"
-                        : customer?.cus_company || "-"
-                      : formData.customer_company ||
-                        `${formData.customer_firstname || ""} ${formData.customer_lastname || ""}`.trim() ||
-                        "-"}
-                  </Typography>
-                </Box>
-                <Box display="flex" alignItems="center" gap={1}>
-                  {customer.cus_tel_1 ? (
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={customer.cus_tel_1}
-                      sx={{
-                        borderColor: tokens.primary,
-                        color: tokens.primary,
-                        fontWeight: 700,
-                      }}
-                    />
-                  ) : null}
-                </Box>
-              </Box>
-              {(customer.contact_name ||
-                customer.cus_email ||
-                customer.cus_tax_id ||
-                customer.cus_address) && (
-                <Grid container spacing={1}>
-                  {customer.contact_name && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        ผู้ติดต่อ
-                      </Typography>
-                      <Typography variant="body2">
-                        {customer.contact_name}{" "}
-                        {customer.contact_nickname ? `(${customer.contact_nickname})` : ""}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_email && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        อีเมล
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_email}</Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_tax_id && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        เลขประจำตัวผู้เสียภาษี
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_tax_id}</Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_address && (
-                    <Grid item xs={12}>
-                      <Typography variant="caption" color="text.secondary">
-                        ที่อยู่
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_address}</Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-            </InfoCard>
+            /* === Compact Read-only — single card with both customer + invoice info === */
+            <CompactReadOnlyView
+              customer={customer}
+              customerDataSource={customerDataSource}
+              formData={formData}
+              invoice={invoice}
+              depositMode={depositMode}
+            />
           )}
-
-          {/* Invoice Info Card */}
-          <InfoCard sx={{ p: 2, mb: 1.5 }}>
-            <Grid container spacing={1}>
-              <Grid item xs={12} md={3}>
-                <Typography variant="caption" color="text.secondary">
-                  เลขที่ใบแจ้งหนี้
-                </Typography>
-                <Typography variant="body2" fontWeight={700}>
-                  {getDisplayInvoiceNumber(invoice, depositMode) || "-"}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Typography variant="caption" color="text.secondary">
-                  ประเภท
-                </Typography>
-                <Typography variant="body2" fontWeight={700}>
-                  {typeLabels[invoice.type] || invoice.type || "-"}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Typography variant="caption" color="text.secondary">
-                  สถานะ
-                </Typography>
-                <Chip
-                  label={invoice.status || "draft"}
-                  color={statusColors[invoice.status] || "default"}
-                  size="small"
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <Typography variant="caption" color="text.secondary">
-                  วันที่ออกใบแจ้งหนี้
-                </Typography>
-                <Typography variant="body2">{formatDateTH(invoice.invoice_date)}</Typography>
-              </Grid>
-              {invoice.quotation_number && (
-                <Grid item xs={12} md={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    เลขที่ใบเสนอราคา
-                  </Typography>
-                  <Typography variant="body2" fontWeight={700}>
-                    {invoice.quotation_number}
-                  </Typography>
-                </Grid>
-              )}
-            </Grid>
-          </InfoCard>
 
           {/* Work Summary (Read-only) (แสดงเมื่อ isEditing=false) */}
           {!isEditing && (

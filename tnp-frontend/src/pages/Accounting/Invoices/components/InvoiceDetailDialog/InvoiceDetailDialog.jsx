@@ -16,7 +16,7 @@ import {
   useUpdateInvoiceMutation,
   useGenerateInvoicePDFMutation,
 } from "../../../../../features/Accounting/accountingApi";
-import { tokens } from "../../../PricingIntegration/components/styles/quotationFormStyles";
+import { SecondaryButton, tokens } from "../../../PricingIntegration/components/styles/quotationFormStyles";
 import { showSuccess, showError, showLoading, dismissToast } from "../../../utils/accountingToast";
 import InvoiceWarningsBanner from "../calculation/InvoiceWarningsBanner";
 import { useInvoiceCalculation } from "../calculation/useInvoiceCalculation";
@@ -25,11 +25,12 @@ import { useInvoiceApproval } from "../hooks/useInvoiceApproval";
 import { useInvoiceSideEditState } from "../hooks/useInvoiceSideEditState";
 import { useInvoiceSideValidation } from "../hooks/useInvoiceSideValidation";
 import InvoiceSaveConfirmDialog from "../subcomponents/InvoiceSaveConfirmDialog";
-import InvoiceSideTabs from "../subcomponents/InvoiceSideTabs";
 import UnsavedChangesDialog from "../subcomponents/UnsavedChangesDialog";
 import CalculationSection from "./sections/CalculationSection";
 import CustomerSection from "./sections/CustomerSection";
 import PaymentTermsSection from "./sections/PaymentTermsSection";
+import DialogHeader from "./subcomponents/DialogHeader";
+import EditModeTabs from "./subcomponents/EditModeTabs";
 import { normalizeCustomer, normalizeItems } from "./utils/invoiceDetailNormalizers";
 
 const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
@@ -547,7 +548,7 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
             }}
             aria-label="บันทึกการเปลี่ยนแปลง"
           >
-            {isSaving ? "กำลังบันทึก…" : "บันทึก"}
+            {isSaving ? "กำลังบันทึก…" : "บันทึกทั้งหมด"}
           </Button>
         </>
       ) : (
@@ -574,9 +575,6 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
           >
             แก้ไข
           </Button>
-          <Button variant="text" onClick={handleDialogClose} aria-label="ปิดหน้าต่าง">
-            ปิด
-          </Button>
         </>
       )}
     </Box>
@@ -585,9 +583,12 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
   return (
     <>
       <Dialog open={open} onClose={handleDialogClose} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          รายละเอียดใบแจ้งหนี้
-        </DialogTitle>
+        <DialogHeader
+          invoice={invoice}
+          isEditing={isEditing}
+          depositMode={depositMode}
+          onClose={handleDialogClose}
+        />
         <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
           {isLoading ? (
             <Box display="flex" alignItems="center" gap={1} p={2}>
@@ -600,74 +601,117 @@ const InvoiceDetailDialog = ({ open, onClose, invoiceId }) => {
             </Box>
           ) : (
             <Box>
-              <Grid container spacing={2}>
-                <CustomerSection
-                  isEditing={isEditing}
-                  customerDataSource={customerDataSource}
-                  handleCustomerDataSourceChange={handleCustomerDataSourceChange}
-                  customer={customer}
-                  formData={formData}
-                  invoice={invoice}
-                  depositMode={depositMode}
-                  editableItems={editableItems}
-                  handleFieldChange={handleFieldChange}
-                />
-
-                {/* Enhanced Validation Warnings */}
-                {(validation.hasWarnings || !validation.isValid) && (
-                  <Grid item xs={12}>
-                    <InvoiceWarningsBanner
-                      validation={validation}
-                      collapsible={validation.warnings.length > 1}
-                    />
-                  </Grid>
-                )}
-
-                <CalculationSection
-                  isEditing={isEditing}
-                  setIsEditing={setIsEditing}
-                  validation={validation}
-                  items={items}
-                  editableItems={editableItems}
-                  handleAddSizeRow={handleAddSizeRow}
-                  handleChangeSizeRow={handleChangeSizeRow}
-                  handleRemoveSizeRow={handleRemoveSizeRow}
-                  handleDeleteItem={handleDeleteItem}
-                  handleChangeItem={handleChangeItem}
-                  formData={formData}
-                  handleFieldChange={handleFieldChange}
-                  calculation={calculation}
-                  discountTypeState={discountTypeState}
-                  setDiscountTypeState={setDiscountTypeState}
-                />
-
-                <PaymentTermsSection
-                  isEditing={isEditing}
-                  formData={formData}
-                  handleFieldChange={handleFieldChange}
-                  calculation={calculation}
-                  notes={notes}
-                  setNotes={setNotes}
-                  invoice={invoice}
-                />
-              </Grid>
-
-              {/* Per-side edit (มัดจำก่อน / มัดจำหลัง) — Phase 3 of invoice-side-edit */}
-              {isEditing && (
-                <Box sx={{ mt: 3 }}>
-                  <InvoiceSideTabs
-                    invoice={invoice}
-                    beforeFormData={sideEdit.beforeFormData}
-                    afterFormData={sideEdit.afterFormData}
-                    setBeforeField={sideEdit.setBeforeField}
-                    setAfterField={sideEdit.setAfterField}
-                    dirtyBefore={sideEdit.dirtyBefore}
-                    dirtyAfter={sideEdit.dirtyAfter}
-                    warnings={sideValidation.warnings}
-                    activeTab={activeSideTab}
-                    onTabChange={setActiveSideTab}
+              {/* Validation warnings — always visible (both view + edit modes) */}
+              {(validation.hasWarnings || !validation.isValid) && (
+                <Box sx={{ mb: 2 }}>
+                  <InvoiceWarningsBanner
+                    validation={validation}
+                    collapsible={validation.warnings.length > 1}
                   />
                 </Box>
+              )}
+
+              {!isEditing ? (
+                /* View mode: single-scroll compact layout (Phase 2) */
+                <Grid container spacing={2}>
+                  <CustomerSection
+                    isEditing={false}
+                    customerDataSource={customerDataSource}
+                    handleCustomerDataSourceChange={handleCustomerDataSourceChange}
+                    customer={customer}
+                    formData={formData}
+                    invoice={invoice}
+                    depositMode={depositMode}
+                    editableItems={editableItems}
+                    handleFieldChange={handleFieldChange}
+                  />
+                  <CalculationSection
+                    isEditing={false}
+                    setIsEditing={setIsEditing}
+                    validation={validation}
+                    items={items}
+                    editableItems={editableItems}
+                    handleAddSizeRow={handleAddSizeRow}
+                    handleChangeSizeRow={handleChangeSizeRow}
+                    handleRemoveSizeRow={handleRemoveSizeRow}
+                    handleDeleteItem={handleDeleteItem}
+                    handleChangeItem={handleChangeItem}
+                    formData={formData}
+                    handleFieldChange={handleFieldChange}
+                    calculation={calculation}
+                    discountTypeState={discountTypeState}
+                    setDiscountTypeState={setDiscountTypeState}
+                  />
+                  <PaymentTermsSection
+                    isEditing={false}
+                    formData={formData}
+                    handleFieldChange={handleFieldChange}
+                    calculation={calculation}
+                    notes={notes}
+                    setNotes={setNotes}
+                    invoice={invoice}
+                    paidBeforeOverride={sideEdit.beforeFormData.paid_amount_before}
+                    paidAfterOverride={sideEdit.afterFormData.paid_amount_after}
+                  />
+                </Grid>
+              ) : (
+                /* Edit mode: tabbed layout (Phase 3) */
+                <EditModeTabs
+                  sectionProps={{
+                    overview: { customer, customerDataSource, formData, invoice, depositMode },
+                    customer: {
+                      isEditing: true,
+                      customerDataSource,
+                      handleCustomerDataSourceChange,
+                      customer,
+                      formData,
+                      invoice,
+                      depositMode,
+                      editableItems,
+                      handleFieldChange,
+                    },
+                    calculation: {
+                      isEditing: true,
+                      setIsEditing,
+                      validation,
+                      items,
+                      editableItems,
+                      handleAddSizeRow,
+                      handleChangeSizeRow,
+                      handleRemoveSizeRow,
+                      handleDeleteItem,
+                      handleChangeItem,
+                      formData,
+                      handleFieldChange,
+                      calculation,
+                      discountTypeState,
+                      setDiscountTypeState,
+                    },
+                    paymentTerms: {
+                      isEditing: true,
+                      formData,
+                      handleFieldChange,
+                      calculation,
+                      notes,
+                      setNotes,
+                      invoice,
+                      paidBeforeOverride: sideEdit.beforeFormData.paid_amount_before,
+                      paidAfterOverride: sideEdit.afterFormData.paid_amount_after,
+                    },
+                  }}
+                  sideEditProps={{
+                    invoice,
+                    beforeFormData: sideEdit.beforeFormData,
+                    afterFormData: sideEdit.afterFormData,
+                    setBeforeField: sideEdit.setBeforeField,
+                    setAfterField: sideEdit.setAfterField,
+                    dirtyBefore: sideEdit.dirtyBefore,
+                    dirtyAfter: sideEdit.dirtyAfter,
+                    warnings: sideValidation.warnings,
+                    activeTab: activeSideTab,
+                    onTabChange: setActiveSideTab,
+                  }}
+                />
               )}
             </Box>
           )}

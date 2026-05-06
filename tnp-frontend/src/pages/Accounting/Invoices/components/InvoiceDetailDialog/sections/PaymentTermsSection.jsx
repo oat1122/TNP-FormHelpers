@@ -25,6 +25,8 @@ const PaymentTermsSection = ({
   notes,
   setNotes,
   invoice,
+  paidBeforeOverride = null,
+  paidAfterOverride = null,
 }) => {
   const isCredit = formData.payment_terms === "credit_30" || formData.payment_terms === "credit_60";
 
@@ -39,7 +41,7 @@ const PaymentTermsSection = ({
             เงื่อนไขการชำระเงิน
           </Typography>
         </SectionHeader>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 1.5 }}>
           <PaymentTerms
             isEditing={isEditing}
             paymentTermsType={formData.payment_terms || "cash"}
@@ -90,6 +92,8 @@ const PaymentTermsSection = ({
             finalTotal={calculation.finalTotalAmount}
             depositAmount={calculation.depositAmount}
             remainingAmount={calculation.remainingAmount}
+            paidBeforeOverride={paidBeforeOverride}
+            paidAfterOverride={paidAfterOverride}
           />
 
           {/* Notes Field */}

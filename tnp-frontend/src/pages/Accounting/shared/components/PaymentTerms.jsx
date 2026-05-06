@@ -34,7 +34,12 @@ export default function PaymentTerms({
   finalTotal = 0,
   depositAmount = 0,
   remainingAmount = 0,
+  paidBeforeOverride = null,
+  paidAfterOverride = null,
 }) {
+  const hasSideOverride = paidBeforeOverride != null || paidAfterOverride != null;
+  const summaryBefore = paidBeforeOverride != null ? Number(paidBeforeOverride) : depositAmount;
+  const summaryAfter = paidAfterOverride != null ? Number(paidAfterOverride) : remainingAmount;
   return (
     <Grid container spacing={2}>
       <Grid item xs={12} md={6}>
@@ -160,23 +165,54 @@ export default function PaymentTerms({
           </Typography>
           <Grid container>
             <Grid item xs={6}>
-              <Typography>จำนวนมัดจำ</Typography>
+              <Typography>{hasSideOverride ? "ชำระก่อน (มัดจำ)" : "จำนวนมัดจำ"}</Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography textAlign="right" fontWeight={700}>
-                {depositMode === "amount"
-                  ? formatTHB(depositAmount)
-                  : `${depositPercentage || 0}% (${formatTHB(depositAmount)})`}
+                {hasSideOverride
+                  ? formatTHB(summaryBefore)
+                  : depositMode === "amount"
+                    ? formatTHB(depositAmount)
+                    : `${depositPercentage || 0}% (${formatTHB(depositAmount)})`}
               </Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography>ยอดคงเหลือ</Typography>
+              <Typography>{hasSideOverride ? "ชำระหลัง (คงเหลือ)" : "ยอดคงเหลือ"}</Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography textAlign="right" fontWeight={700}>
-                {formatTHB(remainingAmount)}
+                {formatTHB(summaryAfter)}
               </Typography>
             </Grid>
+            {hasSideOverride && (
+              <>
+                <Grid item xs={6}>
+                  <Typography color="text.secondary">รวม ก่อน + หลัง</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography
+                    textAlign="right"
+                    fontWeight={700}
+                    color={
+                      Math.abs(summaryBefore + summaryAfter - finalTotal) > 0.01
+                        ? "warning.main"
+                        : "success.main"
+                    }
+                  >
+                    {formatTHB(summaryBefore + summaryAfter)}
+                    {Math.abs(summaryBefore + summaryAfter - finalTotal) > 0.01 && (
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        sx={{ ml: 1, color: "warning.main" }}
+                      >
+                        (ยอดรวม {formatTHB(finalTotal)})
+                      </Typography>
+                    )}
+                  </Typography>
+                </Grid>
+              </>
+            )}
             {isCredit && dueDateNode}
           </Grid>
         </InfoCard>

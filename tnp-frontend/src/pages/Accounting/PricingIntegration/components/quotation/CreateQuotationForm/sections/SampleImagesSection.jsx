@@ -1,5 +1,10 @@
-import { Add as AddIcon } from "@mui/icons-material";
-import { Avatar, Box, Typography } from "@mui/material";
+import {
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  Image as ImageIcon,
+} from "@mui/icons-material";
+import { Avatar, Box, Chip, Collapse, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { useState } from "react";
 
 import ImageUploadGrid from "../../../../../shared/components/ImageUploadGrid";
 import { tokens } from "../../../../../shared/styles/tokens";
@@ -56,32 +61,76 @@ const SamplePdfRadioPicker = ({ images, selectedFilename, onSelect, onDeselect }
   </Box>
 );
 
-const SampleImagesSection = ({ formData, sampleImages }) => (
-  <Section>
-    <SectionHeader>
-      <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
-        <AddIcon fontSize="small" />
-      </Avatar>
-      <Typography variant="subtitle1" fontWeight={700}>
-        รูปภาพตัวอย่าง
-      </Typography>
-    </SectionHeader>
-    <Box sx={{ p: 2 }}>
-      <ImageUploadGrid
-        title="รูปภาพตัวอย่าง"
-        images={formData.sampleImages}
-        disabled={sampleImages.isUploadingSamples}
-        onUpload={sampleImages.handleUpload}
-        helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
-      />
-      <SamplePdfRadioPicker
-        images={formData.sampleImages}
-        selectedFilename={formData.selectedSampleForPdf}
-        onSelect={sampleImages.selectForPdf}
-        onDeselect={sampleImages.deselectForPdf}
-      />
-    </Box>
-  </Section>
-);
+/**
+ * Sample images section (Phase 6 of create-quotation-redesign).
+ *
+ * Discoverability improvements:
+ *   - Image count badge in section header (visible even when collapsed)
+ *   - Collapsible body — default expanded only when at least one image exists
+ *   - Empty state: header still shows "ยังไม่มีรูป" chip + helper text on expand to invite upload
+ */
+const SampleImagesSection = ({ formData, sampleImages }) => {
+  const images = formData.sampleImages || [];
+  const count = images.length;
+  const hasImages = count > 0;
+  const [expanded, setExpanded] = useState(hasImages);
+
+  return (
+    <Section>
+      <SectionHeader>
+        <Avatar sx={{ bgcolor: tokens.primary, color: tokens.white, width: 28, height: 28 }}>
+          <ImageIcon fontSize="small" />
+        </Avatar>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="subtitle1" fontWeight={700}>
+            รูปภาพตัวอย่าง
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip
+            label={hasImages ? `${count} รูป` : "ยังไม่มีรูป"}
+            size="small"
+            color={hasImages ? "primary" : "default"}
+            variant={hasImages ? "filled" : "outlined"}
+            sx={{ fontWeight: 600 }}
+          />
+          {formData.selectedSampleForPdf && (
+            <Chip
+              label="เลือกแสดงใน PDF แล้ว"
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          <Tooltip title={expanded ? "ย่อ" : "ขยาย"}>
+            <IconButton size="small" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </SectionHeader>
+      <Collapse in={expanded} timeout="auto" unmountOnExit>
+        <Box sx={{ p: 2 }}>
+          <ImageUploadGrid
+            title="รูปภาพตัวอย่าง"
+            images={formData.sampleImages}
+            disabled={sampleImages.isUploadingSamples}
+            onUpload={sampleImages.handleUpload}
+            helperText="รองรับ JPG/PNG สูงสุด 5MB ต่อไฟล์"
+          />
+          {hasImages && (
+            <SamplePdfRadioPicker
+              images={formData.sampleImages}
+              selectedFilename={formData.selectedSampleForPdf}
+              onSelect={sampleImages.selectForPdf}
+              onDeselect={sampleImages.deselectForPdf}
+            />
+          )}
+        </Box>
+      </Collapse>
+    </Section>
+  );
+};
 
 export default SampleImagesSection;

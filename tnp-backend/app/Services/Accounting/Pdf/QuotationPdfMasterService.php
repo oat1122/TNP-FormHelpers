@@ -43,6 +43,7 @@ class QuotationPdfMasterService extends BasePdfMasterService
     {
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/shared/pdf-doc-master.css'),
             resource_path('views/accounting/pdf/quotation/quotation-master.css'),
             resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/quotation-header.css'),

@@ -1,5 +1,48 @@
+/* ============================================================
+   DESIGN TOKENS — Accounting PDF Redesign 2026-05-06
+   ============================================================
+   Use these tokens via var(--token) in pdf-doc-master.css.
+   mPDF v8 supports CSS custom properties in non-shorthand contexts
+   (font-size, color, padding, margin) — for shorthand (border, font),
+   write concrete values directly to ensure reliable render.
+   ------------------------------------------------------------ */
+:root {
+    /* Typography scale (ratio ~1.2, 8pt-based) */
+    --fs-fine:  8pt;   /* footer fine print, signature label */
+    --fs-sm:    9pt;   /* table cell, body small, table-header */
+    --fs-base: 10pt;   /* body default */
+    --fs-md:   11pt;   /* section heading body */
+    --fs-lg:   12pt;   /* invoice "Due date", emphasis values */
+    --fs-xl:   14pt;   /* section heading large */
+    --fs-2xl:  16pt;   /* document subtitle */
+    --fs-title: 22pt;  /* doc title */
+
+    /* Spacing scale (4pt baseline) */
+    --sp-1:  4pt;
+    --sp-2:  8pt;
+    --sp-3: 12pt;
+    --sp-4: 16pt;
+    --sp-6: 24pt;
+    --sp-8: 32pt;
+    --sp-12: 48pt;
+
+    /* Color palette (TNP brand — keep existing) */
+    --c-brand:           #B20000;
+    --c-text-primary:    #1A1A1A;
+    --c-text-secondary:  #666666;
+    --c-border-strong:   #999999;
+    --c-border-light:    #DDDDDD;
+    --c-bg-header-row:   #F5F5F5;
+    --c-bg-total-row:    #FAFAFA;
+    --c-accent-warning:  #D32F2F;
+}
+
 /* Shared PDF Base Styles (Quotation + Invoice)
    Keep typography + utility classes consistent to avoid duplication.
+
+   NOTE (Phase 2 of redesign): existing body rules left unchanged on purpose —
+   visual updates happen in Phase 3+. Use design tokens above for new classes
+   in pdf-doc-master.css.
 */
 body {
     font-family: "thsarabun", "DejaVu Sans", sans-serif;

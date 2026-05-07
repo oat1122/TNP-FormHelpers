@@ -34,11 +34,11 @@
         </colgroup>
         <tr>
           {{-- Notes Section (Left) --}}
-          <td class="panel-box panel-notes">
+          <td class="panel-box panel-notes formal">
             <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
             <div class="panel-content">
               @yield('notes-content')
-            </div><br/>
+            </div>
 
             @include('accounting.pdf.invoice.partials._bank-account')
           </td>

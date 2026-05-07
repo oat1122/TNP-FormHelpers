@@ -35,11 +35,11 @@
 
       {{-- ข้อมูลลูกค้า --}}
       @php
+        use App\Helpers\PhoneNormalizer;
+
         $name   = trim($customer['name'] ?? '-');
         $addr   = trim($customer['address'] ?? '-');
-        $telRaw = $customer['tel'] ?? '';
-        // แยกเบอร์ด้วย , / | หรือช่องว่างหลายตัว
-        $phones = implode(', ', array_filter(preg_split('/[,\\s\\/|]+/', $telRaw)));
+        $phones = PhoneNormalizer::formatThaiList($customer['tel'] ?? '');
         $taxId  = trim($customer['tax_id'] ?? '');
         // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
         if (preg_match('/^\\d{13}$/', $taxId)) {

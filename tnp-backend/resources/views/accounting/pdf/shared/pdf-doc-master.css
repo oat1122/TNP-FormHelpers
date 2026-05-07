@@ -1,0 +1,567 @@
+/* ============================================================
+   PDF Doc Master — Layout primitives (Phase 2 of redesign)
+   ============================================================
+   Design system shared across Quotation / Invoice / TaxInvoice /
+   Receipt / DeliveryNote. Uses tokens from pdf-shared-base.css `:root`.
+
+   NAMESPACE: ALL classes prefixed with `.doc-` to avoid collision
+   with existing per-doc CSS (`.customer-box`, `.doc-title`,
+   `.summary-table`, etc.). Migration to these classes is opt-in
+   per blade — existing markup continues to use legacy classes.
+
+   mPDF v8 caveats:
+   - var() works in font-size, color, padding, margin (non-shorthand)
+   - For border / font / background shorthand → write concrete values
+   - For tabular numerals: rely on Sarabun font (has tabular figures)
+   ============================================================ */
+
+/* ---------- 1. Page container ---------- */
+.doc-page {
+    /* Standard page rhythm. Body padding handles outer margin via mPDF page
+       margins set in service (15-20mm L/R, 18mm top, 22mm bottom). */
+    color: var(--c-text-primary);
+    font-size: var(--fs-base);
+    line-height: 1.45;
+}
+
+/* ---------- 2. Doc header band (logo / company / meta) ---------- */
+.doc-header-band {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: var(--sp-3);
+    table-layout: fixed;
+}
+
+.doc-header-band .col-logo {
+    width: 28%;
+    vertical-align: middle;
+    padding: 0;
+}
+
+.doc-header-band .col-logo img {
+    max-height: 48pt;
+    max-width: 100%;
+    display: block;
+}
+
+.doc-header-band .col-company {
+    width: 42%;
+    vertical-align: middle;
+    padding: 0 var(--sp-3);
+    color: var(--c-text-primary);
+}
+
+.doc-header-band .col-company .company-name {
+    font-size: var(--fs-md);
+    font-weight: bold;
+    margin: 0 0 2pt;
+}
+
+.doc-header-band .col-company .company-line {
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.doc-header-band .col-meta {
+    width: 30%;
+    vertical-align: middle;
+    text-align: right;
+    padding: 0;
+}
+
+/* ---------- 3. Doc title (renamed to avoid collision with existing .doc-title) ---------- */
+.doc-master-title {
+    font-size: var(--fs-title);
+    font-weight: bold;
+    color: var(--c-brand);
+    margin: 0 0 2pt;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+}
+
+.doc-master-title-en {
+    font-size: var(--fs-base);
+    font-weight: normal;
+    color: var(--c-text-secondary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ---------- 4. Doc meta row (เลขที่ / วันที่ / due) ---------- */
+.doc-meta-row {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-sm);
+}
+
+.doc-meta-row td {
+    padding: 2pt 0;
+    vertical-align: top;
+}
+
+.doc-meta-row .label {
+    color: var(--c-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-fine);
+}
+
+.doc-meta-row .value {
+    color: var(--c-text-primary);
+    font-weight: bold;
+}
+
+.doc-meta-row .value.emphasis {
+    /* For Invoice "Due Date" — bigger + brand red */
+    font-size: var(--fs-lg);
+    color: var(--c-brand);
+}
+
+/* ---------- 5. Customer info box (namespaced) ---------- */
+.doc-customer-box {
+    width: 100%;
+    border: 1pt solid #DDDDDD;
+    padding: var(--sp-3);
+    margin-bottom: var(--sp-3);
+    background: #FFFFFF;
+}
+
+.doc-customer-box .label {
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 2pt;
+}
+
+.doc-customer-box .value {
+    font-size: var(--fs-base);
+    color: var(--c-text-primary);
+    margin: 0 0 var(--sp-1);
+}
+
+.doc-customer-box .value.strong {
+    font-weight: bold;
+    font-size: var(--fs-md);
+}
+
+/* ---------- 6. Items table — formal variant (namespaced) ---------- */
+.doc-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: var(--sp-3);
+    font-size: var(--fs-sm);
+}
+
+.doc-items-table thead th {
+    /* Pro detail: uppercase + tracking + 1 step smaller */
+    font-size: var(--fs-sm);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-text-primary);
+    background: #F5F5F5;
+    padding: 6pt 8pt;
+    border-top: 1pt solid #999999;
+    border-bottom: 1pt solid #999999;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.doc-items-table thead th.num {
+    text-align: right;
+}
+
+.doc-items-table tbody td {
+    padding: 5pt 8pt;
+    border-bottom: 0.5pt solid #DDDDDD;
+    vertical-align: top;
+    color: var(--c-text-primary);
+    font-size: var(--fs-sm);
+}
+
+.doc-items-table tbody td.num {
+    text-align: right;
+    /* Keep numbers tight + non-wrap */
+    white-space: nowrap;
+}
+
+.doc-items-table tbody td.desc {
+    text-align: left;
+}
+
+/* SKU / sub-info under product name — smaller + secondary color */
+.doc-items-table .sku,
+.doc-items-table .sub-info {
+    display: block;
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    margin-top: 1pt;
+    line-height: 1.3;
+}
+
+/* Pro detail: total row — double rule (top 1.5pt, bottom 0.5pt) */
+.doc-items-table tfoot tr.total-row td {
+    border-top: 1.5pt solid #999999;
+    border-bottom: 0.5pt solid #999999;
+    padding: 6pt 8pt;
+    font-weight: bold;
+    font-size: var(--fs-base);
+    color: var(--c-text-primary);
+}
+
+/* ---------- 7. Summary panel (namespaced) ---------- */
+.doc-summary-panel {
+    width: 50%;
+    margin-left: 50%;
+    border-collapse: collapse;
+    font-size: var(--fs-sm);
+    margin-top: var(--sp-3);
+    margin-bottom: var(--sp-3);
+}
+
+.doc-summary-panel td {
+    padding: 4pt 8pt;
+    vertical-align: top;
+}
+
+.doc-summary-panel td.label {
+    text-align: left;
+    color: var(--c-text-secondary);
+    width: 50%;
+}
+
+.doc-summary-panel td.amount {
+    text-align: right;
+    color: var(--c-text-primary);
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+.doc-summary-panel tr.subtotal-row td {
+    border-bottom: 0.5pt solid #DDDDDD;
+}
+
+/* Total bar — brand color emphasis */
+.doc-summary-panel tr.total-bar td {
+    border-top: 1.5pt solid #999999;
+    border-bottom: 0.5pt solid #999999;
+    padding: 8pt 8pt;
+    background: #FAFAFA;
+    font-size: var(--fs-md);
+    font-weight: bold;
+}
+
+.doc-summary-panel tr.total-bar td.amount {
+    color: var(--c-brand);
+    font-size: var(--fs-lg);
+}
+
+/* ---------- 8. Signature grid (namespaced) ---------- */
+.doc-signature-grid-2,
+.doc-signature-grid-3 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--sp-6);
+    table-layout: fixed;
+}
+
+.doc-signature-grid-2 td,
+.doc-signature-grid-3 td {
+    vertical-align: top;
+    padding: 0 var(--sp-3);
+    text-align: center;
+}
+
+.doc-signature-grid-2 td {
+    width: 50%;
+}
+
+.doc-signature-grid-3 td {
+    width: 33.33%;
+}
+
+.doc-signature-grid-2 .sig-line,
+.doc-signature-grid-3 .sig-line {
+    border-top: 0.5pt solid #999999;
+    margin-top: var(--sp-12);
+    padding-top: var(--sp-1);
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+}
+
+.doc-signature-grid-2 .sig-label,
+.doc-signature-grid-3 .sig-label {
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    margin-top: 2pt;
+}
+
+/* ---------- 9. Fineprint footer (namespaced) ---------- */
+.doc-fineprint-footer {
+    margin-top: var(--sp-4);
+    padding-top: var(--sp-2);
+    border-top: 0.5pt solid #DDDDDD;
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    line-height: 1.45;
+}
+
+.doc-fineprint-footer .section-title {
+    font-size: var(--fs-fine);
+    font-weight: bold;
+    color: var(--c-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 2pt;
+}
+
+/* ---------- 10. Delivery confirmation band (DeliveryNote-only, namespaced) ---------- */
+.doc-delivery-confirmation-band {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--sp-12);
+    table-layout: fixed;
+}
+
+.doc-delivery-confirmation-band td {
+    width: 50%;
+    vertical-align: top;
+    padding: 0 var(--sp-6);
+    text-align: center;
+}
+
+.doc-delivery-confirmation-band .sig-line {
+    border-top: 0.5pt solid #999999;
+    margin-top: var(--sp-12);
+    padding-top: var(--sp-1);
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+}
+
+.doc-delivery-confirmation-band .sig-label-strong {
+    font-size: var(--fs-sm);
+    font-weight: bold;
+    color: var(--c-text-primary);
+    margin-bottom: 2pt;
+}
+
+.doc-delivery-confirmation-band .sig-meta {
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    margin-top: 2pt;
+}
+
+/* ---------- Helpers (namespaced) ---------- */
+.doc-money {
+    text-align: right;
+    white-space: nowrap;
+    /* Sarabun has tabular figures — relies on font for column alignment */
+}
+
+.doc-label-uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-sm);
+    font-weight: bold;
+}
+
+.doc-text-fine {
+    font-size: var(--fs-fine);
+}
+
+.doc-text-secondary {
+    color: var(--c-text-secondary);
+}
+
+.doc-text-brand {
+    color: var(--c-brand);
+}
+
+.doc-text-warning {
+    color: var(--c-accent-warning);
+}
+
+/* Doc type badge — small chip near header (e.g. "มัดจำ" / "ส่วนคงเหลือ") */
+.doc-type-chip {
+    display: inline-block;
+    padding: 2pt 6pt;
+    font-size: var(--fs-fine);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 0.5pt solid #999999;
+    color: var(--c-text-primary);
+    background: #F5F5F5;
+    margin-left: var(--sp-2);
+}
+
+/* ============================================================
+   .formal modifier — design-system overlay for legacy markup
+   ============================================================
+   Cross-doc reusable polish (Phase 3+4). Applied via `.formal`
+   modifier on existing classes (`.items-table.slim`, `.summary-table`,
+   `.panel-notes`) to add formal typography + brand color total
+   without rewriting markup. Reversible 1:1 by removing the class.
+
+   Used by Quotation, Invoice, TaxInvoice, Receipt, DeliveryNote.
+   ============================================================ */
+
+/* --- Items table — formal headers (uppercase + tracking) --- */
+.items-table.slim.formal thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-sm);
+    font-weight: bold;
+}
+
+/* Number cells — consistent right-align, tabular look */
+.items-table.slim.formal td.qty-cell,
+.items-table.slim.formal td.amount-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+.items-table.slim.formal td.price-cell {
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* SKU / sub-info inline (item notes) — secondary color via token */
+.items-table.slim.formal .item-note-inline {
+    color: var(--c-text-secondary);
+    font-size: var(--fs-fine);
+}
+
+/* --- Notes panel — formal title (uppercase + tracking) --- */
+.panel-notes.formal .panel-title {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-fine);
+    font-weight: bold;
+    color: var(--c-text-primary);
+    border-bottom: 0.5pt solid var(--c-border-light);
+    padding-bottom: 3pt;
+    margin-bottom: 4pt;
+}
+
+.panel-notes.formal .panel-content {
+    color: var(--c-text-primary);
+    font-size: var(--fs-fine);
+    line-height: 1.4;
+}
+
+/* --- Summary table — formal hierarchy + brand total --- */
+.summary-table.formal .summary-label {
+    color: var(--c-text-secondary);
+    font-weight: normal;
+    text-transform: none;
+}
+
+.summary-table.formal .summary-amount {
+    color: var(--c-text-primary);
+    font-weight: normal;
+}
+
+/* Discount / withholding — token semantic colors */
+.summary-table.formal .discount-row,
+.summary-table.formal .summary-amount.discount {
+    color: var(--c-accent-warning);
+}
+
+/* Pro detail: total row — double rule + brand color emphasis */
+.summary-table.formal .total-row {
+    background: var(--c-bg-total-row);
+}
+.summary-table.formal .total-row td {
+    border-top: 1.5pt solid var(--c-border-strong);
+    border-bottom: 0.5pt solid var(--c-border-strong);
+    font-weight: bold;
+    padding: 8pt 6pt;
+}
+.summary-table.formal .total-row .summary-label {
+    color: var(--c-text-primary);
+    font-weight: bold;
+    font-size: var(--fs-md);
+}
+.summary-table.formal .total-row .summary-amount {
+    color: var(--c-brand);
+    font-size: var(--fs-lg);
+    font-weight: bold;
+}
+.summary-table.formal .total-row .summary-amount .amount-main {
+    color: var(--c-brand);
+    font-size: var(--fs-lg);
+}
+
+/* Reading row (Thai baht text) — fine print, centered, secondary */
+.summary-table.formal .reading-row td {
+    padding-top: 2pt;
+}
+.summary-table.formal .reading-full-width {
+    color: var(--c-text-secondary);
+    font-size: var(--fs-fine);
+    font-style: normal;
+    font-weight: normal;
+}
+
+/* Bank account section — visual separator from notes content above.
+
+   mPDF render note (verified via experimentation):
+   - Empty <div></div> → collapsed to 0 height regardless of CSS height
+   - <hr> margins → collapsed when nested in table cell
+   - <table> with explicit cell height + &nbsp; content → renders reliably ✓
+
+   Solution: use a <table> with 3 rows for spacer-top, divider, spacer-bottom.
+   Each cell contains &nbsp; so mPDF allocates the configured height.
+   line-height matches height + small font-size keeps the &nbsp; from
+   adding visual artifacts. */
+.bank-account-separator {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
+}
+
+.bank-account-spacer-top {
+    height: 30pt;
+    line-height: 30pt;
+    font-size: 1pt;
+    padding: 0;
+    color: transparent;
+}
+
+.bank-account-divider-cell {
+    height: 1pt;
+    line-height: 1pt;
+    font-size: 1pt;
+    padding: 0;
+    color: transparent;
+    border-top: 0.5pt solid #999999;
+}
+
+.bank-account-spacer-bottom {
+    height: 14pt;
+    line-height: 14pt;
+    font-size: 1pt;
+    padding: 0;
+    color: transparent;
+}
+
+.bank-account-section {
+    page-break-inside: avoid;
+}
+
+.bank-account-title {
+    font-size: var(--fs-fine);
+    font-weight: bold;
+    color: var(--c-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 var(--sp-2) 0;
+    padding: 0;
+}

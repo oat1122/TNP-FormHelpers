@@ -35,10 +35,11 @@
       <div class="company-meta">ลูกค้า</div>
 
       @php
+        use App\Helpers\PhoneNormalizer;
+
         $name   = trim($customer['name'] ?? '-');
         $addr   = trim($customer['address'] ?? '-');
-        $telRaw = $customer['tel'] ?? '';
-        $phones = implode(', ', array_filter(preg_split('/[,\s\/|]+/', $telRaw)));
+        $phones = PhoneNormalizer::formatThaiList($customer['tel'] ?? '');
         $taxId  = trim($customer['tax_id'] ?? '');
         if (preg_match('/^\d{13}$/', $taxId)) {
             $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);

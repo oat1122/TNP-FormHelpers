@@ -60,7 +60,7 @@
       {{--
         1. เพิ่ม class 'quotation-pdf-table' เพื่อให้ CSS ใหม่ทำงาน
       --}}
-      <table class="items-table slim table-numbers-sm quotation-pdf-table">
+      <table class="items-table slim table-numbers-sm quotation-pdf-table formal">
         <colgroup>
           {{-- 2. เปลี่ยนไปใช้ class ความกว้างใหม่ (q-col-...) ที่ไม่ซ้ำซ้อน --}}
           {{-- ลำดับนี้คือลำดับการแสดงผลที่ถูกต้อง --}}
@@ -101,9 +101,9 @@
                   3. เพิ่ม Inline Style กลับมา
                      นี่เป็นวิธีที่แน่นอนที่สุดสำหรับ mPDF
                 --}}
-                <td class="num" style="text-align: right;">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
-                <td class="num" style="text-align: center;">{{ number_format($it['price'], 2) }}</td>
-                <td class="num" style="text-align: right;">{{ number_format($it['amount'], 2) }}</td>
+                <td class="num qty-cell">{{ number_format($it['qty']) }} {{ $it['unit'] }}</td>
+                <td class="num price-cell">{{ number_format($it['price'], 2) }}</td>
+                <td class="num amount-cell">{{ number_format($it['amount'], 2) }}</td>
               </tr>
             @endforeach
           @endforeach
@@ -204,8 +204,8 @@
           </colgroup>
           <tr>
             {{-- Notes Section (Left) --}}
-            <td class="panel-box panel-notes">
-              <h3 class="panel-title panel-title--sm">หมายเหตุ</h3> <br/>  
+            <td class="panel-box panel-notes formal">
+              <h3 class="panel-title panel-title--sm">หมายเหตุ</h3>
               <div class="panel-content">
                 {!! !empty($quotation->notes) ? nl2br(e($quotation->notes)) : 'ไม่มีหมายเหตุ' !!}
               </div>
@@ -234,7 +234,7 @@
                 $showVat = $hasVat && $taxAmount > 0;
               @endphp
 
-              <table class="summary-table">
+              <table class="summary-table formal">
                 <colgroup>
                   <col style="width: 45%;">
                   <col style="width: 55%;">

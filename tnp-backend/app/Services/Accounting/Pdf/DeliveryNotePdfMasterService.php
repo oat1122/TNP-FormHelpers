@@ -37,6 +37,7 @@ class DeliveryNotePdfMasterService extends BasePdfMasterService
     {
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/shared/pdf-doc-master.css'),
             resource_path('views/accounting/pdf/delivery-note/delivery-note-master.css'),
             resource_path('views/pdf/partials/_doc-header-shared.css'),
             // ใช้ header CSS ของ invoice (เก็บ items-table.slim cross-domain rules + .doc-title color)

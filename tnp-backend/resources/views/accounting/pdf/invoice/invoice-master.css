@@ -132,6 +132,17 @@
     margin-bottom: 3pt;
 }
 
+/* Phase 4: due-date emphasis (invoice-family) — bigger + brand color */
+.doc-meta .meta-row-due-date {
+    font-size: var(--fs-lg);
+    color: var(--c-brand);
+    margin-top: 4pt;
+    margin-bottom: 4pt;
+}
+.doc-meta .meta-row-due-date strong {
+    color: var(--c-brand);
+}
+
 .badge-draft {
     background: #f39c12;
     color: white;

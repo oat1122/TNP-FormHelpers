@@ -1,64 +1,61 @@
 {{-- resources/views/accounting/pdf/delivery-note/partials/delivery-note-header.blade.php --}}
 @php
+  use App\Helpers\PhoneNormalizer;
+
   // เลือกบริษัทผู้ส่งตาม sender_company_id ถ้ามี ไม่งั้นใช้ company ปกติ
   $sender = $deliveryNote->senderCompany ?? $deliveryNote->company ?? null;
+
+  // Format own company phone
+  $senderPhone = PhoneNormalizer::formatThaiList($sender->phone ?? '');
+
+  // Customer info
+  $name   = trim($customer['name'] ?? '-');
+  $addr   = trim($customer['address'] ?? '-');
+  $phones = PhoneNormalizer::formatThaiList($customer['tel'] ?? '');
+  $taxId  = trim($customer['tax_id'] ?? '');
+  // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
+  if (preg_match('/^\d{13}$/', $taxId)) {
+      $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
+  }
 @endphp
 
 <table class="pdf-header">
   <tr>
     <td class="header-left">
       {{-- โลโก้บริษัท --}}
-      <x-company-logo 
-        :company-id="$sender->id ?? null" 
-        css-class="logo-img" 
-        alt="logo" 
-        :for-pdf="true" 
+      <x-company-logo
+        :company-id="$sender->id ?? null"
+        css-class="logo-img"
+        alt="logo"
+        :for-pdf="true"
       />
 
-      {{-- ข้อมูลบริษัท --}}
-      <div class="company-name">
-        {{ $sender->legal_name ?? $sender->name ?? 'บริษัทของคุณ' }}
+      {{-- ข้อมูลบริษัท (ผู้ส่ง) — same .party-box markup as customer below for consistent styling --}}
+      <div class="party-box">
+        <div class="party-name">{{ $sender->legal_name ?? $sender->name ?? 'บริษัทของคุณ' }}</div>
+        @if (!empty($sender->address))
+          <div class="party-line">{{ $sender->address }}</div>
+        @endif
+        @if ($senderPhone)
+          <div class="party-line muted">โทร: {{ $senderPhone }}</div>
+        @endif
+        @if (!empty($sender->tax_id))
+          <div class="party-line muted">เลขประจำตัวผู้เสียภาษี: {{ $sender->tax_id }}</div>
+        @endif
       </div>
 
-      @if (!empty($sender->address))
-        <div class="company-addr">
-          {{ $sender->address }}
-        </div>
-      @endif
-
-      <div class="company-meta">
-        โทร: {{ $sender->phone ?? '-' }}<br>
-        เลขประจำตัวผู้เสียภาษี: {{ $sender->tax_id ?? '-' }}
-      </div>
-
-      <br/>
       <div class="header-divider"></div>
-      <div class="company-meta">ลูกค้า</div>
+      <div class="party-label">ลูกค้า</div>
 
       {{-- ข้อมูลลูกค้า --}}
-      @php
-        $name   = trim($customer['name'] ?? '-');
-        $addr   = trim($customer['address'] ?? '-');
-        $telRaw = $customer['tel'] ?? '';
-        // แยกเบอร์ด้วย , / | หรือช่องว่างหลายตัว
-        $phones = implode(', ', array_filter(preg_split('/[,\s\/|]+/', $telRaw)));
-        $taxId  = trim($customer['tax_id'] ?? '');
-        // format 13 หลักให้มีขีด (ถ้าอยากให้เหมือนทางการ)
-        if (preg_match('/^\d{13}$/', $taxId)) {
-            $taxId = preg_replace('/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/', '$1-$2-$3-$4-$5', $taxId);
-        }
-      @endphp
-
-      <div class="customer-box">
-        <div class="customer-name">{{ $name }}</div>
-        <div class="customer-line">{!! nl2br(e($addr)) !!}</div>
-
+      <div class="party-box">
+        <div class="party-name">{{ $name }}</div>
+        <div class="party-line">{!! nl2br(e($addr)) !!}</div>
         @if($phones)
-          <div class="customer-line muted">โทร: {{ $phones }}</div>
+          <div class="party-line muted">โทร: {{ $phones }}</div>
         @endif
-
         @if($taxId !== '')
-          <div class="customer-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
+          <div class="party-line muted">เลขประจำตัวผู้เสียภาษี: {{ $taxId }}</div>
         @endif
       </div>
     </td>
@@ -82,7 +79,7 @@
           $sellerFirst = optional($deliveryNote->creator)->user_firstname;
           $sellerLast  = optional($deliveryNote->creator)->user_lastname;
           $sellerUser  = optional($deliveryNote->creator)->username;
-          $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: $sellerUser); 
+          $sellerDisplay = trim(($sellerFirst.' '.$sellerLast) ?: $sellerUser);
         @endphp
         @if ($sellerDisplay)
           <div><strong>ผู้ส่ง:</strong> {{ $sellerFirst }}</div>

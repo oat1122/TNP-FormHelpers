@@ -39,9 +39,13 @@ class InvoicePdfMasterService extends BasePdfMasterService
     {
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/shared/pdf-doc-master.css'),
             resource_path('views/accounting/pdf/invoice/invoice-master.css'),
             resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/invoice-header.css'),
+            // Loaded LAST so .invb-items rules win cascade against !important
+            // declarations in invoice-header.css for cross-doc .items-table.slim
+            resource_path('views/accounting/pdf/invoice/invoice-body.css'),
         ];
     }
 

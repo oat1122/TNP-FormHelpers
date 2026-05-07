@@ -748,3 +748,9 @@ h3 {
         font-size: 7pt !important;
     }
 }
+
+/* Phase 3+4 design-system polish has been MOVED to pdf-doc-master.css
+   as the generic `.formal` modifier so it can be reused by Quotation,
+   Invoice, TaxInvoice, Receipt, and DeliveryNote without duplication.
+   See: resources/views/accounting/pdf/shared/pdf-doc-master.css */
+

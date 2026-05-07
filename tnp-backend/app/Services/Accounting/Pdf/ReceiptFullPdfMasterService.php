@@ -29,9 +29,10 @@ class ReceiptFullPdfMasterService extends InvoicePdfMasterService
 
     protected function cssFiles(): array
     {
-        // รวม CSS ที่จำเป็น: base, quotation body, และ header (ใช้ของ receipt)
+        // รวม CSS ที่จำเป็น: base, doc-master, quotation body, และ header (ใช้ของ receipt)
         return [
             resource_path('views/accounting/pdf/shared/pdf-shared-base.css'),
+            resource_path('views/accounting/pdf/shared/pdf-doc-master.css'),
             resource_path('views/accounting/pdf/quotation/quotation-master.css'),
             resource_path('views/pdf/partials/_doc-header-shared.css'),
             resource_path('views/pdf/partials/invoice-header.css'),

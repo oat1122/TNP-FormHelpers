@@ -1,0 +1,101 @@
+/* ============================================================
+   Invoice body table styles — INVB items table (2-col summary)
+   ============================================================
+   Loaded LAST (after invoice-header.css) so it wins cascade against
+   the cross-doc !important rules for .items-table.slim that live in
+   invoice-header.css (V9 audit defer — those rules also serve
+   DeliveryNote / ReceiptFull / TaxInvoiceFull).
+
+   Uses isolated namespace `.invb-items` so existing rules for
+   `.items-table.slim` are not affected.
+
+   Layout: each invoice item renders as 2 stacked rows
+     - Row 1 (.invb-title-row):    pink bg + red bottom border (title text)
+     - Row 2 (.invb-subtitle-row): no bg  + gray bottom border (body text)
+     - Amount cell uses rowspan=2 so it spans both rows + vertical-align middle
+
+   Font sizes match INVA (invoice-deposit-after) for consistency:
+     - thead th       9pt   (matches .items-table.slim thead th)
+     - title row    10pt   (matches .group-row td)
+     - subtitle row  9pt   (matches .item-row td)
+     - amount       10pt   (matches title row, brand color emphasis)
+   ============================================================ */
+
+table.invb-items {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 12pt;
+}
+
+/* === Header row === */
+table.invb-items thead th {
+    background: #900F0F !important;
+    color: #ffffff !important;
+    font-weight: bold;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 6pt 10pt;
+    vertical-align: middle;
+    border: none;
+}
+
+table.invb-items thead th.invb-th-desc {
+    text-align: center !important;
+}
+
+table.invb-items thead th.invb-th-num {
+    text-align: right !important;
+}
+
+/* === Title row (row 1) — BOTH cells share pink bg + dark red bottom border === */
+table.invb-items tr.invb-title-row td {
+    background: #fcd4d4;
+    border-bottom: 0.6pt solid #670000;
+    padding: 6pt 10pt;
+    vertical-align: middle;
+}
+
+table.invb-items tr.invb-title-row td.invb-title-cell {
+    font-size: 10pt;
+    font-weight: bold;
+    color: #1A1A1A;
+    text-align: left;
+}
+
+table.invb-items tr.invb-title-row td.invb-amount {
+    text-align: right !important;
+    white-space: nowrap;
+    font-weight: bold;
+    font-size: 10pt;
+    color: #1A1A1A;
+}
+
+table.invb-items tr.invb-title-row .invb-summary-no {
+    display: inline-block;
+    min-width: 14pt;
+    font-weight: 700;
+    color: #900F0F;
+    margin-right: 4pt;
+}
+
+/* === Subtitle row (row 2) — BOTH cells: no bg + gray bottom border === */
+table.invb-items tr.invb-subtitle-row td {
+    background: transparent;
+    border-bottom: 0.5pt solid #DDDDDD;
+    padding: 4pt 10pt 6pt 10pt;
+    vertical-align: top;
+}
+
+table.invb-items tr.invb-subtitle-row td.invb-subtitle-cell {
+    padding-left: 28pt;
+    font-size: 9pt;
+    font-weight: normal;
+    color: #555555;
+    line-height: 1.45;
+    text-align: left;
+}
+
+/* .invb-subtitle-amount is an empty placeholder cell — no rules needed
+   (default td styling from .invb-subtitle-row td handles bg + border). */

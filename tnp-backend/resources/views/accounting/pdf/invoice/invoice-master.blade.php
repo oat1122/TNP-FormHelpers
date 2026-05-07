@@ -3,32 +3,52 @@
 @extends('accounting.pdf.invoice._layout')
 
 @section('items-section')
-  {{-- ตารางสินค้า/บริการ — $invoiceItems built by InvoicePdfMasterService::buildViewData() via Calculator::buildPdfItemsForType() (audit C2) --}}
+  {{-- ตารางสินค้า/บริการ — flat summary (2-col)
+       $invoiceItems — built by InvoicePdfMasterService::buildViewData() via
+       Calculator::buildPdfItemsForType() (audit C2). Each item is one summary
+       line (e.g. "1. รับมัดจำ / อ้างอิงจาก ...") with its total amount.
+       Styles in invoice-body.css (loaded last to win cascade). --}}
+
   <div class="mb-3">รายละเอียดสินค้า/บริการ</div>
-  @php $no = 1; @endphp
 
   @if(!empty($invoiceItems))
-    {{-- ตารางแบบ 2 คอลัมน์สำหรับ invoice-master --}}
-    <table class="items-table slim table-numbers-sm invoice-items">
+    @php $no = 1; @endphp
+    <table class="invb-items">
       <colgroup>
-        {{-- ปรับความกว้าง: รายละเอียด(78%) + ยอดรวม(22%) --}}
-        <col style="width: 78%;">  {{-- รายละเอียด --}}
-        <col style="width: 22%;">  {{-- จำนวนเงิน --}}
+        <col style="width: 78%;">
+        <col style="width: 22%;">
       </colgroup>
       <thead>
         <tr>
-          {{-- ลบ th ลำดับ --}}
-          <th class="text-left">รายละเอียด</th>
-          <th class="text-right">จำนวนเงิน</th>
+          <th class="invb-th-desc">รายละเอียด</th>
+          <th class="invb-th-num">จำนวนเงิน</th>
         </tr>
       </thead>
       <tbody>
         @foreach($invoiceItems as $item)
-          <tr>
-            {{-- ลบ td ลำดับ, เพิ่ม $no หน้า desc --}}
-            <td class="desc"><span class="item-no">{{ $no++ }}.</span> {!! nl2br(e($item['description'] ?? $item['item_description'] ?? '-')) !!}</td>
-            <td class="num">{{ number_format($item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0)), 2) }}</td>
+          @php
+            $rawDesc = $item['description'] ?? $item['item_description'] ?? '-';
+            // Split into title (first line) + body (rest) — bold title, gray body
+            $parts = preg_split('/\r\n|\r|\n/', (string) $rawDesc, 2);
+            $itemTitle = trim($parts[0] ?? '-');
+            $itemBody = isset($parts[1]) ? trim($parts[1]) : '';
+            $itemAmount = $item['amount'] ?? (($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0));
+            $hasBody = $itemBody !== '';
+          @endphp
+          {{-- Row 1: title + amount — both columns share pink bg + red bottom border --}}
+          <tr class="invb-title-row">
+            <td class="invb-title-cell">
+              <span class="invb-summary-no">{{ $no++ }}.</span>{{ $itemTitle }}
+            </td>
+            <td class="invb-amount">{{ number_format($itemAmount, 2) }}</td>
           </tr>
+          {{-- Row 2: subtitle — no bg + gray bottom border on both cells --}}
+          @if($hasBody)
+            <tr class="invb-subtitle-row">
+              <td class="invb-subtitle-cell">{!! nl2br(e($itemBody)) !!}</td>
+              <td class="invb-subtitle-amount"></td>
+            </tr>
+          @endif
         @endforeach
       </tbody>
     </table>
@@ -69,7 +89,7 @@
     $showWithholdingTax = $hasWithholdingTax && $withholdingTaxAmount > 0;
   @endphp
 
-  <table class="summary-table">
+  <table class="summary-table formal">
     <colgroup>
       <col style="width: 45%;">
       <col style="width: 55%;">

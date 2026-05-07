@@ -129,26 +129,17 @@ abstract class BasePdfMasterService
     }
 
     /**
-     * Get document type from model instance
+     * Get document type from model instance for cache-key segregation.
+     *
+     * Receipt + TaxInvoice + Invoice all share the `Invoice` model class, so
+     * class-name matching alone collapses them onto the same cache key. Each
+     * service overrides `getFilenamePrefix()` with a unique value
+     * (`invoice`, `receipt`, `receipt-full`, `tax-invoice`, `tax-invoice-full`)
+     * — reuse it here to keep cache keys unique per service variant.
      */
     protected function getDocumentTypeFromModel(object $model): string
     {
-        $class = get_class($model);
-
-        if (str_contains($class, 'Quotation')) {
-            return 'quotation';
-        }
-        if (str_contains($class, 'Invoice')) {
-            return 'invoice';
-        }
-        if (str_contains($class, 'Receipt')) {
-            return 'receipt';
-        }
-        if (str_contains($class, 'DeliveryNote')) {
-            return 'delivery_note';
-        }
-
-        return 'unknown';
+        return str_replace('-', '_', $this->getFilenamePrefix());
     }
 
     /**

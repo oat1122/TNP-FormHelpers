@@ -60,7 +60,7 @@
       @endphp
     @endforeach
 
-    <table class="items-table slim table-numbers-sm">
+    <table class="items-table slim table-numbers-sm formal">
       <colgroup>
         {{-- ปรับความกว้างคอลัมน์ --}}
         <col class="w-desc">       {{-- รายละเอียด --}}
@@ -200,7 +200,7 @@
     $showWithholdingTax = $hasWithholdingTax && $withholdingTaxAmount > 0;
   @endphp
 
-  <table class="summary-table">
+  <table class="summary-table formal">
     <colgroup>
       <col style="width: 45%;">
       <col style="width: 55%;">

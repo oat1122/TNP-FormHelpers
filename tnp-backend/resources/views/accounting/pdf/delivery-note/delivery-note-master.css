@@ -1,33 +1,72 @@
-/* Delivery Note PDF Styles - based on quotation/invoice master */
+/* Delivery Note PDF Styles — Phase 6 (uses design tokens from pdf-shared-base.css :root) */
 
 /* Basic layout */
 .document-content {
-    font-size: 12pt;
-    color: #222;
-}
-.mb-3 {
-    margin-bottom: 12px;
-}
-.mb-4 {
-    margin-bottom: 16px;
-}
-.muted {
-    color: #666;
+    font-size: var(--fs-base);
+    color: var(--c-text-primary);
 }
 
-/* Items table */
+/* ============================================================
+   Unified party box — same markup + sizing for company & customer
+   ============================================================
+   Replaces split .company-* / .customer-* classes so both parties
+   render at identical font sizes (user request: "section บริษัท
+   และ section ลูกค้า ควรใช้class เดียวกัน และขนาดตัวเท้ากัน").
+   ============================================================ */
+.party-label {
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: var(--sp-2);
+    margin-bottom: 2pt;
+}
+
+.party-box {
+    margin-bottom: var(--sp-2);
+}
+
+.party-box .party-name {
+    font-size: var(--fs-base);
+    font-weight: bold;
+    color: var(--c-text-primary);
+    line-height: 1.3;
+    margin-bottom: 2pt;
+}
+
+.party-box .party-line {
+    font-size: var(--fs-sm);
+    color: var(--c-text-primary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.party-box .party-line.muted {
+    color: var(--c-text-secondary);
+}
+.mb-3 {
+    margin-bottom: var(--sp-3);
+}
+.mb-4 {
+    margin-bottom: var(--sp-4);
+}
+.muted {
+    color: var(--c-text-secondary);
+}
+
+/* Items table — base rules (`.formal` overlay handled in pdf-doc-master.css) */
 .items-table {
     width: 100%;
     border-collapse: collapse;
 }
 .items-table th,
 .items-table td {
-    border-bottom: 1px solid #e5e7eb;
-    padding: 6px 8px;
+    border-bottom: 0.5pt solid var(--c-border-light);
+    padding: 6pt 8pt;
     vertical-align: top;
 }
 .items-table thead th {
-    background: #f8fafc;
+    background: var(--c-bg-header-row);
     font-weight: bold;
 }
 
@@ -42,11 +81,11 @@
     white-space: nowrap;
 }
 .items-table .child {
-    padding-left: 16px;
-    color: #333;
+    padding-left: var(--sp-4);
+    color: var(--c-text-primary);
 }
 .items-table .meta-light {
-    color: #6b7280;
+    color: var(--c-text-secondary);
     font-weight: normal;
 }
 .items-table .group-no {
@@ -67,9 +106,9 @@
 
 /* No items */
 .no-items-box {
-    padding: 16px;
-    background: #f9fafb;
-    border: 1px dashed #e5e7eb;
+    padding: var(--sp-4);
+    background: var(--c-bg-total-row);
+    border: 1px dashed var(--c-border-light);
     text-align: center;
 }
 
@@ -78,37 +117,43 @@
     height: 6mm; /* align with quotation spacing */
 }
 
-/* Signature styles aligned with quotation */
+/* Signature area — 2-column layout (ผู้รับสินค้า / ผู้ส่งสินค้า)
+   Per user spec: 200pt boxes + ~48pt gap above signature line */
 .signature-fixed-wrapper {
-    font-size: 10pt;
+    font-size: var(--fs-base);
+    margin-top: var(--sp-6);
 }
 .signature-table.fixed {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 .signature-table.fixed .signature-cell {
-    padding: 6pt 12pt;
+    width: 50%;
+    padding: var(--sp-2) var(--sp-3);
     text-align: center;
     vertical-align: top;
 }
 .signature-table.fixed .signature-role {
-    font-weight: 600;
-    margin-top: 6pt;
-    font-size: 10.5pt;
-    color: #2c3e50;
+    font-weight: bold;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-md);
+    color: var(--c-text-primary);
     line-height: 1.35;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 .signature-table.fixed .signature-name-placeholder {
-    margin-top: 8pt;
-    font-size: 9pt;
-    color: #555;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-sm);
+    color: var(--c-text-secondary);
     font-style: italic;
     line-height: 1.4;
 }
 .signature-table.fixed .signature-date-line {
-    margin-top: 8pt;
-    font-size: 8.5pt;
-    color: #444;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-fine);
+    color: var(--c-text-secondary);
     letter-spacing: 0.5pt;
     line-height: 1.4;
 }
@@ -116,6 +161,7 @@
     position: relative;
     width: 200pt;
     height: 60pt;
+    margin: 0 auto;
 }
 .signature-box:after {
     content: "";
@@ -124,33 +170,36 @@
     right: 0;
     bottom: -2pt;
     height: 0;
-    border-bottom: 1pt solid #555;
+    border-bottom: 0.5pt solid var(--c-border-strong);
 }
 
 /* Document subtitle (for header types like สำเนา) */
 .doc-subtitle {
-    font-size: 11pt;
-    color: #666;
-    margin-top: 4px;
-    margin-bottom: 8px;
+    font-size: var(--fs-md);
+    color: var(--c-text-secondary);
+    margin-top: var(--sp-1);
+    margin-bottom: var(--sp-2);
     font-weight: normal;
 }
 
-/* Delivery notes section - red text for important notices */
+/* Delivery notes section — important notice (red text per requirement) */
 .delivery-notes-section {
-    margin-top: 20px;
-    padding: 12px 0;
+    margin-top: var(--sp-6);
+    padding: var(--sp-3) 0;
     page-break-inside: avoid;
+    border-top: 0.5pt solid var(--c-border-light);
 }
-.delivery-notes-section > div:first-child {
+.delivery-notes-title {
     font-weight: bold;
-    color: #d32f2f;
-    font-size: 11pt;
-    margin-bottom: 8px;
+    color: var(--c-accent-warning);
+    font-size: var(--fs-fine);
+    margin-bottom: var(--sp-1);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
-.delivery-notes-section > div:last-child {
-    color: #d32f2f;
-    font-size: 10pt;
-    line-height: 1.6;
+.delivery-notes-body {
+    color: var(--c-accent-warning);
+    font-size: var(--fs-fine);
+    line-height: 1.4;
     white-space: pre-line;
 }

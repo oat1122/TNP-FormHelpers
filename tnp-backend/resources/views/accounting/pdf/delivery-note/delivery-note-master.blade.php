@@ -43,7 +43,7 @@
     @endif
 
     @if(count($groupsData))
-      <table class="items-table slim table-numbers-sm">
+      <table class="items-table slim table-numbers-sm formal">
         <colgroup>
           <col class="w-desc">
           <col class="w-qty">
@@ -80,11 +80,11 @@
       <div class="no-items-box"><strong>ไม่มีรายการสินค้า/บริการ</strong></div>
     @endif
 
-    {{-- หมายเหตุ --}}
+    {{-- หมายเหตุ (Phase 6: replace inline styles with design-token classes) --}}
     @if(!empty($deliveryNote->notes))
-      <div class="delivery-notes-section" style="margin-top: 20px; padding: 12px 0;">
-        <div style="font-weight: bold; color: #d32f2f; font-size: 11pt; margin-bottom: 8px;">หมายเหตุ:</div>
-        <div style="color: #d32f2f; font-size: 10pt; line-height: 1.6; white-space: pre-line;">{{ $deliveryNote->notes }}</div>
+      <div class="delivery-notes-section">
+        <div class="delivery-notes-title">หมายเหตุ:</div>
+        <div class="delivery-notes-body">{{ $deliveryNote->notes }}</div>
       </div>
     @endif
 

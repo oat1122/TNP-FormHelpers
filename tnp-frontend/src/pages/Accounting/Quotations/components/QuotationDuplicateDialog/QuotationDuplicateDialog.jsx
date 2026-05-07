@@ -4,61 +4,52 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Grid,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { useQuotationDuplicateDialogLogic } from "./hooks/useQuotationDuplicateDialogLogic";
-import { useQuotationDuplicateSave } from "./hooks/useQuotationDuplicateSave";
-import { useGetBulkPricingRequestAutofillQuery } from "../../../../../features/Accounting/accountingApi";
+import { useQuotationDuplicateForm } from "./hooks/useQuotationDuplicateForm";
+import { useQuotationDuplicateItems } from "./hooks/useQuotationDuplicateItems";
+import { useQuotationDuplicateValidation } from "./hooks/useQuotationDuplicateValidation";
+import { useQuotationFormSave } from "./hooks/useQuotationFormSave";
+import CustomerSection from "./sections/CustomerSection";
+import ItemsCalculationSection from "./sections/ItemsCalculationSection";
+import PaymentTermsSection from "./sections/PaymentTermsSection";
+import DialogHeader from "./subcomponents/DialogHeader";
+import EditModeTabs from "./subcomponents/EditModeTabs";
+import ValidationBanner from "./subcomponents/ValidationBanner";
 import CustomerEditDialog from "../../../PricingIntegration/components/CustomerEditDialog";
 import { useCurrentUser } from "../../../shared/hooks/useCurrentUser";
 import { useQuotationFinancials } from "../../../shared/hooks/useQuotationFinancials";
 import { SecondaryButton, tokens } from "../../../shared/styles/quotationFormStyles";
 import { useQuotationDialogFinancialsInit } from "../QuotationDetailDialog/hooks/useQuotationDialogFinancialsInit";
-import FinancialControlsSection from "../QuotationDetailDialog/sections/FinancialControlsSection";
-import PaymentTermsSection from "../QuotationDetailDialog/sections/PaymentTermsSection";
-import PRGroupsSection from "../QuotationDetailDialog/sections/PRGroupsSection";
-import { useQuotationGroups } from "../shared/hooks/useQuotationGroups";
-import { getAllPrIdsFromQuotation, normalizeAndGroupItems } from "../shared/utils/quotationUtils";
 
 const EDIT_ROLES = ["admin", "account"];
 
-const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess }) => {
+const QuotationDuplicateDialog = ({
+  open,
+  onClose,
+  initialData,
+  onSaveSuccess,
+  mode = "duplicate",
+  quotationId = null,
+}) => {
+  const isEdit = mode === "edit";
   const { currentUser } = useCurrentUser();
   const canEditCustomer = EDIT_ROLES.includes(currentUser?.role);
 
+  // Form state (customer + notes + payment + deposit + discount + vat + withholding)
   const { q, customer, editCustomerOpen, formState, setters } =
-    useQuotationDuplicateDialogLogic(initialData);
+    useQuotationDuplicateForm(initialData);
 
+  // Re-sync financials when source quotation / open state changes
   useQuotationDialogFinancialsInit({ quotation: q, open, setters });
 
-  const prIdsAll = getAllPrIdsFromQuotation(q);
-  const items = normalizeAndGroupItems(q, prIdsAll);
-
-  const { data: bulkAutofillData, isLoading: isAutofillLoading } =
-    useGetBulkPricingRequestAutofillQuery(prIdsAll, {
-      skip: !open || prIdsAll.length === 0,
-    });
-
-  const prAutofillMap = useMemo(() => {
-    const map = new Map();
-    (bulkAutofillData?.data || []).forEach((item) => {
-      const key = item.pr_id || item.id;
-      if (key) map.set(key, item);
-    });
-    return map;
-  }, [bulkAutofillData]);
-
-  const groupsLogic = useQuotationGroups(items);
-  const { groups, setIsEditing, ...groupHandlers } = groupsLogic;
-
-  // Duplicate dialog is always in edit mode — force it once groups are ready.
-  useEffect(() => {
-    if (open) setIsEditing(true);
-  }, [open, setIsEditing]);
+  // Items + autofill + grouping (Phase 3 — bundled into one hook)
+  const { prIdsAll, items, groups, groupHandlers, prAutofillMap, isAutofillLoading } =
+    useQuotationDuplicateItems({ q, open });
 
   const financials = useQuotationFinancials({
     items: groups,
@@ -74,10 +65,18 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
     vatPercentage: formState.vat.percentage,
   });
 
-  const saveFlow = useQuotationDuplicateSave({
+  // Phase 4: proactive validation — surfaces issues before save click
+  const { issues, hasBlockingErrors, blockingReason } = useQuotationDuplicateValidation({
+    groups,
+    financials,
+  });
+
+  const saveFlow = useQuotationFormSave({
+    mode,
     sourceQuotation: q,
     customer,
     formState,
+    quotationId,
     onSuccess: () => {
       onSaveSuccess?.();
       onClose();
@@ -87,6 +86,69 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
   const handleSave = useCallback(async () => {
     await saveFlow.handleSave(groups, financials);
   }, [saveFlow, groups, financials]);
+
+  const isSaveDisabled = saveFlow.isSaving || hasBlockingErrors;
+  const saveDisableReason = hasBlockingErrors ? blockingReason : "";
+
+  // Tab state lifted here so the tab bar can sit OUTSIDE DialogContent
+  // (immediately under DialogHeader, no padding gap), while the active panel
+  // renders INSIDE DialogContent (scrollable area with padding).
+  const [activeTab, setActiveTab] = useState("items");
+
+  const panels = useMemo(
+    () => ({
+      customer: (
+        <Grid container spacing={2}>
+          <CustomerSection
+            customer={customer}
+            canEdit={canEditCustomer}
+            onEditCustomer={() => setters.setEditCustomerOpen(true)}
+          />
+        </Grid>
+      ),
+      items: (
+        <Grid container spacing={2}>
+          <ItemsCalculationSection
+            customer={customer}
+            workName={q.work_name || q.workname || q.title || ""}
+            items={items}
+            groups={groups}
+            prAutofillMap={prAutofillMap}
+            canEdit={canEditCustomer}
+            onEditCustomer={() => setters.setEditCustomerOpen(true)}
+            onAddNewGroup={groupHandlers.onAddNewGroup}
+            groupHandlers={groupHandlers}
+            formState={formState}
+            setters={setters}
+            financials={financials}
+            hideCustomerCard={true}
+          />
+        </Grid>
+      ),
+      payment: (
+        <Grid container spacing={2}>
+          <PaymentTermsSection
+            quotation={q}
+            formState={formState}
+            financials={financials}
+            setters={setters}
+          />
+        </Grid>
+      ),
+    }),
+    [
+      customer,
+      canEditCustomer,
+      setters,
+      q,
+      items,
+      groups,
+      prAutofillMap,
+      groupHandlers,
+      formState,
+      financials,
+    ]
+  );
 
   if (prIdsAll.length > 0 && isAutofillLoading) {
     return (
@@ -103,54 +165,52 @@ const QuotationDuplicateDialog = ({ open, onClose, initialData, onSaveSuccess })
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        สร้างใบเสนอราคา (สำเนา)
-      </DialogTitle>
-      <DialogContent dividers sx={{ p: 2, bgcolor: tokens.bg }}>
+      <DialogHeader
+        mode={mode}
+        sourceQuotation={q}
+        customerName={customer?.cus_company || customer?.name}
+        finalTotal={financials?.finalTotal}
+        onClose={onClose}
+      />
+      {/* Tab bar — placed OUTSIDE DialogContent so it sits flush against
+          DialogHeader with no padding gap (per user request "ย้ายให้ติดกัน") */}
+      <EditModeTabs activeTab={activeTab} onChange={setActiveTab} />
+      <DialogContent dividers={false} sx={{ p: 2, bgcolor: tokens.bg }}>
         <Box>
-          <Grid container spacing={2}>
-            <PRGroupsSection
-              customer={customer}
-              workName={q.work_name || q.workname || q.title || ""}
-              quotationNumber=""
-              items={items}
-              activeGroups={groups}
-              prAutofillMap={prAutofillMap}
-              isEditing={true}
-              canEdit={canEditCustomer}
-              onEditCustomer={() => setters.setEditCustomerOpen(true)}
-              onAddNewGroup={groupHandlers.onAddNewGroup}
-              groupHandlers={groupHandlers}
-              financialControlsNode={
-                <FinancialControlsSection
-                  isEditing={true}
-                  financials={financials}
-                  formState={formState}
-                  setters={setters}
-                />
-              }
-            />
-
-            <PaymentTermsSection
-              isEditing={true}
-              quotation={q}
-              formState={formState}
-              financials={financials}
-              setters={setters}
-            />
-          </Grid>
+          <ValidationBanner issues={issues} />
+          {panels[activeTab]}
         </Box>
       </DialogContent>
       <DialogActions>
-        <SecondaryButton disabled title="สามารถดู PDF ได้หลังจากสร้างใบเสนอราคาแล้ว">
-          (ดู PDF หลังสร้าง)
-        </SecondaryButton>
+        {!isEdit && (
+          <SecondaryButton disabled title="สามารถดู PDF ได้หลังจากสร้างใบเสนอราคาแล้ว">
+            (ดู PDF หลังสร้าง)
+          </SecondaryButton>
+        )}
         <SecondaryButton onClick={onClose} disabled={saveFlow.isSaving}>
           ยกเลิก
         </SecondaryButton>
-        <SecondaryButton onClick={handleSave} disabled={saveFlow.isSaving}>
-          {saveFlow.isSaving ? "กำลังสร้าง…" : "สร้างใบเสนอราคา"}
-        </SecondaryButton>
+        {(() => {
+          const savingLabel = isEdit ? "กำลังบันทึก…" : "กำลังสร้าง…";
+          const saveLabel = isEdit ? "บันทึกการเปลี่ยนแปลง" : "สร้างใบเสนอราคา";
+          const buttonText = saveFlow.isSaving ? savingLabel : saveLabel;
+          if (isSaveDisabled && saveDisableReason) {
+            return (
+              <Tooltip title={saveDisableReason} arrow placement="top">
+                <span>
+                  <SecondaryButton onClick={handleSave} disabled>
+                    {buttonText}
+                  </SecondaryButton>
+                </span>
+              </Tooltip>
+            );
+          }
+          return (
+            <SecondaryButton onClick={handleSave} disabled={isSaveDisabled}>
+              {buttonText}
+            </SecondaryButton>
+          );
+        })()}
       </DialogActions>
 
       <CustomerEditDialog

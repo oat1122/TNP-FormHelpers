@@ -35,11 +35,13 @@ import { useQuotationsPage } from "./hooks/useQuotationsPage";
 import { useInvoicesPage } from "../Invoices/hooks/useInvoicesPage";
 
 const UNIFIED_ROLES = ["admin", "account"];
+const EDIT_ROLES = ["admin", "account", "sales"];
 
 const Quotations = () => {
   const { mode, setMode } = useDocumentMode();
   const { currentUser, isAdmin } = useCurrentUser();
   const showTypeSelector = isAdmin || UNIFIED_ROLES.includes(currentUser?.role);
+  const canEditQuotations = isAdmin || EDIT_ROLES.includes(currentUser?.role);
 
   const isQuotationMode = mode === "quotation" || !showTypeSelector;
   const effectiveMode = isQuotationMode ? "quotation" : "invoice";
@@ -185,6 +187,8 @@ const Quotations = () => {
                         onViewDetail={openDetail}
                         onDownloadPDF={quotationsPage.handleDownloadPDF}
                         onDuplicate={quotationsPage.handleDuplicate}
+                        onEdit={quotationsPage.handleEdit}
+                        canEditQuotations={canEditQuotations}
                         onCreateInvoice={openCreateInvoice}
                         onGoToInvoice={handleGoToInvoice}
                         onActionSuccess={quotationsPage.handleCardActionSuccess}
@@ -265,6 +269,16 @@ const Quotations = () => {
                   onClose={quotationsPage.handleCloseDuplicateDialog}
                   initialData={quotationsPage.duplicateData}
                   onSaveSuccess={quotationsPage.handleSaveDuplicateSuccess}
+                />
+              )}
+              {quotationsPage.editOpen && quotationsPage.editData && (
+                <QuotationDuplicateDialog
+                  mode="edit"
+                  open={quotationsPage.editOpen}
+                  onClose={quotationsPage.handleCloseEditDialog}
+                  initialData={quotationsPage.editData}
+                  quotationId={quotationsPage.editQuotationId}
+                  onSaveSuccess={quotationsPage.handleSaveEditSuccess}
                 />
               )}
 

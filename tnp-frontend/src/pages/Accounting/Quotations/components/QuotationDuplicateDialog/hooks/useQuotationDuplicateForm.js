@@ -3,13 +3,22 @@ import { useMemo, useState } from "react";
 import { PAYMENT_TERMS } from "../../../../shared/constants/paymentTerms";
 import { normalizeCustomer, pickQuotation } from "../../shared/utils/quotationUtils";
 
-// State holder for QuotationDuplicateDialog. Mirrors useQuotationDialogLogic but
-// seeds from the `initialData` prop (no fetch). Returns nested `formState` +
-// `setters` objects so the shell + Phase 4 sections can consume the same shape.
-//
-// Effects (re-syncing on `open` / `initialData` change) live in
-// `useQuotationDialogFinancialsInit` (reused from Phase 4).
-export function useQuotationDuplicateDialogLogic(initialData) {
+/**
+ * Form state holder for QuotationDuplicateDialog (Phase 3 — split from
+ * legacy `useQuotationDuplicateDialogLogic`).
+ *
+ * Owns: source quotation reference (q), customer (+ edit dialog state),
+ * notes/dueDate, payment terms, deposit, special discount, withholding tax,
+ * VAT, pricing mode. Returns nested `formState` + `setters` shape so all
+ * sections (PRGroups, FinancialControls, PaymentTerms) consume the same prop
+ * contract as `useQuotationDialogLogic` of QuotationDetailDialog.
+ *
+ * Items / autofill / grouping logic is split out to `useQuotationDuplicateItems`.
+ *
+ * Effects (re-syncing on `open` / `initialData` change) live in
+ * `useQuotationDialogFinancialsInit` (reused from QuotationDetailDialog).
+ */
+export function useQuotationDuplicateForm(initialData) {
   const q = useMemo(() => pickQuotation(initialData), [initialData]);
 
   // Customer

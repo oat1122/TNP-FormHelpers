@@ -21,6 +21,10 @@ import { PRGroupSummaryCard } from "../../shared/PRGroupSummaryCard";
 //   2. Editable calc card list with Edit / Add Manual toggles
 // Financial controls + calculation summary are passed in via `financialControlsNode`
 // so the caller can compose them inside the same calc Section (preserving original UX).
+//
+// `hideCustomerCard` (default false): when true, omits the customer info InfoCard
+// (used by QuotationDuplicateDialog tab layout where customer lives in its own
+// dedicated tab). Backward compat: existing callers keep customer card visible.
 const PRGroupsSection = ({
   customer,
   workName,
@@ -35,6 +39,7 @@ const PRGroupsSection = ({
   onAddNewGroup,
   groupHandlers,
   financialControlsNode,
+  hideCustomerCard = false,
 }) => {
   return (
     <>
@@ -54,79 +59,85 @@ const PRGroupsSection = ({
             </Box>
           </SectionHeader>
           <Box sx={{ p: 2 }}>
-            <InfoCard sx={{ p: 2, mb: 1.5 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {customer?.customer_type === "individual" ? "ชื่อผู้ติดต่อ" : "ชื่อบริษัท"}
-                  </Typography>
-                  <Typography variant="body1" fontWeight={700}>
-                    {customer?.customer_type === "individual"
-                      ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
-                        customer?.cus_name ||
-                        "-"
-                      : customer?.cus_company || "-"}
-                  </Typography>
+            {!hideCustomerCard && (
+              <InfoCard sx={{ p: 2, mb: 1.5 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {customer?.customer_type === "individual" ? "ชื่อผู้ติดต่อ" : "ชื่อบริษัท"}
+                    </Typography>
+                    <Typography variant="body1" fontWeight={700}>
+                      {customer?.customer_type === "individual"
+                        ? `${customer?.cus_firstname || ""} ${customer?.cus_lastname || ""}`.trim() ||
+                          customer?.cus_name ||
+                          "-"
+                        : customer?.cus_company || "-"}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {customer.cus_tel_1 ? (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={customer.cus_tel_1}
+                        sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }}
+                      />
+                    ) : null}
+                    {canEdit && (
+                      <SecondaryButton
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={onEditCustomer}
+                      >
+                        แก้ไขลูกค้า
+                      </SecondaryButton>
+                    )}
+                  </Box>
                 </Box>
-                <Box display="flex" alignItems="center" gap={1}>
-                  {customer.cus_tel_1 ? (
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={customer.cus_tel_1}
-                      sx={{ borderColor: tokens.primary, color: tokens.primary, fontWeight: 700 }}
-                    />
-                  ) : null}
-                  {canEdit && (
-                    <SecondaryButton size="small" startIcon={<EditIcon />} onClick={onEditCustomer}>
-                      แก้ไขลูกค้า
-                    </SecondaryButton>
-                  )}
-                </Box>
-              </Box>
-              {(customer.contact_name ||
-                customer.cus_email ||
-                customer.cus_tax_id ||
-                customer.cus_address) && (
-                <Grid container spacing={1}>
-                  {customer.contact_name && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        ผู้ติดต่อ
-                      </Typography>
-                      <Typography variant="body2">
-                        {customer.contact_name}{" "}
-                        {customer.contact_nickname ? `(${customer.contact_nickname})` : ""}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_email && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        อีเมล
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_email}</Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_tax_id && (
-                    <Grid item xs={12} md={4}>
-                      <Typography variant="caption" color="text.secondary">
-                        เลขประจำตัวผู้เสียภาษี
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_tax_id}</Typography>
-                    </Grid>
-                  )}
-                  {customer.cus_address && (
-                    <Grid item xs={12}>
-                      <Typography variant="caption" color="text.secondary">
-                        ที่อยู่
-                      </Typography>
-                      <Typography variant="body2">{customer.cus_address}</Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-            </InfoCard>
+                {(customer.contact_name ||
+                  customer.cus_email ||
+                  customer.cus_tax_id ||
+                  customer.cus_address) && (
+                  <Grid container spacing={1}>
+                    {customer.contact_name && (
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          ผู้ติดต่อ
+                        </Typography>
+                        <Typography variant="body2">
+                          {customer.contact_name}{" "}
+                          {customer.contact_nickname ? `(${customer.contact_nickname})` : ""}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {customer.cus_email && (
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          อีเมล
+                        </Typography>
+                        <Typography variant="body2">{customer.cus_email}</Typography>
+                      </Grid>
+                    )}
+                    {customer.cus_tax_id && (
+                      <Grid item xs={12} md={4}>
+                        <Typography variant="caption" color="text.secondary">
+                          เลขประจำตัวผู้เสียภาษี
+                        </Typography>
+                        <Typography variant="body2">{customer.cus_tax_id}</Typography>
+                      </Grid>
+                    )}
+                    {customer.cus_address && (
+                      <Grid item xs={12}>
+                        <Typography variant="caption" color="text.secondary">
+                          ที่อยู่
+                        </Typography>
+                        <Typography variant="body2">{customer.cus_address}</Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                )}
+              </InfoCard>
+            )}
 
             {(workName || quotationNumber) && (
               <InfoCard sx={{ p: 2, mb: 1.5 }}>

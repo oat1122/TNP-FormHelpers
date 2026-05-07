@@ -1,7 +1,9 @@
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
+import EditIcon from "@mui/icons-material/Edit";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
+import PostAddIcon from "@mui/icons-material/PostAdd";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import UndoIcon from "@mui/icons-material/Undo";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -33,6 +35,8 @@ const QuotationTableRow = ({
   onViewDetail,
   onDownloadPDF,
   onDuplicate,
+  onEdit,
+  canEditQuotations = false,
   onCreateInvoice,
   onGoToInvoice,
   onActionSuccess,
@@ -40,6 +44,7 @@ const QuotationTableRow = ({
   const status = q?.status || "draft";
   const sColor = statusColor[status] || "default";
   const isApproved = status === "approved";
+  const hasInvoices = Number(q?.invoices_count || 0) > 0;
 
   const { canApprove, canRevokeApproval, approving, submitting, onApprove } = useQuotationCardLogic(
     q,
@@ -212,6 +217,24 @@ const QuotationTableRow = ({
               </Tooltip>
             )}
 
+            {canEditQuotations && onEdit && (
+              <Tooltip
+                title={hasInvoices ? "ไม่สามารถแก้ไขได้ — มีใบแจ้งหนี้ที่อ้างอิงแล้ว" : "แก้ไข"}
+                arrow
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={hasInvoices}
+                    onClick={() => onEdit?.(q.id)}
+                    sx={{ color: hasInvoices ? undefined : "warning.main" }}
+                  >
+                    <EditIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+
             {onDuplicate && (
               <Tooltip title="ทำสำเนา" arrow>
                 <IconButton
@@ -224,7 +247,7 @@ const QuotationTableRow = ({
               </Tooltip>
             )}
 
-            {onCreateInvoice && isApproved && q?.signature_image_url && (
+            {onCreateInvoice && isApproved && q?.signature_image_url && !hasInvoices && (
               <Tooltip title="สร้างใบแจ้งหนี้" arrow>
                 <IconButton
                   size="small"
@@ -237,13 +260,17 @@ const QuotationTableRow = ({
             )}
 
             {onGoToInvoice && isApproved && (
-              <Tooltip title="ไปยังใบแจ้งหนี้ของรายการนี้" arrow>
+              <Tooltip title={hasInvoices ? "ไปยังใบแจ้งหนี้" : "สร้างใบแจ้งหนี้"} arrow>
                 <IconButton
                   size="small"
                   onClick={() => onGoToInvoice?.(q)}
-                  sx={{ color: "info.dark" }}
+                  sx={{ color: hasInvoices ? "info.dark" : "success.main" }}
                 >
-                  <AccountBalanceIcon sx={{ fontSize: 18 }} />
+                  {hasInvoices ? (
+                    <AccountBalanceIcon sx={{ fontSize: 18 }} />
+                  ) : (
+                    <PostAddIcon sx={{ fontSize: 18 }} />
+                  )}
                 </IconButton>
               </Tooltip>
             )}

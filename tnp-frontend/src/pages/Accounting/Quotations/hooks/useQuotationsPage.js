@@ -6,6 +6,7 @@ import {
   useGetQuotationsQuery,
   useGenerateQuotationPDFMutation,
   useLazyGetQuotationDuplicateDataQuery,
+  useLazyGetQuotationRelatedInvoicesQuery,
 } from "../../../../features/Accounting/accountingApi";
 import { addNotification } from "../../../../features/Accounting/accountingSlice";
 import { PERFORMANCE_CONFIG } from "../../config/performanceConfig";
@@ -42,6 +43,11 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateData, setDuplicateData] = useState(null);
 
+  // Edit-mode state — reuses same QuotationDuplicateDialog with mode="edit"
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [editQuotationId, setEditQuotationId] = useState(null);
+
   const [lastSavedId, setLastSavedId] = useState(null);
 
   const { data, error, isLoading, isFetching, refetch } = useGetQuotationsQuery(
@@ -56,6 +62,7 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
   );
   const [generatePDF] = useGenerateQuotationPDFMutation();
   const [triggerGetDuplicateData] = useLazyGetQuotationDuplicateDataQuery();
+  const [triggerGetRelatedInvoices] = useLazyGetQuotationRelatedInvoicesQuery();
 
   const quotations = useMemo(() => {
     const arr = data?.data?.data || data?.data || [];
@@ -127,6 +134,62 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
         type: "success",
         title: "สร้างสำเร็จ",
         message: "สร้างใบเสนอราคา (สำเนา) เรียบร้อยแล้ว",
+      })
+    );
+  }, [refetch, dispatch]);
+
+  // Edit flow (Edit-Phase 4):
+  // 1. Check related invoices first — if any → block edit (toast warning)
+  // 2. Otherwise → fetch duplicate-data (same shape) → open dialog with mode="edit"
+  const handleEdit = useCallback(
+    async (quotationId) => {
+      try {
+        const relRes = await triggerGetRelatedInvoices(quotationId).unwrap();
+        const list = relRes?.data?.data || relRes?.data || [];
+        const hasInvoices = Array.isArray(list) && list.length > 0;
+        if (hasInvoices) {
+          dispatch(
+            addNotification({
+              type: "error",
+              title: "ไม่สามารถแก้ไขได้",
+              message:
+                "ใบเสนอราคานี้มีใบแจ้งหนี้ที่อ้างอิงอยู่แล้ว — แก้ไขจะกระทบใบแจ้งหนี้ที่ออกไปแล้ว",
+            })
+          );
+          return;
+        }
+
+        const result = await triggerGetDuplicateData(quotationId).unwrap();
+        setEditData(result.data);
+        setEditQuotationId(quotationId);
+        setEditOpen(true);
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("Failed to open edit dialog", err);
+        dispatch(
+          addNotification({
+            type: "error",
+            title: "ไม่สามารถเปิดหน้าต่างแก้ไขได้",
+            message: err?.data?.message || err.message || "เกิดข้อผิดพลาด",
+          })
+        );
+      }
+    },
+    [triggerGetRelatedInvoices, triggerGetDuplicateData, dispatch]
+  );
+
+  const handleCloseEditDialog = useCallback(() => {
+    setEditOpen(false);
+    setEditData(null);
+    setEditQuotationId(null);
+  }, []);
+
+  const handleSaveEditSuccess = useCallback(() => {
+    refetch();
+    dispatch(
+      addNotification({
+        type: "success",
+        title: "บันทึกสำเร็จ",
+        message: "บันทึกใบเสนอราคาเรียบร้อยแล้ว",
       })
     );
   }, [refetch, dispatch]);
@@ -237,6 +300,13 @@ export const useQuotationsPage = ({ enabled = true } = {}) => {
     duplicateData,
     handleCloseDuplicateDialog,
     handleSaveDuplicateSuccess,
+    // Edit (reuses QuotationDuplicateDialog with mode="edit")
+    editOpen,
+    editData,
+    editQuotationId,
+    handleEdit,
+    handleCloseEditDialog,
+    handleSaveEditSuccess,
     // Handlers
     handleDownloadPDF,
     handleDuplicate,

@@ -197,6 +197,7 @@ class QuotationService
             }
 
             $query = Quotation::with($with)
+                ->withCount('invoices')
                 ->whereNotIn('status', ['deleted']);
 
             // Apply filters

@@ -17,6 +17,8 @@ const QuotationTableView = ({
   onViewDetail,
   onDownloadPDF,
   onDuplicate,
+  onEdit,
+  canEditQuotations = false,
   onCreateInvoice,
   onGoToInvoice,
   onActionSuccess,
@@ -84,6 +86,8 @@ const QuotationTableView = ({
               onViewDetail={onViewDetail}
               onDownloadPDF={onDownloadPDF}
               onDuplicate={onDuplicate}
+              onEdit={onEdit}
+              canEditQuotations={canEditQuotations}
               onCreateInvoice={onCreateInvoice}
               onGoToInvoice={onGoToInvoice}
               onActionSuccess={onActionSuccess}
